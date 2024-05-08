@@ -21,8 +21,8 @@ except ImportError:
 
 
 if PYDANTIC_V2:
-    from pydantic_core import core_schema
     from pydantic import GetCoreSchemaHandler
+    from pydantic_core import core_schema
 
 
 if FASTAPI_INSTALLED:

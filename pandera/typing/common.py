@@ -1,13 +1,24 @@
 """Common typing functionality."""
+
 # pylint:disable=abstract-method,too-many-ancestors,invalid-name
 
+import copy
 import inspect
-from typing import TYPE_CHECKING, Any, Generic, Optional, Type, TypeVar, Union
+from typing import (  # type: ignore[attr-defined]
+    TYPE_CHECKING,
+    Any,
+    Generic,
+    Optional,
+    Type,
+    TypeVar,
+    Union,
+    _GenericAlias,
+)
 
 import pandas as pd
 import typing_inspect
 
-from pandera import dtypes
+from pandera import dtypes, errors
 from pandera.engines import numpy_engine, pandas_engine
 
 Bool = dtypes.Bool  #: ``"bool"`` numpy dtype
@@ -45,95 +56,56 @@ STRING = pandas_engine.STRING  #: ``"str"`` numpy dtype
 BOOL = pandas_engine.BOOL  #: ``"str"`` numpy dtype
 
 
-try:
+if pandas_engine.GEOPANDAS_INSTALLED:
     Geometry = pandas_engine.Geometry  # : ``"geometry"`` geopandas dtype
-    GEOPANDAS_INSTALLED = True
-except AttributeError:
-    GEOPANDAS_INSTALLED = False
-
-if GEOPANDAS_INSTALLED:
-    GenericDtype = TypeVar(  # type: ignore
-        "GenericDtype",
-        bound=Union[
-            bool,
-            int,
-            str,
-            float,
-            pd.core.dtypes.base.ExtensionDtype,
-            Bool,
-            Date,
-            DateTime,
-            Decimal,
-            Timedelta,
-            Category,
-            Float,
-            Float16,
-            Float32,
-            Float64,
-            Int,
-            Int8,
-            Int16,
-            Int32,
-            Int64,
-            UInt8,
-            UInt16,
-            UInt32,
-            UInt64,
-            INT8,
-            INT16,
-            INT32,
-            INT64,
-            UINT8,
-            UINT16,
-            UINT32,
-            UINT64,
-            Object,
-            String,
-            STRING,
-            Geometry,
-        ],
-    )
 else:
-    GenericDtype = TypeVar(  # type: ignore
-        "GenericDtype",
-        bound=Union[
-            bool,
-            int,
-            str,
-            float,
-            pd.core.dtypes.base.ExtensionDtype,
-            Bool,
-            Date,
-            DateTime,
-            Decimal,
-            Timedelta,
-            Category,
-            Float,
-            Float16,
-            Float32,
-            Float64,
-            Int,
-            Int8,
-            Int16,
-            Int32,
-            Int64,
-            UInt8,
-            UInt16,
-            UInt32,
-            UInt64,
-            INT8,
-            INT16,
-            INT32,
-            INT64,
-            UINT8,
-            UINT16,
-            UINT32,
-            UINT64,
-            Object,
-            String,
-            STRING,
-        ],
-    )
+
+    class Geometry:  # type: ignore [no-redef]
+        # pylint: disable=too-few-public-methods
+        ...  #  stub Geometry type
+
+
+GenericDtype = TypeVar(  # type: ignore
+    "GenericDtype",
+    bound=Union[
+        bool,
+        int,
+        str,
+        float,
+        pd.core.dtypes.base.ExtensionDtype,
+        Bool,
+        Date,
+        DateTime,
+        Decimal,
+        Timedelta,
+        Category,
+        Float,
+        Float16,
+        Float32,
+        Float64,
+        Int,
+        Int8,
+        Int16,
+        Int32,
+        Int64,
+        UInt8,
+        UInt16,
+        UInt32,
+        UInt64,
+        INT8,
+        INT16,
+        INT32,
+        INT64,
+        UINT8,
+        UINT16,
+        UINT32,
+        UINT64,
+        Object,
+        String,
+        STRING,
+        Geometry,
+    ],
+)
 
 DataFrameModel = TypeVar("DataFrameModel", bound="DataFrameModel")  # type: ignore
 
@@ -143,6 +115,45 @@ if TYPE_CHECKING:
     T = TypeVar("T")  # pragma: no cover
 else:
     T = DataFrameModel
+
+
+__orig_generic_alias_call = copy.copy(_GenericAlias.__call__)
+
+
+def __patched_generic_alias_call(self, *args, **kwargs):
+    """
+    Patched implementation of _GenericAlias.__call__ so that validation errors
+    can be raised when instantiating an instance of pandera DataFrame generics,
+    e.g. DataFrame[A](data).
+    """
+    if DataFrameBase not in self.__origin__.__bases__:
+        return __orig_generic_alias_call(self, *args, **kwargs)
+
+    if not self._inst:
+        raise TypeError(
+            f"Type {self._name} cannot be instantiated; "
+            f"use {self.__origin__.__name__}() instead"
+        )
+    result = self.__origin__(*args, **kwargs)
+    try:
+        result.__orig_class__ = self
+    # Limit the patched behavior to subset of exception types
+    except (
+        TypeError,
+        errors.SchemaError,
+        errors.SchemaError,
+        errors.SchemaInitError,
+        errors.SchemaDefinitionError,
+    ):
+        raise
+    # In python 3.11.9, all exceptions when setting attributes when defining
+    # _GenericAlias subclasses are caught and ignored.
+    except Exception:  # pylint: disable=broad-except
+        pass
+    return result
+
+
+_GenericAlias.__call__ = __patched_generic_alias_call
 
 
 class DataFrameBase(Generic[T]):
@@ -241,6 +252,7 @@ class AnnotationInfo:  # pylint:disable=too-few-public-methods
         """
         self.raw_annotation = raw_annotation
         self.origin = self.arg = None
+        self.is_annotated_type = False
 
         self.optional = typing_inspect.is_optional_type(raw_annotation)
         if self.optional and typing_inspect.is_union_type(raw_annotation):
@@ -254,13 +266,18 @@ class AnnotationInfo:  # pylint:disable=too-few-public-methods
         self.args = args
         self.arg = args[0] if args else args
 
-        self.metadata = getattr(self.arg, "__metadata__", None)
+        metadata = getattr(raw_annotation, "__metadata__", None)
+        if metadata:
+            self.is_annotated_type = True
+        else:
+            metadata = getattr(self.arg, "__metadata__", None)
+
+        self.metadata = metadata
         self.literal = typing_inspect.is_literal_type(self.arg)
-        if self.metadata:
+
+        if self.literal:
             self.arg = typing_inspect.get_args(self.arg)[0]
-        elif self.literal:
-            self.arg = typing_inspect.get_args(self.arg)[0]
-        elif self.origin is None:
+        elif self.origin is None and self.metadata is None:
             if isinstance(raw_annotation, type) and issubclass(
                 raw_annotation, SeriesBase
             ):

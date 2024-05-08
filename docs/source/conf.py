@@ -29,8 +29,8 @@ sys.path.insert(0, os.path.abspath("../.."))
 # -- Project information -----------------------------------------------------
 
 project = "pandera"
-copyright = "2019, Niels Bantilan, Nigel Markey, Jean-Francois Zinque"
-author = "Niels Bantilan, Nigel Markey, Jean-Francois Zinque"
+copyright = "2019, Pandera developers"
+author = "Pandera developers"
 
 
 # -- General configuration ---------------------------------------------------
@@ -46,9 +46,8 @@ extensions = [
     "sphinx_autodoc_typehints",
     "sphinx.ext.linkcode",  # link to github, see linkcode_resolve() below
     "sphinx_copybutton",
-    "recommonmark",
-    "sphinx_panels",
-    "jupyterlite_sphinx",
+    "sphinx_design",
+    "myst_nb",
 ]
 
 doctest_global_setup = """
@@ -90,7 +89,7 @@ doctest_default_flags = (
 
 source_suffix = {
     ".rst": "restructuredtext",
-    ".md": "markdown",
+    ".md": "myst-nb",
 }
 
 # copy CONTRIBUTING.md docs into source directory
@@ -132,7 +131,7 @@ html_theme = "furo"
 # documentation.
 
 announcement = """
-📢 Pandera 0.16.0 now supports <a href="pyspark_sql.html">Pyspark SQL</a> 🎉.
+📢 Pandera 0.19.0 now supports <a href="polars.html">Polars</a> 🎉.
 If you like this project, <a href='https://github.com/unionai-oss/pandera' target='_blank'>give us a star ⭐️! </a>
 """
 
@@ -167,14 +166,10 @@ html_css_files = [
     "default.css",
     "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css",
 ]
-
-
-rst_prolog = """
-.. role:: red
-.. role:: green
-"""
+html_js_files = ["custom.js"]
 
 autosummary_generate = True
+autosummary_generate_overwrite = False
 autosummary_filename_map = {
     "pandera.Check": "pandera.Check",
     "pandera.check": "pandera.check_decorator",
@@ -187,6 +182,8 @@ intersphinx_mapping = {
     "dask": ("https://docs.dask.org/en/latest/", None),
     "pyspark": ("https://spark.apache.org/docs/latest/api/python/", None),
     "modin": ("https://modin.readthedocs.io/en/latest/", None),
+    "polars": ("https://docs.pola.rs/py-polars/html/", None),
+    "typeguard": ("https://typeguard.readthedocs.io/en/stable/", None),
 }
 
 # strip prompts
@@ -198,7 +195,7 @@ copybutton_prompt_is_regexp = True
 
 # this is a workaround to filter out forward reference issue in
 # sphinx_autodoc_typehints
-class FilterPandasTypeAnnotationWarning(pylogging.Filter):
+class FilterTypeAnnotationWarnings(pylogging.Filter):
     def filter(self, record: pylogging.LogRecord) -> bool:
         # You probably should make this check more specific by checking
         # that dataclass name is in the message, so that you don't filter out
@@ -214,13 +211,19 @@ class FilterPandasTypeAnnotationWarning(pylogging.Filter):
                     '"pandera.api.pandas.container.DataFrameSchema',
                     "Cannot resolve forward reference in type annotations of "
                     '"pandera.typing.DataFrame.style"',
+                    "Cannot resolve forward reference in type annotations of "
+                    '"pandera.api.polars.container.DataFrameSchema',
+                    "Cannot resolve forward reference in type annotations of "
+                    '"pandera.api.pyspark.container.DataFrameSchema',
+                    "Cannot resolve forward reference in type annotations of "
+                    '"pandera.typing.Series"',
                 )
             )
         )
 
 
 logging.getLogger("sphinx_autodoc_typehints").logger.addFilter(
-    FilterPandasTypeAnnotationWarning()
+    FilterTypeAnnotationWarnings()
 )
 
 
@@ -276,6 +279,14 @@ def linkcode_resolve(domain, info):
     return f"https://github.com/pandera-dev/pandera/blob/{tag}/pandera/{fn}{linespec}"
 
 
-# jupyterlite config
-jupyterlite_contents = ["notebooks/try_pandera.ipynb"]
-jupyterlite_bind_ipynb_suffix = False
+# myst-nb configuration
+myst_enable_extensions = [
+    "colon_fence",
+]
+myst_heading_anchors = 3
+
+myst_heading_anchors = 3
+
+nb_execution_mode = "auto"
+nb_execution_timeout = 60
+nb_execution_excludepatterns = ["_contents/try_pandera.ipynb"]

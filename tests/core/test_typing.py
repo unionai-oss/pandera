@@ -1,4 +1,5 @@
 """Test typing annotations for the model api."""
+
 # pylint:disable=missing-class-docstring,too-few-public-methods
 import re
 from typing import Any, Dict, Optional, Type

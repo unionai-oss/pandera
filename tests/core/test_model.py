@@ -1,4 +1,5 @@
 """Tests schema creation and validation from type annotations."""
+
 # pylint:disable=missing-class-docstring,missing-function-docstring,too-few-public-methods
 import re
 from copy import deepcopy
@@ -377,7 +378,7 @@ def test_check_single_column() -> None:
 
     df = pd.DataFrame({"a": [101]})
     schema = Schema.to_schema()
-    err_msg = r"Column\s*a\s*int_column_lt_100\s*\[101\]\s*1"
+    err_msg = r"int_column_lt_100"
     with pytest.raises(pa.errors.SchemaErrors, match=err_msg):
         schema.validate(df, lazy=True)
 
@@ -395,7 +396,7 @@ def test_check_single_index() -> None:
             return ~idx.str.contains("dog")
 
     df = pd.DataFrame(index=["cat", "dog"])
-    err_msg = r"Index\s*<NA>\s*not_dog\s*\[dog\]\s*"
+    err_msg = r"Check not_dog"
     with pytest.raises(pa.errors.SchemaErrors, match=err_msg):
         Schema.validate(df, lazy=True)
 
@@ -453,12 +454,12 @@ def test_multiple_checks() -> None:
     assert len(schema.columns["a"].checks) == 2
 
     df = pd.DataFrame({"a": [0]})
-    err_msg = r"Column\s*a\s*int_column_gt_0\s*\[0\]\s*1"
+    err_msg = r"int_column_gt_0"
     with pytest.raises(pa.errors.SchemaErrors, match=err_msg):
         schema.validate(df, lazy=True)
 
     df = pd.DataFrame({"a": [101]})
-    err_msg = r"Column\s*a\s*int_column_lt_100\s*\[101\]\s*1"
+    err_msg = r"int_column_lt_100"
     with pytest.raises(pa.errors.SchemaErrors, match=err_msg):
         schema.validate(df, lazy=True)
 
@@ -476,10 +477,10 @@ def test_check_multiple_columns() -> None:
             return series < 100
 
     df = pd.DataFrame({"a": [101], "b": [200]})
-    with pytest.raises(
-        pa.errors.SchemaErrors, match="2 schema errors were found"
-    ):
+    with pytest.raises(pa.errors.SchemaErrors) as e:
         Schema.validate(df, lazy=True)
+
+    assert len(e.value.message["DATA"]) == 1
 
 
 def test_check_regex() -> None:
@@ -496,10 +497,10 @@ def test_check_regex() -> None:
             return series < 100
 
     df = pd.DataFrame({"a": [101], "abc": [1], "cba": [200]})
-    with pytest.raises(
-        pa.errors.SchemaErrors, match="1 schema errors were found"
-    ):
+    with pytest.raises(pa.errors.SchemaErrors) as e:
         Schema.validate(df, lazy=True)
+
+    assert len(e.value.message["DATA"]) == 1
 
 
 def test_inherit_dataframemodel_fields() -> None:
@@ -608,7 +609,7 @@ def test_inherit_field_checks() -> None:
     assert len(schema.columns["abc"].checks) == 0
 
     df = pd.DataFrame({"a": [15], "abc": [100]})
-    err_msg = r"Column\s*a\s*a_max\s*\[15\]\s*1"
+    err_msg = r"a_max"
     with pytest.raises(pa.errors.SchemaErrors, match=err_msg):
         schema.validate(df, lazy=True)
 
@@ -640,10 +641,10 @@ def test_dataframe_check() -> None:
     assert len(schema.checks) == 2
 
     df = pd.DataFrame({"a": [101, 1], "b": [1, 0]})
-    with pytest.raises(
-        pa.errors.SchemaErrors, match="2 schema errors were found"
-    ):
+    with pytest.raises(pa.errors.SchemaErrors) as e:
         schema.validate(df, lazy=True)
+
+    assert len(e.value.message["DATA"]) == 1
 
 
 def test_registered_dataframe_checks(
@@ -676,6 +677,7 @@ def test_registered_dataframe_checks(
 
         class Config:
             no_param_check = ()
+            no_param_check_ellipsis = ...
             base_check = check_vals["one_arg"]
 
     class Child(Base):
@@ -691,11 +693,13 @@ def test_registered_dataframe_checks(
 
     expected_stats_base = {
         "no_param_check": {},
+        "no_param_check_ellipsis": {},
         "base_check": {"one_arg": check_vals["one_arg"]},
     }
 
     expected_stats_child = {
         "no_param_check": {},
+        "no_param_check_ellipsis": {},
         "base_check": {"one_arg": check_vals["one_arg_prime"]},
         "child_check": {
             "one_arg": check_vals["one_arg"],
@@ -1426,3 +1430,108 @@ def test_pandas_fields_metadata():
         }
     }
     assert PanderaSchema.get_metadata() == expected
+
+
+def test_parse_single_column():
+    """Test that a single column can be parsed from a DataFrame"""
+
+    class Schema(pa.DataFrameModel):
+        col1: pa.typing.Series[float]
+        col2: pa.typing.Series[float]
+
+        # parsers at the column level
+        @pa.parser("col1")
+        def sqrt(cls, series):
+            # pylint:disable=no-self-argument
+            return series.transform("sqrt")
+
+    assert Schema.validate(
+        pd.DataFrame({"col1": [1.0, 4.0, 9.0], "col2": [1.0, 4.0, 9.0]})
+    ).equals(
+        pd.DataFrame({"col1": [1, 2, 3], "col2": [1, 4, 9]}).astype(float)
+    )
+
+
+def test_parse_dataframe():
+    """Test that a single column can be parsed from a DataFrame"""
+
+    class Schema(pa.DataFrameModel):
+        col1: pa.typing.Series[float]
+        col2: pa.typing.Series[float]
+
+        # parsers at the dataframe level
+        @pa.dataframe_parser
+        def dataframe_sqrt(cls, df):
+            # pylint:disable=no-self-argument
+            return df.transform("sqrt")
+
+    assert Schema.validate(
+        pd.DataFrame({"col1": [1.0, 4.0, 9.0], "col2": [1.0, 4.0, 9.0]})
+    ).equals(
+        pd.DataFrame({"col1": [1, 2, 3], "col2": [1, 2, 3]}).astype(float)
+    )
+
+
+def test_parse_both_dataframe_and_column():
+    """Test that a single column can be parsed from a DataFrame"""
+
+    class Schema(pa.DataFrameModel):
+        col1: pa.typing.Series[float]
+        col2: pa.typing.Series[float]
+
+        # parsers at the column level
+        @pa.parser("col1")
+        def sqrt(cls, series):
+            # pylint:disable=no-self-argument
+            return series.transform("sqrt")
+
+        # parsers at the dataframe level
+        @pa.dataframe_parser
+        def dataframe_sqrt(cls, df):
+            # pylint:disable=no-self-argument
+            return df.transform("sqrt")
+
+    assert Schema.validate(
+        pd.DataFrame({"col1": [1.0, 16.0, 81.0], "col2": [1.0, 4.0, 9.0]})
+    ).equals(
+        pd.DataFrame({"col1": [1, 2, 3], "col2": [1, 2, 3]}).astype(float)
+    )
+
+
+def test_parse_non_existing() -> None:
+    """Test a parser on a non-existing column."""
+
+    class Schema(pa.DataFrameModel):
+        col1: pa.typing.Series[float]
+        col2: pa.typing.Series[float]
+
+        # parsers at the column level
+        @pa.parser("nope")
+        def sqrt(cls, series):
+            # pylint:disable=no-self-argument
+            return series.transform("sqrt")
+
+    err_msg = "Parser sqrt is assigned to a non-existing field 'nope'"
+    with pytest.raises(pa.errors.SchemaInitError, match=err_msg):
+        Schema.to_schema()
+
+
+def test_parse_regex() -> None:
+    """Test the regex argument of the parse decorator."""
+
+    class Schema(pa.DataFrameModel):
+        a: Series[float]
+        abc: Series[float]
+        cba: Series[float]
+
+        @pa.parser("^a", regex=True)
+        @classmethod
+        def sqrt(cls, series):
+            # pylint:disable=no-self-argument
+            return series.transform("sqrt")
+
+    df = pd.DataFrame({"a": [121.0], "abc": [1.0], "cba": [200.0]})
+
+    assert Schema.validate(df).equals(  # type: ignore [attr-defined]
+        pd.DataFrame({"a": [11.0], "abc": [1.0], "cba": [200.0]})
+    )

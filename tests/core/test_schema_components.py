@@ -263,10 +263,10 @@ def tests_multi_index_subindex_coerce() -> None:
 
     # coerce=False at the MultiIndex level should result in two type errors
     schema = DataFrameSchema(index=MultiIndex(indexes))
-    with pytest.raises(
-        errors.SchemaErrors, match="A total of 2 schema errors were found"
-    ):
+    with pytest.raises(errors.SchemaErrors) as e:
         schema(data, lazy=True)
+
+    assert len(e.value.message["SCHEMA"]) == 1
 
 
 @pytest.mark.skipif(
@@ -297,9 +297,10 @@ def tests_multi_index_subindex_coerce_with_empty_subindex(coerce) -> None:
     else:
         with pytest.raises(
             errors.SchemaErrors,
-            match=r"A total of \d+ schema errors were found",
-        ):
+        ) as e:
             schema_override(data, lazy=True)
+
+        assert len(e.value.message["SCHEMA"]) == 1
 
 
 def test_schema_component_equality_operators():
@@ -458,6 +459,7 @@ def test_column_regex_matching(
             ("bar_3", "biz_3"),
         )
     )
+    check_obj = pd.DataFrame(columns=columns)
 
     column_schema = Column(
         Int,
@@ -467,9 +469,9 @@ def test_column_regex_matching(
     )
     if error is not None:
         with pytest.raises(error):
-            column_schema.get_regex_columns(columns)
+            column_schema.get_regex_columns(check_obj)
     else:
-        matched_columns = column_schema.get_regex_columns(columns)
+        matched_columns = column_schema.get_regex_columns(check_obj)
         assert expected_matches == matched_columns.tolist()
 
 
@@ -496,8 +498,9 @@ def test_column_regex_matching_non_str_types(
 ) -> None:
     """Non-string column names should be cast into str for regex matching."""
     columns = pd.Index([1, 2.2, 3.1415, -1, -3.6, pd.Timestamp("2018/01/01")])
+    check_obj = pd.DataFrame(columns=columns)
     column_schema = Column(name=column_name_regex, regex=True)
-    matched_columns = column_schema.get_regex_columns(columns)
+    matched_columns = column_schema.get_regex_columns(check_obj)
     assert expected_matches == [*matched_columns]
 
 
@@ -539,8 +542,9 @@ def test_column_regex_matching_non_str_types_multiindex(
             (3.14, -1),
         )
     )
+    check_obj = pd.DataFrame(columns=columns)
     column_schema = Column(name=column_name_regex, regex=True)
-    matched_columns = column_schema.get_regex_columns(columns)
+    matched_columns = column_schema.get_regex_columns(check_obj)
     assert expected_matches == [*matched_columns]
 
 

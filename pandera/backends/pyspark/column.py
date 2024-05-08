@@ -7,12 +7,13 @@ from multimethod import DispatchError
 from pyspark.sql import DataFrame
 from pyspark.sql.functions import col
 
-from pandera.api.pyspark.error_handler import ErrorCategory, ErrorHandler
+from pandera.api.base.error_handler import ErrorCategory, ErrorHandler
 from pandera.backends.pyspark.base import PysparkSchemaBackend
-from pandera.backends.pyspark.decorators import validate_scope, ValidationScope
+from pandera.backends.pyspark.decorators import validate_scope
 from pandera.backends.pyspark.error_formatters import scalar_failure_case
 from pandera.engines.pyspark_engine import Engine
 from pandera.errors import ParserError, SchemaError, SchemaErrorReason
+from pandera.validation_depth import ValidationScope
 
 
 class CoreCheckResult(NamedTuple):
@@ -152,9 +153,11 @@ class ColumnSchemaBackend(PysparkSchemaBackend):
         )
         return CoreCheckResult(
             check=f"field_name('{schema.name}')",
-            reason_code=SchemaErrorReason.WRONG_FIELD_NAME
-            if not column_found
-            else SchemaErrorReason.NO_ERROR,
+            reason_code=(
+                SchemaErrorReason.WRONG_FIELD_NAME
+                if not column_found
+                else SchemaErrorReason.NO_ERROR
+            ),
             passed=column_found,
             message=(
                 f"Expected {type(check_obj)} to have column named: '{schema.name}', "
@@ -162,9 +165,9 @@ class ColumnSchemaBackend(PysparkSchemaBackend):
                 if not column_found
                 else "column check_name validation passed."
             ),
-            failure_cases=scalar_failure_case(schema.name)
-            if not column_found
-            else None,
+            failure_cases=(
+                scalar_failure_case(schema.name) if not column_found else None
+            ),
         )
 
     @validate_scope(scope=ValidationScope.SCHEMA)

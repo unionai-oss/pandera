@@ -8,16 +8,17 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 import pandas as pd
 from pydantic import BaseModel
 
+from pandera.api.base.error_handler import ErrorHandler
 from pandera.api.pandas.types import is_table
-from pandera.backends.base import CoreCheckResult
-from pandera.backends.pandas.base import ColumnInfo, PandasSchemaBackend
+from pandera.backends.base import ColumnInfo, CoreCheckResult, CoreParserResult
+from pandera.backends.pandas.base import PandasSchemaBackend
 from pandera.backends.pandas.error_formatters import (
     reshape_failure_cases,
     scalar_failure_case,
 )
-from pandera.backends.pandas.utils import convert_uniquesettings
+from pandera.backends.utils import convert_uniquesettings
+from pandera.config import ValidationScope
 from pandera.engines import pandas_engine
-from pandera.error_handlers import SchemaErrorHandler
 from pandera.errors import (
     ParserError,
     SchemaDefinitionError,
@@ -25,6 +26,7 @@ from pandera.errors import (
     SchemaErrorReason,
     SchemaErrors,
 )
+from pandera.validation_depth import validate_scope, validation_type
 
 
 class DataFrameSchemaBackend(PandasSchemaBackend):
@@ -61,7 +63,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
                 "When drop_invalid_rows is True, lazy must be set to True."
             )
 
-        error_handler = SchemaErrorHandler(lazy)
+        error_handler = ErrorHandler(lazy)
 
         check_obj = self.preprocess(check_obj, inplace=inplace)
         if hasattr(check_obj, "pandera"):
@@ -80,9 +82,14 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
             try:
                 check_obj = parser(check_obj, *args)
             except SchemaError as exc:
-                error_handler.collect_error(exc.reason_code, exc)
+                error_handler.collect_error(
+                    validation_type(exc.reason_code), exc.reason_code, exc
+                )
             except SchemaErrors as exc:
-                error_handler.collect_errors(exc)
+                error_handler.collect_errors(exc.schema_errors)
+
+        # run custom parsers
+        check_obj = self.run_parsers(schema, check_obj)
 
         # We may have modified columns, for example by
         # add_missing_columns, so regenerate column info
@@ -114,7 +121,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
             else:
                 raise SchemaErrors(
                     schema=schema,
-                    schema_errors=error_handler.collected_errors,
+                    schema_errors=error_handler.schema_errors,
                     data=check_obj,
                 )
 
@@ -170,9 +177,10 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
                         reason_code=result.reason_code,
                     )
                 error_handler.collect_error(
+                    validation_type(result.reason_code),
                     result.reason_code,
                     error,
-                    original_exc=result.original_exc,
+                    result.original_exc,
                 )
 
         return error_handler
@@ -275,7 +283,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
                 try:
                     column_names.extend(
                         col_schema.get_backend(check_obj).get_regex_columns(
-                            col_schema, check_obj.columns
+                            col_schema, check_obj
                         )
                     )
                     regex_match_patterns.append(col_schema.name)
@@ -386,12 +394,11 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
                     reason_code=SchemaErrorReason.ADD_MISSING_COLUMN_NO_DEFAULT,
                 )
 
-        # Ascertain order in which missing columns should
-        # be inserted into dataframe. Be careful not to
-        # modify order of existing dataframe columns to
-        # avoid ripple effects in downstream validation
+        # Ascertain order in which missing columns should be inserted into
+        # dataframe. Be careful not to modify order of existing dataframe
+        # columns to avoid ripple effects in downstream validation
         # (e.g., ordered schema).
-        schema_cols_dict: Dict[Any, None] = dict()
+        schema_cols_dict: Dict[Any, None] = {}
         for col_name, col_schema in schema.columns.items():
             if col_name in check_obj.columns or col_schema.required:
                 schema_cols_dict[col_name] = None
@@ -531,7 +538,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
         """Coerces check object to the expected type."""
         assert schema is not None, "The `schema` argument must be provided."
 
-        error_handler = SchemaErrorHandler(lazy=True)
+        error_handler = ErrorHandler(lazy=True)
 
         if not (
             schema.coerce
@@ -545,11 +552,13 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
         except SchemaErrors as err:
             for schema_error in err.schema_errors:
                 error_handler.collect_error(
+                    validation_type(SchemaErrorReason.SCHEMA_COMPONENT_CHECK),
                     SchemaErrorReason.SCHEMA_COMPONENT_CHECK,
                     schema_error,
                 )
         except SchemaError as err:
             error_handler.collect_error(
+                validation_type(SchemaErrorReason.SCHEMA_COMPONENT_CHECK),
                 SchemaErrorReason.SCHEMA_COMPONENT_CHECK,
                 err,
             )
@@ -559,7 +568,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
             # error_handler
             raise SchemaErrors(
                 schema=schema,
-                schema_errors=error_handler.collected_errors,
+                schema_errors=error_handler.schema_errors,
                 data=check_obj,
             )
 
@@ -576,7 +585,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
         :returns: dataframe with coerced dtypes
         """
         # NOTE: clean up the error handling!
-        error_handler = SchemaErrorHandler(lazy=True)
+        error_handler = ErrorHandler(lazy=True)
 
         def _coerce_df_dtype(obj: pd.DataFrame) -> pd.DataFrame:
             if schema.dtype is None:
@@ -591,6 +600,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
                 raise SchemaError(
                     schema=schema,
                     data=obj,
+                    reason_code=SchemaErrorReason.DATATYPE_COERCION,
                     message=(
                         f"Error while coercing '{schema.name}' to type "
                         f"{schema.dtype}: {exc}\n{exc.failure_cases}"
@@ -604,6 +614,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
                 return coerce_fn(obj)
             except SchemaError as exc:
                 error_handler.collect_error(
+                    validation_type(SchemaErrorReason.DATATYPE_COERCION),
                     SchemaErrorReason.DATATYPE_COERCION,
                     exc,
                 )
@@ -614,14 +625,18 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
                 try:
                     matched_columns = col_schema.get_backend(
                         obj
-                    ).get_regex_columns(col_schema, obj.columns)
+                    ).get_regex_columns(col_schema, obj)
                 except SchemaError:
                     matched_columns = pd.Index([])
 
                 for matched_colname in matched_columns:
-                    if col_schema.coerce or schema.coerce:
+                    if (
+                        col_schema.coerce or schema.coerce
+                    ) and schema.dtype is None:
+                        _col_schema = copy.deepcopy(col_schema)
+                        _col_schema.coerce = True
                         obj[matched_colname] = _try_coercion(
-                            col_schema.coerce_dtype, obj[matched_colname]
+                            _col_schema.coerce_dtype, obj[matched_colname]
                         )
             elif (
                 (col_schema.coerce or schema.coerce)
@@ -649,16 +664,30 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
         if error_handler.collected_errors:
             raise SchemaErrors(
                 schema=schema,
-                schema_errors=error_handler.collected_errors,
+                schema_errors=error_handler.schema_errors,
                 data=obj,
             )
 
         return obj
 
+    def run_parsers(self, schema, check_obj):
+        """Run parsers"""
+        parser_results: List[CoreParserResult] = []
+        for parser_index, parser in enumerate(schema.parsers):
+            result = self.run_parser(
+                check_obj,
+                parser,
+                parser_index,
+            )
+            check_obj = result.parser_output
+            parser_results.append(result)
+        return check_obj
+
     ##########
     # Checks #
     ##########
 
+    @validate_scope(scope=ValidationScope.SCHEMA)
     def check_column_names_are_unique(
         self,
         check_obj: pd.DataFrame,
@@ -693,7 +722,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
             failure_cases=failure_cases,
         )
 
-    # pylint: disable=unused-argument
+    @validate_scope(scope=ValidationScope.SCHEMA)
     def check_column_presence(
         self, check_obj: pd.DataFrame, schema, column_info: ColumnInfo
     ) -> List[CoreCheckResult]:
@@ -707,14 +736,15 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
                         check="column_in_dataframe",
                         reason_code=SchemaErrorReason.COLUMN_NOT_IN_DATAFRAME,
                         message=(
-                            f"column '{colname}' not in dataframe"
-                            f"\n{check_obj.head()}"
+                            f"column '{colname}' not in dataframe. "
+                            f"Columns in dataframe: {check_obj.columns.tolist()}"
                         ),
                         failure_cases=scalar_failure_case(colname),
                     )
                 )
         return results
 
+    @validate_scope(scope=ValidationScope.DATA)
     def check_column_values_are_unique(
         self, check_obj: pd.DataFrame, schema
     ) -> CoreCheckResult:

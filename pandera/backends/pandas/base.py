@@ -1,46 +1,32 @@
 """Pandas Parsing, Validation, and Error Reporting Backends."""
 
 import warnings
-from typing import (
-    FrozenSet,
-    Iterable,
-    List,
-    NamedTuple,
-    Optional,
-    TypeVar,
-    Union,
-)
+from collections import defaultdict
+from typing import List, Optional, TypeVar, Union
 
 import pandas as pd
 
 from pandera.api.base.checks import CheckResult
-from pandera.backends.base import BaseSchemaBackend, CoreCheckResult
+from pandera.api.base.error_handler import ErrorHandler
+from pandera.api.parsers import Parser
+from pandera.backends.base import (
+    BaseSchemaBackend,
+    CoreCheckResult,
+    CoreParserResult,
+)
 from pandera.backends.pandas.error_formatters import (
     consolidate_failure_cases,
     format_generic_error_message,
     format_vectorized_error_message,
     reshape_failure_cases,
     scalar_failure_case,
-    summarize_failure_cases,
 )
-from pandera.error_handlers import SchemaErrorHandler
 from pandera.errors import (
     FailureCaseMetadata,
     SchemaError,
     SchemaErrorReason,
     SchemaWarning,
 )
-
-
-class ColumnInfo(NamedTuple):
-    """Column metadata used during validation."""
-
-    sorted_column_names: Iterable
-    expanded_column_names: FrozenSet
-    destuttered_column_names: List
-    absent_column_names: List
-    regex_match_patterns: List
-
 
 FieldCheckObj = Union[pd.Series, pd.DataFrame]
 
@@ -79,6 +65,34 @@ class PandasSchemaBackend(BaseSchemaBackend):
             else pd.concat(pandas_obj_subsample).pipe(
                 lambda x: x[~x.index.duplicated()]
             )
+        )
+
+    def run_parser(
+        self,
+        check_obj,
+        parser: Parser,
+        parser_index: int,
+        *args,
+    ) -> CoreParserResult:
+        """Handle parser results.
+
+        :param check_obj: data object to be validated.
+        :param schema: pandera schema object
+        :param parser: Parser object used to validate pandas object.
+        :param parser_index: index of parser in the schema component parser list.
+        :param args: arguments to pass into parser object.
+        :returns:  ParserResult
+        """
+        parser_result = parser(check_obj, *args)
+
+        return CoreParserResult(
+            passed=True,
+            parser=parser,
+            parser_index=parser_index,
+            parser_output=parser_result.parser_output,
+            reason_code=SchemaErrorReason.DATAFRAME_PARSER,
+            failure_cases=None,
+            message=None,
         )
 
     def run_check(
@@ -150,18 +164,33 @@ class PandasSchemaBackend(BaseSchemaBackend):
     ) -> FailureCaseMetadata:
         """Create failure cases metadata required for SchemaErrors exception."""
         failure_cases = consolidate_failure_cases(schema_errors)
-        message, error_counts = summarize_failure_cases(
-            schema_name, schema_errors, failure_cases
-        )
+
+        error_handler = ErrorHandler()
+        error_handler.collect_errors(schema_errors)
+        error_dicts = {}
+
+        def defaultdict_to_dict(d):
+            if isinstance(d, defaultdict):
+                d = {k: defaultdict_to_dict(v) for k, v in d.items()}
+            return d
+
+        if error_handler.collected_errors:
+            error_dicts = error_handler.summarize(schema_name=schema_name)
+            error_dicts = defaultdict_to_dict(error_dicts)
+
+        error_counts = defaultdict(int)  # type: ignore
+        for error in error_handler.collected_errors:
+            error_counts[error["reason_code"].name] += 1
+
         return FailureCaseMetadata(
             failure_cases=failure_cases,
-            message=message,
+            message=error_dicts,
             error_counts=error_counts,
         )
 
-    def drop_invalid_rows(self, check_obj, error_handler: SchemaErrorHandler):
+    def drop_invalid_rows(self, check_obj, error_handler: ErrorHandler):
         """Remove invalid elements in a check obj according to failures in caught by the error handler."""
-        errors = error_handler.collected_errors
+        errors = error_handler.schema_errors
         for err in errors:
             index_values = err.failure_cases["index"]
             if isinstance(check_obj.index, pd.MultiIndex):

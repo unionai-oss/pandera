@@ -1,19 +1,19 @@
 """Unit tests for the geopandas integration."""
 
+import geopandas as gpd
+import pandas as pd
+import pytest
+from shapely.geometry import Point, Polygon
+
+import pandera as pa
+from pandera.engines.pandas_engine import Geometry
+from pandera.typing import Series
+from pandera.typing.geopandas import GeoDataFrame, GeoSeries
+
 try:  # python 3.9+
     from typing import Annotated  # type: ignore
 except ImportError:
     from typing_extensions import Annotated  # type: ignore
-
-import pandas as pd
-import geopandas as gpd
-import pytest
-from shapely.geometry import Polygon, Point
-
-import pandera as pa
-from pandera.typing import Series
-from pandera.typing.geopandas import GeoDataFrame, GeoSeries
-from pandera.engines.pandas_engine import Geometry
 
 
 def test_dataframe_schema():
@@ -98,6 +98,7 @@ def test_schema_model(data, invalid: bool):
 )
 def test_schema_dtype_crs_without_coerce(gdf_args, invalid: bool):
     """Test Geometry crs annotation without coerce."""
+
     # No CRS to validate
     class Schema(pa.DataFrameModel):
         # pylint: disable=missing-class-docstring
@@ -143,6 +144,7 @@ def test_schema_dtype_crs_without_coerce(gdf_args, invalid: bool):
 )
 def test_schema_dtype_crs_with_coerce(gdf_args, invalid: bool):
     """Test Geometry crs annotation with coerce."""
+
     # No CRS to validate
     class Schema(pa.DataFrameModel):
         # pylint: disable=missing-class-docstring
@@ -175,7 +177,7 @@ def test_schema_parametrized_crs():
 
     class Schema2(pa.DataFrameModel):
         # pylint: disable=missing-class-docstring
-        geometry: Annotated[GeoSeries, "EPSG:4326"]
+        geometry: Annotated[Geometry, "EPSG:4326"]
 
     assert isinstance(GeoDataFrame[Schema2](gdf), gpd.GeoDataFrame)
 

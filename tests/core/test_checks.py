@@ -490,7 +490,11 @@ def test_custom_check_error_is_failure_case(extra_registered_checks):
     try:
         test_schema.validate(df, lazy=True)
     except errors.SchemaErrors as err:
-        assert err.error_counts == {errors.SchemaErrorReason.CHECK_ERROR: 1}
+        assert err.error_counts == {"CHECK_ERROR": 1}
+        assert (
+            err.message["DATA"]["CHECK_ERROR"][0]["check"]
+            == "raise_an_error_check"
+        )
 
 
 def test_check_backend_not_found():

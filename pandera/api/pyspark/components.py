@@ -4,8 +4,8 @@ from typing import Any, Dict, Iterable, Optional, Tuple, Union
 
 import pyspark.sql as ps
 
+from pandera.api.base.error_handler import ErrorHandler
 from pandera.api.pyspark.column_schema import ColumnSchema
-from pandera.api.pyspark.error_handler import ErrorHandler
 from pandera.api.pyspark.types import CheckList, PySparkDtypeInputTypes
 
 
@@ -157,14 +157,14 @@ class Column(ColumnSchema):
             error_handler=error_handler,
         )
 
-    def get_regex_columns(self, columns: Any) -> Iterable:
+    def get_regex_columns(self, check_obj: Any) -> Iterable:
         """Get matching column names based on regex column name pattern.
 
         :param columns: columns to regex pattern match
         :returns: matching columns
         """
         return self.get_backend(check_type=ps.DataFrame).get_regex_columns(
-            self, columns
+            self, check_obj
         )
 
     def __eq__(self, other):

@@ -7,19 +7,21 @@ import pandas as pd
 
 import pandera.strategies as st
 from pandera import errors
+from pandera.api.base.types import CheckList, ParserList
 from pandera.api.pandas.array import ArraySchema
 from pandera.api.pandas.container import DataFrameSchema
-from pandera.api.pandas.types import CheckList, PandasDtypeInputTypes
+from pandera.api.pandas.types import PandasDtypeInputTypes
 from pandera.dtypes import UniqueSettings
 
 
-class Column(ArraySchema):
-    """Validate types and properties of DataFrame columns."""
+class Column(ArraySchema[pd.DataFrame]):
+    """Validate types and properties of pandas DataFrame columns."""
 
     def __init__(
         self,
         dtype: PandasDtypeInputTypes = None,
         checks: Optional[CheckList] = None,
+        parsers: Optional[ParserList] = None,
         nullable: bool = False,
         unique: bool = False,
         report_duplicates: UniqueSettings = "all",
@@ -40,6 +42,7 @@ class Column(ArraySchema):
             one of the valid pandas string values:
             http://pandas.pydata.org/pandas-docs/stable/basics.html#dtypes
         :param checks: checks to verify validity of the column
+        :param parsers: parsers to verify validity of the column
         :param nullable: Whether or not column can contain null values.
         :param unique: whether column values should be unique
         :param report_duplicates: how to report unique errors
@@ -80,6 +83,7 @@ class Column(ArraySchema):
         """
         super().__init__(
             dtype=dtype,
+            parsers=parsers,
             checks=checks,
             nullable=nullable,
             unique=unique,
@@ -104,7 +108,6 @@ class Column(ArraySchema):
         self.required = required
         self.name = name
         self.regex = regex
-        self.metadata = metadata
 
     @property
     def _allow_groupby(self) -> bool:
@@ -116,6 +119,7 @@ class Column(ArraySchema):
         """Get column properties."""
         return {
             "dtype": self.dtype,
+            "parsers": self.parsers,
             "checks": self.checks,
             "nullable": self.nullable,
             "unique": self.unique,
@@ -139,47 +143,7 @@ class Column(ArraySchema):
         self.name = name
         return self
 
-    def validate(
-        self,
-        check_obj: pd.DataFrame,
-        head: Optional[int] = None,
-        tail: Optional[int] = None,
-        sample: Optional[int] = None,
-        random_state: Optional[int] = None,
-        lazy: bool = False,
-        inplace: bool = False,
-    ) -> pd.DataFrame:
-        """Validate a Column in a DataFrame object.
-
-        :param check_obj: pandas DataFrame to validate.
-        :param head: validate the first n rows. Rows overlapping with `tail` or
-            `sample` are de-duplicated.
-        :param tail: validate the last n rows. Rows overlapping with `head` or
-            `sample` are de-duplicated.
-        :param sample: validate a random sample of n rows. Rows overlapping
-            with `head` or `tail` are de-duplicated.
-        :param random_state: random seed for the ``sample`` argument.
-        :param lazy: if True, lazily evaluates dataframe against all validation
-            checks and raises a ``SchemaErrors``. Otherwise, raise
-            ``SchemaError`` as soon as one occurs.
-        :param inplace: if True, applies coercion to the object of validation,
-            otherwise creates a copy of the data.
-        :returns: validated DataFrame.
-        """
-        return self.get_backend(check_obj).validate(
-            check_obj,
-            self,
-            head=head,
-            tail=tail,
-            sample=sample,
-            random_state=random_state,
-            lazy=lazy,
-            inplace=inplace,
-        )
-
-    def get_regex_columns(
-        self, columns: Union[pd.Index, pd.MultiIndex]
-    ) -> Iterable:
+    def get_regex_columns(self, check_obj) -> Iterable:
         """Get matching column names based on regex column name pattern.
 
         :param columns: columns to regex pattern match
@@ -190,7 +154,7 @@ class Column(ArraySchema):
 
         return cast(
             ColumnBackend, self.get_backend(check_type=pd.DataFrame)
-        ).get_regex_columns(self, columns)
+        ).get_regex_columns(self, check_obj)
 
     def __eq__(self, other):
         if not isinstance(other, self.__class__):
@@ -198,7 +162,7 @@ class Column(ArraySchema):
 
         def _compare_dict(obj):
             return {
-                k: v if k != "_checks" else set(v)
+                k: v if k not in ["_checks", "_parsers"] else set(v)
                 for k, v in obj.__dict__.items()
             }
 
@@ -250,8 +214,8 @@ class Column(ArraySchema):
             )
 
 
-class Index(ArraySchema):
-    """Validate types and properties of a DataFrame Index."""
+class Index(ArraySchema[pd.Index]):
+    """Validate types and properties of a pandas DataFrame Index."""
 
     @property
     def names(self):
@@ -263,44 +227,6 @@ class Index(ArraySchema):
         """Whether the schema or schema component allows groupby operations."""
         return False
 
-    def validate(
-        self,
-        check_obj: Union[pd.DataFrame, pd.Series],
-        head: Optional[int] = None,
-        tail: Optional[int] = None,
-        sample: Optional[int] = None,
-        random_state: Optional[int] = None,
-        lazy: bool = False,
-        inplace: bool = False,
-    ) -> Union[pd.DataFrame, pd.Series]:
-        """Validate DataFrameSchema or SeriesSchema Index.
-
-        :check_obj: pandas DataFrame of Series containing index to validate.
-        :param head: validate the first n rows. Rows overlapping with `tail` or
-            `sample` are de-duplicated.
-        :param tail: validate the last n rows. Rows overlapping with `head` or
-            `sample` are de-duplicated.
-        :param sample: validate a random sample of n rows. Rows overlapping
-            with `head` or `tail` are de-duplicated.
-        :param random_state: random seed for the ``sample`` argument.
-        :param lazy: if True, lazily evaluates dataframe against all validation
-            checks and raises a ``SchemaErrors``. Otherwise, raise
-            ``SchemaError`` as soon as one occurs.
-        :param inplace: if True, applies coercion to the object of validation,
-            otherwise creates a copy of the data.
-        :returns: validated DataFrame or Series.
-        """
-        return self.get_backend(check_obj).validate(
-            check_obj,
-            self,
-            head=head,
-            tail=tail,
-            sample=sample,
-            random_state=random_state,
-            lazy=lazy,
-            inplace=inplace,
-        )
-
     def __eq__(self, other):
         return self.__dict__ == other.__dict__
 
@@ -309,7 +235,7 @@ class Index(ArraySchema):
     ###########################
 
     @st.strategy_import_error
-    def strategy(self, *, size: int = None):
+    def strategy(self, *, size: Optional[int] = None):
         """Create a ``hypothesis`` strategy for generating an Index.
 
         :param size: number of elements to generate.
@@ -334,7 +260,7 @@ class Index(ArraySchema):
             name=self.name,
         )
 
-    def example(self, size: int = None) -> pd.Index:
+    def example(self, size: Optional[int] = None) -> pd.Index:
         """Generate an example of a particular size.
 
         :param size: number of elements in the generated Index.
@@ -352,7 +278,7 @@ class Index(ArraySchema):
 
 
 class MultiIndex(DataFrameSchema):
-    """Validate types and properties of a DataFrame MultiIndex.
+    """Validate types and properties of a pandas DataFrame MultiIndex.
 
     This class inherits from :class:`~pandera.api.pandas.container.DataFrameSchema` to
     leverage its validation logic.
@@ -363,7 +289,7 @@ class MultiIndex(DataFrameSchema):
         indexes: List[Index],
         coerce: bool = False,
         strict: bool = False,
-        name: str = None,
+        name: Optional[str] = None,
         ordered: bool = True,
         unique: Optional[Union[str, List[str]]] = None,
     ) -> None:
@@ -458,44 +384,6 @@ class MultiIndex(DataFrameSchema):
     def coerce(self, value: bool) -> None:
         """Set coerce attribute."""
         self._coerce = value
-
-    def validate(  # type: ignore
-        self,
-        check_obj: Union[pd.DataFrame, pd.Series],
-        head: Optional[int] = None,
-        tail: Optional[int] = None,
-        sample: Optional[int] = None,
-        random_state: Optional[int] = None,
-        lazy: bool = False,
-        inplace: bool = False,
-    ) -> Union[pd.DataFrame, pd.Series]:
-        """Validate DataFrame or Series MultiIndex.
-
-        :param check_obj: pandas DataFrame of Series to validate.
-        :param head: validate the first n rows. Rows overlapping with `tail` or
-            `sample` are de-duplicated.
-        :param tail: validate the last n rows. Rows overlapping with `head` or
-            `sample` are de-duplicated.
-        :param sample: validate a random sample of n rows. Rows overlapping
-            with `head` or `tail` are de-duplicated.
-        :param random_state: random seed for the ``sample`` argument.
-        :param lazy: if True, lazily evaluates dataframe against all validation
-            checks and raises a ``SchemaErrors``. Otherwise, raise
-            ``SchemaError`` as soon as one occurs.
-        :param inplace: if True, applies coercion to the object of validation,
-            otherwise creates a copy of the data.
-        :returns: validated DataFrame or Series.
-        """
-        return self.get_backend(check_obj).validate(
-            check_obj,
-            schema=self,
-            head=head,
-            tail=tail,
-            sample=sample,
-            random_state=random_state,
-            lazy=lazy,
-            inplace=inplace,
-        )
 
     def __repr__(self):
         return (

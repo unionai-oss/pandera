@@ -118,7 +118,7 @@ doit==0.36.0
     # via jupyterlite-core
 execnet==2.0.2
     # via pytest-xdist
-fastapi==0.103.0
+fastapi==0.109.1
     # via -r requirements.in
 fastjsonschema==2.18.0
     # via nbformat
@@ -182,7 +182,7 @@ jeepney==0.8.0
     # via
     #   keyring
     #   secretstorage
-jinja2==3.1.2
+jinja2==3.1.3
     # via
     #   distributed
     #   frictionless
@@ -408,7 +408,7 @@ python-dateutil==2.8.2
     #   pandas
 python-json-logger==2.0.7
     # via jupyter-events
-python-multipart==0.0.6
+python-multipart==0.0.7
     # via -r requirements.in
 python-slugify==8.0.1
     # via frictionless
@@ -533,7 +533,7 @@ sphinxcontrib-qthelp==1.0.3
     # via sphinx
 sphinxcontrib-serializinghtml==1.1.5
     # via sphinx
-starlette==0.27.0
+starlette==0.35.1
     # via fastapi
 stringcase==1.2.0
     # via frictionless
@@ -595,7 +595,7 @@ types-requests==2.31.0.2
     # via -r requirements.in
 types-urllib3==1.26.25.14
     # via types-requests
-typing-extensions==4.7.1
+typing-extensions==4.9.0
     # via
     #   -r requirements.in
     #   fastapi

@@ -1,4 +1,5 @@
 """Unit tests for dask_accessor module."""
+
 from typing import Union
 
 import dask.dataframe as dd

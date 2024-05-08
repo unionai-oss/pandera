@@ -1,4 +1,5 @@
 """Decorators for integrating pandera into existing data pipelines."""
+
 from inspect import ismethod
 from typing import Callable
 

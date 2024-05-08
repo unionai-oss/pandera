@@ -8,7 +8,7 @@ constraints specified in a ``pandera`` schema. It's built on top of the
 `hypothesis <https://hypothesis.readthedocs.io/en/latest/index.html>`_ package
 to compose strategies given multiple checks specified in a schema.
 
-See the :ref:`user guide<data synthesis strategies>` for more details.
+See the :ref:`user guide <data-synthesis-strategies>` for more details.
 """
 import operator
 import re
@@ -20,7 +20,6 @@ from typing import (
     Any,
     Callable,
     Dict,
-    Generic,
     List,
     Optional,
     Sequence,
@@ -42,28 +41,20 @@ from pandera.dtypes import (
 )
 from pandera.engines import numpy_engine, pandas_engine
 from pandera.errors import BaseStrategyOnlyError, SchemaDefinitionError
-from pandera.strategies.base_strategies import STRATEGY_DISPATCHER
+from pandera.strategies.base_strategies import (
+    HAS_HYPOTHESIS,
+    STRATEGY_DISPATCHER,
+)
 
-try:
+if HAS_HYPOTHESIS:
     import hypothesis
     import hypothesis.extra.numpy as npst
     import hypothesis.extra.pandas as pdst
     import hypothesis.strategies as st
+    from hypothesis.internal.filtering import max_len, min_len
     from hypothesis.strategies import SearchStrategy, composite
-except ImportError:  # pragma: no cover
-    T = TypeVar("T")
-
-    # pylint: disable=too-few-public-methods
-    class SearchStrategy(Generic[T]):  # type: ignore
-        """placeholder type."""
-
-    def composite(fn):  # type: ignore
-        """placeholder composite strategy."""
-        return fn
-
-    HAS_HYPOTHESIS = False
 else:
-    HAS_HYPOTHESIS = True
+    from pandera.strategies.base_strategies import SearchStrategy, composite
 
 
 StrategyFn = Callable[..., SearchStrategy]
@@ -293,8 +284,8 @@ def numpy_complex_dtypes(
     dtype,
     min_value: complex = complex(0, 0),
     max_value: Optional[complex] = None,
-    allow_infinity: bool = None,
-    allow_nan: bool = None,
+    allow_infinity: Optional[bool] = None,
+    allow_nan: Optional[bool] = None,
 ):
     """Create numpy strategy for complex numbers.
 
@@ -463,7 +454,7 @@ def ne_strategy(
     """
     if strategy is None:
         strategy = pandas_dtype_strategy(pandera_dtype)
-    return strategy.filter(lambda x: x != value)
+    return strategy.filter(partial(operator.ne, value))
 
 
 def gt_strategy(
@@ -486,7 +477,7 @@ def gt_strategy(
             min_value=min_value,
             exclude_min=True if is_float(pandera_dtype) else None,
         )
-    return strategy.filter(lambda x: x > min_value)
+    return strategy.filter(partial(operator.lt, min_value))
 
 
 def ge_strategy(
@@ -509,7 +500,7 @@ def ge_strategy(
             min_value=min_value,
             exclude_min=False if is_float(pandera_dtype) else None,
         )
-    return strategy.filter(lambda x: x >= min_value)
+    return strategy.filter(partial(operator.le, min_value))
 
 
 def lt_strategy(
@@ -532,7 +523,7 @@ def lt_strategy(
             max_value=max_value,
             exclude_max=True if is_float(pandera_dtype) else None,
         )
-    return strategy.filter(lambda x: x < max_value)
+    return strategy.filter(partial(operator.gt, max_value))
 
 
 def le_strategy(
@@ -555,7 +546,7 @@ def le_strategy(
             max_value=max_value,
             exclude_max=False if is_float(pandera_dtype) else None,
         )
-    return strategy.filter(lambda x: x <= max_value)
+    return strategy.filter(partial(operator.ge, max_value))
 
 
 def in_range_strategy(
@@ -586,10 +577,10 @@ def in_range_strategy(
             exclude_min=not include_min,
             exclude_max=not include_max,
         )
-    min_op = operator.ge if include_min else operator.gt
-    max_op = operator.le if include_max else operator.lt
-    return strategy.filter(
-        lambda x: min_op(x, min_value) and max_op(x, max_value)
+    min_op = operator.le if include_min else operator.lt
+    max_op = operator.ge if include_max else operator.gt
+    return strategy.filter(partial(min_op, min_value)).filter(
+        partial(max_op, max_value)
     )
 
 
@@ -651,11 +642,7 @@ def str_matches_strategy(
         return st.from_regex(pattern, fullmatch=True).map(
             to_numpy_dtype(pandera_dtype).type
         )
-
-    def matches(x):
-        return re.match(pattern, x)
-
-    return strategy.filter(matches)
+    return strategy.filter(re.compile(pattern).fullmatch)
 
 
 def str_contains_strategy(
@@ -676,11 +663,7 @@ def str_contains_strategy(
         return st.from_regex(pattern, fullmatch=False).map(
             to_numpy_dtype(pandera_dtype).type
         )
-
-    def contains(x):
-        return re.search(pattern, x)
-
-    return strategy.filter(contains)
+    return strategy.filter(re.compile(pattern).search)
 
 
 def str_startswith_strategy(
@@ -697,12 +680,12 @@ def str_startswith_strategy(
     :param string: string pattern.
     :returns: ``hypothesis`` strategy
     """
+    pattern = rf"\A(?:{string})"
     if strategy is None:
-        return st.from_regex(f"\\A{string}", fullmatch=False).map(
+        return st.from_regex(pattern, fullmatch=False).map(
             to_numpy_dtype(pandera_dtype).type
         )
-
-    return strategy.filter(lambda x: x.startswith(string))
+    return strategy.filter(re.compile(pattern).search)
 
 
 def str_endswith_strategy(
@@ -719,12 +702,12 @@ def str_endswith_strategy(
     :param string: string pattern.
     :returns: ``hypothesis`` strategy
     """
+    pattern = rf"(?:{string})\Z"
     if strategy is None:
-        return st.from_regex(f"{string}\\Z", fullmatch=False).map(
+        return st.from_regex(pattern, fullmatch=False).map(
             to_numpy_dtype(pandera_dtype).type
         )
-
-    return strategy.filter(lambda x: x.endswith(string))
+    return strategy.filter(re.compile(pattern).search)
 
 
 def str_length_strategy(
@@ -747,8 +730,9 @@ def str_length_strategy(
         return st.text(min_size=min_value, max_size=max_value).map(
             to_numpy_dtype(pandera_dtype).type
         )
-
-    return strategy.filter(lambda x: min_value <= len(x) <= max_value)
+    return strategy.filter(partial(min_len, min_value)).filter(
+        partial(max_len, max_value)
+    )
 
 
 def _timestamp_to_datetime64_strategy(
@@ -1125,9 +1109,9 @@ def dataframe_strategy(
         # override the column datatype with dataframe-level datatype if
         # specified
         col_dtypes = {
-            col_name: str(col.dtype)
-            if pandera_dtype is None
-            else str(pandera_dtype)
+            col_name: (
+                str(col.dtype) if pandera_dtype is None else str(pandera_dtype)
+            )
             for col_name, col in expanded_columns.items()
         }
         nullable_columns = {
@@ -1241,7 +1225,7 @@ def multiindex_strategy(
         if dtype in {"object", "str"} or dtype.startswith("string"):
             # pylint: disable=cell-var-from-loop,undefined-loop-variable
             strategy = strategy.map(
-                lambda df: df.assign(**{name: df[name].map(str)})
+                lambda df, name=name: df.assign(**{name: df[name].map(str)})
             )
 
     if any(nullable_index.values()):

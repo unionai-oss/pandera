@@ -4,22 +4,16 @@ import functools
 import logging
 import warnings
 from contextlib import contextmanager
-from enum import Enum
 from typing import List, Type
 
 from pyspark.sql import DataFrame
+
 from pandera.api.pyspark.types import PysparkDefaultTypes
-from pandera.config import CONFIG, ValidationDepth
+from pandera.config import ValidationDepth, get_config_context
 from pandera.errors import SchemaError
+from pandera.validation_depth import ValidationScope
 
 logger = logging.getLogger(__name__)
-
-
-class ValidationScope(Enum):
-    """Indicates whether a check/validator operates at a schema of data level."""
-
-    SCHEMA = "schema"
-    DATA = "data"
 
 
 def register_input_datatypes(
@@ -56,8 +50,8 @@ def register_input_datatypes(
                     data=validation_df,
                     message=f'The check with name "{func.__name__}" was expected to be run for \n'
                     f"{pandera_schema_datatype()} but got {current_datatype()} instead from the input. \n"
-                    f" This error is usually caused by schema mismatch the value is different from schema defined in"
-                    f" pandera schema and one in the dataframe",
+                    f"This error is usually caused by schema mismatch the value is different from schema defined in "
+                    f"pandera schema and one in the dataframe",
                 )
             if current_datatype in valid_datatypes:
                 return func(*args, **kwargs)
@@ -96,8 +90,9 @@ def validate_scope(scope: ValidationScope):
                         if isinstance(value, DataFrame):
                             return value
 
+            config = get_config_context()
             if scope == ValidationScope.SCHEMA:
-                if CONFIG.validation_depth in (
+                if config.validation_depth in (
                     ValidationDepth.SCHEMA_AND_DATA,
                     ValidationDepth.SCHEMA_ONLY,
                 ):
@@ -112,7 +107,7 @@ def validate_scope(scope: ValidationScope):
                     return _get_check_obj()
 
             elif scope == ValidationScope.DATA:
-                if CONFIG.validation_depth in (
+                if config.validation_depth in (
                     ValidationDepth.SCHEMA_AND_DATA,
                     ValidationDepth.DATA_ONLY,
                 ):
@@ -156,7 +151,7 @@ def cache_check_obj():
         @functools.wraps(func)
         def wrapper(self, *args, **kwargs):
             # Skip if not enabled
-            if CONFIG.cache_dataframe is not True:
+            if get_config_context().cache_dataframe is not True:
                 return func(self, *args, **kwargs)
 
             check_obj: DataFrame = None
@@ -186,7 +181,7 @@ def cache_check_obj():
 
                 yield  # Execute the decorated function
 
-                if not CONFIG.keep_cached_dataframe:
+                if not get_config_context().keep_cached_dataframe:
                     # If not cached, `.unpersist()` does nothing
                     logger.debug("Unpersisting dataframe...")
                     check_obj.unpersist()

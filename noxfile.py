@@ -1,9 +1,11 @@
 """Nox sessions."""
+
 # isort: skip_file
 import os
 import re
 import shutil
 import sys
+import tempfile
 from typing import Dict, List
 
 # setuptools must be imported before distutils !
@@ -27,7 +29,7 @@ nox.options.sessions = (
 
 DEFAULT_PYTHON = "3.8"
 PYTHON_VERSIONS = ["3.8", "3.9", "3.10", "3.11"]
-PANDAS_VERSIONS = ["1.5.3", "2.0.3"]
+PANDAS_VERSIONS = ["1.5.3", "2.0.3", "2.2.0"]
 PYDANTIC_VERSIONS = ["1.10.11", "2.3.0"]
 
 PACKAGE = "pandera"
@@ -292,50 +294,82 @@ def requirements(session: Session) -> None:  # pylint:disable=unused-argument
         sys.exit(1)
 
 
-@nox.session(python=PYTHON_VERSIONS)
-@nox.parametrize("pandas", PANDAS_VERSIONS)
-@nox.parametrize("pydantic", PYDANTIC_VERSIONS)
-def ci_requirements(session: Session, pandas: str, pydantic: str) -> None:
-    """Install pinned dependencies for CI."""
-    session.install("pip-tools")
-    output_file = (
+def _ci_requirement_file_name(
+    session: Session,
+    pandas: str,
+    pydantic: str,
+) -> str:
+    return (
         "ci/requirements-"
         f"py{session.python}-"
         f"pandas{pandas}-"
         f"pydantic{pydantic}.txt"
     )
-    session.run(
-        "pip-compile",
-        "requirements.in",
-        "--no-emit-index-url",
-        "--output-file",
-        output_file,
-        "-v",
-        "--resolver",
-        "backtracking",
-        "--upgrade-package",
-        f"pandas=={pandas}",
-        "--upgrade-package",
-        f"pydantic=={pydantic}",
-        "--annotation-style=line",
-    )
+
+
+PYTHON_PANDAS_PARAMETER = [
+    (python, pandas)
+    for python in PYTHON_VERSIONS
+    for pandas in PANDAS_VERSIONS
+    if (python, pandas) != ("3.8", "2.2.0")
+]
+
+
+@nox.session
+@nox.parametrize("python,pandas", PYTHON_PANDAS_PARAMETER)
+@nox.parametrize("pydantic", PYDANTIC_VERSIONS)
+def ci_requirements(session: Session, pandas: str, pydantic: str) -> None:
+    """Install pinned dependencies for CI."""
+    if session.python == "3.8" and pandas == "2.2.0":
+        session.skip()
+
+    session.install("uv")
+
+    requirements = []
+    with open("requirements.in") as f:
+        for line in f.readlines():
+            _line = line.strip()
+            if _line == "pandas":
+                line = f"pandas=={pandas}\n"
+            if _line == "pydantic":
+                line = f"pydantic=={pydantic}\n"
+            # for some reason uv will try to install an old version of dask,
+            # have to specifically pin dask[dataframe] to a higher version
+            if _line == "dask[dataframe]" and session.python in (
+                "3.9",
+                "3.10",
+                "3.11",
+            ):
+                line = "dask[dataframe]>=2023.9.2\n"
+            requirements.append(line)
+
+    with tempfile.NamedTemporaryFile("a") as f:
+        f.writelines(requirements)
+        f.seek(0)
+        session.run(
+            "uv",
+            "pip",
+            "compile",
+            f"{f.name}",
+            "--output-file",
+            _ci_requirement_file_name(session, pandas, pydantic),
+            "--no-header",
+        )
 
 
 @nox.session(python=PYTHON_VERSIONS)
 def dev_requirements(session: Session) -> None:
     """Install pinned dependencies for CI."""
-    session.install("pip-tools")
+    session.install("uv")
     output_file = f"dev/requirements-{session.python}.txt"
     session.run(
-        "pip-compile",
+        "uv",
+        "pip",
+        "compile",
         "requirements.in",
-        "--no-emit-index-url",
         "--output-file",
         output_file,
-        "-v",
-        "--resolver",
-        "backtracking",
-        "--annotation-style=line",
+        "--no-header",
     )
 
 
@@ -350,38 +384,24 @@ EXTRA_NAMES = [
 ]
 
 
-@nox.session(python=PYTHON_VERSIONS)
-@nox.parametrize("pandas", PANDAS_VERSIONS)
+@nox.session
+@nox.parametrize("python,pandas", PYTHON_PANDAS_PARAMETER)
+@nox.parametrize("pydantic", PYDANTIC_VERSIONS)
 @nox.parametrize("extra", EXTRA_NAMES)
-def tests(session: Session, pandas: str, extra: str) -> None:
+def tests(session: Session, pandas: str, pydantic: str, extra: str) -> None:
     """Run the test suite."""
 
-    # skip these conditions
-    python = (
-        session.python or f"{sys.version_info.major}.{sys.version_info.minor}"
-    )
-    if (
-        (pandas, extra)
-        in {
-            ("1.1.5", "pyspark"),
-            ("1.1.5", "modin-dask"),
-            ("1.1.5", "modin-ray"),
-        }
-        or (python, pandas, extra)
-        in {
-            ("3.10", "1.1.5", "modin-dask"),
-            ("3.10", "1.1.5", "modin-ray"),
-        }
-        or (python, extra)
-        in {
-            ("3.10", "modin-dask"),
-            ("3.10", "modin-ray"),
-            ("3.10", "pyspark"),
-        }
-    ):
-        session.skip()
+    if not isinstance(session.virtualenv, nox.virtualenv.PassthroughEnv):
+        session.install("uv")
+        session.run(
+            "uv",
+            "pip",
+            "install",
+            "-r",
+            _ci_requirement_file_name(session, pandas, pydantic),
+        )
 
-    install_extras(session, extra, pandas=pandas)
+    session.run("pip", "list")
 
     env = {}
     if extra.startswith("modin"):

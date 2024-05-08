@@ -6,7 +6,7 @@ together to implement the pandera schema specification.
 """
 
 from abc import ABC
-from typing import Any, Dict, List, NamedTuple, Optional, Union
+from typing import Any, FrozenSet, Iterable, List, NamedTuple, Optional, Union
 
 # from pandera.api.base.checks import BaseCheck
 from pandera.errors import SchemaError, SchemaErrorReason
@@ -16,7 +16,7 @@ class CoreCheckResult(NamedTuple):
     """Namedtuple for holding results of core checks."""
 
     passed: bool
-    check: Union[str, "BaseCheck"]  # type: ignore
+    check: Optional[Union[str, "BaseCheck"]] = None  # type: ignore
     check_index: Optional[int] = None
     check_output: Optional[Any] = None
     reason_code: Optional[SchemaErrorReason] = None
@@ -26,8 +26,28 @@ class CoreCheckResult(NamedTuple):
     original_exc: Optional[Exception] = None
 
 
+class ColumnInfo(NamedTuple):
+    """Column metadata used during validation."""
+
+    sorted_column_names: Iterable
+    expanded_column_names: FrozenSet
+    destuttered_column_names: List
+    absent_column_names: List
+    regex_match_patterns: List
+
+
 class CoreParserResult(NamedTuple):
     """Namedtuple for holding core parser results."""
+
+    passed: bool
+    parser: Optional[Union[str, "BaseParser"]] = None  # type: ignore
+    parser_index: Optional[int] = None
+    parser_output: Optional[Any] = None
+    reason_code: Optional[SchemaErrorReason] = None
+    message: Optional[str] = None
+    failure_cases: Optional[Any] = None
+    schema_error: Optional[SchemaError] = None
+    original_exc: Optional[Exception] = None
 
 
 class BaseSchemaBackend(ABC):
@@ -168,4 +188,18 @@ class BaseCheckBackend(ABC):
 
     def strategy(self):
         """Return a data generation strategy."""
+        raise NotImplementedError
+
+
+class BaseParserBackend(ABC):
+    """Abstract base class for a parser backend implementation."""
+
+    def __init__(self, parser):  # pylint: disable=unused-argument
+        """Initializes a parser backend object."""
+
+    def __call__(self, parse_obj, key=None):
+        raise NotImplementedError
+
+    def apply(self, parse_obj):
+        """Apply the parser function to a parse object."""
         raise NotImplementedError

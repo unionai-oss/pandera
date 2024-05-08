@@ -4,7 +4,6 @@ from typing import Any, Union
 
 import numpy as np
 import pandas as pd
-import pydantic
 from packaging import version
 
 from pandera.engines.type_aliases import PandasObject
@@ -14,12 +13,6 @@ def pandas_version():
     """Return the pandas version."""
 
     return version.parse(pd.__version__)
-
-
-def pydantic_version():
-    """Return the pydantic version."""
-
-    return version.parse(pydantic.__version__)
 
 
 def numpy_pandas_coercible(series: pd.Series, type_: Any) -> pd.Series:

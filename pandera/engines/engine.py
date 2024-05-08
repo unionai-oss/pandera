@@ -1,4 +1,5 @@
 """Data types engine interface."""
+
 # https://github.com/PyCQA/pylint/issues/3268
 # pylint:disable=no-value-for-parameter
 import functools
@@ -24,7 +25,6 @@ from typing import (
 import typing_inspect
 
 from pandera.dtypes import DataType
-
 
 # register different TypedDict type depending on python version
 if sys.version_info >= (3, 12):
@@ -146,7 +146,7 @@ class Engine(ABCMeta):
 
     def register_dtype(
         cls: _EngineType,
-        pandera_dtype_cls: Type[_DataType] = None,
+        pandera_dtype_cls: Optional[Type[_DataType]] = None,
         *,
         equivalents: Optional[List[Any]] = None,
     ) -> Callable:

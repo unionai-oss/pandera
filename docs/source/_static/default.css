@@ -85,6 +85,11 @@ div.sponsorship {
   border-color: #78ac1b;
 }
 
+iframe.jupyterlite_sphinx_raw_iframe {
+  border: none !important;
+  box-shadow: 0 0.2rem 0.2rem #dedede !important;
+}
+
 
 @media (max-width: 67em) {
   .sidebar-drawer {
@@ -100,6 +105,10 @@ div.sponsorship {
 }
 
 /* autosummary table text */
+table.autosummary {
+  width: 100%;
+}
+
 article .align-center, article .align-default {
   text-align: left;
 }
@@ -107,4 +116,23 @@ article .align-center, article .align-default {
 /* make font size of API reference smaller */
 section[id^=pandera-]:not([id=pandera-data-types]) h1  {
   font-size: 1.75em;
+}
+
+/* dataframe table style */
+div.cell_output thead {
+  color: var(--color-foreground-primary);
+}
+
+div.cell_output tbody tr {
+  color: var(--color-content-foreground);
+}
+
+div.cell_output tbody tr:nth-child(odd) {
+  background: var(--color-background-secondary);
+}
+
+
+/* code cell output style */
+div.cell details.below-input>summary {
+  background-color: var(--color-background-secondary);
 }

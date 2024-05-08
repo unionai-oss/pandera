@@ -1,6 +1,5 @@
 """Base schema unit tests."""
 
-
 import pytest
 
 from pandera.api.base.schema import BaseSchema

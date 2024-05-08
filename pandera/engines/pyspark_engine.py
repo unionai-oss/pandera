@@ -1,4 +1,5 @@
 """PySpark engine and data types."""
+
 # pylint:disable=too-many-ancestors,no-member
 
 # docstrings are inherited
@@ -10,13 +11,13 @@
 import dataclasses
 import inspect
 import re
-import warnings
-from typing import Any, Iterable, Union, Optional
 import sys
-from packaging import version
+import warnings
+from typing import Any, Iterable, Optional, Union
 
 import pyspark
 import pyspark.sql.types as pst
+from packaging import version
 
 from pandera import dtypes, errors
 from pandera.dtypes import immutable

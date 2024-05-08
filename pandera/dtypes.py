@@ -1,4 +1,5 @@
 """Pandera data types."""
+
 # pylint:disable=too-many-ancestors
 from __future__ import annotations
 
@@ -21,7 +22,7 @@ try:
     # python 3.8+
     from typing import Literal  # type: ignore[attr-defined]
 except ImportError:  # pragma: no cover
-    from typing_extensions import Literal  # type: ignore[misc]
+    from typing_extensions import Literal  # type: ignore[assignment]
 
 
 class DataType(ABC):
@@ -413,7 +414,7 @@ class Decimal(_Number):
     """The number of digits after the decimal point."""
 
     # pylint: disable=line-too-long
-    rounding: str = dataclasses.field(
+    rounding: Optional[str] = dataclasses.field(
         default_factory=lambda: decimal.getcontext().rounding
     )
     """

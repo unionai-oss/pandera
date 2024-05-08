@@ -3,7 +3,8 @@
 from typing import Any, Callable, Dict, List, Optional, Union
 
 from pandera.api.base.model_config import BaseModelConfig
-from pandera.api.pyspark.types import PySparkDtypeInputTypes, StrictType
+from pandera.api.base.types import StrictType
+from pandera.api.pyspark.types import PySparkDtypeInputTypes
 from pandera.typing.formats import Format
 
 

@@ -1,4 +1,5 @@
 """Pytest fixtures for testing custom checks."""
+
 from typing import Generator
 from unittest import mock
 
@@ -29,6 +30,10 @@ def extra_registered_checks() -> Generator[None, None, None]:
         # register custom checks here
         @pa_ext.register_check_method()
         def no_param_check(_: pd.DataFrame) -> bool:
+            return True
+
+        @pa_ext.register_check_method()
+        def no_param_check_ellipsis(_: pd.DataFrame) -> bool:
             return True
 
         @pa_ext.register_check_method()

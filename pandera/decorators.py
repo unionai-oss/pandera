@@ -1,4 +1,5 @@
 """Decorators for integrating pandera into existing data pipelines."""
+
 import functools
 import inspect
 import sys
@@ -20,21 +21,23 @@ from typing import (
     overload,
 )
 
+import pandas as pd
 import wrapt
 from pydantic import validate_arguments
 
 from pandera import errors
-from pandera.api.pandas.array import SeriesSchema
-from pandera.api.pandas.container import DataFrameSchema
-from pandera.api.pandas.model import SchemaModel
-from pandera.error_handlers import SchemaErrorHandler
+from pandera.api.base.error_handler import ErrorHandler
+from pandera.api.dataframe.components import ComponentSchema
+from pandera.api.dataframe.container import DataFrameSchema
+from pandera.api.dataframe.model import DataFrameModel
 from pandera.inspection_utils import (
     is_classmethod_from_meta,
     is_decorated_classmethod,
 )
 from pandera.typing import AnnotationInfo
+from pandera.validation_depth import validation_type
 
-Schemas = Union[DataFrameSchema, SeriesSchema]
+Schemas = Union[DataFrameSchema, ComponentSchema]
 InputGetter = Union[str, int]
 OutputGetter = Union[str, int, Callable]
 F = TypeVar("F", bound=Callable)
@@ -81,7 +84,7 @@ def _get_fn_argnames(fn: Callable) -> List[str]:
 def _handle_schema_error(
     decorator_name,
     fn: Callable,
-    schema: Union[DataFrameSchema, SeriesSchema],
+    schema: Union[DataFrameSchema, ComponentSchema],
     data_obj: Any,
     schema_error: errors.SchemaError,
 ) -> NoReturn:
@@ -95,16 +98,22 @@ def _handle_schema_error(
         checks.
     """
     raise _parse_schema_error(
-        decorator_name, fn, schema, data_obj, schema_error
+        decorator_name,
+        fn,
+        schema,
+        data_obj,
+        schema_error,
+        schema_error.reason_code,
     ) from schema_error
 
 
 def _parse_schema_error(
     decorator_name,
     fn: Callable,
-    schema: Union[DataFrameSchema, SeriesSchema],
+    schema: Union[DataFrameSchema, ComponentSchema],
     data_obj: Any,
     schema_error: errors.SchemaError,
+    reason_code: errors.SchemaErrorReason,
 ) -> NoReturn:
     """Parse schema validation error with decorator context.
 
@@ -112,6 +121,7 @@ def _parse_schema_error(
     :param schema: dataframe/series schema object
     :param arg_df: dataframe/series we are validating.
     :param schema_error: original exception.
+    :param reason_code: SchemaErrorReason associated with the error.
     :raises SchemaError: when ``DataFrame`` violates built-in or custom
         checks.
     """
@@ -126,6 +136,7 @@ def _parse_schema_error(
         failure_cases=schema_error.failure_cases,
         check=schema_error.check,
         check_index=schema_error.check_index,
+        reason_code=reason_code,
     )
 
 
@@ -344,7 +355,7 @@ def check_output(
     # pylint: disable=too-many-boolean-expressions
     if callable(obj_getter) and (
         schema.coerce
-        or (schema.index is not None and schema.index.coerce)
+        or (schema.index is not None and schema.index.coerce)  # type: ignore[union-attr]
         or (
             isinstance(schema, DataFrameSchema)
             and any(col.coerce for col in schema.columns.values())
@@ -416,16 +427,17 @@ def check_output(
 
 
 def check_io(
-    head: int = None,
-    tail: int = None,
-    sample: int = None,
-    random_state: int = None,
+    head: Optional[int] = None,
+    tail: Optional[int] = None,
+    sample: Optional[int] = None,
+    random_state: Optional[int] = None,
     lazy: bool = False,
     inplace: bool = False,
     out: Union[
         Schemas,
         Tuple[OutputGetter, Schemas],
         List[Tuple[OutputGetter, Schemas]],
+        None,
     ] = None,
     **inputs: Schemas,
 ) -> Callable[[F], F]:
@@ -478,7 +490,7 @@ def check_io(
         out_schemas = out
         if isinstance(out, list):
             out_schemas = out
-        elif isinstance(out, (DataFrameSchema, SeriesSchema)):
+        elif isinstance(out, (DataFrameSchema, ComponentSchema)):
             out_schemas = [(None, out)]  # type: ignore
         elif isinstance(out, tuple):
             out_schemas = [out]
@@ -551,7 +563,7 @@ def check_types(
     # pylint: disable=too-many-statements
     """Validate function inputs and output based on type annotations.
 
-    See the :ref:`User Guide <dataframe_models>` for more.
+    See the :ref:`User Guide <dataframe-models>` for more.
 
     :param wrapped: the function to decorate.
     :param with_pydantic: use ``pydantic.validate_arguments`` to validate
@@ -585,7 +597,9 @@ def check_types(
     # Front-load annotation parsing
     annotated_schema_models: Dict[
         str,
-        Iterable[Tuple[Union[SchemaModel, None], Union[AnnotationInfo, None]]],
+        Iterable[
+            Tuple[Union[DataFrameModel, None], Union[AnnotationInfo, None]]
+        ],
     ] = {}
     for arg_name_, annotation in typing.get_type_hints(wrapped).items():
         annotation_info = AnnotationInfo(annotation)
@@ -598,14 +612,16 @@ def check_types(
                     if not sub_annotation_info.is_generic_df:
                         continue
 
-                    schema_model = cast(SchemaModel, sub_annotation_info.arg)
+                    schema_model = cast(
+                        DataFrameModel, sub_annotation_info.arg
+                    )
                     annotation_model_pairs.append(
                         (schema_model, sub_annotation_info)
                     )
             else:
                 continue
         else:
-            schema_model = cast(SchemaModel, annotation_info.arg)
+            schema_model = cast(DataFrameModel, annotation_info.arg)
             annotation_model_pairs = [(schema_model, annotation_info)]
 
         annotated_schema_models[arg_name_] = annotation_model_pairs
@@ -622,7 +638,7 @@ def check_types(
         if not annotation_model_pairs:
             return arg_value
 
-        error_handler = SchemaErrorHandler(lazy=True)
+        error_handler = ErrorHandler(lazy=True)
         for schema_model, annotation_info in annotation_model_pairs:
             if schema_model is None:
                 return arg_value
@@ -650,9 +666,10 @@ def check_types(
                     return arg_value
 
                 if (
-                    arg_value.pandera.schema is None
-                    # don't re-validate a dataframe that contains the same exact
-                    # schema
+                    not hasattr(arg_value, "pandera")
+                    or arg_value.pandera.schema is None
+                    # don't re-validate a dataframe that contains the same
+                    # exact schema
                     or arg_value.pandera.schema != schema
                 ):
                     try:
@@ -667,9 +684,17 @@ def check_types(
                         )
                     except errors.SchemaError as e:
                         error_handler.collect_error(
+                            validation_type(
+                                errors.SchemaErrorReason.INVALID_TYPE
+                            ),
                             errors.SchemaErrorReason.INVALID_TYPE,
                             _parse_schema_error(
-                                "check_types", wrapped, schema, arg_value, e
+                                "check_types",
+                                wrapped,
+                                schema,
+                                arg_value,
+                                e,
+                                errors.SchemaErrorReason.INVALID_TYPE,
                             ),
                         )
                         continue
@@ -681,40 +706,119 @@ def check_types(
 
                 return arg_value
 
-        if error_handler.collected_errors:
-            if len(error_handler.collected_errors) == 1:
-                raise error_handler.collected_errors[0]  # type: ignore[misc]
+        if error_handler.schema_errors:
+            if len(error_handler.schema_errors) == 1:
+                raise error_handler.schema_errors[0]
+
             raise errors.SchemaErrors(
                 schema=schema,
-                schema_errors=error_handler.collected_errors,
+                schema_errors=(
+                    error_handler.schema_errors
+                    if isinstance(arg_value, pd.DataFrame)
+                    else error_handler.collect_errors  # type: ignore
+                ),
                 data=arg_value,
             )
 
     sig = inspect.signature(wrapped)
 
-    def validate_args(arguments: Dict[str, Any]) -> Dict[str, Any]:
-        return {
-            arg_name: _check_arg(arg_name, arg_value)
-            for arg_name, arg_value in arguments.items()
-        }
+    def validate_args(
+        named_arguments: Dict[str, Any], arguments: Tuple[Any, ...]
+    ) -> List[Any]:
+        """
+        Validates schemas of both explicit and *args-like function arguments.
+
+        :param named_arguments: Bundled function arguments. Organized as key-value pairs of the
+            argument name and value. *args-like arguments are bundled into a single tuple.
+            Example: OrderedDict({'arg1': 1, 'arg2': 2, 'star_args': (3, 4, 5)})
+        :param arguments: Unpacked function arguments, as written in the function call.
+            Example: (1, 2, 3, 4, 5)
+        :return: List of validated function arguments.
+        """
+
+        # Check for an '*args'-like argument
+        if len(arguments) > len(named_arguments):
+            (
+                star_args_name,
+                star_args_values,
+            ) = named_arguments.popitem()  # *args is the last item
+
+            star_args_tuple = (
+                _check_arg(star_args_name, arg_value)
+                for arg_value in star_args_values
+            )
+
+            explicit_args_tuple = (
+                _check_arg(arg_name, arg_value)
+                for arg_name, arg_value in named_arguments.items()
+            )
+
+            return list((*explicit_args_tuple, *star_args_tuple))
+
+        else:
+            return list(
+                _check_arg(arg_name, arg_value)
+                for arg_name, arg_value in named_arguments.items()
+            )
+
+    def validate_kwargs(
+        named_kwargs: Dict[str, Any], kwargs: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """
+        Validates schemas of both explicit and **kwargs-like function arguments.
+
+        :param named_kwargs: Bundled function keyword arguments. Organized as key-value pairs of
+            the keyword argument name and value. **kwargs-like arguments are bundled into a single
+            dictionary.
+            Example: OrderedDict({'kwarg1': 1, 'kwarg2': 2, 'star_kwargs': {'kwarg3': 3, 'kwarg4': 4}})
+        :param kwargs: Unpacked function keyword arguments, as written in the function call.
+            Example: {'kwarg1': 1, 'kwarg2': 2, 'kwarg3': 3, 'kwarg4': 4}
+        :return: list of validated function keyword arguments.
+        """
+
+        # Check for an '**kwargs'-like argument
+        if kwargs.keys() != named_kwargs.keys():
+            (
+                star_kwargs_name,
+                star_kwargs_dict,
+            ) = named_kwargs.popitem()  # **kwargs is the last item
+
+            explicit_kwargs_dict = {
+                arg_name: _check_arg(arg_name, arg_value)
+                for arg_name, arg_value in named_kwargs.items()
+            }
+
+            star_kwargs_dict = {
+                arg_name: _check_arg(star_kwargs_name, arg_value)
+                for arg_name, arg_value in star_kwargs_dict.items()
+            }
+
+            return {**explicit_kwargs_dict, **star_kwargs_dict}
+
+        else:
+            return {
+                arg_name: _check_arg(arg_name, arg_value)
+                for arg_name, arg_value in named_kwargs.items()
+            }
 
     def validate_inputs(
         instance: Optional[Any],
         args: Tuple[Any, ...],
         kwargs: Dict[str, Any],
-    ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+    ) -> Tuple[List[Any], Dict[str, Any]]:
         if instance is not None:
             # If the wrapped function is a method -> add "self" as the first positional arg
             args = (instance, *args)
 
-        validated_pos = validate_args(sig.bind_partial(*args).arguments)
-        validated_kwd = validate_args(sig.bind_partial(**kwargs).arguments)
+        validated_pos = validate_args(sig.bind_partial(*args).arguments, args)
+        validated_kwd = validate_kwargs(
+            sig.bind_partial(**kwargs).arguments, kwargs
+        )
 
         if instance is not None:
             # If the decorated func is a method, "wrapped" is a bound method
             # -> remove "self" before passing positional args through
-            first_pos_arg = list(sig.parameters)[0]
-            del validated_pos[first_pos_arg]
+            del validated_pos[0]
 
         return validated_pos, validated_kwd
 
@@ -733,7 +837,7 @@ def check_types(
                 validated_pos, validated_kwd = validate_inputs(
                     instance, args, kwargs
                 )
-                out = await wrapped_(*validated_pos.values(), **validated_kwd)
+                out = await wrapped_(*validated_pos, **validated_kwd)
             return _check_arg("return", out)
 
     else:
@@ -751,7 +855,7 @@ def check_types(
                 validated_pos, validated_kwd = validate_inputs(
                     instance, args, kwargs
                 )
-                out = wrapped_(*validated_pos.values(), **validated_kwd)
+                out = wrapped_(*validated_pos, **validated_kwd)
             return _check_arg("return", out)
 
     wrapped_fn = _wrapper(wrapped)  # pylint:disable=no-value-for-parameter

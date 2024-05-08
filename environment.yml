@@ -8,7 +8,7 @@ dependencies:
 
   # pandera dependencies
   - packaging >= 20.0
-  - hypothesis >= 5.41.1
+  - hypothesis >= 6.92.7
   - numpy >= 1.19.0
   - pandas
   - scipy
@@ -19,7 +19,7 @@ dependencies:
   - frictionless <= 4.40.8  # v5.* introduces breaking changes
   - pyarrow
   - pydantic
-  - multimethod
+  - multimethod <= 1.10.0
 
   # mypy extra
   - pandas-stubs
@@ -27,13 +27,12 @@ dependencies:
   # pyspark extra
   - pyspark >= 3.2.0
 
+  # polars extra
+  - polars >= 0.20.0
+
   # modin extra
   - modin
   - protobuf
-
-  # dask extra
-  - dask
-  - distributed
 
   # geopandas extra
   - geopandas
@@ -47,7 +46,8 @@ dependencies:
 
   # testing
   - isort >= 5.7.0
-  - mypy
+  - joblib
+  - mypy = 1.10.0
   - pylint <= 2.17.3
   - pytest
   - pytest-cov
@@ -64,10 +64,11 @@ dependencies:
 
   # documentation
   - sphinx
-  - sphinx-panels
+  - sphinx-design
   - sphinx-autodoc-typehints <= 1.14.1
   - sphinx-copybutton
   - recommonmark
+  - myst-nb
 
   # packaging
   - twine
@@ -79,13 +80,17 @@ dependencies:
   - pre_commit
 
   - pip:
+      # dask extra
+      - dask[dataframe]
+      - distributed
+
+      # docs
       - furo
+      - grpcio
       - ray
-      - typeguard >= 3.0.2
+      - typeguard
       - types-click
       - types-pyyaml
       - types-pkg_resources
       - types-requests
       - types-pytz
-      - jupyterlite
-      - jupyterlite_sphinx

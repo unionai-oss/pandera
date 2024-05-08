@@ -8,18 +8,17 @@ import warnings
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union, cast, overload
 
-from pyspark.sql import DataFrame
+from pyspark.sql import DataFrame, SparkSession
+from pyspark.sql.types import StructField, StructType
 
 from pandera import errors
-from pandera.config import CONFIG
+from pandera.api.base.error_handler import ErrorHandler
 from pandera.api.base.schema import BaseSchema
+from pandera.api.base.types import StrictType
 from pandera.api.checks import Check
-from pandera.api.pyspark.error_handler import ErrorHandler
-from pandera.api.pyspark.types import (
-    CheckList,
-    PySparkDtypeInputTypes,
-    StrictType,
-)
+from pandera.api.pyspark.types import CheckList, PySparkDtypeInputTypes
+from pandera.backends.pyspark.register import register_pyspark_backends
+from pandera.config import get_config_context
 from pandera.dtypes import DataType, UniqueSettings
 from pandera.engines import pyspark_engine
 
@@ -156,6 +155,9 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
         self._IS_INFERRED = False
         self.metadata = metadata
 
+    def _register_default_backends(self):
+        register_pyspark_backends()
+
     @property
     def coerce(self) -> bool:
         """Whether to coerce series to specified type."""
@@ -238,7 +240,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
                             dataframe
                         ).get_regex_columns(
                             column,
-                            dataframe.columns,
+                            dataframe,
                         )
                     }
                 )
@@ -326,7 +328,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
         >>> schema_withchecks.validate(df).take(2)
             [Row(product='Bread', price=9), Row(product='Butter', price=15)]
         """
-        if not CONFIG.validation_enabled:
+        if not get_config_context().validation_enabled:
             return check_obj
         error_handler = ErrorHandler(lazy)
 
@@ -513,14 +515,6 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
 
         return pandera.io.from_yaml(yaml_schema)
 
-    @overload
-    def to_yaml(self, stream: None = None) -> str:  # pragma: no cover
-        ...
-
-    @overload
-    def to_yaml(self, stream: os.PathLike) -> None:  # pragma: no cover
-        ...
-
     def to_yaml(self, stream: Optional[os.PathLike] = None) -> Optional[str]:
         """Write DataFrameSchema to yaml file.
 
@@ -569,6 +563,34 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
         import pandera.io
 
         return pandera.io.to_json(self, target, **kwargs)
+
+    def to_structtype(self) -> StructType:
+        """Recover fields of DataFrameSchema as a Pyspark StructType object.
+
+        As the output of this method will be used to specify a read schema in Pyspark
+            (avoiding automatic schema inference), the False `nullable` properties are
+            just ignored, as this check will be executed by the Pandera validations
+            after a dataset is read.
+
+        :returns: StructType object with current schema fields.
+        """
+        fields = [
+            StructField(column, self.columns[column].dtype.type, True)
+            for column in self.columns
+        ]
+        return StructType(fields)
+
+    def to_ddl(self) -> str:
+        """Recover fields of DataFrameSchema as a Pyspark DDL string.
+
+        :returns: String with current schema fields, in compact DDL format.
+        """
+        # `StructType.toDDL()` is only available in internal java classes
+        spark = SparkSession.builder.getOrCreate()
+        # Create a base dataframe from where we access underlying Java classes
+        empty_df_with_schema = spark.createDataFrame([], self.to_structtype())
+
+        return empty_df_with_schema._jdf.schema().toDDL()
 
 
 def _validate_columns(

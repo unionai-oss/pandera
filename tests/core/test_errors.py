@@ -9,7 +9,7 @@ The Exception contains full data and schema. Most Check objects are not picklabl
 DataFrames may be large. The signature of SchemaError needs special unpickling
 behavior.
 """
-import io
+
 import multiprocessing
 import pickle
 from typing import NoReturn, cast
@@ -19,7 +19,8 @@ import pandas as pd
 import pytest
 
 from pandera import Check, Column, DataFrameSchema
-from pandera.engines import pandas_engine, numpy_engine
+from pandera.config import ValidationDepth, config_context
+from pandera.engines import numpy_engine, pandas_engine
 from pandera.errors import (
     ParserError,
     ReducedPickleExceptionBase,
@@ -183,8 +184,8 @@ class TestSchemaError:
         """General validation of Exception content."""
         assert exc is not None
         assert (
-            "Schema Column(name=a, type=DataType(int64))> "
-            "failed element-wise validator 0" in str(exc)
+            "Column 'a' failed element-wise validator number 0: isin([0, 1]) failure cases: -1"
+            in str(exc)
         )
         assert exc.schema == "<Schema Column(name=a, type=DataType(int64))>"
         assert exc.data == str(df)
@@ -297,17 +298,10 @@ class TestSchemaErrors:
                 "a": Column(int, Check.isin([0, 1])),
             },
         )
-        try:
+        with pytest.raises(SchemaErrors) as e:
             schema.validate(int_dataframe, lazy=True)
-        except SchemaErrors as exc:
-            matched = False
-            for line in io.StringIO(str(exc)):
-                if line.startswith(f"Schema {schema.name}: A total of"):
-                    matched = True
-                    break
-            assert matched
-        else:
-            pytest.fail("SchemaErrors not raised")
+
+        assert schema.name in str(e.value)
 
 
 @pytest.mark.filterwarnings("ignore:Pickling ParserError")
@@ -338,3 +332,109 @@ def test_unhashable_types_rendered_on_failing_checks_with_lazy_validation():
         schema.validate(pd.DataFrame({"x": unhashables}), lazy=True)
 
     assert e.value.failure_cases.failure_case.to_list() == unhashables
+
+
+@pytest.mark.parametrize(
+    "validation_depth, expected_error",
+    [
+        (
+            ValidationDepth.SCHEMA_AND_DATA,
+            {
+                "SCHEMA": {
+                    "COLUMN_NOT_IN_SCHEMA": [
+                        {
+                            "schema": None,
+                            "column": None,
+                            "check": "column_in_schema",
+                            "error": "column 'extra_column' not in DataFrameSchema {'id': <Schema Column(name=id, type=DataType(int64))>}",
+                        }
+                    ],
+                    "SERIES_CONTAINS_NULLS": [
+                        {
+                            "schema": None,
+                            "column": "id",
+                            "check": "not_nullable",
+                            "error": "non-nullable series 'id' contains null values:1   NaNName: id, dtype: float64",
+                        }
+                    ],
+                    "WRONG_DATATYPE": [
+                        {
+                            "schema": None,
+                            "column": "id",
+                            "check": "dtype('int64')",
+                            "error": "expected series 'id' to have type int64, got float64",
+                        }
+                    ],
+                },
+                "DATA": {
+                    "DATAFRAME_CHECK": [
+                        {
+                            "schema": None,
+                            "column": "id",
+                            "check": "less_than(10)",
+                            "error": "Column 'id' failed element-wise validator number 0: less_than(10) failure cases: 30.0",
+                        }
+                    ]
+                },
+            },
+        ),
+        (
+            ValidationDepth.SCHEMA_ONLY,
+            {
+                "SCHEMA": {
+                    "COLUMN_NOT_IN_SCHEMA": [
+                        {
+                            "schema": None,
+                            "column": None,
+                            "check": "column_in_schema",
+                            "error": "column 'extra_column' not in DataFrameSchema {'id': <Schema Column(name=id, type=DataType(int64))>}",
+                        }
+                    ],
+                    "SERIES_CONTAINS_NULLS": [
+                        {
+                            "schema": None,
+                            "column": "id",
+                            "check": "not_nullable",
+                            "error": "non-nullable series 'id' contains null values:1   NaNName: id, dtype: float64",
+                        }
+                    ],
+                    "WRONG_DATATYPE": [
+                        {
+                            "schema": None,
+                            "column": "id",
+                            "check": "dtype('int64')",
+                            "error": "expected series 'id' to have type int64, got float64",
+                        }
+                    ],
+                },
+            },
+        ),
+        (
+            ValidationDepth.DATA_ONLY,
+            {
+                "DATA": {
+                    "DATAFRAME_CHECK": [
+                        {
+                            "schema": None,
+                            "column": "id",
+                            "check": "less_than(10)",
+                            "error": "Column 'id' failed element-wise validator number 0: less_than(10) failure cases: 30.0",
+                        }
+                    ]
+                }
+            },
+        ),
+    ],
+)
+def test_validation_depth(validation_depth, expected_error):
+    """Test the error report generated is relevant to the CONFIG.validation_depth"""
+    with config_context(validation_depth=validation_depth):
+        df = pd.DataFrame({"id": [1, None, 30], "extra_column": [1, 2, 3]})
+        schema = DataFrameSchema(
+            {"id": Column(int, Check.lt(10))}, strict=True
+        )
+
+        with pytest.raises(SchemaErrors) as e:
+            schema.validate(df, lazy=True)
+
+    assert e.value.message == expected_error

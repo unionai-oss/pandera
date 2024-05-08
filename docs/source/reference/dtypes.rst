@@ -39,11 +39,10 @@ Library-agnostic dtypes
    pandera.dtypes.Decimal
    pandera.dtypes.String
 
-
 Pandas Dtypes
-----------------------
+-------------
 
-Listed here for compatibility with pandera versions < 0.7.
+Listed here for compatibility with pandera versions \< 0.7.
 Passing native pandas dtypes to pandera components is preferred.
 
 .. autosummary::
@@ -79,7 +78,6 @@ GeoPandas Dtypes
 
    pandera.engines.pandas_engine.Geometry
 
-
 Pydantic Dtypes
 ---------------
 
@@ -91,6 +89,43 @@ Pydantic Dtypes
    :nosignatures:
 
    pandera.engines.pandas_engine.PydanticModel
+
+.. _polars-dtypes:
+
+Polars Dtypes
+-------------
+
+*new in 0.19.0*
+
+.. autosummary::
+   :toctree: generated
+   :template: dtype.rst
+   :nosignatures:
+
+   pandera.engines.polars_engine.Int8
+   pandera.engines.polars_engine.Int16
+   pandera.engines.polars_engine.Int32
+   pandera.engines.polars_engine.Int64
+   pandera.engines.polars_engine.UInt8
+   pandera.engines.polars_engine.UInt16
+   pandera.engines.polars_engine.UInt32
+   pandera.engines.polars_engine.UInt64
+   pandera.engines.polars_engine.Float32
+   pandera.engines.polars_engine.Float64
+   pandera.engines.polars_engine.Decimal
+   pandera.engines.polars_engine.Date
+   pandera.engines.polars_engine.DateTime
+   pandera.engines.polars_engine.Time
+   pandera.engines.polars_engine.Timedelta
+   pandera.engines.polars_engine.Array
+   pandera.engines.polars_engine.List
+   pandera.engines.polars_engine.Struct
+   pandera.engines.polars_engine.Bool
+   pandera.engines.polars_engine.String
+   pandera.engines.polars_engine.Categorical
+   pandera.engines.polars_engine.Category
+   pandera.engines.polars_engine.Null
+   pandera.engines.polars_engine.Object
 
 
 Utility functions

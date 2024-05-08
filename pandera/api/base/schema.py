@@ -6,13 +6,14 @@ together to implement the pandera schema specification.
 """
 
 import inspect
+import os
 from abc import ABC
 from functools import wraps
-from typing import Any, Dict, Tuple, Type, Optional, Union
+from typing import Any, Dict, Optional, Tuple, Type, Union
 
 from pandera.backends.base import BaseSchemaBackend
-from pandera.errors import BackendNotFoundError
 from pandera.dtypes import DataType
+from pandera.errors import BackendNotFoundError
 
 DtypeInputTypes = Union[str, type, DataType, Type]
 
@@ -28,6 +29,7 @@ class BaseSchema(ABC):
         self,
         dtype=None,
         checks=None,
+        parsers=None,
         coerce=False,
         name=None,
         title=None,
@@ -39,11 +41,13 @@ class BaseSchema(ABC):
         self.dtype = dtype
         self.checks = checks
         self.coerce = coerce
+        self.parsers = parsers
         self.name = name
         self.title = title
         self.description = description
         self.metadata = metadata
         self.drop_invalid_rows = drop_invalid_rows
+        self._register_default_backends()
 
     def validate(
         self,
@@ -55,11 +59,34 @@ class BaseSchema(ABC):
         lazy=False,
         inplace=False,
     ):
-        """Validate method to be implemented by subclass."""
+        """Validate a DataFrame based on the schema specification.
+
+        :param pd.DataFrame check_obj: the dataframe to be validated.
+        :param head: validate the first n rows. Rows overlapping with `tail` or
+            `sample` are de-duplicated.
+        :param tail: validate the last n rows. Rows overlapping with `head` or
+            `sample` are de-duplicated.
+        :param sample: validate a random sample of n rows. Rows overlapping
+            with `head` or `tail` are de-duplicated.
+        :param random_state: random seed for the ``sample`` argument.
+        :param lazy: if True, lazily evaluates dataframe against all validation
+            checks and raises a ``SchemaErrors``. Otherwise, raise
+            ``SchemaError`` as soon as one occurs.
+        :param inplace: if True, applies coercion to the object of validation,
+            otherwise creates a copy of the data.
+        :returns: validated ``DataFrame``
+
+        :raises SchemaError: when ``DataFrame`` violates built-in or custom
+            checks.
+        """
         raise NotImplementedError
 
     def coerce_dtype(self, check_obj):
         """Coerce object to the expected type."""
+        raise NotImplementedError
+
+    def to_yaml(self, stream: Optional[os.PathLike] = None) -> Optional[str]:
+        """Write DataFrameSchema to yaml file."""
         raise NotImplementedError
 
     @property
@@ -70,7 +97,8 @@ class BaseSchema(ABC):
     @classmethod
     def register_backend(cls, type_: Type, backend: Type[BaseSchemaBackend]):
         """Register a schema backend for this class."""
-        cls.BACKEND_REGISTRY[(cls, type_)] = backend
+        if (cls, type_) not in cls.BACKEND_REGISTRY:
+            cls.BACKEND_REGISTRY[(cls, type_)] = backend
 
     @classmethod
     def get_backend(
@@ -97,6 +125,18 @@ class BaseSchema(ABC):
             f"Backend not found for backend, class: {(cls, check_obj_cls)}. "
             f"Looked up the following base classes: {classes}"
         )
+
+    def _register_default_backends(self):
+        """Register default backends.
+
+        This method is invoked in the `__init__` method for subclasses that
+        implement the API for a specific dataframe object, and should be
+        overridden in those subclasses.
+        """
+
+    def __setstate__(self, state):
+        self.__dict__ = state
+        self._register_default_backends()
 
 
 def inferred_schema_guard(method):

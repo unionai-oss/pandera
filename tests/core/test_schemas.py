@@ -1,4 +1,5 @@
 """Testing creation and manipulation of DataFrameSchema objects."""
+
 # pylint: disable=too-many-lines,redefined-outer-name
 
 import copy
@@ -20,6 +21,7 @@ from pandera import (
     Index,
     Int,
     MultiIndex,
+    Parser,
     SeriesSchema,
     String,
     errors,
@@ -353,9 +355,7 @@ def test_ordered_dataframe(
         columns=["b", "a"],
         index=pd.MultiIndex.from_arrays([[1], [2]], names=["b", "a"]),
     )
-    with pytest.raises(
-        errors.SchemaErrors, match="A total of 1 schema errors"
-    ):
+    with pytest.raises(errors.SchemaErrors, match=r"out-of-order"):
         schema.validate(df, lazy=True)
 
     # test out-of-order duplicates
@@ -366,9 +366,7 @@ def test_ordered_dataframe(
             [[1], [2], [3], [4]], names=["a", "b", "c", "a"]
         ),
     )
-    with pytest.raises(
-        errors.SchemaErrors, match="A total of 1 schema errors"
-    ):
+    with pytest.raises(errors.SchemaErrors, match=r"out-of-order"):
         schema.validate(df, lazy=True)
 
 
@@ -670,6 +668,27 @@ def test_series_schema_with_index(coerce: bool) -> None:
     assert (validated_series_multiindex.index == multi_index).all()
 
 
+def test_series_schema_with_index_errors() -> None:
+    """Test that SeriesSchema raises errors for invalid index."""
+    schema_with_index = SeriesSchema(dtype=int, index=Index(int))
+    data = pd.Series([1, 2, 3], index=[1.0, 2.0, 3.0])
+    with pytest.raises(errors.SchemaError):
+        schema_with_index(data)
+
+    schema_with_index_check = SeriesSchema(
+        dtype=int, index=Index(float, Check(lambda x: x == 1.0))
+    )
+    with pytest.raises(errors.SchemaError):
+        schema_with_index_check(data)
+
+    schema_with_index_coerce = SeriesSchema(
+        dtype=int, index=Index(int, coerce=True)
+    )
+    expected = pd.Series([1, 2, 3], index=[1, 2, 3])
+    schema_with_index_coerce(data)
+    assert schema_with_index_coerce(data).equals(expected)
+
+
 class SeriesGreaterCheck:
     # pylint: disable=too-few-public-methods
     """Class creating callable objects to check if series elements exceed a
@@ -840,7 +859,7 @@ def test_required() -> None:
 
     df_not_ok = pd.DataFrame({"col1": [1, 2]})
 
-    with pytest.raises(Exception):
+    with pytest.raises(errors.SchemaError):
         schema.validate(df_not_ok)
 
 
@@ -971,6 +990,7 @@ def test_schema_equality_operators():
     series_schema = SeriesSchema(
         str,
         checks=[Check(lambda s: s.str.startswith("foo"))],
+        parsers=Parser(lambda s: s.str.upper()),
         nullable=False,
         unique=False,
         name="my_series",
@@ -978,6 +998,7 @@ def test_schema_equality_operators():
     series_schema_base = ArraySchema(
         str,
         checks=[Check(lambda s: s.str.startswith("foo"))],
+        parsers=[Parser(lambda s: s.str.upper())],
         nullable=False,
         unique=False,
         name="my_series",
@@ -1274,10 +1295,10 @@ def test_lazy_dataframe_validation_error() -> None:
         },
     }
 
-    with pytest.raises(
-        errors.SchemaErrors, match="A total of .+ schema errors were found"
-    ):
+    with pytest.raises(errors.SchemaErrors) as e:
         schema.validate(dataframe, lazy=True)
+
+    assert len(e.value.message["SCHEMA"]) == 3
 
     try:
         schema.validate(dataframe, lazy=True)
@@ -1625,9 +1646,9 @@ def test_lazy_dataframe_unique() -> None:
             Index(str, checks=Check.isin(["a", "b", "c"])),
             pd.DataFrame({"col": [1, 2, 3]}, index=["a", "b", "d"]),
             {
-                # expect that the data in the SchemaError is the pd.Index cast
-                # into a Series
-                "data": pd.Series(["a", "b", "d"]),
+                "data": pd.DataFrame(
+                    {"col": [1, 2, 3]}, index=["a", "b", "d"]
+                ),
                 "schema_errors": {
                     "Index": {"isin(['a', 'b', 'c'])": ["d"]},
                 },
@@ -1648,8 +1669,6 @@ def test_lazy_dataframe_unique() -> None:
                 ),
             ),
             {
-                # expect that the data in the SchemaError is the pd.MultiIndex
-                # cast into a DataFrame
                 "data": pd.DataFrame(
                     {"column": [1, 2, 3]},
                     index=pd.MultiIndex.from_arrays(
@@ -1727,12 +1746,12 @@ def test_capture_check_errors() -> None:
 @pytest.mark.parametrize(
     "from_dtype,to_dtype",
     [
-        # [float, int],
-        # [int, float],
-        # [object, int],
-        # [object, float],
+        [float, int],
+        [int, float],
+        [object, int],
+        [object, float],
         [int, object],
-        # [float, object],
+        [float, object],
     ],
 )
 def test_schema_coerce_inplace_validation(
@@ -2023,6 +2042,7 @@ def test_dataframe_duplicated_columns(data, error, schema) -> None:
             DataFrameSchema(
                 columns={"col": Column(int)},
                 checks=Check.gt(0),
+                parsers=Parser(lambda x: x),
                 index=Index(int),
                 dtype=int,
                 coerce=True,
@@ -2033,6 +2053,7 @@ def test_dataframe_duplicated_columns(data, error, schema) -> None:
             [
                 "columns",
                 "checks",
+                "parsers",
                 "index",
                 "dtype",
                 "coerce",
@@ -2398,6 +2419,33 @@ def test_drop_invalid_for_model_schema():
 
     with pytest.raises(errors.SchemaDefinitionError):
         MySchema.validate(actual_obj, lazy=False)
+
+
+def test_schema_coerce() -> None:
+    """Test that setting coerce=True for a DataFrameSchema is sufficient to coerce a column."""
+
+    schema = DataFrameSchema(
+        columns={"col": Column(dtype=bool)},
+        coerce=True,
+    )
+
+    df = pd.DataFrame({"col": [1, 0]})
+
+    assert isinstance(schema.validate(df), pd.DataFrame)
+
+
+def test_schema_coerce_with_regex() -> None:
+    """Test that setting coerce=True for a DataFrameSchema is sufficient to coerce a column in the case
+    where the column has regex=True."""
+
+    schema_with_regex = DataFrameSchema(
+        columns={"col": Column(dtype=bool, regex=True)},
+        coerce=True,
+    )
+
+    df = pd.DataFrame({"col": [1, 0]})
+
+    assert isinstance(schema_with_regex.validate(df), pd.DataFrame)
 
 
 @pytest.mark.parametrize(

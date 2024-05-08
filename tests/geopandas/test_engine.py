@@ -1,14 +1,14 @@
 """Unit tests for the geopandas engine dtype Geometry."""
 
-import shapely
+import geopandas as gpd
 import numpy as np
 import pandas as pd
-import geopandas as gpd
 import pytest
+import shapely
 from shapely.geometry import Point
 
 import pandera as pa
-from pandera.engines.pandas_engine import Geometry, DateTime
+from pandera.engines.pandas_engine import DateTime, Geometry
 
 
 def test_engine_geometry_simple():

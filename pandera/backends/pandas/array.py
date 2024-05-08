@@ -1,27 +1,29 @@
 """Pandera array backends."""
 
-from typing import cast, List, Optional
+from typing import List, Optional, cast
 
 import pandas as pd
 from multimethod import DispatchError
 
-from pandera.backends.base import CoreCheckResult
+from pandera.api.base.error_handler import ErrorHandler
 from pandera.api.pandas.types import is_field
+from pandera.backends.base import CoreCheckResult, CoreParserResult
 from pandera.backends.pandas.base import PandasSchemaBackend
 from pandera.backends.pandas.error_formatters import (
     reshape_failure_cases,
     scalar_failure_case,
 )
-from pandera.backends.pandas.utils import convert_uniquesettings
+from pandera.backends.utils import convert_uniquesettings
+from pandera.config import ValidationScope
 from pandera.engines.pandas_engine import Engine
-from pandera.error_handlers import SchemaErrorHandler
 from pandera.errors import (
     ParserError,
+    SchemaDefinitionError,
     SchemaError,
     SchemaErrorReason,
     SchemaErrors,
-    SchemaDefinitionError,
 )
+from pandera.validation_depth import validate_scope, validation_type
 
 
 class ArraySchemaBackend(PandasSchemaBackend):
@@ -43,7 +45,7 @@ class ArraySchemaBackend(PandasSchemaBackend):
         inplace: bool = False,
     ):
         # pylint: disable=too-many-locals
-        error_handler = SchemaErrorHandler(lazy)
+        error_handler = ErrorHandler(lazy)
         check_obj = self.preprocess(check_obj, inplace)
 
         if getattr(schema, "drop_invalid_rows", False) and not lazy:
@@ -63,59 +65,52 @@ class ArraySchemaBackend(PandasSchemaBackend):
                     check_obj[schema.name], schema=schema
                 )
         except SchemaError as exc:
-            error_handler.collect_error(exc.reason_code, exc)
+            error_handler.collect_error(
+                validation_type(exc.reason_code),
+                exc.reason_code,
+                exc,
+            )
+
+        # run custom parsers
+        check_obj = self.run_parsers(
+            schema,
+            check_obj,
+        )
 
         # run the core checks
         error_handler = self.run_checks_and_handle_errors(
             error_handler,
             schema,
             check_obj,
-            head,
-            tail,
-            sample,
-            random_state,
+            head=head,
+            tail=tail,
+            sample=sample,
+            random_state=random_state,
         )
 
         if lazy and error_handler.collected_errors:
             if getattr(schema, "drop_invalid_rows", False):
                 check_obj = self.drop_invalid_rows(check_obj, error_handler)
-                return check_obj
             else:
                 raise SchemaErrors(
                     schema=schema,
-                    schema_errors=error_handler.collected_errors,
+                    schema_errors=error_handler.schema_errors,
                     data=check_obj,
                 )
 
         return check_obj
 
     def run_checks_and_handle_errors(
-        self,
-        error_handler,
-        schema,
-        check_obj,
-        head,
-        tail,
-        sample,
-        random_state,
+        self, error_handler, schema, check_obj, **subsample_kwargs
     ):
         """Run checks on schema"""
         # pylint: disable=too-many-locals
         field_obj_subsample = self.subsample(
             check_obj if is_field(check_obj) else check_obj[schema.name],
-            head,
-            tail,
-            sample,
-            random_state,
+            **subsample_kwargs,
         )
 
-        check_obj_subsample = self.subsample(
-            check_obj,
-            head,
-            tail,
-            sample,
-            random_state,
-        )
+        check_obj_subsample = self.subsample(check_obj, **subsample_kwargs)
 
         core_checks = [
             (self.check_name, (field_obj_subsample, schema)),
@@ -148,6 +143,7 @@ class ArraySchemaBackend(PandasSchemaBackend):
                         reason_code=result.reason_code,
                     )
                     error_handler.collect_error(
+                        validation_type(result.reason_code),
                         result.reason_code,
                         error,
                         original_exc=result.original_exc,
@@ -183,8 +179,24 @@ class ArraySchemaBackend(PandasSchemaBackend):
                 ),
                 failure_cases=exc.failure_cases,
                 check=f"coerce_dtype('{schema.dtype}')",
+                reason_code=SchemaErrorReason.DATATYPE_COERCION,
             ) from exc
 
+    def run_parsers(self, schema, check_obj):
+        parser_results: List[CoreParserResult] = []
+        for parser_index, parser in enumerate(schema.parsers):
+            parser_args = [None] if is_field(check_obj) else [schema.name]
+            result = self.run_parser(
+                check_obj,
+                parser,
+                parser_index,
+                *parser_args,
+            )
+            check_obj = result.parser_output
+            parser_results.append(result)
+        return check_obj
+
+    @validate_scope(scope=ValidationScope.SCHEMA)
     def check_name(self, check_obj: pd.Series, schema) -> CoreCheckResult:
         return CoreCheckResult(
             passed=schema.name is None or check_obj.name == schema.name,
@@ -197,9 +209,23 @@ class ArraySchemaBackend(PandasSchemaBackend):
             failure_cases=scalar_failure_case(check_obj.name),
         )
 
+    @validate_scope(scope=ValidationScope.SCHEMA)
     def check_nullable(self, check_obj: pd.Series, schema) -> CoreCheckResult:
+        if schema.nullable:
+            # Avoid to compute anything for perf reasons. GH#1533
+            return CoreCheckResult(
+                passed=True,
+                check="not_nullable",
+            )
+
+        # Check actual column contents
         isna = check_obj.isna()
         passed = schema.nullable or not isna.any()
+        failure_cases = (
+            reshape_failure_cases(check_obj[isna], ignore_na=False)
+            if not passed
+            else None
+        )
         return CoreCheckResult(
             passed=cast(bool, passed),
             check="not_nullable",
@@ -208,11 +234,10 @@ class ArraySchemaBackend(PandasSchemaBackend):
                 f"non-nullable series '{check_obj.name}' contains "
                 f"null values:\n{check_obj[isna]}"
             ),
-            failure_cases=reshape_failure_cases(
-                check_obj[isna], ignore_na=False
-            ),
+            failure_cases=failure_cases,
         )
 
+    @validate_scope(scope=ValidationScope.DATA)
     def check_unique(self, check_obj: pd.Series, schema) -> CoreCheckResult:
         passed = True
         failure_cases = None
@@ -251,6 +276,7 @@ class ArraySchemaBackend(PandasSchemaBackend):
             failure_cases=failure_cases,
         )
 
+    @validate_scope(scope=ValidationScope.SCHEMA)
     def check_dtype(self, check_obj: pd.Series, schema) -> CoreCheckResult:
         passed = True
         failure_cases = None
@@ -287,7 +313,7 @@ class ArraySchemaBackend(PandasSchemaBackend):
             failure_cases=failure_cases,
         )
 
-    # pylint: disable=unused-argument
+    @validate_scope(scope=ValidationScope.DATA)
     def run_checks(self, check_obj, schema) -> List[CoreCheckResult]:
         check_results: List[CoreCheckResult] = []
         for check_index, check in enumerate(schema.checks):
@@ -329,11 +355,13 @@ class ArraySchemaBackend(PandasSchemaBackend):
         if is_field(check_obj) and not isinstance(
             check_obj.dtype, pd.SparseDtype
         ):
-            check_obj.fillna(schema.default, inplace=True)
+            check_obj = check_obj.fillna(schema.default)
         elif not is_field(check_obj) and not isinstance(
             check_obj[schema.name].dtype, pd.SparseDtype
         ):
-            check_obj[schema.name].fillna(schema.default, inplace=True)
+            check_obj[schema.name] = check_obj[schema.name].fillna(
+                schema.default
+            )
 
         return check_obj
 

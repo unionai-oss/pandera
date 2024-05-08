@@ -3,7 +3,7 @@
 
 pip
 packaging >= 20.0
-hypothesis >= 5.41.1
+hypothesis >= 6.92.7
 numpy >= 1.19.0
 pandas
 scipy
@@ -14,19 +14,19 @@ typing_extensions >= 3.7.4.3
 frictionless <= 4.40.8
 pyarrow
 pydantic
-multimethod
+multimethod <= 1.10.0
 pandas-stubs
 pyspark >= 3.2.0
+polars >= 0.20.0
 modin
 protobuf
-dask
-distributed
 geopandas
 shapely
 fastapi
 black >= 22.1.0
 isort >= 5.7.0
-mypy
+joblib
+mypy == 1.10.0
 pylint <= 2.17.3
 pytest
 pytest-cov
@@ -39,20 +39,22 @@ importlib_metadata
 uvicorn
 python-multipart
 sphinx
-sphinx-panels
+sphinx-design
 sphinx-autodoc-typehints <= 1.14.1
 sphinx-copybutton
 recommonmark
+myst-nb
 twine
 asv >= 0.5.1
 pre_commit
+dask[dataframe]
+distributed
 furo
+grpcio
 ray
-typeguard >= 3.0.2
+typeguard
 types-click
 types-pyyaml
 types-pkg_resources
 types-requests
 types-pytz
-jupyterlite
-jupyterlite_sphinx

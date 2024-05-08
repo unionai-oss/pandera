@@ -1,4 +1,5 @@
 """DataFrameModel components"""
+
 from typing import (
     Any,
     Callable,
@@ -125,13 +126,13 @@ def Field(
     *new in 0.16.0*
 
     Some arguments apply only to numeric dtypes and some apply only to ``str``.
-    See the :ref:`User Guide <dataframe_models>` for more information.
+    See the :ref:`User Guide <dataframe-models>` for more information.
 
     The keyword-only arguments from ``eq`` to ``str_startswith`` are dispatched
     to the built-in :py:class:`~pandera.api.checks.Check` methods.
 
     :param nullable: Whether or not the column/index can contain null values.
-    :param unique: Whether column values should be unique.
+    :param unique: Whether column values should be unique. Currently Not supported
     :param coerce: coerces the data type if ``True``.
     :param regex: whether or not the field name or alias is a regex pattern.
     :param ignore_na: whether or not to ignore null values in the checks.
@@ -177,6 +178,10 @@ def Field(
         else:
             check_ = check_constructor(arg_value, **check_kwargs)
         checks.append(check_)
+    if unique:
+        raise SchemaInitError(
+            "unique Field argument not yet implemented for pyspark"
+        )
 
     return FieldInfo(
         checks=checks or None,
@@ -235,7 +240,7 @@ class FieldCheckInfo(CheckInfo):  # pylint:disable=too-few-public-methods
 
 
 def _to_function_and_classmethod(
-    fn: Union[AnyCallable, classmethod]
+    fn: Union[AnyCallable, classmethod],
 ) -> Tuple[AnyCallable, classmethod]:
     if isinstance(fn, classmethod):
         fn, method = fn.__func__, cast(classmethod, fn)
@@ -255,7 +260,7 @@ def check(*fields, regex: bool = False, **check_kwargs) -> ClassCheck:
     This indicates that the decorated method should be used to validate a field
     (column). The method will be converted to a classmethod. Therefore
     its signature must start with `cls` followed by regular check arguments.
-    See the :ref:`User Guide <schema_model_custom_check>` for more.
+    See the :ref:`User Guide <schema-model-custom-check>` for more.
 
     :param _fn: Method to decorate.
     :param check_kwargs: Keywords arguments forwarded to Check.
@@ -282,7 +287,7 @@ def dataframe_check(_fn=None, **check_kwargs) -> ClassCheck:
     Decorate a method on the DataFrameModel indicating that it should be used to
     validate the DataFrame. The method will be converted to a classmethod.
     Therefore its signature must start with `cls` followed by regular check
-    arguments. See the :ref:`User Guide <schema_model_dataframe_check>` for
+    arguments. See the :ref:`User Guide <schema-model-dataframe-check>` for
     more.
 
     :param check_kwargs: Keywords arguments forwarded to Check.

@@ -8,17 +8,18 @@ with open("pandera/version.py") as fp:
     exec(fp.read(), version)
 
 _extras_require = {
-    "strategies": ["hypothesis >= 5.41.1"],
+    "strategies": ["hypothesis >= 6.92.7"],
     "hypotheses": ["scipy"],
     "io": ["pyyaml >= 5.1", "black", "frictionless <= 4.40.8"],
     "pyspark": ["pyspark >= 3.2.0"],
-    "modin": ["modin", "ray", "dask"],
+    "modin": ["modin", "ray", "dask[dataframe]"],
     "modin-ray": ["modin", "ray"],
-    "modin-dask": ["modin", "dask"],
-    "dask": ["dask"],
+    "modin-dask": ["modin", "dask[dataframe]"],
+    "dask": ["dask[dataframe]"],
     "mypy": ["pandas-stubs"],
     "fastapi": ["fastapi"],
     "geopandas": ["geopandas", "shapely"],
+    "polars": ["polars >= 0.20.0"],
 }
 
 extras_require = {
@@ -45,12 +46,12 @@ setup(
     packages=find_packages(include=["pandera*"]),
     package_data={"pandera": ["py.typed"]},
     install_requires=[
-        "multimethod",
+        "multimethod <= 1.10.0",
         "numpy >= 1.19.0",
         "packaging >= 20.0",
         "pandas >= 1.2.0",
         "pydantic",
-        "typeguard >= 3.0.2",
+        "typeguard",
         "typing_extensions >= 3.7.4.3 ; python_version<'3.8'",
         "typing_inspect >= 0.6.0",
         "wrapt",

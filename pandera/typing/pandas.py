@@ -1,4 +1,5 @@
 """Typing definitions and helpers."""
+
 # pylint:disable=abstract-method,disable=too-many-ancestors
 import functools
 import io
@@ -15,11 +16,6 @@ from typing import (  # type: ignore[attr-defined]
     _type_check,
 )
 
-try:
-    from typing import get_args
-except ImportError:
-    from typing_extensions import get_args
-
 import numpy as np
 import pandas as pd
 
@@ -35,14 +31,20 @@ from pandera.typing.common import (
 from pandera.typing.formats import Formats
 
 try:
+    from typing import get_args
+except ImportError:
+    from typing_extensions import get_args
+
+
+try:
     from typing import _GenericAlias  # type: ignore[attr-defined]
 except ImportError:  # pragma: no cover
     _GenericAlias = None
 
 
 if PYDANTIC_V2:
-    from pydantic_core import core_schema
     from pydantic import GetCoreSchemaHandler
+    from pydantic_core import core_schema
 
 
 # pylint:disable=too-few-public-methods
@@ -126,7 +128,7 @@ class DataFrame(DataFrameBase, pd.DataFrame, Generic[T]):
             reader = config.from_format
         else:
             reader = {
-                Formats.dict: pd.DataFrame,
+                Formats.dict: pd.DataFrame.from_dict,
                 Formats.csv: pd.read_csv,
                 Formats.json: pd.read_json,
                 Formats.feather: pd.read_feather,

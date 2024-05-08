@@ -4,8 +4,8 @@
 import warnings
 from typing import Optional
 
+from pandera.api.base.error_handler import ErrorHandler
 from pandera.api.pyspark.container import DataFrameSchema
-from pandera.api.pyspark.error_handler import ErrorHandler
 
 Schemas = DataFrameSchema  # type: ignore
 Errors = ErrorHandler  # type: ignore

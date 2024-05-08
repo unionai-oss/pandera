@@ -26,7 +26,7 @@ class CheckResult(NamedTuple):
     """Check result for user-defined checks."""
 
     check_output: Any
-    check_passed: bool
+    check_passed: Any
     checked_object: Any
     failure_cases: Any
 
@@ -162,7 +162,7 @@ class BaseCheck(metaclass=MetaCheck):
         name: str,
         init_kwargs,
         error: Union[str, Callable],
-        statistics: Dict[str, Any] = None,
+        statistics: Optional[Dict[str, Any]] = None,
         **check_kwargs,
     ):
         """Create a Check object from a built-in check's name."""
@@ -183,7 +183,8 @@ class BaseCheck(metaclass=MetaCheck):
     @classmethod
     def register_backend(cls, type_: Type, backend: Type[BaseCheckBackend]):
         """Register a backend for the specified type."""
-        cls.BACKEND_REGISTRY[(cls, type_)] = backend
+        if (cls, type_) not in cls.BACKEND_REGISTRY:
+            cls.BACKEND_REGISTRY[(cls, type_)] = backend
 
     @classmethod
     def get_backend(cls, check_obj: Any) -> Type[BaseCheckBackend]:

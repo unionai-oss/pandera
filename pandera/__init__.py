@@ -1,17 +1,29 @@
 """A flexible and expressive pandas validation library."""
+
 import platform
 
 import pandera.backends
+import pandera.backends.base.builtin_checks
+import pandera.backends.base.builtin_hypotheses
+import pandera.backends.pandas
 from pandera import errors, external_config, typing
 from pandera.accessors import pandas_accessor
 from pandera.api import extensions
 from pandera.api.checks import Check
+from pandera.api.dataframe.model_components import (
+    Field,
+    check,
+    dataframe_check,
+    dataframe_parser,
+    parser,
+)
 from pandera.api.hypotheses import Hypothesis
 from pandera.api.pandas.array import SeriesSchema
-from pandera.api.pandas.container import DataFrameSchema
 from pandera.api.pandas.components import Column, Index, MultiIndex
+from pandera.api.pandas.container import DataFrameSchema
 from pandera.api.pandas.model import DataFrameModel, SchemaModel
-from pandera.api.pandas.model_components import Field, check, dataframe_check
+from pandera.api.parsers import Parser
+from pandera.backends.pandas.register import register_pandas_backends
 from pandera.decorators import check_input, check_io, check_output, check_types
 from pandera.dtypes import (
     Bool,
@@ -57,14 +69,8 @@ from pandera.engines.pandas_engine import (
     UINT64,
     pandas_version,
 )
-
-import pandera.backends.base.builtin_checks
-import pandera.backends.base.builtin_hypotheses
-import pandera.backends.pandas
-
 from pandera.schema_inference.pandas import infer_schema
 from pandera.version import __version__
-
 
 if platform.system() != "Windows":
     # pylint: disable=ungrouped-imports
@@ -140,6 +146,8 @@ __all__ = [
     "pandas_version",
     # checks
     "Check",
+    # parsers
+    "Parser",
     # decorators
     "check_input",
     "check_io",
@@ -154,6 +162,8 @@ __all__ = [
     "Field",
     "check",
     "dataframe_check",
+    "parser",
+    "dataframe_parser",
     # schema_components
     "Column",
     "Index",
@@ -166,3 +176,6 @@ __all__ = [
     # version
     "__version__",
 ]
+
+
+register_pandas_backends()

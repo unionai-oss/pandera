@@ -5,10 +5,11 @@ from typing import Any, List, Optional, TypeVar, cast
 
 import pyspark.sql as ps
 
+from pandera.api.base.error_handler import ErrorHandler
 from pandera.api.base.schema import BaseSchema, inferred_schema_guard
 from pandera.api.checks import Check
-from pandera.api.pyspark.error_handler import ErrorHandler
 from pandera.api.pyspark.types import CheckList, PySparkDtypeInputTypes
+from pandera.backends.pyspark.register import register_pyspark_backends
 from pandera.dtypes import DataType
 from pandera.engines import pyspark_engine
 
@@ -68,6 +69,9 @@ class ColumnSchema(BaseSchema):
         self.title = title
         self.description = description
         self.metadata = metadata
+
+    def _register_default_backends(self):
+        register_pyspark_backends()
 
     @property
     def dtype(self) -> DataType:
