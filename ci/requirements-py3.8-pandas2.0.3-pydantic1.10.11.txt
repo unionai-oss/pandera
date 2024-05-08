@@ -172,7 +172,7 @@ jaraco-functools==4.0.0
     # via keyring
 jedi==0.19.1
     # via ipython
-jinja2==3.1.3
+jinja2==3.1.4
     # via
     #   distributed
     #   frictionless
