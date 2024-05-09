@@ -1,5 +1,7 @@
 """Schema components for polars."""
 
+from __future__ import annotations
+
 import logging
 from typing import Any, Optional
 
@@ -152,6 +154,26 @@ class Column(ComponentSchema[PolarsCheckObjects]):
                 inplace=inplace,
             )
         return output
+
+    @property
+    def properties(self) -> dict[str, Any]:
+        """Get column properties."""
+        return {
+            "dtype": self.dtype,
+            "parsers": self.parsers,
+            "checks": self.checks,
+            "nullable": self.nullable,
+            "unique": self.unique,
+            "report_duplicates": self.report_duplicates,
+            "coerce": self.coerce,
+            "required": self.required,
+            "name": self.name,
+            "regex": self.regex,
+            "title": self.title,
+            "description": self.description,
+            "default": self.default,
+            "metadata": self.metadata,
+        }
 
     @property
     def dtype(self):
