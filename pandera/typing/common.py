@@ -269,8 +269,8 @@ class AnnotationInfo:  # pylint:disable=too-few-public-methods
         metadata = getattr(raw_annotation, "__metadata__", None)
         if metadata:
             self.is_annotated_type = True
-        else:
-            metadata = getattr(self.arg, "__metadata__", None)
+        elif metadata := getattr(self.arg, "__metadata__", None):
+            self.arg = typing_inspect.get_args(self.arg)[0]
 
         self.metadata = metadata
         self.literal = typing_inspect.is_literal_type(self.arg)
@@ -286,5 +286,4 @@ class AnnotationInfo:  # pylint:disable=too-few-public-methods
             else:
                 # otherwise assume that the annotation is the data type itself.
                 self.arg = raw_annotation
-
         self.default_dtype = getattr(raw_annotation, "default_dtype", None)
