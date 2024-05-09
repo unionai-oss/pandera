@@ -75,6 +75,7 @@ except ImportError:
 
 PANDAS_1_2_0_PLUS = pandas_version().release >= (1, 2, 0)
 PANDAS_1_3_0_PLUS = pandas_version().release >= (1, 3, 0)
+PANDAS_2_0_0_PLUS = pandas_version().release >= (2, 0, 0)
 
 
 # register different TypedDict type depending on python version
@@ -1588,7 +1589,7 @@ class PythonNamedTuple(PythonGenericType):
 # pyarrow types
 ###############################################################################
 
-if PYARROW_INSTALLED:
+if PYARROW_INSTALLED and PANDAS_2_0_0_PLUS:
 
     @Engine.register_dtype(equivalents=["bool[pyarrow]", pyarrow.bool_])
     @immutable
@@ -1629,7 +1630,7 @@ if PYARROW_INSTALLED:
         type = pd.ArrowDtype(pyarrow.int8())
         bit_width: int = 8
 
-    @Engine.register_dtype(equivalents=["string[pyarrow]", pyarrow.string])
+    @Engine.register_dtype(equivalents=[pyarrow.string])
     @immutable
     class ArrowString(DataType, dtypes.String):
         """Semantic representation of a :class:`pyarrow.string`."""
