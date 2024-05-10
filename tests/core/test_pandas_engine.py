@@ -1,7 +1,7 @@
 """Test pandas engine."""
 
 from datetime import date
-from typing import Any
+from typing import Any, Set
 
 import hypothesis
 import hypothesis.extra.pandas as pd_st
@@ -15,7 +15,7 @@ from hypothesis import given
 from pandera.engines import pandas_engine
 from pandera.errors import ParserError
 
-UNSUPPORTED_DTYPE_CLS: set[Any] = set()
+UNSUPPORTED_DTYPE_CLS: Set[Any] = set()
 
 # `string[pyarrow]` gets parsed to type `string` by pandas
 if pandas_engine.PYARROW_INSTALLED and pandas_engine.PANDAS_2_0_0_PLUS:
