@@ -1591,14 +1591,26 @@ class PythonNamedTuple(PythonGenericType):
 
 if PYARROW_INSTALLED and PANDAS_2_0_0_PLUS:
 
-    @Engine.register_dtype(equivalents=["bool[pyarrow]", pyarrow.bool_])
+    @Engine.register_dtype(
+        equivalents=[
+            "bool[pyarrow]",
+            pyarrow.bool_,
+            pd.ArrowDtype(pyarrow.bool_()),
+        ]
+    )
     @immutable
     class ArrowBool(BOOL):
         """Semantic representation of a :class:`pyarrow.bool_`."""
 
         type = pd.ArrowDtype(pyarrow.bool_())
 
-    @Engine.register_dtype(equivalents=["int64[pyarrow]", pyarrow.int64])
+    @Engine.register_dtype(
+        equivalents=[
+            "int64[pyarrow]",
+            pyarrow.int64,
+            pd.ArrowDtype(pyarrow.int64()),
+        ]
+    )
     @immutable
     class ArrowInt64(DataType, dtypes.Int):
         """Semantic representation of a :class:`pyarrow.int64`."""
@@ -1606,7 +1618,13 @@ if PYARROW_INSTALLED and PANDAS_2_0_0_PLUS:
         type = pd.ArrowDtype(pyarrow.int64())
         bit_width: int = 64
 
-    @Engine.register_dtype(equivalents=["int32[pyarrow]", pyarrow.int32])
+    @Engine.register_dtype(
+        equivalents=[
+            "int32[pyarrow]",
+            pyarrow.int32,
+            pd.ArrowDtype(pyarrow.int32()),
+        ]
+    )
     @immutable
     class ArrowInt32(ArrowInt64):
         """Semantic representation of a :class:`pyarrow.int32`."""
@@ -1614,7 +1632,13 @@ if PYARROW_INSTALLED and PANDAS_2_0_0_PLUS:
         type = pd.ArrowDtype(pyarrow.int32())
         bit_width: int = 32
 
-    @Engine.register_dtype(equivalents=["int16[pyarrow]", pyarrow.int16])
+    @Engine.register_dtype(
+        equivalents=[
+            "int16[pyarrow]",
+            pyarrow.int16,
+            pd.ArrowDtype(pyarrow.int16()),
+        ]
+    )
     @immutable
     class ArrowInt16(ArrowInt32):
         """Semantic representation of a :class:`pyarrow.int16`."""
@@ -1622,7 +1646,13 @@ if PYARROW_INSTALLED and PANDAS_2_0_0_PLUS:
         type = pd.ArrowDtype(pyarrow.int16())
         bit_width: int = 16
 
-    @Engine.register_dtype(equivalents=["int8[pyarrow]", pyarrow.int8])
+    @Engine.register_dtype(
+        equivalents=[
+            "int8[pyarrow]",
+            pyarrow.int8,
+            pd.ArrowDtype(pyarrow.int8()),
+        ]
+    )
     @immutable
     class ArrowInt8(ArrowInt16):
         """Semantic representation of a :class:`pyarrow.int8`."""
@@ -1637,7 +1667,13 @@ if PYARROW_INSTALLED and PANDAS_2_0_0_PLUS:
 
         type = pd.ArrowDtype(pyarrow.string())
 
-    @Engine.register_dtype(equivalents=["uint64[pyarrow]", pyarrow.uint64])
+    @Engine.register_dtype(
+        equivalents=[
+            "uint64[pyarrow]",
+            pyarrow.uint64,
+            pd.ArrowDtype(pyarrow.uint64()),
+        ]
+    )
     @immutable
     class ArrowUInt64(DataType, dtypes.UInt):
         """Semantic representation of a :class:`pyarrow.uint64`."""
@@ -1645,7 +1681,13 @@ if PYARROW_INSTALLED and PANDAS_2_0_0_PLUS:
         type = pd.ArrowDtype(pyarrow.uint64())
         bit_width: int = 64
 
-    @Engine.register_dtype(equivalents=["uint32[pyarrow]", pyarrow.uint32])
+    @Engine.register_dtype(
+        equivalents=[
+            "uint32[pyarrow]",
+            pyarrow.uint32,
+            pd.ArrowDtype(pyarrow.uint32()),
+        ]
+    )
     @immutable
     class ArrowUInt32(ArrowUInt64):
         """Semantic representation of a :class:`pyarrow.uint32`."""
@@ -1653,7 +1695,13 @@ if PYARROW_INSTALLED and PANDAS_2_0_0_PLUS:
         type = pd.ArrowDtype(pyarrow.uint32())
         bit_width: int = 32
 
-    @Engine.register_dtype(equivalents=["uint16[pyarrow]", pyarrow.uint16])
+    @Engine.register_dtype(
+        equivalents=[
+            "uint16[pyarrow]",
+            pyarrow.uint16,
+            pd.ArrowDtype(pyarrow.uint16()),
+        ]
+    )
     @immutable
     class ArrowUInt16(ArrowUInt32):
         """Semantic representation of a :class:`pyarrow.uint16`."""
@@ -1661,7 +1709,13 @@ if PYARROW_INSTALLED and PANDAS_2_0_0_PLUS:
         type = pd.ArrowDtype(pyarrow.uint16())
         bit_width: int = 16
 
-    @Engine.register_dtype(equivalents=["uint8[pyarrow]", pyarrow.uint8])
+    @Engine.register_dtype(
+        equivalents=[
+            "uint8[pyarrow]",
+            pyarrow.uint8,
+            pd.ArrowDtype(pyarrow.uint8()),
+        ]
+    )
     @immutable
     class ArrowUInt8(ArrowUInt16):
         """Semantic representation of a :class:`pyarrow.uint8`."""
@@ -1669,7 +1723,13 @@ if PYARROW_INSTALLED and PANDAS_2_0_0_PLUS:
         type = pd.ArrowDtype(pyarrow.uint8())
         bit_width: int = 8
 
-    @Engine.register_dtype(equivalents=["double[pyarrow]", pyarrow.float64])
+    @Engine.register_dtype(
+        equivalents=[
+            "double[pyarrow]",
+            pyarrow.float64,
+            pd.ArrowDtype(pyarrow.float64()),
+        ]
+    )
     @immutable
     class ArrowFloat64(DataType, dtypes.Float):
         """Semantic representation of a :class:`pyarrow.float64`."""
@@ -1677,7 +1737,13 @@ if PYARROW_INSTALLED and PANDAS_2_0_0_PLUS:
         type = pd.ArrowDtype(pyarrow.float64())
         bit_width: int = 64
 
-    @Engine.register_dtype(equivalents=["float[pyarrow]", pyarrow.float32])
+    @Engine.register_dtype(
+        equivalents=[
+            "float[pyarrow]",
+            pyarrow.float32,
+            pd.ArrowDtype(pyarrow.float32()),
+        ]
+    )
     @immutable
     class ArrowFloat32(ArrowFloat64):
         """Semantic representation of a :class:`pyarrow.float32`."""
