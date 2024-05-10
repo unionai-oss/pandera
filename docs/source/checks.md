@@ -30,6 +30,7 @@ series must evaluate to `True`, for example:
 
 ```{code-cell} python
 import pandera as pa
+import pandas as pd
 
 check_lt_10 = pa.Check(lambda s: s <= 10)
 
