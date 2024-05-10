@@ -43,23 +43,30 @@ UNSUPPORTED_DTYPE_CLS: Set[Any] = set(
         pandas_engine.PythonTuple,
         pandas_engine.PythonTypedDict,
         pandas_engine.PythonNamedTuple,
-        pandas_engine.ArrowBool,
-        pandas_engine.ArrowDecimal128,
-        pandas_engine.ArrowDictionary,
-        pandas_engine.ArrowFloat32,
-        pandas_engine.ArrowFloat64,
-        pandas_engine.ArrowInt8,
-        pandas_engine.ArrowInt16,
-        pandas_engine.ArrowInt32,
-        pandas_engine.ArrowInt64,
-        pandas_engine.ArrowString,
-        pandas_engine.ArrowTimestamp,
-        pandas_engine.ArrowUInt8,
-        pandas_engine.ArrowUInt16,
-        pandas_engine.ArrowUInt32,
-        pandas_engine.ArrowUInt64,
     ]
 )
+
+if pandas_engine.PYARROW_INSTALLED and pandas_engine.PANDAS_2_0_0_PLUS:
+    UNSUPPORTED_DTYPE_CLS.update(
+        [
+            pandas_engine.ArrowBool,
+            pandas_engine.ArrowDecimal128,
+            pandas_engine.ArrowDictionary,
+            pandas_engine.ArrowFloat32,
+            pandas_engine.ArrowFloat64,
+            pandas_engine.ArrowInt8,
+            pandas_engine.ArrowInt16,
+            pandas_engine.ArrowInt32,
+            pandas_engine.ArrowInt64,
+            pandas_engine.ArrowString,
+            pandas_engine.ArrowTimestamp,
+            pandas_engine.ArrowUInt8,
+            pandas_engine.ArrowUInt16,
+            pandas_engine.ArrowUInt32,
+            pandas_engine.ArrowUInt64,
+        ]
+    )
+
 SUPPORTED_DTYPES = set()
 for data_type in pandas_engine.Engine.get_registered_dtypes():
     if (

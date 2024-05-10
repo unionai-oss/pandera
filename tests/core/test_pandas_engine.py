@@ -1,6 +1,7 @@
 """Test pandas engine."""
 
 from datetime import date
+from typing import Any
 
 import hypothesis
 import hypothesis.extra.pandas as pd_st
@@ -14,9 +15,20 @@ from hypothesis import given
 from pandera.engines import pandas_engine
 from pandera.errors import ParserError
 
+UNSUPPORTED_DTYPE_CLS: set[Any] = set()
+
+# `string[pyarrow]` gets parsed to type `string` by pandas
+if pandas_engine.PYARROW_INSTALLED and pandas_engine.PANDAS_2_0_0_PLUS:
+    UNSUPPORTED_DTYPE_CLS.add(pandas_engine.ArrowString)
+
 
 @pytest.mark.parametrize(
-    "data_type", list(pandas_engine.Engine.get_registered_dtypes())
+    "data_type",
+    [
+        data_type
+        for data_type in pandas_engine.Engine.get_registered_dtypes()
+        if data_type not in UNSUPPORTED_DTYPE_CLS
+    ],
 )
 def test_pandas_data_type(data_type):
     """Test numpy engine DataType base class."""
