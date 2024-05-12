@@ -9,6 +9,7 @@ from typing import List, Type
 from pyspark.sql import DataFrame
 
 from pandera.api.pyspark.types import PysparkDefaultTypes
+from pandera.backends.pyspark.utils import get_full_table_validation
 from pandera.config import ValidationDepth, get_config_context
 from pandera.errors import SchemaError
 from pandera.validation_depth import ValidationScope
@@ -188,6 +189,27 @@ def cache_check_obj():
 
             with cached_check_obj():
                 return func(self, *args, **kwargs)
+
+        return wrapper
+
+    return _wrapper
+
+
+def builtin_check_validation_mode():
+    """
+    Evaluates whether the full table validation is enabled or not for a builtin check and passes it to the function.
+    """
+
+    def _wrapper(func):
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            # Skip if not enabled
+            should_validate_full_table = get_full_table_validation()
+            return func(
+                *args,
+                **kwargs,
+                should_validate_full_table=should_validate_full_table,
+            )
 
         return wrapper
 
