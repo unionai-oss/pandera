@@ -3,9 +3,18 @@
 import sys
 from typing import Optional
 
+try:  # python 3.9+
+    from typing import Annotated  # type: ignore
+except ImportError:
+    from typing_extensions import Annotated  # type: ignore
+
 import polars as pl
 import pytest
+from hypothesis import given
+from hypothesis import strategies as st
+from polars.testing.parametric import column, dataframes
 
+import pandera.engines.polars_engine as pe
 from pandera.errors import SchemaError
 from pandera.polars import (
     Column,
@@ -211,3 +220,53 @@ def test_polars_python_list_df_model(schema_with_list_type):
 
     schema = ModelWithNestedDtypes.to_schema()
     assert schema_with_list_type == schema
+
+
+@pytest.mark.parametrize(
+    "time_zone",
+    [
+        None,
+        "UTC",
+        "GMT",
+        "EST",
+    ],
+)
+@given(st.data())
+def test_dataframe_schema_with_tz_agnostic_dates(time_zone, data):
+    strategy = dataframes(
+        column("datetime_col", dtype=pl.Datetime()),
+        lazy=True,
+        size=10,
+    )
+    lf = data.draw(strategy)
+    lf = lf.cast({"datetime_col": pl.Datetime(time_zone=time_zone)})
+
+    class ModelTZAgnosticKwargs(DataFrameModel):
+        datetime_col: pe.DateTime = Field(
+            dtype_kwargs={"time_zone_agnostic": True}
+        )
+
+    class ModelTZSensitiveKwargs(DataFrameModel):
+        datetime_col: pe.DateTime = Field(
+            dtype_kwargs={"time_zone_agnostic": False}
+        )
+
+    class ModelTZAgnosticAnnotated(DataFrameModel):
+        datetime_col: Annotated[pe.DateTime, True, "us", None]
+
+    class ModelTZSensitiveAnnotated(DataFrameModel):
+        datetime_col: Annotated[pe.DateTime, False, "us", None]
+
+    for tz_agnostic_model in (
+        ModelTZAgnosticKwargs,
+        ModelTZAgnosticAnnotated,
+    ):
+        tz_agnostic_model.validate(lf)
+
+    for tz_sensitive_model in (
+        ModelTZSensitiveKwargs,
+        ModelTZSensitiveAnnotated,
+    ):
+        if time_zone:
+            with pytest.raises(SchemaError):
+                tz_sensitive_model.validate(lf)

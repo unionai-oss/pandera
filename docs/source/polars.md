@@ -532,7 +532,11 @@ from pandera.engines.polars_engine import DateTime
 
 
 class DateTimeModel(pa.DataFrameModel):
-    created_at: Annotated[DateTime, True]
+    created_at: Annotated[DateTime, True, "us", None]
+```
+.
+```{note}
+For `Annotated` types, you need to pass in all positional and keyword arguments.
 ```
 
 :::
