@@ -1,5 +1,6 @@
 """Class-based api for polars models."""
 
+import inspect
 from typing import Dict, List, Tuple, Type
 
 import pandas as pd
@@ -47,10 +48,16 @@ class DataFrameModel(_DataFrameModel[pl.LazyFrame, DataFrameSchema]):
             field_name = field.name
             check_name = getattr(field, "check_name", None)
 
-            engine_dtype = None
             try:
                 engine_dtype = pe.Engine.dtype(annotation.raw_annotation)
-                dtype = engine_dtype.type
+                if inspect.isclass(annotation.raw_annotation) and issubclass(
+                    annotation.raw_annotation, pe.DataType
+                ):
+                    # use the raw annotation as the dtype if it's a native
+                    # pandera polars datatype
+                    dtype = annotation.raw_annotation
+                else:
+                    dtype = engine_dtype.type
             except (TypeError, ValueError) as exc:
                 if annotation.metadata:
                     if field.dtype_kwargs:
@@ -64,13 +71,13 @@ class DataFrameModel(_DataFrameModel[pl.LazyFrame, DataFrameSchema]):
                 elif annotation.default_dtype:
                     dtype = annotation.default_dtype
                 else:
-                    dtype = annotation.arg
+                    dtype = annotation.arg  # type: ignore
 
             if (
                 annotation.origin is None
                 or isinstance(annotation.origin, pl.datatypes.DataTypeClass)
                 or annotation.origin is Series
-                or engine_dtype
+                or dtype
             ):
                 if check_name is False:
                     raise SchemaInitError(
