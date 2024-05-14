@@ -311,6 +311,12 @@ def test_invalid_pandas_extension_dtype():
 
 def test_check_equivalent(dtype: Any, pd_dtype: Any):
     """Test that a pandas-compatible dtype can be validated by check()."""
+    if (
+        pandas_engine.PYARROW_INSTALLED
+        and pandas_engine.PANDAS_2_0_0_PLUS
+        and dtype == "string[pyarrow]"
+    ):
+        pytest.skip("`string[pyarrow]` gets parsed to type `string` by pandas")
     actual_dtype = pandas_engine.Engine.dtype(pd_dtype)
     expected_dtype = pandas_engine.Engine.dtype(dtype)
     assert actual_dtype.check(expected_dtype)

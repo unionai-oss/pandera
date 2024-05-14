@@ -1660,7 +1660,9 @@ if PYARROW_INSTALLED and PANDAS_2_0_0_PLUS:
         type = pd.ArrowDtype(pyarrow.int8())
         bit_width: int = 8
 
-    @Engine.register_dtype(equivalents=[pyarrow.string])
+    @Engine.register_dtype(
+        equivalents=[pyarrow.string, pd.ArrowDtype(pyarrow.string())]
+    )
     @immutable
     class ArrowString(DataType, dtypes.String):
         """Semantic representation of a :class:`pyarrow.string`."""
