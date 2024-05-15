@@ -227,7 +227,7 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
                 )
             except SchemaError as err:
                 error_handler.collect_error(
-                    ErrorCategory.DATA, err.reason_code, err
+                    ErrorCategory.DATA, SchemaErrorReason.DATAFRAME_CHECK, err
                 )
             except SchemaDefinitionError:
                 raise
