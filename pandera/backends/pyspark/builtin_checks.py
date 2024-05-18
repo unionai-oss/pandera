@@ -10,11 +10,11 @@ import pandera.strategies as st
 from pandera.api.extensions import register_builtin_check
 from pandera.api.pyspark.types import PysparkDataframeColumnObject
 from pandera.backends.pyspark.decorators import (
-    builtin_check_validation_mode,
     register_input_datatypes,
 )
 from pandera.backends.pyspark.utils import (
     convert_to_list,
+    get_full_table_validation,
 )
 
 T = TypeVar("T")
@@ -28,6 +28,7 @@ ALL_NUMERIC_TYPE = [
     pst.FloatType,
 ]
 ALL_DATE_TYPE = [pst.DateType, pst.TimestampType]
+# TODO: Fix the boolean typo in a new PR or in a different commit if that is acceptable
 BOLEAN_TYPE = pst.BooleanType
 BINARY_TYPE = pst.BinaryType
 STRING_TYPE = pst.StringType
@@ -42,11 +43,9 @@ STRING_TYPE = pst.StringType
         ALL_NUMERIC_TYPE, ALL_DATE_TYPE, STRING_TYPE, BINARY_TYPE, BOLEAN_TYPE
     )
 )
-@builtin_check_validation_mode()
 def equal_to(
     data: PysparkDataframeColumnObject,
     value: Any,
-    should_validate_full_table: bool,
 ) -> Union[bool, ps.Column]:
     """Ensure all elements of a data container equal a certain value.
 
@@ -55,6 +54,7 @@ def equal_to(
         equal to this value.
     """
     cond = col(data.column_name) == value
+    should_validate_full_table = get_full_table_validation()
     if should_validate_full_table:
         return data.dataframe.select(when(cond, True).otherwise(False))
     return data.dataframe.filter(~cond).limit(1).count() == 0
@@ -70,11 +70,9 @@ def equal_to(
         ALL_NUMERIC_TYPE, ALL_DATE_TYPE, STRING_TYPE, BINARY_TYPE, BOLEAN_TYPE
     )
 )
-@builtin_check_validation_mode()
 def not_equal_to(
     data: PysparkDataframeColumnObject,
     value: Any,
-    should_validate_full_table: bool,
 ) -> Union[bool, ps.Column]:
     """Ensure no elements of a data container equals a certain value.
 
@@ -83,6 +81,7 @@ def not_equal_to(
     :param value: This value must not occur in the checked
     """
     cond = col(data.column_name) != value
+    should_validate_full_table = get_full_table_validation()
     if should_validate_full_table:
         return data.dataframe.select(when(cond, True).otherwise(False))
     return data.dataframe.filter(~cond).limit(1).count() == 0
@@ -95,11 +94,9 @@ def not_equal_to(
 @register_input_datatypes(
     acceptable_datatypes=convert_to_list(ALL_NUMERIC_TYPE, ALL_DATE_TYPE)
 )
-@builtin_check_validation_mode()
 def greater_than(
     data: PysparkDataframeColumnObject,
     min_value: Any,
-    should_validate_full_table: bool,
 ) -> Union[bool, ps.Column]:
     """
     Ensure values of a data container are strictly greater than a minimum
@@ -109,6 +106,7 @@ def greater_than(
     :param min_value: Lower bound to be exceeded.
     """
     cond = col(data.column_name) > min_value
+    should_validate_full_table = get_full_table_validation()
     if should_validate_full_table:
         return data.dataframe.select(when(cond, True).otherwise(False))
     return data.dataframe.filter(~cond).limit(1).count() == 0
@@ -122,11 +120,9 @@ def greater_than(
 @register_input_datatypes(
     acceptable_datatypes=convert_to_list(ALL_NUMERIC_TYPE, ALL_DATE_TYPE)
 )
-@builtin_check_validation_mode()
 def greater_than_or_equal_to(
     data: PysparkDataframeColumnObject,
     min_value: Any,
-    should_validate_full_table: bool,
 ) -> Union[bool, ps.Column]:
     """Ensure all values are greater or equal a certain value.
     :param data: NamedTuple PysparkDataframeColumnObject contains the dataframe and column name for the check. The keys
@@ -135,6 +131,7 @@ def greater_than_or_equal_to(
         a type comparable to the dtype of the column datatype of pyspark
     """
     cond = col(data.column_name) >= min_value
+    should_validate_full_table = get_full_table_validation()
     if should_validate_full_table:
         return data.dataframe.select(when(cond, True).otherwise(False))
     return data.dataframe.filter(~cond).limit(1).count() == 0
@@ -148,11 +145,9 @@ def greater_than_or_equal_to(
 @register_input_datatypes(
     acceptable_datatypes=convert_to_list(ALL_NUMERIC_TYPE, ALL_DATE_TYPE)
 )
-@builtin_check_validation_mode()
 def less_than(
     data: PysparkDataframeColumnObject,
     max_value: Any,
-    should_validate_full_table: bool,
 ) -> Union[bool, ps.Column]:
     """Ensure values of a series are strictly below a maximum value.
 
@@ -165,6 +160,7 @@ def less_than(
     if max_value is None:  # pragma: no cover
         raise ValueError("max_value must not be None")
     cond = col(data.column_name) < max_value
+    should_validate_full_table = get_full_table_validation()
     if should_validate_full_table:
         return data.dataframe.select(when(cond, True).otherwise(False))
     return data.dataframe.filter(~cond).limit(1).count() == 0
@@ -178,11 +174,9 @@ def less_than(
 @register_input_datatypes(
     acceptable_datatypes=convert_to_list(ALL_NUMERIC_TYPE, ALL_DATE_TYPE)
 )
-@builtin_check_validation_mode()
 def less_than_or_equal_to(
     data: PysparkDataframeColumnObject,
     max_value: Any,
-    should_validate_full_table: bool,
 ) -> Union[bool, ps.Column]:
     """Ensure values of a series are strictly below a maximum value.
 
@@ -195,6 +189,7 @@ def less_than_or_equal_to(
     if max_value is None:  # pragma: no cover
         raise ValueError("max_value must not be None")
     cond = col(data.column_name) <= max_value
+    should_validate_full_table = get_full_table_validation()
     if should_validate_full_table:
         return data.dataframe.select(when(cond, True).otherwise(False))
     return data.dataframe.filter(~cond).limit(1).count() == 0
@@ -208,14 +203,12 @@ def less_than_or_equal_to(
 @register_input_datatypes(
     acceptable_datatypes=convert_to_list(ALL_NUMERIC_TYPE, ALL_DATE_TYPE)
 )
-@builtin_check_validation_mode()
 def in_range(
     data: PysparkDataframeColumnObject,
     min_value: T,
     max_value: T,
     include_min: bool = True,
     include_max: bool = True,
-    should_validate_full_table: bool = False,
 ) -> Union[bool, ps.Column]:
     """Ensure all values of a column are within an interval.
 
@@ -247,6 +240,7 @@ def in_range(
         else col(data.column_name) < max_value
     )
     cond = cond_right & cond_left
+    should_validate_full_table = get_full_table_validation()
     if should_validate_full_table:
         return data.dataframe.select(when(cond, True).otherwise(False))
     return data.dataframe.filter(~cond).limit(1).count() == 0  # type: ignore
@@ -261,11 +255,9 @@ def in_range(
         ALL_NUMERIC_TYPE, ALL_DATE_TYPE, STRING_TYPE, BINARY_TYPE
     )
 )
-@builtin_check_validation_mode()
 def isin(
     data: PysparkDataframeColumnObject,
     allowed_values: Iterable,
-    should_validate_full_table: bool,
 ) -> Union[bool, ps.Column]:
     """Ensure only allowed values occur within a series.
 
@@ -283,6 +275,7 @@ def isin(
     :param allowed_values: The set of allowed values. May be any iterable.
     """
     cond = col(data.column_name).isin(list(allowed_values))
+    should_validate_full_table = get_full_table_validation()
     if should_validate_full_table:
         return data.dataframe.select(when(cond, True).otherwise(False))
     return data.dataframe.filter(~cond).limit(1).count() == 0
@@ -297,11 +290,9 @@ def isin(
         ALL_NUMERIC_TYPE, ALL_DATE_TYPE, STRING_TYPE, BINARY_TYPE
     )
 )
-@builtin_check_validation_mode()
 def notin(
     data: PysparkDataframeColumnObject,
     forbidden_values: Iterable,
-    should_validate_full_table: bool,
 ) -> Union[bool, ps.Column]:
     """Ensure some defined values don't occur within a series.
 
@@ -318,6 +309,7 @@ def notin(
         be any iterable.
     """
     cond = col(data.column_name).isin(list(forbidden_values))
+    should_validate_full_table = get_full_table_validation()
     if should_validate_full_table:
         return data.dataframe.select(when(cond, True).otherwise(False))
     return data.dataframe.filter(cond).limit(1).count() == 0
@@ -328,11 +320,9 @@ def notin(
     error="str_contains('{pattern}')",
 )
 @register_input_datatypes(acceptable_datatypes=convert_to_list(STRING_TYPE))
-@builtin_check_validation_mode()
 def str_contains(
     data: PysparkDataframeColumnObject,
     pattern: re.Pattern,
-    should_validate_full_table: bool,
 ) -> Union[bool, ps.Column]:
     """Ensure that a pattern can be found within each row.
 
@@ -343,6 +333,7 @@ def str_contains(
     :param pattern: Regular expression pattern to use for searching
     """
     cond = col(data.column_name).rlike(pattern.pattern)
+    should_validate_full_table = get_full_table_validation()
     if should_validate_full_table:
         return data.dataframe.select(when(cond, True).otherwise(False))
     return data.dataframe.filter(~cond).limit(1).count() == 0
@@ -352,11 +343,9 @@ def str_contains(
     error="str_startswith('{string}')",
 )
 @register_input_datatypes(acceptable_datatypes=convert_to_list(STRING_TYPE))
-@builtin_check_validation_mode()
 def str_startswith(
     data: PysparkDataframeColumnObject,
     string: str,
-    should_validate_full_table: bool,
 ) -> bool:
     """Ensure that all values start with a certain string.
 
@@ -367,6 +356,7 @@ def str_startswith(
     :param string: String all values should start with
     """
     cond = col(data.column_name).startswith(string)
+    should_validate_full_table = get_full_table_validation()
     if should_validate_full_table:
         return data.dataframe.select(when(cond, True).otherwise(False))
     return data.dataframe.filter(~cond).limit(1).count() == 0
@@ -376,11 +366,9 @@ def str_startswith(
     strategy=st.str_endswith_strategy, error="str_endswith('{string}')"
 )
 @register_input_datatypes(acceptable_datatypes=convert_to_list(STRING_TYPE))
-@builtin_check_validation_mode()
 def str_endswith(
     data: PysparkDataframeColumnObject,
     string: str,
-    should_validate_full_table: bool,
 ) -> bool:
     """Ensure that all values end with a certain string.
 
@@ -391,6 +379,7 @@ def str_endswith(
     :param string: String all values should end with
     """
     cond = col(data.column_name).endswith(string)
+    should_validate_full_table = get_full_table_validation()
     if should_validate_full_table:
         return data.dataframe.select(when(cond, True).otherwise(False))
     return data.dataframe.filter(~cond).limit(1).count() == 0
