@@ -117,11 +117,15 @@ def get_config_context(
     validation_depth_default: Optional[
         ValidationDepth
     ] = ValidationDepth.SCHEMA_AND_DATA,
+    full_table_validation_default: Optional[bool] = None,
 ) -> PanderaConfig:
     """Gets the configuration context."""
     config = deepcopy(_CONTEXT_CONFIG)
 
     if config.validation_depth is None and validation_depth_default:
         config.validation_depth = validation_depth_default
+
+    if config.full_table_validation is None and full_table_validation_default:
+        config.full_table_validation = full_table_validation_default
 
     return config
