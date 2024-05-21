@@ -20,6 +20,7 @@ _extras_require = {
     "fastapi": ["fastapi"],
     "geopandas": ["geopandas", "shapely"],
     "polars": ["polars >= 0.20.0"],
+    "ibis": ["ibis-framework >= 9.0.0"]
 }
 
 extras_require = {
