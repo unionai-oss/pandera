@@ -70,7 +70,7 @@ class Column(ComponentSchema[IbisCheckObjects]):
 
         :example:
 
-        >>> import pandas as pd
+        >>> import ibis
         >>> import pandera as pa
         >>>
         >>>
