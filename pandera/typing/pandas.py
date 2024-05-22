@@ -258,7 +258,7 @@ class DataFrame(DataFrameBase, pd.DataFrame, Generic[T]):
     def from_records(  # type: ignore
         schema: Type[T],
         data: Union[  # type: ignore
-            np.ndarray, List[Tuple[Any, ...]], Dict[Any, Any], pd.DataFrame
+            np.ndarray, List[Tuple[Any, ...]], List[Dict[Any, Any]], pd.DataFrame
         ],
         **kwargs,
     ) -> "DataFrame[T]":
