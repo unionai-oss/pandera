@@ -767,7 +767,6 @@ Engine.register_dtype(
         object,
         np.object_,
         np.bytes_,
-        np.string_,
     ],
 )
 
@@ -1046,7 +1045,7 @@ class Sparse(DataType):
     """Representation of pandas :class:`pd.SparseDtype`."""
 
     type: pd.SparseDtype = dataclasses.field(default=None, init=False)  # type: ignore[assignment]  # noqa
-    dtype: PandasDataType = np.float_
+    dtype: PandasDataType = np.float64
     fill_value: Any = np.nan
 
     def __post_init__(self):
