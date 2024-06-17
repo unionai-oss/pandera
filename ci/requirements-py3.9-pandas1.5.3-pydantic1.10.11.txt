@@ -531,7 +531,7 @@ typing-extensions==4.11.0
     #   typing-inspect
     #   uvicorn
 typing-inspect==0.9.0
-urllib3==2.2.1
+urllib3==2.2.2
     # via
     #   distributed
     #   requests
