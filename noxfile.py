@@ -29,7 +29,7 @@ nox.options.sessions = (
 
 DEFAULT_PYTHON = "3.8"
 PYTHON_VERSIONS = ["3.8", "3.9", "3.10", "3.11"]
-PANDAS_VERSIONS = ["1.5.3", "2.0.3", "2.2.0"]
+PANDAS_VERSIONS = ["1.5.3", "2.0.3", "2.2.2"]
 PYDANTIC_VERSIONS = ["1.10.11", "2.3.0"]
 
 PACKAGE = "pandera"
@@ -320,8 +320,12 @@ PYTHON_PANDAS_PARAMETER = [
 @nox.parametrize("pydantic", PYDANTIC_VERSIONS)
 def ci_requirements(session: Session, pandas: str, pydantic: str) -> None:
     """Install pinned dependencies for CI."""
-    if session.python == "3.8" and pandas == "2.2.0":
+    if session.python == "3.8" and pandas == "2.2.2":
         session.skip()
+
+    _numpy: str | None = None
+    if pandas != "2.2.2":
+        _numpy = "< 2"
 
     session.install("uv")
 
@@ -333,6 +337,9 @@ def ci_requirements(session: Session, pandas: str, pydantic: str) -> None:
                 line = f"pandas=={pandas}\n"
             if _line == "pydantic":
                 line = f"pydantic=={pydantic}\n"
+            if _line.startswith("numpy") and _numpy is not None:
+                print("adding numpy constraint <2")
+                line = f"{_line}, {_numpy}\n"
             # for some reason uv will try to install an old version of dask,
             # have to specifically pin dask[dataframe] to a higher version
             if _line == "dask[dataframe]" and session.python in (

@@ -106,7 +106,7 @@ jobs:
         - macos-13
         # - macos-latest  # see: https://github.com/actions/setup-python/issues/696
         python-version: ["3.8", "3.9", "3.10", "3.11"]
-        pandas-version: ["1.5.3", "2.0.3", "2.2.0"]
+        pandas-version: ["1.5.3", "2.0.3", "2.2.2"]
         pydantic-version: ["1.10.11", "2.3.0"]
         include:
         - os: ubuntu-latest
