@@ -2,6 +2,7 @@
 """A flexible and expressive pyspark validation library."""
 
 import pandera.backends.pyspark
+from pandera import errors, external_config, typing
 from pandera.accessors import pyspark_sql_accessor
 from pandera.api.checks import Check
 from pandera.api.pyspark import Column, DataFrameSchema
