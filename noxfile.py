@@ -354,6 +354,7 @@ def ci_requirements(session: Session, pandas: str, pydantic: str) -> None:
             "--output-file",
             _ci_requirement_file_name(session, pandas, pydantic),
             "--no-header",
+            "--upgrade",
         )
 
 
@@ -370,6 +371,7 @@ def dev_requirements(session: Session) -> None:
         "--output-file",
         output_file,
         "--no-header",
+        "--upgrade",
     )
 
 
