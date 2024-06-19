@@ -10,7 +10,6 @@ from pandera import strategies as st
 from pandera.api.base.types import CheckList, ParserList
 from pandera.api.dataframe.components import ComponentSchema, TDataObject
 from pandera.api.pandas.types import PandasDtypeInputTypes, is_field
-from pandera.backends.pandas.register import register_pandas_backends
 from pandera.config import get_config_context
 from pandera.dtypes import DataType, UniqueSettings
 from pandera.engines import pandas_engine
@@ -33,6 +32,8 @@ class ArraySchema(ComponentSchema[TDataObject]):
             )
 
     def _register_default_backends(self):
+        from pandera.backends.pandas.register import register_pandas_backends
+
         register_pandas_backends()
 
     @property
