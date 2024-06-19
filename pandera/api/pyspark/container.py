@@ -1,4 +1,4 @@
-"""Core pyspark dataframe container specification."""
+"""Core PySpark dataframe container specification."""
 
 from __future__ import annotations
 
@@ -39,7 +39,7 @@ N_INDENT_SPACES = 4
 
 
 class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
-    """A light-weight PySpark DataFrame validator."""
+    """A lightweight PySpark DataFrame validator."""
 
     def __init__(
         self,

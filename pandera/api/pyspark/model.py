@@ -1,4 +1,4 @@
-"""Class-based api for pyspark models."""
+"""Class-based API for PySpark models."""
 
 # pylint:disable=abstract-method
 import copy
@@ -50,6 +50,7 @@ except ImportError:  # pragma: no cover
 
 
 _CONFIG_KEY = "Config"
+
 MODEL_CACHE: Dict[Type["DataFrameModel"], DataFrameSchema] = {}
 GENERIC_SCHEMA_CACHE: Dict[
     Tuple[Type["DataFrameModel"], Tuple[Type[Any], ...]],
@@ -127,7 +128,6 @@ class DataFrameModel(BaseModel):
     """Definition of a :class:`~pandera.api.pyspark.container.DataFrameSchema`.
 
     *new in 0.16.0*
-
 
     See the :ref:`User Guide <dataframe-models>` for more.
     """
@@ -276,7 +276,7 @@ class DataFrameModel(BaseModel):
 
     @classmethod
     def to_structtype(cls) -> StructType:
-        """Recover fields of DataFrameModel as a Pyspark StructType object.
+        """Recover fields of DataFrameModel as a PySpark StructType object.
 
         :returns: StructType object with current model fields.
         """
@@ -284,7 +284,7 @@ class DataFrameModel(BaseModel):
 
     @classmethod
     def to_ddl(cls) -> str:
-        """Recover fields of DataFrameModel as a Pyspark DDL string.
+        """Recover fields of DataFrameModel as a PySpark DDL string.
 
         :returns: String with current model fields, in compact DDL format.
         """
