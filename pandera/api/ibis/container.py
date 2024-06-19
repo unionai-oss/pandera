@@ -1,11 +1,10 @@
 """Core Ibis table container specification."""
 
-from typing import TYPE_CHECKING, Optional
+from typing import Optional
+
+import ibis.expr.type as ir
 
 from pandera.api.dataframe.container import DataFrameSchema as _DataFrameSchema
-
-if TYPE_CHECKING:
-    import ibis.expr.type as ir
 
 
 class DataFrameSchema(_DataFrameSchema[ir.Table]):

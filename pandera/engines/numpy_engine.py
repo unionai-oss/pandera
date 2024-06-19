@@ -41,7 +41,9 @@ class DataType(dtypes.DataType):
 
     def __post_init__(self):
         # this method isn't called if __init__ is defined
-        object.__setattr__(self, "type", np.dtype(self.type))  # pragma: no cover
+        object.__setattr__(
+            self, "type", np.dtype(self.type)
+        )  # pragma: no cover
 
     def coerce(
         self, data_container: Union[PandasObject, np.ndarray]

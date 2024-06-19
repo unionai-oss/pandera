@@ -198,7 +198,9 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
         # schema-component-level checks
         for schema_component in schema_components:
             try:
-                result = schema_component.validate(check_obj, lazy=lazy, inplace=True)
+                result = schema_component.validate(
+                    check_obj, lazy=lazy, inplace=True
+                )
                 check_passed.append(is_table(result))
             except SchemaError as err:
                 check_results.append(
