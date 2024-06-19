@@ -114,7 +114,7 @@ def is_pyarrow_dtype(
 
 @immutable(init=True)
 class DataType(dtypes.DataType):
-    """Base `DataType` for boxing Pandas data types."""
+    """Base `DataType` for boxing pandas data types."""
 
     type: Any = dataclasses.field(repr=False, init=False)
     """Native pandas dtype boxed by the data type."""
@@ -475,9 +475,9 @@ if PANDAS_1_2_0_PLUS:
         bit_width: int = 32
 
 
-# ###############################################################################
-# # complex
-# ###############################################################################
+###############################################################################
+# complex
+###############################################################################
 
 _register_numpy_numbers(
     builtin_name="complex",
