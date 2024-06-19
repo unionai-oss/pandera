@@ -354,9 +354,14 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
             f"strict={self.strict}, "
             f"name={self.name}, "
             f"ordered={self.ordered}, "
+            f"unique={self.unique}, "
+            f"report_duplicates={self.report_duplicates}, "
             f"unique_column_names={self.unique_column_names}, "
+            f"title={self.title}, "
+            f"description={self.description}, "
             f"metadata={self.metadata}, "
-            f"add_missing_columns={self.add_missing_columns}"
+            f"add_missing_columns={self.add_missing_columns}, "
+            f"drop_invalid_rows={self.drop_invalid_rows}"
             ")>"
         )
 
