@@ -237,7 +237,7 @@ jobs:
         run: |
           pip install uv
           uv pip install --system -r requirements.in
-          if [[ "${{ matrix.extra }}" == "pyspark" ]]; then
+          if [[ "${{ matrix.extra }}" == "pyspark" || "${{ matrix.extra }}" == "mypy" ]]; then
             uv pip install --system --force-reinstall "numpy<2.0.0";
           fi
 
