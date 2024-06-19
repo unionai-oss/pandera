@@ -234,12 +234,12 @@ jobs:
 
       - name: Install deps
         shell: bash
+        # install numpy<2 for all extras. It seems to effects most packages in
+        # the ecosystem.
         run: |
           pip install uv
           uv pip install --system -r requirements.in
-          if [[ "${{ matrix.extra }}" == "pyspark" || "${{ matrix.extra }}" == "mypy" ]]; then
-            uv pip install --system --force-reinstall "numpy<2.0.0";
-          fi
+          uv pip install --system --force-reinstall "numpy<2.0.0";
 
       - run: |
           pip list
