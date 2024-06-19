@@ -233,6 +233,7 @@ jobs:
             ${{ runner.os }}-pip-
 
       - name: Install deps
+        shell: bash
         run: |
           pip install uv
           uv pip install -r requirements.in
