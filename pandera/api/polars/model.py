@@ -1,4 +1,4 @@
-"""Class-based api for polars models."""
+"""Class-based API for Polars models."""
 
 import inspect
 from typing import Dict, List, Tuple, Type
@@ -20,7 +20,7 @@ from pandera.typing.polars import Series
 
 
 class DataFrameModel(_DataFrameModel[pl.LazyFrame, DataFrameSchema]):
-    """Model of a polars :class:`~pandera.api.pandas.container.DataFrameSchema`.
+    """Model of a Polars :class:`~pandera.api.pandas.container.DataFrameSchema`.
 
     See the :ref:`User Guide <dataframe-models>` for more.
     """
