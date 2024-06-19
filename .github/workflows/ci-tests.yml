@@ -236,9 +236,9 @@ jobs:
         shell: bash
         run: |
           pip install uv
-          uv pip install -r requirements.in
+          uv pip install --system -r requirements.in
           if [[ "${{ matrix.extra }}" == "pyspark" ]]; then
-            uv pip install "numpy<2.0.0";
+            uv pip install --system --force-reinstall "numpy<2.0.0";
           fi
 
       - run: |
