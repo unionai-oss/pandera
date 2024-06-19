@@ -239,7 +239,7 @@ jobs:
 
       - name: Pin numpy < 2
         if: ${{ matrix.extra != 'pyspark' }}
-        run: up pip install 'numpy<2'
+        run: uv pip install 'numpy<2'
 
       - run: |
           pip list
