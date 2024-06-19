@@ -14,7 +14,7 @@ from pandera.engines import pandas_engine
 
 # pylint: disable=too-many-public-methods,too-many-locals
 class DataFrameSchema(_DataFrameSchema[pd.DataFrame]):
-    """A light-weight pandas DataFrame validator."""
+    """A lightweight pandas DataFrame validator."""
 
     def _register_default_backends(self):
         from pandera.backends.pandas.register import register_pandas_backends
