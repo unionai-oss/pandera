@@ -87,7 +87,7 @@ jobs:
 
   tests:
     name: >
-      CI Tests (${{ matrix.python-version }}, ${{ matrix.os }}, pandas-${{ matrix.pandas-version }}, pydantic-${{ matrix.pydantic-version }})
+      CI Core Tests (${{ matrix.python-version }}, ${{ matrix.os }}, pandas-${{ matrix.pandas-version }}, pydantic-${{ matrix.pydantic-version }})
     runs-on: ${{ matrix.os }}
     defaults:
       run:
@@ -135,14 +135,14 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ${{ matrix.pip-cache }}
-          key: ${{ runner.os }}-pip-${{ hashFiles('requirements-dev.txt') }}
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.in') }}
           restore-keys: |
             ${{ runner.os }}-pip-
 
       - name: Install deps
         run:
           pip install uv
-          uv pip install -r ci/requirements-py${{ matrix.python-version }}-pandas${{ matrix.pandas-version }}-pydantic${{ matrix.pydantic-version }}.txt
+          uv pip install -r requirements.in
 
       - run: |
           pip list
@@ -164,7 +164,7 @@ jobs:
 
   extras-tests:
     name: >
-      CI Extras Tests (${{ matrix.python-version }}, ${{ matrix.os }}, pandas-${{ matrix.pandas-version }}, pydantic-${{ matrix.pydantic-version }})
+      CI Extras Tests: ${{ matrix.extra }} (${{ matrix.python-version }}, ${{ matrix.os }}, pandas-${{ matrix.pandas-version }}, pydantic-${{ matrix.pydantic-version }})
     runs-on: ${{ matrix.os }}
     defaults:
       run:
@@ -235,10 +235,10 @@ jobs:
       - name: Install deps
         run:
           pip install uv
-          uv pip install -r ci/requirements-py${{ matrix.python-version }}-pandas${{ matrix.pandas-version }}-pydantic${{ matrix.pydantic-version }}.txt
+          uv pip install -r requirements.in
 
       - name: Pin numpy < 2
-        if: ${{ matrix.extra != 'pyspark' }}
+        if: ${{ matrix.extra == 'pyspark' }}
         run: uv pip install 'numpy<2'
 
       - run: |
