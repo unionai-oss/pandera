@@ -4,16 +4,8 @@ For backwards compatibility, pandas types are exposed to the top-level scope of
 the typing module.
 """
 
+from functools import lru_cache
 from typing import Set, Type
-
-from pandera.typing import (
-    dask,
-    fastapi,
-    geopandas,
-    modin,
-    pyspark,
-    pyspark_sql,
-)
 from pandera.typing.common import (
     BOOL,
     INT8,
@@ -50,31 +42,83 @@ from pandera.typing.common import (
 )
 from pandera.typing.pandas import DataFrame, Index, Series
 
-DATAFRAME_TYPES: Set[Type] = {DataFrame}
-SERIES_TYPES: Set[Type] = {Series}
-INDEX_TYPES: Set[Type] = {Index}
 
-if dask.DASK_INSTALLED:
-    DATAFRAME_TYPES.update({dask.DataFrame})
-    SERIES_TYPES.update({dask.Series})
-    INDEX_TYPES.update({dask.Index})
+@lru_cache
+def get_dataframe_types():
+    from pandera.typing import (
+        dask,
+        geopandas,
+        modin,
+        pyspark,
+        pyspark_sql,
+    )
 
-if modin.MODIN_INSTALLED:
-    DATAFRAME_TYPES.update({modin.DataFrame})
-    SERIES_TYPES.update({modin.Series})
-    INDEX_TYPES.update({modin.Index})
+    dataframe_types: Set[Type] = {DataFrame}
+    if dask.DASK_INSTALLED:
+        dataframe_types.update({dask.DataFrame})
 
-if pyspark.PYSPARK_INSTALLED:
-    DATAFRAME_TYPES.update({pyspark.DataFrame})
-    SERIES_TYPES.update({pyspark.Series})
-    INDEX_TYPES.update({pyspark.Index})  # type: ignore [arg-type]
+    if modin.MODIN_INSTALLED:
+        dataframe_types.update({modin.DataFrame})
 
-if pyspark_sql.PYSPARK_SQL_INSTALLED:
-    DATAFRAME_TYPES.update({pyspark_sql.DataFrame})
+    if pyspark.PYSPARK_INSTALLED:
+        dataframe_types.update({pyspark.DataFrame})
 
-if geopandas.GEOPANDAS_INSTALLED:
-    DATAFRAME_TYPES.update({geopandas.GeoDataFrame})
-    SERIES_TYPES.update({geopandas.GeoSeries})
+    if pyspark_sql.PYSPARK_SQL_INSTALLED:
+        dataframe_types.update({pyspark_sql.DataFrame})
+
+    if geopandas.GEOPANDAS_INSTALLED:
+        dataframe_types.update({geopandas.GeoDataFrame})
+
+    return dataframe_types
 
 
-__all__ = ["DataFrame", "Series", "Index"]
+@lru_cache
+def get_series_types():
+    from pandera.typing import (
+        dask,
+        geopandas,
+        modin,
+        pyspark,
+    )
+
+    series_types: Set[Type] = {Series}
+    if dask.DASK_INSTALLED:
+        series_types.update({dask.Series})
+
+    if modin.MODIN_INSTALLED:
+        series_types.update({modin.Series})
+
+    if pyspark.PYSPARK_INSTALLED:
+        series_types.update({pyspark.Series})
+
+    if geopandas.GEOPANDAS_INSTALLED:
+        series_types.update({geopandas.GeoSeries})
+
+    return series_types
+
+
+@lru_cache
+def get_index_types():
+    from pandera.typing import dask, modin, pyspark
+
+    index_types: Set[Type] = {Index}
+    if dask.DASK_INSTALLED:
+        index_types.update({dask.Index})
+
+    if modin.MODIN_INSTALLED:
+        index_types.update({modin.Index})
+
+    if pyspark.PYSPARK_INSTALLED:
+        index_types.update({pyspark.Index})  # type: ignore [arg-type]
+
+    return index_types
+
+
+__all__ = [
+    "DataFrame",
+    "Series",
+    "Index",
+    "get_dataframe_types",
+    "get_index_types",
+    "get_series_types",
+]
