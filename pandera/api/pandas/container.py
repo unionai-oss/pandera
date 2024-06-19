@@ -16,7 +16,7 @@ from pandera.import_utils import strategy_import_error
 
 # pylint: disable=too-many-public-methods,too-many-locals
 class DataFrameSchema(_DataFrameSchema[pd.DataFrame]):
-    """A light-weight pandas DataFrame validator."""
+    """A lightweight pandas DataFrame validator."""
 
     @property
     def dtype(
