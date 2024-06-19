@@ -175,7 +175,7 @@ jobs:
       PYTEST_FLAGS: --cov=pandera --cov-report=term-missing --cov-report=xml --cov-append
       HYPOTHESIS_FLAGS: -n=auto -q --hypothesis-profile=ci
     strategy:
-      # fail-fast: true
+      fail-fast: false
       matrix:
         os:
         - ubuntu-latest
