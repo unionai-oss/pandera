@@ -356,7 +356,6 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
             f"ordered={self.ordered}, "
             f"unique_column_names={self.unique_column_names}, "
             f"metadata={self.metadata}, "
-            f"unique_column_names={self.unique_column_names}, "
             f"add_missing_columns={self.add_missing_columns}"
             ")>"
         )
