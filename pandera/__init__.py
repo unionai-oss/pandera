@@ -3,6 +3,10 @@
 
 import platform
 
+from pandera._patch_numpy2 import _patch_numpy2
+
+_patch_numpy2()
+
 import pandera.backends
 import pandera.backends.base.builtin_checks
 import pandera.backends.base.builtin_hypotheses
