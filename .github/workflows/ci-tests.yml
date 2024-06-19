@@ -233,7 +233,7 @@ jobs:
             ${{ runner.os }}-pip-
 
       - name: Install deps
-        run:
+        run: |
           pip install uv
           uv pip install -r requirements.in
           if [[ ${{ matrix.extra }} == "pyspark" ]]; then
