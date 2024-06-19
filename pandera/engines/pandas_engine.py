@@ -1318,9 +1318,9 @@ class PydanticModel(DataType):
             try:
                 # pylint: disable=not-callable
                 if PYDANTIC_V2:
-                    row = self.type(**row).model_dump()
+                    row = self.type.model_validate(row).model_dump()
                 else:
-                    row = self.type(**row).dict()
+                    row = self.type.parse_obj(row).dict()
                 row["failure_cases"] = np.nan
             except ValidationError as exc:
                 row["failure_cases"] = {
