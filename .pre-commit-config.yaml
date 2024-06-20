@@ -49,7 +49,6 @@ repos:
     hooks:
       - id: mypy
         additional_dependencies:
-          - numpy
           - types-click
           - types-pkg_resources
           - types-pytz

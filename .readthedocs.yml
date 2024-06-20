@@ -9,6 +9,11 @@ build:
   os: ubuntu-20.04
   tools:
     python: "mambaforge-4.10"
+  jobs:
+    post_install:
+      # Install numpy<v2 to avoid breaking docs. This is because the env has
+      # pyspark installed, which requires numpy<2.
+      - python -m pip install "numpy<2"
 
 # Build documentation in the docs/ directory with Sphinx
 conda:

@@ -11,6 +11,10 @@ def register_pyspark_backends():
     """
 
     # pylint: disable=import-outside-toplevel,unused-import,cyclic-import
+    from pandera._patch_numpy2 import _patch_numpy2
+
+    _patch_numpy2()
+
     from pandera.api.checks import Check
     from pandera.api.pyspark.column_schema import ColumnSchema
     from pandera.api.pyspark.components import Column
