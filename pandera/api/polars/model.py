@@ -31,7 +31,7 @@ class DataFrameModel(_DataFrameModel[pl.LazyFrame, DataFrameSchema]):
     Config: Type[BaseConfig] = BaseConfig
 
     @classmethod
-    def build_schema_(cls, **kwargs):
+    def build_schema_(cls, **kwargs) -> DataFrameSchema:
         return DataFrameSchema(
             cls._build_columns(cls.__fields__, cls.__checks__),
             checks=cls.__root_checks__,
@@ -44,7 +44,6 @@ class DataFrameModel(_DataFrameModel[pl.LazyFrame, DataFrameSchema]):
         fields: Dict[str, Tuple[AnnotationInfo, FieldInfo]],
         checks: Dict[str, List[Check]],
     ) -> Dict[str, Column]:
-
         columns: Dict[str, Column] = {}
         for field_name, (annotation, field) in fields.items():
             field_checks = checks.get(field_name, [])
