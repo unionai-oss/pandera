@@ -70,7 +70,7 @@ class DataFrameSchema(_DataFrameSchema[PolarsCheckObjects]):
 
         return output
 
-    @_DataFrameSchema.dtype.setter
+    @_DataFrameSchema.dtype.setter  # type: ignore[attr-defined]
     def dtype(self, value) -> None:
         """Set the dtype property."""
         self._dtype = polars_engine.Engine.dtype(value) if value else None
