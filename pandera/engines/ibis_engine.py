@@ -74,6 +74,15 @@ class Engine(
 
 
 @Engine.register_dtype(
+    equivalents=[np.int32, dtypes.Int32, dtypes.Int32(), dt.Int32, dt.int32]
+)
+@immutable
+class Int32(DataType, dtypes.Int32):
+    """Semantic representation of a :class:`dt.Int32`."""
+
+
+
+@Engine.register_dtype(
     equivalents=[np.int64, dtypes.Int64, dtypes.Int64(), dt.Int64, dt.int64]
 )
 @immutable
