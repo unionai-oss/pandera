@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING, Iterable, List, Optional
 
 import ibis.expr.types as ir
 
@@ -85,7 +85,7 @@ class DataFrameSchemaBackend(IbisSchemaBackend):
             else:
                 raise SchemaErrors(
                     schema=schema,
-                    schema_errors=error_handler.collected_errors,
+                    schema_errors=error_handler.schema_errors,
                     data=check_obj,
                 )
 
@@ -94,7 +94,7 @@ class DataFrameSchemaBackend(IbisSchemaBackend):
     def run_schema_component_checks(
         self,
         check_obj: ir.Table,
-        schema_components: List,
+        schema_components: Iterable,
         lazy: bool,
     ) -> List[CoreCheckResult]:
         """Run checks for all schema components."""
