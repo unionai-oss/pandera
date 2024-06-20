@@ -78,7 +78,7 @@ class ColumnBackend(IbisSchemaBackend):
         if lazy and error_handler.collected_errors:
             raise SchemaErrors(
                 schema=schema,
-                schema_errors=error_handler.collected_errors,
+                schema_errors=error_handler.schema_errors,
                 data=check_obj,
             )
 

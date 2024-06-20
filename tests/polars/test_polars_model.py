@@ -1,4 +1,4 @@
-"""Unit tests for polars dataframe model."""
+"""Unit tests for Polars dataframe model."""
 
 from datetime import datetime
 import sys
@@ -43,7 +43,7 @@ def ldf_schema_basic():
         {
             "string_col": Column(pl.Utf8),
             "int_col": Column(pl.Int64),
-        },
+        }
     )
 
 

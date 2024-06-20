@@ -166,7 +166,7 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
             metadata=metadata,
         )
 
-        self.columns: Dict[Any, Any] = (  # type: ignore [name-defined]
+        self.columns: Dict[Any, Any] = (  # type: ignore[name-defined]
             {} if columns is None else columns
         )
 

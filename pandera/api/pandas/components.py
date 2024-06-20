@@ -138,7 +138,6 @@ class Column(ArraySchema[pd.DataFrame]):
         """Used to set or modify the name of a column object.
 
         :param str name: the name of the column object
-
         """
         self.name = name
         return self

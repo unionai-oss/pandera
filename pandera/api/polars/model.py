@@ -32,7 +32,7 @@ class DataFrameModel(_DataFrameModel[pl.LazyFrame, DataFrameSchema]):
     Config: Type[BaseConfig] = BaseConfig
 
     @classmethod
-    def build_schema_(cls, **kwargs):
+    def build_schema_(cls, **kwargs) -> DataFrameSchema:
         return DataFrameSchema(
             cls._build_columns(cls.__fields__, cls.__checks__),
             checks=cls.__root_checks__,
