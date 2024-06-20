@@ -5,11 +5,15 @@ from typing import Optional
 import ibis.expr.types as ir
 
 from pandera.api.dataframe.container import DataFrameSchema as _DataFrameSchema
+from pandera.backends.ibis.register import register_ibis_backends
 from pandera.engines import ibis_engine
 
 
 class DataFrameSchema(_DataFrameSchema[ir.Table]):
     """A lightweight Ibis table validator."""
+
+    def _register_default_backends(self):
+        register_ibis_backends()
 
     def validate(
         self,
@@ -89,7 +93,7 @@ class DataFrameSchema(_DataFrameSchema[ir.Table]):
             inplace=inplace,
         )
 
-    @_DataFrameSchema.dtype.setter
+    @_DataFrameSchema.dtype.setter  # type: ignore[attr-defined]
     def dtype(self, value) -> None:
         """Set the dtype property."""
         self._dtype = ibis_engine.Engine.dtype(value) if value else None
