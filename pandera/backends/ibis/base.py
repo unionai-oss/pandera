@@ -1,10 +1,12 @@
 """Ibis parsing, validation, and error-reporting backends."""
 
 import warnings
+from collections import defaultdict
 from typing import List
 
 import ibis.expr.types as ir
 
+from pandera.api.base.error_handler import ErrorHandler
 from pandera.api.ibis.types import CheckResult
 from pandera.backends.base import BaseSchemaBackend, CoreCheckResult
 from pandera.backends.pandas.error_formatters import (
@@ -13,7 +15,6 @@ from pandera.backends.pandas.error_formatters import (
     format_vectorized_error_message,
     reshape_failure_cases,
     scalar_failure_case,
-    summarize_failure_cases,
 )
 from pandera.errors import (
     FailureCaseMetadata,
@@ -95,11 +96,26 @@ class IbisSchemaBackend(BaseSchemaBackend):
     ) -> FailureCaseMetadata:
         """Create failure cases metadata required for SchemaErrors exception."""
         failure_cases = consolidate_failure_cases(schema_errors)
-        message, error_counts = summarize_failure_cases(
-            schema_name, schema_errors, failure_cases
-        )
+
+        error_handler = ErrorHandler()
+        error_handler.collect_errors(schema_errors)
+        error_dicts = {}
+
+        def defaultdict_to_dict(d):
+            if isinstance(d, defaultdict):
+                d = {k: defaultdict_to_dict(v) for k, v in d.items()}
+            return d
+
+        if error_handler.collected_errors:
+            error_dicts = error_handler.summarize(schema_name=schema_name)
+            error_dicts = defaultdict_to_dict(error_dicts)
+
+        error_counts = defaultdict(int)  # type: ignore
+        for error in error_handler.collected_errors:
+            error_counts[error["reason_code"].name] += 1
+
         return FailureCaseMetadata(
             failure_cases=failure_cases,
-            message=message,
+            message=error_dicts,
             error_counts=error_counts,
         )

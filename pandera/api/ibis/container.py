@@ -2,9 +2,10 @@
 
 from typing import Optional
 
-import ibis.expr.type as ir
+import ibis.expr.types as ir
 
 from pandera.api.dataframe.container import DataFrameSchema as _DataFrameSchema
+from pandera.engines import ibis_engine
 
 
 class DataFrameSchema(_DataFrameSchema[ir.Table]):
@@ -87,3 +88,8 @@ class DataFrameSchema(_DataFrameSchema[ir.Table]):
             lazy=lazy,
             inplace=inplace,
         )
+
+    @_DataFrameSchema.dtype.setter
+    def dtype(self, value) -> None:
+        """Set the dtype property."""
+        self._dtype = ibis_engine.Engine.dtype(value) if value else None

@@ -6,10 +6,11 @@ from typing import TYPE_CHECKING, List, Optional
 
 import ibis.expr.types as ir
 
+from pandera.api.base.error_handler import ErrorHandler
 from pandera.backends.base import CoreCheckResult
 from pandera.backends.ibis.base import IbisSchemaBackend
-from pandera.error_handlers import SchemaErrorHandler
 from pandera.errors import SchemaError, SchemaErrorReason, SchemaErrors
+from pandera.validation_depth import validation_type
 
 if TYPE_CHECKING:
     from pandera.api.ibis.container import DataFrameSchema
@@ -34,7 +35,7 @@ class DataFrameSchemaBackend(IbisSchemaBackend):
         Parse and validate a check object, returning type-coerced and validated
         object.
         """
-        error_handler = SchemaErrorHandler(lazy)
+        error_handler = ErrorHandler(lazy)
 
         # collect schema components
         components = schema.columns.values()
@@ -47,6 +48,7 @@ class DataFrameSchemaBackend(IbisSchemaBackend):
             (self.run_schema_component_checks, (sample, components, lazy)),
         ]
 
+        # pylint: disable=no-member
         for check, args in core_checks:
             results = check(*args)
             if isinstance(results, CoreCheckResult):
@@ -70,6 +72,7 @@ class DataFrameSchemaBackend(IbisSchemaBackend):
                         reason_code=result.reason_code,
                     )
                 error_handler.collect_error(
+                    validation_type(result.reason_code),
                     result.reason_code,
                     error,
                     original_exc=result.original_exc,
