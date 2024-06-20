@@ -156,7 +156,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
             (self.run_checks, (sample, schema)),
         ]
         for check, args in core_checks:
-            results = check(*args)  # type: ignore [operator]
+            results = check(*args)
             if isinstance(results, CoreCheckResult):
                 results = [results]
 
