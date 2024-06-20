@@ -22,7 +22,7 @@ class DataFrameSchema(_DataFrameSchema[pd.DataFrame]):
 
         register_pandas_backends()
 
-    @_DataFrameSchema.dtype.setter
+    @_DataFrameSchema.dtype.setter  # type: ignore[attr-defined]
     def dtype(self, value: PandasDtypeInputTypes) -> None:
         """Set the dtype property."""
         self._dtype = pandas_engine.Engine.dtype(value) if value else None

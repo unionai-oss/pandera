@@ -1,0 +1,34 @@
+"""Unit tests for Ibis table model."""
+
+import ibis.expr.datatypes as dt
+import pytest
+
+from pandera.ibis import Column, DataFrameModel, DataFrameSchema
+
+
+@pytest.fixture
+def t_model_basic():
+    class BasicModel(DataFrameModel):
+        # string_col: str
+        int_col: dt.Int64  # TODO(deepyaman): Make sure `int` works.
+
+    return BasicModel
+
+
+@pytest.fixture
+def t_schema_basic():
+    return DataFrameSchema(
+        {
+            # "string_col": Column(str),
+            "int_col": Column(dt.Int64),
+        }
+    )
+
+
+def test_model_schema_equivalency(
+    t_model_basic: DataFrameModel,
+    t_schema_basic: DataFrameSchema,
+):
+    """Test that Ibis DataFrameModel and DataFrameSchema are equivalent."""
+    t_schema_basic.name = "BasicModel"
+    assert t_model_basic.to_schema() == t_schema_basic
