@@ -62,7 +62,10 @@ class DataFrameModel(_DataFrameModel[pd.DataFrame, DataFrameSchema]):
         checks: Dict[str, List[Check]],
         parsers: Dict[str, List[Parser]],
         **multiindex_kwargs: Any,
-    ) -> Tuple[Dict[str, Column], Optional[Union[Index, MultiIndex]],]:
+    ) -> Tuple[
+        Dict[str, Column],
+        Optional[Union[Index, MultiIndex]],
+    ]:
         index_count = sum(
             annotation.origin in get_index_types()
             for annotation, _ in fields.values()

@@ -530,8 +530,7 @@ def check_types(
     random_state: Optional[int] = None,
     lazy: bool = False,
     inplace: bool = False,
-) -> F:
-    ...  # pragma: no cover
+) -> F: ...  # pragma: no cover
 
 
 @overload
@@ -545,8 +544,7 @@ def check_types(
     random_state: Optional[int] = None,
     lazy: bool = False,
     inplace: bool = False,
-) -> Callable[[F], F]:
-    ...  # pragma: no cover
+) -> Callable[[F], F]: ...  # pragma: no cover
 
 
 def check_types(
