@@ -95,6 +95,8 @@ would also be a valid input to `transform`.
 import io
 import json
 
+import pandas as pd
+
 buffer = io.BytesIO()
 data = pd.DataFrame({"str_col": [*"abc"], "int_col": range(3)})
 data.to_parquet(buffer)
