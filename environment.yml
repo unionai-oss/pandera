@@ -42,7 +42,7 @@ dependencies:
   - fastapi
 
   # testing and dependencies
-  - black >= 22.1.0
+  - black >= 24.0
 
   # testing
   - isort >= 5.7.0
