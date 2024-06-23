@@ -23,7 +23,7 @@ from typing import Dict, List, Optional
 
 import yaml
 
-EXCLUDE = {"python"}
+EXCLUDE = {"python", "openjdk"}
 RENAME: Dict[str, str] = {}
 
 REPO_PATH = Path(__file__).resolve().absolute().parents[1]
@@ -47,6 +47,8 @@ def conda_package_to_pip(package: str) -> Optional[str]:
         if compare not in package:
             continue
         pkg, version = package.split(compare)
+        pkg = pkg.strip()
+
         if pkg in EXCLUDE:
             return None
 
