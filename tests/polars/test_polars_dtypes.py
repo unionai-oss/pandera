@@ -75,6 +75,8 @@ def get_dataframe_strategy(type_: pl.DataType) -> st.SearchStrategy:
 @settings(max_examples=1)
 def test_coerce_no_cast(dtype, data):
     """Test that dtypes can be coerced without casting."""
+    if dtype is pe.Categorical:
+        pl.enable_string_cache()
     pandera_dtype = dtype()
     df = data.draw(get_dataframe_strategy(type_=pandera_dtype.type))
     coerced = pandera_dtype.coerce(data_container=PolarsData(df))

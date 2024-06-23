@@ -1285,7 +1285,7 @@ def test_lazy_dataframe_validation_error() -> None:
         "DataFrameSchema": {
             # check name -> failure cases
             "column_in_schema": ["unknown_col"],
-            "dataframe_not_equal_1": [1],
+            "dataframe_not_equal_1": [{"int_col": 1.0, "float_col": 1.0}],
             "column_in_dataframe": ["not_in_dataframe"],
         },
         "Column": {

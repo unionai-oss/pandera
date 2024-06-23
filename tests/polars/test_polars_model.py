@@ -237,6 +237,7 @@ def test_dataframe_schema_with_tz_agnostic_dates(time_zone, data):
         column("datetime_col", dtype=pl.Datetime()),
         lazy=True,
         size=10,
+        allow_null=False,
     )
     lf = data.draw(strategy)
     lf = lf.cast({"datetime_col": pl.Datetime(time_zone=time_zone)})

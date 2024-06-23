@@ -506,7 +506,7 @@ def test_dataframe_schema_with_nested_types(lf_with_nested_types):
 def test_dataframe_model_with_annotated_nested_types(lf_with_nested_types):
     class ModelWithAnnotated(DataFrameModel):
         list_col: Annotated[pl.List, pl.Int64()]
-        array_col: Annotated[pl.Array, pl.Int64(), 3]
+        array_col: Annotated[pl.Array, pl.Int64(), 3, None]
         struct_col: Annotated[pl.Struct, {"a": pl.Utf8(), "b": pl.Float64()}]
 
         class Config:
@@ -520,7 +520,7 @@ def test_dataframe_schema_with_kwargs_nested_types(lf_with_nested_types):
     class ModelWithDtypeKwargs(DataFrameModel):
         list_col: pl.List = pa.Field(dtype_kwargs={"inner": pl.Int64()})
         array_col: pl.Array = pa.Field(
-            dtype_kwargs={"inner": pl.Int64(), "width": 3}
+            dtype_kwargs={"inner": pl.Int64(), "shape": 3, "width": None}
         )
         struct_col: pl.Struct = pa.Field(
             dtype_kwargs={"fields": {"a": pl.Utf8(), "b": pl.Float64()}}
@@ -550,6 +550,7 @@ def test_dataframe_schema_with_tz_agnostic_dates(time_zone, data):
         column("datetime_col", dtype=pl.Datetime()),
         lazy=True,
         size=10,
+        allow_null=False,
     )
     lf = data.draw(strategy)
     lf = lf.cast({"datetime_col": pl.Datetime(time_zone=time_zone)})
