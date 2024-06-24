@@ -1316,7 +1316,6 @@ class PydanticModel(DataType):
             cases.
             """
             try:
-                # pylint: disable=not-callable
                 if PYDANTIC_V2:
                     row = self.type.model_validate(row).model_dump()
                 else:
