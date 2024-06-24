@@ -185,25 +185,38 @@ class DataFrame(DataFrameBase, pd.DataFrame, Generic[T]):
         def __get_pydantic_core_schema__(
             cls, _source_type: Any, _handler: GetCoreSchemaHandler
         ) -> core_schema.CoreSchema:
+
             with config_context(validation_enabled=False):
-                schema = _source_type().__orig_class__.__args__[0].to_schema()
+                schema_model = _source_type().__orig_class__.__args__[0]
+            if (schema_model.Config.from_format == "dict") and (
+                schema_model.Config.from_format_kwargs == {"orient": "records"}
+            ):
+                schema = schema_model.to_schema()
+                type_map = {
+                    "str": core_schema.str_schema(),
+                    "int64": core_schema.int_schema(),
+                    "float64": core_schema.float_schema(),
+                    "bool": core_schema.bool_schema(),
+                    "datetime64[ns]": core_schema.datetime_schema(),
+                }
 
-            type_map = {
-                "str": core_schema.str_schema(),
-                "int64": core_schema.int_schema(),
-                "float64": core_schema.float_schema(),
-                "bool": core_schema.bool_schema(),
-                "datetime64[ns]": core_schema.datetime_schema(),
-            }
-
-            return core_schema.list_schema(
-                core_schema.typed_dict_schema(
-                    {
-                        i: core_schema.typed_dict_field(type_map[str(j.dtype)])
-                        for i, j in schema.columns.items()
-                    },
+                return core_schema.list_schema(
+                    core_schema.typed_dict_schema(
+                        {
+                            i: core_schema.typed_dict_field(
+                                type_map[str(j.dtype)]
+                            )
+                            for i, j in schema.columns.items()
+                        },
+                    )
                 )
-            )
+            else:
+                return core_schema.no_info_plain_validator_function(
+                    functools.partial(
+                        cls.pydantic_validate,
+                        schema_model=schema_model,
+                    ),
+                )
 
     else:
 
