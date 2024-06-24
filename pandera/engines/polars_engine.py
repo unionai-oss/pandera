@@ -31,9 +31,8 @@ PolarsDataType = Union[DataTypeClass, pl.DataType]
 
 COERCION_ERRORS = (
     TypeError,
-    pl.ArrowError,
-    pl.InvalidOperationError,
-    pl.ComputeError,
+    pl.exceptions.InvalidOperationError,
+    pl.exceptions.ComputeError,
 )
 
 
