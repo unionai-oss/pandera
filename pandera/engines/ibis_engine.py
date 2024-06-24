@@ -63,7 +63,7 @@ class Engine(
         try:
             return engine.Engine.dtype(cls, data_type)
         except TypeError:
-            np_dtype = data_type.to_numpy()
+            np_dtype = data_type().to_numpy()  # XXX(deepyaman): Make sure this is right???
 
         return engine.Engine.dtype(cls, np_dtype)
 
