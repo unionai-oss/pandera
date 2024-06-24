@@ -1,7 +1,12 @@
-# pylint: disable=unused-import
+# pylint: disable=unused-import,wrong-import-position
 """A flexible and expressive pyspark validation library."""
 
+from pandera._patch_numpy2 import _patch_numpy2
+
+_patch_numpy2()
+
 import pandera.backends.pyspark
+from pandera import errors, external_config, typing
 from pandera.accessors import pyspark_sql_accessor
 from pandera.api.checks import Check
 from pandera.api.pyspark import Column, DataFrameSchema
@@ -42,6 +47,9 @@ from pandera.errors import PysparkSchemaError, SchemaInitError
 from pandera.schema_inference.pandas import infer_schema
 from pandera.typing import pyspark_sql
 from pandera.version import __version__
+
+
+external_config._set_pyspark_environment_variables()
 
 __all__ = [
     # dtypes

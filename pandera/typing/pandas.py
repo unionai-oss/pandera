@@ -55,14 +55,6 @@ class Index(IndexBase, pd.Index, Generic[GenericDtype]):
     """
 
 
-# pyspark.pandas actually patches the __class_getitem__ method of pd.Series and
-# pd.DataFrame, so import it here to make sure that we can override the patching
-try:
-    import pyspark.pandas  # pylint: disable=unused-import
-except ImportError:  # pragma: no cover
-    pass
-
-
 # pylint:disable=too-few-public-methods
 class Series(SeriesBase, pd.Series, Generic[GenericDtype]):  # type: ignore
     """Representation of pandas.Series, only used for type annotation.
@@ -70,14 +62,12 @@ class Series(SeriesBase, pd.Series, Generic[GenericDtype]):  # type: ignore
     *new in 0.5.0*
     """
 
-    if hasattr(pd.Series, "__class_getitem__") and _GenericAlias:
-
-        def __class_getitem__(cls, item):
-            """Define this to override the patch that pyspark.pandas performs on pandas.
-            https://github.com/apache/spark/blob/master/python/pyspark/pandas/__init__.py#L124-L144
-            """
-            _type_check(item, "Parameters to generic types must be types.")
-            return _GenericAlias(cls, item)
+    def __class_getitem__(cls, item):
+        """Define this to override the patch that pyspark.pandas performs on pandas.
+        https://github.com/apache/spark/blob/master/python/pyspark/pandas/__init__.py#L124-L144
+        """
+        _type_check(item, "Parameters to generic types must be types.")
+        return _GenericAlias(cls, item)
 
 
 # pylint:disable=invalid-name
@@ -95,14 +85,12 @@ class DataFrame(DataFrameBase, pd.DataFrame, Generic[T]):
     *new in 0.5.0*
     """
 
-    if hasattr(pd.DataFrame, "__class_getitem__") and _GenericAlias:
-
-        def __class_getitem__(cls, item):
-            """Define this to override the patch that pyspark.pandas performs on pandas.
-            https://github.com/apache/spark/blob/master/python/pyspark/pandas/__init__.py#L124-L144
-            """
-            _type_check(item, "Parameters to generic types must be types.")
-            return _GenericAlias(cls, item)
+    def __class_getitem__(cls, item):
+        """Define this to override the patch that pyspark.pandas performs on pandas.
+        https://github.com/apache/spark/blob/master/python/pyspark/pandas/__init__.py#L124-L144
+        """
+        _type_check(item, "Parameters to generic types must be types.")
+        return _GenericAlias(cls, item)
 
     @classmethod
     def from_format(cls, obj: Any, config) -> pd.DataFrame:

@@ -238,16 +238,36 @@ class PandasCheckBackend(BaseCheckBackend):
     ) -> CheckResult:
         """Postprocesses the result of applying the check function."""
         assert check_obj.shape == check_output.shape
-        check_obj = check_obj.unstack()
-        check_output = check_output.unstack()
         if check_obj.index.equals(check_output.index) and self.check.ignore_na:
             check_output = check_output | check_obj.isna()
-        failure_cases = (
-            check_obj[~check_output]  # type: ignore  [call-overload]
-            .rename("failure_case")
-            .rename_axis(["column", "index"])
-            .reset_index()
-        )
+
+        # collect failure cases across all columns. Flse values in check_output
+        # are nulls.
+        select_failure_cases = check_obj[~check_output]
+        failure_cases = []
+        for col in select_failure_cases.columns:
+            cases = select_failure_cases[col].rename("failure_case").dropna()
+            if len(cases) == 0:
+                continue
+            failure_cases.append(
+                cases.to_frame()
+                .assign(column=col)
+                .rename_axis("index")
+                .reset_index()
+            )
+        if failure_cases:
+            failure_cases = pd.concat(failure_cases, axis=0)
+            # convert to a dataframe where each row is a failure case at
+            # a particular index, and failure case values are dictionaries
+            # indicating which column and value failed in that row.
+            failure_cases = (
+                failure_cases.set_index("column")
+                .groupby("index")
+                .agg(lambda df: df.to_dict())
+            )
+        else:
+            failure_cases = pd.DataFrame(columns=["index", "failure_case"])
+
         if not failure_cases.empty and self.check.n_failure_cases is not None:
             failure_cases = failure_cases.drop_duplicates().head(
                 self.check.n_failure_cases
