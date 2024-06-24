@@ -1297,11 +1297,11 @@ if GEOPANDAS_INSTALLED:
 class PydanticModel(DataType):
     """A pydantic model datatype applying to rows in a dataframe."""
 
-    type: Type[BaseModel] = dataclasses.field(default=None, init=False)  # type: ignore # noqa
     auto_coerce = True
 
     # pylint:disable=super-init-not-called
     def __init__(self, model: Type[BaseModel]) -> None:
+        self.type: Type[BaseModel]
         object.__setattr__(self, "type", model)
 
     def coerce(self, data_container: PandasObject) -> PandasObject:
