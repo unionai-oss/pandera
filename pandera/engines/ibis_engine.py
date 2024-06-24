@@ -63,7 +63,9 @@ class Engine(
         try:
             return engine.Engine.dtype(cls, data_type)
         except TypeError:
-            np_dtype = data_type().to_numpy()  # XXX(deepyaman): Make sure this is right???
+            np_dtype = (
+                data_type().to_numpy()  # XXX(deepyaman): Make sure this is right???
+            )
 
         return engine.Engine.dtype(cls, np_dtype)
 
@@ -79,7 +81,6 @@ class Engine(
 @immutable
 class Int32(DataType, dtypes.Int32):
     """Semantic representation of a :class:`dt.Int32`."""
-
 
 
 @Engine.register_dtype(

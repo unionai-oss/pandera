@@ -93,7 +93,7 @@ class DataFrameSchema(_DataFrameSchema[ir.Table]):
             inplace=inplace,
         )
 
-    @_DataFrameSchema.dtype.setter
+    @_DataFrameSchema.dtype.setter  # type: ignore[attr-defined]
     def dtype(self, value) -> None:
         """Set the dtype property."""
         self._dtype = ibis_engine.Engine.dtype(value) if value else None

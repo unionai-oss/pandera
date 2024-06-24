@@ -8,6 +8,7 @@ import ibis.expr.types as ir
 
 from pandera.api.checks import Check
 from pandera.api.dataframe.model import DataFrameModel as _DataFrameModel
+from pandera.api.dataframe.model import get_dtype_kwargs
 from pandera.api.dataframe.model_components import FieldInfo
 from pandera.api.ibis.components import Column
 from pandera.api.ibis.container import DataFrameSchema
@@ -45,7 +46,9 @@ class DataFrameModel(_DataFrameModel[ir.Table, DataFrameSchema]):
             check_name = getattr(field, "check_name", None)
 
             try:
-                engine_dtype = ibis_engine.Engine.dtype(annotation.raw_annotation)
+                engine_dtype = ibis_engine.Engine.dtype(
+                    annotation.raw_annotation
+                )
                 if inspect.isclass(annotation.raw_annotation) and issubclass(
                     annotation.raw_annotation, ibis_engine.DataType
                 ):

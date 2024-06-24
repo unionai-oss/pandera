@@ -13,10 +13,12 @@ from pandera.ibis import Column, DataFrameSchema
 @pytest.fixture
 def t_basic():
     """Basic Ibis table fixture."""
-    df = pd.DataFrame({
-        "string_col": ["0", "1", "2"],
-        "int_col": [0, 1, 2],
-    })
+    df = pd.DataFrame(
+        {
+            "string_col": ["0", "1", "2"],
+            "int_col": [0, 1, 2],
+        }
+    )
     return ibis.memtable(df, name="t")
 
 
