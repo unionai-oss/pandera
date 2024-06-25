@@ -53,9 +53,9 @@ def polars_failure_cases_from_coercible(
     is_coercible: pl.LazyFrame,
 ) -> pl.LazyFrame:
     """Get the failure cases resulting from trying to coerce a polars object."""
-    return data_container.lazyframe.with_context(is_coercible).filter(
-        pl.col(CHECK_OUTPUT_KEY).not_()
-    )
+    return pl.concat(
+        items=[data_container.lazyframe, is_coercible], how="horizontal"
+    ).filter(pl.col(CHECK_OUTPUT_KEY).not_())
 
 
 def polars_coerce_failure_cases(
