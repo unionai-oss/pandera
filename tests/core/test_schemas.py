@@ -2613,3 +2613,38 @@ def test_get_schema_metadata():
         }
     }
     assert expected == metadata
+
+
+@pytest.fixture()
+def xfail_int_with_nans(request):
+    dtype = request.getfixturevalue("dtype")
+    input_value = request.getfixturevalue("input_value")
+    coerce = request.getfixturevalue("coerce")
+
+    if dtype == "Int64" and input_value is not None and not coerce:
+        pytest.xfail("NaN is considered a Float64")
+
+
+@pytest.mark.parametrize(
+    "dtype,default",
+    [
+        (str, "a default"),
+        (bool, True),
+        (bool, False),
+        (float, 42.0),
+        ("Int64", 0),
+    ],
+)
+@pytest.mark.parametrize("input_value", [None, np.nan])
+@pytest.mark.parametrize("coerce", [True, False])
+@pytest.mark.usefixtures("xfail_int_with_nans")
+def test_schema_column_default_handle_nans(
+    input_value: Any, coerce: bool, dtype: Any, default: Any
+):
+    """Test ``default`` fills ``nan`` values as expected."""
+    schema = DataFrameSchema(
+        columns={"column1": Column(dtype, default=default, coerce=coerce)}
+    )
+    df = pd.DataFrame({"column1": [input_value]})
+    schema.validate(df, inplace=True)
+    assert df.iloc[0]["column1"] == default
