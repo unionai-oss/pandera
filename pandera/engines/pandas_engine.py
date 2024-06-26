@@ -1848,9 +1848,9 @@ if PYARROW_INSTALLED and PANDAS_2_0_0_PLUS:
         type: Optional[pd.ArrowDtype] = dataclasses.field(
             default=None, init=False
         )
-        value_type: Optional[
-            Union[pyarrow.DataType, pyarrow.Field]
-        ] = pyarrow.string()
+        value_type: Optional[Union[pyarrow.DataType, pyarrow.Field]] = (
+            pyarrow.string()
+        )
         list_size: Optional[int] = -1
 
         def __post_init__(self):
