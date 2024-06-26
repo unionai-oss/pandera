@@ -525,18 +525,6 @@ class DataFrameModel(BaseModel):
         return meta
 
 
-SchemaModel = DataFrameModel
-"""
-Alias for DataFrameModel.
-
-.. warning::
-
-   This subclass is necessary for backwards compatibility, and will be
-   deprecated in pandera version ``0.20.0`` in favor of
-   :py:class:`~pandera.api.pyspark.model.DataFrameModel`
-"""
-
-
 def _regex_filter(seq: Iterable, regexps: Iterable[str]) -> Set[str]:
     """Filter items matching at least one of the regexes."""
     matched: Set[str] = set()
