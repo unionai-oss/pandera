@@ -20,6 +20,7 @@ pyspark >= 3.2.0
 polars >= 0.20.0
 modin
 protobuf
+ibis-framework >= 3.1.0
 geopandas
 shapely
 fastapi
