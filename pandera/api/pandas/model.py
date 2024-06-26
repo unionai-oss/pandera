@@ -24,11 +24,6 @@ class DataFrameModel(_DataFrameModel[pd.DataFrame, DataFrameSchema]):
 
     *new in 0.5.0*
 
-    .. important::
-
-        This class is the new name for ``SchemaModel``, which will be deprecated
-        in pandera version ``0.20.0``.
-
     See the :ref:`User Guide <dataframe-models>` for more.
     """
 
@@ -192,18 +187,6 @@ class DataFrameModel(_DataFrameModel[pd.DataFrame, DataFrameSchema]):
                 for field in table_schema["fields"]
             },
         }
-
-
-SchemaModel = DataFrameModel
-"""
-Alias for DataFrameModel.
-
-.. warning::
-
-   This subclass is necessary for backwards compatibility, and will be
-   deprecated in pandera version ``0.20.0`` in favor of
-   :py:class:`~pandera.api.pandas.model.DataFrameModel`
-"""
 
 
 def _build_schema_index(

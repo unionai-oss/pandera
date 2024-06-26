@@ -26,7 +26,7 @@ from pandera.api.hypotheses import Hypothesis
 from pandera.api.pandas.array import SeriesSchema
 from pandera.api.pandas.components import Column, Index, MultiIndex
 from pandera.api.pandas.container import DataFrameSchema
-from pandera.api.pandas.model import DataFrameModel, SchemaModel
+from pandera.api.pandas.model import DataFrameModel
 from pandera.api.parsers import Parser
 from pandera.decorators import check_input, check_io, check_output, check_types
 from pandera.dtypes import (
@@ -142,7 +142,6 @@ __all__ = [
     "Hypothesis",
     # model
     "DataFrameModel",
-    "SchemaModel",
     # model_components
     "Field",
     "check",
