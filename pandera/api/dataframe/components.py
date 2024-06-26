@@ -103,8 +103,7 @@ class ComponentSchema(Generic[TDataObject], BaseSchema):
 
         self._validate_attributes()
 
-    def _validate_attributes(self):
-        ...
+    def _validate_attributes(self): ...
 
     # the _is_inferred getter and setter methods are not public
     @property

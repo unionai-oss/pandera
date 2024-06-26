@@ -23,7 +23,7 @@ protobuf
 geopandas
 shapely
 fastapi
-black >= 22.1.0
+black >= 24.0
 isort >= 5.7.0
 joblib
 mypy == 1.10.0
