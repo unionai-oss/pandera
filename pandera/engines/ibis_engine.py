@@ -63,9 +63,7 @@ class Engine(
         try:
             return engine.Engine.dtype(cls, data_type)
         except TypeError:
-            np_dtype = (
-                data_type().to_numpy()  # XXX(deepyaman): Make sure this is right???
-            )
+            np_dtype = data_type().to_numpy()
 
         return engine.Engine.dtype(cls, np_dtype)
 
@@ -84,7 +82,14 @@ class Int32(DataType, dtypes.Int32):
 
 
 @Engine.register_dtype(
-    equivalents=[np.int64, dtypes.Int64, dtypes.Int64(), dt.Int64, dt.int64]
+    equivalents=[
+        int,
+        np.int64,
+        dtypes.Int64,
+        dtypes.Int64(),
+        dt.Int64,
+        dt.int64,
+    ]
 )
 @immutable
 class Int64(DataType, dtypes.Int64):
@@ -100,6 +105,7 @@ class Int64(DataType, dtypes.Int64):
 
 @Engine.register_dtype(
     equivalents=[
+        float,
         np.float64,
         dtypes.Float64,
         dtypes.Float64(),
