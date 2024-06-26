@@ -1,7 +1,6 @@
 """Unit tests for Ibis container."""
 
 import ibis
-import ibis.expr.datatypes as dt
 import ibis.expr.types as ir
 import pandas as pd
 import pytest
@@ -28,7 +27,7 @@ def t_schema_basic():
     return DataFrameSchema(
         {
             # "string_col": Column(str),
-            "int_col": Column(dt.Int64),
+            "int_col": Column(int),
         }
     )
 
