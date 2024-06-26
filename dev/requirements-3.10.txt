@@ -20,6 +20,8 @@ asttokens==2.4.1
 asv==0.6.3
 asv-runner==0.2.1
     # via asv
+atpublic==3.1.2
+    # via ibis-framework
 attrs==23.2.0
     # via
     #   hypothesis
@@ -32,6 +34,8 @@ backports-tarfile==1.2.0
     # via jaraco-context
 beautifulsoup4==4.12.3
     # via furo
+bidict==0.23.1
+    # via ibis-framework
 black==24.4.2
 build==1.2.1
     # via asv
@@ -69,11 +73,11 @@ commonmark==0.9.1
     # via recommonmark
 coverage==7.6.0
     # via pytest-cov
-dask==2024.7.0
+dask==2024.7.1
     # via
     #   dask-expr
     #   distributed
-dask-expr==1.1.7
+dask-expr==1.1.9
     # via dask
 debugpy==1.8.2
     # via ipykernel
@@ -83,7 +87,7 @@ dill==0.3.8
     # via pylint
 distlib==0.3.8
     # via virtualenv
-distributed==2024.7.0
+distributed==2024.7.1
 dnspython==2.6.1
     # via email-validator
 docutils==0.21.2
@@ -104,7 +108,7 @@ execnet==2.1.1
     # via pytest-xdist
 executing==2.0.1
     # via stack-data
-fastapi==0.111.0
+fastapi==0.111.1
 fastapi-cli==0.0.4
     # via fastapi
 fastjsonschema==2.20.0
@@ -122,11 +126,11 @@ fsspec==2024.6.1
     # via
     #   dask
     #   modin
-furo==2024.5.6
+furo==2024.7.18
 geopandas==1.0.1
 greenlet==3.0.3
     # via sqlalchemy
-grpcio==1.64.1
+grpcio==1.65.1
 h11==0.14.0
     # via
     #   httpcore
@@ -137,7 +141,8 @@ httptools==0.6.1
     # via uvicorn
 httpx==0.27.0
     # via fastapi
-hypothesis==6.108.0
+hypothesis==6.108.3
+ibis-framework==5.1.0
 identify==2.6.0
     # via pre-commit
 idna==3.7
@@ -242,6 +247,8 @@ msgpack==1.0.8
     #   distributed
     #   ray
 multimethod==1.10
+multipledispatch==0.6.0
+    # via ibis-framework
 mypy==1.10.0
 mypy-extensions==1.0.0
     # via
@@ -267,10 +274,11 @@ nh3==0.2.18
 nodeenv==1.9.1
     # via pre-commit
 nox==2024.4.15
-numpy==2.0.0
+numpy==1.26.4
     # via
     #   dask
     #   geopandas
+    #   ibis-framework
     #   modin
     #   pandas
     #   pandas-stubs
@@ -278,8 +286,6 @@ numpy==2.0.0
     #   pyogrio
     #   scipy
     #   shapely
-orjson==3.10.6
-    # via fastapi
 packaging==24.1
     # via
     #   black
@@ -290,6 +296,7 @@ packaging==24.1
     #   ipykernel
     #   modin
     #   nox
+    #   pooch
     #   pyogrio
     #   pytest
     #   ray
@@ -299,10 +306,13 @@ pandas==2.2.2
     #   dask
     #   dask-expr
     #   geopandas
+    #   ibis-framework
     #   modin
 pandas-stubs==2.2.2.240603
 parso==0.8.4
     # via jedi
+parsy==2.1
+    # via ibis-framework
 partd==1.4.2
     # via dask
 pathspec==0.12.1
@@ -318,11 +328,14 @@ platformdirs==4.2.2
     # via
     #   black
     #   jupyter-core
+    #   pooch
     #   pylint
     #   virtualenv
 pluggy==1.5.0
     # via pytest
-polars==1.1.0
+polars==1.2.1
+pooch==1.8.2
+    # via ibis-framework
 pre-commit==3.7.1
 prompt-toolkit==3.0.47
     # via ipython
@@ -335,11 +348,11 @@ psutil==6.0.0
     #   modin
 ptyprocess==0.7.0
     # via pexpect
-pure-eval==0.2.2
+pure-eval==0.2.3
     # via stack-data
 py4j==0.10.9.7
     # via pyspark
-pyarrow==16.1.0
+pyarrow==17.0.0
     # via dask-expr
 pydantic==2.8.2
     # via fastapi
@@ -362,17 +375,18 @@ pyproj==3.6.1
 pyproject-hooks==1.1.0
     # via build
 pyspark==3.5.1
-pytest==8.2.2
+pytest==8.3.1
     # via
     #   pytest-asyncio
     #   pytest-cov
     #   pytest-xdist
-pytest-asyncio==0.23.7
+pytest-asyncio==0.23.8
 pytest-cov==5.0.0
 pytest-xdist==3.6.1
 python-dateutil==2.9.0.post0
     # via
     #   frictionless
+    #   ibis-framework
     #   jupyter-client
     #   pandas
 python-dotenv==1.0.1
@@ -382,7 +396,9 @@ python-multipart==0.0.9
 python-slugify==8.0.4
     # via frictionless
 pytz==2024.1
-    # via pandas
+    # via
+    #   ibis-framework
+    #   pandas
 pyyaml==6.0.1
     # via
     #   asv
@@ -410,6 +426,7 @@ referencing==0.35.1
 requests==2.32.3
     # via
     #   frictionless
+    #   pooch
     #   ray
     #   requests-toolbelt
     #   sphinx
@@ -422,6 +439,7 @@ rfc3986==2.0.0
     #   twine
 rich==13.7.1
     # via
+    #   ibis-framework
     #   twine
     #   typer
 rpds-py==0.19.0
@@ -439,6 +457,7 @@ six==1.16.0
     # via
     #   asttokens
     #   isodate
+    #   multipledispatch
     #   python-dateutil
 sniffio==1.3.1
     # via
@@ -473,16 +492,18 @@ sphinxcontrib-applehelp==1.0.8
     # via sphinx
 sphinxcontrib-devhelp==1.0.6
     # via sphinx
-sphinxcontrib-htmlhelp==2.0.5
+sphinxcontrib-htmlhelp==2.0.6
     # via sphinx
 sphinxcontrib-jsmath==1.0.1
     # via sphinx
-sphinxcontrib-qthelp==1.0.7
+sphinxcontrib-qthelp==1.0.8
     # via sphinx
 sphinxcontrib-serializinghtml==1.1.10
     # via sphinx
 sqlalchemy==2.0.31
     # via jupyter-cache
+sqlglot==11.7.1
+    # via ibis-framework
 stack-data==0.6.3
     # via ipython
 starlette==0.37.2
@@ -515,12 +536,15 @@ toolz==0.12.1
     # via
     #   dask
     #   distributed
+    #   ibis-framework
     #   partd
 tornado==6.4.1
     # via
     #   distributed
     #   ipykernel
     #   jupyter-client
+tqdm==4.66.4
+    # via pooch
 traitlets==5.14.3
     # via
     #   comm
@@ -549,6 +573,7 @@ typing-extensions==4.12.2
     #   astroid
     #   black
     #   fastapi
+    #   ibis-framework
     #   ipython
     #   mypy
     #   myst-nb
@@ -562,19 +587,17 @@ typing-extensions==4.12.2
 typing-inspect==0.9.0
 tzdata==2024.1
     # via pandas
-ujson==5.10.0
-    # via fastapi
 urllib3==2.2.2
     # via
     #   distributed
     #   requests
     #   twine
     #   types-requests
-uvicorn==0.30.1
+uvicorn==0.30.3
     # via fastapi
 uvloop==0.19.0
     # via uvicorn
-validators==0.32.0
+validators==0.33.0
     # via frictionless
 virtualenv==20.26.3
     # via
@@ -590,6 +613,8 @@ websockets==12.0
 wrapt==1.16.0
     # via astroid
 xdoctest==1.1.5
+xxhash==3.4.1
+    # via pooch
 zict==3.0.0
     # via distributed
 zipp==3.19.2
