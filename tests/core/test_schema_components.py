@@ -3,6 +3,7 @@
 import copy
 from typing import Any, List, Optional, Tuple, Type
 
+import numpy as np
 import pandas as pd
 import pytest
 
@@ -878,19 +879,35 @@ def test_index_validation_pandas_string_dtype():
     assert isinstance(schema.validate(df), pd.DataFrame)
 
 
+@pytest.fixture()
+def xfail_int_with_nans(request):
+    dtype = request.getfixturevalue("dtype")
+    input_value = request.getfixturevalue("input_value")
+    coerce = request.getfixturevalue("coerce")
+
+    if dtype == "Int64" and input_value is not None and not coerce:
+        pytest.xfail("NaN is considered a Float64")
+
+
 @pytest.mark.parametrize(
     "dtype,default",
     [
         (str, "a default"),
         (bool, True),
+        (bool, False),
         (float, 42.0),
         ("Int64", 0),
     ],
 )
-def test_column_default_works_when_dtype_match(dtype: Any, default: Any):
+@pytest.mark.parametrize("input_value", [None, np.nan])
+@pytest.mark.parametrize("coerce", [True, False])
+@pytest.mark.usefixtures("xfail_int_with_nans")
+def test_column_default_works_when_dtype_match(
+    input_value: Any, coerce: bool, dtype: Any, default: Any
+):
     """Test ``default`` fills ``nan`` values as expected when the ``dtype`` matches that of the ``Column``"""
-    column = Column(dtype, name="column1", default=default)
-    df = pd.DataFrame({"column1": [None]})
+    column = Column(dtype, name="column1", default=default, coerce=coerce)
+    df = pd.DataFrame({"column1": [input_value]})
     column.validate(df, inplace=True)
 
     assert df.iloc[0]["column1"] == default
