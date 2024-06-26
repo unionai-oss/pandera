@@ -1,6 +1,5 @@
 """Unit tests for Ibis table model."""
 
-import ibis.expr.datatypes as dt
 import pytest
 
 from pandera.ibis import Column, DataFrameModel, DataFrameSchema
@@ -10,7 +9,7 @@ from pandera.ibis import Column, DataFrameModel, DataFrameSchema
 def t_model_basic():
     class BasicModel(DataFrameModel):
         # string_col: str
-        int_col: dt.Int64  # TODO(deepyaman): Make sure `int` works.
+        int_col: int
 
     return BasicModel
 
@@ -20,7 +19,7 @@ def t_schema_basic():
     return DataFrameSchema(
         {
             # "string_col": Column(str),
-            "int_col": Column(dt.Int64),
+            "int_col": Column(int),
         }
     )
 
