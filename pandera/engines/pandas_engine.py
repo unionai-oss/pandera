@@ -1297,6 +1297,7 @@ if GEOPANDAS_INSTALLED:
 class PydanticModel(DataType):
     """A pydantic model datatype applying to rows in a dataframe."""
 
+    type: Type[BaseModel] = dataclasses.field(default=None, init=False)
     auto_coerce = True
 
     # pylint:disable=super-init-not-called
@@ -1316,6 +1317,7 @@ class PydanticModel(DataType):
             cases.
             """
             try:
+                # pylint: disable=no-member
                 if PYDANTIC_V2:
                     row = self.type.model_validate(row).model_dump()
                 else:
