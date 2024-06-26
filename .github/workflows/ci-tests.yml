@@ -10,7 +10,7 @@ on:
     branches:
       - main
       - dev
-      - polars-dev
+      - ibis-dev
       - bugfix
       - "release/*"
 
