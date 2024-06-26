@@ -78,7 +78,7 @@ to run the `nox` test suite. Simply install it via conda-forge:
 conda install -c conda-forge mamba
 ```
 
-To add new dependencies to the project, first alter the _environment.yml_ file. Then to sync the dependencies from the `environment.yml`` file to the `requirements.in` run the following command
+To add new dependencies to the project, first alter the `environment.yml` file. Then to sync the dependencies from the `environment.yml` file to the `requirements.in`, run the following command:
 
 ```bash
 make nox-requirements
