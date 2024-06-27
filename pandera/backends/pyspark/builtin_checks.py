@@ -345,7 +345,9 @@ def str_length(
 ) -> bool:
     """Ensure that the length of strings in a column is within a specified range."""
     if min_value is None and max_value is None:
-        raise ValueError("Must provide at least one of 'min_value' and 'max_value'")
+        raise ValueError(
+            "Must provide at least one of 'min_value' and 'max_value'"
+        )
 
     str_len = length(col(data.column_name))
     cond = lit(True)
