@@ -64,6 +64,8 @@ if pandas_engine.PYARROW_INSTALLED and pandas_engine.PANDAS_2_0_0_PLUS:
             pandas_engine.ArrowUInt16,
             pandas_engine.ArrowUInt32,
             pandas_engine.ArrowUInt64,
+            pandas_engine.ArrowList,
+            pandas_engine.ArrowStruct,
         ]
     )
 

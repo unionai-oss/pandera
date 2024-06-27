@@ -8,6 +8,7 @@ import hypothesis.extra.pandas as pd_st
 import hypothesis.strategies as st
 import numpy as np
 import pandas as pd
+import pyarrow
 import pytest
 import pytz
 from hypothesis import given
@@ -237,3 +238,62 @@ def test_pandas_date_coerce_dtype(to_df, data):
     assert (
         coerced_data.map(lambda x: isinstance(x, date)) | coerced_data.isna()
     ).all()
+
+
+pandas_arrow_dtype_cases = (
+    (
+        pd.Series([["a", "b", "c"]]),
+        pyarrow.list_(pyarrow.string()),
+    ),
+    (
+        pd.Series([["a", "b"]]),
+        pyarrow.list_(pyarrow.string(), 2),
+    ),
+    (
+        pd.Series([{"foo": 1, "bar": "a"}]),
+        pyarrow.struct(
+            [
+                ("foo", pyarrow.int64()),
+                ("bar", pyarrow.string()),
+            ]
+        ),
+    ),
+)
+
+
+@pytest.mark.parametrize(("data", "dtype"), pandas_arrow_dtype_cases)
+def test_pandas_arrow_dtype(data, dtype):
+    """Test pyarrow dtype."""
+    dtype = pandas_engine.Engine.dtype(dtype)
+
+    dtype.coerce(data)
+
+
+pandas_arrow_dtype_errors_cases = (
+    (
+        pd.Series([["a", "b", "c"]]),
+        pyarrow.list_(pyarrow.int64()),
+    ),
+    (
+        pd.Series([["a", "b"]]),
+        pyarrow.list_(pyarrow.string(), 3),
+    ),
+    (
+        pd.Series([{"foo": 1, "bar": "a"}]),
+        pyarrow.struct(
+            [
+                ("foo", pyarrow.string()),
+                ("bar", pyarrow.int64()),
+            ]
+        ),
+    ),
+)
+
+
+@pytest.mark.parametrize(("data", "dtype"), pandas_arrow_dtype_errors_cases)
+def test_pandas_arrow_dtype_errors(data, dtype):
+    """Test pyarrow dtype raises ArrowInvalid or ArrowTypeError on bad data."""
+    dtype = pandas_engine.Engine.dtype(dtype)
+
+    with pytest.raises((pyarrow.ArrowInvalid, pyarrow.ArrowTypeError)):
+        dtype.coerce(data)

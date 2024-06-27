@@ -22,6 +22,7 @@ from typing import (
     List,
     NamedTuple,
     Optional,
+    Tuple,
     Type,
     Union,
     cast,
@@ -1765,7 +1766,7 @@ if PYARROW_INSTALLED and PANDAS_2_0_0_PLUS:
         precision: int = 28
         scale: int = 0
 
-        def __post_init__(self) -> None:
+        def __post_init__(self):
             type_ = pd.ArrowDtype(
                 pyarrow.decimal128(self.precision, self.scale)
             )
@@ -1831,4 +1832,68 @@ if PYARROW_INSTALLED and PANDAS_2_0_0_PLUS:
                 index_type=pyarrow_dtype.index_type,  # type: ignore
                 value_type=pyarrow_dtype.value_type,  # type: ignore
                 ordered=pyarrow_dtype.ordered,  # type: ignore
+            )
+
+    @Engine.register_dtype(
+        equivalents=[
+            pyarrow.list_,
+            pyarrow.ListType,
+            pyarrow.FixedSizeListType,
+        ]
+    )
+    @immutable(init=True)
+    class ArrowList(DataType):
+        """Semantic representation of a :class:`pyarrow.list_`."""
+
+        type: Optional[pd.ArrowDtype] = dataclasses.field(
+            default=None, init=False
+        )
+        value_type: Optional[Union[pyarrow.DataType, pyarrow.Field]] = (
+            pyarrow.string()
+        )
+        list_size: Optional[int] = -1
+
+        def __post_init__(self):
+            type_ = pd.ArrowDtype(
+                pyarrow.list_(self.value_type, self.list_size)
+            )
+            object.__setattr__(self, "type", type_)
+
+        @classmethod
+        def from_parametrized_dtype(
+            cls,
+            pyarrow_dtype: Union[pyarrow.ListType, pyarrow.FixedSizeListType],
+        ):
+            try:
+                _dtype = cls(
+                    value_type=pyarrow_dtype.value_type,  # type: ignore
+                    list_size=pyarrow_dtype.list_size,  # type: ignore
+                )
+            except AttributeError:
+                _dtype = cls(value_type=pyarrow_dtype.value_type)  # type: ignore
+            return _dtype
+
+    @Engine.register_dtype(equivalents=[pyarrow.struct, pyarrow.StructType])
+    @immutable(init=True)
+    class ArrowStruct(DataType):
+        """Semantic representation of a :class:`pyarrow.struct`."""
+
+        type: Optional[pd.ArrowDtype] = dataclasses.field(
+            default=None, init=False
+        )
+        fields: Optional[
+            Union[
+                Iterable[Union[pyarrow.Field, Tuple[str, pyarrow.DataType]]],
+                Dict[str, pyarrow.DataType],
+            ]
+        ] = tuple()
+
+        def __post_init__(self):
+            type_ = pd.ArrowDtype(pyarrow.struct(self.fields))
+            object.__setattr__(self, "type", type_)
+
+        @classmethod
+        def from_parametrized_dtype(cls, pyarrow_dtype: pyarrow.StructType):
+            return cls(
+                fields=[pyarrow_dtype.field(i) for i in range(pyarrow_dtype.num_fields)]  # type: ignore
             )
