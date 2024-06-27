@@ -218,8 +218,12 @@ class ColumnBackend(PolarsSchemaBackend):
             if passed.select(column).item():
                 continue
             failure_cases = (
-                check_obj.with_context(
-                    isna.select(pl.col(column).alias(CHECK_OUTPUT_KEY))
+                pl.concat(
+                    items=[
+                        check_obj,
+                        isna.select(pl.col(column).alias(CHECK_OUTPUT_KEY)),
+                    ],
+                    how="horizontal",
                 )
                 .filter(pl.col(CHECK_OUTPUT_KEY).not_())
                 .select(column)
@@ -267,10 +271,14 @@ class ColumnBackend(PolarsSchemaBackend):
         for column in duplicates.columns:
             if duplicates.select(pl.col(column).any()).item():
                 failure_cases = (
-                    check_obj.with_context(
-                        duplicates.select(
-                            pl.col(column).alias("_duplicated")
-                        ).lazy()
+                    pl.concat(
+                        items=[
+                            check_obj,
+                            duplicates.select(
+                                pl.col(column).alias("_duplicated")
+                            ).lazy(),
+                        ],
+                        how="horizontal",
                     )
                     .filter(pl.col("_duplicated"))
                     .select(column)

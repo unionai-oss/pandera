@@ -11,20 +11,8 @@ file_format: mystnb
 
 # DataFrame Models
 
-Formerly known as `SchemaModel`.
-
 *new in 0.5.0*
 
-:::{important}
-As of pandera `0.14.0` {py:class}`~pandera.api.pandas.model.SchemaModel`
-is simply an alias of {py:class}`~pandera.api.pandas.model.DataFrameModel`.
-`SchemaModel` will continue to work as a valid way of specifying types
-for DataFrame models for the foreseeable future, and will be deprecated in
-version `0.20.0`.
-
-For the purposes of documentation, `SchemaModel` and `DataFrameModel`
-are equivalent.
-:::
 
 `pandera` provides a class-based API that's heavily inspired by
 [pydantic](https://pydantic-docs.helpmanual.io/). In contrast to the

@@ -23,8 +23,7 @@ def test_polars_dataframe_check_io(data, invalid_data):
     schema = pa.DataFrameSchema({"a": pa.Column(int)})
 
     @pa.check_input(schema)
-    def fn_check_input(x):
-        ...
+    def fn_check_input(x): ...
 
     @pa.check_output(schema)
     def fn_check_output(x):
@@ -61,8 +60,7 @@ def test_polars_dataframe_check_types(data, invalid_data):
         a: int
 
     @pa.check_types
-    def fn_check_input(x: pa_typing.DataFrame[Model]):
-        ...
+    def fn_check_input(x: pa_typing.DataFrame[Model]): ...
 
     @pa.check_types
     def fn_check_output(x) -> pa_typing.DataFrame[Model]:
