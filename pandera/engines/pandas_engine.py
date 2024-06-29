@@ -1661,7 +1661,12 @@ if PYARROW_INSTALLED and PANDAS_2_0_0_PLUS:
         bit_width: int = 8
 
     @Engine.register_dtype(
-        equivalents=[pyarrow.string, pd.ArrowDtype(pyarrow.string())]
+        equivalents=[
+            pyarrow.string,
+            pyarrow.utf8,
+            pd.ArrowDtype(pyarrow.string()),
+            pd.ArrowDtype(pyarrow.utf8()),
+        ]
     )
     @immutable
     class ArrowString(DataType, dtypes.String):
