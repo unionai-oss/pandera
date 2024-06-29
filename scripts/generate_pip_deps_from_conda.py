@@ -23,7 +23,7 @@ from typing import Dict, List, Optional
 
 import yaml
 
-EXCLUDE = {"python", "openjdk"}
+EXCLUDE = {"python"}
 RENAME: Dict[str, str] = {}
 
 REPO_PATH = Path(__file__).resolve().absolute().parents[1]

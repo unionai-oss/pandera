@@ -14,6 +14,9 @@ build:
       # Install numpy<v2 to avoid breaking docs. This is because the env has
       # pyspark installed, which requires numpy<2.
       - python -m pip install "numpy<2"
+      # Install OpenJDK as Java backend in env to run PySpark examples in docs.
+      - python -m pip install "install-jdk==1.1.0"
+      - export JAVA_HOME=$(python -c "import jdk; jdk.install('11', vendor='temurin')")
 
 # Build documentation in the docs/ directory with Sphinx
 conda:
