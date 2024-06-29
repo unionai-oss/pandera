@@ -242,7 +242,7 @@ jobs:
           uv pip install --system -r requirements.in
           uv pip install --system --force-reinstall "numpy<2.0.0";
           uv pip install --system install-jdk==1.1.0
-          export JAVA_HOME=$(python -c "import jdk; jdk.install('11', vendor='temurin')")
+          export JAVA_HOME=$(python -c "import jdk; print(jdk.install('11', vendor='temurin'))")
 
       - run: |
           pip list
