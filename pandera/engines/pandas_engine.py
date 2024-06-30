@@ -2058,6 +2058,17 @@ if PYARROW_INSTALLED and PANDAS_2_0_0_PLUS:
                 keys_sorted=pyarrow_dtype.keys_sorted,  # type: ignore
             )
 
+        def coerce_value(self, value: Any) -> Any:
+            """Coerce a value to a particular type."""
+            return pyarrow.scalar(
+                value,
+                type=(
+                    self.type.pyarrow_dtype  # pylint: disable=E1101
+                    if self.type
+                    else None
+                ),
+            )
+
     @Engine.register_dtype(
         equivalents=[
             "binary[pyarrow]",
