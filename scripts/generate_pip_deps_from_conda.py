@@ -47,6 +47,8 @@ def conda_package_to_pip(package: str) -> Optional[str]:
         if compare not in package:
             continue
         pkg, version = package.split(compare)
+        pkg = pkg.strip()
+
         if pkg in EXCLUDE:
             return None
 
