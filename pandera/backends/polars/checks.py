@@ -84,16 +84,16 @@ class PolarsCheckBackend(BaseCheckBackend):
         check_output: pl.LazyFrame,
     ) -> CheckResult:
         """Postprocesses the result of applying the check function."""
-        passed = check_output.select([pl.col(CHECK_OUTPUT_KEY).all()])
-        failure_cases = pl.concat(
-            items=[check_obj.lazyframe, check_output], how="horizontal"
-        ).filter(pl.col(CHECK_OUTPUT_KEY).not_())
+        results = pl.LazyFrame(check_output.collect())
+        passed = results.select([pl.col(CHECK_OUTPUT_KEY).all()])
+        failure_cases = check_obj.lazyframe.with_context(results).filter(
+            pl.col(CHECK_OUTPUT_KEY).not_()
+        )
 
         if check_obj.key is not None:
             failure_cases = failure_cases.select(check_obj.key)
-
         return CheckResult(
-            check_output=check_output,
+            check_output=results,
             check_passed=passed,
             checked_object=check_obj,
             failure_cases=failure_cases,
