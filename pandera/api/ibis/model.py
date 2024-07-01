@@ -1,31 +1,29 @@
-"""Class-based API for Polars models."""
+"""Class-based API for Ibis models."""
 
 import inspect
-from typing import Dict, List, Tuple, Type
+from typing import Dict, List, Tuple
 
-import pandas as pd
-import polars as pl
+import ibis.expr.datatypes as dt
+import ibis.expr.types as ir
 
 from pandera.api.checks import Check
 from pandera.api.dataframe.model import DataFrameModel as _DataFrameModel
 from pandera.api.dataframe.model import get_dtype_kwargs
 from pandera.api.dataframe.model_components import FieldInfo
-from pandera.api.polars.components import Column
-from pandera.api.polars.container import DataFrameSchema
-from pandera.api.polars.model_config import BaseConfig
-from pandera.engines import polars_engine as pe
+from pandera.api.ibis.components import Column
+from pandera.api.ibis.container import DataFrameSchema
+from pandera.engines import ibis_engine
 from pandera.errors import SchemaInitError
 from pandera.typing import AnnotationInfo
-from pandera.typing.polars import Series
 
 
-class DataFrameModel(_DataFrameModel[pl.LazyFrame, DataFrameSchema]):
-    """Model of a Polars :class:`~pandera.api.pandas.container.DataFrameSchema`.
+class DataFrameModel(_DataFrameModel[ir.Table, DataFrameSchema]):
+    """Definition of a :class:`~pandera.api.ibis.container.DataFrameSchema`.
+
+    *new in 0.1815.0*
 
     See the :ref:`User Guide <dataframe-models>` for more.
     """
-
-    Config: Type[BaseConfig] = BaseConfig
 
     @classmethod
     def build_schema_(cls, **kwargs) -> DataFrameSchema:
@@ -48,12 +46,14 @@ class DataFrameModel(_DataFrameModel[pl.LazyFrame, DataFrameSchema]):
             check_name = getattr(field, "check_name", None)
 
             try:
-                engine_dtype = pe.Engine.dtype(annotation.raw_annotation)
+                engine_dtype = ibis_engine.Engine.dtype(
+                    annotation.raw_annotation
+                )
                 if inspect.isclass(annotation.raw_annotation) and issubclass(
-                    annotation.raw_annotation, pe.DataType
+                    annotation.raw_annotation, ibis_engine.DataType
                 ):
                     # use the raw annotation as the dtype if it's a native
-                    # pandera polars datatype
+                    # pandera Ibis datatype
                     dtype = annotation.raw_annotation
                 else:
                     dtype = engine_dtype.type
@@ -74,8 +74,8 @@ class DataFrameModel(_DataFrameModel[pl.LazyFrame, DataFrameSchema]):
 
             if (
                 annotation.origin is None
-                or isinstance(annotation.origin, pl.datatypes.DataTypeClass)
-                or annotation.origin is Series
+                or isinstance(annotation.origin, dt.DataType)
+                # or annotation.origin is Series  # TODO(deepyaman): Implement `Series`.
                 or dtype
             ):
                 if check_name is False:
@@ -102,36 +102,3 @@ class DataFrameModel(_DataFrameModel[pl.LazyFrame, DataFrameSchema]):
                 )
 
         return columns
-
-    @classmethod
-    def to_json_schema(cls):
-        """Serialize schema metadata into json-schema format.
-
-        :param dataframe_schema: schema to write to json-schema format.
-
-        .. note::
-
-            This function is currently does not fully specify a pandera schema,
-            and is primarily used internally to render OpenAPI docs via the
-            FastAPI integration.
-        """
-        schema = cls.to_schema()
-        empty = pd.DataFrame(columns=schema.columns.keys()).astype(
-            {k: v.type for k, v in schema.dtypes.items()}
-        )
-        table_schema = pd.io.json.build_table_schema(empty)
-
-        def _field_json_schema(field):
-            return {
-                "type": "array",
-                "items": {"type": field["type"]},
-            }
-
-        return {
-            "title": schema.name or "pandera.DataFrameSchema",
-            "type": "object",
-            "properties": {
-                field["name"]: _field_json_schema(field)
-                for field in table_schema["fields"]
-            },
-        }

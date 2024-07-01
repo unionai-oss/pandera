@@ -1,4 +1,4 @@
-"""Polars Parsing, Validation, and Error Reporting Backends."""
+"""Polars parsing, validation, and error-reporting backends."""
 
 import warnings
 from collections import defaultdict
@@ -27,7 +27,7 @@ def is_float_dtype(check_obj: pl.LazyFrame, selector):
 
 
 class PolarsSchemaBackend(BaseSchemaBackend):
-    """Backend for polars LazyFrame schema."""
+    """Backend for Polars LazyFrame schema."""
 
     def subsample(
         self,

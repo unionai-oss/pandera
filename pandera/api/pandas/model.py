@@ -1,4 +1,4 @@
-"""Class-based api for pandas models."""
+"""Class-based API for pandas models."""
 
 from typing import Any, Dict, List, Optional, Tuple, Type, Union
 

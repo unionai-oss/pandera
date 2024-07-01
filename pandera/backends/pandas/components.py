@@ -45,11 +45,11 @@ class ColumnBackend(ArraySchemaBackend):
         inplace: bool = False,
     ) -> pd.DataFrame:
         # pylint: disable=too-many-branches
-        """Validation backend implementation for pandas dataframe columns.."""
+        """Validation backend implementation for pandas dataframe columns."""
         if not inplace:
             check_obj = check_obj.copy()
 
-        error_handler = ErrorHandler(lazy=lazy)
+        error_handler = ErrorHandler(lazy)
 
         if getattr(schema, "drop_invalid_rows", False) and not lazy:
             raise SchemaDefinitionError(

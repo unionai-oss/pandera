@@ -167,7 +167,7 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
             metadata=metadata,
         )
 
-        self.columns: Dict[Any, Any] = (  # type: ignore [name-defined]
+        self.columns: Dict[Any, Any] = (  # type: ignore[name-defined]
             {} if columns is None else columns
         )
 
@@ -204,7 +204,7 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
 
     @dtype.setter
     def dtype(self, value: Any) -> None:
-        """Set the pandas dtype property."""
+        """Set the dtype property."""
         raise NotImplementedError
 
     @property
