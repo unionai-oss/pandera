@@ -52,6 +52,7 @@ if pandas_engine.PYARROW_INSTALLED and pandas_engine.PANDAS_2_0_0_PLUS:
             pandas_engine.ArrowBool,
             pandas_engine.ArrowDecimal128,
             pandas_engine.ArrowDictionary,
+            pandas_engine.ArrowFloat16,
             pandas_engine.ArrowFloat32,
             pandas_engine.ArrowFloat64,
             pandas_engine.ArrowInt8,
@@ -66,6 +67,16 @@ if pandas_engine.PYARROW_INSTALLED and pandas_engine.PANDAS_2_0_0_PLUS:
             pandas_engine.ArrowUInt64,
             pandas_engine.ArrowList,
             pandas_engine.ArrowStruct,
+            pandas_engine.ArrowNull,
+            pandas_engine.ArrowDate32,
+            pandas_engine.ArrowDate64,
+            pandas_engine.ArrowDuration,
+            pandas_engine.ArrowTime32,
+            pandas_engine.ArrowTime64,
+            pandas_engine.ArrowMap,
+            pandas_engine.ArrowBinary,
+            pandas_engine.ArrowLargeBinary,
+            pandas_engine.ArrowLargeString,
         ]
     )
 
