@@ -258,18 +258,41 @@ pandas_arrow_dtype_cases = (
             ]
         ),
     ),
+    (pd.Series([None, pd.NA, np.nan]), pyarrow.null),
+    (pd.Series([None, date(1970, 1, 1)]), pyarrow.date32),
+    (pd.Series([None, date(1970, 1, 1)]), pyarrow.date64),
+    (pd.Series([1, 2]), pyarrow.duration("ns")),
+    (pd.Series([1, 1e3, 1e6, 1e9, None]), pyarrow.time32("ms")),
+    (pd.Series([1, 1e3, 1e6, 1e9, None]), pyarrow.time64("ns")),
+    (
+        pd.Series(
+            [
+                [{"key": "a", "value": 1}, {"key": "b", "value": 2}],
+                [{"key": "c", "value": 3}],
+            ]
+        ),
+        pyarrow.map_(pyarrow.string(), pyarrow.int32()),
+    ),
+    (pd.Series(["foo", "barbaz", None]), pyarrow.binary()),
+    (pd.Series(["foo", "bar", "baz", None]), pyarrow.binary(3)),
+    (pd.Series(["foo", "barbaz", None]), pyarrow.large_binary()),
+    (pd.Series(["1", "1.0", "foo", "bar", None]), pyarrow.large_string()),
 )
 
 
 @pytest.mark.parametrize(("data", "dtype"), pandas_arrow_dtype_cases)
 def test_pandas_arrow_dtype(data, dtype):
     """Test pyarrow dtype."""
+    if not (
+        pandas_engine.PYARROW_INSTALLED and pandas_engine.PANDAS_2_0_0_PLUS
+    ):
+        pytest.skip("Support of pandas 2.0.0+ with pyarrow only")
     dtype = pandas_engine.Engine.dtype(dtype)
 
     dtype.coerce(data)
 
 
-pandas_arrow_dtype_errors_cases = (
+pandas_arrow_dtype_error_cases = (
     (
         pd.Series([["a", "b", "c"]]),
         pyarrow.list_(pyarrow.int64()),
@@ -287,13 +310,43 @@ pandas_arrow_dtype_errors_cases = (
             ]
         ),
     ),
+    (pd.Series(["a", "1"]), pyarrow.null),
+    (pd.Series(["a", date(1970, 1, 1), "1970-01-01"]), pyarrow.date32),
+    (pd.Series(["a", date(1970, 1, 1), "1970-01-01"]), pyarrow.date64),
+    (pd.Series(["a"]), pyarrow.duration("ns")),
+    (pd.Series(["a", "b"]), pyarrow.time32("ms")),
+    (pd.Series(["a", "b"]), pyarrow.time64("ns")),
+    (
+        pd.Series(
+            [
+                [{"key": "a", "value": 1}, {"key": "b", "value": 2}],
+                [{"key": "c", "value": 3}],
+            ]
+        ),
+        pyarrow.map_(pyarrow.int32(), pyarrow.string()),
+    ),
+    (pd.Series([1, "foo", None]), pyarrow.binary()),
+    (pd.Series(["foo", "bar", "baz", None]), pyarrow.binary(2)),
+    (pd.Series([1, "foo", "barbaz", None]), pyarrow.large_binary()),
+    (pd.Series([1, 1.0, "foo", "bar", None]), pyarrow.large_string()),
 )
 
 
-@pytest.mark.parametrize(("data", "dtype"), pandas_arrow_dtype_errors_cases)
-def test_pandas_arrow_dtype_errors(data, dtype):
-    """Test pyarrow dtype raises ArrowInvalid or ArrowTypeError on bad data."""
+@pytest.mark.parametrize(("data", "dtype"), pandas_arrow_dtype_error_cases)
+def test_pandas_arrow_dtype_error(data, dtype):
+    """Test pyarrow dtype raises Error on bad data."""
+    if not (
+        pandas_engine.PYARROW_INSTALLED and pandas_engine.PANDAS_2_0_0_PLUS
+    ):
+        pytest.skip("Support of pandas 2.0.0+ with pyarrow only")
     dtype = pandas_engine.Engine.dtype(dtype)
 
-    with pytest.raises((pyarrow.ArrowInvalid, pyarrow.ArrowTypeError)):
+    with pytest.raises(
+        (
+            pyarrow.ArrowInvalid,
+            pyarrow.ArrowTypeError,
+            NotImplementedError,
+            ValueError,
+        )
+    ):
         dtype.coerce(data)

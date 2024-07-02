@@ -1661,7 +1661,12 @@ if PYARROW_INSTALLED and PANDAS_2_0_0_PLUS:
         bit_width: int = 8
 
     @Engine.register_dtype(
-        equivalents=[pyarrow.string, pd.ArrowDtype(pyarrow.string())]
+        equivalents=[
+            pyarrow.string,
+            pyarrow.utf8,
+            pd.ArrowDtype(pyarrow.string()),
+            pd.ArrowDtype(pyarrow.utf8()),
+        ]
     )
     @immutable
     class ArrowString(DataType, dtypes.String):
@@ -1752,6 +1757,20 @@ if PYARROW_INSTALLED and PANDAS_2_0_0_PLUS:
 
         type = pd.ArrowDtype(pyarrow.float32())
         bit_width: int = 32
+
+    @Engine.register_dtype(
+        equivalents=[
+            "halffloat[pyarrow]",
+            pyarrow.float16,
+            pd.ArrowDtype(pyarrow.float16()),
+        ]
+    )
+    @immutable
+    class ArrowFloat16(ArrowFloat32):
+        """Semantic representation of a :class:`pyarrow.float16`."""
+
+        type = pd.ArrowDtype(pyarrow.float16())
+        bit_width: int = 16
 
     @Engine.register_dtype(
         equivalents=[pyarrow.decimal128, pyarrow.Decimal128Type]
@@ -1897,3 +1916,217 @@ if PYARROW_INSTALLED and PANDAS_2_0_0_PLUS:
             return cls(
                 fields=[pyarrow_dtype.field(i) for i in range(pyarrow_dtype.num_fields)]  # type: ignore
             )
+
+    @Engine.register_dtype(
+        equivalents=[
+            "null[pyarrow]",
+            pyarrow.null,
+            pd.ArrowDtype(pyarrow.null()),
+        ]
+    )
+    @immutable
+    class ArrowNull(DataType):
+        """Semantic representation of a :class:`pyarrow.null`."""
+
+        type = pd.ArrowDtype(pyarrow.null())
+
+    @Engine.register_dtype(
+        equivalents=[
+            "date32[day][pyarrow]",
+            pyarrow.date32,
+            pd.ArrowDtype(pyarrow.date32()),
+        ]
+    )
+    @immutable
+    class ArrowDate32(DataType, dtypes.Date):
+        """Semantic representation of a :class:`pyarrow.date32`."""
+
+        type = pd.ArrowDtype(pyarrow.date32())
+
+    @Engine.register_dtype(
+        equivalents=[
+            "date64[ms][pyarrow]",
+            pyarrow.date64,
+            pd.ArrowDtype(pyarrow.date64()),
+        ]
+    )
+    @immutable
+    class ArrowDate64(DataType, dtypes.Date):
+        """Semantic representation of a :class:`pyarrow.date64`."""
+
+        type = pd.ArrowDtype(pyarrow.date64())
+
+    @Engine.register_dtype(
+        equivalents=[pyarrow.duration, pyarrow.DurationType]
+    )
+    @immutable(init=True)
+    class ArrowDuration(DataType):
+        """Semantic representation of a :class:`pyarrow.duration`."""
+
+        type: Optional[pd.ArrowDtype] = dataclasses.field(
+            default=None, init=False
+        )
+        unit: Optional[str] = "ns"
+
+        def __post_init__(self):
+            type_ = pd.ArrowDtype(pyarrow.duration(self.unit))
+            object.__setattr__(self, "type", type_)
+
+        @classmethod
+        def from_parametrized_dtype(cls, pyarrow_dtype: pyarrow.DurationType):
+            return cls(unit=pyarrow_dtype.unit)  # type: ignore
+
+    @Engine.register_dtype(equivalents=[pyarrow.time32, pyarrow.Time32Type])
+    @immutable(init=True)
+    class ArrowTime32(DataType):
+        """Semantic representation of a :class:`pyarrow.time32`."""
+
+        type: Optional[pd.ArrowDtype] = dataclasses.field(
+            default=None, init=False
+        )
+        unit: Optional[str] = "ms"
+
+        def __post_init__(self):
+            type_ = pd.ArrowDtype(pyarrow.time32(self.unit))
+            object.__setattr__(self, "type", type_)
+
+        @classmethod
+        def from_parametrized_dtype(cls, pyarrow_dtype: pyarrow.Time32Type):
+            return cls(unit=pyarrow_dtype.unit)  # type: ignore
+
+        def coerce(self, data_container: PandasObject) -> PandasObject:
+            if data_container.dtype == self.type:
+                return data_container
+            else:
+                return data_container.astype(
+                    pd.ArrowDtype(pyarrow.int32())
+                ).astype(self.type)
+
+    @Engine.register_dtype(equivalents=[pyarrow.time64, pyarrow.Time64Type])
+    @immutable(init=True)
+    class ArrowTime64(DataType):
+        """Semantic representation of a :class:`pyarrow.time64`."""
+
+        type: Optional[pd.ArrowDtype] = dataclasses.field(
+            default=None, init=False
+        )
+        unit: Optional[str] = "ns"
+
+        def __post_init__(self):
+            type_ = pd.ArrowDtype(pyarrow.time64(self.unit))
+            object.__setattr__(self, "type", type_)
+
+        @classmethod
+        def from_parametrized_dtype(cls, pyarrow_dtype: pyarrow.Time64Type):
+            return cls(unit=pyarrow_dtype.unit)  # type: ignore
+
+        def coerce(self, data_container: PandasObject) -> PandasObject:
+            if data_container.dtype == self.type:
+                return data_container
+            else:
+                return data_container.astype(
+                    pd.ArrowDtype(pyarrow.int64())
+                ).astype(self.type)
+
+    @Engine.register_dtype(equivalents=[pyarrow.map_, pyarrow.MapType])
+    @immutable(init=True)
+    class ArrowMap(DataType):
+        """Semantic representation of a :class:`pyarrow.map_`."""
+
+        type: Optional[pd.ArrowDtype] = dataclasses.field(
+            default=None, init=False
+        )
+        key_type: Optional[pyarrow.DataType] = pyarrow.int64()
+        item_type: Optional[pyarrow.DataType] = pyarrow.int64()
+        keys_sorted: bool = False
+
+        def __post_init__(self):
+            type_ = pd.ArrowDtype(
+                pyarrow.map_(
+                    self.key_type,
+                    self.item_type,
+                    self.keys_sorted,
+                )
+            )
+            object.__setattr__(self, "type", type_)
+
+        @classmethod
+        def from_parametrized_dtype(cls, pyarrow_dtype: pyarrow.MapType):
+            return cls(
+                key_type=pyarrow_dtype.key_type,  # type: ignore
+                item_type=pyarrow_dtype.item_type,  # type: ignore
+                keys_sorted=pyarrow_dtype.keys_sorted,  # type: ignore
+            )
+
+        def coerce_value(self, value: Any) -> Any:
+            """Coerce a value to a particular type."""
+            return pyarrow.scalar(
+                value,
+                type=(
+                    self.type.pyarrow_dtype  # pylint: disable=E1101
+                    if self.type
+                    else None
+                ),
+            )
+
+    @Engine.register_dtype(
+        equivalents=[
+            "binary[pyarrow]",
+            pyarrow.binary,
+            pyarrow.FixedSizeBinaryType,
+            pd.ArrowDtype(pyarrow.binary()),
+        ]
+    )
+    @immutable(init=True)
+    class ArrowBinary(DataType, dtypes.Binary):
+        """Semantic representation of a :class:`pyarrow.binary`."""
+
+        type: Optional[pd.ArrowDtype] = dataclasses.field(
+            default=None, init=False
+        )
+        length: Optional[int] = -1
+
+        def __post_init__(self):
+            type_ = pd.ArrowDtype(pyarrow.binary(self.length))
+            object.__setattr__(self, "type", type_)
+
+        @classmethod
+        def from_parametrized_dtype(
+            cls,
+            pyarrow_dtype: Union[
+                pyarrow.DataType, pyarrow.FixedSizeBinaryType
+            ],
+        ):
+            try:
+                _dtype = cls(length=pyarrow_dtype.byte_width)  # type: ignore
+            except (ValueError, AttributeError):
+                _dtype = cls()  # type: ignore
+            return _dtype
+
+    @Engine.register_dtype(
+        equivalents=[
+            "large_binary[pyarrow]",
+            pyarrow.large_binary,
+            pd.ArrowDtype(pyarrow.large_binary()),
+        ]
+    )
+    @immutable
+    class ArrowLargeBinary(DataType):
+        """Semantic representation of a :class:`pyarrow.large_binary`."""
+
+        type = pd.ArrowDtype(pyarrow.large_binary())
+
+    @Engine.register_dtype(
+        equivalents=[
+            "large_string[pyarrow]",
+            pyarrow.large_string,
+            pyarrow.large_utf8,
+            pd.ArrowDtype(pyarrow.large_string()),
+            pd.ArrowDtype(pyarrow.large_utf8()),
+        ]
+    )
+    @immutable
+    class ArrowLargeString(DataType, dtypes.String):
+        """Semantic representation of a :class:`pyarrow.large_string`."""
+
+        type = pd.ArrowDtype(pyarrow.large_string())
