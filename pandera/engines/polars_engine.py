@@ -17,7 +17,8 @@ from typing import (
 )
 
 import polars as pl
-from polars.datatypes import DataTypeClass, py_type_to_dtype
+from polars.datatypes import DataTypeClass
+from polars.datatypes._parse import parse_py_type_into_dtype
 from polars.type_aliases import SchemaDict
 
 from pandera import dtypes, errors
@@ -101,10 +102,17 @@ class DataType(dtypes.DataType):
 
     def __init__(self, dtype: Optional[Any] = None):
         super().__init__()
-        try:
-            object.__setattr__(self, "type", py_type_to_dtype(dtype))
-        except ValueError:
-            object.__setattr__(self, "type", pl.Object)
+
+        if not isinstance(dtype, DataTypeClass):
+            try:
+                object.__setattr__(
+                    self, "type", parse_py_type_into_dtype(dtype)
+                )
+            except ValueError:
+                # defualt to Object datatype
+                object.__setattr__(self, "type", pl.Object)
+        else:
+            object.__setattr__(self, "type", dtype)
 
         dtype_cls = dtype if inspect.isclass(dtype) else dtype.__class__
         warnings.warn(
@@ -116,9 +124,14 @@ class DataType(dtypes.DataType):
 
     def __post_init__(self):
         # this method isn't called if __init__ is defined
-        object.__setattr__(
-            self, "type", py_type_to_dtype(self.type)
-        )  # pragma: no cover
+        if not isinstance(self.type, DataTypeClass):
+            try:
+                object.__setattr__(
+                    self, "type", parse_py_type_into_dtype(self.type)
+                )
+            except ValueError:
+                # defualt to Object datatype
+                object.__setattr__(self, "type", pl.Object)
 
     def coerce(self, data_container: PolarsDataContainer) -> pl.LazyFrame:
         """Coerce data container to the data type."""
@@ -195,7 +208,10 @@ class Engine(  # pylint:disable=too-few-public-methods
             return engine.Engine.dtype(cls, data_type)
         except TypeError:
             try:
-                pl_dtype = py_type_to_dtype(data_type)
+                if not isinstance(data_type, DataTypeClass):
+                    pl_dtype = parse_py_type_into_dtype(data_type)
+                else:
+                    pl_dtype = data_type
             except ValueError:
                 raise TypeError(
                     f"data type '{data_type}' not understood by "
@@ -597,6 +613,16 @@ class Bool(DataType, dtypes.Bool):
 
 
 @Engine.register_dtype(
+    equivalents=["binary", bytes, pl.Binary, dtypes.Binary, dtypes.Binary()]
+)
+@immutable
+class Binary(DataType, dtypes.Binary):
+    """Polars binary data type."""
+
+    type = pl.Binary
+
+
+@Engine.register_dtype(
     equivalents=["string", str, pl.Utf8, dtypes.String, dtypes.String()]
 )
 @immutable
@@ -612,6 +638,21 @@ class Categorical(DataType):
     """Polars categorical data type."""
 
     type = pl.Categorical
+
+    ordering = None
+
+    def __init__(  # pylint:disable=super-init-not-called
+        self,
+        ordering: str = "physical",
+    ) -> None:
+        object.__setattr__(self, "ordering", ordering)
+        object.__setattr__(self, "type", pl.Categorical(ordering=ordering))
+
+    @classmethod
+    def from_parametrized_dtype(cls, polars_dtype: pl.Categorical):
+        """Convert a :class:`polars.Decimal` to
+        a Pandera :class:`pandera.engines.polars_engine.Decimal`."""
+        return cls(ordering=polars_dtype.ordering)
 
 
 @Engine.register_dtype(

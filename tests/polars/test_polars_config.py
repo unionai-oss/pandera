@@ -158,7 +158,7 @@ def test_coerce_validation_depth_none(validation_depth_none, schema):
     validated_data = schema.validate(data)
     assert validated_data.schema["a"] == pl.Int64
 
-    with pytest.raises(pl.ComputeError):
+    with pytest.raises(pl.InvalidOperationError):
         validated_data.collect()
 
     # when validation explicitly with PANDERA_VALIDATION_DEPTH=SCHEMA_AND_DATA

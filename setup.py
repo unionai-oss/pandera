@@ -19,7 +19,7 @@ _extras_require = {
     "mypy": ["pandas-stubs"],
     "fastapi": ["fastapi"],
     "geopandas": ["geopandas", "shapely"],
-    "polars": ["polars >= 0.20.0"],
+    "polars": ["polars >= 1.0.0"],
 }
 
 extras_require = {

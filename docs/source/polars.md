@@ -24,6 +24,10 @@ dataframes in Python. First, install `pandera` with the `polars` extra:
 pip install 'pandera[polars]'
 ```
 
+:::{note}
+As of `pandera >= 0.21.0`, only `polars >= 1.0.0` is supported.
+:::
+
 :::{important}
 If you're on an Apple Silicon machine, you'll need to install polars via
 `pip install polars-lts-cpu`.

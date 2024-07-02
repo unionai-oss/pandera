@@ -126,9 +126,9 @@ def test_model_schema_equivalency_with_optional():
 @pytest.mark.parametrize(
     "column_mod,exception_cls",
     [
-        # this modification will cause a ComputeError since casting the values
-        # in ldf_basic will cause the error outside of pandera validation
-        ({"string_col": pl.Int64}, pl.exceptions.ComputeError),
+        # this modification will cause a InvalidOperationError since casting the
+        # values in ldf_basic will cause the error outside of pandera validation
+        ({"string_col": pl.Int64}, pl.InvalidOperationError),
         # this modification will cause a SchemaError since schema validation
         # can actually catch the type mismatch
         ({"int_col": pl.Utf8}, SchemaError),
