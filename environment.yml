@@ -28,7 +28,7 @@ dependencies:
   - pyspark >= 3.2.0
 
   # polars extra
-  - polars >= 0.20.0
+  - polars >= 1.0.0
 
   # modin extra
   - modin
