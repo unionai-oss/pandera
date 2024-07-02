@@ -1297,11 +1297,12 @@ if GEOPANDAS_INSTALLED:
 class PydanticModel(DataType):
     """A pydantic model datatype applying to rows in a dataframe."""
 
-    type: Type[BaseModel] = dataclasses.field(default=None, init=False)  # type: ignore # noqa
+    type: Type[BaseModel] = dataclasses.field(default=None, init=False)
     auto_coerce = True
 
     # pylint:disable=super-init-not-called
     def __init__(self, model: Type[BaseModel]) -> None:
+        self.type: Type[BaseModel]
         object.__setattr__(self, "type", model)
 
     def coerce(self, data_container: PandasObject) -> PandasObject:
@@ -1316,11 +1317,11 @@ class PydanticModel(DataType):
             cases.
             """
             try:
-                # pylint: disable=not-callable
+                # pylint: disable=no-member
                 if PYDANTIC_V2:
-                    row = self.type(**row).model_dump()
+                    row = self.type.model_validate(row).model_dump()
                 else:
-                    row = self.type(**row).dict()
+                    row = self.type.parse_obj(row).dict()
                 row["failure_cases"] = np.nan
             except ValidationError as exc:
                 row["failure_cases"] = {
