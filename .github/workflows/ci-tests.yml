@@ -193,6 +193,7 @@ jobs:
         - fastapi
         - geopandas
         - dask
+        - polars
         - pyspark
         - modin-dask
         - modin-ray
