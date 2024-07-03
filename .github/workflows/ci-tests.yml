@@ -185,7 +185,7 @@ jobs:
         python-version: ["3.8", "3.9", "3.10", "3.11"]
         pandas-version: ["2.2.2"]
         pydantic-version: ["2.3.0"]
-        polars-version: ["0.20.0", "1.0.0"]
+        polars-version: ["0.20.31", "1.0.0"]
         extra:
         - hypotheses
         - io
@@ -218,25 +218,25 @@ jobs:
         - extra: modin-ray
           os: windows-latest
         - extra: hypotheses
-          polars-version: "0.20.0"
+          polars-version: "0.20.31"
         - extra: io
-          polars-version: "0.20.0"
+          polars-version: "0.20.31"
         - extra: mypy
-          polars-version: "0.20.0"
+          polars-version: "0.20.31"
         - extra: strategies
-          polars-version: "0.20.0"
+          polars-version: "0.20.31"
         - extra: fastapi
-          polars-version: "0.20.0"
+          polars-version: "0.20.31"
         - extra: geopandas
-          polars-version: "0.20.0"
+          polars-version: "0.20.31"
         - extra: dask
-          polars-version: "0.20.0"
+          polars-version: "0.20.31"
         - extra: pyspark
-          polars-version: "0.20.0"
+          polars-version: "0.20.31"
         - extra: modin-dask
-          polars-version: "0.20.0"
+          polars-version: "0.20.31"
         - extra: modin-ray
-          polars-version: "0.20.0"
+          polars-version: "0.20.31"
 
     steps:
       - uses: actions/checkout@v4
