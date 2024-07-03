@@ -17,7 +17,7 @@ pydantic
 multimethod <= 1.10.0
 pandas-stubs
 pyspark >= 3.2.0
-polars >= 1.0.0
+polars >= 0.20.0
 modin
 protobuf
 geopandas
