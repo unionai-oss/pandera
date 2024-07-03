@@ -164,7 +164,7 @@ jobs:
 
   extras-tests:
     name: >
-      CI Extras Tests: ${{ matrix.extra }} (${{ matrix.python-version }}, ${{ matrix.os }}, pandas-${{ matrix.pandas-version }}, pydantic-${{ matrix.pydantic-version }})
+      CI Extras Tests: ${{ matrix.extra }} (${{ matrix.python-version }}, ${{ matrix.os }}, pandas-${{ matrix.pandas-version }}, pydantic-${{ matrix.pydantic-version }}), polars-${{ matrix.polars-version }}
     runs-on: ${{ matrix.os }}
     defaults:
       run:
