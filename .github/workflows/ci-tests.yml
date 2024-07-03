@@ -164,7 +164,7 @@ jobs:
 
   extras-tests:
     name: >
-      CI Extras Tests: ${{ matrix.extra }} (${{ matrix.python-version }}, ${{ matrix.os }}, pandas-${{ matrix.pandas-version }}, pydantic-${{ matrix.pydantic-version }}), polars-${{ matrix.polars-version }}
+      CI Extras Tests: ${{ matrix.extra }} (${{ matrix.python-version }}, ${{ matrix.os }}, pandas-${{ matrix.pandas-version }}, pydantic-${{ matrix.pydantic-version }}, polars-${{ matrix.polars-version }})
     runs-on: ${{ matrix.os }}
     defaults:
       run:
@@ -175,7 +175,7 @@ jobs:
       PYTEST_FLAGS: --cov=pandera --cov-report=term-missing --cov-report=xml --cov-append
       HYPOTHESIS_FLAGS: -n=auto -q --hypothesis-profile=ci
     strategy:
-      fail-fast: true
+      fail-fast: false
       matrix:
         os:
         - ubuntu-latest
