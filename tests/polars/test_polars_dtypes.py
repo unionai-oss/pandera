@@ -142,9 +142,20 @@ def test_coerce_cast_special(pandera_dtype, data_container):
         assert dtype == pandera_dtype.type
 
     if isinstance(pandera_dtype, pe.Decimal):
+        if pe.polars_version().release < (1, 0, 0):
+            pytest.xfail(
+                reason="polars < 1.0.0 has a bug that turns decimals to floats"
+            )
         df = coerced.collect()
         for dtype in df.dtypes:
             assert dtype == pl.Decimal
+
+
+ErrorCls = (
+    pl.InvalidOperationError
+    if pe.polars_version().release >= (1, 0, 0)
+    else pl.ComputeError
+)
 
 
 @pytest.mark.parametrize(
@@ -153,7 +164,7 @@ def test_coerce_cast_special(pandera_dtype, data_container):
         (
             pe.Int8(),
             pl.LazyFrame({"0": [1000, 100, 200]}),
-            pl.InvalidOperationError,
+            ErrorCls,
         ),
         (
             pe.Bool(),
@@ -163,12 +174,12 @@ def test_coerce_cast_special(pandera_dtype, data_container):
         (
             pe.Int64(),
             pl.LazyFrame({"0": ["1", "b"]}),
-            pl.InvalidOperationError,
+            ErrorCls,
         ),
         (
             pe.Decimal(precision=2, scale=1),
             pl.LazyFrame({"0": [100.11, 2, 3]}),
-            pl.InvalidOperationError,
+            ErrorCls,
         ),
         (
             pe.Category(categories=["a", "b", "c"]),

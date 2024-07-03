@@ -185,6 +185,7 @@ jobs:
         python-version: ["3.8", "3.9", "3.10", "3.11"]
         pandas-version: ["2.2.2"]
         pydantic-version: ["2.3.0"]
+        polars-version: ["1.0.0"]
         extra:
         - hypotheses
         - io
@@ -206,6 +207,8 @@ jobs:
           pip-cache: ~/Library/Caches/pip
         - os: windows-latest
           pip-cache: ~/AppData/Local/pip/Cache
+        - extra: polars
+          polars-version: "0.20.0"
         exclude:
         - python-version: "3.8"
           pandas-version: "2.2.0"
@@ -216,6 +219,26 @@ jobs:
           os: windows-latest
         - extra: modin-ray
           os: windows-latest
+        # - extra: hypotheses
+        #   polars-version: "0.20.0"
+        # - extra: io
+        #   polars-version: "0.20.0"
+        # - extra: mypy
+        #   polars-version: "0.20.0"
+        # - extra: strategies
+        #   polars-version: "0.20.0"
+        # - extra: fastapi
+        #   polars-version: "0.20.0"
+        # - extra: geopandas
+        #   polars-version: "0.20.0"
+        # - extra: dask
+        #   polars-version: "0.20.0"
+        # - extra: pyspark
+        #   polars-version: "0.20.0"
+        # - extra: modin-dask
+        #   polars-version: "0.20.0"
+        # - extra: modin-ray
+        #   polars-version: "0.20.0"
 
     steps:
       - uses: actions/checkout@v4
@@ -241,6 +264,7 @@ jobs:
         run: |
           pip install uv
           uv pip install --system -r requirements.in
+          uv pip install --system --force-reinstall "polars==${{ matrix.polars-version }}";
           uv pip install --system --force-reinstall "numpy<2.0.0";
           uv pip install --system install-jdk==1.1.0
           export JAVA_HOME=$(python -c "import jdk; print(jdk.install('11', vendor='temurin'))")

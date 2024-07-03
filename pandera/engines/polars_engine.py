@@ -56,10 +56,7 @@ def convert_py_dtype_to_polars_dtype(dtype):
 
         conversion_fn = parse_py_type_into_dtype
 
-    try:
-        return conversion_fn(dtype)
-    except ValueError:
-        return pl.Object
+    return conversion_fn(dtype)
 
 
 def polars_object_coercible(
@@ -128,9 +125,12 @@ class DataType(dtypes.DataType):
     def __init__(self, dtype: Optional[Any] = None):
         super().__init__()
 
-        object.__setattr__(
-            self, "type", convert_py_dtype_to_polars_dtype(dtype)
-        )
+        try:
+            object.__setattr__(
+                self, "type", convert_py_dtype_to_polars_dtype(dtype)
+            )
+        except ValueError:
+            object.__setattr__(self, "type", pl.Object)
 
         dtype_cls = dtype if inspect.isclass(dtype) else dtype.__class__
         warnings.warn(
@@ -143,9 +143,12 @@ class DataType(dtypes.DataType):
     def __post_init__(self):
         # this method isn't called if __init__ is defined
         if not isinstance(self.type, DataTypeClass):
-            object.__setattr__(
-                self, "type", convert_py_dtype_to_polars_dtype(self.type)
-            )
+            try:
+                object.__setattr__(
+                    self, "type", convert_py_dtype_to_polars_dtype(self.type)
+                )
+            except ValueError:
+                object.__setattr__(self, "type", pl.Object)
 
     def coerce(self, data_container: PolarsDataContainer) -> pl.LazyFrame:
         """Coerce data container to the data type."""

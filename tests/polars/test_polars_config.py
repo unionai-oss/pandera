@@ -161,7 +161,7 @@ def test_coerce_validation_depth_none(validation_depth_none, schema):
 
     ErrorCls = (
         pl.InvalidOperationError
-        if polars_version().release > (1, 0, 0)
+        if polars_version().release >= (1, 0, 0)
         else pl.ComputeError
     )
     with pytest.raises(ErrorCls):
