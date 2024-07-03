@@ -436,7 +436,7 @@ class Check(BaseCheck):
         :param kwargs: key-word arguments passed into the `Check` initializer.
         """
         try:
-            pattern_mod = re.compile(pattern)
+            re.compile(pattern)
         except TypeError as exc:
             raise ValueError(
                 f'pattern="{pattern}" cannot be compiled as regular expression'
@@ -446,7 +446,7 @@ class Check(BaseCheck):
             kwargs,
             error=f"str_matches('{pattern}')",
             statistics={"pattern": pattern},
-            pattern=pattern_mod,
+            pattern=pattern,
         )
 
     @classmethod
@@ -459,7 +459,7 @@ class Check(BaseCheck):
         :param kwargs: key-word arguments passed into the `Check` initializer.
         """
         try:
-            pattern_mod = re.compile(pattern)
+            re.compile(pattern)
         except TypeError as exc:
             raise ValueError(
                 f'pattern="{pattern}" cannot be compiled as regular expression'
@@ -469,7 +469,7 @@ class Check(BaseCheck):
             kwargs,
             error=f"str_contains('{pattern}')",
             statistics={"pattern": pattern},
-            pattern=pattern_mod,
+            pattern=pattern,
         )
 
     @classmethod

@@ -204,7 +204,7 @@ def str_matches(
 )
 def str_contains(
     data: PolarsData,
-    pattern: re.Pattern,
+    pattern: Union[str, re.Pattern],
 ) -> pl.LazyFrame:
     """Ensure that a pattern can be found in the string.
 
