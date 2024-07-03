@@ -512,6 +512,9 @@ def test_dataframe_model_with_annotated_nested_types(lf_with_nested_types):
         class Config:
             coerce = True
 
+    if pe.polars_version().release < (1, 0, 0):
+        pytest.xfail(reason="polars < 1.0.0 fails to cast List type.")
+
     validated_lf = ModelWithAnnotated.validate(lf_with_nested_types, lazy=True)
     assert validated_lf.collect().equals(validated_lf.collect())
 

@@ -5,6 +5,7 @@ import polars as pl
 import pytest
 
 import pandera.polars as pa
+from pandera.engines.polars_engine import polars_version
 from pandera.api.base.error_handler import ErrorCategory
 from pandera.config import (
     CONFIG,
@@ -158,7 +159,12 @@ def test_coerce_validation_depth_none(validation_depth_none, schema):
     validated_data = schema.validate(data)
     assert validated_data.schema["a"] == pl.Int64
 
-    with pytest.raises(pl.InvalidOperationError):
+    ErrorCls = (
+        pl.InvalidOperationError
+        if polars_version().release > (1, 0, 0)
+        else pl.ComputeError
+    )
+    with pytest.raises(ErrorCls):
         validated_data.collect()
 
     # when validation explicitly with PANDERA_VALIDATION_DEPTH=SCHEMA_AND_DATA

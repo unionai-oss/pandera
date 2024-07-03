@@ -17,8 +17,8 @@ from typing import (
 )
 
 import polars as pl
+from packaging import version
 from polars.datatypes import DataTypeClass
-from polars.datatypes._parse import parse_py_type_into_dtype
 from polars.type_aliases import SchemaDict
 
 from pandera import dtypes, errors
@@ -35,6 +35,31 @@ COERCION_ERRORS = (
     pl.exceptions.InvalidOperationError,
     pl.exceptions.ComputeError,
 )
+
+
+def polars_version() -> version.Version:
+    """Return the polars version."""
+
+    return version.parse(pl.__version__)
+
+
+def convert_py_dtype_to_polars_dtype(dtype):
+    if isinstance(dtype, DataTypeClass):
+        return dtype
+
+    if polars_version().release < (1, 0, 0):
+        from polars.datatypes import py_type_to_dtype
+
+        conversion_fn = py_type_to_dtype
+    else:
+        from polars.datatypes._parse import parse_py_type_into_dtype
+
+        conversion_fn = parse_py_type_into_dtype
+
+    try:
+        return conversion_fn(dtype)
+    except ValueError:
+        return pl.Object
 
 
 def polars_object_coercible(
@@ -103,16 +128,9 @@ class DataType(dtypes.DataType):
     def __init__(self, dtype: Optional[Any] = None):
         super().__init__()
 
-        if not isinstance(dtype, DataTypeClass):
-            try:
-                object.__setattr__(
-                    self, "type", parse_py_type_into_dtype(dtype)
-                )
-            except ValueError:
-                # defualt to Object datatype
-                object.__setattr__(self, "type", pl.Object)
-        else:
-            object.__setattr__(self, "type", dtype)
+        object.__setattr__(
+            self, "type", convert_py_dtype_to_polars_dtype(dtype)
+        )
 
         dtype_cls = dtype if inspect.isclass(dtype) else dtype.__class__
         warnings.warn(
@@ -125,13 +143,9 @@ class DataType(dtypes.DataType):
     def __post_init__(self):
         # this method isn't called if __init__ is defined
         if not isinstance(self.type, DataTypeClass):
-            try:
-                object.__setattr__(
-                    self, "type", parse_py_type_into_dtype(self.type)
-                )
-            except ValueError:
-                # defualt to Object datatype
-                object.__setattr__(self, "type", pl.Object)
+            object.__setattr__(
+                self, "type", convert_py_dtype_to_polars_dtype(self.type)
+            )
 
     def coerce(self, data_container: PolarsDataContainer) -> pl.LazyFrame:
         """Coerce data container to the data type."""
@@ -208,10 +222,7 @@ class Engine(  # pylint:disable=too-few-public-methods
             return engine.Engine.dtype(cls, data_type)
         except TypeError:
             try:
-                if not isinstance(data_type, DataTypeClass):
-                    pl_dtype = parse_py_type_into_dtype(data_type)
-                else:
-                    pl_dtype = data_type
+                pl_dtype = convert_py_dtype_to_polars_dtype(data_type)
             except ValueError:
                 raise TypeError(
                     f"data type '{data_type}' not understood by "
