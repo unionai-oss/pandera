@@ -49,10 +49,15 @@ class DataFrameModel(_DataFrameModel[pl.LazyFrame, DataFrameSchema]):
             check_name = getattr(field, "check_name", None)
 
             try:
+                is_polars_dtype = inspect.isclass(
+                    annotation.raw_annotation
+                ) and issubclass(annotation.raw_annotation, pe.DataType)
+            except TypeError:
+                is_polars_dtype = False
+
+            try:
                 engine_dtype = pe.Engine.dtype(annotation.raw_annotation)
-                if inspect.isclass(annotation.raw_annotation) and issubclass(
-                    annotation.raw_annotation, pe.DataType
-                ):
+                if is_polars_dtype:
                     # use the raw annotation as the dtype if it's a native
                     # pandera polars datatype
                     dtype = annotation.raw_annotation
