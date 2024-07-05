@@ -107,11 +107,11 @@ class InputSchema(pa.DataFrameModel):
     day: int = pa.Field(ge=0, le=365, coerce=True)
 ```
 
-### Gotcha: Reusing Field objects
-As of 0.19.0 reuse of `Field` instances is not supported, 
-and can cause unexpected behavior.
+### Reusing Field objects
 
-The recommended workaround is to use `functools.partial`.
+To define reuseable `Field` definitions, you need to use `functools.partial`.
+This makes sure that each field attribute is bound to a unique `Field` instance.
+
 ```{code-cell} python
 from functools import partial
 from pandera import DataFrameModel, Field
