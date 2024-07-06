@@ -40,7 +40,7 @@ beautifulsoup4==4.12.3
 black==24.4.2
 build==1.2.1
     # via asv
-certifi==2024.6.2
+certifi==2024.7.4
     # via
     #   fiona
     #   httpcore

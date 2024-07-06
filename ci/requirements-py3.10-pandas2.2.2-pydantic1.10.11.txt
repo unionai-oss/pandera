@@ -35,7 +35,7 @@ black==24.4.2
     # via -r /var/folders/5r/4t87zv7x32s7xv9fmnmbd8z80000gn/T/tmpim00memf
 build==1.2.1
     # via asv
-certifi==2024.6.2
+certifi==2024.7.4
     # via
     #   httpcore
     #   httpx
