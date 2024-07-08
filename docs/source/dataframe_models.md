@@ -107,6 +107,22 @@ class InputSchema(pa.DataFrameModel):
     day: int = pa.Field(ge=0, le=365, coerce=True)
 ```
 
+### Reusing Field objects
+
+To define reuseable `Field` definitions, you need to use `functools.partial`.
+This makes sure that each field attribute is bound to a unique `Field` instance.
+
+```{code-cell} python
+from functools import partial
+from pandera import DataFrameModel, Field
+
+NormalizedField = partial(Field, ge=0, le=1)
+
+class InputSchema(DataFrameModel):
+    xnorm: float = NormalizedField()
+    ynorm: float = NormalizedField()
+```
+
 ## Validate on Initialization
 
 *new in 0.8.0*
