@@ -275,4 +275,5 @@ except ImportError:
 class PyarrowModel(pa.DataFrameModel):
     pyarrow_dtype: pyarrow.float64
     pandas_dtype: Annotated[pd.ArrowDtype, pyarrow.float64()]
+    pandas_dtype_kwargs: pd.ArrowDtype = pa.Field(dtype_kwargs={"pyarrow_dtype": pyarrow.float64()})
 ```
