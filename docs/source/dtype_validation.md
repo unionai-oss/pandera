@@ -83,8 +83,8 @@ integer_schema = pa.DataFrameSchema(
         "builtin_python": pa.Column("int"),
         "string_alias": pa.Column("int64"),
         "numpy_dtype": pa.Column(np.int64),
-        "pandera_dtype": pa.Column(pa.Int),
-        "pandera_dtype": pa.Column(pa.Int64),
+        "pandera_dtype_1": pa.Column(pa.Int),
+        "pandera_dtype_2": pa.Column(pa.Int64),
     },
 )
 ```
@@ -242,4 +242,38 @@ of the first value, e.g. if you specify `List[int]`, a data value of
 `[1, "foo", 1.0]` will still pass. Checking all values will be
 configurable in future  versions of pandera when `typeguard > 4.*.*` is
 supported.
+```
+
+(pyarrow-dtypes)=
+
+## Pyarrow data types
+
+The pandas validation engine now supports pyarrow data types. You can pass the
+[pyarrow-native data type](https://arrow.apache.org/docs/python/api/datatypes.html),
+the pandas string alias, or the pandas `ArrowDtype` class, for example:
+
+```{code-cell} python
+import pyarrow
+
+pyarrow_schema = pa.DataFrameSchema({
+    "pyarrow_dtype": pa.Column(pyarrow.float64()),
+    "pandas_str_alias": pa.Column("float64[pyarrow]"),
+    "pandas_dtype": pa.Column(pd.ArrowDtype(pyarrow.float64())),
+})
+```
+
+And when using class-based API, you must specify actual types (string aliases
+are not supported):
+
+```{code-cell} python
+try:
+    from typing import Annotated  # python 3.9+
+except ImportError:
+    from typing_extensions import Annotated
+
+
+class PyarrowModel(pa.DataFrameModel):
+    pyarrow_dtype: pyarrow.float64
+    pandas_dtype: Annotated[pd.ArrowDtype, pyarrow.float64()]
+    pandas_dtype_kwargs: pd.ArrowDtype = pa.Field(dtype_kwargs={"pyarrow_dtype": pyarrow.float64()})
 ```
