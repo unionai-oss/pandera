@@ -1,4 +1,4 @@
-"""Pandera type annotations for Dask."""
+"""Pandera type annotations for Modin."""
 
 from typing import TYPE_CHECKING, Generic, TypeVar
 
