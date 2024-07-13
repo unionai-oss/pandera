@@ -142,27 +142,44 @@ def test_coerce_cast_special(pandera_dtype, data_container):
         assert dtype == pandera_dtype.type
 
     if isinstance(pandera_dtype, pe.Decimal):
-        # collecting a LazyFrame with decimal type has a bug that casts to
-        # pl.Float64
+        if pe.polars_version().release < (1, 0, 0):
+            pytest.xfail(
+                reason="polars < 1.0.0 has a bug that turns decimals to floats"
+            )
         df = coerced.collect()
         for dtype in df.dtypes:
-            assert dtype == pl.Float64
+            assert dtype == pl.Decimal
+
+
+ErrorCls = (
+    pl.InvalidOperationError
+    if pe.polars_version().release >= (1, 0, 0)
+    else pl.ComputeError
+)
 
 
 @pytest.mark.parametrize(
     "pl_to_dtype, container, exception_cls",
     [
-        (pe.Int8(), pl.LazyFrame({"0": [1000, 100, 200]}), pl.ComputeError),
+        (
+            pe.Int8(),
+            pl.LazyFrame({"0": [1000, 100, 200]}),
+            ErrorCls,
+        ),
         (
             pe.Bool(),
             pl.LazyFrame({"0": ["a", "b", "c"]}),
             pl.InvalidOperationError,
         ),
-        (pe.Int64(), pl.LazyFrame({"0": ["1", "b"]}), pl.ComputeError),
+        (
+            pe.Int64(),
+            pl.LazyFrame({"0": ["1", "b"]}),
+            ErrorCls,
+        ),
         (
             pe.Decimal(precision=2, scale=1),
             pl.LazyFrame({"0": [100.11, 2, 3]}),
-            pl.ComputeError,
+            ErrorCls,
         ),
         (
             pe.Category(categories=["a", "b", "c"]),
@@ -404,7 +421,8 @@ def test_polars_nested_dtypes_try_coercion(
     try:
         pe.Engine.dtype(noncoercible_dtype).try_coerce(PolarsData(data))
     except pandera.errors.ParserError as exc:
-        assert exc.failure_cases.equals(data.collect())
+        col = pl.col(exc.failure_cases.columns[0])
+        assert exc.failure_cases.select(col).equals(data.collect())
 
 
 @pytest.mark.parametrize(

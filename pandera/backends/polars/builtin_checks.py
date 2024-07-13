@@ -204,7 +204,7 @@ def str_matches(
 )
 def str_contains(
     data: PolarsData,
-    pattern: re.Pattern,
+    pattern: Union[str, re.Pattern],
 ) -> pl.LazyFrame:
     """Ensure that a pattern can be found in the string.
 
@@ -264,7 +264,7 @@ def str_length(
             "Must provide at least on of 'min_value' and 'max_value'"
         )
 
-    n_chars = pl.col(data.key).str.n_chars()
+    n_chars = pl.col(data.key).str.len_chars()
     if min_value is None:
         expr = n_chars.le(max_value)
     elif max_value is None:

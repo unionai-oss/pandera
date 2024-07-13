@@ -164,7 +164,7 @@ jobs:
 
   extras-tests:
     name: >
-      CI Extras Tests: ${{ matrix.extra }} (${{ matrix.python-version }}, ${{ matrix.os }}, pandas-${{ matrix.pandas-version }}, pydantic-${{ matrix.pydantic-version }})
+      CI Extras Tests: ${{ matrix.extra }} (${{ matrix.python-version }}, ${{ matrix.os }}, pandas-${{ matrix.pandas-version }}, pydantic-${{ matrix.pydantic-version }}, polars-${{ matrix.polars-version }})
     runs-on: ${{ matrix.os }}
     defaults:
       run:
@@ -185,6 +185,7 @@ jobs:
         python-version: ["3.8", "3.9", "3.10", "3.11"]
         pandas-version: ["2.2.2"]
         pydantic-version: ["2.3.0"]
+        polars-version: ["0.20.31", "1.0.0"]
         extra:
         - hypotheses
         - io
@@ -193,6 +194,7 @@ jobs:
         - fastapi
         - geopandas
         - dask
+        - polars
         - pyspark
         - modin-dask
         - modin-ray
@@ -215,6 +217,26 @@ jobs:
           os: windows-latest
         - extra: modin-ray
           os: windows-latest
+        - extra: hypotheses
+          polars-version: "0.20.31"
+        - extra: io
+          polars-version: "0.20.31"
+        - extra: mypy
+          polars-version: "0.20.31"
+        - extra: strategies
+          polars-version: "0.20.31"
+        - extra: fastapi
+          polars-version: "0.20.31"
+        - extra: geopandas
+          polars-version: "0.20.31"
+        - extra: dask
+          polars-version: "0.20.31"
+        - extra: pyspark
+          polars-version: "0.20.31"
+        - extra: modin-dask
+          polars-version: "0.20.31"
+        - extra: modin-ray
+          polars-version: "0.20.31"
 
     steps:
       - uses: actions/checkout@v4
@@ -236,10 +258,14 @@ jobs:
         shell: bash
         # install numpy<2 for all extras. It seems to effects most packages in
         # the ecosystem.
+        # install openjdk for pyspark extra.
         run: |
           pip install uv
           uv pip install --system -r requirements.in
+          uv pip install --system --force-reinstall "polars==${{ matrix.polars-version }}";
           uv pip install --system --force-reinstall "numpy<2.0.0";
+          uv pip install --system install-jdk==1.1.0
+          export JAVA_HOME=$(python -c "import jdk; print(jdk.install('11', vendor='temurin'))")
 
       - run: |
           pip list
