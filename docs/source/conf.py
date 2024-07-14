@@ -208,6 +208,22 @@ class FilterTypeAnnotationWarnings(pylogging.Filter):
                     "Cannot resolve forward reference in type annotations of "
                     '"pandera.typing.DataFrame"',
                     "Cannot resolve forward reference in type annotations of "
+                    '"pandera.typing.DataFrame',
+                    "Cannot resolve forward reference in type annotations of "
+                    '"pandera.typing.Index',
+                    "Cannot resolve forward reference in type annotations of "
+                    '"pandera.typing.Series',
+                    "Cannot resolve forward reference in type annotations of "
+                    '"pandera.typing.geopandas.GeoDataFrame',
+                    "Cannot resolve forward reference in type annotations of "
+                    '"pandera.typing.geopandas.GeoSeries',
+                    "Cannot resolve forward reference in type annotations of "
+                    '"pandera.typing.pyspark.DataFrame',
+                    "Cannot resolve forward reference in type annotations of "
+                    '"pandera.typing.pyspark.Series',
+                    "Cannot resolve forward reference in type annotations of "
+                    '"pandera.typing.pyspark.Index',
+                    "Cannot resolve forward reference in type annotations of "
                     '"pandera.api.pandas.container.DataFrameSchema',
                     "Cannot resolve forward reference in type annotations of "
                     '"pandera.typing.DataFrame.style"',
@@ -217,6 +233,12 @@ class FilterTypeAnnotationWarnings(pylogging.Filter):
                     '"pandera.api.pyspark.container.DataFrameSchema',
                     "Cannot resolve forward reference in type annotations of "
                     '"pandera.typing.Series"',
+                    "Cannot resolve forward reference in type annotations of "
+                    '"pandera.typing.modin.DataFrame',
+                    "Cannot resolve forward reference in type annotations of "
+                    '"pandera.typing.modin.Series',
+                    "Cannot resolve forward reference in type annotations of "
+                    '"pandera.typing.modin.Index',
                 )
             )
         )
