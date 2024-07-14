@@ -118,7 +118,7 @@ from pandera import DataFrameModel, Field
 
 NormalizedField = partial(Field, ge=0, le=1)
 
-class InputSchema(DataFrameModel):
+class SchemaWithReusedFields(DataFrameModel):
     xnorm: float = NormalizedField()
     ynorm: float = NormalizedField()
 ```

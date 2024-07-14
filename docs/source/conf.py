@@ -6,6 +6,7 @@
 
 # -- Path setup --------------------------------------------------------------
 
+import datetime
 import doctest
 import inspect
 import logging as pylogging
@@ -28,9 +29,10 @@ sys.path.insert(0, os.path.abspath("../.."))
 
 # -- Project information -----------------------------------------------------
 
+_year = datetime.datetime.now().year
 project = "pandera"
-copyright = "2019, Pandera developers"
 author = "Pandera developers"
+copyright = f"{_year}, {author}"
 
 
 # -- General configuration ---------------------------------------------------
@@ -47,6 +49,7 @@ extensions = [
     "sphinx.ext.linkcode",  # link to github, see linkcode_resolve() below
     "sphinx_copybutton",
     "sphinx_design",
+    "sphinx_docsearch",
     "myst_nb",
 ]
 
@@ -312,3 +315,10 @@ myst_heading_anchors = 3
 nb_execution_mode = "auto"
 nb_execution_timeout = 60
 nb_execution_excludepatterns = ["_contents/try_pandera.ipynb"]
+
+# docsearch configuration
+docsearch_app_id = "GA9NROLUXR"
+# docsearch_api_key = os.getenv("DOCSEARCH_SEARCH_API_KEY")
+docsearch_api_key = "cb936d932d39f615c8f0d57635f27faa"
+docsearch_index_name = "pandera"
+# docsearch_container = ".sidebar-search"

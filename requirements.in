@@ -50,6 +50,7 @@ pre_commit
 dask[dataframe]
 distributed
 furo
+sphinx-docsearch
 grpcio
 ray
 typeguard
