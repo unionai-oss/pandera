@@ -274,4 +274,4 @@ consider citing the **paper** and/or **software package**.
 ## License and Credits
 
 `pandera` is licensed under the [MIT license](license.txt) and is written and
-maintained by Niels Bantilan (niels@pandera.ci)
+maintained by Niels Bantilan (niels@union.ai)
