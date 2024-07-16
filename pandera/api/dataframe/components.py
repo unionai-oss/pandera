@@ -21,7 +21,7 @@ TDataObject = TypeVar("TDataObject")
 
 
 class ComponentSchema(Generic[TDataObject], BaseSchema):
-    """Base array validator object."""
+    """Base class for data container component, e.g. columns."""
 
     def __init__(
         self,

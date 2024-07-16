@@ -669,7 +669,7 @@ schema.remove_columns(["col2", "col3"])
 
 If during the course of a data pipeline one of your columns is moved into the
 index, you can simply update the initial input schema using the
-{func}`~pandera.api.pandas.container.DataFrameSchema.set_index` method to create a schema for
+{func}`~pandera.api.dataframe.container.DataFrameSchema.set_index` method to create a schema for
 the pipeline output.
 
 ```{code-cell} python
@@ -691,9 +691,9 @@ schema.set_index(["column1"], append = True)
 
 The available methods for altering the schema are:
 
-- {func}`~pandera.api.pandas.container.DataFrameSchema.add_columns`
-- {func}`~pandera.api.pandas.container.DataFrameSchema.remove_columns`
-- {func}`~pandera.api.pandas.container.DataFrameSchema.update_columns`
-- {func}`~pandera.api.pandas.container.DataFrameSchema.rename_columns`
-- {func}`~pandera.api.pandas.container.DataFrameSchema.set_index`
-- {func}`~pandera.api.pandas.container.DataFrameSchema.reset_index`
+- {func}`~pandera.api.dataframe.container.DataFrameSchema.add_columns`
+- {func}`~pandera.api.dataframe.container.DataFrameSchema.remove_columns`
+- {func}`~pandera.api.dataframe.container.DataFrameSchema.update_columns`
+- {func}`~pandera.api.dataframe.container.DataFrameSchema.rename_columns`
+- {func}`~pandera.api.dataframe.container.DataFrameSchema.set_index`
+- {func}`~pandera.api.dataframe.container.DataFrameSchema.reset_index`

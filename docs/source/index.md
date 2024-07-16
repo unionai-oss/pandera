@@ -482,7 +482,7 @@ consider citing the paper and/or software package.
 ## License and Credits
 
 `pandera` is licensed under the [MIT license](https://github.com/pandera-dev/pandera/blob/main/LICENSE.txt).
-and is written and maintained by Niels Bantilan (<mailto:niels@pandera.ci>)
+and is written and maintained by Niels Bantilan (niels@union.ai)
 
 # Indices and tables
 

@@ -86,6 +86,7 @@ dependencies:
 
       # docs
       - furo
+      - sphinx-docsearch
       - grpcio
       - ray
       - typeguard

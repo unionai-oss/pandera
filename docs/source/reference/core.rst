@@ -11,6 +11,7 @@ Schemas
    :template: class.rst
    :nosignatures:
 
+   pandera.api.dataframe.container.DataFrameSchema
    pandera.api.pandas.container.DataFrameSchema
    pandera.api.pandas.array.SeriesSchema
    pandera.api.polars.container.DataFrameSchema
@@ -24,6 +25,7 @@ Schema Components
    :template: class.rst
    :nosignatures:
 
+   pandera.api.dataframe.components.ComponentSchema
    pandera.api.pandas.components.Column
    pandera.api.pandas.components.Index
    pandera.api.pandas.components.MultiIndex

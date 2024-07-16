@@ -22,15 +22,12 @@
    {% if methods %}
    .. rubric:: Methods
 
-   .. autosummary::
-      :nosignatures:
-      :toctree: methods
-
    {% for item in methods %}
    {%- if item not in inherited_members %}
-      ~{{ name }}.{{ item }}
-   {%- endif %}
+   .. automethod:: {{ item }}
+   {% endif %}
    {%- endfor %}
+
    {% endif %}
 
    {%- if members and '__call__' in members %}
