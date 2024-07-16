@@ -13,6 +13,7 @@ DataFrame Model
    pandera.api.pandas.model.DataFrameModel
    pandera.api.polars.model.DataFrameModel
    pandera.api.pyspark.model.DataFrameModel
+   pandera.api.dataframe.model.DataFrameModel
 
 Model Components
 ----------------

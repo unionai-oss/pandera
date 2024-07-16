@@ -215,3 +215,5 @@ Engines
    pandera.engines.engine.Engine
    pandera.engines.numpy_engine.Engine
    pandera.engines.pandas_engine.Engine
+   pandera.engines.polars_engine.Engine
+   pandera.engines.pyspark_engine.Engine

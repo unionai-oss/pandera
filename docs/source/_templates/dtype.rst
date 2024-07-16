@@ -22,19 +22,12 @@
    {% if methods %}
    .. rubric:: Methods
 
-   .. autosummary::
-      :nosignatures:
-      :toctree: methods
+   {% for item in methods %}
+   .. automethod:: {{ item }}
+   {%- endfor %}
 
-   {# Ignore the DateTime alias to avoid `WARNING: document isn't included in any toctree`#}
-   {% if objname != "DateTime" %}
-     {% for item in methods %}
-       ~{{ name }}.{{ item }}
-     {%- endfor %}
-
-     {%- if members and '__call__' in members %}
-       ~{{ name }}.__call__
-     {%- endif %}
+   {%- if members and '__call__' in members %}
+   .. automethod:: __call__
    {%- endif %}
 
    {%- endif %}
