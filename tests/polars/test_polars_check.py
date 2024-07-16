@@ -4,6 +4,7 @@ import polars as pl
 import pytest
 
 import pandera.polars as pa
+from pandera.api.polars.utils import get_lazyframe_schema
 from pandera.constants import CHECK_OUTPUT_KEY
 
 
@@ -145,7 +146,7 @@ def test_polars_element_wise_dataframe_check(lf):
     validated_data = schema.validate(lf)
     assert validated_data.collect().equals(lf.collect())
 
-    for col in lf.columns:
+    for col in get_lazyframe_schema(lf):
         invalid_lf = lf.with_columns(**{col: pl.Series([-1, 2, -4, 3])})
         try:
             schema.validate(invalid_lf)

@@ -7,8 +7,10 @@ import inspect
 import warnings
 from typing import (
     Any,
+    Dict,
     Iterable,
     Literal,
+    Mapping,
     Optional,
     Sequence,
     Tuple,
@@ -19,7 +21,6 @@ from typing import (
 import polars as pl
 from packaging import version
 from polars.datatypes import DataTypeClass
-from polars.type_aliases import SchemaDict
 
 from pandera import dtypes, errors
 from pandera.api.polars.types import PolarsData
@@ -35,6 +36,9 @@ COERCION_ERRORS = (
     pl.exceptions.InvalidOperationError,
     pl.exceptions.ComputeError,
 )
+
+
+SchemaDict = Mapping[str, PolarsDataType]
 
 
 def polars_version() -> version.Version:
@@ -167,6 +171,8 @@ class DataType(dtypes.DataType):
         raises a :class:`~pandera.errors.ParserError` if the coercion fails
         :raises: :class:`~pandera.errors.ParserError`: if coercion fails
         """
+        from pandera.api.polars.utils import get_lazyframe_schema
+
         if isinstance(data_container, pl.LazyFrame):
             data_container = PolarsData(data_container)
 
@@ -187,7 +193,7 @@ class DataType(dtypes.DataType):
                 failure_cases = failure_cases.select(data_container.key)
             raise errors.ParserError(
                 f"Could not coerce {_key} LazyFrame with schema "
-                f"{data_container.lazyframe.schema} "
+                f"{get_lazyframe_schema(data_container.lazyframe)} "
                 f"into type {self.type}",
                 failure_cases=failure_cases,
                 parser_output=is_coercible,
@@ -561,16 +567,26 @@ class Array(DataType):
     def __init__(  # pylint:disable=super-init-not-called
         self,
         inner: Optional[PolarsDataType] = None,
+        shape: Union[int, Tuple[int, ...], None] = None,
+        *,
         width: Optional[int] = None,
     ) -> None:
-        if inner or width:
-            object.__setattr__(
-                self, "type", pl.Array(inner=inner, width=width)
-            )
+
+        kwargs: Dict[str, Union[int, Tuple[int, ...]]] = {}
+        if width is not None:
+            kwargs["shape"] = width
+        elif shape is not None:
+            kwargs["shape"] = shape
+
+        if inner or shape or width:
+            object.__setattr__(self, "type", pl.Array(inner=inner, **kwargs))
 
     @classmethod
     def from_parametrized_dtype(cls, polars_dtype: pl.Array):
-        return cls(inner=polars_dtype.inner, width=polars_dtype.width)
+        return cls(
+            inner=polars_dtype.inner,
+            shape=polars_dtype.shape,
+        )
 
 
 @Engine.register_dtype(equivalents=[pl.List])

@@ -13,6 +13,7 @@ from polars.testing.parametric import column, dataframes
 import pandera as pa
 from pandera import Check as C
 from pandera.api.polars.types import PolarsData
+from pandera.api.polars.utils import get_lazyframe_column_names
 from pandera.engines import polars_engine as pe
 from pandera.polars import Column, DataFrameModel, DataFrameSchema
 
@@ -383,14 +384,16 @@ def test_regex_selector(
 
         assert result.equals(ldf_for_regex_match.collect())
 
-        for column in ldf_for_regex_match.columns:
+        for column in get_lazyframe_column_names(ldf_for_regex_match):
             # this should raise an error since columns are not nullable by default
             modified_data = transform_fn(ldf_for_regex_match, column)
             with pytest.raises(pa.errors.SchemaError, match=exception_msg):
                 modified_data.pipe(schema.validate).collect()
 
         # dropping all columns should fail
-        modified_data = ldf_for_regex_match.drop(ldf_for_regex_match.columns)
+        modified_data = ldf_for_regex_match.drop(
+            get_lazyframe_column_names(ldf_for_regex_match)
+        )
         with pytest.raises(pa.errors.SchemaError):
             modified_data.pipe(schema.validate).collect()
 
@@ -549,7 +552,8 @@ def test_dataframe_schema_with_tz_agnostic_dates(time_zone, data):
     strategy = dataframes(
         column("datetime_col", dtype=pl.Datetime()),
         lazy=True,
-        size=10,
+        min_size=10,
+        max_size=10,
         allow_null=False,
     )
     lf = data.draw(strategy)

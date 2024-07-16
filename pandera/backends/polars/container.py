@@ -10,6 +10,7 @@ import polars as pl
 from pandera.api.base.error_handler import ErrorHandler
 from pandera.api.polars.container import DataFrameSchema
 from pandera.api.polars.types import PolarsData
+from pandera.api.polars.utils import get_lazyframe_column_names
 from pandera.backends.base import ColumnInfo, CoreCheckResult
 from pandera.backends.polars.base import PolarsSchemaBackend
 from pandera.config import ValidationDepth, ValidationScope, get_config_context
@@ -211,7 +212,7 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
         for col_name, col_schema in schema.columns.items():
             if (
                 not col_schema.regex
-                and col_name not in check_obj.columns
+                and col_name not in get_lazyframe_column_names(check_obj)
                 and col_schema.required
             ):
                 absent_column_names.append(col_name)
@@ -226,11 +227,11 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
                     regex_match_patterns.append(col_schema.selector)
                 except SchemaError:
                     pass
-            elif col_name in check_obj.columns:
+            elif col_name in get_lazyframe_column_names(check_obj):
                 column_names.append(col_name)
 
         # drop adjacent duplicated column names
-        destuttered_column_names = [*check_obj.columns]
+        destuttered_column_names = [*get_lazyframe_column_names(check_obj)]
 
         return ColumnInfo(
             sorted_column_names=dict.fromkeys(column_names),
@@ -256,7 +257,7 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
             from pandera.api.polars.components import Column
 
             columns = {}
-            for col in check_obj.columns:
+            for col in get_lazyframe_column_names(check_obj):
                 columns[col] = Column(schema.dtype, name=str(col))
 
         schema_components = []
@@ -579,7 +580,9 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
         )
 
         for lst in temp_unique:
-            subset = [x for x in lst if x in check_obj.columns]
+            subset = [
+                x for x in lst if x in get_lazyframe_column_names(check_obj)
+            ]
             duplicates = check_obj.select(subset).collect().is_duplicated()
             if duplicates.any():
                 failure_cases = check_obj.filter(duplicates)

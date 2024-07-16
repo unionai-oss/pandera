@@ -8,6 +8,10 @@ import polars as pl
 from pandera.api.base.error_handler import ErrorHandler
 from pandera.api.polars.components import Column
 from pandera.api.polars.types import PolarsData
+from pandera.api.polars.utils import (
+    get_lazyframe_schema,
+    get_lazyframe_column_names,
+)
 from pandera.backends.base import CoreCheckResult
 from pandera.backends.polars.base import PolarsSchemaBackend, is_float_dtype
 from pandera.config import ValidationDepth, ValidationScope, get_config_context
@@ -100,7 +104,7 @@ class ColumnBackend(PolarsSchemaBackend):
         return check_obj
 
     def get_regex_columns(self, schema, check_obj) -> Iterable:
-        return check_obj.select(pl.col(schema.selector)).columns
+        return get_lazyframe_schema(check_obj.select(pl.col(schema.selector)))
 
     def run_checks_and_handle_errors(
         self,
@@ -214,7 +218,7 @@ class ColumnBackend(PolarsSchemaBackend):
         isna = check_obj.select(expr)
         passed = isna.select([pl.col("*").all()]).collect()
         results = []
-        for column in isna.columns:
+        for column in get_lazyframe_column_names(isna):
             if passed.select(column).item():
                 continue
             failure_cases = (
@@ -326,8 +330,9 @@ class ColumnBackend(PolarsSchemaBackend):
 
         results = []
         check_obj_subset = check_obj.select(schema.selector)
-        for column in check_obj_subset.columns:
-            obj_dtype = check_obj_subset.schema[column]
+        for column, obj_dtype in get_lazyframe_schema(
+            check_obj_subset
+        ).items():
             results.append(
                 CoreCheckResult(
                     passed=schema.dtype.check(
