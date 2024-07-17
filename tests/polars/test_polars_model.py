@@ -83,7 +83,7 @@ def ldf_model_with_custom_dataframe_checks():
         @dataframe_check
         @classmethod
         def not_empty(cls, data: PolarsData) -> pl.LazyFrame:
-            return data.lazyframe.select(pl.count().gt(0))
+            return data.lazyframe.select(pl.len().alias("len").gt(0))
 
     return ModelWithCustomDataFrameChecks
 
@@ -124,9 +124,9 @@ def test_model_schema_equivalency_with_optional():
 
 
 ErrorCls = (
-    pl.InvalidOperationError
+    pl.exceptions.InvalidOperationError
     if pe.polars_version().release >= (1, 0, 0)
-    else pl.ComputeError
+    else pl.exceptions.ComputeError
 )
 
 
@@ -243,7 +243,8 @@ def test_dataframe_schema_with_tz_agnostic_dates(time_zone, data):
     strategy = dataframes(
         column("datetime_col", dtype=pl.Datetime()),
         lazy=True,
-        size=10,
+        min_size=10,
+        max_size=10,
         allow_null=False,
     )
     lf = data.draw(strategy)

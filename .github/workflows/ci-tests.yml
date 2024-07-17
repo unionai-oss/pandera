@@ -183,7 +183,7 @@ jobs:
         python-version: ["3.8", "3.9", "3.10", "3.11"]
         pandas-version: ["2.2.2"]
         pydantic-version: ["2.3.0"]
-        polars-version: ["0.20.31", "1.0.0"]
+        polars-version: ["0.20.31", "1.2.0"]
         extra:
         - hypotheses
         - io
