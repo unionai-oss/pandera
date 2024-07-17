@@ -31,7 +31,7 @@
    {% endif %}
 
    {%- if members and '__call__' in members %}
-      ~{{ name }}.__call__
+   .. automethod:: __call__
    {%- endif %}
 
    {% endblock %}

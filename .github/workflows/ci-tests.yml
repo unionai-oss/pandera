@@ -17,8 +17,6 @@ on:
 env:
   DEFAULT_PYTHON: 3.8
   CI: "true"
-  # Increase this value to reset cache if environment.yml has not changed
-  CACHE_VERSION: 6
 
 concurrency:
   group: '${{ github.workflow }} @ ${{ github.event.pull_request.head.label || github.head_ref || github.ref }}'
@@ -140,9 +138,9 @@ jobs:
             ${{ runner.os }}-pip-
 
       - name: Install deps
-        run:
+        run: |
           pip install uv
-          uv pip install -r requirements.in
+          uv pip install --system -r requirements.in
 
       - run: |
           pip list
