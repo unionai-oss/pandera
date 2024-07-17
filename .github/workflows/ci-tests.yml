@@ -140,7 +140,7 @@ jobs:
       - name: Install deps
         run: |
           pip install uv
-          uv pip install -r requirements.in
+          uv pip install --system -r requirements.in
 
       - run: |
           pip list
