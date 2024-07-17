@@ -14,13 +14,6 @@ from pandera.api.checks import Check
 from pandera.api.hypotheses import Hypothesis
 from pandera.strategies.base_strategies import STRATEGY_DISPATCHER
 
-try:
-    import pyspark.sql as ps
-
-    PYSPARK_INSTALLED = True
-except ImportError:  # pragma: no cover
-    PYSPARK_INSTALLED = False
-
 
 class BuiltinCheckRegistrationError(Exception):
     """
@@ -180,8 +173,16 @@ def register_check_method(  # pylint:disable=too-many-branches
     :return: register check function wrapper.
     """
 
-    # pylint: disable=import-outside-toplevel
+    # pylint: disable=import-outside-toplevel,too-many-statements
     from pandera.strategies.pandas_strategies import register_check_strategy
+
+    # NOTE: this needs to handle different dataframe types more elegantly
+    try:
+        import pyspark.sql as ps
+
+        PYSPARK_INSTALLED = True
+    except ImportError:  # pragma: no cover
+        PYSPARK_INSTALLED = False
 
     if statistics is None:
         statistics = []
