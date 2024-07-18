@@ -485,7 +485,9 @@ def test_column_regex_error_failure_cases():
         dtype=int,
         regex=True,
         checks=Check(
-            element_wise=True, check_fn=lambda *args, **kwargs: False
+            element_wise=True,
+            name="custom_check",
+            check_fn=lambda *args, **kwargs: False,
         ),
     )
 
@@ -493,7 +495,7 @@ def test_column_regex_error_failure_cases():
         {
             "schema_context": ["Column"] * 4,
             "column": ["a", "a", "b", "b"],
-            "check": ["fn"] * 4,
+            "check": ["custom_check"] * 4,
             "check_number": [0] * 4,
             "failure_case": [0, 2, 1, 3],
             "index": [0, 1, 0, 1],
