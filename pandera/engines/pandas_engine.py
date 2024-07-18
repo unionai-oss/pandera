@@ -248,15 +248,16 @@ class Engine(  # pylint:disable=too-few-public-methods
                         "representation."
                     ) from None
             elif is_geopandas_dtype(data_type):
-                # pylint: disable=cyclic-import
+                # pylint: disable=cyclic-import,unused-import
                 # register geopandas datatypes
-                from pandera.engines.geopandas_engine import (
-                    register_geopandas_dtypes,
-                )
+                import pandera.engines.geopandas_engine
 
-                register_geopandas_dtypes()
                 np_or_pd_dtype = data_type
             elif is_pyarrow_dtype(data_type):
+                # pylint: disable=cyclic-import
+                # register pyarrow datatypes
+                import pandera.engines.pyarrow_engine
+
                 np_or_pd_dtype = data_type.pyarrow_dtype
             else:
                 # let pandas transform any acceptable value

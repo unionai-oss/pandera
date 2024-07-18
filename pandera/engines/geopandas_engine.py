@@ -1,5 +1,5 @@
 # pylint: disable=cyclic-import
-"""Geopandas type engine."""
+"""Geopandas data types for the pandas type engine."""
 
 from typing import Any, Iterable, Optional, Union
 
@@ -27,18 +27,13 @@ GeoPandasObject = Union[
 ]
 
 
-def register_geopandas_dtypes():
-    """Register geopandas-specific dtypes with the pandas engine."""
-    pandas_engine.Engine.register_dtype(
-        Geometry,
-        equivalents=[
-            "geometry",
-            GeometryDtype,
-            GeometryDtype(),
-        ],
-    )
-
-
+@pandas_engine.Engine.register_dtype(
+    equivalents=[
+        "geometry",
+        GeometryDtype,
+        GeometryDtype(),
+    ],
+)
 @dtypes.immutable(init=True)
 class Geometry(pandas_engine.DataType):
     """Semantic representation of geopandas :class:`geopandas.array.GeometryDtype`.
