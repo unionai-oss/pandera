@@ -174,7 +174,7 @@ def serialize_schema(dataframe_schema):
         "add_missing_columns": dataframe_schema.add_missing_columns,
         "title": dataframe_schema.title,
         "description": dataframe_schema.description,
-        "drop_invalid_rows":dataframe_schema.drop_invalid_rows,
+        "drop_invalid_rows": dataframe_schema.drop_invalid_rows,
     }
 
 
