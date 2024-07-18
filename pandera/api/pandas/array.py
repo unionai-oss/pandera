@@ -6,7 +6,7 @@ from typing import Any, Optional, cast
 import pandas as pd
 
 from pandera import errors
-from pandera import strategies as st
+from pandera.import_utils import strategy_import_error
 from pandera.api.base.types import CheckList, ParserList
 from pandera.api.dataframe.components import ComponentSchema, TDataObject
 from pandera.api.pandas.types import PandasDtypeInputTypes, is_field
@@ -50,13 +50,15 @@ class ArraySchema(ComponentSchema[TDataObject]):
     # Schema Strategy Methods #
     ###########################
 
-    @st.strategy_import_error
+    @strategy_import_error
     def strategy(self, *, size=None):
         """Create a ``hypothesis`` strategy for generating a Series.
 
         :param size: number of elements to generate
         :returns: a strategy that generates pandas Series objects.
         """
+        from pandera import strategies as st
+
         return st.series_strategy(
             self.dtype,
             checks=self.checks,

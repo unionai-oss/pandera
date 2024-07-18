@@ -4,7 +4,6 @@ from typing import Any, Callable, Dict, List, Optional, TypeVar, Union
 
 from pandera import errors
 from pandera.api.checks import Check
-from pandera.strategies import SearchStrategy
 
 DEFAULT_ALPHA = 0.01
 
@@ -34,7 +33,7 @@ class Hypothesis(Check):
         title: Optional[str] = None,
         description: Optional[str] = None,
         statistics: Optional[Dict[str, Any]] = None,
-        strategy: Optional[SearchStrategy] = None,
+        strategy: Optional[Any] = None,
         **check_kwargs,
     ) -> None:
         """Perform a hypothesis test on a Series or DataFrame.

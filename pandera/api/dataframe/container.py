@@ -20,7 +20,7 @@ from typing import (
 )
 
 from pandera import errors
-from pandera import strategies as st
+from pandera.import_utils import strategy_import_error
 from pandera.api.base.schema import BaseSchema, inferred_schema_guard
 from pandera.api.base.types import CheckList, ParserList, StrictType
 from pandera.api.checks import Check
@@ -1289,7 +1289,7 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
     # Schema Strategy Methods #
     ###########################
 
-    @st.strategy_import_error
+    @strategy_import_error
     def strategy(
         self, *, size: Optional[int] = None, n_regex_columns: int = 1
     ):
@@ -1299,6 +1299,8 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
         :param n_regex_columns: number of regex columns to generate.
         :returns: a strategy that generates pandas DataFrame objects.
         """
+        from pandera import strategies as st
+
         return st.dataframe_strategy(
             self.dtype,
             columns=self.columns,

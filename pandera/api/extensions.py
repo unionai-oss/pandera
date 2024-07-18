@@ -12,7 +12,6 @@ import typing_inspect
 
 from pandera.api.checks import Check
 from pandera.api.hypotheses import Hypothesis
-from pandera.strategies.base_strategies import STRATEGY_DISPATCHER
 
 
 class BuiltinCheckRegistrationError(Exception):
@@ -35,6 +34,7 @@ def register_builtin_check(
     This is the primary way for extending the Check api to define additional
     built-in checks.
     """
+    from pandera.strategies.base_strategies import STRATEGY_DISPATCHER
 
     if fn is None:
         return partial(
