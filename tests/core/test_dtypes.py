@@ -204,7 +204,7 @@ if GEOPANDAS_INSTALLED:
     from shapely.geometry import Polygon
 
     # pylint:disable=ungrouped-imports
-    from pandera.engines.pandas_engine import Geometry
+    from pandera.engines.geopandas_engine import Geometry
 
     geometry_dtypes = {Geometry: "geometry"}
     dtype_fixtures.append(

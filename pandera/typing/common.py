@@ -56,15 +56,6 @@ STRING = pandas_engine.STRING  #: ``"str"`` numpy dtype
 BOOL = pandas_engine.BOOL  #: ``"str"`` numpy dtype
 
 
-if pandas_engine.GEOPANDAS_INSTALLED:
-    Geometry = pandas_engine.Geometry  # : ``"geometry"`` geopandas dtype
-else:
-
-    class Geometry:  # type: ignore [no-redef]
-        # pylint: disable=too-few-public-methods
-        ...  #  stub Geometry type
-
-
 GenericDtype = TypeVar(  # type: ignore
     "GenericDtype",
     bound=Union[
@@ -103,7 +94,6 @@ GenericDtype = TypeVar(  # type: ignore
         Object,
         String,
         STRING,
-        Geometry,
     ],
 )
 
