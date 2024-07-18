@@ -180,6 +180,7 @@ class PolarsSchemaBackend(BaseSchemaBackend):
                 ).cast(
                     {
                         "failure_case": pl.Utf8,
+                        "column": pl.String,
                         "index": pl.Int32,
                         "check_number": pl.Int32,
                     }
@@ -196,7 +197,11 @@ class PolarsSchemaBackend(BaseSchemaBackend):
                 scalar_failure_cases["check_number"].append(err.check_index)
                 scalar_failure_cases["index"].append(None)
                 failure_cases_df = pl.DataFrame(scalar_failure_cases).cast(
-                    {"check_number": pl.Int32, "index": pl.Int32}
+                    {
+                        "check_number": pl.Int32,
+                        "column": pl.String,
+                        "index": pl.Int32,
+                    }
                 )
 
             failure_case_collection.append(failure_cases_df)

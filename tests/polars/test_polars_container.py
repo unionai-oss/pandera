@@ -230,6 +230,28 @@ def test_required_columns():
         ldf.drop("a").pipe(schema.validate).collect()
 
 
+def test_missing_required_column_when_lazy_is_true():
+    """Test missing required columns when lazy=True."""
+    schema = DataFrameSchema(
+        {
+            "a": Column(pl.Int32),
+            "b": Column(pl.Int32),
+        }
+    )
+
+    df = pl.DataFrame({"a": [1, 2, 3]})
+
+    with pytest.raises(pa.errors.SchemaErrors) as exc:
+        schema.validate(df, lazy=True)
+
+    first_error = exc.value.schema_errors[0]
+
+    assert (
+        first_error.reason_code
+        == pa.errors.SchemaErrorReason.COLUMN_NOT_IN_DATAFRAME
+    )
+
+
 def test_unique_column_names():
     """Test unique column names."""
     with pytest.warns(
