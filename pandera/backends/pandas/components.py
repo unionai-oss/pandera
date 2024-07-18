@@ -3,7 +3,7 @@
 # pylint: disable=too-many-locals
 
 import traceback
-from copy import copy, deepcopy
+from copy import deepcopy
 from typing import Iterable, List, Optional, Union
 
 import numpy as np
@@ -71,7 +71,7 @@ class ColumnBackend(ArraySchemaBackend):
                 # pylint: disable=super-with-arguments
                 validated_check_obj = super(ColumnBackend, self).validate(
                     check_obj,
-                    copy(schema).set_name(column_name),
+                    deepcopy(schema).set_name(column_name),
                     head=head,
                     tail=tail,
                     sample=sample,

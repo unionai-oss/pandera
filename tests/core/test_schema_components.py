@@ -476,6 +476,38 @@ def test_column_regex_matching(
         assert expected_matches == matched_columns.tolist()
 
 
+def test_column_regex_error_failure_cases():
+
+    data = pd.DataFrame({"a": [0, 2], "b": [1, 3]})
+
+    column_schema = Column(
+        name=r"a|b",
+        dtype=int,
+        regex=True,
+        checks=Check(
+            element_wise=True,
+            name="custom_check",
+            check_fn=lambda *args, **kwargs: False,
+        ),
+    )
+
+    expected_error = pd.DataFrame(
+        {
+            "schema_context": ["Column"] * 4,
+            "column": ["a", "a", "b", "b"],
+            "check": ["custom_check"] * 4,
+            "check_number": [0] * 4,
+            "failure_case": [0, 2, 1, 3],
+            "index": [0, 1, 0, 1],
+        }
+    )
+
+    try:
+        column_schema.validate(data, lazy=True)
+    except errors.SchemaErrors as err:
+        pd.testing.assert_frame_equal(err.failure_cases, expected_error)
+
+
 INT_REGEX = r"-?\d+$"
 FLOAT_REGEX = r"-?\d+\.\d+$"
 DATETIME_REGEX = r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}"
