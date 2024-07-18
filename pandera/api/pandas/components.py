@@ -5,13 +5,13 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple, Union, cast
 
 import pandas as pd
 
-import pandera.strategies as st
 from pandera import errors
 from pandera.api.base.types import CheckList, ParserList
 from pandera.api.pandas.array import ArraySchema
 from pandera.api.pandas.container import DataFrameSchema
 from pandera.api.pandas.types import PandasDtypeInputTypes
 from pandera.dtypes import UniqueSettings
+from pandera.import_utils import strategy_import_error
 
 
 class Column(ArraySchema[pd.DataFrame]):
@@ -172,7 +172,7 @@ class Column(ArraySchema[pd.DataFrame]):
     # Schema Transform Methods #
     ############################
 
-    @st.strategy_import_error
+    @strategy_import_error
     def strategy(self, *, size=None):
         """Create a ``hypothesis`` strategy for generating a Column.
 
@@ -181,9 +181,11 @@ class Column(ArraySchema[pd.DataFrame]):
         """
         return super().strategy(size=size).map(lambda x: x.to_frame())
 
-    @st.strategy_import_error
+    @strategy_import_error
     def strategy_component(self):
         """Generate column data object for use by DataFrame strategy."""
+        import pandera.strategies as st
+
         return st.column_strategy(
             self.dtype,
             checks=self.checks,
@@ -234,13 +236,15 @@ class Index(ArraySchema[pd.Index]):
     # Schema Strategy Methods #
     ###########################
 
-    @st.strategy_import_error
+    @strategy_import_error
     def strategy(self, *, size: Optional[int] = None):
         """Create a ``hypothesis`` strategy for generating an Index.
 
         :param size: number of elements to generate.
         :returns: index strategy.
         """
+        import pandera.strategies as st
+
         return st.index_strategy(
             self.dtype,  # type: ignore
             checks=self.checks,
@@ -250,9 +254,11 @@ class Index(ArraySchema[pd.Index]):
             size=size,
         )
 
-    @st.strategy_import_error
+    @strategy_import_error
     def strategy_component(self):
         """Generate column data object for use by MultiIndex strategy."""
+        import pandera.strategies as st
+
         return st.column_strategy(
             self.dtype,
             checks=self.checks,
@@ -421,11 +427,13 @@ class MultiIndex(DataFrameSchema):
     # Schema Strategy Methods #
     ###########################
 
-    @st.strategy_import_error
+    @strategy_import_error
     # NOTE: remove these ignore statements as part of
     # https://github.com/pandera-dev/pandera/issues/403
     # pylint: disable=arguments-differ
     def strategy(self, *, size=None):  # type: ignore
+        import pandera.strategies as st
+
         return st.multiindex_strategy(indexes=self.indexes, size=size)
 
     # NOTE: remove these ignore statements as part of

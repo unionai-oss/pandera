@@ -6,7 +6,7 @@ import pytest
 from shapely.geometry import Point, Polygon
 
 import pandera as pa
-from pandera.engines.pandas_engine import Geometry
+from pandera.engines.geopandas_engine import Geometry
 from pandera.typing import Series
 from pandera.typing.geopandas import GeoDataFrame, GeoSeries
 

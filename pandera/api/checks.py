@@ -14,7 +14,6 @@ from typing import (
 
 from pandera import errors
 from pandera.api.base.checks import BaseCheck, CheckResult
-from pandera.strategies.base_strategies import SearchStrategy
 
 T = TypeVar("T")
 
@@ -37,7 +36,7 @@ class Check(BaseCheck):
         title: Optional[str] = None,
         description: Optional[str] = None,
         statistics: Optional[Dict[str, Any]] = None,
-        strategy: Optional[SearchStrategy] = None,
+        strategy: Optional[Any] = None,
         **check_kwargs,
     ) -> None:
         """Apply a validation function to a data object.

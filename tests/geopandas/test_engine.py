@@ -8,7 +8,8 @@ import shapely
 from shapely.geometry import Point
 
 import pandera as pa
-from pandera.engines.pandas_engine import DateTime, Geometry
+from pandera.engines.pandas_engine import DateTime
+from pandera.engines.geopandas_engine import Geometry
 
 
 def test_engine_geometry_simple():
