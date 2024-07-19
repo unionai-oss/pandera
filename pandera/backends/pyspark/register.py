@@ -1,8 +1,11 @@
 """Register pyspark backends."""
 
+from functools import lru_cache
+
 import pyspark.sql as pst
 
 
+@lru_cache
 def register_pyspark_backends():
     """Register pyspark backends.
 
