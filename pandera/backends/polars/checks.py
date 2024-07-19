@@ -70,10 +70,8 @@ class PolarsCheckBackend(BaseCheckBackend):
                 ).alias(CHECK_OUTPUT_KEY)
             )
         else:
-            out = out.select(
-                pl.col(get_lazyframe_column_names(out)[0]).alias(
-                    CHECK_OUTPUT_KEY
-                )
+            out = out.rename(
+                {get_lazyframe_column_names(out)[0]: CHECK_OUTPUT_KEY}
             )
 
         return out
