@@ -94,6 +94,7 @@ def get_backend_types():
     )
 
 
+@lru_cache
 def register_pandas_backends():
     """Register pandas backends.
 

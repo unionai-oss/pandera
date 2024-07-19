@@ -290,12 +290,12 @@ def register_check_method(  # pylint:disable=too-many-branches
                     check_kwargs[k] = v
 
             error_stats = ", ".join(f"{k}={v}" for k, v in stats.items())
-            error = f"{check_fn.__name__}({error_stats})" if stats else None
+            if stats and "error" not in check_kwargs:
+                check_kwargs["error"] = f"{check_fn.__name__}({error_stats})"
 
             return cls(
                 partial(check_fn_wrapper, **stats),
                 name=check_fn.__name__,
-                error=error,
                 **validate_check_kwargs(check_kwargs),
             )
 

@@ -312,3 +312,16 @@ def test_if_statistics_are_sane(custom_check_teardown: None) -> None:
         extensions.register_check_method(
             mean_a_gt_mean_b, statistics=["col_a", "colb"]
         )
+
+
+def test_custom_error_message(custom_check_teardown):
+    """
+    Make sure that custom error messages are supported with registered checks.
+    """
+
+    @extensions.register_check_method()
+    def custom_check(df):
+        return False
+
+    check = Check.custom_check(error="custom error message")
+    assert check.error == "custom error message"
