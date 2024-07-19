@@ -249,6 +249,7 @@ class AnnotationInfo:  # pylint:disable=too-few-public-methods
             # Annotated with Optional or Union[..., NoneType]
             # get_args -> (pandera.typing.Index[str], <class 'NoneType'>)
             raw_annotation = typing_inspect.get_args(raw_annotation)[0]
+            self.raw_annotation = raw_annotation
 
         self.origin = typing_inspect.get_origin(raw_annotation)
         # Replace empty tuple returned from get_args by None

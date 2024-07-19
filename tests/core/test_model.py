@@ -3,7 +3,7 @@
 # pylint:disable=missing-class-docstring,missing-function-docstring,too-few-public-methods
 import re
 from copy import deepcopy
-from typing import Any, Generic, Iterable, Optional, TypeVar
+from typing import Any, Generic, Iterable, List, Optional, TypeVar
 
 import pandas as pd
 import pytest
@@ -141,11 +141,13 @@ def test_optional_column() -> None:
         a: Optional[Series[str]]
         b: Optional[Series[str]] = pa.Field(eq="b")
         c: Optional[Series[String]]  # test pandera.typing alias
+        d: Optional[Series[List[int]]]
 
     schema = Schema.to_schema()
     assert not schema.columns["a"].required
     assert not schema.columns["b"].required
     assert not schema.columns["c"].required
+    assert not schema.columns["d"].required
 
 
 def test_optional_index() -> None:
