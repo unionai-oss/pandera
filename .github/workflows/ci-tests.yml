@@ -236,6 +236,8 @@ jobs:
           polars-version: "0.20.31"
         - extra: modin-ray
           polars-version: "0.20.31"
+        - extra: ibis
+          polars-version: "0.20.31"
 
     steps:
       - uses: actions/checkout@v4
