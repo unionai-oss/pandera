@@ -2,15 +2,19 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Iterable, List, Optional
+import copy
+from typing import TYPE_CHECKING, Any, Iterable, List, Optional
 
 import ibis.expr.types as ir
 
 from pandera.api.base.error_handler import ErrorHandler
-from pandera.backends.base import CoreCheckResult
+from pandera.config import ValidationScope
+from pandera.backends.base import CoreCheckResult, ColumnInfo
 from pandera.backends.ibis.base import IbisSchemaBackend
+from pandera.backends.pandas.error_formatters import scalar_failure_case
 from pandera.errors import SchemaError, SchemaErrorReason, SchemaErrors
-from pandera.validation_depth import validation_type
+from pandera.utils import is_regex
+from pandera.validation_depth import validate_scope, validation_type
 
 if TYPE_CHECKING:
     from pandera.api.ibis.container import DataFrameSchema
@@ -37,14 +41,19 @@ class DataFrameSchemaBackend(IbisSchemaBackend):
         """
         error_handler = ErrorHandler(lazy)
 
+        column_info = self.collect_column_info(check_obj, schema)
+
         # collect schema components
-        components = schema.columns.values()
+        components = self.collect_schema_components(
+            check_obj, schema, column_info
+        )
 
         # TODO(deepyaman): subsample the check object if head, tail, or sample are specified
         sample = check_obj
 
         # run the checks
         core_checks = [
+            (self.check_column_presence, (check_obj, schema, column_info)),
             (self.run_schema_component_checks, (sample, components, lazy)),
         ]
 
@@ -130,3 +139,112 @@ class DataFrameSchemaBackend(IbisSchemaBackend):
                 )
         assert all(check_passed)
         return check_results
+
+    def collect_column_info(
+        self, check_obj: ir.Table, schema: DataFrameSchema
+    ) -> ColumnInfo:
+        """Collect column metadata for the table."""
+        column_names: List[Any] = []
+        absent_column_names: List[Any] = []
+        regex_match_patterns: List[Any] = []
+
+        for col_name, col_schema in schema.columns.items():
+            if (
+                not col_schema.regex
+                and col_name not in check_obj
+                and col_schema.required
+            ):
+                absent_column_names.append(col_name)
+
+            if col_schema.regex:  # TODO(deepyaman): Implement functionality.
+                try:
+                    column_names.extend(
+                        col_schema.get_backend(check_obj).get_regex_columns(
+                            col_schema, check_obj
+                        )
+                    )
+                    regex_match_patterns.append(col_schema.name)
+                except SchemaError:
+                    pass
+            elif col_name in check_obj.columns:
+                column_names.append(col_name)
+
+        # Ibis tables cannot have duplicated column names
+        destuttered_column_names = check_obj.columns
+
+        return ColumnInfo(
+            sorted_column_names=dict.fromkeys(column_names),
+            expanded_column_names=frozenset(column_names),
+            destuttered_column_names=destuttered_column_names,
+            absent_column_names=absent_column_names,
+            regex_match_patterns=regex_match_patterns,
+        )
+
+    def collect_schema_components(
+        self,
+        check_obj: ir.Table,
+        schema: DataFrameSchema,
+        column_info: ColumnInfo,
+    ):
+        """Collects all schema components to use for validation."""
+
+        columns = schema.columns
+
+        if not schema.columns and schema.dtype is not None:
+            # set schema components to dataframe dtype if columns are not
+            # specified but the dataframe-level dtype is specified.
+            from pandera.api.ibis.components import Column
+
+            columns = {}
+            for col in check_obj.columns:
+                columns[col] = Column(schema.dtype, name=str(col))
+
+        schema_components = []
+        for col_name, col in columns.items():
+            if (
+                col.required  # type: ignore
+                or col_name in check_obj
+                or col_name in column_info.regex_match_patterns
+            ) and col_name not in column_info.absent_column_names:
+                col = copy.deepcopy(col)
+                if schema.dtype is not None:
+                    # override column dtype with dataframe dtype
+                    col.dtype = schema.dtype  # type: ignore
+
+                # disable coercion at the schema component level since the
+                # dataframe-level schema already coerced it.
+                col.coerce = False  # type: ignore
+                schema_components.append(col)
+
+        return schema_components
+
+    ##########
+    # Checks #
+    ##########
+
+    @validate_scope(scope=ValidationScope.SCHEMA)
+    def check_column_presence(
+        self,
+        check_obj: ir.Table,
+        schema: DataFrameSchema,
+        column_info: ColumnInfo,
+    ) -> List[CoreCheckResult]:
+        """Check that all columns in the schema are present in the table."""
+        results = []
+        if column_info.absent_column_names and not schema.add_missing_columns:
+            for colname in column_info.absent_column_names:
+                if is_regex(colname):
+                    continue  # TODO(deepyaman): Support regex colnames.
+                results.append(
+                    CoreCheckResult(
+                        passed=False,
+                        check="column_in_dataframe",
+                        reason_code=SchemaErrorReason.COLUMN_NOT_IN_DATAFRAME,
+                        message=(
+                            f"column '{colname}' not in table. "
+                            f"Columns in table: {check_obj.columns}"
+                        ),
+                        failure_cases=scalar_failure_case(colname),
+                    )
+                )
+        return results
