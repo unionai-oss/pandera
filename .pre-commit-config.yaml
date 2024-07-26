@@ -13,7 +13,7 @@ repos:
       - id: check-yaml
         description: Attempts to load all yaml files to verify syntax
       - id: debug-statements
-        description: Check for debugger imports and py37+  calls in python source
+        description: Check for debugger imports and py37+ breakpoint() calls in python source
       - id: end-of-file-fixer
         description: Makes sure files end in a newline and only a newline
       - id: trailing-whitespace
