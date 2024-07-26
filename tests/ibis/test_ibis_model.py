@@ -11,7 +11,7 @@ from pandera.ibis import Column, DataFrameModel, DataFrameSchema
 @pytest.fixture
 def t_model_basic():
     class BasicModel(DataFrameModel):
-        # string_col: str
+        string_col: str
         int_col: int
 
     return BasicModel
@@ -21,7 +21,7 @@ def t_model_basic():
 def t_schema_basic():
     return DataFrameSchema(
         {
-            # "string_col": Column(dt.String),
+            "string_col": Column(dt.String),
             "int_col": Column(dt.Int64),
         }
     )
@@ -38,14 +38,14 @@ def test_model_schema_equivalency(
 
 def test_model_schema_equivalency_with_optional():
     class ModelWithOptional(DataFrameModel):
-        # string_col: Optional[str]
-        int_col: Optional[int]
+        string_col: Optional[str]
+        int_col: int
 
     schema = DataFrameSchema(
         name="ModelWithOptional",
         columns={
-            # "string_col": Column(dt.String, required=False),
-            "int_col": Column(dt.Int64, required=False),
+            "string_col": Column(dt.String, required=False),
+            "int_col": Column(dt.Int64),
         },
     )
     assert ModelWithOptional.to_schema() == schema
