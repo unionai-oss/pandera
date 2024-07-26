@@ -1,6 +1,7 @@
 """Unit tests for Ibis container."""
 
 import ibis
+import ibis.expr.datatypes as dt
 import ibis.expr.types as ir
 import pandas as pd
 import pytest
@@ -44,3 +45,17 @@ def test_basic_ibis_table_dtype_error(t_basic, t_schema_basic):
     with pytest.raises(pa.errors.SchemaError):
         # type check errors occur even before collection
         t_schema_basic.validate(t)
+
+
+def test_required_columns():
+    """Test required columns."""
+    schema = DataFrameSchema(
+        {
+            "a": Column(dt.Int64, required=True),
+            "b": Column(dt.Int64, required=False),
+        }
+    )
+    t = ibis.memtable(pd.DataFrame({"a": [1, 2, 3]}))
+    assert schema.validate(t).execute().equals(t.execute())
+    with pytest.raises(pa.errors.SchemaError):
+        schema.validate(t.rename({"c": "a"})).execute()
