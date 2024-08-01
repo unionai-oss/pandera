@@ -39,6 +39,7 @@ nox
 importlib_metadata
 uvicorn
 python-multipart
+ibis-framework[duckdb]
 sphinx
 sphinx-design
 sphinx-autodoc-typehints <= 1.14.1
