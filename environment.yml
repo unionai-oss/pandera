@@ -35,7 +35,7 @@ dependencies:
   - protobuf
 
   # ibis extra
-  - ibis-framework >= 3.1.0
+  - ibis-framework >= 3.1.0 # [not py<=39]
 
   # geopandas extra
   - geopandas
@@ -66,7 +66,7 @@ dependencies:
   - python-multipart
 
   # ibis testing
-  - duckdb
+  - ibis-framework[duckdb] # [not py<=39]
 
   # documentation
   - sphinx

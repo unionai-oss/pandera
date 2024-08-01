@@ -99,7 +99,7 @@ docutils==0.21.2
     #   recommonmark
     #   sphinx
 duckdb==1.0.0
-    # via -r requirements.in
+    # via ibis-framework
 email-validator==2.2.0
     # via fastapi
 execnet==2.1.1
@@ -130,7 +130,7 @@ furo==2024.7.18
     # via -r requirements.in
 geopandas==1.0.1
     # via -r requirements.in
-grpcio==1.65.1
+grpcio==1.65.2
     # via -r requirements.in
 h11==0.14.0
     # via
@@ -142,7 +142,7 @@ httptools==0.6.1
     # via uvicorn
 httpx==0.27.0
     # via fastapi
-hypothesis==6.108.4
+hypothesis==6.108.5
     # via -r requirements.in
 ibis-framework==9.2.0
     # via -r requirements.in
@@ -334,7 +334,7 @@ petl==1.7.15
     # via frictionless
 pexpect==4.9.0
     # via ipython
-pip==24.1.2
+pip==24.2
     # via -r requirements.in
 pkginfo==1.10.0
     # via twine
@@ -346,13 +346,13 @@ platformdirs==4.2.2
     #   virtualenv
 pluggy==1.5.0
     # via pytest
-polars==1.2.1
+polars==1.3.0
     # via -r requirements.in
-pre-commit==3.7.1
+pre-commit==3.8.0
     # via -r requirements.in
 prompt-toolkit==3.0.47
     # via ipython
-protobuf==5.27.2
+protobuf==5.27.3
     # via
     #   -r requirements.in
     #   ray
@@ -371,6 +371,9 @@ pyarrow==17.0.0
     # via
     #   -r requirements.in
     #   dask-expr
+    #   ibis-framework
+pyarrow-hotfix==0.6
+    # via ibis-framework
 pydantic==2.8.2
     # via
     #   -r requirements.in
@@ -444,7 +447,7 @@ pyzmq==26.0.3
     # via
     #   ipykernel
     #   jupyter-client
-ray==2.33.0
+ray==2.34.0
     # via -r requirements.in
 readme-renderer==44.0
     # via twine
@@ -525,17 +528,17 @@ sphinx-design==0.6.0
     # via -r requirements.in
 sphinx-docsearch==0.0.7
     # via -r requirements.in
-sphinxcontrib-applehelp==1.0.8
+sphinxcontrib-applehelp==2.0.0
     # via sphinx
-sphinxcontrib-devhelp==1.0.6
+sphinxcontrib-devhelp==2.0.0
     # via sphinx
-sphinxcontrib-htmlhelp==2.0.6
+sphinxcontrib-htmlhelp==2.1.0
     # via sphinx
 sphinxcontrib-jsmath==1.0.1
     # via sphinx
-sphinxcontrib-qthelp==1.0.8
+sphinxcontrib-qthelp==2.0.0
     # via sphinx
-sphinxcontrib-serializinghtml==1.1.10
+sphinxcontrib-serializinghtml==2.0.0
     # via sphinx
 sqlalchemy==2.0.31
     # via jupyter-cache
@@ -625,7 +628,7 @@ urllib3==2.2.2
     #   requests
     #   twine
     #   types-requests
-uvicorn==0.30.3
+uvicorn==0.30.4
     # via
     #   -r requirements.in
     #   fastapi

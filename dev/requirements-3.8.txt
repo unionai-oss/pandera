@@ -109,8 +109,12 @@ docutils==0.19
     #   readme-renderer
     #   recommonmark
     #   sphinx
-duckdb==1.0.0
-    # via -r requirements.in
+duckdb==0.10.3
+    # via
+    #   duckdb-engine
+    #   ibis-framework
+duckdb-engine==0.13.1
+    # via ibis-framework
 email-validator==2.2.0
     # via fastapi
 exceptiongroup==1.2.2
@@ -148,7 +152,7 @@ furo==2023.3.27
     # via -r requirements.in
 geopandas==0.13.2
     # via -r requirements.in
-grpcio==1.65.1
+grpcio==1.65.2
     # via -r requirements.in
 h11==0.14.0
     # via
@@ -160,7 +164,7 @@ httptools==0.6.1
     # via uvicorn
 httpx==0.27.0
     # via fastapi
-hypothesis==6.108.4
+hypothesis==6.108.5
     # via -r requirements.in
 ibis-framework==5.1.0
     # via -r requirements.in
@@ -325,14 +329,16 @@ numpy==1.24.4
     #   pyarrow
     #   scipy
     #   shapely
-packaging==24.1
+packaging==23.2
     # via
     #   -r requirements.in
     #   black
     #   build
     #   dask
     #   distributed
+    #   duckdb-engine
     #   geopandas
+    #   ibis-framework
     #   ipykernel
     #   modin
     #   nox
@@ -363,7 +369,7 @@ pexpect==4.9.0
     # via ipython
 pickleshare==0.7.5
     # via ipython
-pip==24.1.2
+pip==24.2
     # via -r requirements.in
 pkginfo==1.10.0
     # via twine
@@ -378,7 +384,7 @@ platformdirs==4.2.2
     #   virtualenv
 pluggy==1.5.0
     # via pytest
-polars==1.2.1
+polars==1.3.0
     # via -r requirements.in
 pooch==1.8.2
     # via ibis-framework
@@ -386,7 +392,7 @@ pre-commit==3.5.0
     # via -r requirements.in
 prompt-toolkit==3.0.47
     # via ipython
-protobuf==5.27.2
+protobuf==5.27.3
     # via
     #   -r requirements.in
     #   ray
@@ -401,8 +407,10 @@ pure-eval==0.2.3
     # via stack-data
 py4j==0.10.9.7
     # via pyspark
-pyarrow==17.0.0
-    # via -r requirements.in
+pyarrow==11.0.0
+    # via
+    #   -r requirements.in
+    #   ibis-framework
 pydantic==2.8.2
     # via
     #   -r requirements.in
@@ -572,7 +580,13 @@ sphinxcontrib-qthelp==1.0.3
 sphinxcontrib-serializinghtml==1.1.5
     # via sphinx
 sqlalchemy==2.0.31
-    # via jupyter-cache
+    # via
+    #   duckdb-engine
+    #   ibis-framework
+    #   jupyter-cache
+    #   sqlalchemy-views
+sqlalchemy-views==0.3.2
+    # via ibis-framework
 sqlglot==11.7.1
     # via ibis-framework
 stack-data==0.6.3
@@ -678,7 +692,7 @@ urllib3==2.2.2
     #   requests
     #   twine
     #   types-requests
-uvicorn==0.30.3
+uvicorn==0.30.4
     # via
     #   -r requirements.in
     #   fastapi
