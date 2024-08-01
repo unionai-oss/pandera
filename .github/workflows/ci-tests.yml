@@ -240,6 +240,10 @@ jobs:
           python-version: "3.8"
         - extra: ibis
           polars-version: "0.20.31"
+        - extra: ibis
+          python-version: "3.8"
+        - extra: ibis
+          python-version: "3.9"
 
     steps:
       - uses: actions/checkout@v4

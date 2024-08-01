@@ -129,7 +129,7 @@ furo==2024.8.6
     # via -r requirements.in
 geopandas==1.0.1
     # via -r requirements.in
-grpcio==1.65.4
+grpcio==1.65.5
     # via -r requirements.in
 h11==0.14.0
     # via uvicorn
@@ -430,7 +430,7 @@ pyyaml==6.0.2
     #   myst-parser
     #   pre-commit
     #   ray
-pyzmq==26.1.0
+pyzmq==26.1.1
     # via
     #   ipykernel
     #   jupyter-client
@@ -582,7 +582,7 @@ twine==5.1.1
     # via -r requirements.in
 typeguard==4.3.0
     # via -r requirements.in
-typer==0.12.3
+typer==0.12.4
     # via frictionless
 types-click==7.1.8
     # via -r requirements.in
@@ -594,7 +594,7 @@ types-pyyaml==6.0.12.20240808
     # via -r requirements.in
 types-requests==2.32.0.20240712
     # via -r requirements.in
-types-setuptools==71.1.0.20240813
+types-setuptools==71.1.0.20240818
     # via -r requirements.in
 typing-extensions==4.12.2
     # via
