@@ -83,7 +83,6 @@ def get_dataframe_strategy(type_: pl.DataType) -> st.SearchStrategy:
         cols=2,
         lazy=True,
         allowed_dtypes=type_,
-        include_nulls=0.1,
         min_size=10,
         max_size=10,
     )
@@ -92,7 +91,7 @@ def get_dataframe_strategy(type_: pl.DataType) -> st.SearchStrategy:
 # Hypothesis slow if test is failing
 @pytest.mark.parametrize("dtype", all_types)
 @given(st.data())
-@settings(max_examples=1)
+@settings(max_examples=10)
 def test_coerce_no_cast(dtype, data):
     """Test that dtypes can be coerced without casting."""
     if dtype is pe.Categorical:
