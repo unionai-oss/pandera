@@ -1214,7 +1214,7 @@ def test_rename_columns() -> None:
 
 
 @pytest.mark.parametrize(
-    "select_columns, schema",
+    "select_columns, schema, reorder, expected_order",
     [
         (
             ["col1", "col2"],
@@ -1225,6 +1225,20 @@ def test_rename_columns() -> None:
                     "col3": Column(int),
                 }
             ),
+            False,
+            ["col1", "col2"],
+        ),
+        (
+            ["col2", "col1"],
+            DataFrameSchema(
+                columns={
+                    "col1": Column(int),
+                    "col2": Column(int),
+                    "col3": Column(int),
+                }
+            ),
+            True,
+            ["col2", "col1"],
         ),
         (
             [("col1", "col1b"), ("col2", "col2b")],
@@ -1236,20 +1250,42 @@ def test_rename_columns() -> None:
                     ("col2", "col2b"): Column(int),
                 }
             ),
+            False,
+            [("col1", "col1b"), ("col2", "col2b")],
+        ),
+        (
+            [("col2", "col2b"), ("col1", "col1b")],
+            DataFrameSchema(
+                columns={
+                    ("col1", "col1a"): Column(int),
+                    ("col1", "col1b"): Column(int),
+                    ("col2", "col2a"): Column(int),
+                    ("col2", "col2b"): Column(int),
+                }
+            ),
+            True,
+            [("col2", "col2b"), ("col1", "col1b")],
         ),
     ],
 )
 def test_select_columns(
-    select_columns: List[Union[str, Tuple[str, str]]], schema: DataFrameSchema
+    select_columns: List[Union[str, Tuple[str, str]]],
+    schema: DataFrameSchema,
+    reorder: bool,
+    expected_order: List[Union[str, Tuple[str, str]]],
 ) -> None:
     """Check that select_columns method correctly creates new subset schema."""
     original_columns = list(schema.columns)
-    schema_selected = schema.select_columns(select_columns)
+    schema_selected = schema.select_columns(select_columns, reorder=reorder)
+
     assert all(x in select_columns for x in schema_selected.columns)
     assert all(x in original_columns for x in schema.columns)
 
+    assert list(schema_selected.columns) == expected_order
+    assert schema_selected.ordered == reorder
+
     with pytest.raises(errors.SchemaInitError):
-        schema.select_columns(["foo", "bar"])
+        schema.select_columns(["foo", "bar"], reorder=reorder)
 
 
 def test_lazy_dataframe_validation_error() -> None:

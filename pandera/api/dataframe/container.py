@@ -824,13 +824,14 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
         new_schema.columns = new_columns
         return cast(Self, new_schema)
 
-    def select_columns(self, columns: List[Any]) -> Self:
+    def select_columns(self, columns: List[Any], *, reorder: bool = False) -> Self:
         """Select subset of columns in the schema.
 
         *New in version 0.4.5*
 
         :param columns: list of column names to select.
-        :returns:  :class:`~pandera.api.dataframe.container.DataFrameSchema`
+        :param reorder: if True, reorder columns according to the order in `columns` list.
+        :returns: :class:`~pandera.api.dataframe.container.DataFrameSchema`
             (copy of original) with only the selected columns.
         :raises: :class:`~pandera.errors.SchemaInitError` if column not in the
             schema.
@@ -864,9 +865,31 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
             add_missing_columns=False
         )>
 
-        .. note:: If an index is present in the schema, it will also be
-            included in the new schema.
+        To subset and reorder columns:
 
+        >>> print(example_schema.select_columns(['probability', 'category'], reorder=True))
+        <Schema DataFrameSchema(
+            columns={
+                'probability': <Schema Column(name=probability, type=DataType(float64))>
+                'category': <Schema Column(name=category, type=DataType(str))>
+            },
+            checks=[],
+            parsers=[],
+            coerce=False,
+            dtype=None,
+            index=None,
+            strict=False,
+            name=None,
+            ordered=True,
+            unique_column_names=False,
+            metadata=None,
+            add_missing_columns=False
+        )>
+
+        .. note:: If an index is present in the schema, it will also be
+            included in the new schema. If ``reorder`` is ``True``, the
+            columns will be reordered to match the order in ``columns`` and
+            the schema will be set to ``ordered=True``.
         """
 
         new_schema = copy.deepcopy(self)
@@ -880,11 +903,18 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
                 f"Keys {not_in_cols} not found in schema columns!"
             )
 
-        new_columns = {
-            col_name: column
-            for col_name, column in self.columns.items()
-            if col_name in columns
-        }
+        if reorder:
+            new_columns = {
+                col_name: new_schema.columns[col_name] for col_name in columns
+            }
+            new_schema.ordered = True
+        else:
+            new_columns = {
+                col_name: column
+                for col_name, column in self.columns.items()
+                if col_name in columns
+            }
+
         new_schema.columns = new_columns
         return cast(Self, new_schema)
 
