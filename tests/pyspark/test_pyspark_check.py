@@ -32,6 +32,12 @@ from pandera.errors import PysparkSchemaError
 from pandera.pyspark import Column, DataFrameModel, DataFrameSchema, Field
 from pandera.validation_depth import ValidationScope
 
+# from .conftest import spark, spark_connect
+
+pytestmark = pytest.mark.parametrize(
+    "spark_session", ["spark", "spark_connect"]
+)
+
 
 @pytest.fixture(scope="function")
 def extra_registered_checks():
@@ -60,10 +66,11 @@ class TestDecorator:
     """This class is used to test the decorator to check datatype mismatches and unacceptable datatype"""
 
     @validate_scope(scope=ValidationScope.DATA)
-    def test_datatype_check_decorator(self, spark):
+    def test_datatype_check_decorator(self, spark_session, request):
         """
         Test to validate the decorator to check datatype mismatches and unacceptable datatype
         """
+        spark = request.getfixturevalue(spark_session)
         schema = DataFrameSchema(
             {
                 "product": Column(StringType()),
@@ -386,8 +393,11 @@ class TestEqualToCheck(BaseClass):
 
     @validate_scope(scope=ValidationScope.DATA)
     @pytest.mark.parametrize("check_fn", [pa.Check.equal_to, pa.Check.eq])
-    def test_equal_to_check(self, spark, check_fn, datatype, data) -> None:
+    def test_equal_to_check(
+        self, spark_session, check_fn, datatype, data, request
+    ) -> None:
         """Test the Check to see if all the values are equal to defined value"""
+        spark = request.getfixturevalue(spark_session)
         self.check_function(
             spark,
             check_fn,
@@ -400,9 +410,10 @@ class TestEqualToCheck(BaseClass):
     @validate_scope(scope=ValidationScope.DATA)
     @pytest.mark.parametrize("check_fn", [pa.Check.equal_to, pa.Check.eq])
     def test_failed_unaccepted_datatypes(
-        self, spark, check_fn, datatype, data
+        self, spark_session, check_fn, datatype, data, request
     ) -> None:
         """Test the Check to see if error is raised for datatypes which are not accepted for this function"""
+        spark = request.getfixturevalue(spark_session)
         with pytest.raises(TypeError):
             self.check_function(
                 spark,
@@ -514,8 +525,11 @@ class TestNotEqualToCheck(BaseClass):
 
     @validate_scope(scope=ValidationScope.DATA)
     @pytest.mark.parametrize("check_fn", [pa.Check.not_equal_to, pa.Check.ne])
-    def test_not_equal_to_check(self, spark, check_fn, datatype, data) -> None:
+    def test_not_equal_to_check(
+        self, spark_session, check_fn, datatype, data, request
+    ) -> None:
         """Test the Check to see if all the values are equal to defined value"""
+        spark = request.getfixturevalue(spark_session)
         self.check_function(
             spark,
             check_fn,
@@ -528,9 +542,10 @@ class TestNotEqualToCheck(BaseClass):
     @validate_scope(scope=ValidationScope.DATA)
     @pytest.mark.parametrize("check_fn", [pa.Check.not_equal_to, pa.Check.ne])
     def test_failed_unaccepted_datatypes(
-        self, spark, check_fn, datatype, data
+        self, spark_session, check_fn, datatype, data, request
     ) -> None:
         """Test the Check to see if error is raised for datatypes which are not accepted for this function"""
+        spark = request.getfixturevalue(spark_session)
         with pytest.raises(TypeError):
             self.check_function(
                 spark,
@@ -636,8 +651,11 @@ class TestGreaterThanCheck(BaseClass):
 
     @validate_scope(scope=ValidationScope.DATA)
     @pytest.mark.parametrize("check_fn", [pa.Check.greater_than, pa.Check.gt])
-    def test_greater_than_check(self, spark, check_fn, datatype, data) -> None:
+    def test_greater_than_check(
+        self, spark_session, check_fn, datatype, data, request
+    ) -> None:
         """Test the Check to see if all the values are equal to defined value"""
+        spark = request.getfixturevalue(spark_session)
         self.check_function(
             spark,
             check_fn,
@@ -650,9 +668,10 @@ class TestGreaterThanCheck(BaseClass):
     @validate_scope(scope=ValidationScope.DATA)
     @pytest.mark.parametrize("check_fn", [pa.Check.greater_than, pa.Check.gt])
     def test_failed_unaccepted_datatypes(
-        self, spark, check_fn, datatype, data
+        self, spark_session, check_fn, datatype, data, request
     ) -> None:
         """Test the Check to see if error is raised for datatypes which are not accepted for this function"""
+        spark = request.getfixturevalue(spark_session)
         with pytest.raises(TypeError):
             self.check_function(
                 spark,
@@ -761,9 +780,10 @@ class TestGreaterThanEqualToCheck(BaseClass):
         "check_fn", [pa.Check.greater_than_or_equal_to, pa.Check.ge]
     )
     def test_greater_than_or_equal_to_check(
-        self, spark, check_fn, datatype, data
+        self, spark_session, check_fn, datatype, data, request
     ) -> None:
         """Test the Check to see if all the values are equal to defined value"""
+        spark = request.getfixturevalue(spark_session)
         self.check_function(
             spark,
             check_fn,
@@ -778,9 +798,10 @@ class TestGreaterThanEqualToCheck(BaseClass):
         "check_fn", [pa.Check.greater_than_or_equal_to, pa.Check.ge]
     )
     def test_failed_unaccepted_datatypes(
-        self, spark, check_fn, datatype, data
+        self, spark_session, check_fn, datatype, data, request
     ) -> None:
         """Test the Check to see if error is raised for datatypes which are not accepted for this function"""
+        spark = request.getfixturevalue(spark_session)
         with pytest.raises(TypeError):
             self.check_function(
                 spark,
@@ -898,8 +919,11 @@ class TestLessThanCheck(BaseClass):
 
     @validate_scope(scope=ValidationScope.DATA)
     @pytest.mark.parametrize("check_fn", [pa.Check.less_than, pa.Check.lt])
-    def test_less_than_check(self, spark, check_fn, datatype, data) -> None:
+    def test_less_than_check(
+        self, spark_session, check_fn, datatype, data, request
+    ) -> None:
         """Test the Check to see if all the values are equal to defined value"""
+        spark = request.getfixturevalue(spark_session)
         self.check_function(
             spark,
             check_fn,
@@ -912,9 +936,10 @@ class TestLessThanCheck(BaseClass):
     @validate_scope(scope=ValidationScope.DATA)
     @pytest.mark.parametrize("check_fn", [pa.Check.less_than, pa.Check.lt])
     def test_failed_unaccepted_datatypes(
-        self, spark, check_fn, datatype, data
+        self, spark_session, check_fn, datatype, data, request
     ) -> None:
         """Test the Check to see if error is raised for datatypes which are not accepted for this function"""
+        spark = request.getfixturevalue(spark_session)
         with pytest.raises(TypeError):
             self.check_function(
                 spark,
@@ -928,9 +953,10 @@ class TestLessThanCheck(BaseClass):
     @validate_scope(scope=ValidationScope.DATA)
     @pytest.mark.parametrize("check_fn", [pa.Check.less_than, pa.Check.lt])
     def test_failed_none_expression(
-        self, spark, check_fn, datatype, data
+        self, spark_session, check_fn, datatype, data, request
     ) -> None:
         """Test the Check to see if error is raised for datatypes which are not accepted for this function"""
+        spark = request.getfixturevalue(spark_session)
         with pytest.raises(ValueError):
             self.check_function(
                 spark,
@@ -1051,9 +1077,10 @@ class TestLessThanOrEqualToCheck(BaseClass):
         "check_fn", [pa.Check.less_than_or_equal_to, pa.Check.le]
     )
     def test_less_than_or_equal_to_check(
-        self, spark, check_fn, datatype, data
+        self, spark_session, check_fn, datatype, data, request
     ) -> None:
         """Test the Check to see if all the values are equal to defined value"""
+        spark = request.getfixturevalue(spark_session)
         self.check_function(
             spark,
             check_fn,
@@ -1068,9 +1095,10 @@ class TestLessThanOrEqualToCheck(BaseClass):
         "check_fn", [pa.Check.less_than_or_equal_to, pa.Check.le]
     )
     def test_failed_unaccepted_datatypes(
-        self, spark, check_fn, datatype, data
+        self, spark_session, check_fn, datatype, data, request
     ) -> None:
         """Test the Check to see if error is raised for datatypes which are not accepted for this function"""
+        spark = request.getfixturevalue(spark_session)
         with pytest.raises(TypeError):
             self.check_function(
                 spark,
@@ -1086,9 +1114,10 @@ class TestLessThanOrEqualToCheck(BaseClass):
         "check_fn", [pa.Check.less_than_or_equal_to, pa.Check.le]
     )
     def test_failed_none_expression(
-        self, spark, check_fn, datatype, data
+        self, spark_session, check_fn, datatype, data, request
     ) -> None:
         """Test the Check to see if error is raised for datatypes which are not accepted for this function"""
+        spark = request.getfixturevalue(spark_session)
         with pytest.raises(ValueError):
             self.check_function(
                 spark,
@@ -1209,8 +1238,9 @@ class TestIsInCheck(BaseClass):
         }
 
     @validate_scope(scope=ValidationScope.DATA)
-    def test_isin_check(self, spark, datatype, data) -> None:
+    def test_isin_check(self, spark_session, datatype, data, request) -> None:
         """Test the Check to see if all the values are is in the defined value"""
+        spark = request.getfixturevalue(spark_session)
         self.check_function(
             spark,
             pa.Check.isin,
@@ -1221,8 +1251,11 @@ class TestIsInCheck(BaseClass):
         )
 
     @validate_scope(scope=ValidationScope.DATA)
-    def test_failed_unaccepted_datatypes(self, spark, datatype, data) -> None:
+    def test_failed_unaccepted_datatypes(
+        self, spark_session, datatype, data, request
+    ) -> None:
         """Test the Check to see if error is raised for datatypes which are not accepted for this function"""
+        spark = request.getfixturevalue(spark_session)
         with pytest.raises(TypeError):
             self.check_function(
                 spark,
@@ -1335,9 +1368,9 @@ class TestNotInCheck(BaseClass):
         }
 
     @validate_scope(scope=ValidationScope.DATA)
-    def test_notin_check(self, spark, datatype, data) -> None:
+    def test_notin_check(self, spark_session, datatype, data, request) -> None:
         """Test the Check to see if all the values are equal to defined value"""
-
+        spark = request.getfixturevalue(spark_session)
         self.check_function(
             spark,
             pa.Check.notin,
@@ -1348,8 +1381,11 @@ class TestNotInCheck(BaseClass):
         )
 
     @validate_scope(scope=ValidationScope.DATA)
-    def test_failed_unaccepted_datatypes(self, spark, datatype, data) -> None:
+    def test_failed_unaccepted_datatypes(
+        self, spark_session, datatype, data, request
+    ) -> None:
         """Test the Check to see if error is raised for datatypes which are not accepted for this function"""
+        spark = request.getfixturevalue(spark_session)
         with pytest.raises(TypeError):
             self.check_function(
                 spark,
@@ -1365,8 +1401,9 @@ class TestStringType(BaseClass):
     """This class is used to test the string types checks"""
 
     @validate_scope(scope=ValidationScope.DATA)
-    def test_str_startswith_check(self, spark) -> None:
+    def test_str_startswith_check(self, spark_session, request) -> None:
         """Test the Check to see if any value is not in the specified value"""
+        spark = request.getfixturevalue(spark_session)
         check_func = pa.Check.str_startswith
         check_value = "B"
 
@@ -1377,8 +1414,9 @@ class TestStringType(BaseClass):
         )
 
     @validate_scope(scope=ValidationScope.DATA)
-    def test_str_endswith_check(self, spark) -> None:
+    def test_str_endswith_check(self, spark_session, request) -> None:
         """Test the Check to see if any value is not in the specified value"""
+        spark = request.getfixturevalue(spark_session)
         check_func = pa.Check.str_endswith
         check_value = "d"
 
@@ -1389,8 +1427,9 @@ class TestStringType(BaseClass):
         )
 
     @validate_scope(scope=ValidationScope.DATA)
-    def test_str_contains_check(self, spark) -> None:
+    def test_str_contains_check(self, spark_session, request) -> None:
         """Test the Check to see if any value is not in the specified value"""
+        spark = request.getfixturevalue(spark_session)
         check_func = pa.Check.str_contains
         check_value = "Ba"
 
@@ -1507,9 +1546,10 @@ class TestInRangeCheck(BaseClass):
 
     @validate_scope(scope=ValidationScope.DATA)
     def test_inrange_exclude_min_max_check(
-        self, spark, datatype, data
+        self, spark_session, datatype, data, request
     ) -> None:
         """Test the Check to see if any value is not in the specified value"""
+        spark = request.getfixturevalue(spark_session)
         min_val, max_val, add_value = self.create_min_max(data)
         self.check_function(
             spark,
@@ -1522,9 +1562,10 @@ class TestInRangeCheck(BaseClass):
 
     @validate_scope(scope=ValidationScope.DATA)
     def test_inrange_exclude_min_only_check(
-        self, spark, datatype, data
+        self, spark_session, datatype, data, request
     ) -> None:
         """Test the Check to see if any value is not in the specified value"""
+        spark = request.getfixturevalue(spark_session)
         min_val, max_val, add_value = self.create_min_max(data)
         self.check_function(
             spark,
@@ -1537,9 +1578,10 @@ class TestInRangeCheck(BaseClass):
 
     @validate_scope(scope=ValidationScope.DATA)
     def test_inrange_exclude_max_only_check(
-        self, spark, datatype, data
+        self, spark_session, datatype, data, request
     ) -> None:
         """Test the Check to see if any value is not in the specified value"""
+        spark = request.getfixturevalue(spark_session)
         min_val, max_val, add_value = self.create_min_max(data)
         self.check_function(
             spark,
@@ -1552,9 +1594,10 @@ class TestInRangeCheck(BaseClass):
 
     @validate_scope(scope=ValidationScope.DATA)
     def test_inrange_include_min_max_check(
-        self, spark, datatype, data
+        self, spark_session, datatype, data, request
     ) -> None:
         """Test the Check to see if any value is not in the specified value"""
+        spark = request.getfixturevalue(spark_session)
         (
             min_val,
             max_val,
@@ -1570,8 +1613,11 @@ class TestInRangeCheck(BaseClass):
         )
 
     @validate_scope(scope=ValidationScope.DATA)
-    def test_failed_unaccepted_datatypes(self, spark, datatype, data) -> None:
+    def test_failed_unaccepted_datatypes(
+        self, spark_session, datatype, data, request
+    ) -> None:
         """Test the Check to see if error is raised for datatypes which are not accepted for this function"""
+        spark = request.getfixturevalue(spark_session)
         with pytest.raises(TypeError):
             self.check_function(
                 spark,
@@ -1599,7 +1645,6 @@ class TestCustomCheck(BaseClass):
         """
         This function does performs the actual validation
         """
-
         spark_schema = StructType(
             [
                 StructField("product", StringType(), False),
@@ -1621,9 +1666,10 @@ class TestCustomCheck(BaseClass):
                 raise PysparkSchemaError
 
     def test_extension(
-        self, spark, extra_registered_checks
+        self, spark_session, extra_registered_checks, request
     ):  # pylint: disable=unused-argument
         """Test custom extension with DataFrameSchema way of defining schema"""
+        spark = request.getfixturevalue(spark_session)
         schema = DataFrameSchema(
             {
                 "product": Column(StringType()),
@@ -1644,9 +1690,10 @@ class TestCustomCheck(BaseClass):
         )
 
     def test_extension_pydantic(
-        self, spark, extra_registered_checks
+        self, spark_session, extra_registered_checks, request
     ):  # pylint: disable=unused-argument
         """Test custom extension with DataFrameModel way of defining schema"""
+        spark = request.getfixturevalue(spark_session)
 
         class Schema(DataFrameModel):
             """Test Schema"""

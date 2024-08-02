@@ -18,8 +18,14 @@ from pandera.errors import SchemaDefinitionError
 from pandera.pyspark import DataFrameModel, DataFrameSchema, Field
 from tests.pyspark.conftest import spark_df
 
+pytestmark = pytest.mark.parametrize(
+    "spark_session", ["spark", "spark_connect"]
+)
 
-def test_schema_with_bare_types():
+
+def test_schema_with_bare_types(
+    spark_session,  # pylint:disable=unused-argument
+):
     """
     Test that DataFrameModel can be defined without generics.
     """
@@ -45,7 +51,9 @@ def test_schema_with_bare_types():
     assert expected == Model.to_schema()
 
 
-def test_schema_with_bare_types_and_field():
+def test_schema_with_bare_types_and_field(
+    spark_session,  # pylint:disable=unused-argument
+):
     """
     Test that DataFrameModel can be defined without generics.
     """
@@ -70,10 +78,11 @@ def test_schema_with_bare_types_and_field():
     assert expected == Model.to_schema()
 
 
-def test_schema_with_bare_types_field_and_checks(spark):
+def test_schema_with_bare_types_field_and_checks(spark_session, request):
     """
     Test that DataFrameModel can be defined without generics.
     """
+    spark = request.getfixturevalue(spark_session)
 
     class Model(DataFrameModel):
         """Model Schema"""
@@ -109,10 +118,11 @@ def test_schema_with_bare_types_field_and_checks(spark):
     assert df_out.pandera.errors is not None
 
 
-def test_schema_with_bare_types_field_type(spark):
+def test_schema_with_bare_types_field_type(spark_session, request):
     """
     Test that DataFrameModel can be defined without generics.
     """
+    spark = request.getfixturevalue(spark_session)
 
     class Model(DataFrameModel):
         """Model Schema"""
@@ -136,10 +146,11 @@ def test_schema_with_bare_types_field_type(spark):
     assert df_out.pandera.errors is not None
 
 
-def test_pyspark_bare_fields(spark):
+def test_pyspark_bare_fields(spark_session, request):
     """
     Test schema and data level checks
     """
+    spark = request.getfixturevalue(spark_session)
 
     class PanderaSchema(DataFrameModel):
         """Test schema"""
@@ -185,7 +196,9 @@ def test_pyspark_bare_fields(spark):
     assert df_out.pandera.errors is not None
 
 
-def test_pyspark_fields_metadata():
+def test_pyspark_fields_metadata(
+    spark_session,  # pylint:disable=unused-argument
+):
     """
     Test schema and metadata on field
     """
@@ -245,9 +258,9 @@ def test_pyspark_fields_metadata():
     ],
     ids=["no_data", "unique_data", "duplicated_data"],
 )
-def test_dataframe_schema_unique(spark, data, expectation):
+def test_dataframe_schema_unique(spark_session, data, expectation, request):
     """Test uniqueness checks on pyspark dataframes."""
-
+    spark = request.getfixturevalue(spark_session)
     df = spark.createDataFrame(data, "a: int, b: int")
 
     # Test `unique` configuration with a single column
@@ -304,9 +317,11 @@ def test_dataframe_schema_unique(spark, data, expectation):
         "multiple_wrong_columns_w_empty",
     ],
 )
-def test_dataframe_schema_unique_wrong_column(spark, unique_column_name):
+def test_dataframe_schema_unique_wrong_column(
+    spark_session, unique_column_name, request
+):
     """Test uniqueness checks on pyspark dataframes."""
-
+    spark = request.getfixturevalue(spark_session)
     df = spark.createDataFrame(([1, 2],), "a: int, b: int")
 
     # Test `unique` configuration with a single, wrongly named column
@@ -325,11 +340,14 @@ def test_dataframe_schema_unique_wrong_column(spark, unique_column_name):
         _ = UniqueMultipleColumns.validate(check_obj=df)
 
 
-def test_dataframe_schema_strict(spark, config_params: PanderaConfig) -> None:
+def test_dataframe_schema_strict(
+    spark_session, config_params: PanderaConfig, request
+) -> None:
     """
     Checks if strict=True whether a schema error is raised because either extra columns are present in the dataframe
     or missing columns in dataframe
     """
+    spark = request.getfixturevalue(spark_session)
     if config_params.validation_depth != ValidationDepth.DATA_ONLY:
         schema = DataFrameSchema(
             {
@@ -376,7 +394,9 @@ def test_dataframe_schema_strict(spark, config_params: PanderaConfig) -> None:
                 raise pa.PysparkSchemaError
 
 
-def test_docstring_substitution() -> None:
+def test_docstring_substitution(
+    spark_session,  # pylint:disable=unused-argument
+) -> None:
     """Test the docstring substitution decorator"""
 
     @docstring_substitution(
@@ -417,7 +437,10 @@ def test_schema():
     return Schema
 
 
-def test_optional_column(test_schema_optional_columns) -> None:
+def test_optional_column(
+    test_schema_optional_columns,
+    spark_session,  # pylint:disable=unused-argument
+) -> None:
     """Test that optional columns are not required."""
 
     schema = test_schema_optional_columns.to_schema()
@@ -433,10 +456,10 @@ def test_optional_column(test_schema_optional_columns) -> None:
 
 
 def test_validation_succeeds_with_missing_optional_column(
-    spark, test_schema_optional_columns
+    spark_session, test_schema_optional_columns, request
 ) -> None:
     """Test that validation succeeds even when an optional column is missing."""
-
+    spark = request.getfixturevalue(spark_session)
     data = [("5", "b"), ("15", "b")]
     spark_schema = T.StructType(
         [
@@ -454,7 +477,9 @@ def test_validation_succeeds_with_missing_optional_column(
     ), "No error should be raised in case of a missing optional column."
 
 
-def test_invalid_field() -> None:
+def test_invalid_field(
+    spark_session,  # pylint:disable=unused-argument
+) -> None:
     """Test that invalid feilds raises a schemaInitError."""
 
     class Schema(DataFrameModel):  # pylint:disable=missing-class-docstring
@@ -467,8 +492,12 @@ def test_invalid_field() -> None:
         Schema.to_schema()
 
 
-def test_registered_dataframemodel_checks(spark) -> None:
+# For the second parameterized `spark_session` run, `@pax.register_check_method` will
+# raise a ValueError due to duplicate registration
+@pytest.mark.xfail(raises=ValueError)
+def test_registered_dataframemodel_checks(spark_session, request) -> None:
     """Check that custom registered checks work"""
+    spark = request.getfixturevalue(spark_session)
 
     @pax.register_check_method(
         supported_types=DataFrame,
@@ -497,8 +526,10 @@ def test_registered_dataframemodel_checks(spark) -> None:
     assert not out.pandera.errors
 
 
-@pytest.fixture(scope="module")
-def model_with_datatypes():
+@pytest.fixture(scope="function")
+def model_with_datatypes(
+    spark_session,  # pylint:disable=unused-argument
+):
     """
     Model containing all common datatypes for PySpark namespace.
     """
@@ -527,8 +558,10 @@ def model_with_datatypes():
     return SchemaWithDatatypes
 
 
-@pytest.fixture(scope="module")
-def model_with_multiple_parent_classes():
+@pytest.fixture(scope="function")
+def model_with_multiple_parent_classes(
+    spark_session,  # pylint:disable=unused-argument
+):
     """
     Model inherited from multiple parent classes.
     """
@@ -561,7 +594,10 @@ def model_with_multiple_parent_classes():
     return BaseClassFinal
 
 
-def test_schema_to_structtype(model_with_datatypes):
+def test_schema_to_structtype(
+    model_with_datatypes,
+    spark_session,  # pylint:disable=unused-argument
+):
     """
     Test the conversion from a model to a StructType object through `to_structtype()`.
     """
@@ -619,7 +655,10 @@ def test_schema_to_structtype(model_with_datatypes):
     )
 
 
-def test_schema_to_ddl(model_with_datatypes):
+def test_schema_to_ddl(
+    model_with_datatypes,
+    spark_session,  # pylint:disable=unused-argument
+):
     """
     Test the conversion from a model to a DDL string through `to_ddl()`.
     """
@@ -646,7 +685,10 @@ def test_schema_to_ddl(model_with_datatypes):
     )
 
 
-def test_inherited_schema_to_structtype(model_with_multiple_parent_classes):
+def test_inherited_schema_to_structtype(
+    model_with_multiple_parent_classes,
+    spark_session,  # pylint:disable=unused-argument
+):
     """
     Test the final inheritance for a model with a longer parent class structure.
     """

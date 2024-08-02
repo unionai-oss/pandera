@@ -16,7 +16,7 @@ pyarrow
 pydantic
 multimethod <= 1.10.0
 pandas-stubs
-pyspark >= 3.2.0
+pyspark[connect] >= 3.2.0
 polars >= 0.20.0
 modin
 protobuf
@@ -56,6 +56,6 @@ ray
 typeguard
 types-click
 types-pyyaml
-types-pkg_resources
+types-setuptools
 types-requests
 types-pytz

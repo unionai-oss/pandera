@@ -50,7 +50,7 @@ repos:
       - id: mypy
         additional_dependencies:
           - types-click
-          - types-pkg_resources
+          - types-setuptools
           - types-pytz
           - types-pyyaml
           - types-requests
