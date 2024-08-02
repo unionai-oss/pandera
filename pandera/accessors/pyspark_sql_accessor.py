@@ -2,8 +2,10 @@
 """
 
 import warnings
+from packaging import version
 from typing import Optional
 
+import pyspark
 from pandera.api.base.error_handler import ErrorHandler
 from pandera.api.pyspark.container import DataFrameSchema
 
@@ -104,7 +106,7 @@ def _register_accessor(name, cls):
 
 def register_dataframe_accessor(name):
     """
-    Register a custom accessor with a DataFrame
+    Register a custom accessor with a classical Spark DataFrame
 
     :param name: name used when calling the accessor after its registered
     :returns: a class decorator callable.
@@ -113,6 +115,19 @@ def register_dataframe_accessor(name):
     from pyspark.sql import DataFrame
 
     return _register_accessor(name, DataFrame)
+
+
+def register_connect_dataframe_accessor(name):
+    """
+    Register a custom accessor with a Spark Connect DataFrame
+
+    :param name: name used when calling the accessor after its registered
+    :returns: a class decorator callable.
+    """
+    # pylint: disable=import-outside-toplevel
+    from pyspark.sql.connect.dataframe import DataFrame as psc_DataFrame
+
+    return _register_accessor(name, psc_DataFrame)
 
 
 class PanderaDataFrameAccessor(PanderaAccessor):
@@ -127,3 +142,6 @@ class PanderaDataFrameAccessor(PanderaAccessor):
 
 
 register_dataframe_accessor("pandera")(PanderaDataFrameAccessor)
+# Handle optional Spark Connect imports for pyspark>=3.4 (if available)
+if version.parse(pyspark.__version__) >= version.parse("3.4"):
+    register_connect_dataframe_accessor("pandera")(PanderaDataFrameAccessor)
