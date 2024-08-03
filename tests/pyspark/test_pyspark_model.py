@@ -493,7 +493,7 @@ def test_invalid_field(
 
 
 # For the second parameterized `spark_session` run, `@pax.register_check_method` will
-# raise a ValueError due to duplicate registration
+# raise a ValueError due to a duplicated registration tentative
 @pytest.mark.xfail(raises=ValueError)
 def test_registered_dataframemodel_checks(spark_session, request) -> None:
     """Check that custom registered checks work"""

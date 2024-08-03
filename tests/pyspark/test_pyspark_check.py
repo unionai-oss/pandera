@@ -32,8 +32,6 @@ from pandera.errors import PysparkSchemaError
 from pandera.pyspark import Column, DataFrameModel, DataFrameSchema, Field
 from pandera.validation_depth import ValidationScope
 
-# from .conftest import spark, spark_connect
-
 pytestmark = pytest.mark.parametrize(
     "spark_session", ["spark", "spark_connect"]
 )

@@ -13,7 +13,6 @@ astroid==2.15.8
 asttokens==2.4.1
     # via stack-data
 asv==0.6.3
-    # via -r /var/folders/wr/z1ppjzsd7w3f2x3r921cv4gw0000gn/T/tmprcp5os8n
 asv-runner==0.2.1
     # via asv
 attrs==23.2.0
@@ -29,7 +28,6 @@ backports-tarfile==1.2.0
 beautifulsoup4==4.12.3
     # via furo
 black==24.8.0
-    # via -r /var/folders/wr/z1ppjzsd7w3f2x3r921cv4gw0000gn/T/tmprcp5os8n
 build==1.2.1
     # via asv
 certifi==2024.7.4
@@ -66,7 +64,6 @@ coverage==7.6.0
     # via pytest-cov
 dask==2024.7.1
     # via
-    #   -r /var/folders/wr/z1ppjzsd7w3f2x3r921cv4gw0000gn/T/tmprcp5os8n
     #   dask-expr
     #   distributed
 dask-expr==1.1.9
@@ -80,7 +77,6 @@ dill==0.3.8
 distlib==0.3.8
     # via virtualenv
 distributed==2024.7.1
-    # via -r /var/folders/wr/z1ppjzsd7w3f2x3r921cv4gw0000gn/T/tmprcp5os8n
 docutils==0.21.2
     # via
     #   myst-parser
@@ -92,7 +88,6 @@ execnet==2.1.1
 executing==2.0.1
     # via stack-data
 fastapi==0.112.0
-    # via -r /var/folders/wr/z1ppjzsd7w3f2x3r921cv4gw0000gn/T/tmprcp5os8n
 fastjsonschema==2.20.0
     # via nbformat
 filelock==3.15.4
@@ -100,7 +95,6 @@ filelock==3.15.4
     #   ray
     #   virtualenv
 frictionless==4.40.8
-    # via -r /var/folders/wr/z1ppjzsd7w3f2x3r921cv4gw0000gn/T/tmprcp5os8n
 frozenlist==1.4.1
     # via
     #   aiosignal
@@ -110,16 +104,13 @@ fsspec==2024.6.1
     #   dask
     #   modin
 furo==2024.7.18
-    # via -r /var/folders/wr/z1ppjzsd7w3f2x3r921cv4gw0000gn/T/tmprcp5os8n
 geopandas==1.0.1
-    # via -r /var/folders/wr/z1ppjzsd7w3f2x3r921cv4gw0000gn/T/tmprcp5os8n
 googleapis-common-protos==1.63.2
     # via
     #   grpcio-status
     #   pyspark
 grpcio==1.65.4
     # via
-    #   -r /var/folders/wr/z1ppjzsd7w3f2x3r921cv4gw0000gn/T/tmprcp5os8n
     #   grpcio-status
     #   pyspark
 grpcio-status==1.65.4
@@ -127,7 +118,6 @@ grpcio-status==1.65.4
 h11==0.14.0
     # via uvicorn
 hypothesis==6.108.5
-    # via -r /var/folders/wr/z1ppjzsd7w3f2x3r921cv4gw0000gn/T/tmprcp5os8n
 identify==2.6.0
     # via pre-commit
 idna==3.7
@@ -138,7 +128,6 @@ imagesize==1.4.1
     # via sphinx
 importlib-metadata==8.2.0
     # via
-    #   -r /var/folders/wr/z1ppjzsd7w3f2x3r921cv4gw0000gn/T/tmprcp5os8n
     #   asv-runner
     #   dask
     #   jupyter-cache
@@ -157,7 +146,6 @@ isodate==0.6.1
     # via frictionless
 isort==5.13.2
     # via
-    #   -r /var/folders/wr/z1ppjzsd7w3f2x3r921cv4gw0000gn/T/tmprcp5os8n
     #   pylint
 jaraco-classes==3.4.0
     # via keyring
@@ -174,7 +162,6 @@ jinja2==3.1.4
     #   myst-parser
     #   sphinx
 joblib==1.4.2
-    # via -r /var/folders/wr/z1ppjzsd7w3f2x3r921cv4gw0000gn/T/tmprcp5os8n
 json5==0.9.25
     # via asv
 jsonschema==4.23.0
@@ -196,7 +183,7 @@ jupyter-core==5.7.2
     #   jupyter-client
     #   nbclient
     #   nbformat
-keyring==25.2.1
+keyring==25.3.0
     # via twine
 lazy-object-proxy==1.10.0
     # via astroid
@@ -224,7 +211,6 @@ mdit-py-plugins==0.4.1
 mdurl==0.1.2
     # via markdown-it-py
 modin==0.31.0
-    # via -r /var/folders/wr/z1ppjzsd7w3f2x3r921cv4gw0000gn/T/tmprcp5os8n
 more-itertools==10.3.0
     # via
     #   jaraco-classes
@@ -234,16 +220,13 @@ msgpack==1.0.8
     #   distributed
     #   ray
 multimethod==1.10
-    # via -r /var/folders/wr/z1ppjzsd7w3f2x3r921cv4gw0000gn/T/tmprcp5os8n
 mypy==1.10.0
-    # via -r /var/folders/wr/z1ppjzsd7w3f2x3r921cv4gw0000gn/T/tmprcp5os8n
 mypy-extensions==1.0.0
     # via
     #   black
     #   mypy
     #   typing-inspect
 myst-nb==1.1.1
-    # via -r /var/folders/wr/z1ppjzsd7w3f2x3r921cv4gw0000gn/T/tmprcp5os8n
 myst-parser==3.0.1
     # via myst-nb
 nbclient==0.10.0
@@ -262,10 +245,8 @@ nh3==0.2.18
 nodeenv==1.9.1
     # via pre-commit
 nox==2024.4.15
-    # via -r /var/folders/wr/z1ppjzsd7w3f2x3r921cv4gw0000gn/T/tmprcp5os8n
 numpy==2.0.1
     # via
-    #   -r /var/folders/wr/z1ppjzsd7w3f2x3r921cv4gw0000gn/T/tmprcp5os8n
     #   dask
     #   geopandas
     #   modin
@@ -278,7 +259,6 @@ numpy==2.0.1
     #   shapely
 packaging==24.1
     # via
-    #   -r /var/folders/wr/z1ppjzsd7w3f2x3r921cv4gw0000gn/T/tmprcp5os8n
     #   black
     #   build
     #   dask
@@ -293,14 +273,12 @@ packaging==24.1
     #   sphinx
 pandas==2.2.2
     # via
-    #   -r /var/folders/wr/z1ppjzsd7w3f2x3r921cv4gw0000gn/T/tmprcp5os8n
     #   dask
     #   dask-expr
     #   geopandas
     #   modin
     #   pyspark
 pandas-stubs==2.2.2.240603
-    # via -r /var/folders/wr/z1ppjzsd7w3f2x3r921cv4gw0000gn/T/tmprcp5os8n
 parso==0.8.4
     # via jedi
 partd==1.4.2
@@ -312,7 +290,6 @@ petl==1.7.15
 pexpect==4.9.0
     # via ipython
 pip==24.2
-    # via -r /var/folders/wr/z1ppjzsd7w3f2x3r921cv4gw0000gn/T/tmprcp5os8n
 pkginfo==1.10.0
     # via twine
 platformdirs==4.2.2
@@ -324,14 +301,11 @@ platformdirs==4.2.2
 pluggy==1.5.0
     # via pytest
 polars==1.4.0
-    # via -r /var/folders/wr/z1ppjzsd7w3f2x3r921cv4gw0000gn/T/tmprcp5os8n
 pre-commit==3.8.0
-    # via -r /var/folders/wr/z1ppjzsd7w3f2x3r921cv4gw0000gn/T/tmprcp5os8n
 prompt-toolkit==3.0.47
     # via ipython
 protobuf==5.27.3
     # via
-    #   -r /var/folders/wr/z1ppjzsd7w3f2x3r921cv4gw0000gn/T/tmprcp5os8n
     #   googleapis-common-protos
     #   grpcio-status
     #   ray
@@ -348,12 +322,10 @@ py4j==0.10.9.7
     # via pyspark
 pyarrow==17.0.0
     # via
-    #   -r /var/folders/wr/z1ppjzsd7w3f2x3r921cv4gw0000gn/T/tmprcp5os8n
     #   dask-expr
     #   pyspark
 pydantic==1.10.11
     # via
-    #   -r /var/folders/wr/z1ppjzsd7w3f2x3r921cv4gw0000gn/T/tmprcp5os8n
     #   fastapi
 pygments==2.18.0
     # via
@@ -363,7 +335,6 @@ pygments==2.18.0
     #   rich
     #   sphinx
 pylint==2.17.3
-    # via -r /var/folders/wr/z1ppjzsd7w3f2x3r921cv4gw0000gn/T/tmprcp5os8n
 pympler==1.1
     # via asv
 pyogrio==0.9.0
@@ -373,35 +344,27 @@ pyproj==3.6.1
 pyproject-hooks==1.1.0
     # via build
 pyspark==3.5.1
-    # via -r /var/folders/wr/z1ppjzsd7w3f2x3r921cv4gw0000gn/T/tmprcp5os8n
 pytest==8.3.2
     # via
-    #   -r /var/folders/wr/z1ppjzsd7w3f2x3r921cv4gw0000gn/T/tmprcp5os8n
     #   pytest-asyncio
     #   pytest-cov
     #   pytest-xdist
 pytest-asyncio==0.23.8
-    # via -r /var/folders/wr/z1ppjzsd7w3f2x3r921cv4gw0000gn/T/tmprcp5os8n
 pytest-cov==5.0.0
-    # via -r /var/folders/wr/z1ppjzsd7w3f2x3r921cv4gw0000gn/T/tmprcp5os8n
 pytest-xdist==3.6.1
-    # via -r /var/folders/wr/z1ppjzsd7w3f2x3r921cv4gw0000gn/T/tmprcp5os8n
 python-dateutil==2.9.0.post0
     # via
     #   frictionless
     #   jupyter-client
     #   pandas
 python-multipart==0.0.9
-    # via -r /var/folders/wr/z1ppjzsd7w3f2x3r921cv4gw0000gn/T/tmprcp5os8n
 python-slugify==8.0.4
     # via frictionless
 pytz==2024.1
     # via
-    #   -r /var/folders/wr/z1ppjzsd7w3f2x3r921cv4gw0000gn/T/tmprcp5os8n
     #   pandas
 pyyaml==6.0.1
     # via
-    #   -r /var/folders/wr/z1ppjzsd7w3f2x3r921cv4gw0000gn/T/tmprcp5os8n
     #   asv
     #   dask
     #   distributed
@@ -416,11 +379,9 @@ pyzmq==26.0.3
     #   ipykernel
     #   jupyter-client
 ray==2.34.0
-    # via -r /var/folders/wr/z1ppjzsd7w3f2x3r921cv4gw0000gn/T/tmprcp5os8n
 readme-renderer==44.0
     # via twine
 recommonmark==0.7.1
-    # via -r /var/folders/wr/z1ppjzsd7w3f2x3r921cv4gw0000gn/T/tmprcp5os8n
 referencing==0.35.1
     # via
     #   jsonschema
@@ -447,10 +408,8 @@ rpds-py==0.19.1
     #   jsonschema
     #   referencing
 scipy==1.14.0
-    # via -r /var/folders/wr/z1ppjzsd7w3f2x3r921cv4gw0000gn/T/tmprcp5os8n
 shapely==2.0.5
     # via
-    #   -r /var/folders/wr/z1ppjzsd7w3f2x3r921cv4gw0000gn/T/tmprcp5os8n
     #   geopandas
 shellingham==1.5.4
     # via typer
@@ -473,7 +432,6 @@ soupsieve==2.5
     # via beautifulsoup4
 sphinx==7.3.7
     # via
-    #   -r /var/folders/wr/z1ppjzsd7w3f2x3r921cv4gw0000gn/T/tmprcp5os8n
     #   furo
     #   myst-nb
     #   myst-parser
@@ -484,15 +442,11 @@ sphinx==7.3.7
     #   sphinx-design
     #   sphinx-docsearch
 sphinx-autodoc-typehints==1.14.1
-    # via -r /var/folders/wr/z1ppjzsd7w3f2x3r921cv4gw0000gn/T/tmprcp5os8n
 sphinx-basic-ng==1.0.0b2
     # via furo
 sphinx-copybutton==0.5.2
-    # via -r /var/folders/wr/z1ppjzsd7w3f2x3r921cv4gw0000gn/T/tmprcp5os8n
 sphinx-design==0.6.1
-    # via -r /var/folders/wr/z1ppjzsd7w3f2x3r921cv4gw0000gn/T/tmprcp5os8n
 sphinx-docsearch==0.0.7
-    # via -r /var/folders/wr/z1ppjzsd7w3f2x3r921cv4gw0000gn/T/tmprcp5os8n
 sphinxcontrib-applehelp==2.0.0
     # via sphinx
 sphinxcontrib-devhelp==2.0.0
@@ -547,26 +501,18 @@ traitlets==5.14.3
     #   nbclient
     #   nbformat
 twine==5.1.1
-    # via -r /var/folders/wr/z1ppjzsd7w3f2x3r921cv4gw0000gn/T/tmprcp5os8n
 typeguard==4.3.0
-    # via -r /var/folders/wr/z1ppjzsd7w3f2x3r921cv4gw0000gn/T/tmprcp5os8n
 typer==0.12.3
     # via frictionless
 types-click==7.1.8
-    # via -r /var/folders/wr/z1ppjzsd7w3f2x3r921cv4gw0000gn/T/tmprcp5os8n
 types-pytz==2024.1.0.20240417
     # via
-    #   -r /var/folders/wr/z1ppjzsd7w3f2x3r921cv4gw0000gn/T/tmprcp5os8n
     #   pandas-stubs
 types-pyyaml==6.0.12.20240724
-    # via -r /var/folders/wr/z1ppjzsd7w3f2x3r921cv4gw0000gn/T/tmprcp5os8n
 types-requests==2.32.0.20240712
-    # via -r /var/folders/wr/z1ppjzsd7w3f2x3r921cv4gw0000gn/T/tmprcp5os8n
 types-setuptools==71.1.0.20240726
-    # via -r /var/folders/wr/z1ppjzsd7w3f2x3r921cv4gw0000gn/T/tmprcp5os8n
 typing-extensions==4.12.2
     # via
-    #   -r /var/folders/wr/z1ppjzsd7w3f2x3r921cv4gw0000gn/T/tmprcp5os8n
     #   fastapi
     #   ipython
     #   mypy
@@ -577,7 +523,6 @@ typing-extensions==4.12.2
     #   typer
     #   typing-inspect
 typing-inspect==0.9.0
-    # via -r /var/folders/wr/z1ppjzsd7w3f2x3r921cv4gw0000gn/T/tmprcp5os8n
 tzdata==2024.1
     # via pandas
 urllib3==2.2.2
@@ -587,7 +532,6 @@ urllib3==2.2.2
     #   twine
     #   types-requests
 uvicorn==0.30.5
-    # via -r /var/folders/wr/z1ppjzsd7w3f2x3r921cv4gw0000gn/T/tmprcp5os8n
 validators==0.33.0
     # via frictionless
 virtualenv==20.26.3
@@ -599,10 +543,8 @@ wcwidth==0.2.13
     # via prompt-toolkit
 wrapt==1.16.0
     # via
-    #   -r /var/folders/wr/z1ppjzsd7w3f2x3r921cv4gw0000gn/T/tmprcp5os8n
     #   astroid
 xdoctest==1.1.6
-    # via -r /var/folders/wr/z1ppjzsd7w3f2x3r921cv4gw0000gn/T/tmprcp5os8n
 zict==3.0.0
     # via distributed
 zipp==3.19.2

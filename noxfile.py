@@ -41,7 +41,7 @@ ALWAYS_USE_PIP = {
     "furo",
     "types-click",
     "types-pyyaml",
-    "types-pkg_resources",
+    "types-setuptools",
 }
 
 CI_RUN = os.environ.get("CI") == "true"

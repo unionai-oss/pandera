@@ -224,7 +224,7 @@ jupyter-core==5.7.2
     #   jupyter-client
     #   nbclient
     #   nbformat
-keyring==25.2.1
+keyring==25.3.0
     # via twine
 lazy-object-proxy==1.10.0
     # via astroid
