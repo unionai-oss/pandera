@@ -1,24 +1,25 @@
 """Utility functions for pyspark validation."""
 
 from functools import lru_cache
+from typing import List, NamedTuple, Tuple, Type, Union
 from numpy import bool_ as np_bool
 from packaging import version
-from typing import List, NamedTuple, Tuple, Type, Union
 
-import pyspark
 import pyspark.sql.types as pst
 from pyspark.sql import DataFrame
 
+import pyspark
 from pandera.api.checks import Check
 from pandera.dtypes import DataType
 
+# pylint: disable=reimported
 # Handles optional Spark Connect imports for pyspark>=3.4 (if available)
-import pyspark
-
 if version.parse(pyspark.__version__) >= version.parse("3.4"):
     from pyspark.sql.connect.dataframe import DataFrame as psc_DataFrame
 else:
-    from pyspark.sql import DataFrame as psc_DataFrame
+    from pyspark.sql import (
+        DataFrame as psc_DataFrame,
+    )
 
 DataFrameTypes = Union[DataFrame, psc_DataFrame]
 

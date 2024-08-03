@@ -2,8 +2,8 @@
 """
 
 import warnings
-from packaging import version
 from typing import Optional
+from packaging import version
 
 import pyspark
 from pandera.api.base.error_handler import ErrorHandler
