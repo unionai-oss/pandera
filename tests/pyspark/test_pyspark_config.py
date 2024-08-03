@@ -15,14 +15,21 @@ from pandera.pyspark import (
 )
 from tests.pyspark.conftest import spark_df
 
+pytestmark = pytest.mark.parametrize(
+    "spark_session", ["spark", "spark_connect"]
+)
+
 
 class TestPanderaConfig:
     """Class to test all the different configs types"""
 
     sample_data = [("Bread", 9), ("Cutter", 15)]
 
-    def test_disable_validation(self, spark, sample_spark_schema):
+    def test_disable_validation(
+        self, spark_session, sample_spark_schema, request
+    ):
         """This function validates that a none object is loaded if validation is disabled"""
+        spark = request.getfixturevalue(spark_session)
         pandera_schema = DataFrameSchema(
             {
                 "product": Column(T.StringType(), Check.str_startswith("B")),
@@ -50,9 +57,9 @@ class TestPanderaConfig:
             assert TestSchema.validate(input_df) == input_df
 
     # pylint:disable=too-many-locals
-    def test_schema_only(self, spark, sample_spark_schema):
+    def test_schema_only(self, spark_session, sample_spark_schema, request):
         """This function validates that only schema related checks are run not data level"""
-
+        spark = request.getfixturevalue(spark_session)
         pandera_schema = DataFrameSchema(
             {
                 "product": Column(T.StringType(), Check.str_startswith("B")),
@@ -138,9 +145,9 @@ class TestPanderaConfig:
         )
 
     # pylint:disable=too-many-locals
-    def test_data_only(self, spark, sample_spark_schema):
+    def test_data_only(self, spark_session, sample_spark_schema, request):
         """This function validates that only data related checks are run not schema level"""
-
+        spark = request.getfixturevalue(spark_session)
         pandera_schema = DataFrameSchema(
             {
                 "product": Column(T.StringType(), Check.str_startswith("B")),
@@ -231,8 +238,11 @@ class TestPanderaConfig:
         )
 
     # pylint:disable=too-many-locals
-    def test_schema_and_data(self, spark, sample_spark_schema):
+    def test_schema_and_data(
+        self, spark_session, sample_spark_schema, request
+    ):
         """This function validates that both data and schema level checks are validated"""
+        spark = request.getfixturevalue(spark_session)
         # self.remove_python_module_cache()
         pandera_schema = DataFrameSchema(
             {
@@ -363,6 +373,7 @@ class TestPanderaConfig:
         self,
         cache_dataframe,
         keep_cached_dataframe,
+        spark_session,  # pylint:disable=unused-argument
     ):
         """This function validates setters and getters for cache/keep_cache options."""
         # Set expected properties in Config object

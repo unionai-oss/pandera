@@ -54,7 +54,7 @@ jobs:
             mypy==0.982 \
             types-click \
             types-pyyaml \
-            types-pkg_resources \
+            types-setuptools \
             types-requests \
             types-pytz
       - name: Pip info

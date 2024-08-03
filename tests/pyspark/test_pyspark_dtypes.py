@@ -2,6 +2,7 @@
 
 from typing import Any
 
+import pytest
 import pyspark
 import pyspark.sql.types as T
 from pyspark.sql import DataFrame
@@ -11,6 +12,10 @@ from pandera.config import PanderaConfig
 from pandera.pyspark import Column, DataFrameSchema
 from pandera.validation_depth import ValidationScope
 from tests.pyspark.conftest import spark_df
+
+pytestmark = pytest.mark.parametrize(
+    "spark_session", ["spark", "spark_connect"]
+)
 
 
 class BaseClass:
@@ -134,33 +139,36 @@ class TestAllNumericTypes(BaseClass):
         return spark_schema
 
     def test_pyspark_all_float_types(
-        self, spark, sample_data, pandera_equivalent
+        self, spark_session, sample_data, pandera_equivalent, request
     ):
         """
         Test float dtype column
         """
+        spark = request.getfixturevalue(spark_session)
         column_name = "price"
         spark_schema = self.create_schema(column_name, T.FloatType())
         df = spark_df(spark, sample_data, spark_schema)
         self.validate_data(df, pandera_equivalent, column_name)
 
     def test_pyspark_all_double_types(
-        self, spark, sample_data, pandera_equivalent
+        self, spark_session, sample_data, pandera_equivalent, request
     ):
         """
         Test double dtype column
         """
+        spark = request.getfixturevalue(spark_session)
         column_name = "price"
         spark_schema = self.create_schema(column_name, T.DoubleType())
         df = spark_df(spark, sample_data, spark_schema)
         self.validate_data(df, pandera_equivalent, column_name)
 
     def test_pyspark_decimal_default_types(
-        self, spark, sample_data, pandera_equivalent
+        self, spark_session, sample_data, pandera_equivalent, request
     ):
         """
         Test decimal dtype column with default values
         """
+        spark = request.getfixturevalue(spark_session)
         column_name = "price"
         spark_schema = self.create_schema(column_name, T.DecimalType())
         df = spark_df(spark, sample_data, spark_schema)
@@ -168,11 +176,12 @@ class TestAllNumericTypes(BaseClass):
 
     @validate_scope(scope=ValidationScope.SCHEMA)
     def test_pyspark_decimal_parameterized_types(
-        self, spark, sample_data, pandera_equivalent
+        self, spark_session, sample_data, pandera_equivalent, request
     ):
         """
         Test decimal dtype column with parameterized inputs
         """
+        spark = request.getfixturevalue(spark_session)
         column_name = "price"
         spark_schema = self.create_schema(column_name, T.DecimalType(20, 5))
         df = spark_df(spark, sample_data, spark_schema)
@@ -195,44 +204,48 @@ class TestAllNumericTypes(BaseClass):
         }
 
     def test_pyspark_all_int_types(
-        self, spark, sample_data, pandera_equivalent
+        self, spark_session, sample_data, pandera_equivalent, request
     ):
         """
         Test int dtype column
         """
+        spark = request.getfixturevalue(spark_session)
         column_name = "price"
         spark_schema = self.create_schema(column_name, T.IntegerType())
         df = spark_df(spark, sample_data, spark_schema)
         self.validate_data(df, pandera_equivalent, column_name)
 
     def test_pyspark_all_longint_types(
-        self, spark, sample_data, pandera_equivalent
+        self, spark_session, sample_data, pandera_equivalent, request
     ):
         """
         Test long dtype column
         """
+        spark = request.getfixturevalue(spark_session)
         column_name = "price"
         spark_schema = self.create_schema(column_name, T.LongType())
         df = spark_df(spark, sample_data, spark_schema)
         self.validate_data(df, pandera_equivalent, column_name)
 
     def test_pyspark_all_shortint_types(
-        self, spark, sample_data, pandera_equivalent
+        self, spark_session, sample_data, pandera_equivalent, request
     ):
         """
         Test short int dtype column
         """
+        spark = request.getfixturevalue(spark_session)
         column_name = "price"
         spark_schema = self.create_schema(column_name, T.ShortType())
         df = spark_df(spark, sample_data, spark_schema)
         self.validate_data(df, pandera_equivalent, column_name)
 
     def test_pyspark_all_bytetint_types(
-        self, spark, sample_data, pandera_equivalent
+        self, spark_session, sample_data, pandera_equivalent, request
     ):
         """
         Test byte int dtype column
         """
+        spark = request.getfixturevalue(spark_session)
         column_name = "price"
         spark_schema = self.create_schema(column_name, T.ByteType())
         df = spark_df(spark, sample_data, spark_schema)
@@ -273,7 +286,10 @@ class TestAllDatetimeTestClass(BaseClass):
     }
 
     def test_pyspark_all_date_types(
-        self, pandera_equivalent, sample_date_object
+        self,
+        pandera_equivalent,
+        sample_date_object,
+        spark_session,  # pylint:disable=unused-argument
     ):
         """
         Test date dtype column
@@ -283,7 +299,10 @@ class TestAllDatetimeTestClass(BaseClass):
         self.validate_data(df, pandera_equivalent, column_name)
 
     def test_pyspark_all_datetime_types(
-        self, pandera_equivalent, sample_date_object
+        self,
+        pandera_equivalent,
+        sample_date_object,
+        spark_session,  # pylint:disable=unused-argument
     ):
         """
         Test datetime dtype column
@@ -314,7 +333,10 @@ class TestBinaryStringTypes(BaseClass):
     }
 
     def test_pyspark_all_binary_types(
-        self, pandera_equivalent, sample_string_binary_object
+        self,
+        pandera_equivalent,
+        sample_string_binary_object,
+        spark_session,  # pylint:disable=unused-argument
     ):
         """
         Test binary dytpe column
@@ -324,7 +346,10 @@ class TestBinaryStringTypes(BaseClass):
         self.validate_data(df, pandera_equivalent, column_name)
 
     def test_pyspark_all_string_types(
-        self, pandera_equivalent, sample_string_binary_object
+        self,
+        pandera_equivalent,
+        sample_string_binary_object,
+        spark_session,  # pylint:disable=unused-argument
     ):
         """
         Test string dtype column
@@ -361,7 +386,12 @@ class TestComplexType(BaseClass):
     }
 
     @validate_scope(scope=ValidationScope.SCHEMA)
-    def test_pyspark_array_type(self, sample_complex_data, pandera_equivalent):
+    def test_pyspark_array_type(
+        self,
+        sample_complex_data,
+        pandera_equivalent,
+        spark_session,  # pylint:disable=unused-argument
+    ):
         """
         Test array dtype column
         """
@@ -383,7 +413,12 @@ class TestComplexType(BaseClass):
         }
 
     @validate_scope(scope=ValidationScope.SCHEMA)
-    def test_pyspark_map_type(self, sample_complex_data, pandera_equivalent):
+    def test_pyspark_map_type(
+        self,
+        sample_complex_data,
+        pandera_equivalent,
+        spark_session,  # pylint:disable=unused-argument
+    ):
         """
         Test map dtype column
         """

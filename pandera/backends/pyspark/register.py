@@ -1,8 +1,15 @@
 """Register pyspark backends."""
 
 from functools import lru_cache
+from packaging import version
 
-import pyspark.sql as pst
+import pyspark
+import pyspark.sql as ps
+
+# Handles optional Spark Connect imports for pyspark>=3.4 (if available)
+CURRENT_PYSPARK_VERSION = version.parse(pyspark.__version__)
+if CURRENT_PYSPARK_VERSION >= version.parse("3.4"):
+    from pyspark.sql.connect import dataframe as psc
 
 
 @lru_cache
@@ -28,7 +35,14 @@ def register_pyspark_backends():
     from pandera.backends.pyspark.components import ColumnBackend
     from pandera.backends.pyspark.container import DataFrameSchemaBackend
 
-    Check.register_backend(pst.DataFrame, PySparkCheckBackend)
-    ColumnSchema.register_backend(pst.DataFrame, ColumnSchemaBackend)
-    Column.register_backend(pst.DataFrame, ColumnBackend)
-    DataFrameSchema.register_backend(pst.DataFrame, DataFrameSchemaBackend)
+    # Register classical DataFrame
+    Check.register_backend(ps.DataFrame, PySparkCheckBackend)
+    ColumnSchema.register_backend(ps.DataFrame, ColumnSchemaBackend)
+    Column.register_backend(ps.DataFrame, ColumnBackend)
+    DataFrameSchema.register_backend(ps.DataFrame, DataFrameSchemaBackend)
+    # Register Spark Connect DataFrame, if available
+    if CURRENT_PYSPARK_VERSION >= version.parse("3.4"):
+        Check.register_backend(psc.DataFrame, PySparkCheckBackend)
+        ColumnSchema.register_backend(psc.DataFrame, ColumnSchemaBackend)
+        Column.register_backend(psc.DataFrame, ColumnBackend)
+        DataFrameSchema.register_backend(psc.DataFrame, DataFrameSchemaBackend)

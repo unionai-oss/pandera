@@ -25,7 +25,7 @@ dependencies:
   - pandas-stubs
 
   # pyspark extra
-  - pyspark >= 3.2.0
+  - pyspark[connect] >= 3.2.0
 
   # polars extra
   - polars >= 0.20.0
@@ -92,6 +92,6 @@ dependencies:
       - typeguard
       - types-click
       - types-pyyaml
-      - types-pkg_resources
+      - types-setuptools
       - types-requests
       - types-pytz

@@ -553,18 +553,6 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
 
         return check_obj
 
-    def _check_uniqueness(
-        self,
-        obj: DataFrame,
-        schema,
-    ) -> DataFrame:
-        """Ensure uniqueness in dataframe columns.
-
-        :param obj: dataframe to check.
-        :param schema: schema object.
-        :returns: dataframe checked.
-        """
-
     ##########
     # Checks #
     ##########

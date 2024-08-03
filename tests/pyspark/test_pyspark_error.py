@@ -2,12 +2,8 @@
 
 # pylint:disable=redefined-outer-name,abstract-method
 
-from typing import Union
-
 import pyspark.sql.types as T
 import pytest
-from pyspark.sql import DataFrame, SparkSession
-from pyspark.sql.functions import col
 from pyspark.sql.types import StringType
 
 import pandera.pyspark as pa
@@ -16,38 +12,34 @@ from pandera.errors import SchemaError, SchemaErrorReason
 from pandera.pyspark import Column, DataFrameModel, DataFrameSchema, Field
 from tests.pyspark.conftest import spark_df
 
-spark = SparkSession.builder.getOrCreate()
-
-
-@pytest.mark.parametrize(
-    "schema, invalid_data",
-    [
-        [
-            pa.DataFrameSchema(
-                {
-                    "product": pa.Column(StringType()),
-                    "code": pa.Column(StringType(), pa.Check.not_equal_to(30)),
-                }
-            ),
-            spark.createDataFrame(
-                data=[("23", 31), ("34", 35)], schema=["product", "code"]
-            ),
-        ],
-    ],
+pytestmark = pytest.mark.parametrize(
+    "spark_session", ["spark", "spark_connect"]
 )
+
+
 def test_dataframe_add_schema(
-    schema: pa.DataFrameSchema,
-    invalid_data: Union[DataFrame, col],
+    spark_session,
+    request,
 ) -> None:
     """
     Test that pyspark object contains schema metadata after pandera validation.
     """
+    spark = request.getfixturevalue(spark_session)
+    schema = pa.DataFrameSchema(
+        {
+            "product": pa.Column(StringType()),
+            "code": pa.Column(StringType(), pa.Check.not_equal_to(30)),
+        }
+    )
+    invalid_data = spark.createDataFrame(
+        data=[("23", 31), ("34", 35)], schema=["product", "code"]
+    )
     schema(invalid_data, lazy=True)  # type: ignore[arg-type]
 
 
-def test_pyspark_check_eq(spark, sample_spark_schema):
+def test_pyspark_check_eq(spark_session, sample_spark_schema, request):
     """Test creating a pyspark DataFrameSchema object"""
-
+    spark = request.getfixturevalue(spark_session)
     pandera_schema = DataFrameSchema(
         columns={
             "product": Column("str", checks=pa.Check.str_startswith("B")),
@@ -92,11 +84,11 @@ def test_pyspark_check_eq(spark, sample_spark_schema):
     assert dict(df_out.pandera.errors["DATA"]) == expected
 
 
-def test_pyspark_check_nullable(spark, sample_spark_schema):
+def test_pyspark_check_nullable(spark_session, sample_spark_schema, request):
     """
     Test creating a pyspark DataFrameSchema object to validate the nullability functionality
     """
-
+    spark = request.getfixturevalue(spark_session)
     pandera_schema = DataFrameSchema(
         columns={
             "product": Column("str", checks=pa.Check.str_startswith("B")),
@@ -130,11 +122,11 @@ def test_pyspark_check_nullable(spark, sample_spark_schema):
     assert dict(dataframe_output.pandera.errors["SCHEMA"]) == expected
 
 
-def test_pyspark_schema_data_checks(spark):
+def test_pyspark_schema_data_checks(spark_session, request):
     """
     Test schema and data level checks to check the Complex type data match
     """
-
+    spark = request.getfixturevalue(spark_session)
     pandera_schema = DataFrameSchema(
         columns={
             "product": Column("str", checks=pa.Check.str_startswith("B")),
@@ -201,10 +193,11 @@ def test_pyspark_schema_data_checks(spark):
     assert dict(output_data.pandera.errors["SCHEMA"]) == expected["SCHEMA"]
 
 
-def test_pyspark_fields(spark):
+def test_pyspark_fields(spark_session, request):
     """
     Test schema and data level checks for pydantic validation
     """
+    spark = request.getfixturevalue(spark_session)
 
     class PanderaSchema(DataFrameModel):
         """Test case schema class"""
@@ -287,7 +280,9 @@ def test_pyspark_fields(spark):
     assert schema_errors == expected["SCHEMA"]
 
 
-def test_pyspark__error_handler_lazy_validation():
+def test_pyspark__error_handler_lazy_validation(
+    spark_session,  # pylint:disable=unused-argument
+):
     """This function tests the lazy validation for the error handler class of pyspark"""
 
     errors_not_lazy = error_handler.ErrorHandler(lazy=False)

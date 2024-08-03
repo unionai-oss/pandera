@@ -6,10 +6,10 @@ from unittest.mock import MagicMock
 
 import numpy as np
 import pandas as pd
+import pyspark
 import pyspark.pandas as ps
 import pytest
 from packaging import version
-from pyspark import SparkContext
 
 import pandera as pa
 from pandera import dtypes, extensions, system
@@ -63,7 +63,7 @@ PYSPARK_PANDAS_UNSUPPORTED = {
     pandas_engine.Date,
 }
 
-SPARK_VERSION = version.parse(SparkContext.getOrCreate().version)
+SPARK_VERSION = version.parse(pyspark.__version__)
 
 if SPARK_VERSION < version.parse("3.3.0"):
     PYSPARK_PANDAS_UNSUPPORTED.add(numpy_engine.Timedelta64)

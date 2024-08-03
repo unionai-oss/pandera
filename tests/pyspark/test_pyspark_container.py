@@ -7,21 +7,23 @@ from decimal import Decimal
 
 import pyspark.sql.types as T
 import pytest
-from pyspark.sql import DataFrame, Row, SparkSession
+from pyspark.sql import DataFrame, Row
 
 import pandera.errors
 import pandera.pyspark as pa
 from pandera.config import PanderaConfig, ValidationDepth
 from pandera.pyspark import Column, DataFrameModel, DataFrameSchema
 
-spark = SparkSession.builder.getOrCreate()
+pytestmark = pytest.mark.parametrize(
+    "spark_session", ["spark", "spark_connect"]
+)
 
 
-def test_pyspark_dataframeschema():
+def test_pyspark_dataframeschema(spark_session, request):
     """
     Test creating a pyspark DataFrameSchema object
     """
-
+    spark = request.getfixturevalue(spark_session)
     schema = DataFrameSchema(
         {
             "name": Column(T.StringType()),
@@ -47,11 +49,13 @@ def test_pyspark_dataframeschema():
 
 def test_pyspark_dataframeschema_with_alias_types(
     config_params: PanderaConfig,
+    spark_session,
+    request,
 ):
     """
     Test creating a pyspark DataFrameSchema object
     """
-
+    spark = request.getfixturevalue(spark_session)
     schema = DataFrameSchema(
         columns={
             "product": Column("str", checks=pa.Check.str_startswith("B")),
@@ -92,7 +96,9 @@ def test_pyspark_dataframeschema_with_alias_types(
                 raise pandera.errors.PysparkSchemaError
 
 
-def test_pyspark_column_metadata():
+def test_pyspark_column_metadata(
+    spark_session,  # pylint:disable=unused-argument
+):
     """
     Test creating a pyspark Column object with metadata
     """
@@ -128,11 +134,11 @@ def test_pyspark_column_metadata():
     assert schema.get_metadata() == expected
 
 
-def test_pyspark_sample():
+def test_pyspark_sample(spark_session, request):
     """
     Test the sample functionality of pyspark
     """
-
+    spark = request.getfixturevalue(spark_session)
     schema = DataFrameSchema(
         columns={
             "product": Column("str", checks=pa.Check.str_startswith("B")),
@@ -165,11 +171,11 @@ def test_pyspark_sample():
     assert isinstance(df_out, DataFrame)
 
 
-def test_pyspark_regex_column():
+def test_pyspark_regex_column(spark_session, request):
     """
     Test creating a pyspark DataFrameSchema object with regex columns
     """
-
+    spark = request.getfixturevalue(spark_session)
     schema = DataFrameSchema(
         {
             # Columns with all caps names must have string values
@@ -193,11 +199,11 @@ def test_pyspark_regex_column():
     assert not df_out.pandera.errors
 
 
-def test_pyspark_nullable():
+def test_pyspark_nullable(spark_session, request):
     """
     Test the nullable functionality of pyspark
     """
-
+    spark = request.getfixturevalue(spark_session)
     data = [
         ("Bread", 9),
         ("Butter", 15),
@@ -238,10 +244,11 @@ def test_pyspark_nullable():
     assert df_out.pandera.errors == {}
 
 
-def test_pyspark_unique_field():
+def test_pyspark_unique_field(spark_session, request):
     """
     Test that field unique True raise an error.
     """
+    spark = request.getfixturevalue(spark_session)
     with pytest.raises(pandera.errors.SchemaInitError):
         # pylint: disable=W0223
         class PanderaSchema(DataFrameModel):
@@ -260,10 +267,11 @@ def test_pyspark_unique_field():
         assert len(df_out.pandera.errors) == 0
 
 
-def test_pyspark_unique_config():
+def test_pyspark_unique_config(spark_session, request):
     """
     Test the sample functionality of pyspark
     """
+    spark = request.getfixturevalue(spark_session)
 
     # pylint: disable=W0223
     class PanderaSchema(DataFrameModel):
@@ -330,7 +338,10 @@ def schema_with_complex_datatypes():
     return schema
 
 
-def test_schema_to_structtype(schema_with_complex_datatypes):
+def test_schema_to_structtype(
+    schema_with_complex_datatypes,
+    spark_session,  # pylint:disable=unused-argument
+):
     """
     Test the conversion from a schema to a StructType object through `to_structtype()`.
     """
@@ -441,7 +452,10 @@ def test_schema_to_structtype(schema_with_complex_datatypes):
     )
 
 
-def test_schema_to_ddl(schema_with_complex_datatypes):
+def test_schema_to_ddl(
+    schema_with_complex_datatypes,
+    spark_session,  # pylint:disable=unused-argument
+):
     """
     Test the conversion from a schema to a DDL string through `to_ddl()`.
     """
@@ -488,8 +502,10 @@ def test_schema_to_ddl(schema_with_complex_datatypes):
     )
 
 
-@pytest.fixture(scope="module")
-def schema_with_simple_datatypes():
+@pytest.fixture(scope="function")
+def schema_with_simple_datatypes(
+    spark_session,  # pylint:disable=unused-argument
+):
     """
     Model containing all common datatypes for PySpark namespace, supported by CSV.
     """
@@ -517,11 +533,13 @@ def schema_with_simple_datatypes():
     platform.system() == "Windows",
     reason="skipping due to issues with opening file names for temp files.",
 )
-def test_pyspark_read(schema_with_simple_datatypes, tmp_path, spark):
+def test_pyspark_read(
+    schema_with_simple_datatypes, tmp_path, spark_session, request
+):
     """
     Test reading a file using an automatically generated schema object.
     """
-
+    spark = request.getfixturevalue(spark_session)
     original_pyspark_schema = T.StructType(
         [
             T.StructField(
