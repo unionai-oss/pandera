@@ -132,7 +132,7 @@ PANDAS_INDEX_ERRORS = [
 PANDAS_SERIES_ERRORS = [
     {
         "msg": (
-            'Argument 1 to "fn" has incompatible type "Series[float]"; '
+            'Argument "s" to "fn" has incompatible type "Series[float]"; '
             'expected "Series[str]"'
         ),
         "errcode": "arg-type",
