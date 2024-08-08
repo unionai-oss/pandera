@@ -24,7 +24,7 @@ from typing import Dict, List, Optional
 import yaml
 
 EXCLUDE = {"python"}
-RENAME: Dict[str, str] = {}
+RENAME: Dict[str, str] = {"ibis-duckdb": "ibis-framework[duckdb]"}
 
 REPO_PATH = Path(__file__).resolve().absolute().parents[1]
 CONDA_REQUIREMENTS_FILE = REPO_PATH / "environment.yml"

@@ -19,7 +19,7 @@ _extras_require = {
     "mypy": ["pandas-stubs"],
     "fastapi": ["fastapi"],
     "geopandas": ["geopandas", "shapely"],
-    "ibis": ["ibis-framework >= 3.1.0"],
+    "ibis": ["ibis-framework >= 3.1.0 ; python_version >= '3.9'"],
     "polars": ["polars >= 0.20.0"],
 }
 
