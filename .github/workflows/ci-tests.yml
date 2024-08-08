@@ -53,10 +53,10 @@ jobs:
           python -m pip install nox pre_commit \
             mypy==0.982 \
             types-click \
+            types-pytz \
             types-pyyaml \
-            types-pkg_resources \
             types-requests \
-            types-pytz
+            types-setuptools
       - name: Pip info
         run: python -m pip list
 
