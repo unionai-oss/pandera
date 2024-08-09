@@ -129,7 +129,7 @@ PANDAS_INDEX_ERRORS = [
     {"msg": "Incompatible types in assignment", "errcode": "assignment"},
 ] * 3
 
-PANDAS_SERIES_ERRORS = [
+PANDAS_SERIES_ERRORS_NO_PLUGIN = [
     {
         "msg": (
             'Argument 1 to "fn" has incompatible type "Series[float]"; '
@@ -137,6 +137,23 @@ PANDAS_SERIES_ERRORS = [
         ),
         "errcode": "arg-type",
     }
+]
+
+PANDAS_SERIES_ERRORS_PLUGIN = [
+    {
+        "msg": (
+            'Argument "s" to "fn" has incompatible type "Series[float]"; '
+            'expected "Series[str]"'
+        ),
+        "errcode": "arg-type",
+    },
+    {
+        "msg": (
+            'Argument 1 to "fn" has incompatible type "Series[float]"; '
+            'expected "Series[str]"'
+        ),
+        "errcode": "arg-type",
+    },
 ]
 
 
@@ -159,8 +176,8 @@ PANDAS_SERIES_ERRORS = [
         ["python_slice.py", "plugin_mypy.ini", PYTHON_SLICE_ERRORS],
         ["pandas_index.py", "no_plugin.ini", []],
         ["pandas_index.py", "plugin_mypy.ini", []],
-        ["pandas_series.py", "no_plugin.ini", PANDAS_SERIES_ERRORS],
-        ["pandas_series.py", "plugin_mypy.ini", PANDAS_SERIES_ERRORS],
+        ["pandas_series.py", "no_plugin.ini", PANDAS_SERIES_ERRORS_NO_PLUGIN],
+        ["pandas_series.py", "plugin_mypy.ini", PANDAS_SERIES_ERRORS_PLUGIN],
     ],
 )
 def test_pandas_stubs_false_positives(
