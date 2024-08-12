@@ -91,6 +91,8 @@ docutils==0.21.2
     #   readme-renderer
     #   recommonmark
     #   sphinx
+duckdb==1.0.0
+    # via ibis-framework
 exceptiongroup==1.2.2
     # via
     #   anyio
@@ -271,6 +273,7 @@ numpy==2.0.1
     #   -r requirements.in
     #   dask
     #   geopandas
+    #   ibis-framework
     #   modin
     #   pandas
     #   pandas-stubs
@@ -299,6 +302,7 @@ pandas==2.2.2
     #   dask
     #   dask-expr
     #   geopandas
+    #   ibis-framework
     #   modin
 pandas-stubs==2.2.2.240807
     # via -r requirements.in
@@ -351,6 +355,9 @@ pyarrow==17.0.0
     # via
     #   -r requirements.in
     #   dask-expr
+    #   ibis-framework
+pyarrow-hotfix==0.6
+    # via ibis-framework
 pydantic==2.8.2
     # via
     #   -r requirements.in
@@ -444,6 +451,7 @@ rfc3986==2.0.0
     #   twine
 rich==13.7.1
     # via
+    #   ibis-framework
     #   twine
     #   typer
 rpds-py==0.20.0

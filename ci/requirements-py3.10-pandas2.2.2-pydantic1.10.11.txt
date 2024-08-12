@@ -13,7 +13,7 @@ astroid==2.15.8
 asttokens==2.4.1
     # via stack-data
 asv==0.6.3
-    # via -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmp5pr15cqu
+    # via -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmpzmwi4gmg
 asv-runner==0.2.1
     # via asv
 atpublic==5.0
@@ -31,7 +31,7 @@ backports-tarfile==1.2.0
 beautifulsoup4==4.12.3
     # via furo
 black==24.8.0
-    # via -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmp5pr15cqu
+    # via -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmpzmwi4gmg
 build==1.2.1
     # via asv
 certifi==2024.7.4
@@ -68,7 +68,7 @@ coverage==7.6.1
     # via pytest-cov
 dask==2024.8.0
     # via
-    #   -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmp5pr15cqu
+    #   -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmpzmwi4gmg
     #   dask-expr
     #   distributed
 dask-expr==1.1.10
@@ -82,13 +82,15 @@ dill==0.3.8
 distlib==0.3.8
     # via virtualenv
 distributed==2024.8.0
-    # via -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmp5pr15cqu
+    # via -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmpzmwi4gmg
 docutils==0.21.2
     # via
     #   myst-parser
     #   readme-renderer
     #   recommonmark
     #   sphinx
+duckdb==1.0.0
+    # via ibis-framework
 exceptiongroup==1.2.2
     # via
     #   anyio
@@ -100,7 +102,7 @@ execnet==2.1.1
 executing==2.0.1
     # via stack-data
 fastapi==0.112.0
-    # via -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmp5pr15cqu
+    # via -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmpzmwi4gmg
 fastjsonschema==2.20.0
     # via nbformat
 filelock==3.15.4
@@ -108,7 +110,7 @@ filelock==3.15.4
     #   ray
     #   virtualenv
 frictionless==4.40.8
-    # via -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmp5pr15cqu
+    # via -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmpzmwi4gmg
 frozenlist==1.4.1
     # via
     #   aiosignal
@@ -118,17 +120,17 @@ fsspec==2024.6.1
     #   dask
     #   modin
 furo==2024.8.6
-    # via -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmp5pr15cqu
+    # via -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmpzmwi4gmg
 geopandas==1.0.1
-    # via -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmp5pr15cqu
+    # via -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmpzmwi4gmg
 grpcio==1.65.4
-    # via -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmp5pr15cqu
+    # via -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmpzmwi4gmg
 h11==0.14.0
     # via uvicorn
 hypothesis==6.111.0
-    # via -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmp5pr15cqu
+    # via -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmpzmwi4gmg
 ibis-framework==9.3.0
-    # via -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmp5pr15cqu
+    # via -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmpzmwi4gmg
 identify==2.6.0
     # via pre-commit
 idna==3.7
@@ -139,7 +141,7 @@ imagesize==1.4.1
     # via sphinx
 importlib-metadata==8.2.0
     # via
-    #   -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmp5pr15cqu
+    #   -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmpzmwi4gmg
     #   asv-runner
     #   dask
     #   jupyter-cache
@@ -158,7 +160,7 @@ isodate==0.6.1
     # via frictionless
 isort==5.13.2
     # via
-    #   -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmp5pr15cqu
+    #   -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmpzmwi4gmg
     #   pylint
 jaraco-classes==3.4.0
     # via keyring
@@ -175,7 +177,7 @@ jinja2==3.1.4
     #   myst-parser
     #   sphinx
 joblib==1.4.2
-    # via -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmp5pr15cqu
+    # via -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmpzmwi4gmg
 json5==0.9.25
     # via asv
 jsonschema==4.23.0
@@ -225,7 +227,7 @@ mdit-py-plugins==0.4.1
 mdurl==0.1.2
     # via markdown-it-py
 modin==0.31.0
-    # via -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmp5pr15cqu
+    # via -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmpzmwi4gmg
 more-itertools==10.4.0
     # via
     #   jaraco-classes
@@ -235,16 +237,16 @@ msgpack==1.0.8
     #   distributed
     #   ray
 multimethod==1.10
-    # via -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmp5pr15cqu
+    # via -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmpzmwi4gmg
 mypy==1.10.0
-    # via -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmp5pr15cqu
+    # via -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmpzmwi4gmg
 mypy-extensions==1.0.0
     # via
     #   black
     #   mypy
     #   typing-inspect
 myst-nb==1.1.1
-    # via -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmp5pr15cqu
+    # via -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmpzmwi4gmg
 myst-parser==4.0.0
     # via myst-nb
 nbclient==0.10.0
@@ -263,12 +265,13 @@ nh3==0.2.18
 nodeenv==1.9.1
     # via pre-commit
 nox==2024.4.15
-    # via -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmp5pr15cqu
+    # via -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmpzmwi4gmg
 numpy==2.0.1
     # via
-    #   -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmp5pr15cqu
+    #   -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmpzmwi4gmg
     #   dask
     #   geopandas
+    #   ibis-framework
     #   modin
     #   pandas
     #   pandas-stubs
@@ -278,7 +281,7 @@ numpy==2.0.1
     #   shapely
 packaging==24.1
     # via
-    #   -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmp5pr15cqu
+    #   -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmpzmwi4gmg
     #   black
     #   build
     #   dask
@@ -293,13 +296,14 @@ packaging==24.1
     #   sphinx
 pandas==2.2.2
     # via
-    #   -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmp5pr15cqu
+    #   -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmpzmwi4gmg
     #   dask
     #   dask-expr
     #   geopandas
+    #   ibis-framework
     #   modin
 pandas-stubs==2.2.2.240807
-    # via -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmp5pr15cqu
+    # via -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmpzmwi4gmg
 parso==0.8.4
     # via jedi
 parsy==2.1
@@ -313,7 +317,7 @@ petl==1.7.15
 pexpect==4.9.0
     # via ipython
 pip==24.2
-    # via -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmp5pr15cqu
+    # via -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmpzmwi4gmg
 pkginfo==1.10.0
     # via twine
 platformdirs==4.2.2
@@ -325,14 +329,14 @@ platformdirs==4.2.2
 pluggy==1.5.0
     # via pytest
 polars==1.4.1
-    # via -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmp5pr15cqu
+    # via -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmpzmwi4gmg
 pre-commit==3.8.0
-    # via -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmp5pr15cqu
+    # via -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmpzmwi4gmg
 prompt-toolkit==3.0.47
     # via ipython
 protobuf==5.27.3
     # via
-    #   -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmp5pr15cqu
+    #   -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmpzmwi4gmg
     #   ray
 psutil==6.0.0
     # via
@@ -347,11 +351,14 @@ py4j==0.10.9.7
     # via pyspark
 pyarrow==17.0.0
     # via
-    #   -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmp5pr15cqu
+    #   -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmpzmwi4gmg
     #   dask-expr
+    #   ibis-framework
+pyarrow-hotfix==0.6
+    # via ibis-framework
 pydantic==1.10.11
     # via
-    #   -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmp5pr15cqu
+    #   -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmpzmwi4gmg
     #   fastapi
 pygments==2.18.0
     # via
@@ -361,7 +368,7 @@ pygments==2.18.0
     #   rich
     #   sphinx
 pylint==2.17.3
-    # via -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmp5pr15cqu
+    # via -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmpzmwi4gmg
 pympler==1.1
     # via asv
 pyogrio==0.9.0
@@ -371,19 +378,19 @@ pyproj==3.6.1
 pyproject-hooks==1.1.0
     # via build
 pyspark==3.5.2
-    # via -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmp5pr15cqu
+    # via -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmpzmwi4gmg
 pytest==8.3.2
     # via
-    #   -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmp5pr15cqu
+    #   -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmpzmwi4gmg
     #   pytest-asyncio
     #   pytest-cov
     #   pytest-xdist
 pytest-asyncio==0.23.8
-    # via -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmp5pr15cqu
+    # via -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmpzmwi4gmg
 pytest-cov==5.0.0
-    # via -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmp5pr15cqu
+    # via -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmpzmwi4gmg
 pytest-xdist==3.6.1
-    # via -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmp5pr15cqu
+    # via -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmpzmwi4gmg
 python-dateutil==2.9.0.post0
     # via
     #   frictionless
@@ -391,17 +398,17 @@ python-dateutil==2.9.0.post0
     #   jupyter-client
     #   pandas
 python-multipart==0.0.9
-    # via -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmp5pr15cqu
+    # via -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmpzmwi4gmg
 python-slugify==8.0.4
     # via frictionless
 pytz==2024.1
     # via
-    #   -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmp5pr15cqu
+    #   -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmpzmwi4gmg
     #   ibis-framework
     #   pandas
 pyyaml==6.0.2
     # via
-    #   -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmp5pr15cqu
+    #   -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmpzmwi4gmg
     #   asv
     #   dask
     #   distributed
@@ -416,11 +423,11 @@ pyzmq==26.1.0
     #   ipykernel
     #   jupyter-client
 ray==2.34.0
-    # via -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmp5pr15cqu
+    # via -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmpzmwi4gmg
 readme-renderer==44.0
     # via twine
 recommonmark==0.7.1
-    # via -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmp5pr15cqu
+    # via -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmpzmwi4gmg
 referencing==0.35.1
     # via
     #   jsonschema
@@ -440,6 +447,7 @@ rfc3986==2.0.0
     #   twine
 rich==13.7.1
     # via
+    #   ibis-framework
     #   twine
     #   typer
 rpds-py==0.20.0
@@ -447,10 +455,10 @@ rpds-py==0.20.0
     #   jsonschema
     #   referencing
 scipy==1.14.0
-    # via -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmp5pr15cqu
+    # via -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmpzmwi4gmg
 shapely==2.0.5
     # via
-    #   -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmp5pr15cqu
+    #   -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmpzmwi4gmg
     #   geopandas
 shellingham==1.5.4
     # via typer
@@ -473,7 +481,7 @@ soupsieve==2.5
     # via beautifulsoup4
 sphinx==7.3.7
     # via
-    #   -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmp5pr15cqu
+    #   -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmpzmwi4gmg
     #   furo
     #   myst-nb
     #   myst-parser
@@ -484,15 +492,15 @@ sphinx==7.3.7
     #   sphinx-design
     #   sphinx-docsearch
 sphinx-autodoc-typehints==1.14.1
-    # via -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmp5pr15cqu
+    # via -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmpzmwi4gmg
 sphinx-basic-ng==1.0.0b2
     # via furo
 sphinx-copybutton==0.5.2
-    # via -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmp5pr15cqu
+    # via -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmpzmwi4gmg
 sphinx-design==0.6.1
-    # via -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmp5pr15cqu
+    # via -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmpzmwi4gmg
 sphinx-docsearch==0.0.7
-    # via -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmp5pr15cqu
+    # via -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmpzmwi4gmg
 sphinxcontrib-applehelp==2.0.0
     # via sphinx
 sphinxcontrib-devhelp==2.0.0
@@ -559,26 +567,26 @@ traitlets==5.14.3
     #   nbclient
     #   nbformat
 twine==5.1.1
-    # via -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmp5pr15cqu
+    # via -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmpzmwi4gmg
 typeguard==4.3.0
-    # via -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmp5pr15cqu
+    # via -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmpzmwi4gmg
 typer==0.12.3
     # via frictionless
 types-click==7.1.8
-    # via -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmp5pr15cqu
+    # via -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmpzmwi4gmg
 types-pytz==2024.1.0.20240417
     # via
-    #   -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmp5pr15cqu
+    #   -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmpzmwi4gmg
     #   pandas-stubs
 types-pyyaml==6.0.12.20240808
-    # via -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmp5pr15cqu
+    # via -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmpzmwi4gmg
 types-requests==2.32.0.20240712
-    # via -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmp5pr15cqu
+    # via -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmpzmwi4gmg
 types-setuptools==71.1.0.20240806
-    # via -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmp5pr15cqu
+    # via -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmpzmwi4gmg
 typing-extensions==4.12.2
     # via
-    #   -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmp5pr15cqu
+    #   -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmpzmwi4gmg
     #   anyio
     #   astroid
     #   black
@@ -594,7 +602,7 @@ typing-extensions==4.12.2
     #   typing-inspect
     #   uvicorn
 typing-inspect==0.9.0
-    # via -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmp5pr15cqu
+    # via -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmpzmwi4gmg
 tzdata==2024.1
     # via pandas
 urllib3==2.2.2
@@ -604,7 +612,7 @@ urllib3==2.2.2
     #   twine
     #   types-requests
 uvicorn==0.30.5
-    # via -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmp5pr15cqu
+    # via -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmpzmwi4gmg
 validators==0.33.0
     # via frictionless
 virtualenv==20.26.3
@@ -616,10 +624,10 @@ wcwidth==0.2.13
     # via prompt-toolkit
 wrapt==1.16.0
     # via
-    #   -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmp5pr15cqu
+    #   -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmpzmwi4gmg
     #   astroid
 xdoctest==1.1.6
-    # via -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmp5pr15cqu
+    # via -r /var/folders/wd/sx8dvgys011_mrcsd1_vrz1m0000gn/T/tmpzmwi4gmg
 zict==3.0.0
     # via distributed
 zipp==3.20.0

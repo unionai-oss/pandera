@@ -20,8 +20,6 @@ asv==0.6.3
     # via -r requirements.in
 asv-runner==0.2.1
     # via asv
-atpublic==3.1.2
-    # via ibis-framework
 attrs==24.2.0
     # via
     #   fiona
@@ -37,12 +35,12 @@ backports-tarfile==1.2.0
     # via jaraco-context
 beautifulsoup4==4.12.3
     # via furo
-bidict==0.23.1
-    # via ibis-framework
 black==24.8.0
     # via -r requirements.in
 build==1.2.1
     # via asv
+cached-property==1.5.2
+    # via ibis-framework
 certifi==2024.7.4
     # via
     #   fiona
@@ -141,7 +139,7 @@ h11==0.14.0
     # via uvicorn
 hypothesis==6.111.0
     # via -r requirements.in
-ibis-framework==5.1.0
+ibis-framework==2.0.0
     # via -r requirements.in
 identify==2.6.0
     # via pre-commit
@@ -165,9 +163,8 @@ importlib-metadata==8.2.0
     #   sphinx
     #   twine
     #   typeguard
-importlib-resources==5.13.0
+importlib-resources==6.4.0
     # via
-    #   ibis-framework
     #   jsonschema
     #   jsonschema-specifications
     #   keyring
@@ -261,7 +258,7 @@ msgpack==1.0.8
     #   ray
 multimethod==1.10
     # via -r requirements.in
-multipledispatch==0.6.0
+multipledispatch==1.0.0
     # via ibis-framework
 mypy==1.10.0
     # via -r requirements.in
@@ -312,7 +309,6 @@ packaging==24.1
     #   ipykernel
     #   modin
     #   nox
-    #   pooch
     #   pytest
     #   ray
     #   sphinx
@@ -349,15 +345,12 @@ platformdirs==4.2.2
     # via
     #   black
     #   jupyter-core
-    #   pooch
     #   pylint
     #   virtualenv
 pluggy==1.5.0
     # via pytest
 polars==1.4.1
     # via -r requirements.in
-pooch==1.8.2
-    # via ibis-framework
 pre-commit==3.5.0
     # via -r requirements.in
 prompt-toolkit==3.0.47
@@ -417,7 +410,6 @@ pytest-xdist==3.6.1
 python-dateutil==2.9.0.post0
     # via
     #   frictionless
-    #   ibis-framework
     #   jupyter-client
     #   pandas
 python-multipart==0.0.9
@@ -456,10 +448,11 @@ referencing==0.35.1
     # via
     #   jsonschema
     #   jsonschema-specifications
+regex==2024.7.24
+    # via ibis-framework
 requests==2.32.3
     # via
     #   frictionless
-    #   pooch
     #   ray
     #   requests-toolbelt
     #   sphinx
@@ -472,7 +465,6 @@ rfc3986==2.0.0
     #   twine
 rich==13.7.1
     # via
-    #   ibis-framework
     #   twine
     #   typer
 rpds-py==0.20.0
@@ -481,6 +473,8 @@ rpds-py==0.20.0
     #   referencing
 scipy==1.10.1
     # via -r requirements.in
+setuptools==72.1.0
+    # via ibis-framework
 shapely==2.0.5
     # via
     #   -r requirements.in
@@ -494,7 +488,6 @@ six==1.16.0
     #   asttokens
     #   fiona
     #   isodate
-    #   multipledispatch
     #   python-dateutil
 sniffio==1.3.1
     # via anyio
@@ -542,8 +535,6 @@ sphinxcontrib-serializinghtml==1.1.5
     # via sphinx
 sqlalchemy==2.0.32
     # via jupyter-cache
-sqlglot==11.7.1
-    # via ibis-framework
 stack-data==0.6.3
     # via ipython
 starlette==0.37.2
@@ -582,8 +573,6 @@ tornado==6.4.1
     #   distributed
     #   ipykernel
     #   jupyter-client
-tqdm==4.66.5
-    # via pooch
 traitlets==5.14.3
     # via
     #   comm
@@ -620,7 +609,6 @@ typing-extensions==4.12.2
     #   astroid
     #   black
     #   fastapi
-    #   ibis-framework
     #   ipython
     #   mypy
     #   myst-nb
@@ -662,8 +650,6 @@ wrapt==1.16.0
     #   astroid
 xdoctest==1.1.6
     # via -r requirements.in
-xxhash==3.4.1
-    # via pooch
 zict==3.0.0
     # via distributed
 zipp==3.20.0
