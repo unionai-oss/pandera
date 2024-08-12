@@ -1,570 +1,196 @@
 aiosignal==1.3.1
-    # via ray
 alabaster==0.7.16
-    # via sphinx
 anyio==4.4.0
-    # via starlette
 appnope==0.1.4
-    # via ipykernel
 argcomplete==3.5.0
-    # via nox
 astroid==2.15.8
-    # via pylint
 asttokens==2.4.1
-    # via stack-data
 asv==0.6.3
 asv-runner==0.2.1
-    # via asv
 attrs==24.2.0
-    # via
-    #   hypothesis
-    #   jsonschema
-    #   jupyter-cache
-    #   referencing
 babel==2.16.0
-    # via sphinx
 backports-tarfile==1.2.0
-    # via jaraco-context
 beautifulsoup4==4.12.3
-    # via furo
 black==24.8.0
 build==1.2.1
-    # via asv
 certifi==2024.7.4
-    # via
-    #   pyogrio
-    #   pyproj
-    #   requests
 cfgv==3.4.0
-    # via pre-commit
 chardet==5.2.0
-    # via frictionless
 charset-normalizer==3.3.2
-    # via requests
 click==8.1.7
-    # via
-    #   black
-    #   dask
-    #   distributed
-    #   jupyter-cache
-    #   ray
-    #   typer
-    #   uvicorn
 cloudpickle==3.0.0
-    # via
-    #   dask
-    #   distributed
 colorlog==6.8.2
-    # via nox
 comm==0.2.2
-    # via ipykernel
 commonmark==0.9.1
-    # via recommonmark
 coverage==7.6.1
-    # via pytest-cov
 dask==2024.8.0
-    # via
-    #   dask-expr
-    #   distributed
 dask-expr==1.1.10
-    # via dask
 debugpy==1.8.5
-    # via ipykernel
 decorator==5.1.1
-    # via ipython
 dill==0.3.8
-    # via pylint
 distlib==0.3.8
-    # via virtualenv
 distributed==2024.8.0
 docutils==0.21.2
-    # via
-    #   myst-parser
-    #   readme-renderer
-    #   recommonmark
-    #   sphinx
 exceptiongroup==1.2.2
-    # via
-    #   anyio
-    #   hypothesis
-    #   ipython
-    #   pytest
 execnet==2.1.1
-    # via pytest-xdist
 executing==2.0.1
-    # via stack-data
 fastapi==0.112.0
 fastjsonschema==2.20.0
-    # via nbformat
 filelock==3.15.4
-    # via
-    #   ray
-    #   virtualenv
 frictionless==4.40.8
 frozenlist==1.4.1
-    # via
-    #   aiosignal
-    #   ray
 fsspec==2024.6.1
-    # via
-    #   dask
-    #   modin
 furo==2024.8.6
 geopandas==1.0.1
 googleapis-common-protos==1.63.2
-    # via
-    #   grpcio-status
-    #   pyspark
 grpcio==1.65.4
-    # via
-    #   grpcio-status
-    #   pyspark
 grpcio-status==1.65.4
-    # via pyspark
 h11==0.14.0
-    # via uvicorn
 hypothesis==6.111.0
 identify==2.6.0
-    # via pre-commit
 idna==3.7
-    # via
-    #   anyio
-    #   requests
 imagesize==1.4.1
-    # via sphinx
 importlib-metadata==8.2.0
-    # via
-    #   asv-runner
-    #   dask
-    #   jupyter-cache
-    #   keyring
-    #   myst-nb
-    #   twine
 iniconfig==2.0.0
-    # via pytest
 ipykernel==6.29.5
-    # via myst-nb
 ipython==8.26.0
-    # via
-    #   ipykernel
-    #   myst-nb
 isodate==0.6.1
-    # via frictionless
 isort==5.13.2
-    # via
-    #   pylint
 jaraco-classes==3.4.0
-    # via keyring
 jaraco-context==5.3.0
-    # via keyring
 jaraco-functools==4.0.2
-    # via keyring
 jedi==0.19.1
-    # via ipython
 jinja2==3.1.4
-    # via
-    #   distributed
-    #   frictionless
-    #   myst-parser
-    #   sphinx
 joblib==1.4.2
 json5==0.9.25
-    # via asv
 jsonschema==4.23.0
-    # via
-    #   frictionless
-    #   nbformat
-    #   ray
 jsonschema-specifications==2023.12.1
-    # via jsonschema
 jupyter-cache==1.0.0
-    # via myst-nb
 jupyter-client==8.6.2
-    # via
-    #   ipykernel
-    #   nbclient
 jupyter-core==5.7.2
-    # via
-    #   ipykernel
-    #   jupyter-client
-    #   nbclient
-    #   nbformat
 keyring==25.3.0
-    # via twine
 lazy-object-proxy==1.10.0
-    # via astroid
 locket==1.0.0
-    # via
-    #   distributed
-    #   partd
 markdown-it-py==3.0.0
-    # via
-    #   mdit-py-plugins
-    #   myst-parser
-    #   rich
 marko==2.1.2
-    # via frictionless
 markupsafe==2.1.5
-    # via jinja2
 matplotlib-inline==0.1.7
-    # via
-    #   ipykernel
-    #   ipython
 mccabe==0.7.0
-    # via pylint
 mdit-py-plugins==0.4.1
-    # via myst-parser
 mdurl==0.1.2
-    # via markdown-it-py
 modin==0.31.0
 more-itertools==10.4.0
-    # via
-    #   jaraco-classes
-    #   jaraco-functools
 msgpack==1.0.8
-    # via
-    #   distributed
-    #   ray
 multimethod==1.10
 mypy==1.10.0
 mypy-extensions==1.0.0
-    # via
-    #   black
-    #   mypy
-    #   typing-inspect
 myst-nb==1.1.1
 myst-parser==4.0.0
-    # via myst-nb
 nbclient==0.10.0
-    # via
-    #   jupyter-cache
-    #   myst-nb
 nbformat==5.10.4
-    # via
-    #   jupyter-cache
-    #   myst-nb
-    #   nbclient
 nest-asyncio==1.6.0
-    # via ipykernel
 nh3==0.2.18
-    # via readme-renderer
 nodeenv==1.9.1
-    # via pre-commit
 nox==2024.4.15
 numpy==2.0.1
-    # via
-    #   dask
-    #   geopandas
-    #   modin
-    #   pandas
-    #   pandas-stubs
-    #   pyarrow
-    #   pyogrio
-    #   pyspark
-    #   scipy
-    #   shapely
 packaging==24.1
-    # via
-    #   black
-    #   build
-    #   dask
-    #   distributed
-    #   geopandas
-    #   ipykernel
-    #   modin
-    #   nox
-    #   pyogrio
-    #   pytest
-    #   ray
-    #   sphinx
 pandas==2.2.2
-    # via
-    #   dask
-    #   dask-expr
-    #   geopandas
-    #   modin
-    #   pyspark
 pandas-stubs==2.2.2.240807
 parso==0.8.4
-    # via jedi
 partd==1.4.2
-    # via dask
 pathspec==0.12.1
-    # via black
 petl==1.7.15
-    # via frictionless
 pexpect==4.9.0
-    # via ipython
 pip==24.2
 pkginfo==1.10.0
-    # via twine
 platformdirs==4.2.2
-    # via
-    #   black
-    #   jupyter-core
-    #   pylint
-    #   virtualenv
 pluggy==1.5.0
-    # via pytest
 polars==1.4.1
 pre-commit==3.8.0
 prompt-toolkit==3.0.47
-    # via ipython
 protobuf==5.27.3
-    # via
-    #   googleapis-common-protos
-    #   grpcio-status
-    #   ray
 psutil==6.0.0
-    # via
-    #   distributed
-    #   ipykernel
-    #   modin
 ptyprocess==0.7.0
-    # via pexpect
 pure-eval==0.2.3
-    # via stack-data
 py4j==0.10.9.7
-    # via pyspark
 pyarrow==17.0.0
-    # via
-    #   dask-expr
-    #   pyspark
 pydantic==1.10.11
-    # via
-    #   fastapi
 pygments==2.18.0
-    # via
-    #   furo
-    #   ipython
-    #   readme-renderer
-    #   rich
-    #   sphinx
 pylint==2.17.3
 pympler==1.1
-    # via asv
 pyogrio==0.9.0
-    # via geopandas
 pyproj==3.6.1
-    # via geopandas
 pyproject-hooks==1.1.0
-    # via build
 pyspark==3.5.1
 pytest==8.3.2
-    # via
-    #   pytest-asyncio
-    #   pytest-cov
-    #   pytest-xdist
 pytest-asyncio==0.23.8
 pytest-cov==5.0.0
 pytest-xdist==3.6.1
 python-dateutil==2.9.0.post0
-    # via
-    #   frictionless
-    #   jupyter-client
-    #   pandas
 python-multipart==0.0.9
 python-slugify==8.0.4
-    # via frictionless
 pytz==2024.1
-    # via
-    #   pandas
 pyyaml==6.0.2
-    # via
-    #   asv
-    #   dask
-    #   distributed
-    #   frictionless
-    #   jupyter-cache
-    #   myst-nb
-    #   myst-parser
-    #   pre-commit
-    #   ray
 pyzmq==26.1.0
-    # via
-    #   ipykernel
-    #   jupyter-client
 ray==2.34.0
 readme-renderer==44.0
-    # via twine
 recommonmark==0.7.1
 referencing==0.35.1
-    # via
-    #   jsonschema
-    #   jsonschema-specifications
 requests==2.32.3
-    # via
-    #   frictionless
-    #   ray
-    #   requests-toolbelt
-    #   sphinx
-    #   twine
 requests-toolbelt==1.0.0
-    # via twine
 rfc3986==2.0.0
-    # via
-    #   frictionless
-    #   twine
 rich==13.7.1
-    # via
-    #   twine
-    #   typer
 rpds-py==0.20.0
-    # via
-    #   jsonschema
-    #   referencing
 scipy==1.14.0
 shapely==2.0.5
-    # via
-    #   geopandas
 shellingham==1.5.4
-    # via typer
 simpleeval==0.9.13
-    # via frictionless
 six==1.16.0
-    # via
-    #   asttokens
-    #   isodate
-    #   python-dateutil
 sniffio==1.3.1
-    # via anyio
 snowballstemmer==2.2.0
-    # via sphinx
 sortedcontainers==2.4.0
-    # via
-    #   distributed
-    #   hypothesis
 soupsieve==2.5
-    # via beautifulsoup4
 sphinx==7.3.7
-    # via
-    #   furo
-    #   myst-nb
-    #   myst-parser
-    #   recommonmark
-    #   sphinx-autodoc-typehints
-    #   sphinx-basic-ng
-    #   sphinx-copybutton
-    #   sphinx-design
-    #   sphinx-docsearch
 sphinx-autodoc-typehints==1.14.1
 sphinx-basic-ng==1.0.0b2
-    # via furo
 sphinx-copybutton==0.5.2
 sphinx-design==0.6.1
 sphinx-docsearch==0.0.7
 sphinxcontrib-applehelp==2.0.0
-    # via sphinx
 sphinxcontrib-devhelp==2.0.0
-    # via sphinx
 sphinxcontrib-htmlhelp==2.1.0
-    # via sphinx
 sphinxcontrib-jsmath==1.0.1
-    # via sphinx
 sphinxcontrib-qthelp==2.0.0
-    # via sphinx
 sphinxcontrib-serializinghtml==2.0.0
-    # via sphinx
 sqlalchemy==2.0.32
-    # via jupyter-cache
 stack-data==0.6.3
-    # via ipython
 starlette==0.37.2
-    # via fastapi
 stringcase==1.2.0
-    # via frictionless
 tabulate==0.9.0
-    # via
-    #   asv
-    #   frictionless
-    #   jupyter-cache
 tblib==3.0.0
-    # via distributed
 text-unidecode==1.3
-    # via python-slugify
 tomli==2.0.1
-    # via
-    #   asv
-    #   black
-    #   build
-    #   coverage
-    #   mypy
-    #   nox
-    #   pylint
-    #   pytest
-    #   sphinx
 tomlkit==0.13.0
-    # via pylint
 toolz==0.12.1
-    # via
-    #   dask
-    #   distributed
-    #   partd
 tornado==6.4.1
-    # via
-    #   distributed
-    #   ipykernel
-    #   jupyter-client
 traitlets==5.14.3
-    # via
-    #   comm
-    #   ipykernel
-    #   ipython
-    #   jupyter-client
-    #   jupyter-core
-    #   matplotlib-inline
-    #   nbclient
-    #   nbformat
 twine==5.1.1
 typeguard==4.3.0
 typer==0.12.3
-    # via frictionless
 types-click==7.1.8
 types-pytz==2024.1.0.20240417
-    # via
-    #   pandas-stubs
 types-pyyaml==6.0.12.20240808
 types-requests==2.32.0.20240712
 types-setuptools==71.1.0.20240806
 typing-extensions==4.12.2
-    # via
-    #   anyio
-    #   astroid
-    #   black
-    #   fastapi
-    #   ipython
-    #   mypy
-    #   myst-nb
-    #   pydantic
-    #   sqlalchemy
-    #   typeguard
-    #   typer
-    #   typing-inspect
-    #   uvicorn
 typing-inspect==0.9.0
 tzdata==2024.1
-    # via pandas
 urllib3==2.2.2
-    # via
-    #   distributed
-    #   requests
-    #   twine
-    #   types-requests
 uvicorn==0.30.5
 validators==0.33.0
-    # via frictionless
 virtualenv==20.26.3
-    # via
-    #   asv
-    #   nox
-    #   pre-commit
 wcwidth==0.2.13
-    # via prompt-toolkit
 wrapt==1.16.0
-    # via
-    #   astroid
 xdoctest==1.1.6
 zict==3.0.0
-    # via distributed
 zipp==3.20.0
-    # via importlib-metadata

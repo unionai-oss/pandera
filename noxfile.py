@@ -362,6 +362,7 @@ def ci_requirements(session: Session, pandas: str, pydantic: str) -> None:
             _ci_requirement_file_name(session, pandas, pydantic),
             "--no-header",
             "--upgrade",
+            "--no-annotate",
         )
 
 
@@ -379,6 +380,7 @@ def dev_requirements(session: Session) -> None:
         output_file,
         "--no-header",
         "--upgrade",
+        "--no-annotate",
     )
 
 
