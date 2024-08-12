@@ -91,7 +91,7 @@ dependencies:
       - ray
       - typeguard
       - types-click
-      - types-pyyaml
-      - types-setuptools
-      - types-requests
       - types-pytz
+      - types-pyyaml
+      - types-requests
+      - types-setuptools

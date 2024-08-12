@@ -50,10 +50,10 @@ repos:
       - id: mypy
         additional_dependencies:
           - types-click
-          - types-setuptools
           - types-pytz
           - types-pyyaml
           - types-requests
+          - types-setuptools
         args: ["pandera", "tests", "scripts"]
         exclude: (^docs/|^tests/mypy/modules/)
         pass_filenames: false
