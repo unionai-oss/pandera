@@ -56,7 +56,7 @@ grpcio
 ray
 typeguard
 types-click
-types-pyyaml
-types-pkg_resources
-types-requests
 types-pytz
+types-pyyaml
+types-requests
+types-setuptools

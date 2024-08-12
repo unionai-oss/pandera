@@ -37,11 +37,11 @@ PACKAGE = "pandera"
 SOURCE_PATHS = PACKAGE, "tests", "noxfile.py"
 REQUIREMENT_PATH = "requirements.in"
 ALWAYS_USE_PIP = {
-    "ray",
     "furo",
+    "ray",
     "types-click",
     "types-pyyaml",
-    "types-pkg_resources",
+    "types-setuptools",
 }
 
 CI_RUN = os.environ.get("CI") == "true"
