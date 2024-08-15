@@ -9,7 +9,6 @@ log_cli_level = 20
 [tool.black]
 line-length = 79
 target-version = [
-  'py37',
   'py38',
   'py39',
   'py310',

@@ -53,10 +53,10 @@ jobs:
           python -m pip install nox pre_commit \
             mypy==0.982 \
             types-click \
+            types-pytz \
             types-pyyaml \
-            types-pkg_resources \
             types-requests \
-            types-pytz
+            types-setuptools
       - name: Pip info
         run: python -m pip list
 
@@ -153,11 +153,11 @@ jobs:
         uses: codecov/codecov-action@v4
 
       # - name: Check Docstrings
-      #   if: ${{ matrix.os != 'windows-latest' && matrix.python-version == '3.11' && matrix.pandas-version == '2.2.0' }}
+      #   if: ${{ matrix.os != 'windows-latest' && matrix.python-version == '3.11' && matrix.pandas-version == '2.2.2' }}
       #   run: nox ${{ env.NOX_FLAGS }} --session doctests
 
       # - name: Check Docs
-      #   if: ${{ matrix.os != 'windows-latest' && matrix.python-version == '3.11' && matrix.pydantic-version == '2.2.0' }}
+      #   if: ${{ matrix.os != 'windows-latest' && matrix.python-version == '3.11' && matrix.pydantic-version == '2.2.2' }}
       #   run: nox ${{ env.NOX_FLAGS }} --session docs
 
   extras-tests:
@@ -208,7 +208,7 @@ jobs:
           pip-cache: ~/AppData/Local/pip/Cache
         exclude:
         - python-version: "3.8"
-          pandas-version: "2.2.0"
+          pandas-version: "2.2.2"
         - python-version: "3.11"
           pandas-version: "1.5.3"
           # mypy tests hang on windows
@@ -236,6 +236,8 @@ jobs:
           polars-version: "0.20.31"
         - extra: modin-ray
           polars-version: "0.20.31"
+        - extra: ibis
+          python-version: "3.8"
         - extra: ibis
           polars-version: "0.20.31"
 

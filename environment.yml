@@ -17,7 +17,7 @@ dependencies:
   - typing_inspect >= 0.6.0
   - typing_extensions >= 3.7.4.3
   - frictionless <= 4.40.8  # v5.* introduces breaking changes
-  - pyarrow
+  - pyarrow >= 13 # https://github.com/apache/arrow/pull/35113
   - pydantic
   - multimethod <= 1.10.0
 
@@ -33,9 +33,6 @@ dependencies:
   # modin extra
   - modin
   - protobuf
-
-  # ibis extra
-  - ibis-framework >= 3.1.0
 
   # geopandas extra
   - geopandas
@@ -60,6 +57,9 @@ dependencies:
   - xdoctest
   - nox
   - importlib_metadata # required if python < 3.8
+
+  # ibis testing
+  - ibis-duckdb
 
   # fastapi testing
   - uvicorn
@@ -87,6 +87,9 @@ dependencies:
       - dask[dataframe]
       - distributed
 
+      # ibis extra
+      - ibis-framework >= 3.1.0 ; python_version >= '3.9'
+
       # docs
       - furo
       - sphinx-docsearch
@@ -94,7 +97,7 @@ dependencies:
       - ray
       - typeguard
       - types-click
-      - types-pyyaml
-      - types-pkg_resources
-      - types-requests
       - types-pytz
+      - types-pyyaml
+      - types-requests
+      - types-setuptools
