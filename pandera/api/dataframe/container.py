@@ -830,25 +830,27 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
         *New in version 0.4.5*
 
         :param columns: list of column names to select.
-        :returns:  :class:`~pandera.api.dataframe.container.DataFrameSchema`
-            (copy of original) with only the selected columns.
+        :returns: :class:`~pandera.api.dataframe.container.DataFrameSchema`
+            (copy of original) with only the selected columns, in the order specified.
         :raises: :class:`~pandera.errors.SchemaInitError` if column not in the
             schema.
 
         :example:
 
-        To subset a schema by column, and return a new schema:
+        To subset and reorder a schema by column, and return a new schema:
 
         >>> import pandera as pa
         >>>
         >>> example_schema = pa.DataFrameSchema({
-        ...     "category" : pa.Column(str),
-        ...     "probability": pa.Column(float)
+        ...     "category": pa.Column(str),
+        ...     "probability": pa.Column(float),
+        ...     "timestamp": pa.Column(pa.DateTime)
         ... })
         >>>
-        >>> print(example_schema.select_columns(['category']))
+        >>> print(example_schema.select_columns(['probability', 'category']))
         <Schema DataFrameSchema(
             columns={
+                'probability': <Schema Column(name=probability, type=DataType(float64))>
                 'category': <Schema Column(name=category, type=DataType(str))>
             },
             checks=[],
@@ -865,12 +867,10 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
         )>
 
         .. note:: If an index is present in the schema, it will also be
-            included in the new schema.
-
+            included in the new schema. The columns will be reordered
+            to match the order in ``columns``.
         """
-
         new_schema = copy.deepcopy(self)
-
         # ensure all specified keys are present in the columns
         not_in_cols: List[str] = [
             x for x in columns if x not in new_schema.columns.keys()
@@ -881,10 +881,9 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
             )
 
         new_columns = {
-            col_name: column
-            for col_name, column in self.columns.items()
-            if col_name in columns
+            col_name: new_schema.columns[col_name] for col_name in columns
         }
+
         new_schema.columns = new_columns
         return cast(Self, new_schema)
 
