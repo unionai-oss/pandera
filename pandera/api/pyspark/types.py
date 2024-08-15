@@ -2,12 +2,26 @@
 
 from functools import lru_cache
 from typing import List, NamedTuple, Tuple, Type, Union
+from numpy import bool_ as np_bool
+from packaging import version
 
 import pyspark.sql.types as pst
 from pyspark.sql import DataFrame
 
+import pyspark
 from pandera.api.checks import Check
 from pandera.dtypes import DataType
+
+# pylint: disable=reimported
+# Handles optional Spark Connect imports for pyspark>=3.4 (if available)
+if version.parse(pyspark.__version__) >= version.parse("3.4"):
+    from pyspark.sql.connect.dataframe import DataFrame as psc_DataFrame
+else:
+    from pyspark.sql import (
+        DataFrame as psc_DataFrame,
+    )
+
+DataFrameTypes = Union[DataFrame, psc_DataFrame]
 
 CheckList = Union[Check, List[Check]]
 
@@ -57,7 +71,7 @@ SupportedTypes = NamedTuple(
 class PysparkDataframeColumnObject(NamedTuple):
     """Pyspark Object which holds dataframe and column value in a named tuble"""
 
-    dataframe: DataFrame
+    dataframe: DataFrameTypes
     column_name: str
 
 
@@ -69,6 +83,7 @@ def supported_types() -> SupportedTypes:
 
     try:
         table_types.append(DataFrame)
+        table_types.append(psc_DataFrame)
 
     except ImportError:  # pragma: no cover
         pass
@@ -89,4 +104,4 @@ def is_table(obj):
 
 def is_bool(x):
     """Verifies whether an object is a boolean type."""
-    return isinstance(x, (bool, type(pst.BooleanType())))
+    return isinstance(x, (bool, type(pst.BooleanType()), np_bool))

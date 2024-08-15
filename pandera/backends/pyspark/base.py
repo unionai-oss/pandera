@@ -22,6 +22,7 @@ from pandera.backends.pyspark.error_formatters import (
     scalar_failure_case,
 )
 from pandera.errors import FailureCaseMetadata, SchemaError, SchemaWarning
+from pandera.api.pyspark.types import DataFrameTypes
 
 
 class ColumnInfo(NamedTuple):
@@ -34,7 +35,7 @@ class ColumnInfo(NamedTuple):
     lazy_exclude_column_names: List
 
 
-FieldCheckObj = Union[col, DataFrame]
+FieldCheckObj = Union[col, DataFrameTypes]
 
 T = TypeVar(
     "T",
@@ -50,7 +51,7 @@ class PysparkSchemaBackend(BaseSchemaBackend):
 
     def subsample(
         self,
-        check_obj: DataFrame,
+        check_obj: DataFrameTypes,
         head: Optional[int] = None,
         tail: Optional[int] = None,
         sample: Optional[float] = None,

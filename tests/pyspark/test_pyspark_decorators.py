@@ -14,15 +14,22 @@ from pandera.config import config_context
 from pandera.pyspark import Check, Column, DataFrameSchema
 from tests.pyspark.conftest import spark_df
 
+pytestmark = pytest.mark.parametrize(
+    "spark_session", ["spark", "spark_connect"]
+)
+
 
 class TestPanderaDecorators:
     """Class to test all the different configs types"""
 
     sample_data = [("Bread", 9), ("Cutter", 15)]
 
-    def test_cache_dataframe_requirements(self, spark, sample_spark_schema):
+    def test_cache_dataframe_requirements(
+        self, spark_session, sample_spark_schema, request
+    ):
         """Validates if decorator can only be applied in a proper function."""
         # Set expected properties in Config object
+        spark = request.getfixturevalue(spark_session)
         input_df = spark_df(spark, self.sample_data, sample_spark_schema)
 
         class FakeDataFrameSchemaBackend:
@@ -74,17 +81,19 @@ class TestPanderaDecorators:
     # pylint:disable=too-many-locals
     def test_cache_dataframe_settings(
         self,
-        spark,
+        spark_session,
         sample_spark_schema,
         cache_enabled,
         keep_cache_enabled,
         expected_caching_message,
         expected_unpersisting_message,
         caplog,
+        request,
     ):
         """This function validates that caching/unpersisting works as expected."""
         # Set expected properties in Config object
         # Prepare test data
+        spark = request.getfixturevalue(spark_session)
         input_df = spark_df(spark, self.sample_data, sample_spark_schema)
         pandera_schema = DataFrameSchema(
             {
