@@ -122,9 +122,9 @@ class DataFrameModel(_DataFrameModel[pl.LazyFrame, DataFrameSchema]):
             FastAPI integration.
         """
         schema = cls.to_schema()
-        empty = pd.DataFrame(columns=schema.columns.keys()).astype(
-            {k: v.type for k, v in schema.dtypes.items()}
-        )
+        empty = pl.DataFrame(
+            schema={k: v.type for k, v in schema.dtypes.items()}
+        ).to_pandas()
         table_schema = pd.io.json.build_table_schema(empty)
 
         def _field_json_schema(field):
