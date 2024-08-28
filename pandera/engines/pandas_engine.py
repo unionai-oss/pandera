@@ -107,7 +107,7 @@ def is_pyarrow_dtype(
     pd_dtype: PandasDataType,
 ) -> Union[bool, Iterable[bool]]:
     """Check if a value is a pandas pyarrow type or instance of one."""
-    if not PYARROW_INSTALLED:
+    if not (PYARROW_INSTALLED and PANDAS_2_0_0_PLUS):
         return False
 
     return isinstance(pd_dtype, pd.ArrowDtype)
