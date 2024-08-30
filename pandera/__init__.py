@@ -11,7 +11,7 @@ import pandera.backends
 import pandera.backends.base.builtin_checks
 import pandera.backends.base.builtin_hypotheses
 import pandera.backends.pandas
-from pandera import errors
+from pandera import errors, external_config, typing
 from pandera.accessors import pandas_accessor
 from pandera.api import extensions
 from pandera.api.checks import Check
