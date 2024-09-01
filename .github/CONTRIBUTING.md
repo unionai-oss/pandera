@@ -78,7 +78,7 @@ to run the `nox` test suite. Simply install it via conda-forge:
 conda install -c conda-forge mamba
 ```
 
-To add new dependencies to the project, first alter the _environment.yml_ file. Then to sync the dependencies from the `environment.yml`` file to the `requirements.in` run the following command
+To add new dependencies to the project, first alter the `environment.yml` file. Then to sync the dependencies from the `environment.yml` file to the `requirements.in`, run the following command:
 
 ```bash
 make nox-requirements
@@ -147,11 +147,33 @@ Before submitting your changes for review, make sure to check that your changes
 do not break any tests by running:
 
 ```bash
-# option 1: if you're working with conda (recommended)
-make nox-conda
+make nox-tests
+```
 
-# option 2: if you're working with virtualenv
-make nox
+### Run a Specific Test Suite Locally
+
+The above command will run the tests in mamba virtual environments for all of
+the supported pandera extras packages, versions of python, pandas, etc. To run
+a test for a specific set of versions, first run:
+
+```bash
+nox --list
+```
+
+You should see an output like this:
+
+```bash
+...
+* tests(extra='core', pydantic='1.10.11', python='3.8', pandas='1.5.3') -> Run the test suite.
+* tests(extra='strategies', pydantic='1.10.11', python='3.8', pandas='1.5.3') -> Run the test suite.
+* tests(extra='hypotheses', pydantic='1.10.11', python='3.8', pandas='1.5.3') -> Run the test suite.
+...
+```
+
+Then run a specific test condition with:
+
+```bash
+nox -db mamba --envdir .nox-mamba -s "tests(extra='core', pydantic='1.10.11', python='3.8', pandas='1.5.3')"
 ```
 
 ### Project Releases

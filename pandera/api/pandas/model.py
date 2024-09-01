@@ -14,7 +14,7 @@ from pandera.api.pandas.model_config import BaseConfig
 from pandera.api.parsers import Parser
 from pandera.engines.pandas_engine import Engine
 from pandera.errors import SchemaInitError
-from pandera.typing import INDEX_TYPES, SERIES_TYPES, AnnotationInfo
+from pandera.typing import get_index_types, get_series_types, AnnotationInfo
 
 SchemaIndex = Union[Index, MultiIndex]
 
@@ -23,11 +23,6 @@ class DataFrameModel(_DataFrameModel[pd.DataFrame, DataFrameSchema]):
     """Model of a pandas :class:`~pandera.api.pandas.container.DataFrameSchema`.
 
     *new in 0.5.0*
-
-    .. important::
-
-        This class is the new name for ``SchemaModel``, which will be deprecated
-        in pandera version ``0.20.0``.
 
     See the :ref:`User Guide <dataframe-models>` for more.
     """
@@ -62,9 +57,12 @@ class DataFrameModel(_DataFrameModel[pd.DataFrame, DataFrameSchema]):
         checks: Dict[str, List[Check]],
         parsers: Dict[str, List[Parser]],
         **multiindex_kwargs: Any,
-    ) -> Tuple[Dict[str, Column], Optional[Union[Index, MultiIndex]],]:
+    ) -> Tuple[
+        Dict[str, Column],
+        Optional[Union[Index, MultiIndex]],
+    ]:
         index_count = sum(
-            annotation.origin in INDEX_TYPES
+            annotation.origin in get_index_types()
             for annotation, _ in fields.values()
         )
 
@@ -104,8 +102,8 @@ class DataFrameModel(_DataFrameModel[pd.DataFrame, DataFrameSchema]):
                 annotation.is_annotated_type
                 or annotation.origin is None
                 or use_raw_annotation
-                or annotation.origin in SERIES_TYPES
-                or annotation.raw_annotation in SERIES_TYPES
+                or annotation.origin in get_series_types()
+                or annotation.raw_annotation in get_series_types()
             ):
                 if check_name is False:
                     raise SchemaInitError(
@@ -126,8 +124,8 @@ class DataFrameModel(_DataFrameModel[pd.DataFrame, DataFrameSchema]):
                 columns[field_name] = Column(**column_kwargs)
 
             elif (
-                annotation.origin in INDEX_TYPES
-                or annotation.raw_annotation in INDEX_TYPES
+                annotation.origin in get_index_types()
+                or annotation.raw_annotation in get_index_types()
             ):
                 if annotation.optional:
                     raise SchemaInitError(
@@ -192,18 +190,6 @@ class DataFrameModel(_DataFrameModel[pd.DataFrame, DataFrameSchema]):
                 for field in table_schema["fields"]
             },
         }
-
-
-SchemaModel = DataFrameModel
-"""
-Alias for DataFrameModel.
-
-.. warning::
-
-   This subclass is necessary for backwards compatibility, and will be
-   deprecated in pandera version ``0.20.0`` in favor of
-   :py:class:`~pandera.api.pandas.model.DataFrameModel`
-"""
 
 
 def _build_schema_index(

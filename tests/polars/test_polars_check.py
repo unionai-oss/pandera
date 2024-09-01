@@ -4,6 +4,7 @@ import polars as pl
 import pytest
 
 import pandera.polars as pa
+from pandera.api.polars.utils import get_lazyframe_schema
 from pandera.constants import CHECK_OUTPUT_KEY
 
 
@@ -145,7 +146,7 @@ def test_polars_element_wise_dataframe_check(lf):
     validated_data = schema.validate(lf)
     assert validated_data.collect().equals(lf.collect())
 
-    for col in lf.columns:
+    for col in get_lazyframe_schema(lf):
         invalid_lf = lf.with_columns(**{col: pl.Series([-1, 2, -4, 3])})
         try:
             schema.validate(invalid_lf)
@@ -181,3 +182,40 @@ def test_polars_element_wise_dataframe_different_dtypes(column_lf):
         schema.validate(lf, lazy=True)
     except pa.errors.SchemaErrors as exc:
         assert exc.failure_cases["failure_case"].to_list() == ["1", "2", "c"]
+
+
+def test_polars_custom_check():
+    """Test that custom checks with more complex expressions are supported."""
+
+    lf = pl.LazyFrame(
+        {"column1": [None, "x", "y"], "column2": ["a", None, "c"]}
+    )
+
+    def custom_check(data: pa.PolarsData) -> pl.LazyFrame:
+        return data.lazyframe.select(
+            pl.when(
+                pl.col("column1").is_null(),
+                pl.col(data.key).is_null(),
+            )
+            .then(False)
+            .otherwise(True)
+        )
+
+    schema = pa.DataFrameSchema(
+        {
+            "column1": pa.Column(str, nullable=True),
+            "column2": pa.Column(
+                str, nullable=True, checks=pa.Check(custom_check)
+            ),
+        }
+    )
+
+    validated_lf = schema.validate(lf)
+    assert isinstance(validated_lf, pl.LazyFrame)
+
+    invalid_lf = pl.LazyFrame(
+        {"column1": [None, "x", "y"], "column2": [None, None, "c"]}
+    )
+
+    with pytest.raises(pa.errors.SchemaError):
+        schema.validate(invalid_lf)

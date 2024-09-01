@@ -17,19 +17,15 @@ from typing import Any, Iterable, Optional, Union
 
 import pyspark
 import pyspark.sql.types as pst
+from pyspark.sql import DataFrame
 from packaging import version
 
 from pandera import dtypes, errors
 from pandera.dtypes import immutable
 from pandera.engines import engine
-from pandera.engines.type_aliases import PysparkObject
 
-try:
-    import pyarrow  # pylint:disable=unused-import
 
-    PYARROW_INSTALLED = True
-except ImportError:  # pragma: no cover
-    PYARROW_INSTALLED = False
+PysparkObject = Union[DataFrame]
 
 
 DEFAULT_PYSPARK_PREC = pst.DecimalType().precision

@@ -7,8 +7,10 @@ import inspect
 import warnings
 from typing import (
     Any,
+    Dict,
     Iterable,
     Literal,
+    Mapping,
     Optional,
     Sequence,
     Tuple,
@@ -17,8 +19,8 @@ from typing import (
 )
 
 import polars as pl
-from polars.datatypes import DataTypeClass, py_type_to_dtype
-from polars.type_aliases import SchemaDict
+from packaging import version
+from polars.datatypes import DataTypeClass
 
 from pandera import dtypes, errors
 from pandera.api.polars.types import PolarsData
@@ -31,10 +33,34 @@ PolarsDataType = Union[DataTypeClass, pl.DataType]
 
 COERCION_ERRORS = (
     TypeError,
-    pl.ArrowError,
-    pl.InvalidOperationError,
-    pl.ComputeError,
+    pl.exceptions.InvalidOperationError,
+    pl.exceptions.ComputeError,
 )
+
+
+SchemaDict = Mapping[str, PolarsDataType]
+
+
+def polars_version() -> version.Version:
+    """Return the polars version."""
+
+    return version.parse(pl.__version__)
+
+
+def convert_py_dtype_to_polars_dtype(dtype):
+    if isinstance(dtype, DataTypeClass):
+        return dtype
+
+    if polars_version().release < (1, 0, 0):
+        from polars.datatypes import py_type_to_dtype
+
+        conversion_fn = py_type_to_dtype
+    else:
+        from polars.datatypes._parse import parse_py_type_into_dtype
+
+        conversion_fn = parse_py_type_into_dtype
+
+    return conversion_fn(dtype)
 
 
 def polars_object_coercible(
@@ -54,9 +80,9 @@ def polars_failure_cases_from_coercible(
     is_coercible: pl.LazyFrame,
 ) -> pl.LazyFrame:
     """Get the failure cases resulting from trying to coerce a polars object."""
-    return data_container.lazyframe.with_context(is_coercible).filter(
-        pl.col(CHECK_OUTPUT_KEY).not_()
-    )
+    return pl.concat(
+        items=[data_container.lazyframe, is_coercible], how="horizontal"
+    ).filter(pl.col(CHECK_OUTPUT_KEY).not_())
 
 
 def polars_coerce_failure_cases(
@@ -102,8 +128,11 @@ class DataType(dtypes.DataType):
 
     def __init__(self, dtype: Optional[Any] = None):
         super().__init__()
+
         try:
-            object.__setattr__(self, "type", py_type_to_dtype(dtype))
+            object.__setattr__(
+                self, "type", convert_py_dtype_to_polars_dtype(dtype)
+            )
         except ValueError:
             object.__setattr__(self, "type", pl.Object)
 
@@ -117,9 +146,13 @@ class DataType(dtypes.DataType):
 
     def __post_init__(self):
         # this method isn't called if __init__ is defined
-        object.__setattr__(
-            self, "type", py_type_to_dtype(self.type)
-        )  # pragma: no cover
+        if not isinstance(self.type, DataTypeClass):
+            try:
+                object.__setattr__(
+                    self, "type", convert_py_dtype_to_polars_dtype(self.type)
+                )
+            except ValueError:
+                object.__setattr__(self, "type", pl.Object)
 
     def coerce(self, data_container: PolarsDataContainer) -> pl.LazyFrame:
         """Coerce data container to the data type."""
@@ -138,6 +171,8 @@ class DataType(dtypes.DataType):
         raises a :class:`~pandera.errors.ParserError` if the coercion fails
         :raises: :class:`~pandera.errors.ParserError`: if coercion fails
         """
+        from pandera.api.polars.utils import get_lazyframe_schema
+
         if isinstance(data_container, pl.LazyFrame):
             data_container = PolarsData(data_container)
 
@@ -158,7 +193,7 @@ class DataType(dtypes.DataType):
                 failure_cases = failure_cases.select(data_container.key)
             raise errors.ParserError(
                 f"Could not coerce {_key} LazyFrame with schema "
-                f"{data_container.lazyframe.schema} "
+                f"{get_lazyframe_schema(data_container.lazyframe)} "
                 f"into type {self.type}",
                 failure_cases=failure_cases,
                 parser_output=is_coercible,
@@ -196,7 +231,7 @@ class Engine(  # pylint:disable=too-few-public-methods
             return engine.Engine.dtype(cls, data_type)
         except TypeError:
             try:
-                pl_dtype = py_type_to_dtype(data_type)
+                pl_dtype = convert_py_dtype_to_polars_dtype(data_type)
             except ValueError:
                 raise TypeError(
                     f"data type '{data_type}' not understood by "
@@ -532,16 +567,26 @@ class Array(DataType):
     def __init__(  # pylint:disable=super-init-not-called
         self,
         inner: Optional[PolarsDataType] = None,
+        shape: Union[int, Tuple[int, ...], None] = None,
+        *,
         width: Optional[int] = None,
     ) -> None:
-        if inner or width:
-            object.__setattr__(
-                self, "type", pl.Array(inner=inner, width=width)
-            )
+
+        kwargs: Dict[str, Union[int, Tuple[int, ...]]] = {}
+        if width is not None:
+            kwargs["shape"] = width
+        elif shape is not None:
+            kwargs["shape"] = shape
+
+        if inner or shape or width:
+            object.__setattr__(self, "type", pl.Array(inner=inner, **kwargs))
 
     @classmethod
     def from_parametrized_dtype(cls, polars_dtype: pl.Array):
-        return cls(inner=polars_dtype.inner, width=polars_dtype.width)
+        return cls(
+            inner=polars_dtype.inner,
+            shape=polars_dtype.shape,
+        )
 
 
 @Engine.register_dtype(equivalents=[pl.List])
@@ -598,6 +643,16 @@ class Bool(DataType, dtypes.Bool):
 
 
 @Engine.register_dtype(
+    equivalents=["binary", bytes, pl.Binary, dtypes.Binary, dtypes.Binary()]
+)
+@immutable
+class Binary(DataType, dtypes.Binary):
+    """Polars binary data type."""
+
+    type = pl.Binary
+
+
+@Engine.register_dtype(
     equivalents=["string", str, pl.Utf8, dtypes.String, dtypes.String()]
 )
 @immutable
@@ -613,6 +668,21 @@ class Categorical(DataType):
     """Polars categorical data type."""
 
     type = pl.Categorical
+
+    ordering = None
+
+    def __init__(  # pylint:disable=super-init-not-called
+        self,
+        ordering: str = "physical",
+    ) -> None:
+        object.__setattr__(self, "ordering", ordering)
+        object.__setattr__(self, "type", pl.Categorical(ordering=ordering))
+
+    @classmethod
+    def from_parametrized_dtype(cls, polars_dtype: pl.Categorical):
+        """Convert a :class:`polars.Decimal` to
+        a Pandera :class:`pandera.engines.polars_engine.Decimal`."""
+        return cls(ordering=polars_dtype.ordering)
 
 
 @Engine.register_dtype(

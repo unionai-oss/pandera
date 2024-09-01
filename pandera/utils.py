@@ -9,6 +9,11 @@ def docstring_substitution(*args: Any, **kwargs: Any) -> Callable[[F], F]:
     """Typed wrapper around pandas.util.Substitution."""
 
     def decorator(func: F) -> F:
+        # handle case when pandera is run in optimized mode:
+        # https://docs.python.org/3/using/cmdline.html#cmdoption-OO
+        if func.__doc__ is None:
+            return func
+
         if args:
             _doc = func.__doc__ % tuple(args)  # type: ignore[operator]
         elif kwargs:

@@ -9,7 +9,7 @@
 *new in 0.8.0*
 
 Pandera integrates with mypy to provide static type-linting of dataframes,
-relying on [pandas-stubs](https://github.com/VirtusLab/pandas-stubs)
+relying on [pandas-stubs](https://github.com/pandas-dev/pandas-stubs)
 for typing information.
 
 ```bash

@@ -227,7 +227,7 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
                 )
             except SchemaError as err:
                 error_handler.collect_error(
-                    ErrorCategory.DATA, err.reason_code, err
+                    ErrorCategory.DATA, SchemaErrorReason.DATAFRAME_CHECK, err
                 )
             except SchemaDefinitionError:
                 raise
@@ -552,18 +552,6 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
             )
 
         return check_obj
-
-    def _check_uniqueness(
-        self,
-        obj: DataFrame,
-        schema,
-    ) -> DataFrame:
-        """Ensure uniqueness in dataframe columns.
-
-        :param obj: dataframe to check.
-        :param schema: schema object.
-        :returns: dataframe checked.
-        """
 
     ##########
     # Checks #

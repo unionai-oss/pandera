@@ -1,5 +1,6 @@
 """Class-based api for polars models."""
 
+import inspect
 from typing import Dict, List, Tuple, Type
 
 import pandas as pd
@@ -47,10 +48,21 @@ class DataFrameModel(_DataFrameModel[pl.LazyFrame, DataFrameSchema]):
             field_name = field.name
             check_name = getattr(field, "check_name", None)
 
-            engine_dtype = None
+            try:
+                is_polars_dtype = inspect.isclass(
+                    annotation.raw_annotation
+                ) and issubclass(annotation.raw_annotation, pe.DataType)
+            except TypeError:
+                is_polars_dtype = False
+
             try:
                 engine_dtype = pe.Engine.dtype(annotation.raw_annotation)
-                dtype = engine_dtype.type
+                if is_polars_dtype:
+                    # use the raw annotation as the dtype if it's a native
+                    # pandera polars datatype
+                    dtype = annotation.raw_annotation
+                else:
+                    dtype = engine_dtype.type
             except (TypeError, ValueError) as exc:
                 if annotation.metadata:
                     if field.dtype_kwargs:
@@ -64,13 +76,13 @@ class DataFrameModel(_DataFrameModel[pl.LazyFrame, DataFrameSchema]):
                 elif annotation.default_dtype:
                     dtype = annotation.default_dtype
                 else:
-                    dtype = annotation.arg
+                    dtype = annotation.arg  # type: ignore
 
             if (
                 annotation.origin is None
                 or isinstance(annotation.origin, pl.datatypes.DataTypeClass)
                 or annotation.origin is Series
-                or engine_dtype
+                or dtype
             ):
                 if check_name is False:
                     raise SchemaInitError(
@@ -110,9 +122,9 @@ class DataFrameModel(_DataFrameModel[pl.LazyFrame, DataFrameSchema]):
             FastAPI integration.
         """
         schema = cls.to_schema()
-        empty = pd.DataFrame(columns=schema.columns.keys()).astype(
-            {k: v.type for k, v in schema.dtypes.items()}
-        )
+        empty = pl.DataFrame(
+            schema={k: v.type for k, v in schema.dtypes.items()}
+        ).to_pandas()
         table_schema = pd.io.json.build_table_schema(empty)
 
         def _field_json_schema(field):

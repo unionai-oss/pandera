@@ -6,7 +6,7 @@ pandera implements it.
 
 import pytest
 
-from pandera import modin_accessor
+from pandera.accessors import modin_accessor
 
 
 # pylint: disable=too-few-public-methods

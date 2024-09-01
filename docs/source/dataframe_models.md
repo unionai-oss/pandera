@@ -11,20 +11,8 @@ file_format: mystnb
 
 # DataFrame Models
 
-Formerly known as `SchemaModel`.
-
 *new in 0.5.0*
 
-:::{important}
-As of pandera `0.14.0` {py:class}`~pandera.api.pandas.model.SchemaModel`
-is simply an alias of {py:class}`~pandera.api.pandas.model.DataFrameModel`.
-`SchemaModel` will continue to work as a valid way of specifying types
-for DataFrame models for the foreseeable future, and will be deprecated in
-version `0.20.0`.
-
-For the purposes of documentation, `SchemaModel` and `DataFrameModel`
-are equivalent.
-:::
 
 `pandera` provides a class-based API that's heavily inspired by
 [pydantic](https://pydantic-docs.helpmanual.io/). In contrast to the
@@ -117,6 +105,22 @@ class InputSchema(pa.DataFrameModel):
     year: int = pa.Field(gt=2000, coerce=True)
     month: int = pa.Field(ge=1, le=12, coerce=True)
     day: int = pa.Field(ge=0, le=365, coerce=True)
+```
+
+### Reusing Field objects
+
+To define reuseable `Field` definitions, you need to use `functools.partial`.
+This makes sure that each field attribute is bound to a unique `Field` instance.
+
+```{code-cell} python
+from functools import partial
+from pandera import DataFrameModel, Field
+
+NormalizedField = partial(Field, ge=0, le=1)
+
+class SchemaWithReusedFields(DataFrameModel):
+    xnorm: float = NormalizedField()
+    ynorm: float = NormalizedField()
 ```
 
 ## Validate on Initialization

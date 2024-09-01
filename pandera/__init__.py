@@ -1,12 +1,17 @@
+# pylint: disable=wrong-import-position
 """A flexible and expressive pandas validation library."""
 
 import platform
+
+from pandera._patch_numpy2 import _patch_numpy2
+
+_patch_numpy2()
 
 import pandera.backends
 import pandera.backends.base.builtin_checks
 import pandera.backends.base.builtin_hypotheses
 import pandera.backends.pandas
-from pandera import errors, external_config, typing
+from pandera import errors
 from pandera.accessors import pandas_accessor
 from pandera.api import extensions
 from pandera.api.checks import Check
@@ -21,9 +26,8 @@ from pandera.api.hypotheses import Hypothesis
 from pandera.api.pandas.array import SeriesSchema
 from pandera.api.pandas.components import Column, Index, MultiIndex
 from pandera.api.pandas.container import DataFrameSchema
-from pandera.api.pandas.model import DataFrameModel, SchemaModel
+from pandera.api.pandas.model import DataFrameModel
 from pandera.api.parsers import Parser
-from pandera.backends.pandas.register import register_pandas_backends
 from pandera.decorators import check_input, check_io, check_output, check_types
 from pandera.dtypes import (
     Bool,
@@ -77,28 +81,6 @@ if platform.system() != "Windows":
     # pylint: disable=ungrouped-imports
     from pandera.dtypes import Complex256, Float128
 
-
-try:
-    import dask.dataframe
-
-    from pandera.accessors import dask_accessor
-except ImportError:
-    pass
-
-
-try:
-    import pyspark.pandas
-
-    from pandera.accessors import pyspark_accessor
-except ImportError:
-    pass
-
-try:
-    import modin.pandas
-
-    from pandera.accessors import modin_accessor
-except ImportError:
-    pass
 
 __all__ = [
     # dtypes
@@ -160,7 +142,6 @@ __all__ = [
     "Hypothesis",
     # model
     "DataFrameModel",
-    "SchemaModel",
     # model_components
     "Field",
     "check",
@@ -179,6 +160,3 @@ __all__ = [
     # version
     "__version__",
 ]
-
-
-register_pandas_backends()

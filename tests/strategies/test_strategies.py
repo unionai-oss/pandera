@@ -16,7 +16,7 @@ from pandera import strategies
 from pandera.api.checks import Check
 from pandera.api.extensions import register_check_statistics
 from pandera.dtypes import is_category, is_complex, is_float
-from pandera.engines import pandas_engine
+from pandera.engines import pandas_engine, geopandas_engine
 
 try:
     import hypothesis
@@ -52,6 +52,7 @@ if pandas_engine.PYARROW_INSTALLED and pandas_engine.PANDAS_2_0_0_PLUS:
             pandas_engine.ArrowBool,
             pandas_engine.ArrowDecimal128,
             pandas_engine.ArrowDictionary,
+            pandas_engine.ArrowFloat16,
             pandas_engine.ArrowFloat32,
             pandas_engine.ArrowFloat64,
             pandas_engine.ArrowInt8,
@@ -64,6 +65,18 @@ if pandas_engine.PYARROW_INSTALLED and pandas_engine.PANDAS_2_0_0_PLUS:
             pandas_engine.ArrowUInt16,
             pandas_engine.ArrowUInt32,
             pandas_engine.ArrowUInt64,
+            pandas_engine.ArrowList,
+            pandas_engine.ArrowStruct,
+            pandas_engine.ArrowNull,
+            pandas_engine.ArrowDate32,
+            pandas_engine.ArrowDate64,
+            pandas_engine.ArrowDuration,
+            pandas_engine.ArrowTime32,
+            pandas_engine.ArrowTime64,
+            pandas_engine.ArrowMap,
+            pandas_engine.ArrowBinary,
+            pandas_engine.ArrowLargeBinary,
+            pandas_engine.ArrowLargeString,
         ]
     )
 
@@ -75,8 +88,8 @@ for data_type in pandas_engine.Engine.get_registered_dtypes():
         or is_category(data_type)
         or data_type in UNSUPPORTED_DTYPE_CLS
         or (
-            pandas_engine.GEOPANDAS_INSTALLED
-            and data_type == pandas_engine.Geometry
+            geopandas_engine.GEOPANDAS_INSTALLED
+            and data_type == geopandas_engine.Geometry
         )
     ):
         continue

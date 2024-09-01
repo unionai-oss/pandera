@@ -11,6 +11,7 @@ from pandera.api.hypotheses import Hypothesis
 from pandera.api.pandas.types import is_field, is_table
 from pandera.backends.pandas.checks import PandasCheckBackend
 
+
 try:
     from scipy import stats  # pylint: disable=unused-import
 except ImportError:  # pragma: no cover

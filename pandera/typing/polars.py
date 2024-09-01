@@ -37,7 +37,7 @@ if POLARS_INSTALLED:
 
     class DataFrame(DataFrameBase, pl.DataFrame, Generic[T]):
         """
-        Pandera generic for pl.LazyFrame, only used for type annotation.
+        Pandera generic for pl.DataFrame, only used for type annotation.
 
         *new in 0.19.0*
         """

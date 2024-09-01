@@ -21,7 +21,7 @@ TDataObject = TypeVar("TDataObject")
 
 
 class ComponentSchema(Generic[TDataObject], BaseSchema):
-    """Base array validator object."""
+    """Base class for data container component, e.g. columns."""
 
     def __init__(
         self,
@@ -103,8 +103,7 @@ class ComponentSchema(Generic[TDataObject], BaseSchema):
 
         self._validate_attributes()
 
-    def _validate_attributes(self):
-        ...
+    def _validate_attributes(self): ...
 
     # the _is_inferred getter and setter methods are not public
     @property

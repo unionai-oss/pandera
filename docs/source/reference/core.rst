@@ -15,6 +15,7 @@ Schemas
    pandera.api.pandas.array.SeriesSchema
    pandera.api.polars.container.DataFrameSchema
    pandera.api.pyspark.container.DataFrameSchema
+   pandera.api.dataframe.container.DataFrameSchema
 
 Schema Components
 -----------------
@@ -29,6 +30,7 @@ Schema Components
    pandera.api.pandas.components.MultiIndex
    pandera.api.polars.components.Column
    pandera.api.pyspark.components.Column
+   pandera.api.dataframe.components.ComponentSchema
 
 Checks
 ------

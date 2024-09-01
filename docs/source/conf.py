@@ -6,6 +6,7 @@
 
 # -- Path setup --------------------------------------------------------------
 
+import datetime
 import doctest
 import inspect
 import logging as pylogging
@@ -19,6 +20,7 @@ import shutil
 import subprocess
 import sys
 
+import sphinx.application
 from sphinx.util import logging
 
 import pandera
@@ -28,9 +30,10 @@ sys.path.insert(0, os.path.abspath("../.."))
 
 # -- Project information -----------------------------------------------------
 
+_year = datetime.datetime.now().year
 project = "pandera"
-copyright = "2019, Pandera developers"
 author = "Pandera developers"
+copyright = f"{_year}, {author}"
 
 
 # -- General configuration ---------------------------------------------------
@@ -47,6 +50,7 @@ extensions = [
     "sphinx.ext.linkcode",  # link to github, see linkcode_resolve() below
     "sphinx_copybutton",
     "sphinx_design",
+    # "sphinx_docsearch",
     "myst_nb",
 ]
 
@@ -205,8 +209,25 @@ class FilterTypeAnnotationWarnings(pylogging.Filter):
             # correctly
             record.getMessage().startswith(
                 (
+                    "Cannot resolve forward reference in type annotations",
                     "Cannot resolve forward reference in type annotations of "
                     '"pandera.typing.DataFrame"',
+                    "Cannot resolve forward reference in type annotations of "
+                    '"pandera.typing.DataFrame',
+                    "Cannot resolve forward reference in type annotations of "
+                    '"pandera.typing.Index',
+                    "Cannot resolve forward reference in type annotations of "
+                    '"pandera.typing.Series',
+                    "Cannot resolve forward reference in type annotations of "
+                    '"pandera.typing.geopandas.GeoDataFrame',
+                    "Cannot resolve forward reference in type annotations of "
+                    '"pandera.typing.geopandas.GeoSeries',
+                    "Cannot resolve forward reference in type annotations of "
+                    '"pandera.typing.pyspark.DataFrame',
+                    "Cannot resolve forward reference in type annotations of "
+                    '"pandera.typing.pyspark.Series',
+                    "Cannot resolve forward reference in type annotations of "
+                    '"pandera.typing.pyspark.Index',
                     "Cannot resolve forward reference in type annotations of "
                     '"pandera.api.pandas.container.DataFrameSchema',
                     "Cannot resolve forward reference in type annotations of "
@@ -217,6 +238,12 @@ class FilterTypeAnnotationWarnings(pylogging.Filter):
                     '"pandera.api.pyspark.container.DataFrameSchema',
                     "Cannot resolve forward reference in type annotations of "
                     '"pandera.typing.Series"',
+                    "Cannot resolve forward reference in type annotations of "
+                    '"pandera.typing.modin.DataFrame',
+                    "Cannot resolve forward reference in type annotations of "
+                    '"pandera.typing.modin.Series',
+                    "Cannot resolve forward reference in type annotations of "
+                    '"pandera.typing.modin.Index',
                 )
             )
         )
@@ -290,3 +317,52 @@ myst_heading_anchors = 3
 nb_execution_mode = "auto"
 nb_execution_timeout = 60
 nb_execution_excludepatterns = ["_contents/try_pandera.ipynb"]
+
+# # docsearch configuration
+# docsearch_app_id = "GA9NROLUXR"
+# docsearch_api_key = os.getenv("DOCSEARCH_SEARCH_API_KEY")
+# docsearch_index_name = "pandera"
+
+
+class CustomWarningSuppressor(pylogging.Filter):
+    """Filter logs by `suppress_warnings`."""
+
+    def __init__(self, app: sphinx.application.Sphinx) -> None:
+        self.app = app
+        super().__init__()
+
+    def filter(self, record: pylogging.LogRecord) -> bool:
+        msg = record.getMessage()
+
+        # TODO: These are all warnings that should be fixed as follow-ups to the
+        # monodocs build project.
+        filter_out = (
+            "Definition list ends without a blank line; unexpected unindent",
+            "Unexpected indentation",
+            "Block quote ends without a blank line; unexpected unindent",
+        )
+
+        if msg.strip().startswith(filter_out):
+            return False
+
+        if (
+            msg.strip().startswith("document isn't included in any toctree")
+            and record.location == "_tags/tagsindex"
+        ):
+            # ignore this warning, since we don't want the side nav to be
+            # cluttered with the tags index page.
+            return False
+
+        return True
+
+
+def setup(app: sphinx.application.Sphinx) -> None:
+    """Setup root logger for Sphinx"""
+    logger = pylogging.getLogger("sphinx")
+
+    warning_handler, *_ = [
+        h
+        for h in logger.handlers
+        if isinstance(h, logging.WarningStreamHandler)
+    ]
+    warning_handler.filters.insert(0, CustomWarningSuppressor(app))

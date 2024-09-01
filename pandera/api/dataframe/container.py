@@ -20,7 +20,7 @@ from typing import (
 )
 
 from pandera import errors
-from pandera import strategies as st
+from pandera.import_utils import strategy_import_error
 from pandera.api.base.schema import BaseSchema, inferred_schema_guard
 from pandera.api.base.types import CheckList, ParserList, StrictType
 from pandera.api.checks import Check
@@ -68,7 +68,7 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
         metadata: Optional[dict] = None,
         drop_invalid_rows: bool = False,
     ) -> None:
-        """Initialize DataFrameSchema validator.
+        """Library-agnostic base class for DataFrameSchema definitions.
 
         :param columns: a dict where keys are column names and values are
             Column objects specifying the datatypes and properties of a
@@ -349,15 +349,19 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
             f"checks={self.checks}, "
             f"parsers={self.parsers}, "
             f"index={self.index.__repr__()}, "
-            f"coerce={self.coerce}, "
             f"dtype={self._dtype}, "
+            f"coerce={self.coerce}, "
             f"strict={self.strict}, "
             f"name={self.name}, "
             f"ordered={self.ordered}, "
-            f"unique_column_names={self.unique_column_names}"
-            f"metadata='{self.metadata}, "
+            f"unique={self.unique}, "
+            f"report_duplicates={self.report_duplicates}, "
             f"unique_column_names={self.unique_column_names}, "
-            f"add_missing_columns={self.add_missing_columns}"
+            f"add_missing_columns={self.add_missing_columns}, "
+            f"title={self.title}, "
+            f"description={self.description}, "
+            f"metadata={self.metadata}, "
+            f"drop_invalid_rows={self.drop_invalid_rows}"
             ")>"
         )
 
@@ -462,12 +466,14 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
 
     @inferred_schema_guard
     def add_columns(self, extra_schema_cols: Dict[str, Any]) -> Self:
-        """Create a copy of the :class:`DataFrameSchema` with extra columns.
+        """
+        Create a copy of the :class:`~pandera.api.dataframe.container.DataFrameSchema`
+        with extra columns.
 
         :param extra_schema_cols: Additional columns of the format
         :type extra_schema_cols: DataFrameSchema
-        :returns: a new :class:`DataFrameSchema` with the extra_schema_cols
-            added.
+        :returns: a new :class:`~pandera.api.dataframe.container.DataFrameSchema`
+            with the extra_schema_cols added.
 
         :example:
 
@@ -516,13 +522,14 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
 
     @inferred_schema_guard
     def remove_columns(self, cols_to_remove: List[str]) -> Self:
-        """Removes columns from a :class:`DataFrameSchema` and returns a new
-        copy.
+        """
+        Removes columns from a :class:`~pandera.api.dataframe.container.DataFrameSchema`
+        and returns a new copy.
 
         :param cols_to_remove: Columns to be removed from the
             ``DataFrameSchema``
         :type cols_to_remove: List
-        :returns: a new :class:`DataFrameSchema` without the cols_to_remove
+        :returns: a new :class:`~pandera.api.dataframe.container.DataFrameSchema` without the cols_to_remove
         :raises: :class:`~pandera.errors.SchemaInitError`: if column not in
             schema.
 
@@ -579,19 +586,20 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
 
     @inferred_schema_guard
     def update_column(self, column_name: str, **kwargs) -> Self:
-        """Create copy of a :class:`DataFrameSchema` with updated column
-        properties.
+        """
+        Create copy of a :class:`~pandera.api.dataframe.container.DataFrameSchema`
+        with updated column properties.
 
         :param column_name:
         :param kwargs: key-word arguments supplied to
             :class:`~pandera.api.pandas.components.Column`
-        :returns: a new :class:`DataFrameSchema` with updated column
+        :returns: a new :class:`~pandera.api.dataframe.container.DataFrameSchema` with updated column
         :raises: :class:`~pandera.errors.SchemaInitError`: if column not in
             schema or you try to change the name.
 
         :example:
 
-        Calling ``schema.1`` returns the :class:`DataFrameSchema`
+        Calling ``schema.1`` returns the :class:`~pandera.api.dataframe.container.DataFrameSchema`
         with the updated column.
 
         >>> import pandera as pa
@@ -646,17 +654,18 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
         update_dict: Dict[str, Dict[str, Any]],
     ) -> Self:
         """
-        Create copy of a :class:`DataFrameSchema` with updated column
-        properties.
+        Create copy of a :class:`~pandera.api.dataframe.container.DataFrameSchema`
+        with updated column properties.
 
         :param update_dict:
-        :return: a new :class:`DataFrameSchema` with updated columns
+        :return: a new :class:`~pandera.api.dataframe.container.DataFrameSchema` with updated columns
         :raises: :class:`~pandera.errors.SchemaInitError`: if column not in
             schema or you try to change the name.
 
         :example:
 
-        Calling ``schema.update_columns`` returns the :class:`DataFrameSchema`
+        Calling ``schema.update_columns`` returns the
+        :class:`~pandera.api.dataframe.container.DataFrameSchema`
         with the updated columns.
 
         >>> import pandera as pa
@@ -734,7 +743,7 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
 
         :param rename_dict: dictionary of 'old_name': 'new_name' key-value
             pairs.
-        :returns: :class:`DataFrameSchema` (copy of original)
+        :returns: :class:`~pandera.api.dataframe.container.DataFrameSchema` (copy of original)
         :raises: :class:`~pandera.errors.SchemaInitError` if column not in the
             schema.
 
@@ -821,25 +830,27 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
         *New in version 0.4.5*
 
         :param columns: list of column names to select.
-        :returns:  :class:`DataFrameSchema` (copy of original) with only
-            the selected columns.
+        :returns: :class:`~pandera.api.dataframe.container.DataFrameSchema`
+            (copy of original) with only the selected columns, in the order specified.
         :raises: :class:`~pandera.errors.SchemaInitError` if column not in the
             schema.
 
         :example:
 
-        To subset a schema by column, and return a new schema:
+        To subset and reorder a schema by column, and return a new schema:
 
         >>> import pandera as pa
         >>>
         >>> example_schema = pa.DataFrameSchema({
-        ...     "category" : pa.Column(str),
-        ...     "probability": pa.Column(float)
+        ...     "category": pa.Column(str),
+        ...     "probability": pa.Column(float),
+        ...     "timestamp": pa.Column(pa.DateTime)
         ... })
         >>>
-        >>> print(example_schema.select_columns(['category']))
+        >>> print(example_schema.select_columns(['probability', 'category']))
         <Schema DataFrameSchema(
             columns={
+                'probability': <Schema Column(name=probability, type=DataType(float64))>
                 'category': <Schema Column(name=category, type=DataType(str))>
             },
             checks=[],
@@ -856,12 +867,10 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
         )>
 
         .. note:: If an index is present in the schema, it will also be
-            included in the new schema.
-
+            included in the new schema. The columns will be reordered
+            to match the order in ``columns``.
         """
-
         new_schema = copy.deepcopy(self)
-
         # ensure all specified keys are present in the columns
         not_in_cols: List[str] = [
             x for x in columns if x not in new_schema.columns.keys()
@@ -872,10 +881,9 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
             )
 
         new_columns = {
-            col_name: column
-            for col_name, column in self.columns.items()
-            if col_name in columns
+            col_name: new_schema.columns[col_name] for col_name in columns
         }
+
         new_schema.columns = new_columns
         return cast(Self, new_schema)
 
@@ -883,13 +891,14 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
         self, keys: List[str], drop: bool = True, append: bool = False
     ) -> Self:
         """
-        A method for setting the :class:`Index` of a :class:`DataFrameSchema`,
+        A method for setting the :class:`Index` of a
+        :class:`~pandera.api.dataframe.container.DataFrameSchema`,
         via an existing :class:`Column` or list of columns.
 
         :param keys: list of labels
         :param drop: bool, default True
         :param append: bool, default False
-        :return: a new :class:`DataFrameSchema` with specified column(s) in the
+        :return: a new :class:`~pandera.api.dataframe.container.DataFrameSchema` with specified column(s) in the
             index.
         :raises: :class:`~pandera.errors.SchemaInitError` if column not in the
             schema.
@@ -1022,12 +1031,13 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
         self, level: Optional[List[str]] = None, drop: bool = False
     ) -> Self:
         """
-        A method for resetting the :class:`Index` of a :class:`DataFrameSchema`
+        A method for resetting the :class:`Index` of a
+        :class:`~pandera.api.dataframe.container.DataFrameSchema`
 
         :param level: list of labels
         :param drop: bool, default True
-        :return: a new :class:`DataFrameSchema` with specified column(s) in the
-            index.
+        :return: a new :class:`~pandera.api.dataframe.container.DataFrameSchema`
+            with specified column(s) in the index.
         :raises: :class:`~pandera.errors.SchemaInitError` if no index set in
             schema.
         :examples:
@@ -1278,7 +1288,7 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
     # Schema Strategy Methods #
     ###########################
 
-    @st.strategy_import_error
+    @strategy_import_error
     def strategy(
         self, *, size: Optional[int] = None, n_regex_columns: int = 1
     ):
@@ -1288,6 +1298,8 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
         :param n_regex_columns: number of regex columns to generate.
         :returns: a strategy that generates pandas DataFrame objects.
         """
+        from pandera import strategies as st
+
         return st.dataframe_strategy(
             self.dtype,
             columns=self.columns,

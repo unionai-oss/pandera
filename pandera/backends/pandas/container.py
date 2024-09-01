@@ -75,6 +75,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
         core_parsers: List[Tuple[Callable[..., Any], Tuple[Any, ...]]] = [
             (self.add_missing_columns, (schema, column_info)),
             (self.strict_filter_columns, (schema, column_info)),
+            (self.set_defaults, (schema,)),
             (self.coerce_dtype, (schema,)),
         ]
 
@@ -527,6 +528,22 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
                 check_obj = check_obj.drop(labels=filter_out_columns, axis=1)
             else:
                 check_obj.drop(labels=filter_out_columns, inplace=True, axis=1)
+
+        return check_obj
+
+    def set_defaults(self, check_obj: pd.DataFrame, schema):
+        """Sets default values for missing values."""
+        assert schema is not None, "The `schema` argument must be provided."
+
+        for col_name, col_schema in schema.columns.items():
+            if (
+                pd.isna(col_schema.default)
+                or col_name not in check_obj.columns
+            ):
+                continue
+            check_obj[col_name] = check_obj[col_name].fillna(
+                col_schema.default
+            )
 
         return check_obj
 

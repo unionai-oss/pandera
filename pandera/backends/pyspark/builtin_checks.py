@@ -2,6 +2,7 @@
 
 import re
 from typing import Any, Iterable, TypeVar, Union
+
 import pyspark.sql as ps
 import pyspark.sql.types as pst
 from pyspark.sql.functions import col, when
@@ -336,7 +337,12 @@ def str_contains(
     should_validate_full_table = get_full_table_validation()
     if should_validate_full_table:
         return data.dataframe.select(when(cond, True).otherwise(False))
-    return data.dataframe.filter(~cond).limit(1).count() == 0
+    return (
+        data.dataframe.filter(~col(data.column_name).rlike(pattern))
+        .limit(1)
+        .count()
+        == 0
+    )
 
 
 @register_builtin_check(

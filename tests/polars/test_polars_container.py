@@ -13,6 +13,7 @@ from polars.testing.parametric import column, dataframes
 import pandera as pa
 from pandera import Check as C
 from pandera.api.polars.types import PolarsData
+from pandera.api.polars.utils import get_lazyframe_column_names
 from pandera.engines import polars_engine as pe
 from pandera.polars import Column, DataFrameModel, DataFrameSchema
 
@@ -230,6 +231,28 @@ def test_required_columns():
         ldf.drop("a").pipe(schema.validate).collect()
 
 
+def test_missing_required_column_when_lazy_is_true():
+    """Test missing required columns when lazy=True."""
+    schema = DataFrameSchema(
+        {
+            "a": Column(pl.Int32),
+            "b": Column(pl.Int32),
+        }
+    )
+
+    df = pl.DataFrame({"a": [1, 2, 3]})
+
+    with pytest.raises(pa.errors.SchemaErrors) as exc:
+        schema.validate(df, lazy=True)
+
+    first_error = exc.value.schema_errors[0]
+
+    assert (
+        first_error.reason_code
+        == pa.errors.SchemaErrorReason.COLUMN_NOT_IN_DATAFRAME
+    )
+
+
 def test_unique_column_names():
     """Test unique column names."""
     with pytest.warns(
@@ -383,14 +406,16 @@ def test_regex_selector(
 
         assert result.equals(ldf_for_regex_match.collect())
 
-        for column in ldf_for_regex_match.columns:
+        for column in get_lazyframe_column_names(ldf_for_regex_match):
             # this should raise an error since columns are not nullable by default
             modified_data = transform_fn(ldf_for_regex_match, column)
             with pytest.raises(pa.errors.SchemaError, match=exception_msg):
                 modified_data.pipe(schema.validate).collect()
 
         # dropping all columns should fail
-        modified_data = ldf_for_regex_match.drop(ldf_for_regex_match.columns)
+        modified_data = ldf_for_regex_match.drop(
+            get_lazyframe_column_names(ldf_for_regex_match)
+        )
         with pytest.raises(pa.errors.SchemaError):
             modified_data.pipe(schema.validate).collect()
 
@@ -506,7 +531,7 @@ def test_dataframe_schema_with_nested_types(lf_with_nested_types):
 def test_dataframe_model_with_annotated_nested_types(lf_with_nested_types):
     class ModelWithAnnotated(DataFrameModel):
         list_col: Annotated[pl.List, pl.Int64()]
-        array_col: Annotated[pl.Array, pl.Int64(), 3]
+        array_col: Annotated[pl.Array, pl.Int64(), 3, None]
         struct_col: Annotated[pl.Struct, {"a": pl.Utf8(), "b": pl.Float64()}]
 
         class Config:
@@ -520,7 +545,7 @@ def test_dataframe_schema_with_kwargs_nested_types(lf_with_nested_types):
     class ModelWithDtypeKwargs(DataFrameModel):
         list_col: pl.List = pa.Field(dtype_kwargs={"inner": pl.Int64()})
         array_col: pl.Array = pa.Field(
-            dtype_kwargs={"inner": pl.Int64(), "width": 3}
+            dtype_kwargs={"inner": pl.Int64(), "shape": 3, "width": None}
         )
         struct_col: pl.Struct = pa.Field(
             dtype_kwargs={"fields": {"a": pl.Utf8(), "b": pl.Float64()}}
@@ -549,7 +574,9 @@ def test_dataframe_schema_with_tz_agnostic_dates(time_zone, data):
     strategy = dataframes(
         column("datetime_col", dtype=pl.Datetime()),
         lazy=True,
-        size=10,
+        min_size=10,
+        max_size=10,
+        allow_null=False,
     )
     lf = data.draw(strategy)
     lf = lf.cast({"datetime_col": pl.Datetime(time_zone=time_zone)})

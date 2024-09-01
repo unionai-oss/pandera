@@ -12,14 +12,6 @@ import typing_inspect
 
 from pandera.api.checks import Check
 from pandera.api.hypotheses import Hypothesis
-from pandera.strategies.base_strategies import STRATEGY_DISPATCHER
-
-try:
-    import pyspark.sql as ps
-
-    PYSPARK_INSTALLED = True
-except ImportError:  # pragma: no cover
-    PYSPARK_INSTALLED = False
 
 
 class BuiltinCheckRegistrationError(Exception):
@@ -42,6 +34,7 @@ def register_builtin_check(
     This is the primary way for extending the Check api to define additional
     built-in checks.
     """
+    from pandera.strategies.base_strategies import STRATEGY_DISPATCHER
 
     if fn is None:
         return partial(
@@ -180,8 +173,16 @@ def register_check_method(  # pylint:disable=too-many-branches
     :return: register check function wrapper.
     """
 
-    # pylint: disable=import-outside-toplevel
+    # pylint: disable=import-outside-toplevel,too-many-statements
     from pandera.strategies.pandas_strategies import register_check_strategy
+
+    # NOTE: this needs to handle different dataframe types more elegantly
+    try:
+        import pyspark.sql as ps
+
+        PYSPARK_INSTALLED = True
+    except ImportError:  # pragma: no cover
+        PYSPARK_INSTALLED = False
 
     if statistics is None:
         statistics = []
@@ -289,12 +290,12 @@ def register_check_method(  # pylint:disable=too-many-branches
                     check_kwargs[k] = v
 
             error_stats = ", ".join(f"{k}={v}" for k, v in stats.items())
-            error = f"{check_fn.__name__}({error_stats})" if stats else None
+            if stats and "error" not in check_kwargs:
+                check_kwargs["error"] = f"{check_fn.__name__}({error_stats})"
 
             return cls(
                 partial(check_fn_wrapper, **stats),
                 name=check_fn.__name__,
-                error=error,
                 **validate_check_kwargs(check_kwargs),
             )
 

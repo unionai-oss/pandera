@@ -39,7 +39,7 @@ from pandera.api.dataframe.model_config import BaseConfig
 from pandera.api.parsers import Parser
 from pandera.engines import PYDANTIC_V2
 from pandera.errors import SchemaInitError
-from pandera.strategies import base_strategies as st
+from pandera.import_utils import strategy_import_error
 from pandera.typing import AnnotationInfo
 from pandera.typing.common import DataFrameBase
 from pandera.utils import docstring_substitution
@@ -114,7 +114,7 @@ _CONFIG_OPTIONS = [attr for attr in vars(BaseConfig) if _is_field(attr)]
 
 
 class DataFrameModel(Generic[TDataFrame, TSchema], BaseModel):
-    """Definition of a generic DataFrame model.
+    """Base class for the DataFrame model.
 
     See the :ref:`User Guide <dataframe-models>` for more.
     """
@@ -293,7 +293,7 @@ class DataFrameModel(Generic[TDataFrame, TSchema], BaseModel):
 
     # TODO: add docstring_substitution using generic class
     @classmethod
-    @st.strategy_import_error
+    @strategy_import_error
     def strategy(cls: Type[TDataFrameModel], **kwargs):
         """Create a ``hypothesis`` strategy for generating a DataFrame.
 
@@ -305,7 +305,7 @@ class DataFrameModel(Generic[TDataFrame, TSchema], BaseModel):
 
     # TODO: add docstring_substitution using generic class
     @classmethod
-    @st.strategy_import_error
+    @strategy_import_error
     def example(
         cls: Type[TDataFrameModel],
         **kwargs,

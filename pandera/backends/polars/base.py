@@ -8,6 +8,7 @@ import polars as pl
 
 from pandera.api.base.error_handler import ErrorHandler
 from pandera.api.polars.types import CheckResult
+from pandera.api.polars.utils import get_lazyframe_column_dtypes
 from pandera.backends.base import BaseSchemaBackend, CoreCheckResult
 from pandera.constants import CHECK_OUTPUT_KEY
 from pandera.errors import (
@@ -21,8 +22,10 @@ from pandera.errors import (
 def is_float_dtype(check_obj: pl.LazyFrame, selector):
     """Check if a column/selector is a float."""
     return all(
-        dtype in pl.FLOAT_DTYPES
-        for dtype in check_obj.select(pl.col(selector)).schema.values()
+        dtype in {pl.Float32, pl.Float64}
+        for dtype in get_lazyframe_column_dtypes(
+            check_obj.select(pl.col(selector))
+        )
     )
 
 
@@ -155,9 +158,14 @@ class PolarsSchemaBackend(BaseSchemaBackend):
                 failure_cases_df = err.failure_cases
 
                 # get row number of the failure cases
-                index = err.check_output.with_row_count("index").filter(
-                    pl.col(CHECK_OUTPUT_KEY).eq(False)
-                )["index"]
+                if hasattr(err.check_output, "with_row_index"):
+                    _index_lf = err.check_output.with_row_index("index")
+                else:
+                    _index_lf = err.check_output.with_row_count("index")
+
+                index = _index_lf.filter(pl.col(CHECK_OUTPUT_KEY).eq(False))[
+                    "index"
+                ]
                 if len(err.failure_cases.columns) > 1:
                     # for boolean dataframe check results, reduce failure cases
                     # to a struct column
@@ -180,6 +188,7 @@ class PolarsSchemaBackend(BaseSchemaBackend):
                 ).cast(
                     {
                         "failure_case": pl.Utf8,
+                        "column": pl.String,
                         "index": pl.Int32,
                         "check_number": pl.Int32,
                     }
@@ -196,7 +205,11 @@ class PolarsSchemaBackend(BaseSchemaBackend):
                 scalar_failure_cases["check_number"].append(err.check_index)
                 scalar_failure_cases["index"].append(None)
                 failure_cases_df = pl.DataFrame(scalar_failure_cases).cast(
-                    {"check_number": pl.Int32, "index": pl.Int32}
+                    {
+                        "check_number": pl.Int32,
+                        "column": pl.String,
+                        "index": pl.Int32,
+                    }
                 )
 
             failure_case_collection.append(failure_cases_df)

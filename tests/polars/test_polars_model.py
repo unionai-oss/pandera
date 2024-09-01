@@ -3,9 +3,18 @@
 import sys
 from typing import Optional
 
+try:  # python 3.9+
+    from typing import Annotated  # type: ignore
+except ImportError:
+    from typing_extensions import Annotated  # type: ignore
+
 import polars as pl
 import pytest
+from hypothesis import given
+from hypothesis import strategies as st
+from polars.testing.parametric import column, dataframes
 
+import pandera.engines.polars_engine as pe
 from pandera.errors import SchemaError
 from pandera.polars import (
     Column,
@@ -74,7 +83,7 @@ def ldf_model_with_custom_dataframe_checks():
         @dataframe_check
         @classmethod
         def not_empty(cls, data: PolarsData) -> pl.LazyFrame:
-            return data.lazyframe.select(pl.count().gt(0))
+            return data.lazyframe.select(pl.len().alias("len").gt(0))
 
     return ModelWithCustomDataFrameChecks
 
@@ -114,12 +123,19 @@ def test_model_schema_equivalency_with_optional():
     assert ModelWithOptional.to_schema() == schema
 
 
+ErrorCls = (
+    pl.exceptions.InvalidOperationError
+    if pe.polars_version().release >= (1, 0, 0)
+    else pl.exceptions.ComputeError
+)
+
+
 @pytest.mark.parametrize(
     "column_mod,exception_cls",
     [
-        # this modification will cause a ComputeError since casting the values
-        # in ldf_basic will cause the error outside of pandera validation
-        ({"string_col": pl.Int64}, pl.exceptions.ComputeError),
+        # this modification will cause a InvalidOperationError since casting the
+        # values in ldf_basic will cause the error outside of pandera validation
+        ({"string_col": pl.Int64}, ErrorCls),
         # this modification will cause a SchemaError since schema validation
         # can actually catch the type mismatch
         ({"int_col": pl.Utf8}, SchemaError),
@@ -211,3 +227,55 @@ def test_polars_python_list_df_model(schema_with_list_type):
 
     schema = ModelWithNestedDtypes.to_schema()
     assert schema_with_list_type == schema
+
+
+@pytest.mark.parametrize(
+    "time_zone",
+    [
+        None,
+        "UTC",
+        "GMT",
+        "EST",
+    ],
+)
+@given(st.data())
+def test_dataframe_schema_with_tz_agnostic_dates(time_zone, data):
+    strategy = dataframes(
+        column("datetime_col", dtype=pl.Datetime()),
+        lazy=True,
+        min_size=10,
+        max_size=10,
+        allow_null=False,
+    )
+    lf = data.draw(strategy)
+    lf = lf.cast({"datetime_col": pl.Datetime(time_zone=time_zone)})
+
+    class ModelTZAgnosticKwargs(DataFrameModel):
+        datetime_col: pe.DateTime = Field(
+            dtype_kwargs={"time_zone_agnostic": True}
+        )
+
+    class ModelTZSensitiveKwargs(DataFrameModel):
+        datetime_col: pe.DateTime = Field(
+            dtype_kwargs={"time_zone_agnostic": False}
+        )
+
+    class ModelTZAgnosticAnnotated(DataFrameModel):
+        datetime_col: Annotated[pe.DateTime, True, "us", None]
+
+    class ModelTZSensitiveAnnotated(DataFrameModel):
+        datetime_col: Annotated[pe.DateTime, False, "us", None]
+
+    for tz_agnostic_model in (
+        ModelTZAgnosticKwargs,
+        ModelTZAgnosticAnnotated,
+    ):
+        tz_agnostic_model.validate(lf)
+
+    for tz_sensitive_model in (
+        ModelTZSensitiveKwargs,
+        ModelTZSensitiveAnnotated,
+    ):
+        if time_zone:
+            with pytest.raises(SchemaError):
+                tz_sensitive_model.validate(lf)

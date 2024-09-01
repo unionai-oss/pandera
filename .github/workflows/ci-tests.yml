@@ -10,15 +10,13 @@ on:
     branches:
       - main
       - dev
-      - polars-dev
+      - ibis-dev
       - bugfix
       - "release/*"
 
 env:
   DEFAULT_PYTHON: 3.8
   CI: "true"
-  # Increase this value to reset cache if environment.yml has not changed
-  CACHE_VERSION: 6
 
 concurrency:
   group: '${{ github.workflow }} @ ${{ github.event.pull_request.head.label || github.head_ref || github.ref }}'
@@ -55,10 +53,10 @@ jobs:
           python -m pip install nox pre_commit \
             mypy==0.982 \
             types-click \
+            types-pytz \
             types-pyyaml \
-            types-pkg_resources \
             types-requests \
-            types-pytz
+            types-setuptools
       - name: Pip info
         run: python -m pip list
 
@@ -87,7 +85,7 @@ jobs:
 
   tests:
     name: >
-      CI Tests (${{ matrix.python-version }}, ${{ matrix.os }}, pandas-${{ matrix.pandas-version }}, pydantic-${{ matrix.pydantic-version }})
+      CI Core Tests (${{ matrix.python-version }}, ${{ matrix.os }}, pandas-${{ matrix.pandas-version }}, pydantic-${{ matrix.pydantic-version }})
     runs-on: ${{ matrix.os }}
     defaults:
       run:
@@ -106,7 +104,7 @@ jobs:
         - macos-13
         # - macos-latest  # see: https://github.com/actions/setup-python/issues/696
         python-version: ["3.8", "3.9", "3.10", "3.11"]
-        pandas-version: ["1.5.3", "2.0.3", "2.2.0"]
+        pandas-version: ["1.5.3", "2.2.2"]
         pydantic-version: ["1.10.11", "2.3.0"]
         include:
         - os: ubuntu-latest
@@ -119,9 +117,124 @@ jobs:
           pip-cache: ~/AppData/Local/pip/Cache
         exclude:
         - python-version: "3.8"
-          pandas-version: "2.2.0"
+          pandas-version: "2.2.2"
         - python-version: "3.11"
           pandas-version: "1.5.3"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ${{ matrix.pip-cache }}
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.in') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install deps
+        run: |
+          pip install uv
+          uv pip install --system -r requirements.in
+
+      - run: |
+          pip list
+          printenv | sort
+
+      - name: Unit Tests - Core
+        run: nox ${{ env.NOX_FLAGS }} --session "tests(extra='core', pydantic='${{ matrix.pydantic-version }}', python='${{ matrix.python-version }}', pandas='${{ matrix.pandas-version }}')"
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+
+      # - name: Check Docstrings
+      #   if: ${{ matrix.os != 'windows-latest' && matrix.python-version == '3.11' && matrix.pandas-version == '2.2.2' }}
+      #   run: nox ${{ env.NOX_FLAGS }} --session doctests
+
+      # - name: Check Docs
+      #   if: ${{ matrix.os != 'windows-latest' && matrix.python-version == '3.11' && matrix.pydantic-version == '2.2.2' }}
+      #   run: nox ${{ env.NOX_FLAGS }} --session docs
+
+  extras-tests:
+    name: >
+      CI Extras Tests: ${{ matrix.extra }} (${{ matrix.python-version }}, ${{ matrix.os }}, pandas-${{ matrix.pandas-version }}, pydantic-${{ matrix.pydantic-version }}, polars-${{ matrix.polars-version }})
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: pwsh
+    env:
+      PYTHONUTF8: 1
+      NOX_FLAGS: -v --no-install --no-venv --non-interactive
+      PYTEST_FLAGS: --cov=pandera --cov-report=term-missing --cov-report=xml --cov-append
+      HYPOTHESIS_FLAGS: -n=auto -q --hypothesis-profile=ci
+    strategy:
+      fail-fast: true
+      matrix:
+        os:
+        - ubuntu-latest
+        - windows-latest
+        - macos-13
+        # - macos-latest  # see: https://github.com/actions/setup-python/issues/696
+        python-version: ["3.8", "3.9", "3.10", "3.11"]
+        pandas-version: ["2.2.2"]
+        pydantic-version: ["2.3.0"]
+        polars-version: ["0.20.31", "1.2.0"]
+        extra:
+        - hypotheses
+        - io
+        - mypy
+        - strategies
+        - fastapi
+        - geopandas
+        - dask
+        - polars
+        - pyspark
+        - modin-dask
+        - modin-ray
+        include:
+        - os: ubuntu-latest
+          pip-cache: ~/.cache/pip
+        # - os: macos-latest
+        #   pip-cache: ~/Library/Caches/pip
+        - os: macos-13
+          pip-cache: ~/Library/Caches/pip
+        - os: windows-latest
+          pip-cache: ~/AppData/Local/pip/Cache
+        exclude:
+        - python-version: "3.8"
+          pandas-version: "2.2.2"
+        - python-version: "3.11"
+          pandas-version: "1.5.3"
+          # mypy tests hang on windows
+        - extra: mypy
+          os: windows-latest
+        - extra: modin-ray
+          os: windows-latest
+        - extra: hypotheses
+          polars-version: "0.20.31"
+        - extra: io
+          polars-version: "0.20.31"
+        - extra: mypy
+          polars-version: "0.20.31"
+        - extra: strategies
+          polars-version: "0.20.31"
+        - extra: fastapi
+          polars-version: "0.20.31"
+        - extra: geopandas
+          polars-version: "0.20.31"
+        - extra: dask
+          polars-version: "0.20.31"
+        - extra: pyspark
+          polars-version: "0.20.31"
+        - extra: modin-dask
+          polars-version: "0.20.31"
+        - extra: modin-ray
+          polars-version: "0.20.31"
 
     steps:
       - uses: actions/checkout@v4
@@ -140,62 +253,24 @@ jobs:
             ${{ runner.os }}-pip-
 
       - name: Install deps
-        run:
+        shell: bash
+        # install numpy<2 for all extras. It seems to effects most packages in
+        # the ecosystem.
+        # install openjdk for pyspark extra.
+        run: |
           pip install uv
-          uv pip install -r ci/requirements-py${{ matrix.python-version }}-pandas${{ matrix.pandas-version }}-pydantic${{ matrix.pydantic-version }}.txt
+          uv pip install --system -r requirements.in
+          uv pip install --system --force-reinstall "polars==${{ matrix.polars-version }}";
+          uv pip install --system --force-reinstall "numpy<2.0.0";
+          uv pip install --system install-jdk==1.1.0
+          export JAVA_HOME=$(python -c "import jdk; print(jdk.install('11', vendor='temurin'))")
 
       - run: |
           pip list
           printenv | sort
 
-      - name: Unit Tests - Core
-        run: nox ${{ env.NOX_FLAGS }} --session "tests(extra='core', pydantic='${{ matrix.pydantic-version }}', python='${{ matrix.python-version }}', pandas='${{ matrix.pandas-version }}')"
-
-      - name: Unit Tests - Hypotheses
-        run: nox ${{ env.NOX_FLAGS }} --session "tests(extra='hypotheses', pydantic='${{ matrix.pydantic-version }}', python='${{ matrix.python-version }}', pandas='${{ matrix.pandas-version }}')"
-
-      - name: Unit Tests - IO
-        run: nox ${{ env.NOX_FLAGS }} --session "tests(extra='io', pydantic='${{ matrix.pydantic-version }}', python='${{ matrix.python-version }}', pandas='${{ matrix.pandas-version }}')"
-
-      - name: Unit Tests - Mypy
-        # mypy tests hang on windows
-        if: ${{ matrix.os != 'windows-latest' }}
-        run: nox ${{ env.NOX_FLAGS }} --session "tests(extra='mypy', pydantic='${{ matrix.pydantic-version }}', python='${{ matrix.python-version }}', pandas='${{ matrix.pandas-version }}')"
-
-      - name: Unit Tests - Strategies
-        run: nox ${{ env.NOX_FLAGS }} --session "tests(extra='strategies', pydantic='${{ matrix.pydantic-version }}', python='${{ matrix.python-version }}', pandas='${{ matrix.pandas-version }}')"
-
-      - name: Unit Tests - FastAPI
-        # there's an issue with the fastapi tests in CI that's not reproducible locally
-        # when pydantic > v2
-        run: nox ${{ env.NOX_FLAGS }} --session "tests(extra='fastapi', pydantic='${{ matrix.pydantic-version }}', python='${{ matrix.python-version }}', pandas='${{ matrix.pandas-version }}')"
-
-      - name: Unit Tests - GeoPandas
-        run: nox ${{ env.NOX_FLAGS }} --session "tests(extra='geopandas', pydantic='${{ matrix.pydantic-version }}', python='${{ matrix.python-version }}', pandas='${{ matrix.pandas-version }}')"
-
-      - name: Unit Tests - Dask
-        run: nox ${{ env.NOX_FLAGS }} --session "tests(extra='dask', pydantic='${{ matrix.pydantic-version }}', python='${{ matrix.python-version }}', pandas='${{ matrix.pandas-version }}')"
-
-      - name: Unit Tests - Pyspark
-        run: nox ${{ env.NOX_FLAGS }} --session "tests(extra='pyspark', pydantic='${{ matrix.pydantic-version }}', python='${{ matrix.python-version }}', pandas='${{ matrix.pandas-version }}')"
-
-      - name: Unit Tests - Modin-Dask
-        run: nox ${{ env.NOX_FLAGS }} --session "tests(extra='modin-dask', pydantic='${{ matrix.pydantic-version }}', python='${{ matrix.python-version }}', pandas='${{ matrix.pandas-version }}')"
-
-      - name: Unit Tests - Modin-Ray
-        # ray CI issues with the following:
-        # - windows, python 3.10
-        # Tracking issue: https://github.com/modin-project/modin/issues/5466
-        if: ${{ matrix.os != 'windows-latest' }}
-        run: nox ${{ env.NOX_FLAGS }} --session "tests(extra='modin-ray', pydantic='${{ matrix.pydantic-version }}', python='${{ matrix.python-version }}', pandas='${{ matrix.pandas-version }}')"
+      - name: Unit Tests - ${{ matrix.extra }}
+        run: nox ${{ env.NOX_FLAGS }} --session "tests(extra='${{ matrix.extra }}', pydantic='${{ matrix.pydantic-version }}', python='${{ matrix.python-version }}', pandas='${{ matrix.pandas-version }}')"
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
-
-      - name: Check Docstrings
-        if: ${{ matrix.os != 'windows-latest' && matrix.python-version == '3.11' && matrix.pandas-version == '2.2.0' }}
-        run: nox ${{ env.NOX_FLAGS }} --session doctests
-
-      - name: Check Docs
-        if: ${{ matrix.os != 'windows-latest' && matrix.python-version == '3.11' && matrix.pydantic-version == '2.2.0' }}
-        run: nox ${{ env.NOX_FLAGS }} --session docs

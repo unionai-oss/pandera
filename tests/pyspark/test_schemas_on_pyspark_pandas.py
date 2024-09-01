@@ -6,14 +6,14 @@ from unittest.mock import MagicMock
 
 import numpy as np
 import pandas as pd
+import pyspark
 import pyspark.pandas as ps
 import pytest
 from packaging import version
-from pyspark import SparkContext
 
 import pandera as pa
 from pandera import dtypes, extensions, system
-from pandera.engines import numpy_engine, pandas_engine
+from pandera.engines import numpy_engine, pandas_engine, geopandas_engine
 from pandera.typing import DataFrame, Index, Series
 from tests.strategies.test_strategies import NULLABLE_DTYPES
 from tests.strategies.test_strategies import (
@@ -35,8 +35,8 @@ DTYPES = [
     dtype_cls
     for dtype_cls in pandas_engine.Engine.get_registered_dtypes()
     if not (
-        pandas_engine.GEOPANDAS_INSTALLED
-        and dtype_cls == pandas_engine.Geometry
+        geopandas_engine.GEOPANDAS_INSTALLED
+        and dtype_cls == geopandas_engine.Geometry
     )
 ]
 UNSUPPORTED_STRATEGY_DTYPE_CLS = set(UNSUPPORTED_STRATEGY_DTYPE_CLS)
@@ -63,7 +63,7 @@ PYSPARK_PANDAS_UNSUPPORTED = {
     pandas_engine.Date,
 }
 
-SPARK_VERSION = version.parse(SparkContext.getOrCreate().version)
+SPARK_VERSION = version.parse(pyspark.__version__)
 
 if SPARK_VERSION < version.parse("3.3.0"):
     PYSPARK_PANDAS_UNSUPPORTED.add(numpy_engine.Timedelta64)
@@ -280,8 +280,8 @@ def test_index_dtypes(
             pandas_engine.DateTime(tz="UTC"),  # type: ignore[call-arg]
         }
         and not (
-            pandas_engine.GEOPANDAS_INSTALLED
-            and dt == pandas_engine.Engine.dtype(pandas_engine.Geometry)
+            geopandas_engine.GEOPANDAS_INSTALLED
+            and dt == pandas_engine.Engine.dtype(geopandas_engine.Geometry)
         )
     ],
 )

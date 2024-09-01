@@ -14,7 +14,6 @@ from typing import (
 
 from pandera import errors
 from pandera.api.base.checks import BaseCheck, CheckResult
-from pandera.strategies.base_strategies import SearchStrategy
 
 T = TypeVar("T")
 
@@ -37,7 +36,7 @@ class Check(BaseCheck):
         title: Optional[str] = None,
         description: Optional[str] = None,
         statistics: Optional[Dict[str, Any]] = None,
-        strategy: Optional[SearchStrategy] = None,
+        strategy: Optional[Any] = None,
         **check_kwargs,
     ) -> None:
         """Apply a validation function to a data object.
@@ -436,7 +435,7 @@ class Check(BaseCheck):
         :param kwargs: key-word arguments passed into the `Check` initializer.
         """
         try:
-            pattern_mod = re.compile(pattern)
+            re.compile(pattern)
         except TypeError as exc:
             raise ValueError(
                 f'pattern="{pattern}" cannot be compiled as regular expression'
@@ -446,7 +445,7 @@ class Check(BaseCheck):
             kwargs,
             error=f"str_matches('{pattern}')",
             statistics={"pattern": pattern},
-            pattern=pattern_mod,
+            pattern=pattern,
         )
 
     @classmethod
@@ -459,7 +458,7 @@ class Check(BaseCheck):
         :param kwargs: key-word arguments passed into the `Check` initializer.
         """
         try:
-            pattern_mod = re.compile(pattern)
+            re.compile(pattern)
         except TypeError as exc:
             raise ValueError(
                 f'pattern="{pattern}" cannot be compiled as regular expression'
@@ -469,7 +468,7 @@ class Check(BaseCheck):
             kwargs,
             error=f"str_contains('{pattern}')",
             statistics={"pattern": pattern},
-            pattern=pattern_mod,
+            pattern=pattern,
         )
 
     @classmethod

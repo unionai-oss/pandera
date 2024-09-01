@@ -42,8 +42,9 @@ Library-agnostic dtypes
 Pandas Dtypes
 -------------
 
-Listed here for compatibility with pandera versions \< 0.7.
-Passing native pandas dtypes to pandera components is preferred.
+Passing native pandas dtypes to pandera components is preferred, and will be
+converted to the following pandera-native dtypes. See :ref:`here <dtype-validation>`
+for more details.
 
 .. autosummary::
    :toctree: generated
@@ -61,10 +62,66 @@ Passing native pandas dtypes to pandera components is preferred.
    pandera.engines.pandas_engine.UINT64
    pandera.engines.pandas_engine.STRING
    pandera.engines.numpy_engine.Object
-   pandera.engines.pandas_engine.DateTime
-   pandera.engines.pandas_engine.Date
    pandera.engines.pandas_engine.Decimal
    pandera.engines.pandas_engine.Category
+   pandera.engines.pandas_engine.STRING
+   pandera.engines.pandas_engine.NpString
+   pandera.engines.pandas_engine.DateTime
+   pandera.engines.pandas_engine.Date
+   pandera.engines.pandas_engine.Period
+   pandera.engines.pandas_engine.Sparse
+   pandera.engines.pandas_engine.Interval
+   pandera.engines.pandas_engine.PydanticModel
+   pandera.engines.pandas_engine.PythonDict
+   pandera.engines.pandas_engine.PythonList
+   pandera.engines.pandas_engine.PythonTuple
+   pandera.engines.pandas_engine.PythonTypedDict
+   pandera.engines.pandas_engine.PythonNamedTuple
+
+Pyarrow Dtypes
+--------------
+
+*new in 0.20.0*
+
+Pyarrow datatypes are available with the pandas validation engine. Passing
+`native Pyarrow dtypes <https://arrow.apache.org/docs/python/api/datatypes.html>`__
+are preferred, and will be converted to the following pandera-native dtypes.
+See :ref:`here <pyarrow-dtypes>` for more details.
+
+.. autosummary::
+   :toctree: generated
+   :template: dtype.rst
+   :nosignatures:
+
+   pandera.engines.pandas_engine.ArrowBool
+   pandera.engines.pandas_engine.ArrowInt64
+   pandera.engines.pandas_engine.ArrowInt32
+   pandera.engines.pandas_engine.ArrowInt16
+   pandera.engines.pandas_engine.ArrowInt8
+   pandera.engines.pandas_engine.ArrowString
+   pandera.engines.pandas_engine.ArrowUInt64
+   pandera.engines.pandas_engine.ArrowUInt32
+   pandera.engines.pandas_engine.ArrowUInt16
+   pandera.engines.pandas_engine.ArrowUInt8
+   pandera.engines.pandas_engine.ArrowFloat64
+   pandera.engines.pandas_engine.ArrowFloat32
+   pandera.engines.pandas_engine.ArrowFloat16
+   pandera.engines.pandas_engine.ArrowDecimal128
+   pandera.engines.pandas_engine.ArrowTimestamp
+   pandera.engines.pandas_engine.ArrowDictionary
+   pandera.engines.pandas_engine.ArrowList
+   pandera.engines.pandas_engine.ArrowStruct
+   pandera.engines.pandas_engine.ArrowNull
+   pandera.engines.pandas_engine.ArrowDate32
+   pandera.engines.pandas_engine.ArrowDate64
+   pandera.engines.pandas_engine.ArrowDuration
+   pandera.engines.pandas_engine.ArrowTime32
+   pandera.engines.pandas_engine.ArrowTime64
+   pandera.engines.pandas_engine.ArrowTimestamp
+   pandera.engines.pandas_engine.ArrowBinary
+   pandera.engines.pandas_engine.ArrowLargeBinary
+   pandera.engines.pandas_engine.ArrowLargeString
+
 
 GeoPandas Dtypes
 ----------------
@@ -158,3 +215,5 @@ Engines
    pandera.engines.engine.Engine
    pandera.engines.numpy_engine.Engine
    pandera.engines.pandas_engine.Engine
+   pandera.engines.polars_engine.Engine
+   pandera.engines.pyspark_engine.Engine

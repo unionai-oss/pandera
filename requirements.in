@@ -16,14 +16,14 @@ pyarrow
 pydantic
 multimethod <= 1.10.0
 pandas-stubs
-pyspark >= 3.2.0
+pyspark[connect] >= 3.2.0
 polars >= 0.20.0
 modin
 protobuf
 geopandas
 shapely
 fastapi
-black >= 22.1.0
+black >= 24.0
 isort >= 5.7.0
 joblib
 mypy == 1.10.0
@@ -50,11 +50,12 @@ pre_commit
 dask[dataframe]
 distributed
 furo
+sphinx-docsearch
 grpcio
 ray
 typeguard
 types-click
-types-pyyaml
-types-pkg_resources
-types-requests
 types-pytz
+types-pyyaml
+types-requests
+types-setuptools

@@ -14,6 +14,7 @@ from polars.testing.parametric import dataframes
 
 import pandera.errors
 from pandera.api.polars.types import PolarsData
+from pandera.api.polars.utils import get_lazyframe_column_dtypes
 from pandera.constants import CHECK_OUTPUT_KEY
 from pandera.engines import polars_engine as pe
 from pandera.engines.polars_engine import polars_object_coercible
@@ -29,6 +30,20 @@ def convert_object_to_decimal(
     return decimal.Decimal(number).quantize(
         decimal.Decimal(f"1e-{scale}"), decimal.ROUND_HALF_UP
     )
+
+
+POLARS_NUMERIC_DTYPES = [
+    pl.Int8,
+    pl.Int16,
+    pl.Int32,
+    pl.Int64,
+    pl.UInt8,
+    pl.UInt16,
+    pl.UInt32,
+    pl.UInt64,
+    pl.Float32,
+    pl.Float64,
+]
 
 
 numeric_dtypes = [
@@ -65,16 +80,22 @@ all_types = numeric_dtypes + temporal_types + other_types
 def get_dataframe_strategy(type_: pl.DataType) -> st.SearchStrategy:
     """Get a strategy for a polars dataframe of a given dtype."""
     return dataframes(
-        cols=2, lazy=True, allowed_dtypes=type_, null_probability=0.1, size=10
+        cols=2,
+        lazy=True,
+        allowed_dtypes=type_,
+        min_size=10,
+        max_size=10,
     )
 
 
 # Hypothesis slow if test is failing
 @pytest.mark.parametrize("dtype", all_types)
 @given(st.data())
-@settings(max_examples=1)
+@settings(max_examples=10)
 def test_coerce_no_cast(dtype, data):
     """Test that dtypes can be coerced without casting."""
+    if dtype is pe.Categorical:
+        pl.enable_string_cache()
     pandera_dtype = dtype()
     df = data.draw(get_dataframe_strategy(type_=pandera_dtype.type))
     coerced = pandera_dtype.coerce(data_container=PolarsData(df))
@@ -95,7 +116,7 @@ def test_coerce_no_cast(dtype, data):
 def test_coerce_no_cast_special(to_dtype, strategy):
     """Test that dtypes can be coerced without casting."""
     coerced = to_dtype.coerce(data_container=strategy)
-    for dtype in coerced.dtypes:
+    for dtype in get_lazyframe_column_dtypes(coerced):
         assert dtype == to_dtype.type
 
 
@@ -115,7 +136,7 @@ def test_coerce_cast(from_dtype, to_dtype, strategy, data):
     s = data.draw(strategy(from_dtype.type))
 
     coerced = to_dtype.coerce(data_container=s)
-    for dtype in coerced.dtypes:
+    for dtype in get_lazyframe_column_dtypes(coerced):
         assert dtype == to_dtype.type
 
 
@@ -136,31 +157,48 @@ def test_coerce_cast_special(pandera_dtype, data_container):
     """Test that dtypes can be coerced with casting."""
     coerced = pandera_dtype.coerce(data_container=data_container)
 
-    for dtype in coerced.dtypes:
+    for dtype in get_lazyframe_column_dtypes(coerced):
         assert dtype == pandera_dtype.type
 
     if isinstance(pandera_dtype, pe.Decimal):
-        # collecting a LazyFrame with decimal type has a bug that casts to
-        # pl.Float64
+        if pe.polars_version().release < (1, 0, 0):
+            pytest.xfail(
+                reason="polars < 1.0.0 has a bug that turns decimals to floats"
+            )
         df = coerced.collect()
         for dtype in df.dtypes:
-            assert dtype == pl.Float64
+            assert dtype == pl.Decimal
+
+
+ErrorCls = (
+    pl.exceptions.InvalidOperationError
+    if pe.polars_version().release >= (1, 0, 0)
+    else pl.exceptions.ComputeError
+)
 
 
 @pytest.mark.parametrize(
     "pl_to_dtype, container, exception_cls",
     [
-        (pe.Int8(), pl.LazyFrame({"0": [1000, 100, 200]}), pl.ComputeError),
+        (
+            pe.Int8(),
+            pl.LazyFrame({"0": [1000, 100, 200]}),
+            ErrorCls,
+        ),
         (
             pe.Bool(),
             pl.LazyFrame({"0": ["a", "b", "c"]}),
-            pl.InvalidOperationError,
+            pl.exceptions.InvalidOperationError,
         ),
-        (pe.Int64(), pl.LazyFrame({"0": ["1", "b"]}), pl.ComputeError),
+        (
+            pe.Int64(),
+            pl.LazyFrame({"0": ["1", "b"]}),
+            ErrorCls,
+        ),
         (
             pe.Decimal(precision=2, scale=1),
             pl.LazyFrame({"0": [100.11, 2, 3]}),
-            pl.ComputeError,
+            ErrorCls,
         ),
         (
             pe.Category(categories=["a", "b", "c"]),
@@ -287,7 +325,7 @@ def test_polars_object_coercible(to_dtype, container, result):
     "inner_dtype_cls",
     [
         pl.Utf8,
-        *pl.NUMERIC_DTYPES,
+        *POLARS_NUMERIC_DTYPES,
     ],
 )
 @given(st.integers(min_value=2, max_value=10))
@@ -306,7 +344,7 @@ def test_polars_nested_array_type_check(inner_dtype_cls, width):
     "inner_dtype_cls",
     [
         pl.Utf8,
-        *pl.NUMERIC_DTYPES,
+        *POLARS_NUMERIC_DTYPES,
     ],
 )
 def test_polars_list_nested_type(inner_dtype_cls):
@@ -323,7 +361,7 @@ def test_polars_list_nested_type(inner_dtype_cls):
     "inner_dtype_cls",
     [
         pl.Utf8,
-        *pl.NUMERIC_DTYPES,
+        *POLARS_NUMERIC_DTYPES,
     ],
 )
 def test_polars_struct_nested_type(inner_dtype_cls):
@@ -402,7 +440,8 @@ def test_polars_nested_dtypes_try_coercion(
     try:
         pe.Engine.dtype(noncoercible_dtype).try_coerce(PolarsData(data))
     except pandera.errors.ParserError as exc:
-        assert exc.failure_cases.equals(data.collect())
+        col = pl.col(exc.failure_cases.columns[0])
+        assert exc.failure_cases.select(col).equals(data.collect())
 
 
 @pytest.mark.parametrize(

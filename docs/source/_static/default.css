@@ -16,6 +16,8 @@ div.content {
 
 .sidebar-brand-text, .sidebar-logo-container {
   margin: var(--sidebar-item-spacing-vertical) auto;
+  margin-top: 25px;
+  margin-bottom: 25px;
 }
 
 .sidebar-brand-text {
@@ -28,7 +30,7 @@ div.content {
 }
 
 .sidebar-drawer .sidebar-container {
-  width: 23em;
+  width: 100%;
 }
 
 li.toctree-l2 {
@@ -135,4 +137,30 @@ div.cell_output tbody tr:nth-child(odd) {
 /* code cell output style */
 div.cell details.below-input>summary {
   background-color: var(--color-background-secondary);
+}
+
+/* algolia docsearch search bar */
+:root {
+  --docsearch-primary-color: #82B427;
+  --docsearch-searchbox-shadow: #82B427;
+}
+
+/* mute docsearch logo color */
+div.DocSearch-Logo .cls-1,
+div.DocSearch-Logo .cls-2 {
+    fill: #414c70 !important;
+}
+
+.DocSearch-Button {
+  height: 50px;
+}
+
+@media (prefers-color-scheme: dark) {
+  body:not([data-theme="light"]) .DocSearch-Button:active,
+  body:not([data-theme="light"]) .DocSearch-Button:focus,
+  body:not([data-theme="light"]) .DocSearch-Button:hover,
+  body:not([data-theme="light"]) .DocSearch-Button .DocSearch-Search-Icon {
+    background: #666;
+    color: rgb(245, 246, 247);
+  }
 }

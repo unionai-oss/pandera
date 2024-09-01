@@ -1,8 +1,11 @@
 """Register polars backends."""
 
+from functools import lru_cache
+
 import polars as pl
 
 
+@lru_cache
 def register_polars_backends():
     """Register polars backends.
 

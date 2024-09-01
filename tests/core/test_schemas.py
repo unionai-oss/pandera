@@ -1214,7 +1214,7 @@ def test_rename_columns() -> None:
 
 
 @pytest.mark.parametrize(
-    "select_columns, schema",
+    "select_columns, schema, expected_order",
     [
         (
             ["col1", "col2"],
@@ -1225,6 +1225,18 @@ def test_rename_columns() -> None:
                     "col3": Column(int),
                 }
             ),
+            ["col1", "col2"],
+        ),
+        (
+            ["col3", "col1"],
+            DataFrameSchema(
+                columns={
+                    "col1": Column(int),
+                    "col2": Column(int),
+                    "col3": Column(int),
+                }
+            ),
+            ["col3", "col1"],
         ),
         (
             [("col1", "col1b"), ("col2", "col2b")],
@@ -1236,17 +1248,34 @@ def test_rename_columns() -> None:
                     ("col2", "col2b"): Column(int),
                 }
             ),
+            [("col1", "col1b"), ("col2", "col2b")],
+        ),
+        (
+            [("col2", "col2b"), ("col1", "col1b")],
+            DataFrameSchema(
+                columns={
+                    ("col1", "col1a"): Column(int),
+                    ("col1", "col1b"): Column(int),
+                    ("col2", "col2a"): Column(int),
+                    ("col2", "col2b"): Column(int),
+                }
+            ),
+            [("col2", "col2b"), ("col1", "col1b")],
         ),
     ],
 )
 def test_select_columns(
-    select_columns: List[Union[str, Tuple[str, str]]], schema: DataFrameSchema
+    select_columns: List[Union[str, Tuple[str, str]]],
+    schema: DataFrameSchema,
+    expected_order: List[Union[str, Tuple[str, str]]],
 ) -> None:
     """Check that select_columns method correctly creates new subset schema."""
     original_columns = list(schema.columns)
     schema_selected = schema.select_columns(select_columns)
+
     assert all(x in select_columns for x in schema_selected.columns)
     assert all(x in original_columns for x in schema.columns)
+    assert list(schema_selected.columns) == expected_order
 
     with pytest.raises(errors.SchemaInitError):
         schema.select_columns(["foo", "bar"])
@@ -1285,7 +1314,7 @@ def test_lazy_dataframe_validation_error() -> None:
         "DataFrameSchema": {
             # check name -> failure cases
             "column_in_schema": ["unknown_col"],
-            "dataframe_not_equal_1": [1],
+            "dataframe_not_equal_1": [{"int_col": 1.0, "float_col": 1.0}],
             "column_in_dataframe": ["not_in_dataframe"],
         },
         "Column": {
@@ -2613,3 +2642,38 @@ def test_get_schema_metadata():
         }
     }
     assert expected == metadata
+
+
+@pytest.fixture()
+def xfail_int_with_nans(request):
+    dtype = request.getfixturevalue("dtype")
+    input_value = request.getfixturevalue("input_value")
+    coerce = request.getfixturevalue("coerce")
+
+    if dtype == "Int64" and input_value is not None and not coerce:
+        pytest.xfail("NaN is considered a Float64")
+
+
+@pytest.mark.parametrize(
+    "dtype,default",
+    [
+        (str, "a default"),
+        (bool, True),
+        (bool, False),
+        (float, 42.0),
+        ("Int64", 0),
+    ],
+)
+@pytest.mark.parametrize("input_value", [None, np.nan])
+@pytest.mark.parametrize("coerce", [True, False])
+@pytest.mark.usefixtures("xfail_int_with_nans")
+def test_schema_column_default_handle_nans(
+    input_value: Any, coerce: bool, dtype: Any, default: Any
+):
+    """Test ``default`` fills ``nan`` values as expected."""
+    schema = DataFrameSchema(
+        columns={"column1": Column(dtype, default=default, coerce=coerce)}
+    )
+    df = pd.DataFrame({"column1": [input_value]})
+    schema.validate(df, inplace=True)
+    assert df.iloc[0]["column1"] == default

@@ -22,6 +22,7 @@ from typing import (
     List,
     NamedTuple,
     Optional,
+    Tuple,
     Type,
     Union,
     cast,
@@ -106,10 +107,25 @@ def is_pyarrow_dtype(
     pd_dtype: PandasDataType,
 ) -> Union[bool, Iterable[bool]]:
     """Check if a value is a pandas pyarrow type or instance of one."""
-    if not PYARROW_INSTALLED:
-        raise TypeError("pyarrow must be installed to use pyarrow dtypes.")
+    if not (PYARROW_INSTALLED and PANDAS_2_0_0_PLUS):
+        return False
 
     return isinstance(pd_dtype, pd.ArrowDtype)
+
+
+def is_geopandas_dtype(
+    pd_dtype: Union[PandasDataType, str],
+) -> Union[bool, Iterable[bool]]:
+    """Check if a value is a geopandas extension type or instance of one."""
+    try:
+        from geopandas.array import GeometryDtype
+    except ImportError:
+        return False
+
+    if pd_dtype == "geometry":
+        return True
+
+    return isinstance(pd_dtype, GeometryDtype)
 
 
 @immutable(init=True)
@@ -231,7 +247,17 @@ class Engine(  # pylint:disable=too-few-public-methods
                         "Usage Tip: Use an instance or a string "
                         "representation."
                     ) from None
+            elif is_geopandas_dtype(data_type):
+                # pylint: disable=cyclic-import,unused-import
+                # register geopandas datatypes
+                import pandera.engines.geopandas_engine
+
+                np_or_pd_dtype = data_type
             elif is_pyarrow_dtype(data_type):
+                # pylint: disable=cyclic-import
+                # register pyarrow datatypes
+                import pandera.engines.pyarrow_engine
+
                 np_or_pd_dtype = data_type.pyarrow_dtype
             else:
                 # let pandas transform any acceptable value
@@ -767,7 +793,6 @@ Engine.register_dtype(
         object,
         np.object_,
         np.bytes_,
-        np.string_,
     ],
 )
 
@@ -1046,7 +1071,7 @@ class Sparse(DataType):
     """Representation of pandas :class:`pd.SparseDtype`."""
 
     type: pd.SparseDtype = dataclasses.field(default=None, init=False)  # type: ignore[assignment]  # noqa
-    dtype: PandasDataType = np.float_
+    dtype: PandasDataType = np.float64
     fill_value: Any = np.nan
 
     def __post_init__(self):
@@ -1086,207 +1111,6 @@ class Interval(DataType):
         return cls(subtype=pd_dtype.subtype)  # type: ignore
 
 
-# ###############################################################################
-# # geopandas
-# ###############################################################################
-
-try:
-    import geopandas as gpd
-
-    GEOPANDAS_INSTALLED = True
-except ImportError:  # pragma: no cover
-    GEOPANDAS_INSTALLED = False
-
-if GEOPANDAS_INSTALLED:
-
-    import pyproj
-    import shapely
-    import shapely.geometry
-    from geopandas.array import GeometryArray, GeometryDtype, from_shapely
-
-    GeoPandasObject = Union[
-        pd.Series, pd.DataFrame, gpd.GeoSeries, gpd.GeoDataFrame
-    ]
-
-    @Engine.register_dtype(
-        equivalents=[
-            "geometry",
-            GeometryDtype,
-            GeometryDtype(),
-        ]
-    )
-    @dtypes.immutable(init=True)
-    class Geometry(DataType):
-        """Semantic representation of geopandas :class:`geopandas.array.GeometryDtype`.
-
-        Extends the native GeometryDtype by allowing designation of a coordinate
-        reference system (CRS) as found on GeometryArray, GeoSeries, and GeoDataFrame.
-        When the CRS is defined, validator will check for matching CRS, and coerce
-        will transform coordinate values via GeoPandas' 'to_crs' method. Otherwise, CRS
-        of data is ignored.
-        """
-
-        type = GeometryDtype()
-
-        crs: Optional[str] = dataclasses.field(default=None)
-        """Coordinate Reference System of the geometry objects.
-        """
-
-        # define __init__ to please mypy
-        def __init__(  # pylint:disable=super-init-not-called
-            self,
-            crs: Optional[Any] = None,
-        ) -> None:
-            if crs is not None:
-                try:
-                    pyproj.CRS.from_user_input(crs)
-                except pyproj.exceptions.CRSError as exc:
-                    raise TypeError(f"Invalid CRS: {str(crs)}") from exc
-
-                object.__setattr__(self, "crs", crs)
-
-        def _coerce_values(self, obj: GeoPandasObject) -> GeoPandasObject:
-            if isinstance(obj, gpd.GeoSeries) or (
-                isinstance(obj, (pd.DataFrame, gpd.GeoDataFrame))
-                and all(v == str(self) for v in obj.dtypes.to_dict().values())
-            ):
-                # Return as-is if we already have the proper underlying dtype
-                return obj
-
-            # Shapely objects
-            try:
-                return from_shapely(obj)
-            except TypeError:
-                ...
-
-            # Well-known Text (WKT) strings
-            try:
-                return from_shapely(shapely.from_wkt(obj))
-            except (TypeError, shapely.errors.GEOSException):
-                ...
-
-            # Well-known Binary (WKB) strings
-            try:
-                return from_shapely(shapely.from_wkb(obj))
-            except (TypeError, shapely.errors.GEOSException):
-                ...
-
-            # JSON/GEOJSON dictionary
-            return from_shapely(obj.map(self._coerce_element))  # type: ignore[operator]
-
-        def _coerce_element(self, element: Any) -> Any:
-            try:
-                return shapely.geometry.shape(element)
-            except (
-                AttributeError,
-                TypeError,
-                shapely.errors.GeometryTypeError,
-                shapely.errors.GEOSException,
-            ):
-                return np.nan
-
-        def _coerce_crs(self, value: GeoPandasObject) -> GeoPandasObject:
-            if self.crs is not None:
-                if value.crs is None:
-                    # Allow assignment of CRS if currently
-                    # null and a non-null value is designated.
-                    # This will only work in the context of
-                    # geopandas because assinging geometry
-                    # CRS to a pandas dataframe isn't supported.
-                    value.crs = self.crs
-                elif (
-                    isinstance(value, gpd.GeoSeries) and self.crs != value.crs
-                ):
-                    value = value.to_crs(self.crs)  # type: ignore[operator]
-                elif isinstance(value, gpd.GeoDataFrame) and any(
-                    self.crs != value[col].crs for col in value.columns
-                ):
-                    for col in value.columns:
-                        if self.crs != value[col].crs:
-                            value[col] = value[col].to_crs(self.crs)
-            return value
-
-        def coerce(self, data_container: GeoPandasObject) -> GeoPandasObject:
-            """Coerce data container to the specified data type."""
-            # pylint: disable=import-outside-toplevel
-            from pandera.backends.pandas import error_formatters
-
-            orig_isna = data_container.isna()
-
-            # Copy so we don't directly modify container due
-            # to CRS re-projection, etc.)
-            data_container = data_container.copy()
-
-            # Coerce container data
-            coerced_data = self._coerce_values(data_container)
-
-            # Coerce container type
-            if isinstance(coerced_data, (GeometryArray, pd.DataFrame)):
-                if isinstance(data_container, (pd.Series, gpd.GeoSeries)):
-                    coerced_data = gpd.GeoSeries(coerced_data)
-                else:
-                    coerced_data = gpd.GeoDataFrame(coerced_data)
-
-            failed_selector = coerced_data.isna() & ~orig_isna
-
-            if np.any(failed_selector.any()):
-                failure_cases = coerced_data[failed_selector]
-                raise errors.ParserError(
-                    f"Could not coerce {type(data_container)} data_container "
-                    f"into type {self.type}",
-                    failure_cases=error_formatters.reshape_failure_cases(
-                        failure_cases, ignore_na=False
-                    ),
-                )
-            coerced = self._coerce_crs(coerced_data)
-            return coerced
-
-        def check(  # type: ignore
-            self,
-            pandera_dtype: DataType,
-            data_container: Optional[GeoPandasObject] = None,
-        ) -> Union[bool, Iterable[bool]]:
-            """Check data container to the specified data type."""
-            # Type check
-            if not super().check(pandera_dtype, data_container):
-                if data_container is None:
-                    return False
-                else:
-                    return np.full_like(data_container, False, dtype=bool)
-            if self.crs != pandera_dtype.crs and data_container is None:  # type: ignore[attr-defined]
-                return False
-
-            # CRS check extends into container
-            if self.crs is not None:
-                if (
-                    isinstance(data_container, gpd.GeoSeries)
-                    and data_container.crs != self.crs
-                ):
-                    # GeoSeries
-                    raise TypeError(
-                        f"CRS mismatch; actual {str(data_container.crs)}, expected {str(self.crs)}"
-                    )
-                if isinstance(data_container, gpd.GeoDataFrame):
-                    # GeoDataFrame
-                    col_results = []
-                    for col in data_container.columns:
-                        if data_container[col].crs != self.crs:
-                            col_err = f"CRS mismatch on column {col}; actual {str(data_container[col].crs)}, expected {str(self.crs)}"
-                            col_results.append(col_err)
-                    if col_results:
-                        raise TypeError("\n".join(col_results))
-
-            return np.full_like(data_container, True, dtype=bool)
-
-        def __eq__(self, obj: object) -> bool:
-            if isinstance(obj, type(self)):
-                return obj.crs == self.crs
-            return super().__eq__(obj)
-
-        def __str__(self) -> str:
-            return "geometry"
-
-
 ###############################################################################
 # pydantic
 ###############################################################################
@@ -1297,7 +1121,7 @@ if GEOPANDAS_INSTALLED:
 class PydanticModel(DataType):
     """A pydantic model datatype applying to rows in a dataframe."""
 
-    type: Type[BaseModel] = dataclasses.field(default=None, init=False)  # type: ignore # noqa
+    type: Type[BaseModel] = dataclasses.field(default=None, init=False)  # type: ignore[assignment]
     auto_coerce = True
 
     # pylint:disable=super-init-not-called
@@ -1316,11 +1140,11 @@ class PydanticModel(DataType):
             cases.
             """
             try:
-                # pylint: disable=not-callable
+                # pylint: disable=no-member
                 if PYDANTIC_V2:
-                    row = self.type(**row).model_dump()
+                    row = self.type.model_validate(row).model_dump()
                 else:
-                    row = self.type(**row).dict()
+                    row = self.type.parse_obj(row).dict()
                 row["failure_cases"] = np.nan
             except ValidationError as exc:
                 row["failure_cases"] = {
@@ -1660,7 +1484,14 @@ if PYARROW_INSTALLED and PANDAS_2_0_0_PLUS:
         type = pd.ArrowDtype(pyarrow.int8())
         bit_width: int = 8
 
-    @Engine.register_dtype(equivalents=[pyarrow.string])
+    @Engine.register_dtype(
+        equivalents=[
+            pyarrow.string,
+            pyarrow.utf8,
+            pd.ArrowDtype(pyarrow.string()),
+            pd.ArrowDtype(pyarrow.utf8()),
+        ]
+    )
     @immutable
     class ArrowString(DataType, dtypes.String):
         """Semantic representation of a :class:`pyarrow.string`."""
@@ -1752,6 +1583,20 @@ if PYARROW_INSTALLED and PANDAS_2_0_0_PLUS:
         bit_width: int = 32
 
     @Engine.register_dtype(
+        equivalents=[
+            "halffloat[pyarrow]",
+            pyarrow.float16,
+            pd.ArrowDtype(pyarrow.float16()),
+        ]
+    )
+    @immutable
+    class ArrowFloat16(ArrowFloat32):
+        """Semantic representation of a :class:`pyarrow.float16`."""
+
+        type = pd.ArrowDtype(pyarrow.float16())
+        bit_width: int = 16
+
+    @Engine.register_dtype(
         equivalents=[pyarrow.decimal128, pyarrow.Decimal128Type]
     )
     @immutable(init=True)
@@ -1764,7 +1609,7 @@ if PYARROW_INSTALLED and PANDAS_2_0_0_PLUS:
         precision: int = 28
         scale: int = 0
 
-        def __post_init__(self) -> None:
+        def __post_init__(self):
             type_ = pd.ArrowDtype(
                 pyarrow.decimal128(self.precision, self.scale)
             )
@@ -1831,3 +1676,281 @@ if PYARROW_INSTALLED and PANDAS_2_0_0_PLUS:
                 value_type=pyarrow_dtype.value_type,  # type: ignore
                 ordered=pyarrow_dtype.ordered,  # type: ignore
             )
+
+    @Engine.register_dtype(
+        equivalents=[
+            pyarrow.list_,
+            pyarrow.ListType,
+            pyarrow.FixedSizeListType,
+        ]
+    )
+    @immutable(init=True)
+    class ArrowList(DataType):
+        """Semantic representation of a :class:`pyarrow.list_`."""
+
+        type: Optional[pd.ArrowDtype] = dataclasses.field(
+            default=None, init=False
+        )
+        value_type: Optional[Union[pyarrow.DataType, pyarrow.Field]] = (
+            pyarrow.string()
+        )
+        list_size: Optional[int] = -1
+
+        def __post_init__(self):
+            type_ = pd.ArrowDtype(
+                pyarrow.list_(self.value_type, self.list_size)
+            )
+            object.__setattr__(self, "type", type_)
+
+        @classmethod
+        def from_parametrized_dtype(
+            cls,
+            pyarrow_dtype: Union[pyarrow.ListType, pyarrow.FixedSizeListType],
+        ):
+            try:
+                _dtype = cls(
+                    value_type=pyarrow_dtype.value_type,  # type: ignore
+                    list_size=pyarrow_dtype.list_size,  # type: ignore
+                )
+            except AttributeError:
+                _dtype = cls(value_type=pyarrow_dtype.value_type)  # type: ignore
+            return _dtype
+
+    @Engine.register_dtype(equivalents=[pyarrow.struct, pyarrow.StructType])
+    @immutable(init=True)
+    class ArrowStruct(DataType):
+        """Semantic representation of a :class:`pyarrow.struct`."""
+
+        type: Optional[pd.ArrowDtype] = dataclasses.field(
+            default=None, init=False
+        )
+        fields: Optional[
+            Union[
+                Iterable[Union[pyarrow.Field, Tuple[str, pyarrow.DataType]]],
+                Dict[str, pyarrow.DataType],
+            ]
+        ] = tuple()
+
+        def __post_init__(self):
+            type_ = pd.ArrowDtype(pyarrow.struct(self.fields))
+            object.__setattr__(self, "type", type_)
+
+        @classmethod
+        def from_parametrized_dtype(cls, pyarrow_dtype: pyarrow.StructType):
+            return cls(
+                fields=[pyarrow_dtype.field(i) for i in range(pyarrow_dtype.num_fields)]  # type: ignore
+            )
+
+    @Engine.register_dtype(
+        equivalents=[
+            "null[pyarrow]",
+            pyarrow.null,
+            pd.ArrowDtype(pyarrow.null()),
+        ]
+    )
+    @immutable
+    class ArrowNull(DataType):
+        """Semantic representation of a :class:`pyarrow.null`."""
+
+        type = pd.ArrowDtype(pyarrow.null())
+
+    @Engine.register_dtype(
+        equivalents=[
+            "date32[day][pyarrow]",
+            pyarrow.date32,
+            pd.ArrowDtype(pyarrow.date32()),
+        ]
+    )
+    @immutable
+    class ArrowDate32(DataType, dtypes.Date):
+        """Semantic representation of a :class:`pyarrow.date32`."""
+
+        type = pd.ArrowDtype(pyarrow.date32())
+
+    @Engine.register_dtype(
+        equivalents=[
+            "date64[ms][pyarrow]",
+            pyarrow.date64,
+            pd.ArrowDtype(pyarrow.date64()),
+        ]
+    )
+    @immutable
+    class ArrowDate64(DataType, dtypes.Date):
+        """Semantic representation of a :class:`pyarrow.date64`."""
+
+        type = pd.ArrowDtype(pyarrow.date64())
+
+    @Engine.register_dtype(
+        equivalents=[pyarrow.duration, pyarrow.DurationType]
+    )
+    @immutable(init=True)
+    class ArrowDuration(DataType):
+        """Semantic representation of a :class:`pyarrow.duration`."""
+
+        type: Optional[pd.ArrowDtype] = dataclasses.field(
+            default=None, init=False
+        )
+        unit: Optional[str] = "ns"
+
+        def __post_init__(self):
+            type_ = pd.ArrowDtype(pyarrow.duration(self.unit))
+            object.__setattr__(self, "type", type_)
+
+        @classmethod
+        def from_parametrized_dtype(cls, pyarrow_dtype: pyarrow.DurationType):
+            return cls(unit=pyarrow_dtype.unit)  # type: ignore
+
+    @Engine.register_dtype(equivalents=[pyarrow.time32, pyarrow.Time32Type])
+    @immutable(init=True)
+    class ArrowTime32(DataType):
+        """Semantic representation of a :class:`pyarrow.time32`."""
+
+        type: Optional[pd.ArrowDtype] = dataclasses.field(
+            default=None, init=False
+        )
+        unit: Optional[str] = "ms"
+
+        def __post_init__(self):
+            type_ = pd.ArrowDtype(pyarrow.time32(self.unit))
+            object.__setattr__(self, "type", type_)
+
+        @classmethod
+        def from_parametrized_dtype(cls, pyarrow_dtype: pyarrow.Time32Type):
+            return cls(unit=pyarrow_dtype.unit)  # type: ignore
+
+        def coerce(self, data_container: PandasObject) -> PandasObject:
+            if data_container.dtype == self.type:
+                return data_container
+            else:
+                return data_container.astype(
+                    pd.ArrowDtype(pyarrow.int32())
+                ).astype(self.type)
+
+    @Engine.register_dtype(equivalents=[pyarrow.time64, pyarrow.Time64Type])
+    @immutable(init=True)
+    class ArrowTime64(DataType):
+        """Semantic representation of a :class:`pyarrow.time64`."""
+
+        type: Optional[pd.ArrowDtype] = dataclasses.field(
+            default=None, init=False
+        )
+        unit: Optional[str] = "ns"
+
+        def __post_init__(self):
+            type_ = pd.ArrowDtype(pyarrow.time64(self.unit))
+            object.__setattr__(self, "type", type_)
+
+        @classmethod
+        def from_parametrized_dtype(cls, pyarrow_dtype: pyarrow.Time64Type):
+            return cls(unit=pyarrow_dtype.unit)  # type: ignore
+
+        def coerce(self, data_container: PandasObject) -> PandasObject:
+            if data_container.dtype == self.type:
+                return data_container
+            else:
+                return data_container.astype(
+                    pd.ArrowDtype(pyarrow.int64())
+                ).astype(self.type)
+
+    @Engine.register_dtype(equivalents=[pyarrow.map_, pyarrow.MapType])
+    @immutable(init=True)
+    class ArrowMap(DataType):
+        """Semantic representation of a :class:`pyarrow.map_`."""
+
+        type: Optional[pd.ArrowDtype] = dataclasses.field(
+            default=None, init=False
+        )
+        key_type: Optional[pyarrow.DataType] = pyarrow.int64()
+        item_type: Optional[pyarrow.DataType] = pyarrow.int64()
+        keys_sorted: bool = False
+
+        def __post_init__(self):
+            type_ = pd.ArrowDtype(
+                pyarrow.map_(
+                    self.key_type,
+                    self.item_type,
+                    self.keys_sorted,
+                )
+            )
+            object.__setattr__(self, "type", type_)
+
+        @classmethod
+        def from_parametrized_dtype(cls, pyarrow_dtype: pyarrow.MapType):
+            return cls(
+                key_type=pyarrow_dtype.key_type,  # type: ignore
+                item_type=pyarrow_dtype.item_type,  # type: ignore
+                keys_sorted=pyarrow_dtype.keys_sorted,  # type: ignore
+            )
+
+        def coerce_value(self, value: Any) -> Any:
+            """Coerce a value to a particular type."""
+            return pyarrow.scalar(
+                value,
+                type=(
+                    self.type.pyarrow_dtype  # pylint: disable=E1101
+                    if self.type
+                    else None
+                ),
+            )
+
+    @Engine.register_dtype(
+        equivalents=[
+            "binary[pyarrow]",
+            pyarrow.binary,
+            pyarrow.FixedSizeBinaryType,
+            pd.ArrowDtype(pyarrow.binary()),
+        ]
+    )
+    @immutable(init=True)
+    class ArrowBinary(DataType, dtypes.Binary):
+        """Semantic representation of a :class:`pyarrow.binary`."""
+
+        type: Optional[pd.ArrowDtype] = dataclasses.field(
+            default=None, init=False
+        )
+        length: Optional[int] = -1
+
+        def __post_init__(self):
+            type_ = pd.ArrowDtype(pyarrow.binary(self.length))
+            object.__setattr__(self, "type", type_)
+
+        @classmethod
+        def from_parametrized_dtype(
+            cls,
+            pyarrow_dtype: Union[
+                pyarrow.DataType, pyarrow.FixedSizeBinaryType
+            ],
+        ):
+            try:
+                _dtype = cls(length=pyarrow_dtype.byte_width)  # type: ignore
+            except (ValueError, AttributeError):
+                _dtype = cls()  # type: ignore
+            return _dtype
+
+    @Engine.register_dtype(
+        equivalents=[
+            "large_binary[pyarrow]",
+            pyarrow.large_binary,
+            pd.ArrowDtype(pyarrow.large_binary()),
+        ]
+    )
+    @immutable
+    class ArrowLargeBinary(DataType):
+        """Semantic representation of a :class:`pyarrow.large_binary`."""
+
+        type = pd.ArrowDtype(pyarrow.large_binary())
+
+    @Engine.register_dtype(
+        equivalents=[
+            "large_string[pyarrow]",
+            pyarrow.large_string,
+            pyarrow.large_utf8,
+            pd.ArrowDtype(pyarrow.large_string()),
+            pd.ArrowDtype(pyarrow.large_utf8()),
+        ]
+    )
+    @immutable
+    class ArrowLargeString(DataType, dtypes.String):
+        """Semantic representation of a :class:`pyarrow.large_string`."""
+
+        type = pd.ArrowDtype(pyarrow.large_string())

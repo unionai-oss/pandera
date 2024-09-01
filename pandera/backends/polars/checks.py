@@ -10,6 +10,10 @@ from polars.lazyframe.group_by import LazyGroupBy
 from pandera.api.base.checks import CheckResult
 from pandera.api.checks import Check
 from pandera.api.polars.types import PolarsData
+from pandera.api.polars.utils import (
+    get_lazyframe_schema,
+    get_lazyframe_column_names,
+)
 from pandera.backends.base import BaseCheckBackend
 from pandera.constants import CHECK_OUTPUT_KEY
 
@@ -55,7 +59,7 @@ class PolarsCheckBackend(BaseCheckBackend):
         if isinstance(out, bool):
             return out
 
-        if len(out.columns) > 1:
+        if len(get_lazyframe_schema(out)) > 1:
             # for checks that return a boolean dataframe, reduce to a single
             # boolean column.
             out = out.select(
@@ -66,7 +70,9 @@ class PolarsCheckBackend(BaseCheckBackend):
                 ).alias(CHECK_OUTPUT_KEY)
             )
         else:
-            out = out.select(pl.col(out.columns[0]).alias(CHECK_OUTPUT_KEY))
+            out = out.rename(
+                {get_lazyframe_column_names(out)[0]: CHECK_OUTPUT_KEY}
+            )
 
         return out
 
@@ -84,16 +90,16 @@ class PolarsCheckBackend(BaseCheckBackend):
         check_output: pl.LazyFrame,
     ) -> CheckResult:
         """Postprocesses the result of applying the check function."""
-        passed = check_output.select([pl.col(CHECK_OUTPUT_KEY).all()])
-        failure_cases = check_obj.lazyframe.with_context(check_output).filter(
-            pl.col(CHECK_OUTPUT_KEY).not_()
-        )
+        results = pl.LazyFrame(check_output.collect())
+        passed = results.select([pl.col(CHECK_OUTPUT_KEY).all()])
+        failure_cases = pl.concat(
+            [check_obj.lazyframe, results], how="horizontal"
+        ).filter(pl.col(CHECK_OUTPUT_KEY).not_())
 
         if check_obj.key is not None:
             failure_cases = failure_cases.select(check_obj.key)
-
         return CheckResult(
-            check_output=check_output,
+            check_output=results,
             check_passed=passed,
             checked_object=check_obj,
             failure_cases=failure_cases,
