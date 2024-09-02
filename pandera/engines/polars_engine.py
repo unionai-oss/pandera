@@ -680,9 +680,47 @@ class Categorical(DataType):
 
     @classmethod
     def from_parametrized_dtype(cls, polars_dtype: pl.Categorical):
-        """Convert a :class:`polars.Decimal` to
-        a Pandera :class:`pandera.engines.polars_engine.Decimal`."""
+        """Convert a :class:`polars.Categorical` to
+        a Pandera :class:`pandera.engines.polars_engine.Categorical`."""
         return cls(ordering=polars_dtype.ordering)
+
+
+@Engine.register_dtype(equivalents=[pl.Enum])
+@immutable(init=True)
+class Enum(DataType):
+    """Polars enum data type."""
+
+    type = pl.Enum
+
+    categories: pl.Series
+
+    def __init__(  # pylint:disable=super-init-not-called
+        self,
+        categories: pl.Series | Iterable[str] | None = None,
+    ) -> None:
+        object.__setattr__(self, "categories", categories)
+        object.__setattr__(self, "type", pl.Enum(categories=categories))
+
+    @classmethod
+    def from_parametrized_dtype(cls, polars_dtype: pl.Enum):
+        """Convert a :class:`polars.Enum` to
+        a Pandera :class:`pandera.engines.polars_engine.Enum`."""
+        return cls(categories=polars_dtype.categories)
+
+    def check(
+        self,
+        pandera_dtype: dtypes.DataType,
+        data_container: Optional[PolarsDataContainer] = None,
+    ) -> Union[bool, Iterable[bool]]:
+        try:
+            pandera_dtype = Engine.dtype(pandera_dtype)
+        except TypeError:
+            return False
+
+        return (
+            self.type == pandera_dtype.type
+            and (self.type.categories == pandera_dtype.categories).all()
+        )
 
 
 @Engine.register_dtype(

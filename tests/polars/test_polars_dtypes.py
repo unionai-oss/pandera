@@ -409,6 +409,12 @@ def test_polars_struct_nested_type(inner_dtype_cls):
             pl.List(pl.Object()),
             pl.LazyFrame({"0": [[1.0, 2.0, 3.0]]}),
         ],
+        # Enum
+        [
+            pl.Enum(categories=["yes", "no"]),
+            pl.Enum(categories=["yes", "no", "?"]),
+            pl.LazyFrame({"0": ["yes", "yes", "no"]}),
+        ],
         # Struct
         [
             pl.Struct({"a": pl.Utf8(), "b": pl.Int64(), "c": pl.Float64()}),
