@@ -272,7 +272,7 @@ msgpack==1.0.5
     # via
     #   distributed
     #   ray
-multimethod==1.9.1
+multimethod==1.12
     # via -r requirements.in
 mypy==0.982
     # via -r requirements.in
