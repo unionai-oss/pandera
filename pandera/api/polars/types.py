@@ -2,6 +2,7 @@
 
 from typing import NamedTuple, Optional, Union
 
+from multimethod import parametric
 import polars as pl
 
 
@@ -27,3 +28,11 @@ PolarsDtypeInputTypes = Union[
     type,
     pl.datatypes.classes.DataTypeClass,
 ]
+
+
+def is_bool(x):
+    """Verifies whether an object is a boolean type."""
+    return isinstance(x, (bool, pl.Boolean))
+
+
+IsBool = parametric(object, is_bool)

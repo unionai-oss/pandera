@@ -4,15 +4,14 @@ from functools import partial
 from typing import Dict, List, Optional, Union, cast
 
 import pandas as pd
-from multimethod import DispatchError, overload
-
+from multimethod import DispatchError, multidispatch
 from pandera.api.base.checks import CheckResult, GroupbyObject
 from pandera.api.checks import Check
 from pandera.api.pandas.types import (
-    is_bool,
-    is_field,
-    is_table,
-    is_table_or_field,
+    IsBool,
+    IsField,
+    IsTable,
+    IsTableOrField,
 )
 from pandera.backends.base import BaseCheckBackend
 
@@ -78,17 +77,17 @@ class PandasCheckBackend(BaseCheckBackend):
 
         return output  # type: ignore[return-value]
 
-    @overload
+    @multidispatch
     def preprocess(self, check_obj, key) -> pd.Series:
         """Preprocesses a check object before applying the check function."""
         # This handles the case of Series validation, which has no other context except
         # for the index to groupby on. Right now grouping by the index is not allowed.
         return check_obj
 
-    @overload  # type: ignore [no-redef]
-    def preprocess(
+    @preprocess.register
+    def _(
         self,
-        check_obj: is_field,  # type: ignore [valid-type]
+        check_obj: IsField,  # type: ignore [valid-type]
         key,
     ) -> Union[pd.Series, Dict[str, pd.Series]]:
         if self.check.groupby is None:
@@ -100,10 +99,10 @@ class PandasCheckBackend(BaseCheckBackend):
             ),
         )
 
-    @overload  # type: ignore [no-redef]
-    def preprocess(
+    @preprocess.register
+    def _(
         self,
-        check_obj: is_table,  # type: ignore [valid-type]
+        check_obj: IsTable,  # type: ignore [valid-type]
         key,
     ) -> Union[pd.DataFrame, Dict[str, pd.DataFrame]]:
         if self.check.groupby is None:
@@ -115,10 +114,10 @@ class PandasCheckBackend(BaseCheckBackend):
             ),
         )
 
-    @overload  # type: ignore [no-redef]
-    def preprocess(
+    @preprocess.register
+    def _(
         self,
-        check_obj: is_table,  # type: ignore [valid-type]
+        check_obj: IsTable,  # type: ignore [valid-type]
         key: None,
     ) -> Union[pd.DataFrame, Dict[str, pd.DataFrame]]:
         if self.check.groupby is None:
@@ -130,39 +129,39 @@ class PandasCheckBackend(BaseCheckBackend):
             ),
         )
 
-    @overload
+    @multidispatch
     def apply(self, check_obj):
         """Apply the check function to a check object."""
         raise NotImplementedError
 
-    @overload  # type: ignore [no-redef]
-    def apply(self, check_obj: dict):
+    @apply.register
+    def _(self, check_obj: dict):
         return self.check_fn(check_obj)
 
-    @overload  # type: ignore [no-redef]
-    def apply(self, check_obj: is_field):  # type: ignore [valid-type]
+    @apply.register
+    def _(self, check_obj: IsField):  # type: ignore [valid-type]
         if self.check.element_wise:
             return check_obj.map(self.check_fn)
         return self.check_fn(check_obj)
 
-    @overload  # type: ignore [no-redef]
-    def apply(self, check_obj: is_table):  # type: ignore [valid-type]
+    @apply.register
+    def _(self, check_obj: IsTable):  # type: ignore [valid-type]
         if self.check.element_wise:
             return check_obj.apply(self.check_fn, axis=1)
         return self.check_fn(check_obj)
 
-    @overload
+    @multidispatch
     def postprocess(self, check_obj, check_output):
         """Postprocesses the result of applying the check function."""
         raise TypeError(
             f"output type of check_fn not recognized: {type(check_output)}"
         )
 
-    @overload  # type: ignore [no-redef]
-    def postprocess(
+    @postprocess.register
+    def _(
         self,
         check_obj,
-        check_output: is_bool,  # type: ignore [valid-type]
+        check_output: IsBool,  # type: ignore [valid-type]
     ) -> CheckResult:
         """Postprocesses the result of applying the check function."""
         return CheckResult(
@@ -198,11 +197,11 @@ class PandasCheckBackend(BaseCheckBackend):
                 )
         return failure_cases
 
-    @overload  # type: ignore [no-redef]
-    def postprocess(
+    @postprocess.register
+    def _(
         self,
-        check_obj: is_field,  # type: ignore [valid-type]
-        check_output: is_field,  # type: ignore [valid-type]
+        check_obj: IsField,  # type: ignore [valid-type]
+        check_output: IsField,  # type: ignore [valid-type]
     ) -> CheckResult:
         """Postprocesses the result of applying the check function."""
         if check_obj.index.equals(check_output.index) and self.check.ignore_na:
@@ -214,11 +213,11 @@ class PandasCheckBackend(BaseCheckBackend):
             self._get_series_failure_cases(check_obj, check_output),
         )
 
-    @overload  # type: ignore [no-redef]
-    def postprocess(
+    @postprocess.register
+    def _(
         self,
-        check_obj: is_table,  # type: ignore [valid-type]
-        check_output: is_field,  # type: ignore [valid-type]
+        check_obj: IsTable,  # type: ignore [valid-type]
+        check_output: IsField,  # type: ignore [valid-type]
     ) -> CheckResult:
         """Postprocesses the result of applying the check function."""
         if check_obj.index.equals(check_output.index) and self.check.ignore_na:
@@ -230,11 +229,11 @@ class PandasCheckBackend(BaseCheckBackend):
             self._get_series_failure_cases(check_obj, check_output),
         )
 
-    @overload  # type: ignore [no-redef]
-    def postprocess(
+    @postprocess.register
+    def _(
         self,
-        check_obj: is_table,  # type: ignore [valid-type]
-        check_output: is_table,  # type: ignore [valid-type]
+        check_obj: IsTable,  # type: ignore [valid-type]
+        check_output: IsTable,  # type: ignore [valid-type]
     ) -> CheckResult:
         """Postprocesses the result of applying the check function."""
         assert check_obj.shape == check_output.shape
@@ -279,11 +278,11 @@ class PandasCheckBackend(BaseCheckBackend):
             failure_cases,
         )
 
-    @overload  # type: ignore [no-redef]
-    def postprocess(
+    @postprocess.register
+    def _(
         self,
-        check_obj: is_table_or_field,  # type: ignore [valid-type]
-        check_output: is_bool,  # type: ignore [valid-type]
+        check_obj: IsTableOrField,  # type: ignore [valid-type]
+        check_output: IsBool,  # type: ignore [valid-type]
     ) -> CheckResult:
         """Postprocesses the result of applying the check function."""
         check_output = bool(check_output)
@@ -294,11 +293,11 @@ class PandasCheckBackend(BaseCheckBackend):
             None,
         )
 
-    @overload  # type: ignore [no-redef]
-    def postprocess(
+    @postprocess.register
+    def _(
         self,
         check_obj: dict,
-        check_output: is_field,  # type: ignore [valid-type]
+        check_output: IsField,  # type: ignore [valid-type]
     ) -> CheckResult:
         """Postprocesses the result of applying the check function."""
         return CheckResult(
