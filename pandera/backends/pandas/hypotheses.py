@@ -48,6 +48,8 @@ def equal(stat, pvalue, alpha=DEFAULT_ALPHA) -> bool:
 class PandasHypothesisBackend(PandasCheckBackend):
     """Hypothesis backend implementation for pandas."""
 
+    check: Hypothesis
+
     RELATIONSHIP_FUNCTIONS = {
         "greater_than": greater_than,
         "less_than": less_than,

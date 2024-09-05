@@ -88,7 +88,7 @@ class PandasCheckBackend(BaseCheckBackend):
     def _(
         self,
         check_obj: IsField,  # type: ignore [valid-type]
-        key,
+        _,
     ) -> Union[pd.Series, Dict[str, pd.Series]]:
         if self.check.groupby is None:
             return check_obj
@@ -118,7 +118,7 @@ class PandasCheckBackend(BaseCheckBackend):
     def _(
         self,
         check_obj: IsTable,  # type: ignore [valid-type]
-        key: None,
+        _: None,
     ) -> Union[pd.DataFrame, Dict[str, pd.DataFrame]]:
         if self.check.groupby is None:
             return check_obj
@@ -243,19 +243,19 @@ class PandasCheckBackend(BaseCheckBackend):
         # collect failure cases across all columns. Flse values in check_output
         # are nulls.
         select_failure_cases = check_obj[~check_output]
-        failure_cases = []
+        _failure_cases = []
         for col in select_failure_cases.columns:
             cases = select_failure_cases[col].rename("failure_case").dropna()
             if len(cases) == 0:
                 continue
-            failure_cases.append(
+            _failure_cases.append(
                 cases.to_frame()
                 .assign(column=col)
                 .rename_axis("index")
                 .reset_index()
             )
-        if failure_cases:
-            failure_cases = pd.concat(failure_cases, axis=0)
+        if _failure_cases:
+            failure_cases = pd.concat(_failure_cases, axis=0)
             # convert to a dataframe where each row is a failure case at
             # a particular index, and failure case values are dictionaries
             # indicating which column and value failed in that row.
