@@ -3,7 +3,6 @@
 from functools import lru_cache
 from typing import NamedTuple, Tuple, Type, Union
 
-from multimethod import parametric
 import numpy as np
 import pandas as pd
 
@@ -33,35 +32,35 @@ SupportedTypes = NamedTuple(
 def supported_types() -> SupportedTypes:
     """Get the types supported by pandera schemas."""
     # pylint: disable=import-outside-toplevel
-    table_types = [pd.DataFrame]
-    field_types = [pd.Series]
-    index_types = [pd.Index]
-    multiindex_types = [pd.MultiIndex]
+    table_types: Tuple[type, ...] = (pd.DataFrame,)
+    field_types: Tuple[type, ...] = (pd.Series,)
+    index_types: Tuple[type, ...] = (pd.Index,)
+    multiindex_types: Tuple[type, ...] = (pd.MultiIndex,)
 
     try:
         import pyspark.pandas as ps
 
-        table_types.append(ps.DataFrame)
-        field_types.append(ps.Series)
-        index_types.append(ps.Index)
-        multiindex_types.append(ps.MultiIndex)
+        table_types += (ps.DataFrame,)
+        field_types += (ps.Series,)
+        index_types += (ps.Index,)
+        multiindex_types += (ps.MultiIndex,)
     except ImportError:
         pass
     try:  # pragma: no cover
         import modin.pandas as mpd
 
-        table_types.append(mpd.DataFrame)
-        field_types.append(mpd.Series)
-        index_types.append(mpd.Index)
-        multiindex_types.append(mpd.MultiIndex)
+        table_types += (mpd.DataFrame,)
+        field_types += (mpd.Series,)
+        index_types += (mpd.Index,)
+        multiindex_types += (mpd.MultiIndex,)
     except ImportError:
         pass
     try:
         import dask.dataframe as dd
 
-        table_types.append(dd.DataFrame)
-        field_types.append(dd.Series)
-        index_types.append(dd.Index)
+        table_types += (dd.DataFrame,)
+        field_types += (dd.Series,)
+        index_types += (dd.Index,)
     except ImportError:
         pass
 
@@ -73,6 +72,16 @@ def supported_types() -> SupportedTypes:
     )
 
 
+Table = Union[tuple(supported_types().table_types)]
+Field = Union[tuple(supported_types().field_types)]
+Index = Union[tuple(supported_types().index_types)]
+Multiindex = Union[tuple(supported_types().multiindex_types)]
+TableOrField = Union[
+    tuple((*supported_types().table_types, *supported_types().field_types))
+]
+Bool = Union[bool, np.bool_]
+
+
 def is_table(obj):
     """Verifies whether an object is table-like.
 
@@ -80,9 +89,6 @@ def is_table(obj):
     can be indexed in multiple different ways.
     """
     return isinstance(obj, supported_types().table_types)
-
-
-IsTable = parametric(object, is_table)
 
 
 def is_field(obj):
@@ -94,15 +100,9 @@ def is_field(obj):
     return isinstance(obj, supported_types().field_types)
 
 
-IsField = parametric(object, is_field)
-
-
 def is_index(obj):
     """Verifies whether an object is a table index."""
     return isinstance(obj, supported_types().index_types)
-
-
-IsIndex = parametric(object, is_index)
 
 
 def is_multiindex(obj):
@@ -110,15 +110,10 @@ def is_multiindex(obj):
     return isinstance(obj, supported_types().multiindex_types)
 
 
-IsMultiIndex = parametric(object, is_multiindex)
-
-
 def is_table_or_field(obj):
     """Verifies whether an object is table- or field-like."""
     return is_table(obj) or is_field(obj)
 
-
-IsTableOrField = parametric(object, is_table_or_field)
 
 is_supported_check_obj = is_table_or_field
 
@@ -126,6 +121,3 @@ is_supported_check_obj = is_table_or_field
 def is_bool(x):
     """Verifies whether an object is a boolean type."""
     return isinstance(x, (bool, np.bool_))
-
-
-IsBool = parametric(object, is_bool)

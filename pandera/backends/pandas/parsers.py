@@ -7,7 +7,7 @@ import pandas as pd
 from multimethod import multidispatch
 
 from pandera.api.base.parsers import ParserResult
-from pandera.api.pandas.types import IsField, IsTable
+from pandera.api.pandas.types import Field, Table
 from pandera.api.parsers import Parser
 from pandera.backends.base import BaseParserBackend
 
@@ -32,14 +32,14 @@ class PandasParserBackend(BaseParserBackend):
     @preprocess.register
     def _(
         self,
-        parse_obj: IsTable,  # type: ignore [valid-type]
+        parse_obj: Table,  # type: ignore [valid-type]
         key,
     ) -> Union[pd.DataFrame, Dict[str, pd.DataFrame]]:
         return parse_obj[key]
 
     @preprocess.register
     def _(
-        self, parse_obj: IsTable, key: None  # type: ignore [valid-type]  # pylint:disable=unused-argument
+        self, parse_obj: Table, key: None  # type: ignore [valid-type]  # pylint:disable=unused-argument
     ) -> Union[pd.DataFrame, Dict[str, pd.DataFrame]]:
         return parse_obj
 
@@ -49,13 +49,13 @@ class PandasParserBackend(BaseParserBackend):
         raise NotImplementedError
 
     @apply.register
-    def _(self, parse_obj: IsField):  # type: ignore [valid-type]
+    def _(self, parse_obj: Field):  # type: ignore [valid-type]
         if self.parser.element_wise:
             return parse_obj.map(self.parser_fn)
         return self.parser_fn(parse_obj)
 
     @apply.register
-    def _(self, parse_obj: IsTable):  # type: ignore [valid-type]
+    def _(self, parse_obj: Table):  # type: ignore [valid-type]
         if self.parser.element_wise:
             return getattr(parse_obj, "map", parse_obj.applymap)(
                 self.parser_fn

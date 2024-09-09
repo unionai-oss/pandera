@@ -2,7 +2,6 @@
 
 from typing import NamedTuple, Optional, Union
 
-from multimethod import parametric
 import polars as pl
 
 
@@ -35,4 +34,4 @@ def is_bool(x):
     return isinstance(x, (bool, pl.Boolean))
 
 
-IsBool = parametric(object, is_bool)
+Bool = Union[bool, pl.Boolean]

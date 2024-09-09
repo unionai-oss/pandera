@@ -8,7 +8,7 @@ from multimethod import multidispatch
 
 from pandera import errors
 from pandera.api.hypotheses import Hypothesis
-from pandera.api.pandas.types import is_field, IsTable
+from pandera.api.pandas.types import is_field, Table
 from pandera.backends.pandas.checks import PandasCheckBackend
 
 
@@ -116,7 +116,7 @@ class PandasHypothesisBackend(PandasCheckBackend):
     @preprocess.register
     def _(
         self,
-        check_obj: IsTable,  # type: ignore [valid-type]
+        check_obj: Table,  # type: ignore [valid-type]
         key,
     ) -> Union[pd.DataFrame, Dict[str, pd.DataFrame]]:
         if self.check.groupby is None:
@@ -131,7 +131,7 @@ class PandasHypothesisBackend(PandasCheckBackend):
     @preprocess.register
     def _(
         self,
-        check_obj: IsTable,  # type: ignore [valid-type]
+        check_obj: Table,  # type: ignore [valid-type]
         key: None,
     ) -> pd.Series:
         """Preprocesses a check object before applying the check function."""
