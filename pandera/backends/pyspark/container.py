@@ -149,16 +149,19 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
             check_obj, schema, column_info, error_handler
         )
 
-        # collect schema components and prepare check object to be validated
+        # collect schema components
         schema_components = self.collect_schema_components(
             check_obj, schema, column_info
         )
-        check_obj_subsample = self.subsample(
+
+        # subsample the check object if sample is specified
+        sample = self.subsample(
             check_obj, sample=sample, random_state=random_state
         )
+
         try:
             self.run_schema_component_checks(
-                check_obj_subsample, schema_components, lazy, error_handler
+                sample, schema_components, lazy, error_handler
             )
         except SchemaError as exc:
             error_handler.collect_error(
@@ -167,7 +170,7 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
                 schema_error=exc,
             )
         try:
-            self.run_checks(check_obj_subsample, schema, error_handler)
+            self.run_checks(sample, schema, error_handler)
         except SchemaError as exc:
             error_handler.collect_error(
                 error_type=ErrorCategory.DATA,
@@ -602,7 +605,7 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
     def check_column_presence(
         self, check_obj: DataFrame, schema, column_info: ColumnInfo
     ):
-        """Check for presence of specified columns in the data object."""
+        """Check that all columns in the schema are present in the dataframe."""
         if column_info.absent_column_names:
             reason_code = SchemaErrorReason.COLUMN_NOT_IN_DATAFRAME
             raise SchemaErrors(

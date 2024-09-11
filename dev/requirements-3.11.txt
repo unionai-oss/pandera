@@ -14,7 +14,7 @@ astroid==2.15.8
     # via pylint
 asttokens==2.4.1
     # via stack-data
-asv==0.6.3
+asv==0.6.4
     # via -r requirements.in
 asv-runner==0.2.1
     # via asv
@@ -92,12 +92,14 @@ docutils==0.21.2
     #   recommonmark
     #   sphinx
 duckdb==1.0.0
-    # via ibis-framework
+    # via
+    #   -r requirements.in
+    #   ibis-framework
 execnet==2.1.1
     # via pytest-xdist
 executing==2.0.1
     # via stack-data
-fastapi==0.112.0
+fastapi==0.112.1
     # via -r requirements.in
 fastjsonschema==2.20.0
     # via nbformat
@@ -123,7 +125,7 @@ grpcio==1.65.4
     # via -r requirements.in
 h11==0.14.0
     # via uvicorn
-hypothesis==6.111.0
+hypothesis==6.111.1
     # via -r requirements.in
 ibis-framework==9.3.0
     # via -r requirements.in
@@ -324,7 +326,7 @@ platformdirs==4.2.2
     #   virtualenv
 pluggy==1.5.0
     # via pytest
-polars==1.4.1
+polars==1.5.0
     # via -r requirements.in
 pre-commit==3.8.0
     # via -r requirements.in
@@ -475,7 +477,7 @@ sortedcontainers==2.4.0
     # via
     #   distributed
     #   hypothesis
-soupsieve==2.5
+soupsieve==2.6
     # via beautifulsoup4
 sphinx==7.3.7
     # via
@@ -517,7 +519,7 @@ sqlglot==25.9.0
     # via ibis-framework
 stack-data==0.6.3
     # via ipython
-starlette==0.37.2
+starlette==0.38.2
     # via fastapi
 stringcase==1.2.0
     # via frictionless
@@ -530,9 +532,7 @@ tblib==3.0.0
     # via distributed
 text-unidecode==1.3
     # via python-slugify
-tomli==2.0.1
-    # via asv
-tomlkit==0.13.0
+tomlkit==0.13.2
     # via pylint
 toolz==0.12.1
     # via
@@ -571,7 +571,7 @@ types-pyyaml==6.0.12.20240808
     # via -r requirements.in
 types-requests==2.32.0.20240712
     # via -r requirements.in
-types-setuptools==71.1.0.20240806
+types-setuptools==71.1.0.20240813
     # via -r requirements.in
 typing-extensions==4.12.2
     # via
@@ -597,7 +597,7 @@ urllib3==2.2.2
     #   requests
     #   twine
     #   types-requests
-uvicorn==0.30.5
+uvicorn==0.30.6
     # via -r requirements.in
 validators==0.33.0
     # via frictionless
