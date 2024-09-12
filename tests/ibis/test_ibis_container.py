@@ -27,8 +27,8 @@ def t_schema_basic():
     """Basic Ibis table schema fixture."""
     return DataFrameSchema(
         {
-            # "string_col": Column(str),
-            "int_col": Column(int),
+            "string_col": Column(dt.String),
+            "int_col": Column(dt.Int64),
         }
     )
 
@@ -52,7 +52,7 @@ def test_required_columns():
     schema = DataFrameSchema(
         {
             "a": Column(dt.Int64, required=True),
-            "b": Column(dt.Int64, required=False),
+            "b": Column(dt.String, required=False),
         }
     )
     t = ibis.memtable(pd.DataFrame({"a": [1, 2, 3]}))

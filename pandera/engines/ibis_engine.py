@@ -118,3 +118,25 @@ class Float64(DataType, dtypes.Float64):
     """Semantic representation of a :class:`dt.Float64`."""
 
     type = dt.float64
+
+
+###############################################################################
+# nominal
+###############################################################################
+
+
+@Engine.register_dtype(
+    equivalents=[
+        str,
+        np.str_,
+        dtypes.String,
+        dtypes.String(),
+        dt.String,
+        dt.string,
+    ]
+)
+@immutable
+class String(DataType, dtypes.String):
+    """Semantic representation of a :class:`dt.String`."""
+
+    type = dt.string
