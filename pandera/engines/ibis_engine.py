@@ -80,6 +80,8 @@ class Engine(
 class Int32(DataType, dtypes.Int32):
     """Semantic representation of a :class:`dt.Int32`."""
 
+    type = dt.int32
+
 
 @Engine.register_dtype(
     equivalents=[
