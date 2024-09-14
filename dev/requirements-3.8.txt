@@ -37,11 +37,11 @@ beautifulsoup4==4.12.3
     # via furo
 black==24.8.0
     # via -r requirements.in
-build==1.2.1
+build==1.2.2
     # via asv
 cached-property==1.5.2
     # via ibis-framework
-certifi==2024.7.4
+certifi==2024.8.30
     # via
     #   fiona
     #   pyproj
@@ -100,7 +100,7 @@ docutils==0.19
     #   readme-renderer
     #   recommonmark
     #   sphinx
-duckdb==1.0.0
+duckdb==1.1.0
     # via -r requirements.in
 exceptiongroup==1.2.2
     # via
@@ -109,17 +109,17 @@ exceptiongroup==1.2.2
     #   pytest
 execnet==2.1.1
     # via pytest-xdist
-executing==2.0.1
+executing==2.1.0
     # via stack-data
-fastapi==0.112.1
+fastapi==0.114.1
     # via -r requirements.in
 fastjsonschema==2.20.0
     # via nbformat
-filelock==3.15.4
+filelock==3.16.0
     # via
     #   ray
     #   virtualenv
-fiona==1.9.6
+fiona==1.10.0
     # via geopandas
 frictionless==4.40.8
     # via -r requirements.in
@@ -127,7 +127,7 @@ frozenlist==1.4.1
     # via
     #   aiosignal
     #   ray
-fsspec==2024.6.1
+fsspec==2024.9.0
     # via
     #   dask
     #   modin
@@ -135,23 +135,23 @@ furo==2023.3.27
     # via -r requirements.in
 geopandas==0.13.2
     # via -r requirements.in
-grpcio==1.65.4
+grpcio==1.66.1
     # via -r requirements.in
 h11==0.14.0
     # via uvicorn
-hypothesis==6.111.1
+hypothesis==6.112.0
     # via -r requirements.in
 ibis-framework==2.0.0
     # via -r requirements.in
 identify==2.6.0
     # via pre-commit
-idna==3.7
+idna==3.8
     # via
     #   anyio
     #   requests
 imagesize==1.4.1
     # via sphinx
-importlib-metadata==8.2.0
+importlib-metadata==8.5.0
     # via
     #   -r requirements.in
     #   asv-runner
@@ -165,7 +165,7 @@ importlib-metadata==8.2.0
     #   sphinx
     #   twine
     #   typeguard
-importlib-resources==6.4.2
+importlib-resources==6.4.5
     # via
     #   jsonschema
     #   jsonschema-specifications
@@ -186,7 +186,7 @@ isort==5.13.2
     #   pylint
 jaraco-classes==3.4.0
     # via keyring
-jaraco-context==5.3.0
+jaraco-context==6.0.1
     # via keyring
 jaraco-functools==4.0.2
     # via keyring
@@ -250,11 +250,11 @@ mdurl==0.1.2
     # via markdown-it-py
 modin==0.23.1.post0
     # via -r requirements.in
-more-itertools==10.4.0
+more-itertools==10.5.0
     # via
     #   jaraco-classes
     #   jaraco-functools
-msgpack==1.0.8
+msgpack==1.1.0
     # via
     #   distributed
     #   ray
@@ -343,7 +343,7 @@ pkginfo==1.10.0
     # via twine
 pkgutil-resolve-name==1.3.10
     # via jsonschema
-platformdirs==4.2.2
+platformdirs==4.3.2
     # via
     #   black
     #   jupyter-core
@@ -351,13 +351,13 @@ platformdirs==4.2.2
     #   virtualenv
 pluggy==1.5.0
     # via pytest
-polars==1.5.0
+polars==1.7.1
     # via -r requirements.in
 pre-commit==3.5.0
     # via -r requirements.in
 prompt-toolkit==3.0.47
     # via ipython
-protobuf==5.27.3
+protobuf==5.28.1
     # via
     #   -r requirements.in
     #   ray
@@ -374,11 +374,11 @@ py4j==0.10.9.7
     # via pyspark
 pyarrow==17.0.0
     # via -r requirements.in
-pydantic==2.8.2
+pydantic==2.9.1
     # via
     #   -r requirements.in
     #   fastapi
-pydantic-core==2.20.1
+pydantic-core==2.23.3
     # via pydantic
 pygments==2.18.0
     # via
@@ -397,13 +397,13 @@ pyproject-hooks==1.1.0
     # via build
 pyspark==3.5.2
     # via -r requirements.in
-pytest==8.3.2
+pytest==8.3.3
     # via
     #   -r requirements.in
     #   pytest-asyncio
     #   pytest-cov
     #   pytest-xdist
-pytest-asyncio==0.23.8
+pytest-asyncio==0.24.0
     # via -r requirements.in
 pytest-cov==5.0.0
     # via -r requirements.in
@@ -418,7 +418,7 @@ python-multipart==0.0.9
     # via -r requirements.in
 python-slugify==8.0.4
     # via frictionless
-pytz==2024.1
+pytz==2024.2
     # via
     #   -r requirements.in
     #   babel
@@ -436,7 +436,7 @@ pyyaml==6.0.2
     #   myst-parser
     #   pre-commit
     #   ray
-pyzmq==26.1.0
+pyzmq==26.2.0
     # via
     #   ipykernel
     #   jupyter-client
@@ -450,7 +450,7 @@ referencing==0.35.1
     # via
     #   jsonschema
     #   jsonschema-specifications
-regex==2024.7.24
+regex==2024.9.11
     # via ibis-framework
 requests==2.32.3
     # via
@@ -465,7 +465,7 @@ rfc3986==2.0.0
     # via
     #   frictionless
     #   twine
-rich==13.7.1
+rich==13.8.1
     # via
     #   twine
     #   typer
@@ -475,9 +475,9 @@ rpds-py==0.20.0
     #   referencing
 scipy==1.10.1
     # via -r requirements.in
-setuptools==72.2.0
+setuptools==74.1.2
     # via ibis-framework
-shapely==2.0.5
+shapely==2.0.6
     # via
     #   -r requirements.in
     #   geopandas
@@ -488,7 +488,6 @@ simpleeval==0.9.13
 six==1.16.0
     # via
     #   asttokens
-    #   fiona
     #   isodate
     #   python-dateutil
 sniffio==1.3.1
@@ -535,11 +534,11 @@ sphinxcontrib-qthelp==1.0.3
     # via sphinx
 sphinxcontrib-serializinghtml==1.1.5
     # via sphinx
-sqlalchemy==2.0.32
+sqlalchemy==2.0.34
     # via jupyter-cache
 stack-data==0.6.3
     # via ipython
-starlette==0.38.2
+starlette==0.38.5
     # via fastapi
 stringcase==1.2.0
     # via frictionless
@@ -589,7 +588,7 @@ twine==5.1.1
     # via -r requirements.in
 typeguard==4.3.0
     # via -r requirements.in
-typer==0.12.3
+typer==0.12.5
     # via frictionless
 types-click==7.1.8
     # via -r requirements.in
@@ -599,9 +598,9 @@ types-pytz==2024.1.0.20240417
     #   pandas-stubs
 types-pyyaml==6.0.12.20240808
     # via -r requirements.in
-types-requests==2.32.0.20240712
+types-requests==2.32.0.20240907
     # via -r requirements.in
-types-setuptools==71.1.0.20240813
+types-setuptools==74.1.0.20240907
     # via -r requirements.in
 typing-extensions==4.12.2
     # via
@@ -629,7 +628,7 @@ typing-inspect==0.9.0
     # via -r requirements.in
 tzdata==2024.1
     # via pandas
-urllib3==2.2.2
+urllib3==2.2.3
     # via
     #   distributed
     #   requests
@@ -637,9 +636,9 @@ urllib3==2.2.2
     #   types-requests
 uvicorn==0.30.6
     # via -r requirements.in
-validators==0.33.0
+validators==0.34.0
     # via frictionless
-virtualenv==20.26.3
+virtualenv==20.26.4
     # via
     #   asv
     #   nox
@@ -650,11 +649,11 @@ wrapt==1.16.0
     # via
     #   -r requirements.in
     #   astroid
-xdoctest==1.1.6
+xdoctest==1.2.0
     # via -r requirements.in
 zict==3.0.0
     # via distributed
-zipp==3.20.0
+zipp==3.20.1
     # via
     #   importlib-metadata
     #   importlib-resources
