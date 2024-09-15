@@ -216,7 +216,10 @@ except pa.errors.SchemaErrors as exc:
 ```
 
 Note that mixtures of `DataFrame` schemas and built-in types will ignore checking built-in types
-with pandera. Pydantic should be used to check and/or coerce any built-in types.
+with pandera. For example, for a return value with annotation
+`list[DataFrame[Schema], DataFrame[Schema]]` the elements of the list will not be checked
+against the Schema.
+Pydantic should be used to check and/or coerce any built-in types.
 
 ```{code-cell} python
 import pandas as pd
