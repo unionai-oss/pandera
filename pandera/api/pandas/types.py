@@ -72,13 +72,33 @@ def supported_types() -> SupportedTypes:
     )
 
 
-Table = Union[tuple(supported_types().table_types)]
-Field = Union[tuple(supported_types().field_types)]
-Index = Union[tuple(supported_types().index_types)]
-Multiindex = Union[tuple(supported_types().multiindex_types)]
-TableOrField = Union[
-    tuple((*supported_types().table_types, *supported_types().field_types))
-]
+def supported_type_unions(attribute: str):
+    """Get the type unions for a given attribute."""
+    if attribute == "table_types":
+        return Union[tuple(supported_types().table_types)]
+    if attribute == "field_types":
+        return Union[tuple(supported_types().field_types)]
+    if attribute == "index_types":
+        return Union[tuple(supported_types().index_types)]
+    if attribute == "multiindex_types":
+        return Union[tuple(supported_types().multiindex_types)]
+    if attribute == "table_or_field_types":
+        return Union[
+            tuple(
+                (
+                    *supported_types().table_types,
+                    *supported_types().field_types,
+                )
+            )
+        ]
+    raise ValueError(f"invalid attribute {attribute}")
+
+
+Table = supported_type_unions("table_types")
+Field = supported_type_unions("field_types")
+Index = supported_type_unions("index_types")
+Multiindex = supported_type_unions("multiindex_types")
+TableOrField = supported_type_unions("table_or_field_types")
 Bool = Union[bool, np.bool_]
 
 
