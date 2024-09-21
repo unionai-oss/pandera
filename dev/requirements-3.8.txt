@@ -40,7 +40,7 @@ executing==2.0.1
 fastapi==0.112.0
 fastjsonschema==2.20.0
 filelock==3.15.4
-fiona==1.9.6
+fiona==1.10.0
 frictionless==4.40.8
 frozenlist==1.4.1
 fsspec==2024.6.1
