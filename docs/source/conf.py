@@ -50,7 +50,7 @@ extensions = [
     "sphinx.ext.linkcode",  # link to github, see linkcode_resolve() below
     "sphinx_copybutton",
     "sphinx_design",
-    # "sphinx_docsearch",
+    "sphinx_docsearch",
     "myst_nb",
 ]
 
@@ -312,16 +312,15 @@ myst_enable_extensions = [
 ]
 myst_heading_anchors = 3
 
-myst_heading_anchors = 3
-
 nb_execution_mode = "auto"
 nb_execution_timeout = 60
 nb_execution_excludepatterns = ["_contents/try_pandera.ipynb"]
 
-# # docsearch configuration
-# docsearch_app_id = "GA9NROLUXR"
-# docsearch_api_key = os.getenv("DOCSEARCH_SEARCH_API_KEY")
-# docsearch_index_name = "pandera"
+# docsearch configuration
+docsearch_app_id = "GA9NROLUXR"
+docsearch_api_key = os.getenv("DOCSEARCH_SEARCH_API_KEY")
+docsearch_index_name = "pandera"
+docsearch_search_parameter = '{filters: ["version:latest"]}'
 
 
 class CustomWarningSuppressor(pylogging.Filter):
