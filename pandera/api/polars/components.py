@@ -135,6 +135,10 @@ class Column(ComponentSchema[PolarsCheckObjects]):
             otherwise creates a copy of the data.
         :returns: validated DataFrame.
         """
+
+        if not get_config_context().validation_enabled:
+            return check_obj
+
         is_dataframe = isinstance(check_obj, pl.DataFrame)
 
         if is_dataframe:
