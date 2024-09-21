@@ -719,7 +719,7 @@ class Enum(DataType):
 
         return (
             self.type == pandera_dtype.type
-            and (self.type.categories == getattr(pandera_dtype, "categories", None)).all()
+            and (self.type.categories == pandera_dtype.categories).all()  # type: ignore
         )
 
 
