@@ -696,7 +696,7 @@ class Enum(DataType):
 
     def __init__(  # pylint:disable=super-init-not-called
         self,
-        categories: pl.Series | Iterable[str] | None = None,
+        categories: Union[pl.Series, Iterable[str], None] = None,
     ) -> None:
         object.__setattr__(self, "categories", categories)
         object.__setattr__(self, "type", pl.Enum(categories=categories))
