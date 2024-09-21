@@ -4,11 +4,11 @@ from functools import partial
 from typing import Any, Callable, Dict, Union, cast
 
 import pandas as pd
-from multimethod import overload
+from multimethod import multidispatch
 
 from pandera import errors
 from pandera.api.hypotheses import Hypothesis
-from pandera.api.pandas.types import is_field, is_table
+from pandera.api.pandas.types import is_field, Table
 from pandera.backends.pandas.checks import PandasCheckBackend
 
 
@@ -47,6 +47,8 @@ def equal(stat, pvalue, alpha=DEFAULT_ALPHA) -> bool:
 
 class PandasHypothesisBackend(PandasCheckBackend):
     """Hypothesis backend implementation for pandas."""
+
+    check: Hypothesis
 
     RELATIONSHIP_FUNCTIONS = {
         "greater_than": greater_than,
@@ -106,15 +108,15 @@ class PandasHypothesisBackend(PandasCheckBackend):
         """Return True if hypothesis is a one-sample test."""
         return len(self.check.samples) <= 1
 
-    @overload  # type: ignore [no-redef]
+    @multidispatch
     def preprocess(self, check_obj, key) -> Any:
         self.check.groups = self.check.samples
         return super().preprocess(check_obj, key)
 
-    @overload  # type: ignore [no-redef]
-    def preprocess(
+    @preprocess.register
+    def _(
         self,
-        check_obj: is_table,  # type: ignore [valid-type]
+        check_obj: Table,  # type: ignore [valid-type]
         key,
     ) -> Union[pd.DataFrame, Dict[str, pd.DataFrame]]:
         if self.check.groupby is None:
@@ -126,10 +128,10 @@ class PandasHypothesisBackend(PandasCheckBackend):
             ),
         )
 
-    @overload  # type: ignore [no-redef]
-    def preprocess(
+    @preprocess.register
+    def _(
         self,
-        check_obj: is_table,  # type: ignore [valid-type]
+        check_obj: Table,  # type: ignore [valid-type]
         key: None,
     ) -> pd.Series:
         """Preprocesses a check object before applying the check function."""

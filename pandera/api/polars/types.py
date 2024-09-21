@@ -27,3 +27,11 @@ PolarsDtypeInputTypes = Union[
     type,
     pl.datatypes.classes.DataTypeClass,
 ]
+
+
+def is_bool(x):
+    """Verifies whether an object is a boolean type."""
+    return isinstance(x, (bool, pl.Boolean))
+
+
+Bool = Union[bool, pl.Boolean]

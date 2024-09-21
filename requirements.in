@@ -14,7 +14,7 @@ typing_extensions >= 3.7.4.3
 frictionless <= 4.40.8
 pyarrow
 pydantic
-multimethod <= 1.10.0
+multimethod
 pandas-stubs
 pyspark[connect] >= 3.2.0
 polars >= 0.20.0

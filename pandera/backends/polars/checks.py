@@ -4,12 +4,12 @@ from functools import partial
 from typing import Optional
 
 import polars as pl
-from multimethod import overload
+from multimethod import multidispatch
 from polars.lazyframe.group_by import LazyGroupBy
 
 from pandera.api.base.checks import CheckResult
 from pandera.api.checks import Check
-from pandera.api.polars.types import PolarsData
+from pandera.api.polars.types import PolarsData, Bool
 from pandera.api.polars.utils import (
     get_lazyframe_schema,
     get_lazyframe_column_names,
@@ -76,15 +76,15 @@ class PolarsCheckBackend(BaseCheckBackend):
 
         return out
 
-    @overload
+    @multidispatch
     def postprocess(self, check_obj, check_output):
         """Postprocesses the result of applying the check function."""
         raise TypeError(  # pragma: no cover
             f"output type of check_fn not recognized: {type(check_output)}"
         )
 
-    @overload  # type: ignore [no-redef]
-    def postprocess(
+    @postprocess.register
+    def _(
         self,
         check_obj: PolarsData,
         check_output: pl.LazyFrame,
@@ -105,11 +105,11 @@ class PolarsCheckBackend(BaseCheckBackend):
             failure_cases=failure_cases,
         )
 
-    @overload  # type: ignore [no-redef]
-    def postprocess(
+    @postprocess.register
+    def _(
         self,
         check_obj: PolarsData,
-        check_output: bool,
+        check_output: Bool,  # type: ignore [valid-type]
     ) -> CheckResult:
         """Postprocesses the result of applying the check function."""
         ldf_output = pl.LazyFrame({CHECK_OUTPUT_KEY: [check_output]})
