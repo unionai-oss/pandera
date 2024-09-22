@@ -316,7 +316,7 @@ myst_enable_extensions = [
 ]
 myst_heading_anchors = 3
 
-nb_execution_mode = "off"
+nb_execution_mode = os.getenv("PANDERA_DOCS_NB_EXECUTION_MODE", "auto")
 nb_execution_timeout = 60
 nb_execution_excludepatterns = ["_contents/try_pandera.ipynb"]
 
