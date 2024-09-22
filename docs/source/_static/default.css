@@ -153,14 +153,27 @@ div.DocSearch-Logo .cls-2 {
 
 .DocSearch-Button {
   height: 50px;
+  margin: 0;
+  width: 100%;
+  border-radius: 0;
+  border-bottom: 1px solid var(--color-header-border) !important;
+  border-top: 1px solid var(--color-header-border) !important;
+  background: var(--color-sidebar-background) !important;
+  padding: 0 15px !important;
 }
 
-@media (prefers-color-scheme: dark) {
-  body:not([data-theme="light"]) .DocSearch-Button:active,
-  body:not([data-theme="light"]) .DocSearch-Button:focus,
-  body:not([data-theme="light"]) .DocSearch-Button:hover,
-  body:not([data-theme="light"]) .DocSearch-Button .DocSearch-Search-Icon {
-    background: #666;
-    color: rgb(245, 246, 247);
-  }
+.DocSearch-Button:hover, .DocSearch-Button:active {
+  box-shadow: none !important;
+  background: var(--docsearch-searchbox-background) !important;
+}
+
+.DocSearch-Button-Key, .DocSearch-Commands-Key {
+  border: none !important;
+  box-shadow: none !important;
+  display: inherit !important;
+  padding: 0 !important;
+}
+
+.sidebar-search-container::before {
+  content: none;
 }

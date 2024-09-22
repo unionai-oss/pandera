@@ -50,7 +50,6 @@ extensions = [
     "sphinx.ext.linkcode",  # link to github, see linkcode_resolve() below
     "sphinx_copybutton",
     "sphinx_design",
-    "sphinx_docsearch",
     "myst_nb",
 ]
 
@@ -167,10 +166,15 @@ html_theme_options = {
 html_static_path = ["_static"]
 
 html_css_files = [
-    "default.css",
     "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css",
+    "https://cdn.jsdelivr.net/npm/@docsearch/css@3",
+    "default.css",
 ]
-html_js_files = ["custom.js"]
+html_js_files = [
+    "custom.js",
+    "https://cdn.jsdelivr.net/npm/@docsearch/js@3",
+    "docsearch_config.js",
+]
 
 autosummary_generate = True
 autosummary_generate_overwrite = False
@@ -312,15 +316,18 @@ myst_enable_extensions = [
 ]
 myst_heading_anchors = 3
 
-nb_execution_mode = "auto"
+nb_execution_mode = "off"
 nb_execution_timeout = 60
 nb_execution_excludepatterns = ["_contents/try_pandera.ipynb"]
 
 # docsearch configuration
-docsearch_app_id = "GA9NROLUXR"
+docsearch_container = "#docsearch"
+docsearch_app_id = os.getenv("DOCSEARCH_SEARCH_APP_ID", "GA9NROLUXR")
 docsearch_api_key = os.getenv("DOCSEARCH_SEARCH_API_KEY")
-docsearch_index_name = "pandera"
-docsearch_search_parameter = '{filters: ["version:latest"]}'
+docsearch_index_name = os.getenv("DOCSEARCH_INDEX_NAME", "pandera")
+docsearch_search_parameters = {
+    "facetFilters": [f"version:{os.getenv('$READTHEDOCS_VERSION', 'stable')}"]
+}
 
 
 class CustomWarningSuppressor(pylogging.Filter):
@@ -355,13 +362,56 @@ class CustomWarningSuppressor(pylogging.Filter):
         return True
 
 
-def setup(app: sphinx.application.Sphinx) -> None:
-    """Setup root logger for Sphinx"""
+def add_warning_suppressor(app: sphinx.application.Sphinx) -> None:
     logger = pylogging.getLogger("sphinx")
-
     warning_handler, *_ = [
         h
         for h in logger.handlers
         if isinstance(h, logging.WarningStreamHandler)
     ]
     warning_handler.filters.insert(0, CustomWarningSuppressor(app))
+
+
+def add_docsearch_config(app: sphinx.application.Sphinx) -> None:
+    app.add_config_value(
+        "docsearch_app_id", default="", rebuild="html", types=[str]
+    )
+    app.add_config_value(
+        "docsearch_api_key", default="", rebuild="html", types=[str]
+    )
+    app.add_config_value(
+        "docsearch_index_name", default="", rebuild="html", types=[str]
+    )
+    app.add_config_value(
+        "docsearch_container",
+        default="#docsearch",
+        rebuild="html",
+        types=[str],
+    )
+    app.add_config_value(
+        "docsearch_search_parameters", default="", rebuild="html", types=[dict]
+    )
+
+
+def add_docsearch_assets(
+    app: sphinx.application.Sphinx, config: sphinx.application.Config
+):
+    app.add_js_file("docsearch_config.js", loading_method="defer")
+
+    # Update global context
+    config.html_context.update(
+        {
+            "docsearch_app_id": config.docsearch_app_id,
+            "docsearch_api_key": app.config.docsearch_api_key,
+            "docsearch_index_name": app.config.docsearch_index_name,
+            "docsearch_container": app.config.docsearch_container,
+            "docsearch_search_parameters": app.config.docsearch_search_parameters,
+        }
+    )
+
+
+def setup(app: sphinx.application.Sphinx) -> None:
+    add_warning_suppressor(app)
+    add_docsearch_config(app)
+
+    app.connect("config-inited", add_docsearch_assets)
