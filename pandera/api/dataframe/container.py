@@ -175,7 +175,7 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
         self.strict: Union[bool, str] = strict
         self._coerce = coerce
         self.ordered = ordered
-        self._unique = unique
+        self._unique = [unique] if isinstance(unique, str) else unique
         self.report_duplicates = report_duplicates
         self.unique_column_names = unique_column_names
         self.add_missing_columns = add_missing_columns
