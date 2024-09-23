@@ -34,8 +34,8 @@ class DataFrameSchema(_DataFrameSchema[PolarsCheckObjects]):
                 "polars backend, all duplicate values will be reported."
             )
 
-    def _register_default_backends(self):
-        register_polars_backends()
+    def register_default_backends(self, check_obj):
+        register_polars_backends(check_obj)
 
     def validate(
         self,
@@ -48,6 +48,7 @@ class DataFrameSchema(_DataFrameSchema[PolarsCheckObjects]):
         inplace: bool = False,
     ) -> PolarsCheckObjects:
         """Validate a polars DataFrame against the schema."""
+        self.register_default_backends(check_obj)
 
         if not get_config_context().validation_enabled:
             return check_obj

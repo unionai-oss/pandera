@@ -16,10 +16,12 @@ from pandera.engines import pandas_engine
 class DataFrameSchema(_DataFrameSchema[pd.DataFrame]):
     """A light-weight pandas DataFrame validator."""
 
-    def _register_default_backends(self):
+    def register_default_backends(self, check_obj):
         from pandera.backends.pandas.register import register_pandas_backends
 
-        register_pandas_backends()
+        cls = check_obj.__class__
+        check_cls_fqn = f"{cls.__module__}.{cls.__name__}"
+        register_pandas_backends(check_cls_fqn)
 
     @property
     def dtype(
@@ -97,6 +99,8 @@ class DataFrameSchema(_DataFrameSchema[pd.DataFrame]):
         4         0.80      dog
         5         0.76      dog
         """
+        self.register_default_backends(check_obj)
+
         if not get_config_context().validation_enabled:
             return check_obj
 

@@ -1,7 +1,7 @@
 """Register pandas backends."""
 
 from functools import lru_cache
-from typing import NamedTuple
+from typing import NamedTuple, List
 
 import pandas as pd
 
@@ -34,7 +34,11 @@ class BackendTypes(NamedTuple):
 
 
 @lru_cache
-def get_backend_types():
+def get_backend_types(check_cls_fqn: str):
+
+    import ipdb
+
+    ipdb.set_trace()
 
     import pandera.typing.dask
     import pandera.typing.modin
@@ -94,12 +98,15 @@ def get_backend_types():
     )
 
 
-@lru_cache
-def register_pandas_backends():
+def register_pandas_backends(check_cls_fqn: str):
     """Register pandas backends.
 
     This function is called at schema initialization in the _register_*_backends
     method.
+
+    :param framework_name: name of the framework to register backends for.
+        Allowable types are "pandas", "dask", "modin", "pyspark", and
+        "geopandas".
     """
 
     # pylint: disable=import-outside-toplevel,unused-import,cyclic-import
@@ -115,7 +122,7 @@ def register_pandas_backends():
     from pandera.api.parsers import Parser
     from pandera.backends.pandas import builtin_checks, builtin_hypotheses
 
-    backend_types = get_backend_types()
+    backend_types = get_backend_types(check_cls_fqn)
 
     for t in backend_types.check_backend_types:
         Check.register_backend(t, PandasCheckBackend)

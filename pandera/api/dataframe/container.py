@@ -297,18 +297,6 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
     def coerce_dtype(self, check_obj: TDataObject) -> TDataObject:
         return self.get_backend(check_obj).coerce_dtype(check_obj, schema=self)
 
-    def validate(
-        self,
-        check_obj: TDataObject,
-        head: Optional[int] = None,
-        tail: Optional[int] = None,
-        sample: Optional[int] = None,
-        random_state: Optional[int] = None,
-        lazy: bool = False,
-        inplace: bool = False,
-    ) -> TDataObject:
-        raise NotImplementedError
-
     def __call__(
         self,
         dataframe: TDataObject,

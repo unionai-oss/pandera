@@ -47,7 +47,6 @@ class BaseSchema(ABC):
         self.description = description
         self.metadata = metadata
         self.drop_invalid_rows = drop_invalid_rows
-        self._register_default_backends()
 
     def validate(
         self,
@@ -126,17 +125,16 @@ class BaseSchema(ABC):
             f"Looked up the following base classes: {classes}"
         )
 
-    def _register_default_backends(self):
+    def register_default_backends(self):
         """Register default backends.
 
-        This method is invoked in the `__init__` method for subclasses that
-        implement the API for a specific dataframe object, and should be
-        overridden in those subclasses.
+        This method is invoked in the `validate` method so that the appropriate
+        validation backend is loaded at validation time instead of
+        schema-definition time.
         """
 
     def __setstate__(self, state):
         self.__dict__ = state
-        self._register_default_backends()
 
 
 def inferred_schema_guard(method):
