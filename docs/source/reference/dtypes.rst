@@ -133,7 +133,7 @@ GeoPandas Dtypes
    :template: dtype.rst
    :nosignatures:
 
-   pandera.engines.pandas_engine.Geometry
+   pandera.engines.geopandas_engine.Geometry
 
 Pydantic Dtypes
 ---------------
