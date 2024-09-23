@@ -19,6 +19,19 @@ from pandera.config import (
 
 
 @pytest.fixture(scope="function")
+def validation_disabled():
+    """Disable validation in the context of a fixture."""
+    _validation_enabled = CONFIG.validation_enabled
+    CONFIG.validation_enabled = False
+    reset_config_context()
+    try:
+        yield
+    finally:
+        CONFIG.validation_enabled = _validation_enabled
+        reset_config_context()
+
+
+@pytest.fixture(scope="function")
 def validation_depth_none():
     """Ensure that the validation depth is set to None for unit tests.
 
@@ -58,6 +71,12 @@ def schema() -> pa.DataFrameSchema:
             "b": pa.Column(pl.Utf8),
         }
     )
+
+
+def test_validation_disabled(validation_disabled, schema):
+    """Test that disabling validation doesn't raise errors for invalid data."""
+    invalid = pl.DataFrame({"a": [-1, 2, 3], "b": [*"abc"]})
+    assert schema.validate(invalid).equals(invalid)
 
 
 def test_lazyframe_validation_depth_none(validation_depth_none, schema):
