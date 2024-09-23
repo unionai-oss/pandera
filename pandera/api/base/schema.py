@@ -106,7 +106,6 @@ class BaseSchema(ABC):
         check_type: Optional[Type] = None,
     ) -> BaseSchemaBackend:
         """Get the backend associated with the type of ``check_obj`` ."""
-        cls.register_default_backends(check_obj)
 
         if check_obj is not None:
             check_obj_cls = type(check_obj)
@@ -116,6 +115,8 @@ class BaseSchema(ABC):
             raise ValueError(
                 "Must pass in one of `check_obj` or `check_type`."
             )
+
+        cls.register_default_backends(check_obj_cls)
         classes = inspect.getmro(check_obj_cls)
         for _class in classes:
             try:
@@ -128,7 +129,7 @@ class BaseSchema(ABC):
         )
 
     @staticmethod
-    def register_default_backends(check_obj: Any):
+    def register_default_backends(check_obj_cls: Type):
         """Register default backends.
 
         This method is invoked in the `get_backend` method so that the

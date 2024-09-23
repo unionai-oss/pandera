@@ -1,7 +1,7 @@
 """Core pyspark column specification."""
 
 import copy
-from typing import Any, List, Optional, TypeVar, cast
+from typing import Any, List, Optional, Type, TypeVar, cast
 
 import pyspark.sql as ps
 
@@ -71,7 +71,7 @@ class ColumnSchema(BaseSchema):
         self.metadata = metadata
 
     @staticmethod
-    def register_default_backends(check_obj: Any):
+    def register_default_backends(check_obj_cls: Type):
         register_pyspark_backends()
 
     @property

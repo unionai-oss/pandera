@@ -6,7 +6,7 @@ import copy
 import os
 import warnings
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union, cast, overload
+from typing import Any, Dict, List, Optional, Type, Union, cast, overload
 
 from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql.types import StructField, StructType
@@ -156,8 +156,8 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
         self.metadata = metadata
 
     @staticmethod
-    def register_default_backends(check_obj: Any):
-        register_pyspark_backends(check_obj)
+    def register_default_backends(check_obj_cls: Type):
+        register_pyspark_backends()
 
     @property
     def coerce(self) -> bool:
