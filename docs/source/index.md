@@ -354,7 +354,7 @@ Currently, pandera provides three validation backends: `pandas`, `pyspark`, and
 | {ref}`Data synthesis strategies <data-synthesis-strategies>`              | ✅ | ❌ | ❌ |
 | {ref}`Validation decorators <decorators>`                                 | ✅ | ✅ | ✅ |
 | {ref}`Lazy validation <lazy-validation>`                                  | ✅ | ✅ | ✅ |
-| {ref}`Dropping inalid rows <drop-invalid-rows>`                           | ✅ | ❌ | ✅ |
+| {ref}`Dropping invalid rows <drop-invalid-rows>`                          | ✅ | ❌ | ✅ |
 | {ref}`Pandera configuration <configuration>`                              | ✅ | ✅ | ✅ |
 | {ref}`Schema Inference <schema-inference>`                                | ✅ | ❌ | ❌ |
 | {ref}`Schema persistence <schema-persistence>`                            | ✅ | ❌ | ❌ |
