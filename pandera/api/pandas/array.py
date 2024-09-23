@@ -31,11 +31,6 @@ class ArraySchema(ComponentSchema[TDataObject]):
                 "DataFrameSchema dtype."
             )
 
-    def _register_default_backends(self):
-        from pandera.backends.pandas.register import register_pandas_backends
-
-        register_pandas_backends()
-
     @property
     def dtype(self) -> DataType:
         """Get the pandas dtype"""

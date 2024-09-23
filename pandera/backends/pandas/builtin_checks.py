@@ -10,7 +10,32 @@ import pandera.strategies as st
 from pandera.api.extensions import register_builtin_check
 
 
-PandasData = TypeVar("PandasData", pd.Series, pd.DataFrame)
+from pandera.typing.modin import MODIN_INSTALLED
+from pandera.typing.pyspark import PYSPARK_INSTALLED
+
+if MODIN_INSTALLED and not PYSPARK_INSTALLED:  # pragma: no cover
+    import modin.pandas as mpd
+
+    PandasData = Union[pd.Series, pd.DataFrame, mpd.Series, mpd.DataFrame]
+elif not MODIN_INSTALLED and PYSPARK_INSTALLED:  # pragma: no cover
+    import pyspark.pandas as ppd
+
+    PandasData = Union[pd.Series, pd.DataFrame, ppd.Series, ppd.DataFrame]  # type: ignore[misc]
+elif MODIN_INSTALLED and PYSPARK_INSTALLED:  # pragma: no cover
+    import modin.pandas as mpd
+    import pyspark.pandas as ppd
+
+    PandasData = Union[  # type: ignore[misc]
+        pd.Series,
+        pd.DataFrame,
+        mpd.Series,
+        mpd.DataFrame,
+        ppd.Series,
+        ppd.DataFrame,
+    ]
+else:  # pragma: no cover
+    PandasData = Union[pd.Series, pd.DataFrame]  # type: ignore[misc]
+
 
 T = TypeVar("T")
 

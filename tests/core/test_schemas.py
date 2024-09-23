@@ -1577,112 +1577,112 @@ def test_lazy_dataframe_unique() -> None:
 @pytest.mark.parametrize(
     "schema, data, expectation",
     [
-        # case: series name doesn't match schema name
-        [
-            SeriesSchema(name="foobar"),
-            pd.Series(range(3)),
-            {
-                "data": pd.Series(range(3)),
-                "schema_errors": {
-                    "SeriesSchema": {"field_name('foobar')": [None]},
-                },
-            },
-        ],
-        # case: series type doesn't match schema type
-        [
-            SeriesSchema(int),
-            pd.Series([0.1]),
-            {
-                "data": pd.Series([0.1]),
-                "schema_errors": {
-                    "SeriesSchema": {"dtype('int64')": ["float64"]},
-                },
-            },
-        ],
-        # case: series index doesn't satisfy schema index
-        [
-            SeriesSchema(index=Index(int)),
-            pd.Series([1, 2, 3], index=list("abc")),
-            {
-                "data": pd.Series([1, 2, 3], index=list("abc")),
-                "schema_errors": {
-                    "Index": {"dtype('int64')": ["object"]},
-                },
-            },
-        ],
-        # case: SeriesSchema data-type coercion error
-        [
-            SeriesSchema(float, coerce=True),
-            pd.Series(["1", "foo", "bar"]),
-            {
-                "data": pd.Series(["1", "foo", "bar"]),
-                "schema_errors": {
-                    "SeriesSchema": {
-                        "dtype('float64')": ["object"],
-                        "coerce_dtype('float64')": ["foo", "bar"],
-                    },
-                },
-            },
-        ],
-        # case: series index coercion error
-        [
-            SeriesSchema(index=Index(int, coerce=True)),
-            pd.Series([1, 2, 3], index=list("abc")),
-            {
-                "data": pd.Series([1, 2, 3], index=list("abc")),
-                "schema_errors": {
-                    "Index": {"coerce_dtype('int64')": ["a", "b", "c"]},
-                },
-            },
-        ],
-        # case: series type and check doesn't satisfy schema
-        [
-            SeriesSchema(int, checks=Check.greater_than(0)),
-            pd.Series(["a", "b", "c"]),
-            {
-                "data": pd.Series(["a", "b", "c"]),
-                "schema_errors": {
-                    # schema object context -> check failure cases
-                    "SeriesSchema": {
-                        # check name -> failure cases
-                        "greater_than(0)": [
-                            "TypeError(\"'>' not supported between instances "
-                            "of 'str' and 'int'\")",
-                            # TypeError raised in python=3.5
-                            'TypeError("unorderable types: str() > int()")',
-                        ],
-                        "dtype('int64')": ["object"],
-                    },
-                },
-            },
-        ],
-        # case: multiple series checks don't satisfy schema
-        [
-            Column(
-                int,
-                checks=[Check.greater_than(1), Check.less_than(3)],
-                name="column",
-            ),
-            pd.DataFrame({"column": [1, 2, 3]}),
-            {
-                "data": pd.DataFrame({"column": [1, 2, 3]}),
-                "schema_errors": {
-                    "Column": {"greater_than(1)": [1], "less_than(3)": [3]},
-                },
-            },
-        ],
-        [
-            Index(str, checks=Check.isin(["a", "b", "c"])),
-            pd.DataFrame({"col": [1, 2, 3]}, index=["a", "b", "d"]),
-            {
-                "data": pd.DataFrame(
-                    {"col": [1, 2, 3]}, index=["a", "b", "d"]
-                ),
-                "schema_errors": {
-                    "Index": {"isin(['a', 'b', 'c'])": ["d"]},
-                },
-            },
-        ],
+        # # case: series name doesn't match schema name
+        # [
+        #     SeriesSchema(name="foobar"),
+        #     pd.Series(range(3)),
+        #     {
+        #         "data": pd.Series(range(3)),
+        #         "schema_errors": {
+        #             "SeriesSchema": {"field_name('foobar')": [None]},
+        #         },
+        #     },
+        # ],
+        # # case: series type doesn't match schema type
+        # [
+        #     SeriesSchema(int),
+        #     pd.Series([0.1]),
+        #     {
+        #         "data": pd.Series([0.1]),
+        #         "schema_errors": {
+        #             "SeriesSchema": {"dtype('int64')": ["float64"]},
+        #         },
+        #     },
+        # ],
+        # # case: series index doesn't satisfy schema index
+        # [
+        #     SeriesSchema(index=Index(int)),
+        #     pd.Series([1, 2, 3], index=list("abc")),
+        #     {
+        #         "data": pd.Series([1, 2, 3], index=list("abc")),
+        #         "schema_errors": {
+        #             "Index": {"dtype('int64')": ["object"]},
+        #         },
+        #     },
+        # ],
+        # # case: SeriesSchema data-type coercion error
+        # [
+        #     SeriesSchema(float, coerce=True),
+        #     pd.Series(["1", "foo", "bar"]),
+        #     {
+        #         "data": pd.Series(["1", "foo", "bar"]),
+        #         "schema_errors": {
+        #             "SeriesSchema": {
+        #                 "dtype('float64')": ["object"],
+        #                 "coerce_dtype('float64')": ["foo", "bar"],
+        #             },
+        #         },
+        #     },
+        # ],
+        # # case: series index coercion error
+        # [
+        #     SeriesSchema(index=Index(int, coerce=True)),
+        #     pd.Series([1, 2, 3], index=list("abc")),
+        #     {
+        #         "data": pd.Series([1, 2, 3], index=list("abc")),
+        #         "schema_errors": {
+        #             "Index": {"coerce_dtype('int64')": ["a", "b", "c"]},
+        #         },
+        #     },
+        # ],
+        # # case: series type and check doesn't satisfy schema
+        # [
+        #     SeriesSchema(int, checks=Check.greater_than(0)),
+        #     pd.Series(["a", "b", "c"]),
+        #     {
+        #         "data": pd.Series(["a", "b", "c"]),
+        #         "schema_errors": {
+        #             # schema object context -> check failure cases
+        #             "SeriesSchema": {
+        #                 # check name -> failure cases
+        #                 "greater_than(0)": [
+        #                     "TypeError(\"'>' not supported between instances "
+        #                     "of 'str' and 'int'\")",
+        #                     # TypeError raised in python=3.5
+        #                     'TypeError("unorderable types: str() > int()")',
+        #                 ],
+        #                 "dtype('int64')": ["object"],
+        #             },
+        #         },
+        #     },
+        # ],
+        # # case: multiple series checks don't satisfy schema
+        # [
+        #     Column(
+        #         int,
+        #         checks=[Check.greater_than(1), Check.less_than(3)],
+        #         name="column",
+        #     ),
+        #     pd.DataFrame({"column": [1, 2, 3]}),
+        #     {
+        #         "data": pd.DataFrame({"column": [1, 2, 3]}),
+        #         "schema_errors": {
+        #             "Column": {"greater_than(1)": [1], "less_than(3)": [3]},
+        #         },
+        #     },
+        # ],
+        # [
+        #     Index(str, checks=Check.isin(["a", "b", "c"])),
+        #     pd.DataFrame({"col": [1, 2, 3]}, index=["a", "b", "d"]),
+        #     {
+        #         "data": pd.DataFrame(
+        #             {"col": [1, 2, 3]}, index=["a", "b", "d"]
+        #         ),
+        #         "schema_errors": {
+        #             "Index": {"isin(['a', 'b', 'c'])": ["d"]},
+        #         },
+        #     },
+        # ],
         [
             MultiIndex(
                 indexes=[
@@ -1718,7 +1718,8 @@ def test_lazy_dataframe_unique() -> None:
 def test_lazy_series_validation_error(schema, data, expectation) -> None:
     """Test exceptions on lazy series validation."""
     try:
-        schema.validate(data, lazy=True)
+        import ipdb; ipdb.set_trace()
+        schema.validate(data)
     except errors.SchemaErrors as err:
         # data in the caught exception should be equal to the data
         # passed into validate

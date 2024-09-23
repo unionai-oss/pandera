@@ -10,6 +10,7 @@ from pandera.api.hypotheses import Hypothesis
 from pandera.api.parsers import Parser
 from pandera.dtypes import UniqueSettings
 from pandera.engines import PYDANTIC_V2
+from pandera.errors import BackendNotFoundError
 
 if PYDANTIC_V2:
     from pydantic import GetCoreSchemaHandler
@@ -130,6 +131,21 @@ class ComponentSchema(Generic[TDataObject], BaseSchema):
         """
         return self.get_backend(check_obj).coerce_dtype(check_obj, schema=self)
 
+    def register_default_backends(self, check_obj):
+        from pandera.backends.pandas.register import register_pandas_backends
+
+        cls = check_obj.__class__
+        try:
+            register_pandas_backends(f"{cls.__module__}.{cls.__name__}")
+        except BackendNotFoundError:
+            for base_cls in cls.__bases__:
+                try:
+                    register_pandas_backends(
+                        f"{base_cls.__module__}.{base_cls.__name__}"
+                    )
+                except BackendNotFoundError:
+                    pass
+
     def validate(
         self,
         check_obj,
@@ -159,6 +175,7 @@ class ComponentSchema(Generic[TDataObject], BaseSchema):
         :returns: validated DataFrame or Series.
 
         """
+        self.register_default_backends(check_obj)
         return self.get_backend(check_obj).validate(
             check_obj,
             schema=self,

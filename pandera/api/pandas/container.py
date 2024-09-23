@@ -10,6 +10,7 @@ from pandera.api.pandas.types import PandasDtypeInputTypes
 from pandera.config import get_config_context
 from pandera.dtypes import DataType
 from pandera.engines import pandas_engine
+from pandera.errors import BackendNotFoundError
 
 
 # pylint: disable=too-many-public-methods,too-many-locals
@@ -20,8 +21,16 @@ class DataFrameSchema(_DataFrameSchema[pd.DataFrame]):
         from pandera.backends.pandas.register import register_pandas_backends
 
         cls = check_obj.__class__
-        check_cls_fqn = f"{cls.__module__}.{cls.__name__}"
-        register_pandas_backends(check_cls_fqn)
+        try:
+            register_pandas_backends(f"{cls.__module__}.{cls.__name__}")
+        except BackendNotFoundError:
+            for base_cls in cls.__bases__:
+                try:
+                    register_pandas_backends(
+                        f"{base_cls.__module__}.{base_cls.__name__}"
+                    )
+                except BackendNotFoundError:
+                    pass
 
     @property
     def dtype(
@@ -147,6 +156,7 @@ class DataFrameSchema(_DataFrameSchema[pd.DataFrame]):
         lazy: bool = False,
         inplace: bool = False,
     ) -> pd.DataFrame:
+
         if self._is_inferred:
             warnings.warn(
                 f"This {type(self)} is an inferred schema that hasn't been "

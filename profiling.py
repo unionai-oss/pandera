@@ -15,18 +15,19 @@ schema = pa.DataFrameSchema(
     }
 )
 
-print(schema)
+# print(schema)
 
-schema.validate(
+validated = schema.validate(
     pd.DataFrame(
         {
             "column1": [1, 2, 3],
-            "column2": [4, 5, 6],
+            "column2": [4., 5., 6.],
             "column3": ["a", "b", "c"],
         }
     )
 )
+print(validated)
 
-# profiler.stop()
-# profiler.print()
+profiler.stop()
+profiler.print()
 # print(profiler.output_html())
