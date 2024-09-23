@@ -1,7 +1,7 @@
 """Core pandas dataframe container specification."""
 
 import warnings
-from typing import Optional
+from typing import Any, Optional
 
 import pandas as pd
 
@@ -16,21 +16,6 @@ from pandera.errors import BackendNotFoundError
 # pylint: disable=too-many-public-methods,too-many-locals
 class DataFrameSchema(_DataFrameSchema[pd.DataFrame]):
     """A light-weight pandas DataFrame validator."""
-
-    def register_default_backends(self, check_obj):
-        from pandera.backends.pandas.register import register_pandas_backends
-
-        cls = check_obj.__class__
-        try:
-            register_pandas_backends(f"{cls.__module__}.{cls.__name__}")
-        except BackendNotFoundError:
-            for base_cls in cls.__bases__:
-                try:
-                    register_pandas_backends(
-                        f"{base_cls.__module__}.{base_cls.__name__}"
-                    )
-                except BackendNotFoundError:
-                    pass
 
     @property
     def dtype(
@@ -176,3 +161,18 @@ class DataFrameSchema(_DataFrameSchema[pd.DataFrame]):
             lazy=lazy,
             inplace=inplace,
         )
+
+    @staticmethod
+    def register_default_backends(check_obj: Any):
+        from pandera.backends.pandas.register import register_pandas_backends
+
+        cls = check_obj.__class__
+        try:
+            register_pandas_backends(f"{cls.__module__}.{cls.__name__}")
+        except BackendNotFoundError:
+            for base_cls in cls.__bases__:
+                base_cls_name = f"{base_cls.__module__}.{base_cls.__name__}"
+                try:
+                    register_pandas_backends(base_cls_name)
+                except BackendNotFoundError:
+                    pass

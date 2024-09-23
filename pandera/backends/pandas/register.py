@@ -1,7 +1,8 @@
+# pylint: disable=unused-import
 """Register pandas backends."""
 
 from functools import lru_cache
-from typing import NamedTuple, List
+from typing import NamedTuple, Optional
 
 from pandera.backends.pandas.array import SeriesSchemaBackend
 from pandera.backends.pandas.checks import PandasCheckBackend
@@ -56,7 +57,7 @@ def get_backend_types(check_cls_fqn: str):
     if mod_name == "pandera":
         # assume mod_path e.g. ["typing", "pandas"]
         assert mod_path[0] == "typing"
-        _, mod_name = mod_path
+        *_, mod_name = mod_path
 
     def register_pandas_backend():
         import pandas as pd
@@ -96,17 +97,20 @@ def get_backend_types(check_cls_fqn: str):
     def register_geopandas_backend():
         import geopandas as gpd
 
+        register_pandas_backend()
         dataframe_datatypes.append(gpd.GeoDataFrame)
         series_datatypes.append(gpd.GeoSeries)
 
-    {
+    register_fn = {
         "pandas": register_pandas_backend,
-        "dask": register_dask_backend,
+        "dask_expr": register_dask_backend,
         "modin": register_modin_backend,
         "pyspark": register_pyspark_backend,
         "geopandas": register_geopandas_backend,
         "pandera": lambda: None,
-    }[mod_name]()
+    }[mod_name]
+
+    register_fn()
 
     check_backend_types = [
         *dataframe_datatypes,
@@ -124,7 +128,9 @@ def get_backend_types(check_cls_fqn: str):
 
 
 @lru_cache
-def register_pandas_backends(check_cls_fqn: str):
+def register_pandas_backends(
+    check_cls_fqn: Optional[str] = None,
+):  # pylint: disable=unused-argument
     """Register pandas backends.
 
     This function is called at schema initialization in the _register_*_backends
@@ -147,6 +153,10 @@ def register_pandas_backends(check_cls_fqn: str):
     from pandera.api.pandas.container import DataFrameSchema
     from pandera.api.parsers import Parser
 
+    assert check_cls_fqn is not None, (
+        "pandas backend registration requires passing in the fully qualified "
+        "check class name"
+    )
     backend_types = get_backend_types(check_cls_fqn)
 
     from pandera.backends.pandas import builtin_checks, builtin_hypotheses

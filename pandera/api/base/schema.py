@@ -106,6 +106,8 @@ class BaseSchema(ABC):
         check_type: Optional[Type] = None,
     ) -> BaseSchemaBackend:
         """Get the backend associated with the type of ``check_obj`` ."""
+        cls.register_default_backends(check_obj)
+
         if check_obj is not None:
             check_obj_cls = type(check_obj)
         elif check_type is not None:
@@ -125,12 +127,15 @@ class BaseSchema(ABC):
             f"Looked up the following base classes: {classes}"
         )
 
-    def register_default_backends(self):
+    @staticmethod
+    def register_default_backends(check_obj: Any):
         """Register default backends.
 
-        This method is invoked in the `validate` method so that the appropriate
-        validation backend is loaded at validation time instead of
+        This method is invoked in the `get_backend` method so that the
+        appropriate validation backend is loaded at validation time instead of
         schema-definition time.
+
+        This method needs to be implemented by the schema subclass.
         """
 
     def __setstate__(self, state):

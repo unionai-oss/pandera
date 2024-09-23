@@ -70,7 +70,8 @@ class ColumnSchema(BaseSchema):
         self.description = description
         self.metadata = metadata
 
-    def _register_default_backends(self):
+    @staticmethod
+    def register_default_backends(check_obj: Any):
         register_pyspark_backends()
 
     @property

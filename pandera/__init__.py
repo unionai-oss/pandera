@@ -11,7 +11,7 @@ import pandera.backends
 import pandera.backends.base.builtin_checks
 import pandera.backends.base.builtin_hypotheses
 import pandera.backends.pandas
-from pandera import errors
+from pandera import errors, external_config
 from pandera.accessors import pandas_accessor
 from pandera.api import extensions
 from pandera.api.checks import Check
@@ -80,6 +80,9 @@ from pandera.version import __version__
 if platform.system() != "Windows":
     # pylint: disable=ungrouped-imports
     from pandera.dtypes import Complex256, Float128
+
+
+external_config._set_pyspark_environment_variables()
 
 
 __all__ = [

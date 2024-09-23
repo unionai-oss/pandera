@@ -155,8 +155,9 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
         self._IS_INFERRED = False
         self.metadata = metadata
 
-    def _register_default_backends(self):
-        register_pyspark_backends()
+    @staticmethod
+    def register_default_backends(check_obj: Any):
+        register_pyspark_backends(check_obj)
 
     @property
     def coerce(self) -> bool:

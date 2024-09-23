@@ -105,7 +105,10 @@ class Column(ComponentSchema[PolarsCheckObjects]):
 
         self.set_regex()
 
-    def _register_default_backends(self):
+    @staticmethod
+    def register_default_backends(
+        check_obj,
+    ):  # pylint: disable=unused-argument
         register_polars_backends()
 
     def validate(
