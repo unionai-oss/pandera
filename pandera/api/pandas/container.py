@@ -103,6 +103,9 @@ class DataFrameSchema(_DataFrameSchema[pd.DataFrame]):
 
         if hasattr(check_obj, "dask"):
             # special case for dask dataframes
+            # pylint: disable=unused-import
+            from pandera.accessors import dask_accessor
+
             if inplace:
                 check_obj = check_obj.pandera.add_schema(self)
             else:
