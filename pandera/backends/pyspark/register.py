@@ -1,6 +1,7 @@
 """Register pyspark backends."""
 
 from functools import lru_cache
+from typing import Optional
 from packaging import version
 
 import pyspark
@@ -13,7 +14,9 @@ if CURRENT_PYSPARK_VERSION >= version.parse("3.4"):
 
 
 @lru_cache
-def register_pyspark_backends():
+def register_pyspark_backends(
+    check_cls_fqn: Optional[str] = None,
+):  # pylint: disable=unused-argument
     """Register pyspark backends.
 
     This function is called at schema initialization in the _register_*_backends

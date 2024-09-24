@@ -187,8 +187,8 @@ def test_schema_multiple_geometry_same_crs():
 
     class Schema(pa.DataFrameModel):
         # pylint: disable=missing-class-docstring
-        geometry: Geometry(crs="EPSG:4326")
-        random: Geometry(crs="EPSG:4326")
+        geometry: Geometry = pa.Field(dtype_kwargs={"crs": "EPSG:4326"})
+        random: Geometry = pa.Field(dtype_kwargs={"crs": "EPSG:4326"})
 
     data = {
         "geometry": gpd.GeoSeries(
@@ -210,8 +210,8 @@ def test_schema_multiple_geometry_different_crs():
 
     class Schema(pa.DataFrameModel):
         # pylint: disable=missing-class-docstring
-        geometry: Geometry(crs="EPSG:4326")
-        random: Geometry(crs="EPSG:3857")
+        geometry: Geometry = pa.Field(dtype_kwargs={"crs": "EPSG:4326"})
+        random: Geometry = pa.Field(dtype_kwargs={"crs": "EPSG:3857"})
 
         class Config:
             # pylint: disable=missing-class-docstring

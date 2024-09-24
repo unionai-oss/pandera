@@ -157,6 +157,11 @@ class BaseCheck(metaclass=MetaCheck):
         return cls.CHECK_FUNCTION_REGISTRY[name]
 
     @classmethod
+    def is_builtin_check(cls, name: str) -> bool:
+        """Gets a built-in check function"""
+        return name in cls.CHECK_FUNCTION_REGISTRY
+
+    @classmethod
     def from_builtin_check_name(
         cls,
         name: str,

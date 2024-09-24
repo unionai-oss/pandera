@@ -1,7 +1,7 @@
 """Core pandas array specification."""
 
 import warnings
-from typing import Any, Optional, cast
+from typing import Any, Optional, Type, cast
 
 import pandas as pd
 
@@ -13,6 +13,7 @@ from pandera.api.pandas.types import PandasDtypeInputTypes, is_field
 from pandera.config import get_config_context
 from pandera.dtypes import DataType, UniqueSettings
 from pandera.engines import pandas_engine
+from pandera.errors import BackendNotFoundError
 
 
 class ArraySchema(ComponentSchema[TDataObject]):
@@ -31,11 +32,6 @@ class ArraySchema(ComponentSchema[TDataObject]):
                 "DataFrameSchema dtype."
             )
 
-    def _register_default_backends(self):
-        from pandera.backends.pandas.register import register_pandas_backends
-
-        register_pandas_backends()
-
     @property
     def dtype(self) -> DataType:
         """Get the pandas dtype"""
@@ -45,6 +41,21 @@ class ArraySchema(ComponentSchema[TDataObject]):
     def dtype(self, value: Optional[PandasDtypeInputTypes]) -> None:
         """Set the pandas dtype"""
         self._dtype = pandas_engine.Engine.dtype(value) if value else None
+
+    @staticmethod
+    def register_default_backends(check_obj_cls: Type):
+        from pandera.backends.pandas.register import register_pandas_backends
+
+        _cls = check_obj_cls
+        try:
+            register_pandas_backends(f"{_cls.__module__}.{_cls.__name__}")
+        except BackendNotFoundError:
+            for base_cls in _cls.__bases__:
+                base_cls_name = f"{base_cls.__module__}.{base_cls.__name__}"
+                try:
+                    register_pandas_backends(base_cls_name)
+                except BackendNotFoundError:
+                    pass
 
     ###########################
     # Schema Strategy Methods #
@@ -58,6 +69,8 @@ class ArraySchema(ComponentSchema[TDataObject]):
         :returns: a strategy that generates pandas Series objects.
         """
         from pandera import strategies as st
+
+        self.register_default_backends(pd.DataFrame)
 
         return st.series_strategy(
             self.dtype,
@@ -226,6 +239,9 @@ class SeriesSchema(ArraySchema[pd.Series]):
         if hasattr(check_obj, "dask"):
             # special case for dask series
             if inplace:
+                # pylint: disable=unused-import
+                from pandera.accessors import dask_accessor
+
                 check_obj = check_obj.pandera.add_schema(self)
             else:
                 check_obj = check_obj.copy()

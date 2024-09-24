@@ -1,12 +1,15 @@
 """Register polars backends."""
 
 from functools import lru_cache
+from typing import Optional
 
 import polars as pl
 
 
 @lru_cache
-def register_polars_backends():
+def register_polars_backends(
+    check_cls_fqn: Optional[str] = None,
+):  # pylint: disable=unused-argument
     """Register polars backends.
 
     This function is called at schema initialization in the _register_*_backends

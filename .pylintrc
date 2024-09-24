@@ -55,4 +55,5 @@ disable=
     too-many-locals,
     redefined-outer-name,
     logging-fstring-interpolation,
-    multiple-statements
+    multiple-statements,
+    cyclic-import

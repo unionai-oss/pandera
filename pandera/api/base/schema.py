@@ -47,7 +47,6 @@ class BaseSchema(ABC):
         self.description = description
         self.metadata = metadata
         self.drop_invalid_rows = drop_invalid_rows
-        self._register_default_backends()
 
     def validate(
         self,
@@ -107,6 +106,7 @@ class BaseSchema(ABC):
         check_type: Optional[Type] = None,
     ) -> BaseSchemaBackend:
         """Get the backend associated with the type of ``check_obj`` ."""
+
         if check_obj is not None:
             check_obj_cls = type(check_obj)
         elif check_type is not None:
@@ -115,6 +115,8 @@ class BaseSchema(ABC):
             raise ValueError(
                 "Must pass in one of `check_obj` or `check_type`."
             )
+
+        cls.register_default_backends(check_obj_cls)
         classes = inspect.getmro(check_obj_cls)
         for _class in classes:
             try:
@@ -126,17 +128,19 @@ class BaseSchema(ABC):
             f"Looked up the following base classes: {classes}"
         )
 
-    def _register_default_backends(self):
+    @staticmethod
+    def register_default_backends(check_obj_cls: Type):
         """Register default backends.
 
-        This method is invoked in the `__init__` method for subclasses that
-        implement the API for a specific dataframe object, and should be
-        overridden in those subclasses.
+        This method is invoked in the `get_backend` method so that the
+        appropriate validation backend is loaded at validation time instead of
+        schema-definition time.
+
+        This method needs to be implemented by the schema subclass.
         """
 
     def __setstate__(self, state):
         self.__dict__ = state
-        self._register_default_backends()
 
 
 def inferred_schema_guard(method):

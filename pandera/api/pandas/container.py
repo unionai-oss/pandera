@@ -1,7 +1,7 @@
 """Core pandas dataframe container specification."""
 
 import warnings
-from typing import Optional
+from typing import Optional, Type
 
 import pandas as pd
 
@@ -10,16 +10,13 @@ from pandera.api.pandas.types import PandasDtypeInputTypes
 from pandera.config import get_config_context
 from pandera.dtypes import DataType
 from pandera.engines import pandas_engine
+from pandera.errors import BackendNotFoundError
+from pandera.import_utils import strategy_import_error
 
 
 # pylint: disable=too-many-public-methods,too-many-locals
 class DataFrameSchema(_DataFrameSchema[pd.DataFrame]):
     """A light-weight pandas DataFrame validator."""
-
-    def _register_default_backends(self):
-        from pandera.backends.pandas.register import register_pandas_backends
-
-        register_pandas_backends()
 
     @property
     def dtype(
@@ -106,6 +103,9 @@ class DataFrameSchema(_DataFrameSchema[pd.DataFrame]):
 
         if hasattr(check_obj, "dask"):
             # special case for dask dataframes
+            # pylint: disable=unused-import
+            from pandera.accessors import dask_accessor
+
             if inplace:
                 check_obj = check_obj.pandera.add_schema(self)
             else:
@@ -143,6 +143,7 @@ class DataFrameSchema(_DataFrameSchema[pd.DataFrame]):
         lazy: bool = False,
         inplace: bool = False,
     ) -> pd.DataFrame:
+
         if self._is_inferred:
             warnings.warn(
                 f"This {type(self)} is an inferred schema that hasn't been "
@@ -162,3 +163,66 @@ class DataFrameSchema(_DataFrameSchema[pd.DataFrame]):
             lazy=lazy,
             inplace=inplace,
         )
+
+    @staticmethod
+    def register_default_backends(check_obj_cls: Type):
+        from pandera.backends.pandas.register import register_pandas_backends
+
+        _cls = check_obj_cls
+        try:
+            register_pandas_backends(f"{_cls.__module__}.{_cls.__name__}")
+        except BackendNotFoundError:
+            for base_cls in _cls.__bases__:
+                base_cls_name = f"{base_cls.__module__}.{base_cls.__name__}"
+                try:
+                    register_pandas_backends(base_cls_name)
+                except BackendNotFoundError:
+                    pass
+
+    ###########################
+    # Schema Strategy Methods #
+    ###########################
+
+    @strategy_import_error
+    def strategy(
+        self, *, size: Optional[int] = None, n_regex_columns: int = 1
+    ):
+        """Create a ``hypothesis`` strategy for generating a DataFrame.
+
+        :param size: number of elements to generate
+        :param n_regex_columns: number of regex columns to generate.
+        :returns: a strategy that generates pandas DataFrame objects.
+        """
+        from pandera import strategies as st
+
+        self.register_default_backends(pd.DataFrame)
+
+        return st.dataframe_strategy(
+            self.dtype,
+            columns=self.columns,
+            checks=self.checks,
+            unique=self.unique,
+            index=self.index,
+            size=size,
+            n_regex_columns=n_regex_columns,
+        )
+
+    def example(
+        self, size: Optional[int] = None, n_regex_columns: int = 1
+    ) -> pd.DataFrame:
+        """Generate an example of a particular size.
+
+        :param size: number of elements in the generated DataFrame.
+        :returns: pandas DataFrame object.
+        """
+        # pylint: disable=import-outside-toplevel,cyclic-import,import-error
+        import hypothesis
+
+        with warnings.catch_warnings():
+            warnings.simplefilter(
+                "ignore",
+                category=hypothesis.errors.NonInteractiveExampleWarning,
+            )
+            return self.strategy(
+                size=size, n_regex_columns=n_regex_columns
+            ).example()
