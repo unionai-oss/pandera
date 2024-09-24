@@ -23,7 +23,7 @@ from typing import (
 
 import pandas as pd
 import wrapt
-from pydantic import validate_arguments
+from pydantic import validate_call
 
 from pandera import errors
 from pandera.api.base.error_handler import ErrorHandler
@@ -564,7 +564,7 @@ def check_types(
     See the :ref:`User Guide <dataframe-models>` for more.
 
     :param wrapped: the function to decorate.
-    :param with_pydantic: use ``pydantic.validate_arguments`` to validate
+    :param with_pydantic: use ``pydantic.validate_call`` to validate
         inputs. This function is still needed to validate function outputs.
     :param head: validate the first n rows. Rows overlapping with `tail` or
         `sample` are de-duplicated.
@@ -830,7 +830,7 @@ def check_types(
             kwargs: Dict[str, Any],
         ):
             if with_pydantic:
-                out = await validate_arguments(wrapped_)(*args, **kwargs)
+                out = await validate_call(wrapped_)(*args, **kwargs)
             else:
                 validated_pos, validated_kwd = validate_inputs(
                     instance, args, kwargs
@@ -848,7 +848,7 @@ def check_types(
             kwargs: Dict[str, Any],
         ):
             if with_pydantic:
-                out = validate_arguments(wrapped_)(*args, **kwargs)
+                out = validate_call(wrapped_)(*args, **kwargs)
             else:
                 validated_pos, validated_kwd = validate_inputs(
                     instance, args, kwargs
