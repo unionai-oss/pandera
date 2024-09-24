@@ -70,6 +70,8 @@ class ArraySchema(ComponentSchema[TDataObject]):
         """
         from pandera import strategies as st
 
+        self.register_default_backends(pd.DataFrame)
+
         return st.series_strategy(
             self.dtype,
             checks=self.checks,
