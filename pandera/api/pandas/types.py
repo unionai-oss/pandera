@@ -2,7 +2,7 @@
 """Utility functions for pandas validation."""
 
 from functools import lru_cache
-from typing import Any, NamedTuple, Type, Union
+from typing import Any, NamedTuple, Type, TypeVar, Union, Optional
 
 import numpy as np
 import pandas as pd
@@ -42,11 +42,6 @@ class BackendTypes(NamedTuple):
     check_backend_types: tuple
 
 
-def _get_fullname(obj: Any) -> str:
-    _type = type(obj)
-    return f"{_type.__module__}.{_type.__name__}"
-
-
 @lru_cache
 def get_backend_types(check_cls_fqn: str):
 
@@ -66,6 +61,8 @@ def get_backend_types(check_cls_fqn: str):
         # assume mod_path e.g. ["typing", "pandas"]
         assert mod_path[0] == "typing"
         *_, mod_name = mod_path
+    else:
+        mod_name = mod_name.split(".")[-1]
 
     def register_pandas_backend():
         from pandera.accessors import pandas_accessor
@@ -134,14 +131,34 @@ def get_backend_types(check_cls_fqn: str):
     )
 
 
+T = TypeVar("T")
+
+
+def _get_fullname(_cls: Type) -> str:
+    return f"{_cls.__module__}.{_cls.__name__}"
+
+
+def get_backend_types_from_mro(_cls: Type) -> Optional[BackendTypes]:
+    try:
+        return get_backend_types(_get_fullname(_cls))
+    except BackendNotFoundError:
+        for base_cls in _cls.__bases__:
+            try:
+                return get_backend_types(_get_fullname(base_cls))
+            except BackendNotFoundError:
+                pass
+        return None
+
+
 def is_table(obj):
     """Verifies whether an object is table-like.
 
     Where a table is a 2-dimensional data matrix of rows and columns, which
     can be indexed in multiple different ways.
     """
-    return isinstance(
-        obj, get_backend_types(_get_fullname(obj)).dataframe_datatypes
+    backend_types = get_backend_types_from_mro(type(obj))
+    return backend_types is not None and isinstance(
+        obj, backend_types.dataframe_datatypes
     )
 
 
@@ -151,22 +168,25 @@ def is_field(obj):
     Where a field is a columnar representation of data in a table-like
     data structure.
     """
-    return isinstance(
-        obj, get_backend_types(_get_fullname(obj)).series_datatypes
+    backend_types = get_backend_types_from_mro(type(obj))
+    return backend_types is not None and isinstance(
+        obj, backend_types.series_datatypes
     )
 
 
 def is_index(obj):
     """Verifies whether an object is a table index."""
-    return isinstance(
-        obj, get_backend_types(_get_fullname(obj)).index_datatypes
+    backend_types = get_backend_types_from_mro(type(obj))
+    return backend_types is not None and isinstance(
+        obj, backend_types.index_datatypes
     )
 
 
 def is_multiindex(obj):
     """Verifies whether an object is a multi-level table index."""
-    return isinstance(
-        obj, get_backend_types(_get_fullname(obj)).multiindex_datatypes
+    backend_types = get_backend_types_from_mro(type(obj))
+    return backend_types is not None and isinstance(
+        obj, backend_types.multiindex_datatypes
     )
 
 

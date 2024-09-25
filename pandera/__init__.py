@@ -1,6 +1,7 @@
 # pylint: disable=wrong-import-position
 """A flexible and expressive pandas validation library."""
 
+import os
 import platform
 
 from pandera._patch_numpy2 import _patch_numpy2
@@ -80,9 +81,6 @@ from pandera.version import __version__
 if platform.system() != "Windows":
     # pylint: disable=ungrouped-imports
     from pandera.dtypes import Complex256, Float128
-
-
-external_config._set_pyspark_environment_variables()
 
 
 __all__ = [
