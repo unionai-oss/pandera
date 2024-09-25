@@ -27,6 +27,7 @@ def register_builtin_check(
     fn=None,
     strategy: Optional[Callable] = None,
     _check_cls: Type = Check,
+    aliases: Optional[List[str]] = None,
     **outer_kwargs,
 ):
     """Register a check method to the Check namespace.
@@ -41,6 +42,7 @@ def register_builtin_check(
             register_builtin_check,
             strategy=strategy,
             _check_cls=_check_cls,
+            aliases=aliases,
             **outer_kwargs,
         )
 

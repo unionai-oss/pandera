@@ -13,7 +13,6 @@ import pandera.backends.base.builtin_checks
 import pandera.backends.base.builtin_hypotheses
 import pandera.backends.pandas
 from pandera import errors, external_config
-from pandera.accessors import pandas_accessor
 from pandera.api import extensions
 from pandera.api.checks import Check
 from pandera.api.dataframe.model_components import (
