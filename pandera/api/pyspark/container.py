@@ -146,7 +146,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
         self.strict: Union[bool, str] = strict
         self._coerce = coerce
         self.ordered = ordered
-        self._unique = unique
+        self._unique = [unique] if isinstance(unique, str) else unique
         self.report_duplicates = report_duplicates
         self.unique_column_names = unique_column_names
 
