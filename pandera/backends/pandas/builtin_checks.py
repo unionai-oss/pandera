@@ -1,5 +1,6 @@
 """Pandas implementation of built-in checks"""
 
+import sys
 import operator
 import re
 from typing import Any, Iterable, Optional, TypeVar, Union, cast
@@ -10,18 +11,21 @@ import pandera.strategies as st
 from pandera.api.extensions import register_builtin_check
 
 
-from pandera.typing.modin import MODIN_INSTALLED
-from pandera.typing.pyspark import PYSPARK_INSTALLED
+MODIN_IMPORTED = "modin" in sys.modules
+PYSPARK_IMPORTED = "pyspark" in sys.modules
 
-if MODIN_INSTALLED and not PYSPARK_INSTALLED:  # pragma: no cover
+
+# TODO: create a separate module for each framework: dask, modin, pyspark
+# so checks are registered for the correct framework.
+if MODIN_IMPORTED and not PYSPARK_IMPORTED:  # pragma: no cover
     import modin.pandas as mpd
 
     PandasData = Union[pd.Series, pd.DataFrame, mpd.Series, mpd.DataFrame]
-elif not MODIN_INSTALLED and PYSPARK_INSTALLED:  # pragma: no cover
+elif not MODIN_IMPORTED and PYSPARK_IMPORTED:  # pragma: no cover
     import pyspark.pandas as ppd
 
     PandasData = Union[pd.Series, pd.DataFrame, ppd.Series, ppd.DataFrame]  # type: ignore[misc]
-elif MODIN_INSTALLED and PYSPARK_INSTALLED:  # pragma: no cover
+elif MODIN_IMPORTED and PYSPARK_IMPORTED:  # pragma: no cover
     import modin.pandas as mpd
     import pyspark.pandas as ppd
 
@@ -40,6 +44,8 @@ else:  # pragma: no cover
 T = TypeVar("T")
 
 
+# TODO: remove aliases, it's not needed anymore since aliases are defined in the
+# Check class.
 @register_builtin_check(
     aliases=["eq"],
     strategy=st.eq_strategy,
