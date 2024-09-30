@@ -18,6 +18,8 @@ from typing import (
     Union,
 )
 
+from typing_extensions import overload
+
 try:
     # python 3.8+
     from typing import Literal  # type: ignore[attr-defined]
@@ -88,6 +90,18 @@ class DataType(ABC):
 _Dtype = TypeVar("_Dtype", bound=DataType)
 _DataTypeClass = Type[_Dtype]
 
+
+@overload
+def immutable(
+    pandera_dtype_cls: _DataTypeClass, **dataclass_kwargs: Any
+) -> _DataTypeClass:
+    ...
+
+@overload
+def immutable(
+    pandera_dtype_cls: None = None, **dataclass_kwargs: Any
+) -> Callable[[_DataTypeClass], _DataTypeClass]:
+    ...
 
 def immutable(
     pandera_dtype_cls: Optional[_DataTypeClass] = None, **dataclass_kwargs: Any
