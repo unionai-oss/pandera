@@ -94,14 +94,14 @@ _DataTypeClass = Type[_Dtype]
 @overload
 def immutable(
     pandera_dtype_cls: _DataTypeClass, **dataclass_kwargs: Any
-) -> _DataTypeClass:
-    ...
+) -> _DataTypeClass: ...
+
 
 @overload
 def immutable(
     pandera_dtype_cls: None = None, **dataclass_kwargs: Any
-) -> Callable[[_DataTypeClass], _DataTypeClass]:
-    ...
+) -> Callable[[_DataTypeClass], _DataTypeClass]: ...
+
 
 def immutable(
     pandera_dtype_cls: Optional[_DataTypeClass] = None, **dataclass_kwargs: Any
