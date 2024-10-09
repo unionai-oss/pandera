@@ -387,7 +387,10 @@ class ColumnBackend(PolarsSchemaBackend):
         if hasattr(schema, "default") and schema.default is None:
             return check_obj
 
-        default_value = pl.lit(schema.default, dtype=schema.dtype.type)
+        if isinstance(schema.default, pl.Expr):
+            default_value = schema.default
+        else:
+            default_value = pl.lit(schema.default, dtype=schema.dtype.type)
         expr = pl.col(schema.selector)
         if is_float_dtype(check_obj, schema.selector):
             expr = expr.fill_nan(default_value)
