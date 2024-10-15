@@ -1,13 +1,14 @@
 """Check backend for Ibis."""
 
 from functools import partial
-
-import ibis.expr.types as ir
-import ibis.selectors as s
-
-from ibis.expr.types.groupby import GroupedTable
-from multimethod import overload
 from typing import Optional
+
+
+import ibis
+import ibis.expr.types as ir
+from ibis.expr.types.groupby import GroupedTable
+from ibis.expr.datatypes import core as idt
+from multimethod import overload
 
 from pandera.api.base.checks import CheckResult
 from pandera.api.checks import Check
@@ -48,35 +49,38 @@ class IbisCheckBackend(BaseCheckBackend):
     def apply(self, check_obj: IbisData):
         """Apply the check function to a check object."""
         if self.check.element_wise:
-            selector = s.cols(check_obj.key or "*")
-            raise NotImplementedError
-            out = check_obj.lazyframe.with_columns(
-                selector.map_elements(self.check_fn, return_dtype=pl.Boolean)
-            ).select(selector)
+            columns = (
+                [check_obj.key] if check_obj.key else check_obj.table.columns
+            )
+            _fn = self.check_fn
+            out = check_obj.table.mutate(
+                **{col: _fn(check_obj.table[col]) for col in columns}
+            )
+            out = out.select(columns)
         else:
             out = self.check_fn(check_obj)
 
-        if isinstance(out, ir.logical.BooleanScalar) or isinstance(
-            out, ir.logical.BooleanColumn
-        ):
+        if isinstance(out, (ir.BooleanScalar, ir.BooleanColumn)):
             return out
         elif isinstance(out, ir.Table):
-            # for checks that return a boolean dataframe, reduce to a single
-            # boolean column.
-            raise NotImplementedError
-            out = out.select(
-                pl.fold(
-                    acc=pl.lit(True),
-                    function=lambda acc, x: acc & x,
-                    exprs=pl.col("*"),
-                ).alias(CHECK_OUTPUT_KEY)
-            )
+            # for checks that return a boolean dataframe, make sure all columns
+            # are boolean and reduce to a single boolean column.
+            for _col, _dtype in out.schema().items():
+                assert isinstance(_dtype, idt.Boolean), (
+                    f"column {_col} is not boolean. If check function "
+                    "returns a dataframe, it must contain only boolean columns."
+                )
+            bool_out = out.mutate(**{CHECK_OUTPUT_KEY: out.columns[0]})
+            for col in out.columns[1:]:
+                bool_out = bool_out.mutate(
+                    **{CHECK_OUTPUT_KEY: bool_out[CHECK_OUTPUT_KEY] & out[col]}
+                )
+            bool_out = bool_out.select(CHECK_OUTPUT_KEY)
+            return bool_out
         else:
             raise TypeError(  # pragma: no cover
                 f"output type of check_fn not recognized: {type(out)}"
             )
-
-        return out
 
     @overload
     def postprocess(self, check_obj, check_output):
@@ -89,7 +93,7 @@ class IbisCheckBackend(BaseCheckBackend):
     def postprocess(
         self,
         check_obj: IbisData,
-        check_output: ir.logical.BooleanScalar,
+        check_output: ir.BooleanScalar,
     ) -> CheckResult:
         """Postprocesses the result of applying the check function."""
         return CheckResult(
@@ -103,10 +107,13 @@ class IbisCheckBackend(BaseCheckBackend):
     def postprocess(
         self,
         check_obj: IbisData,
-        check_output: ir.logical.BooleanColumn,
+        check_output: ir.BooleanColumn,
     ) -> CheckResult:
         """Postprocesses the result of applying the check function."""
-        failure_cases = check_obj.table.filter(~check_output)[check_obj.key]
+        check_output = check_output.name(CHECK_OUTPUT_KEY)
+        failure_cases = check_obj.table.filter(~check_output)
+        if check_obj.key is not None:
+            failure_cases = failure_cases.select(check_obj.key)
         return CheckResult(
             check_output=check_output,
             check_passed=check_output.all(),
@@ -121,17 +128,21 @@ class IbisCheckBackend(BaseCheckBackend):
         check_output: ir.Table,
     ) -> CheckResult:
         """Postprocesses the result of applying the check function."""
-        results = ir.Table(check_output.collect())
-        raise NotImplementedError
-        passed = results.select([pl.col(CHECK_OUTPUT_KEY).all()])
-        failure_cases = pl.concat(
-            [check_obj.lazyframe, results], how="horizontal"
-        ).filter(pl.col(CHECK_OUTPUT_KEY).not_())
+        passed = check_output[CHECK_OUTPUT_KEY].all()
 
+        _left = check_obj.table.mutate(_id=ibis.row_number())
+        _right = check_output.mutate(_id=ibis.row_number())
+        _t = _left.join(
+            check_output.mutate(_id=ibis.row_number()),
+            _left._id == _right._id,
+            how="inner",
+        ).drop("_id")
+
+        failure_cases = _t.filter(~_t[CHECK_OUTPUT_KEY]).drop(CHECK_OUTPUT_KEY)
         if check_obj.key is not None:
             failure_cases = failure_cases.select(check_obj.key)
         return CheckResult(
-            check_output=results,
+            check_output=check_output,
             check_passed=passed,
             checked_object=check_obj,
             failure_cases=failure_cases,

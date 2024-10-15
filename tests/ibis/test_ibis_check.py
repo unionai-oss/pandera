@@ -7,6 +7,7 @@ import ibis
 import ibis.expr.types as ir
 import pandera.ibis as pa
 from pandera.backends.ibis.register import register_ibis_backends
+from pandera.constants import CHECK_OUTPUT_KEY
 
 
 @pytest.fixture(autouse=True)
@@ -17,6 +18,13 @@ def _register_ibis_backends():
 @pytest.fixture
 def column_t():
     return ibis.memtable(pd.DataFrame({"col": [1, 2, 3, 4]}))
+
+
+@pytest.fixture
+def t():
+    return ibis.memtable(
+        pd.DataFrame({"col_1": [1, 2, 3, 4], "col_2": [1, 2, 3, 4]})
+    )
 
 
 def _column_check_fn_col_out(data: pa.IbisData) -> ir.Table:
@@ -57,20 +65,18 @@ def test_ibis_column_check(
 
 def _df_check_fn_df_out(data: pa.IbisData) -> ir.Table:
     return data.table.mutate(
-        *[data.table[col] > 0 for col in data.table.columns]
-    ).drop(data.table.columns)
+        **{col: data.table[col] >= 0 for col in data.table.columns}
+    )
 
 
 def _df_check_fn_col_out(data: pa.IbisData) -> ir.logical.BooleanColumn:
-    return data.table[data.key] > 0
+    return data.table["col_1"] >= data.table["col_2"]
 
 
 def _df_check_fn_scalar_out(data: pa.IbisData) -> ir.logical.BooleanScalar:
-    acc = None
-    for col in data.table.columns:
-        _result = data.table[col] > 0
-        acc = _result if acc is None else acc & _result
-
+    acc = data.table[data.table.columns[0]]
+    for col in data.table.columns[1:]:
+        acc &= data.table[col] >= 0
     return acc.all()
 
 
@@ -103,33 +109,134 @@ def _df_check_fn_scalar_out(data: pa.IbisData) -> ir.logical.BooleanScalar:
         ],
     ],
 )
-def test_polars_dataframe_check(
-    lf,
+def test_ibis_table_check(
+    t,
     check_fn,
     invalid_data,
     expected_output,
 ):
     check = pa.Check(check_fn)
-    raise NotImplementedError
-    check_result = check(lf, column=r"^col_\d+$")
-    assert check_result.check_passed.collect().item()
+    check_result = check(t)
+    assert check_result.check_passed.as_scalar().execute()
 
-    invalid_lf = lf.with_columns(**invalid_data)
-    invalid_check_result = check(invalid_lf)
-    assert not invalid_check_result.check_passed.collect().item()
-    assert (
-        invalid_check_result.check_output.collect()[CHECK_OUTPUT_KEY].to_list()
-        == expected_output
+    invalid_t = ibis.memtable(pd.DataFrame(invalid_data))
+    invalid_check_result = check(invalid_t)
+    assert not invalid_check_result.check_passed.as_scalar().execute()
+
+    if isinstance(invalid_check_result.check_output, ir.Table):
+        output = (
+            invalid_check_result.check_output[CHECK_OUTPUT_KEY]
+            .to_pandas()
+            .to_list()
+        )
+    elif isinstance(invalid_check_result.check_output, ir.BooleanColumn):
+        output = invalid_check_result.check_output.to_pandas().to_list()
+    elif isinstance(invalid_check_result.check_output, ir.BooleanScalar):
+        output = invalid_check_result.check_output.as_scalar().execute()
+    else:
+        raise ValueError(
+            f"Invalid check output type: {type(invalid_check_result.check_output)}"
+        )
+
+    assert output == expected_output
+
+
+@ibis.udf.scalar.python
+def _element_wise_check_fn(x: int) -> bool:
+    return x >= 0
+
+
+def test_ibis_element_wise_column_check(column_t):
+
+    check = pa.Check(_element_wise_check_fn, element_wise=True)
+    check_result = check(column_t, column="col")
+    assert check_result.check_passed.execute()
+
+    invalid_t = ibis.memtable(pd.DataFrame({"col": [-1, 2, 3, -2]}))
+    invalid_check_result = check(invalid_t, column="col")
+    assert not invalid_check_result.check_passed.execute()
+    failure_cases = invalid_check_result.failure_cases.execute()
+    expected_failure_cases = pd.DataFrame({"col": [-1, -2]})
+    assert failure_cases.equals(expected_failure_cases)
+
+
+def test_ibis_element_wise_dataframe_check(t):
+
+    check = pa.Check(_element_wise_check_fn, element_wise=True)
+    check_result = check(t)
+    assert check_result.check_passed.execute()
+
+    invalid_t = ibis.memtable(
+        pd.DataFrame({"col_1": [-1, 2, -3, 4], "col_2": [1, 2, 3, -4]})
+    )
+    invalid_check_result = check(invalid_t)
+    assert not invalid_check_result.check_passed.execute()
+    failure_cases = invalid_check_result.failure_cases.execute()
+    expected_failure_cases = pd.DataFrame(
+        {"col_1": [-1, -3, 4], "col_2": [1, 3, -4]}
+    )
+    assert failure_cases.equals(expected_failure_cases)
+
+
+def test_ibis_element_wise_dataframe_different_dtypes():
+    # Custom check function
+    @ibis.udf.scalar.python
+    def check_gt_2(v: int) -> bool:
+        return v > 2
+
+    @ibis.udf.scalar.python
+    def check_len_ge_2(v: str) -> bool:
+        return len(v) >= 2
+
+    t = ibis.memtable(
+        pd.DataFrame(
+            {"int_col": [1, 2, 3, 4], "str_col": ["aaa", "bb", "c", "dd"]}
+        )
+    )
+
+    _check_gt_2 = pa.Check(check_gt_2, element_wise=True)
+    _check_len_ge_2 = pa.Check(check_len_ge_2, element_wise=True)
+
+    check_result = _check_gt_2(t, column="int_col")
+    check_result.check_passed.execute()
+
+    assert not check_result.check_passed.execute()
+    assert check_result.failure_cases.to_pandas().equals(
+        pd.DataFrame({"int_col": [1, 2]})
+    )
+
+    check_result = _check_len_ge_2(t, column="str_col")
+    assert not check_result.check_passed.execute()
+    assert check_result.failure_cases.to_pandas().equals(
+        pd.DataFrame({"str_col": ["c"]})
     )
 
 
-def test_ibis_element_wise_column_check(): ...
+def test_ibis_custom_check():
+    t = ibis.memtable(
+        pd.DataFrame(
+            {"column1": [None, "x", "y"], "column2": ["a", None, "c"]}
+        )
+    )
 
+    def custom_check(data: pa.IbisData) -> ir.Table:
+        both_null = data.table.column1.isnull() & data.table.column2.isnull()
+        return ~both_null
 
-def test_ibis_element_wise_dataframe_check(): ...
+    check = pa.Check(custom_check)
+    check_result = check(t)
+    assert check_result.check_passed.execute()
+    assert check_result.failure_cases.execute().empty
 
-
-def test_ibis_element_wise_dataframe_different_dtypes(): ...
-
-
-def test_ibis_custom_check(): ...
+    invalid_t = ibis.memtable(
+        pd.DataFrame(
+            {"column1": [None, "x", "y"], "column2": [None, None, "c"]}
+        )
+    )
+    invalid_check_result = check(invalid_t)
+    assert not invalid_check_result.check_passed.execute()
+    failure_cases = invalid_check_result.failure_cases.execute()
+    expected_failure_cases = pd.DataFrame(
+        {"column1": [None], "column2": [None]}
+    )
+    assert failure_cases.equals(expected_failure_cases)
