@@ -74,7 +74,7 @@ def _df_check_fn_col_out(data: pa.IbisData) -> ir.logical.BooleanColumn:
 
 
 def _df_check_fn_scalar_out(data: pa.IbisData) -> ir.logical.BooleanScalar:
-    acc = data.table[data.table.columns[0]]
+    acc = data.table[data.table.columns[0]] >= 0
     for col in data.table.columns[1:]:
         acc &= data.table[col] >= 0
     return acc.all()
