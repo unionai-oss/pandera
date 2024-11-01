@@ -1,8 +1,7 @@
-# pylint: disable=unused-import
 """Register pandas backends."""
 
 from functools import lru_cache
-from typing import NamedTuple, Optional
+from typing import Optional
 
 from pandera.backends.pandas.array import SeriesSchemaBackend
 from pandera.backends.pandas.checks import PandasCheckBackend
@@ -14,117 +13,6 @@ from pandera.backends.pandas.components import (
 from pandera.backends.pandas.container import DataFrameSchemaBackend
 from pandera.backends.pandas.hypotheses import PandasHypothesisBackend
 from pandera.backends.pandas.parsers import PandasParserBackend
-from pandera.errors import BackendNotFoundError
-
-
-class BackendTypes(NamedTuple):
-
-    # list of datatypes available
-    dataframe_datatypes: list
-    series_datatypes: list
-    index_datatypes: list
-    multiindex_datatypes: list
-    check_backend_types: list
-
-
-PANDAS_LIKE_CLS_NAMES = frozenset(
-    [
-        "DataFrame",
-        "Series",
-        "Index",
-        "MultiIndex",
-        "GeoDataFrame",
-        "GeoSeries",
-    ]
-)
-
-
-@lru_cache
-def get_backend_types(check_cls_fqn: str):
-
-    dataframe_datatypes = []
-    series_datatypes = []
-    index_datatypes = []
-    multiindex_datatypes = []
-
-    mod_name, *mod_path, cls_name = check_cls_fqn.split(".")
-    if mod_name != "pandera":
-        if cls_name not in PANDAS_LIKE_CLS_NAMES:
-            raise BackendNotFoundError(
-                f"cls_name {cls_name} not in {PANDAS_LIKE_CLS_NAMES}"
-            )
-
-    if mod_name == "pandera":
-        # assume mod_path e.g. ["typing", "pandas"]
-        assert mod_path[0] == "typing"
-        *_, mod_name = mod_path
-
-    def register_pandas_backend():
-        import pandas as pd
-        from pandera.accessors import pandas_accessor
-
-        dataframe_datatypes.append(pd.DataFrame)
-        series_datatypes.append(pd.Series)
-        index_datatypes.append(pd.Index)
-        multiindex_datatypes.append(pd.MultiIndex)
-
-    def register_dask_backend():
-        import dask.dataframe as dd
-        from pandera.accessors import dask_accessor
-
-        dataframe_datatypes.append(dd.DataFrame)
-        series_datatypes.append(dd.Series)
-        index_datatypes.append(dd.Index)
-
-    def register_modin_backend():
-        import modin.pandas as mpd
-        from pandera.accessors import modin_accessor
-
-        dataframe_datatypes.append(mpd.DataFrame)
-        series_datatypes.append(mpd.Series)
-        index_datatypes.append(mpd.Index)
-        multiindex_datatypes.append(mpd.MultiIndex)
-
-    def register_pyspark_backend():
-        import pyspark.pandas as ps
-        from pandera.accessors import pyspark_accessor
-
-        dataframe_datatypes.append(ps.DataFrame)
-        series_datatypes.append(ps.Series)
-        index_datatypes.append(ps.Index)
-        multiindex_datatypes.append(ps.MultiIndex)
-
-    def register_geopandas_backend():
-        import geopandas as gpd
-
-        register_pandas_backend()
-        dataframe_datatypes.append(gpd.GeoDataFrame)
-        series_datatypes.append(gpd.GeoSeries)
-
-    register_fn = {
-        "pandas": register_pandas_backend,
-        "dask_expr": register_dask_backend,
-        "modin": register_modin_backend,
-        "pyspark": register_pyspark_backend,
-        "geopandas": register_geopandas_backend,
-        "pandera": lambda: None,
-    }[mod_name]
-
-    register_fn()
-
-    check_backend_types = [
-        *dataframe_datatypes,
-        *series_datatypes,
-        *index_datatypes,
-    ]
-
-    return BackendTypes(
-        dataframe_datatypes=dataframe_datatypes,
-        series_datatypes=series_datatypes,
-        index_datatypes=index_datatypes,
-        multiindex_datatypes=multiindex_datatypes,
-        check_backend_types=check_backend_types,
-    )
 
 
 @lru_cache
@@ -152,6 +40,7 @@ def register_pandas_backends(
     from pandera.api.pandas.components import Column, Index, MultiIndex
     from pandera.api.pandas.container import DataFrameSchema
     from pandera.api.parsers import Parser
+    from pandera.api.pandas.types import get_backend_types
 
     assert check_cls_fqn is not None, (
         "pandas backend registration requires passing in the fully qualified "

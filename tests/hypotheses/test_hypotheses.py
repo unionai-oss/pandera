@@ -12,15 +12,19 @@ from pandera import (
     String,
     errors,
 )
-from pandera.backends.pandas.hypotheses import HAS_SCIPY
 
-if HAS_SCIPY:
-    from scipy import stats  # pylint: disable=import-error
+
+try:
+    from scipy import stats  # pylint: disable=unused-import
+except ImportError:  # pragma: no cover
+    SCIPY_INSTALLED = False
+else:
+    SCIPY_INSTALLED = True
 
 
 # skip all tests in module if "hypotheses" depends aren't installed
 pytestmark = pytest.mark.skipif(
-    not HAS_SCIPY, reason='needs "hypotheses" module dependencies'
+    not SCIPY_INSTALLED, reason='needs "hypotheses" module dependencies'
 )
 
 
