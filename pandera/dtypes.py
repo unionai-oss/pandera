@@ -38,9 +38,7 @@ class DataType(ABC):
 
     def __init__(self):
         if self.__class__ is DataType:
-            raise TypeError(
-                f"{self.__class__.__name__} may not be instantiated."
-            )
+            raise TypeError(f"{self.__class__.__name__} may not be instantiated.")
 
     def coerce(self, data_container: Any):
         """Coerce data container to the data type."""
@@ -93,13 +91,14 @@ _DataTypeClass = Type[_Dtype]
 
 @overload
 def immutable(
-    pandera_dtype_cls: _DataTypeClass, **dataclass_kwargs: Any
+    pandera_dtype_cls: _DataTypeClass,  # pylint: disable=W0613
+    **dataclass_kwargs: Any,  # pylint: disable=W0613
 ) -> _DataTypeClass: ...
 
 
 @overload
 def immutable(
-    pandera_dtype_cls: None = None, **dataclass_kwargs: Any
+    **dataclass_kwargs: Any,  # pylint: disable=W0613
 ) -> Callable[[_DataTypeClass], _DataTypeClass]: ...
 
 
@@ -163,9 +162,7 @@ class _Number(DataType):
 class _PhysicalNumber(_Number):
     bit_width: Optional[int] = None
     """Number of bits used by the machine representation."""
-    _base_name: Optional[str] = dataclasses.field(
-        default=None, init=False, repr=False
-    )
+    _base_name: Optional[str] = dataclasses.field(default=None, init=False, repr=False)
 
     def __eq__(self, obj: object) -> bool:
         if isinstance(obj, type(self)):
@@ -444,9 +441,7 @@ class Decimal(_Number):
     ):
         super().__init__()
         if precision <= 0:
-            raise ValueError(
-                f"Decimal precision {precision} must be positive."
-            )
+            raise ValueError(f"Decimal precision {precision} must be positive.")
         if scale is not None and scale > precision:
             raise ValueError(
                 f"Decimal scale {scale} must be between 0 and {precision}."
