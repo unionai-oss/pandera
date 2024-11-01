@@ -256,4 +256,24 @@ def test_set_default(data, dtype, default):
     assert validated_data.select(pl.col("column").eq(default).any()).item()
 
 
+def test_expr_as_default():
+    schema = pa.DataFrameSchema(
+        columns={
+            "a": pa.Column(int),
+            "b": pa.Column(float, default=1),
+            "c": pa.Column(str, default=pl.lit("foo")),
+            "d": pa.Column(int, nullable=True, default=pl.col("a")),
+        },
+        add_missing_columns=True,
+        coerce=True,
+    )
+    df = pl.LazyFrame({"a": [1, 2, 3]})
+    assert schema.validate(df).collect().to_dict(as_series=False) == {
+        "a": [1, 2, 3],
+        "b": [1.0, 1.0, 1.0],
+        "c": ["foo", "foo", "foo"],
+        "d": [1, 2, 3],
+    }
+
+
 def test_column_schema_on_lazyframe_coerce(): ...
