@@ -68,15 +68,28 @@ def _serialize_check_stats(check_stats, dtype=None):
 
         return stat
 
-    # for unary checks, return a single value instead of a dictionary
-    if len(check_stats) == 1:
-        return handle_stat_dtype(list(check_stats.values())[0])
+    # Extract check options if they exist
+    check_options = (
+        check_stats.pop("options", {}) if isinstance(check_stats, dict) else {}
+    )
 
-    # otherwise return a dictionary of keyword args needed to create the Check
-    serialized_check_stats = {}
-    for arg, stat in check_stats.items():
-        serialized_check_stats[arg] = handle_stat_dtype(stat)
-    return serialized_check_stats
+    # Handle unary checks
+    if isinstance(check_stats, dict) and len(check_stats) == 1:
+        value = handle_stat_dtype(list(check_stats.values())[0])
+        if check_options:
+            return {"value": value, "options": check_options}
+        return value
+
+    # Handle dictionary case
+    if isinstance(check_stats, dict):
+        serialized_check_stats = {}
+        for arg, stat in check_stats.items():
+            serialized_check_stats[arg] = handle_stat_dtype(stat)
+        if check_options:
+            serialized_check_stats["options"] = check_options
+        return serialized_check_stats
+
+    return handle_stat_dtype(check_stats)
 
 
 def _serialize_dataframe_stats(dataframe_checks):
@@ -178,6 +191,8 @@ def serialize_schema(dataframe_schema):
 
 
 def _deserialize_check_stats(check, serialized_check_stats, dtype=None):
+    """Deserialize check statistics and reconstruct check with options."""
+
     def handle_stat_dtype(stat):
         try:
             if pandas_engine.Engine.dtype(dtypes.DateTime).check(dtype):
@@ -189,15 +204,35 @@ def _deserialize_check_stats(check, serialized_check_stats, dtype=None):
             return stat
         return stat
 
+    # Extract options if they exist
+    options = {}
     if isinstance(serialized_check_stats, dict):
         # handle case where serialized check stats are in the form of a
         # dictionary mapping Check arg names to values.
+        options = serialized_check_stats.pop("options", {})
+        # Handle special case for unary checks with options
+        if (
+            "value" in serialized_check_stats
+            and len(serialized_check_stats) == 1
+        ):
+            serialized_check_stats = serialized_check_stats["value"]
+
+    # Create check with original logic
+    if isinstance(serialized_check_stats, dict):
         check_stats = {}
         for arg, stat in serialized_check_stats.items():
             check_stats[arg] = handle_stat_dtype(stat)
-        return check(**check_stats)
-    # otherwise assume unary check function signature
-    return check(handle_stat_dtype(serialized_check_stats))
+        check_instance = check(**check_stats)
+    else:
+        # otherwise assume unary check function signature
+        check_instance = check(handle_stat_dtype(serialized_check_stats))
+
+    # Apply options if they exist
+    if options:
+        for option_name, option_value in options.items():
+            setattr(check_instance, option_name, option_value)
+
+    return check_instance
 
 
 def _deserialize_component_stats(serialized_component_stats):
@@ -447,6 +482,7 @@ MultiIndex(indexes=[{indexes}])
 
 
 def _format_checks(checks_dict):
+    """Format checks into string representation including options."""
     if checks_dict is None:
         return "None"
 
@@ -457,11 +493,33 @@ def _format_checks(checks_dict):
                 f"Check {check_name} cannot be serialized. "
                 "This check will be ignored"
             )
-        else:
+            continue
+
+        # Handle options separately
+        options = (
+            check_kwargs.pop("options", {})
+            if isinstance(check_kwargs, dict)
+            else {}
+        )
+
+        # Format main check arguments
+        if isinstance(check_kwargs, dict):
             args = ", ".join(
                 f"{k}={v.__repr__()}" for k, v in check_kwargs.items()
             )
-            checks.append(f"Check.{check_name}({args})")
+        else:
+            args = check_kwargs.__repr__()
+
+        # Add options to arguments if they exist
+        if options:
+            if args:
+                args += ", "
+            args += ", ".join(
+                f"{k}={v.__repr__()}" for k, v in options.items()
+            )
+
+        checks.append(f"Check.{check_name}({args})")
+
     return f"[{', '.join(checks)}]"
 
 
