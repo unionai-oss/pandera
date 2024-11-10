@@ -1415,6 +1415,20 @@ class PythonNamedTuple(PythonGenericType):
 
 if PYARROW_INSTALLED and PANDAS_2_0_0_PLUS:
 
+    class ArrowDataType(DataType):
+        """Base `DataType` for boxing Pandas Arrow data types."""
+
+        def coerce_value(self, value: Any) -> Any:
+            """Coerce a value to a particular type."""
+            return pyarrow.scalar(
+                value,
+                type=(
+                    self.type.pyarrow_dtype  # pylint: disable=E1101
+                    if self.type
+                    else None
+                ),
+            )
+
     @Engine.register_dtype(
         equivalents=[
             "bool[pyarrow]",
@@ -1423,7 +1437,7 @@ if PYARROW_INSTALLED and PANDAS_2_0_0_PLUS:
         ]
     )
     @immutable
-    class ArrowBool(BOOL):
+    class ArrowBool(ArrowDataType, BOOL):
         """Semantic representation of a :class:`pyarrow.bool_`."""
 
         type = pd.ArrowDtype(pyarrow.bool_())
@@ -1436,7 +1450,7 @@ if PYARROW_INSTALLED and PANDAS_2_0_0_PLUS:
         ]
     )
     @immutable
-    class ArrowInt64(DataType, dtypes.Int):
+    class ArrowInt64(ArrowDataType, dtypes.Int):
         """Semantic representation of a :class:`pyarrow.int64`."""
 
         type = pd.ArrowDtype(pyarrow.int64())
@@ -1493,7 +1507,7 @@ if PYARROW_INSTALLED and PANDAS_2_0_0_PLUS:
         ]
     )
     @immutable
-    class ArrowString(DataType, dtypes.String):
+    class ArrowString(ArrowDataType, dtypes.String):
         """Semantic representation of a :class:`pyarrow.string`."""
 
         type = pd.ArrowDtype(pyarrow.string())
@@ -1506,7 +1520,7 @@ if PYARROW_INSTALLED and PANDAS_2_0_0_PLUS:
         ]
     )
     @immutable
-    class ArrowUInt64(DataType, dtypes.UInt):
+    class ArrowUInt64(ArrowDataType, dtypes.UInt):
         """Semantic representation of a :class:`pyarrow.uint64`."""
 
         type = pd.ArrowDtype(pyarrow.uint64())
@@ -1562,7 +1576,7 @@ if PYARROW_INSTALLED and PANDAS_2_0_0_PLUS:
         ]
     )
     @immutable
-    class ArrowFloat64(DataType, dtypes.Float):
+    class ArrowFloat64(ArrowDataType, dtypes.Float):
         """Semantic representation of a :class:`pyarrow.float64`."""
 
         type = pd.ArrowDtype(pyarrow.float64())
@@ -1600,7 +1614,7 @@ if PYARROW_INSTALLED and PANDAS_2_0_0_PLUS:
         equivalents=[pyarrow.decimal128, pyarrow.Decimal128Type]
     )
     @immutable(init=True)
-    class ArrowDecimal128(DataType, dtypes.Decimal):
+    class ArrowDecimal128(ArrowDataType, dtypes.Decimal):
         """Semantic representation of a :class:`pyarrow.decimal128`."""
 
         type: Optional[pd.ArrowDtype] = dataclasses.field(
@@ -1626,7 +1640,7 @@ if PYARROW_INSTALLED and PANDAS_2_0_0_PLUS:
         equivalents=[pyarrow.timestamp, pyarrow.TimestampType]
     )
     @immutable(init=True)
-    class ArrowTimestamp(DataType, dtypes.Timestamp):
+    class ArrowTimestamp(ArrowDataType, dtypes.Timestamp):
         """Semantic representation of a :class:`pyarrow.timestamp`."""
 
         type: Optional[pd.ArrowDtype] = dataclasses.field(
@@ -1647,7 +1661,7 @@ if PYARROW_INSTALLED and PANDAS_2_0_0_PLUS:
         equivalents=[pyarrow.dictionary, pyarrow.DictionaryType]
     )
     @immutable(init=True)
-    class ArrowDictionary(DataType, dtypes.Category):
+    class ArrowDictionary(ArrowDataType, dtypes.Category):
         """Semantic representation of a :class:`pyarrow.dictionary`."""
 
         type: Optional[pd.ArrowDtype] = dataclasses.field(
@@ -1685,7 +1699,7 @@ if PYARROW_INSTALLED and PANDAS_2_0_0_PLUS:
         ]
     )
     @immutable(init=True)
-    class ArrowList(DataType):
+    class ArrowList(ArrowDataType):
         """Semantic representation of a :class:`pyarrow.list_`."""
 
         type: Optional[pd.ArrowDtype] = dataclasses.field(
@@ -1718,7 +1732,7 @@ if PYARROW_INSTALLED and PANDAS_2_0_0_PLUS:
 
     @Engine.register_dtype(equivalents=[pyarrow.struct, pyarrow.StructType])
     @immutable(init=True)
-    class ArrowStruct(DataType):
+    class ArrowStruct(ArrowDataType):
         """Semantic representation of a :class:`pyarrow.struct`."""
 
         type: Optional[pd.ArrowDtype] = dataclasses.field(
@@ -1749,7 +1763,7 @@ if PYARROW_INSTALLED and PANDAS_2_0_0_PLUS:
         ]
     )
     @immutable
-    class ArrowNull(DataType):
+    class ArrowNull(ArrowDataType):
         """Semantic representation of a :class:`pyarrow.null`."""
 
         type = pd.ArrowDtype(pyarrow.null())
@@ -1762,7 +1776,7 @@ if PYARROW_INSTALLED and PANDAS_2_0_0_PLUS:
         ]
     )
     @immutable
-    class ArrowDate32(DataType, dtypes.Date):
+    class ArrowDate32(ArrowDataType, dtypes.Date):
         """Semantic representation of a :class:`pyarrow.date32`."""
 
         type = pd.ArrowDtype(pyarrow.date32())
@@ -1775,7 +1789,7 @@ if PYARROW_INSTALLED and PANDAS_2_0_0_PLUS:
         ]
     )
     @immutable
-    class ArrowDate64(DataType, dtypes.Date):
+    class ArrowDate64(ArrowDataType, dtypes.Date):
         """Semantic representation of a :class:`pyarrow.date64`."""
 
         type = pd.ArrowDtype(pyarrow.date64())
@@ -1784,7 +1798,7 @@ if PYARROW_INSTALLED and PANDAS_2_0_0_PLUS:
         equivalents=[pyarrow.duration, pyarrow.DurationType]
     )
     @immutable(init=True)
-    class ArrowDuration(DataType):
+    class ArrowDuration(ArrowDataType):
         """Semantic representation of a :class:`pyarrow.duration`."""
 
         type: Optional[pd.ArrowDtype] = dataclasses.field(
@@ -1802,7 +1816,7 @@ if PYARROW_INSTALLED and PANDAS_2_0_0_PLUS:
 
     @Engine.register_dtype(equivalents=[pyarrow.time32, pyarrow.Time32Type])
     @immutable(init=True)
-    class ArrowTime32(DataType):
+    class ArrowTime32(ArrowDataType):
         """Semantic representation of a :class:`pyarrow.time32`."""
 
         type: Optional[pd.ArrowDtype] = dataclasses.field(
@@ -1828,7 +1842,7 @@ if PYARROW_INSTALLED and PANDAS_2_0_0_PLUS:
 
     @Engine.register_dtype(equivalents=[pyarrow.time64, pyarrow.Time64Type])
     @immutable(init=True)
-    class ArrowTime64(DataType):
+    class ArrowTime64(ArrowDataType):
         """Semantic representation of a :class:`pyarrow.time64`."""
 
         type: Optional[pd.ArrowDtype] = dataclasses.field(
@@ -1854,7 +1868,7 @@ if PYARROW_INSTALLED and PANDAS_2_0_0_PLUS:
 
     @Engine.register_dtype(equivalents=[pyarrow.map_, pyarrow.MapType])
     @immutable(init=True)
-    class ArrowMap(DataType):
+    class ArrowMap(ArrowDataType):
         """Semantic representation of a :class:`pyarrow.map_`."""
 
         type: Optional[pd.ArrowDtype] = dataclasses.field(
@@ -1882,17 +1896,6 @@ if PYARROW_INSTALLED and PANDAS_2_0_0_PLUS:
                 keys_sorted=pyarrow_dtype.keys_sorted,  # type: ignore
             )
 
-        def coerce_value(self, value: Any) -> Any:
-            """Coerce a value to a particular type."""
-            return pyarrow.scalar(
-                value,
-                type=(
-                    self.type.pyarrow_dtype  # pylint: disable=E1101
-                    if self.type
-                    else None
-                ),
-            )
-
     @Engine.register_dtype(
         equivalents=[
             "binary[pyarrow]",
@@ -1902,7 +1905,7 @@ if PYARROW_INSTALLED and PANDAS_2_0_0_PLUS:
         ]
     )
     @immutable(init=True)
-    class ArrowBinary(DataType, dtypes.Binary):
+    class ArrowBinary(ArrowDataType, dtypes.Binary):
         """Semantic representation of a :class:`pyarrow.binary`."""
 
         type: Optional[pd.ArrowDtype] = dataclasses.field(
@@ -1935,7 +1938,7 @@ if PYARROW_INSTALLED and PANDAS_2_0_0_PLUS:
         ]
     )
     @immutable
-    class ArrowLargeBinary(DataType):
+    class ArrowLargeBinary(ArrowDataType):
         """Semantic representation of a :class:`pyarrow.large_binary`."""
 
         type = pd.ArrowDtype(pyarrow.large_binary())
@@ -1950,7 +1953,7 @@ if PYARROW_INSTALLED and PANDAS_2_0_0_PLUS:
         ]
     )
     @immutable
-    class ArrowLargeString(DataType, dtypes.String):
+    class ArrowLargeString(ArrowDataType, dtypes.String):
         """Semantic representation of a :class:`pyarrow.large_string`."""
 
         type = pd.ArrowDtype(pyarrow.large_string())
