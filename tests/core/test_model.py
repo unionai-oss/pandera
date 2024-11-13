@@ -1515,3 +1515,15 @@ def test_parse_regex() -> None:
     assert Schema.validate(df).equals(  # type: ignore [attr-defined]
         pd.DataFrame({"a": [11.0], "abc": [1.0], "cba": [200.0]})
     )
+
+
+def test_pandera_dtype() -> None:
+    class Schema(pa.DataFrameModel):
+        a: Series[pa.Float]
+        b: Series[pa.Int]
+        c: Series[pa.String]
+
+    df = pd.DataFrame({"a": [1.0], "b": [1], "c": ["1"]})
+    assert Schema.validate(df).equals(  # type: ignore [attr-defined]
+        pd.DataFrame({"a": [1.0], "b": [1], "c": ["1"]})
+    )
