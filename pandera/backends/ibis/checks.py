@@ -1,13 +1,14 @@
 """Check backend for Ibis."""
 
-from functools import partial
+from functools import partial, reduce
 from typing import Optional
 
 
 import ibis
 import ibis.expr.types as ir
+import ibis.expr.datatypes as dt
+import ibis.selectors as s
 from ibis.expr.types.groupby import GroupedTable
-from ibis.expr.datatypes import core as idt
 from multimethod import overload
 
 from pandera.api.base.checks import CheckResult
@@ -49,34 +50,28 @@ class IbisCheckBackend(BaseCheckBackend):
     def apply(self, check_obj: IbisData):
         """Apply the check function to a check object."""
         if self.check.element_wise:
-            columns = (
-                [check_obj.key] if check_obj.key else check_obj.table.columns
+            selector = s.cols(check_obj.key) if check_obj.key is not None else s.all()
+            out = check_obj.table.mutate(s.across(selector, self.check_fn)).select(
+                selector
             )
-            _fn = self.check_fn
-            out = check_obj.table.mutate(
-                **{col: _fn(check_obj.table[col]) for col in columns}
-            )
-            out = out.select(columns)
         else:
             out = self.check_fn(check_obj)
 
-        if isinstance(out, (ir.BooleanScalar, ir.BooleanColumn)):
-            return out
-        elif isinstance(out, ir.Table):
+        if isinstance(out, ir.Table):
             # for checks that return a boolean dataframe, make sure all columns
             # are boolean and reduce to a single boolean column.
             for _col, _dtype in out.schema().items():
-                assert isinstance(_dtype, idt.Boolean), (
+                assert isinstance(_dtype, dt.Boolean), (
                     f"column {_col} is not boolean. If check function "
                     "returns a dataframe, it must contain only boolean columns."
                 )
-            bool_out = out.mutate(**{CHECK_OUTPUT_KEY: out.columns[0]})
-            for col in out.columns[1:]:
-                bool_out = bool_out.mutate(
-                    **{CHECK_OUTPUT_KEY: bool_out[CHECK_OUTPUT_KEY] & out[col]}
+            return out.select(
+                reduce(lambda x, y: x & out[y], out.columns, ibis.literal(True)).name(
+                    CHECK_OUTPUT_KEY
                 )
-            bool_out = bool_out.select(CHECK_OUTPUT_KEY)
-            return bool_out
+            )
+        elif out.type().is_boolean():
+            return out
         else:
             raise TypeError(  # pragma: no cover
                 f"output type of check_fn not recognized: {type(out)}"
