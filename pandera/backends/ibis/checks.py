@@ -7,7 +7,7 @@ from typing import Optional
 import ibis
 import ibis.expr.types as ir
 import ibis.expr.datatypes as dt
-import ibis.selectors as s
+from ibis import _, selectors as s
 from ibis.expr.types.groupby import GroupedTable
 from multimethod import overload
 
@@ -17,6 +17,8 @@ from pandera.api.ibis.types import IbisData
 from pandera.backends.base import BaseCheckBackend
 
 from pandera.constants import CHECK_OUTPUT_KEY
+
+CHECK_OUTPUT_SUFFIX = f"__{CHECK_OUTPUT_KEY}__"
 
 
 class IbisCheckBackend(BaseCheckBackend):
@@ -51,25 +53,29 @@ class IbisCheckBackend(BaseCheckBackend):
         """Apply the check function to a check object."""
         if self.check.element_wise:
             selector = s.cols(check_obj.key) if check_obj.key is not None else s.all()
-            out = check_obj.table.mutate(s.across(selector, self.check_fn)).select(
-                selector
-            )
+            out = check_obj.table.mutate(
+                s.across(selector, self.check_fn, f"{{col}}{CHECK_OUTPUT_SUFFIX}")
+            ).select(selector | s.endswith(CHECK_OUTPUT_SUFFIX))
         else:
             out = self.check_fn(check_obj)
+            if isinstance(out, dict):
+                out = check_obj.table.mutate(
+                    **{f"{k}{CHECK_OUTPUT_SUFFIX}": v for k, v in out.items()}
+                )
 
         if isinstance(out, ir.Table):
             # for checks that return a boolean dataframe, make sure all columns
             # are boolean and reduce to a single boolean column.
-            for _col, _dtype in out.schema().items():
-                assert isinstance(_dtype, dt.Boolean), (
-                    f"column {_col} is not boolean. If check function "
-                    "returns a dataframe, it must contain only boolean columns."
-                )
-            return out.select(
-                reduce(lambda x, y: x & out[y], out.columns, ibis.literal(True)).name(
-                    CHECK_OUTPUT_KEY
-                )
-            )
+            acc = ibis.literal(True)
+            for col in out.columns:
+                if col.endswith(CHECK_OUTPUT_SUFFIX):
+                    assert out[col].type().is_boolean(), (
+                        f"column '{col[: -len(CHECK_OUTPUT_SUFFIX)]}' "
+                        "is not boolean. If check function returns a "
+                        "dataframe, it must contain only boolean columns."
+                    )
+                    acc = acc & out[col]
+            return out.mutate({CHECK_OUTPUT_KEY: acc})
         elif out.type().is_boolean():
             return out
         else:
@@ -124,20 +130,14 @@ class IbisCheckBackend(BaseCheckBackend):
     ) -> CheckResult:
         """Postprocesses the result of applying the check function."""
         passed = check_output[CHECK_OUTPUT_KEY].all()
+        failure_cases = check_output.filter(~_[CHECK_OUTPUT_KEY]).drop(
+            s.endswith(f"__{CHECK_OUTPUT_KEY}__") | s.cols(CHECK_OUTPUT_KEY)
+        )
 
-        _left = check_obj.table.mutate(_id=ibis.row_number())
-        _right = check_output.mutate(_id=ibis.row_number())
-        _t = _left.join(
-            check_output.mutate(_id=ibis.row_number()),
-            _left._id == _right._id,
-            how="inner",
-        ).drop("_id")
-
-        failure_cases = _t.filter(~_t[CHECK_OUTPUT_KEY]).drop(CHECK_OUTPUT_KEY)
         if check_obj.key is not None:
             failure_cases = failure_cases.select(check_obj.key)
         return CheckResult(
-            check_output=check_output,
+            check_output=check_output.select(CHECK_OUTPUT_KEY),
             check_passed=passed,
             checked_object=check_obj,
             failure_cases=failure_cases,
