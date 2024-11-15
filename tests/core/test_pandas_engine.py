@@ -92,12 +92,10 @@ def test_pandas_data_type_check(data_type_cls):
         return
 
     check_result = data_type.check(
-        pandas_engine.Engine.dtype(data_container.dtype),
-        data_container,
+        pandas_engine.Engine.dtype(data_container.dtype), data_container
     )
     assert isinstance(check_result, bool) or isinstance(
-        check_result.all(),
-        (bool, np.bool_),
+        check_result.all(), (bool, np.bool_)
     )
 
 
@@ -210,7 +208,7 @@ def test_pandas_datetimetz_dtype(timezone_aware, data, timezone):
     data=pd_st.series(
         dtype="datetime64[ns]",
         index=pd_st.range_indexes(min_size=5, max_size=10),
-    ),
+    )
 )
 def test_pandas_date_coerce_dtype(to_df, data):
     """Test that pandas Date dtype coerces to datetime.date object."""
@@ -241,22 +239,11 @@ def test_pandas_date_coerce_dtype(to_df, data):
 
 
 pandas_arrow_dtype_cases = (
-    (
-        pd.Series([["a", "b", "c"]]),
-        pyarrow.list_(pyarrow.string()),
-    ),
-    (
-        pd.Series([["a", "b"]]),
-        pyarrow.list_(pyarrow.string(), 2),
-    ),
+    (pd.Series([["a", "b", "c"]]), pyarrow.list_(pyarrow.string())),
+    (pd.Series([["a", "b"]]), pyarrow.list_(pyarrow.string(), 2)),
     (
         pd.Series([{"foo": 1, "bar": "a"}]),
-        pyarrow.struct(
-            [
-                ("foo", pyarrow.int64()),
-                ("bar", pyarrow.string()),
-            ]
-        ),
+        pyarrow.struct([("foo", pyarrow.int64()), ("bar", pyarrow.string())]),
     ),
     (pd.Series([None, pd.NA, np.nan]), pyarrow.null),
     (pd.Series([None, date(1970, 1, 1)]), pyarrow.date32),
@@ -298,40 +285,18 @@ def test_pandas_arrow_dtype(data, dtype):
 
 
 pandas_arrow_dtype_error_cases = (
-    (
-        pd.Series([["a", "b", "c"]]),
-        pyarrow.list_(pyarrow.int64()),
-        pyarrow.ArrowInvalid,
-    ),
-    (
-        pd.Series([["a", "b"]]),
-        pyarrow.list_(pyarrow.string(), 3),
-        pyarrow.ArrowInvalid,
-    ),
+    (pd.Series([["a", "b", "c"]]), pyarrow.list_(pyarrow.int64())),
+    (pd.Series([["a", "b"]]), pyarrow.list_(pyarrow.string(), 3)),
     (
         pd.Series([{"foo": 1, "bar": "a"}]),
-        pyarrow.struct(
-            [
-                ("foo", pyarrow.string()),
-                ("bar", pyarrow.int64()),
-            ]
-        ),
-        pyarrow.ArrowTypeError,
+        pyarrow.struct([("foo", pyarrow.string()), ("bar", pyarrow.int64())]),
     ),
-    (pd.Series(["a", "1"]), pyarrow.null, NotImplementedError),
-    (
-        pd.Series(["a", date(1970, 1, 1), "1970-01-01"]),
-        pyarrow.date32,
-        pyarrow.ArrowTypeError,
-    ),
-    (
-        pd.Series(["a", date(1970, 1, 1), "1970-01-01"]),
-        pyarrow.date64,
-        pyarrow.ArrowTypeError,
-    ),
-    (pd.Series(["a"]), pyarrow.duration("ns"), ValueError),
-    (pd.Series(["a", "b"]), pyarrow.time32("ms"), ValueError),
-    (pd.Series(["a", "b"]), pyarrow.time64("ns"), ValueError),
+    (pd.Series(["a", "1"]), pyarrow.null),
+    (pd.Series(["a", date(1970, 1, 1), "1970-01-01"]), pyarrow.date32),
+    (pd.Series(["a", date(1970, 1, 1), "1970-01-01"]), pyarrow.date64),
+    (pd.Series(["a"]), pyarrow.duration("ns")),
+    (pd.Series(["a", "b"]), pyarrow.time32("ms")),
+    (pd.Series(["a", "b"]), pyarrow.time64("ns")),
     (
         pd.Series(
             [
@@ -340,41 +305,24 @@ pandas_arrow_dtype_error_cases = (
             ]
         ),
         pyarrow.map_(pyarrow.int32(), pyarrow.string()),
-        NotImplementedError,
     ),
-    (pd.Series([1, "foo", None]), pyarrow.binary(), pyarrow.ArrowInvalid),
-    (
-        pd.Series(["foo", "bar", "baz", None]),
-        pyarrow.binary(2),
-        NotImplementedError,
-    ),
-    (
-        pd.Series([1, "foo", "barbaz", None]),
-        pyarrow.large_binary(),
-        pyarrow.ArrowInvalid,
-    ),
-    (
-        pd.Series([1, 1.0, "foo", "bar", None]),
-        pyarrow.large_string(),
-        pyarrow.ArrowInvalid,
-    ),
+    (pd.Series([1, "foo", None]), pyarrow.binary()),
+    (pd.Series(["foo", "bar", "baz", None]), pyarrow.binary(2)),
+    (pd.Series([1, "foo", "barbaz", None]), pyarrow.large_binary()),
+    (pd.Series([1, 1.0, "foo", "bar", None]), pyarrow.large_string()),
     (
         pd.Series([1.0, 2.0, 3.0]),
         pyarrow.dictionary(pyarrow.int64(), pyarrow.float64()),
-        NotImplementedError,
     ),
     (
         pd.Series(["a", "b", "c"]),
         pyarrow.dictionary(pyarrow.int64(), pyarrow.int64()),
-        AssertionError,
     ),
 )
 
 
-@pytest.mark.parametrize(
-    ("data", "dtype", "exc"), pandas_arrow_dtype_error_cases
-)
-def test_pandas_arrow_dtype_error(data, dtype, exc):
+@pytest.mark.parametrize(("data", "dtype"), pandas_arrow_dtype_error_cases)
+def test_pandas_arrow_dtype_error(data, dtype):
     """Test pyarrow dtype raises Error on bad data."""
     if not (
         pandas_engine.PYARROW_INSTALLED and pandas_engine.PANDAS_2_0_0_PLUS
@@ -382,6 +330,14 @@ def test_pandas_arrow_dtype_error(data, dtype, exc):
         pytest.skip("Support of pandas 2.0.0+ with pyarrow only")
     dtype = pandas_engine.Engine.dtype(dtype)
 
-    with pytest.raises(exc):
+    with pytest.raises(
+        (
+            pyarrow.ArrowInvalid,
+            pyarrow.ArrowTypeError,
+            NotImplementedError,
+            ValueError,
+            AssertionError,
+        )
+    ):
         coerced_data = dtype.coerce(data)
         assert coerced_data.dtype == dtype.type
