@@ -138,11 +138,25 @@ def _get_fullname(_cls: Type) -> str:
     return f"{_cls.__module__}.{_cls.__name__}"
 
 
+def _contains_pandas_like(bases: list[Type]) -> bool:
+    return any(_base_cls.__name__ in PANDAS_LIKE_CLS_NAMES for _base_cls in bases)
+
+
+def _recurse_bases(_cls: Type) -> list[Type]:
+    bases = list(_cls.__bases__)
+    while not _contains_pandas_like(bases):
+        for base_cls in bases:
+            bases.extend(base_cls.__bases__)
+            if _contains_pandas_like(bases):
+                break
+    return bases
+
+
 def get_backend_types_from_mro(_cls: Type) -> Optional[BackendTypes]:
     try:
         return get_backend_types(_get_fullname(_cls))
     except BackendNotFoundError:
-        for base_cls in _cls.__bases__:
+        for base_cls in _recurse_bases(_cls):
             try:
                 return get_backend_types(_get_fullname(base_cls))
             except BackendNotFoundError:
