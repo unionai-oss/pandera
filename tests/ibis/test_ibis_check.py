@@ -1,5 +1,7 @@
 """Unit tests for the Ibis check backend."""
 
+from typing import Dict
+
 import pytest
 
 import pandas as pd
@@ -63,17 +65,15 @@ def test_ibis_column_check(
         assert check_output == expected_output
 
 
-def _df_check_fn_df_out(data: pa.IbisData) -> ir.Table:
-    return data.table.mutate(
-        **{col: data.table[col] >= 0 for col in data.table.columns}
-    )
+def _df_check_fn_dict_out(data: pa.IbisData) -> Dict[str, ir.BooleanColumn]:
+    return {col: data.table[col] >= 0 for col in data.table.columns}
 
 
-def _df_check_fn_col_out(data: pa.IbisData) -> ir.logical.BooleanColumn:
+def _df_check_fn_col_out(data: pa.IbisData) -> ir.BooleanColumn:
     return data.table["col_1"] >= data.table["col_2"]
 
 
-def _df_check_fn_scalar_out(data: pa.IbisData) -> ir.logical.BooleanScalar:
+def _df_check_fn_scalar_out(data: pa.IbisData) -> ir.BooleanScalar:
     acc = data.table[data.table.columns[0]] >= 0
     for col in data.table.columns[1:]:
         acc &= data.table[col] >= 0
@@ -84,7 +84,7 @@ def _df_check_fn_scalar_out(data: pa.IbisData) -> ir.logical.BooleanScalar:
     "check_fn, invalid_data, expected_output",
     [
         [
-            _df_check_fn_df_out,
+            _df_check_fn_dict_out,
             {
                 "col_1": [-1, 2, -3, 4],
                 "col_2": [1, 2, 3, -4],

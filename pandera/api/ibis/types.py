@@ -22,7 +22,6 @@ class CheckResult(NamedTuple):
 
 IbisCheckObjects = Union[ir.Table, ir.Column]
 
-
 IbisDtypeInputTypes = Union[
     str,
     type,
