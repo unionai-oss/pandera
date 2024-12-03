@@ -1,7 +1,9 @@
 """Tests schema creation and validation from type annotations."""
 
 # pylint:disable=missing-class-docstring,missing-function-docstring,too-few-public-methods
+import os
 import re
+import runpy
 from copy import deepcopy
 from typing import Any, Generic, Iterable, List, Optional, TypeVar
 
@@ -1079,6 +1081,18 @@ def test_validate_coerce_on_init():
         match="^expected series 'price' to have type float64, got int64$",
     ):
         DataFrame[SchemaNoCoerce](raw_data)
+
+
+def test_validate_on_init_module():
+    """Make sure validation on initialization works when run as a module."""
+    path = os.path.join(
+        os.path.dirname(__file__),
+        "modules",
+        "validate_on_init.py",
+    )
+    result = runpy.run_path(path)
+    expected = pd.DataFrame([], columns=["a"], dtype=int)
+    pd.testing.assert_frame_equal(result["validated_dataframe"], expected)
 
 
 def test_from_records_validates_the_schema():
