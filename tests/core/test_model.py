@@ -7,6 +7,7 @@ import runpy
 from copy import deepcopy
 from typing import Any, Generic, Iterable, List, Optional, TypeVar
 
+import numpy as np
 import pandas as pd
 import pytest
 
@@ -1091,7 +1092,7 @@ def test_validate_on_init_module():
         "validate_on_init.py",
     )
     result = runpy.run_path(path)
-    expected = pd.DataFrame([], columns=["a"], dtype=int)
+    expected = pd.DataFrame([], columns=["a"], dtype=np.int64)
     pd.testing.assert_frame_equal(result["validated_dataframe"], expected)
 
 
