@@ -268,7 +268,7 @@ class ArrowTimestamp(ArrowDataType, dtypes.Timestamp):
     equivalents=[pyarrow.dictionary, pyarrow.DictionaryType]
 )
 @immutable(init=True)
-class ArrowDictionary(ArrowDataType, dtypes.Category):
+class ArrowDictionary(ArrowDataType):
     """Semantic representation of a :class:`pyarrow.dictionary`."""
 
     type: Optional[pd.ArrowDtype] = dataclasses.field(default=None, init=False)

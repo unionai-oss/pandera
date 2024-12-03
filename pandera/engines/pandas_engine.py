@@ -1661,7 +1661,7 @@ if PYARROW_INSTALLED and PANDAS_2_0_0_PLUS:
         equivalents=[pyarrow.dictionary, pyarrow.DictionaryType]
     )
     @immutable(init=True)
-    class ArrowDictionary(ArrowDataType, dtypes.Category):
+    class ArrowDictionary(ArrowDataType):
         """Semantic representation of a :class:`pyarrow.dictionary`."""
 
         type: Optional[pd.ArrowDtype] = dataclasses.field(
