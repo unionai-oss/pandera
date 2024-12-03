@@ -68,14 +68,29 @@ def infer_index_statistics(index: Union[pd.Index, pd.MultiIndex]):
 
 
 def parse_check_statistics(check_stats: Union[Dict[str, Any], None]):
-    """Convert check statistics to a list of Check objects."""
+    """Convert check statistics to a list of Check objects, including their options."""
     if check_stats is None:
         return None
     checks = []
     for check_name, stats in check_stats.items():
         check = getattr(Check, check_name)
         try:
-            checks.append(check(**stats))
+            # Extract options if present
+            if isinstance(stats, dict):
+                options = (
+                    stats.pop("options", {}) if "options" in stats else {}
+                )
+                if stats:  # If there are remaining stats
+                    check_instance = check(**stats)
+                else:  # Handle case where all stats were in options
+                    check_instance = check()
+                # Apply options to the check instance
+                for option_name, option_value in options.items():
+                    setattr(check_instance, option_name, option_value)
+                checks.append(check_instance)
+            else:
+                # Handle unary check case
+                checks.append(check(stats))
         except TypeError:
             # if stats cannot be unpacked as key-word args, assume unary check.
             checks.append(check(stats))
@@ -142,9 +157,10 @@ def get_series_schema_statistics(series_schema):
 
 
 def parse_checks(checks) -> Union[Dict[str, Any], None]:
-    """Convert Check object to check statistics."""
+    """Convert Check object to check statistics including options."""
     check_statistics = {}
     _check_memo = {}
+
     for check in checks:
         if check not in Check:
             warnings.warn(
@@ -154,28 +170,46 @@ def parse_checks(checks) -> Union[Dict[str, Any], None]:
             )
             continue
 
-        check_statistics[check.name] = (
-            {} if check.statistics is None else check.statistics
-        )
+        # Get base statistics
+        base_stats = {} if check.statistics is None else check.statistics
+
+        # Collect check options
+        check_options = {
+            "raise_warning": check.raise_warning,
+            "n_failure_cases": check.n_failure_cases,
+            "ignore_na": check.ignore_na,
+        }
+
+        # Filter out None values from options
+        check_options = {
+            k: v for k, v in check_options.items() if v is not None
+        }
+
+        # Combine statistics with options
+        check_statistics[check.name] = base_stats
+        if check_options:
+            check_statistics[check.name]["options"] = check_options
+
         _check_memo[check.name] = check
 
-    # raise ValueError on incompatible checks
+    # Check for incompatible checks
     if (
         "greater_than_or_equal_to" in check_statistics
         and "less_than_or_equal_to" in check_statistics
     ):
         min_value = check_statistics.get(
             "greater_than_or_equal_to", float("-inf")
-        )["min_value"]
+        ).get("min_value", float("-inf"))
         max_value = check_statistics.get(
             "less_than_or_equal_to", float("inf")
-        )["max_value"]
+        ).get("max_value", float("inf"))
         if min_value > max_value:
             raise ValueError(
                 f"checks {_check_memo['greater_than_or_equal_to']} "
                 f"and {_check_memo['less_than_or_equal_to']} are incompatible, reason: "
                 f"min value {min_value} > max value {max_value}"
             )
+
     return check_statistics if check_statistics else None
 
 
