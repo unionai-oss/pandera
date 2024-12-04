@@ -1,12 +1,11 @@
 """Check backend for Ibis."""
 
-from functools import partial, reduce
+from functools import partial
 from typing import Optional
 
 
 import ibis
 import ibis.expr.types as ir
-import ibis.expr.datatypes as dt
 from ibis import _, selectors as s
 from ibis.expr.types.groupby import GroupedTable
 from multimethod import overload
@@ -52,9 +51,13 @@ class IbisCheckBackend(BaseCheckBackend):
     def apply(self, check_obj: IbisData):
         """Apply the check function to a check object."""
         if self.check.element_wise:
-            selector = s.cols(check_obj.key) if check_obj.key is not None else s.all()
+            selector = (
+                s.cols(check_obj.key) if check_obj.key is not None else s.all()
+            )
             out = check_obj.table.mutate(
-                s.across(selector, self.check_fn, f"{{col}}{CHECK_OUTPUT_SUFFIX}")
+                s.across(
+                    selector, self.check_fn, f"{{col}}{CHECK_OUTPUT_SUFFIX}"
+                )
             ).select(selector | s.endswith(CHECK_OUTPUT_SUFFIX))
         else:
             out = self.check_fn(check_obj)
