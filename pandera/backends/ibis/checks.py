@@ -14,7 +14,7 @@ from pandera.api.base.checks import CheckResult
 from pandera.api.checks import Check
 from pandera.api.ibis.types import IbisData
 from pandera.backends.base import BaseCheckBackend
-
+from pandera.backends.ibis.utils import select_column
 from pandera.constants import CHECK_OUTPUT_KEY
 
 CHECK_OUTPUT_SUFFIX = f"__{CHECK_OUTPUT_KEY}__"
@@ -52,7 +52,9 @@ class IbisCheckBackend(BaseCheckBackend):
         """Apply the check function to a check object."""
         if self.check.element_wise:
             selector = (
-                s.cols(check_obj.key) if check_obj.key is not None else s.all()
+                select_column(check_obj.key)
+                if check_obj.key is not None
+                else s.all()
             )
             out = check_obj.table.mutate(
                 s.across(
@@ -134,7 +136,8 @@ class IbisCheckBackend(BaseCheckBackend):
         """Postprocesses the result of applying the check function."""
         passed = check_output[CHECK_OUTPUT_KEY].all()
         failure_cases = check_output.filter(~_[CHECK_OUTPUT_KEY]).drop(
-            s.endswith(f"__{CHECK_OUTPUT_KEY}__") | s.cols(CHECK_OUTPUT_KEY)
+            s.endswith(f"__{CHECK_OUTPUT_KEY}__")
+            | select_column(CHECK_OUTPUT_KEY)
         )
 
         if check_obj.key is not None:
