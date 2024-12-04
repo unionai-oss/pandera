@@ -124,8 +124,7 @@ def is_geopandas_dtype(
 
     if pd_dtype == "geometry":
         return True
-
-    return isinstance(pd_dtype, GeometryDtype)
+    return pd_dtype is GeometryDtype
 
 
 @immutable(init=True)
@@ -234,7 +233,19 @@ class Engine(  # pylint:disable=too-few-public-methods
         try:
             return engine.Engine.dtype(cls, data_type)
         except TypeError:
-            if is_extension_dtype(data_type) and isinstance(data_type, type):
+            if is_geopandas_dtype(data_type):
+                # pylint: disable=cyclic-import,unused-import
+                # register geopandas datatypes
+                import pandera.engines.geopandas_engine
+
+                np_or_pd_dtype = data_type
+            elif is_pyarrow_dtype(data_type):
+                # pylint: disable=cyclic-import
+                # register pyarrow datatypes
+                import pandera.engines.pyarrow_engine
+
+                np_or_pd_dtype = data_type.pyarrow_dtype
+            elif is_extension_dtype(data_type) and isinstance(data_type, type):
                 try:
                     np_or_pd_dtype = data_type()
                     # Convert to str here because some pandas dtypes allow
@@ -247,18 +258,6 @@ class Engine(  # pylint:disable=too-few-public-methods
                         "Usage Tip: Use an instance or a string "
                         "representation."
                     ) from None
-            elif is_geopandas_dtype(data_type):
-                # pylint: disable=cyclic-import,unused-import
-                # register geopandas datatypes
-                import pandera.engines.geopandas_engine
-
-                np_or_pd_dtype = data_type
-            elif is_pyarrow_dtype(data_type):
-                # pylint: disable=cyclic-import
-                # register pyarrow datatypes
-                import pandera.engines.pyarrow_engine
-
-                np_or_pd_dtype = data_type.pyarrow_dtype
             else:
                 # let pandas transform any acceptable value
                 # into a numpy or pandas dtype.
