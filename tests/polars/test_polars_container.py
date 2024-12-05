@@ -182,7 +182,8 @@ def test_coerce_df_missing_column(ldf_basic, ldf_schema_basic):
     ldf_schema_basic.columns["string_col"].required = False
     ldf_schema_basic.columns["string_col"].coerce = True
     modified_ldf = ldf_basic.drop("string_col")
-    modified_ldf.collect().pipe(ldf_schema_basic.validate)
+    # should not raise an error
+    modified_ldf.pipe(ldf_schema_basic.validate)
 
 
 def test_strict_filter(ldf_basic, ldf_schema_basic):
