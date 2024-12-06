@@ -177,6 +177,15 @@ def test_coerce_df_dtype_error(ldf_basic, ldf_schema_basic):
         modified_ldf.pipe(ldf_schema_basic.validate)
 
 
+def test_coerce_df_missing_column(ldf_basic, ldf_schema_basic):
+    """Test coerce dtype when column does not exist and not required."""
+    ldf_schema_basic.columns["string_col"].required = False
+    ldf_schema_basic.columns["string_col"].coerce = True
+    modified_ldf = ldf_basic.drop("string_col")
+    # should not raise an error
+    modified_ldf.pipe(ldf_schema_basic.validate)
+
+
 def test_strict_filter(ldf_basic, ldf_schema_basic):
     """Test strictness and filtering schema logic."""
     # by default, strict is False, so by default it should pass

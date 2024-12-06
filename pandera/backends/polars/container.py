@@ -446,11 +446,19 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
             else "coerce"
         )
 
+        lf_columns = get_lazyframe_column_names(obj)
+
         try:
             if schema.dtype is not None:
                 obj = getattr(schema.dtype, coerce_fn)(obj)
             else:
                 for col_schema in schema.columns.values():
+                    if (
+                        not col_schema.required
+                        and col_schema.name not in lf_columns
+                    ):
+                        continue
+
                     if schema.coerce or col_schema.coerce:
                         obj = getattr(col_schema.dtype, coerce_fn)(
                             PolarsData(obj, col_schema.selector)
