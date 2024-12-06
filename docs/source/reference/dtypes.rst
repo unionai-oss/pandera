@@ -179,8 +179,10 @@ Polars Dtypes
    pandera.engines.polars_engine.Struct
    pandera.engines.polars_engine.Bool
    pandera.engines.polars_engine.String
+   pandera.engines.polars_engine.Enum
    pandera.engines.polars_engine.Categorical
    pandera.engines.polars_engine.Category
+   pandera.engines.polars_engine.Binary
    pandera.engines.polars_engine.Null
    pandera.engines.polars_engine.Object
 
