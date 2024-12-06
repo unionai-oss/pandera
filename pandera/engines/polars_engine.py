@@ -171,18 +171,10 @@ class DataType(dtypes.DataType):
         raises a :class:`~pandera.errors.ParserError` if the coercion fails
         :raises: :class:`~pandera.errors.ParserError`: if coercion fails
         """
-        from pandera.api.polars.utils import (
-            get_lazyframe_schema,
-            get_lazyframe_column_names,
-        )
+        from pandera.api.polars.utils import get_lazyframe_schema
 
         if isinstance(data_container, pl.LazyFrame):
             data_container = PolarsData(data_container)
-
-        if data_container.key not in get_lazyframe_column_names(
-            data_container.lazyframe
-        ):
-            return data_container.lazyframe
 
         try:
             lf = self.coerce(data_container)
