@@ -18,7 +18,7 @@ from pandera.backends.base import BaseCheckBackend
 
 
 class PandasCheckBackend(BaseCheckBackend):
-    """Check backend ofr pandas."""
+    """Check backend for pandas."""
 
     def __init__(self, check: Check):
         """Initializes a check backend object."""
