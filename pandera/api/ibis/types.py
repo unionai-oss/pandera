@@ -1,9 +1,14 @@
 """Ibis types."""
 
-from typing import NamedTuple, Union
+from typing import NamedTuple, Optional, Union
 
 import ibis.expr.datatypes as dt
 import ibis.expr.types as ir
+
+
+class IbisData(NamedTuple):
+    table: ir.Table
+    key: Optional[str] = None
 
 
 class CheckResult(NamedTuple):
@@ -14,6 +19,8 @@ class CheckResult(NamedTuple):
     checked_object: ir.Table
     failure_cases: ir.Table
 
+
+IbisCheckObjects = Union[ir.Table, ir.Column]
 
 IbisDtypeInputTypes = Union[
     str,
