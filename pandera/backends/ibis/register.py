@@ -16,6 +16,8 @@ def register_ibis_backends():
     from pandera.api.ibis.container import DataFrameSchema
     from pandera.backends.ibis.components import ColumnBackend
     from pandera.backends.ibis.container import DataFrameSchemaBackend
+    from pandera.backends.ibis.checks import IbisCheckBackend
 
     DataFrameSchema.register_backend(ir.Table, DataFrameSchemaBackend)
     Column.register_backend(ir.Table, ColumnBackend)
+    Check.register_backend(ir.Table, IbisCheckBackend)
