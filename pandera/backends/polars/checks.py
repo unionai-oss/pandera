@@ -1,4 +1,4 @@
-"""Check backend for pandas."""
+"""Check backend for polars."""
 
 from functools import partial
 from typing import Optional
@@ -18,7 +18,7 @@ from pandera.constants import CHECK_OUTPUT_KEY
 
 
 class PolarsCheckBackend(BaseCheckBackend):
-    """Check backend ofr pandas."""
+    """Check backend for polars."""
 
     def __init__(self, check: Check):
         """Initializes a check backend object."""
