@@ -43,7 +43,7 @@ class BackendTypes(NamedTuple):
 
 
 @lru_cache
-def get_backend_types(check_cls_fqn: str):
+def get_backend_types(check_cls_fqn: str) -> BackendTypes:
 
     dataframe_datatypes = []
     series_datatypes = []

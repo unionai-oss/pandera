@@ -205,6 +205,9 @@ class PandasCheckBackend(BaseCheckBackend):
         check_output: is_field,  # type: ignore [valid-type]
     ) -> CheckResult:
         """Postprocesses the result of applying the check function."""
+        if check_output.dtype != bool:
+            check_output = check_output.astype(bool)
+
         if check_obj.index.equals(check_output.index) and self.check.ignore_na:
             check_output = check_output | check_obj.isna()
         return CheckResult(
@@ -221,6 +224,9 @@ class PandasCheckBackend(BaseCheckBackend):
         check_output: is_field,  # type: ignore [valid-type]
     ) -> CheckResult:
         """Postprocesses the result of applying the check function."""
+        if check_output.dtype != bool:
+            check_output = check_output.astype(bool)
+
         if check_obj.index.equals(check_output.index) and self.check.ignore_na:
             check_output = check_output | check_obj.isna().all(axis="columns")
         return CheckResult(
@@ -238,10 +244,15 @@ class PandasCheckBackend(BaseCheckBackend):
     ) -> CheckResult:
         """Postprocesses the result of applying the check function."""
         assert check_obj.shape == check_output.shape
+
+        for col, dtype in check_output.dtypes.items():
+            if dtype != bool:
+                check_output[col] = check_output[col].astype(bool)
+
         if check_obj.index.equals(check_output.index) and self.check.ignore_na:
             check_output = check_output | check_obj.isna()
 
-        # collect failure cases across all columns. Flse values in check_output
+        # collect failure cases across all columns. False values in check_output
         # are nulls.
         select_failure_cases = check_obj[~check_output]
         failure_cases = []
