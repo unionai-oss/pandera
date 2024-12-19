@@ -507,3 +507,15 @@ def test_check_backend_not_found():
 
     with pytest.raises(KeyError, match="Backend not found for class"):
         dummy_check(CustomDataObject())
+
+
+def test_check_output_dtype_with_empty_datetime():
+    from pandera.backends.pandas.register import register_pandas_backends
+
+    # NOTE: this should automatically be handles in the check.__call__ method
+    register_pandas_backends("pandas.DataFrame")
+
+    check = Check(lambda _: True, element_wise=True)
+    df = pd.DataFrame({"year_mon": pd.Series(dtype="datetime64[D]")})
+    check_result = check(df)
+    assert check_result.check_output.dtype == bool
