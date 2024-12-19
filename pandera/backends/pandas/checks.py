@@ -205,7 +205,7 @@ class PandasCheckBackend(BaseCheckBackend):
         check_output: is_field,  # type: ignore [valid-type]
     ) -> CheckResult:
         """Postprocesses the result of applying the check function."""
-        if check_output.dtype != bool:
+        if check_output.empty and check_output.dtype != bool:
             check_output = check_output.astype(bool)
 
         if check_obj.index.equals(check_output.index) and self.check.ignore_na:
@@ -224,7 +224,7 @@ class PandasCheckBackend(BaseCheckBackend):
         check_output: is_field,  # type: ignore [valid-type]
     ) -> CheckResult:
         """Postprocesses the result of applying the check function."""
-        if check_output.dtype != bool:
+        if check_output.empty and check_output.dtype != bool:
             check_output = check_output.astype(bool)
 
         if check_obj.index.equals(check_output.index) and self.check.ignore_na:
@@ -246,7 +246,7 @@ class PandasCheckBackend(BaseCheckBackend):
         assert check_obj.shape == check_output.shape
 
         for col, dtype in check_output.dtypes.items():
-            if dtype != bool:
+            if check_output[col].empty and dtype != bool:
                 check_output[col] = check_output[col].astype(bool)
 
         if check_obj.index.equals(check_output.index) and self.check.ignore_na:
