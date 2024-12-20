@@ -20,6 +20,8 @@ from typing import (
     cast,
 )
 
+import pandas as pd
+
 from pandera.api.base.model import BaseModel
 from pandera.api.base.schema import BaseSchema
 from pandera.api.checks import Check
@@ -40,7 +42,7 @@ from pandera.api.parsers import Parser
 from pandera.engines import PYDANTIC_V2
 from pandera.errors import SchemaInitError
 from pandera.import_utils import strategy_import_error
-from pandera.typing import AnnotationInfo
+from pandera.typing import AnnotationInfo, DataFrame
 from pandera.typing.common import DataFrameBase
 from pandera.utils import docstring_substitution
 
@@ -568,6 +570,15 @@ class DataFrameModel(Generic[TDataFrame, TSchema], BaseModel):
     def to_json_schema(cls):
         """Serialize schema metadata into json-schema format."""
         raise NotImplementedError
+
+    @classmethod
+    def empty(
+        cls: Type[TDataFrameModel], *_args
+    ) -> DataFrame[TDataFrameModel]:
+        schema = copy.deepcopy(cls.to_schema())
+        schema.coerce = True
+        empty_df = schema.coerce_dtype(pd.DataFrame(columns=[*schema.columns]))
+        return DataFrame[TDataFrameModel](empty_df)
 
     if PYDANTIC_V2:
 
