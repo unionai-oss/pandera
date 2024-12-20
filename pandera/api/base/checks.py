@@ -17,7 +17,7 @@ from typing import (
 )
 
 import pandas as pd
-from multimethod import multidispatch as _multidispatch
+from pandera.api.function_dispatch import Dispatcher, get_first_arg_type
 
 from pandera.backends.base import BaseCheckBackend
 
@@ -41,43 +41,6 @@ DataFrameCheckObj = Union[pd.DataFrame, Dict[str, pd.DataFrame]]
 
 
 _T = TypeVar("_T", bound="BaseCheck")
-
-
-# pylint: disable=invalid-name
-class multidispatch(_multidispatch):
-    """
-    Custom multidispatch class to handle copy, deepcopy, and code retrieval.
-    """
-
-    @property
-    def __code__(self):
-        """Retrieves the 'base' function of the multidispatch object."""
-        assert (
-            len(self) > 0
-        ), f"multidispatch object {self} has no functions registered"
-        fn, *_ = [*self.values()]  # type: ignore[misc]
-        return fn.__code__
-
-    def __reduce__(self):
-        """
-        Handle custom pickling reduction method by initializing a new
-        multidispatch object, wrapped with the base function.
-        """
-        state = self.__dict__
-        # make sure all registered functions at time of pickling are captured
-        state["__registered_functions__"] = [*self.values()]
-        return (
-            multidispatch,  # object creation function
-            (state["__wrapped__"],),  # arguments to said function
-            state,  # arguments to `__setstate__` after creation
-        )
-
-    def __setstate__(self, state):
-        """Custom unpickling logic."""
-        self.__dict__ = state
-        # rehydrate the multidispatch object with unpickled registered functions
-        for fn in state["__registered_functions__"]:
-            self.register(fn)
 
 
 class MetaCheck(type):  # pragma: no cover
@@ -148,7 +111,13 @@ class BaseCheck(metaclass=MetaCheck):
     @classmethod
     def register_builtin_check_fn(cls, fn: Callable):
         """Registers a built-in check function"""
-        cls.CHECK_FUNCTION_REGISTRY[fn.__name__] = multidispatch(fn)
+        if fn.__name__ in cls.CHECK_FUNCTION_REGISTRY:
+            dispatcher = cls.CHECK_FUNCTION_REGISTRY[fn.__name__]
+        else:
+            dispatcher = Dispatcher()
+            cls.CHECK_FUNCTION_REGISTRY[fn.__name__] = dispatcher
+
+        dispatcher.register(fn)
         return fn
 
     @classmethod
@@ -179,6 +148,7 @@ class BaseCheck(metaclass=MetaCheck):
         # by the check object
         if statistics is None:
             statistics = check_kwargs
+
         return cls(
             cls.get_builtin_check_fn(name),
             statistics=statistics,
