@@ -245,6 +245,9 @@ class ArraySchemaBackend(PandasSchemaBackend):
 
         if schema.unique:
             keep_argument = convert_uniquesettings(schema.report_duplicates)
+            duplicates = None
+            failed = None
+
             if type(check_obj).__module__.startswith("pyspark.pandas"):
                 # pylint: disable=import-outside-toplevel
                 import pyspark.pandas as ps
@@ -257,10 +260,15 @@ class ArraySchemaBackend(PandasSchemaBackend):
                 with ps.option_context("compute.ops_on_diff_frames", True):
                     failed = check_obj[duplicates]
             else:
-                duplicates = check_obj.duplicated(keep=keep_argument)  # type: ignore
-                failed = check_obj[duplicates]
+                if not check_obj.is_unique:
+                    duplicates = check_obj.duplicated(keep=keep_argument)  # type: ignore
+                    failed = check_obj[duplicates]
 
-            if duplicates.any():
+            if (
+                duplicates is not None
+                and failed is not None
+                and duplicates.any()
+            ):
                 passed = False
                 failure_cases = reshape_failure_cases(failed)
                 message = (
@@ -289,6 +297,7 @@ class ArraySchemaBackend(PandasSchemaBackend):
             )
             if isinstance(dtype_check_results, bool):
                 passed = dtype_check_results
+                # TODO: optimize this so we don't have to create a whole dataframe
                 failure_cases = scalar_failure_case(str(check_obj.dtype))
                 msg = (
                     f"expected series '{check_obj.name}' to have type "

@@ -49,7 +49,7 @@ def register_builtin_check(
     name = fn.__name__
 
     # see if the check function is already registered
-    check_fn = _check_cls.CHECK_FUNCTION_REGISTRY.get(name)
+    check_dispatcher = _check_cls.CHECK_FUNCTION_REGISTRY.get(name)
     fn_sig = signature(fn)
 
     # register the check strategy for this particular check, identified
@@ -70,7 +70,7 @@ def register_builtin_check(
         for dt in data_types:
             STRATEGY_DISPATCHER[(name, dt)] = strategy
 
-    if check_fn is None:  # pragma: no cover
+    if check_dispatcher is None:  # pragma: no cover
         raise BuiltinCheckRegistrationError(
             f"Check '{name}' doesn't have a base check implementation. "
             f"You need to create a stub method in the {_check_cls} class and "
@@ -80,7 +80,7 @@ def register_builtin_check(
             "`pandera.backends.pandas.builtin_checks` modules as an example."
         )
 
-    check_fn.register(fn)  # type: ignore
+    check_dispatcher.register(fn)  # type: ignore
 
     return fn
 
