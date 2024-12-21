@@ -4,7 +4,6 @@ from functools import partial
 from typing import Optional
 
 import polars as pl
-from multimethod import overload
 from polars.lazyframe.group_by import LazyGroupBy
 
 from pandera.api.base.checks import CheckResult
@@ -76,15 +75,19 @@ class PolarsCheckBackend(BaseCheckBackend):
 
         return out
 
-    @overload
     def postprocess(self, check_obj, check_output):
         """Postprocesses the result of applying the check function."""
+        if isinstance(check_obj, PolarsData) and isinstance(
+            check_output, pl.LazyFrame
+        ):
+            return self.postprocess_lazyframe_output(check_obj, check_output)
+        elif isinstance(check_output, bool):
+            return self.postprocess_bool_output(check_obj, check_output)
         raise TypeError(  # pragma: no cover
             f"output type of check_fn not recognized: {type(check_output)}"
         )
 
-    @overload  # type: ignore [no-redef]
-    def postprocess(
+    def postprocess_lazyframe_output(
         self,
         check_obj: PolarsData,
         check_output: pl.LazyFrame,
@@ -105,8 +108,7 @@ class PolarsCheckBackend(BaseCheckBackend):
             failure_cases=failure_cases,
         )
 
-    @overload  # type: ignore [no-redef]
-    def postprocess(
+    def postprocess_bool_output(
         self,
         check_obj: PolarsData,
         check_output: bool,
