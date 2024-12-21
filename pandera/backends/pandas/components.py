@@ -70,7 +70,7 @@ class ColumnBackend(ArraySchemaBackend):
                 # pylint: disable=super-with-arguments
                 validated_check_obj = super(ColumnBackend, self).validate(
                     check_obj,
-                    deepcopy(schema).set_name(column_name),
+                    schema.set_name(column_name),
                     head=head,
                     tail=tail,
                     sample=sample,
@@ -84,10 +84,12 @@ class ColumnBackend(ArraySchemaBackend):
 
             except SchemaErrors as errs:
                 for err in errs.schema_errors:
+                    err.column_name = column_name
                     error_handler.collect_error(
                         validation_type(err.reason_code), err.reason_code, err
                     )
             except SchemaError as err:
+                err.column_name = column_name
                 error_handler.collect_error(
                     validation_type(err.reason_code), err.reason_code, err
                 )
