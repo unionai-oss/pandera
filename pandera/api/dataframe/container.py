@@ -609,7 +609,9 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
         if column_name not in schema.columns:
             raise ValueError(f"column '{column_name}' not in {schema}")
         schema_copy = copy.deepcopy(schema)
-        column_copy = copy.deepcopy(schema.columns[column_name])
+        column_copy = copy.deepcopy(schema.columns[column_name]).set_name(
+            column_name
+        )
         new_column = column_copy.__class__(
             **{**column_copy.properties, **kwargs}
         )

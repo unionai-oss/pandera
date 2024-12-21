@@ -68,6 +68,9 @@ class ColumnBackend(ArraySchemaBackend):
         def validate_column(check_obj, column_name, return_check_obj=False):
             try:
                 # pylint: disable=super-with-arguments
+                # make sure the schema component mutations are reverted after
+                # validation
+                _orig_name = schema.name
                 validated_check_obj = super(ColumnBackend, self).validate(
                     check_obj,
                     schema.set_name(column_name),
@@ -78,6 +81,8 @@ class ColumnBackend(ArraySchemaBackend):
                     lazy=lazy,
                     inplace=inplace,
                 )
+                # revert the schema component mutations
+                schema.name = _orig_name
 
                 if return_check_obj:
                     return validated_check_obj

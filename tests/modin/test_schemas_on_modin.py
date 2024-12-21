@@ -380,6 +380,11 @@ def test_schema_model():
 )
 def test_check_comparison_operators(check, valid, invalid):
     """Test simple comparison operators."""
+    from pandera.backends.pandas.register import register_pandas_backends
+
+    # NOTE: this should automatically be handles in the check.__call__ method
+    register_pandas_backends("modin.Series")
+
     valid_check_result = check(mpd.Series([valid] * 3))
     invalid_check_result = check(mpd.Series([invalid] * 3))
     assert valid_check_result.check_passed

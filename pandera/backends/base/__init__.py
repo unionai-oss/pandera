@@ -116,6 +116,7 @@ class BaseSchemaBackend(ABC):
     def run_schema_component_checks(
         self,
         check_obj,
+        schema,
         schema_components,
         lazy,
     ):

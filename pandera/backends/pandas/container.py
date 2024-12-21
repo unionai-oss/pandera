@@ -151,7 +151,10 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
             (self.check_column_names_are_unique, (check_obj, schema)),
             (self.check_column_presence, (check_obj, schema, column_info)),
             (self.check_column_values_are_unique, (sample, schema)),
-            (self.run_schema_component_checks, (sample, components, lazy)),
+            (
+                self.run_schema_component_checks,
+                (sample, schema, components, lazy),
+            ),
             (self.run_checks, (sample, schema)),
         ]
         for check, args in core_checks:
@@ -188,6 +191,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
     def run_schema_component_checks(
         self,
         check_obj: pd.DataFrame,
+        schema,
         schema_components: List,
         lazy: bool,
     ) -> List[CoreCheckResult]:
@@ -197,9 +201,27 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
         # schema-component-level checks
         for schema_component in schema_components:
             try:
+                # make sure the schema component mutations are reverted after
+                # validation
+                _orig_dtype = schema_component.dtype
+                _orig_coerce = schema_component.coerce
+
+                if schema.dtype is not None:
+                    # override column dtype with dataframe dtype
+                    schema_component.dtype = schema.dtype  # type: ignore
+
+                # disable coercion at the schema component level since the
+                # dataframe-level schema already coerced it.
+                schema_component.coerce = False  # type: ignore
+
                 result = schema_component.validate(
                     check_obj, lazy=lazy, inplace=True
                 )
+
+                # revert the schema component mutations
+                schema_component.dtype = _orig_dtype
+                schema_component.coerce = _orig_coerce
+
                 check_passed.append(is_table(result))
             except SchemaError as err:
                 check_results.append(
@@ -346,14 +368,8 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
                 or col_name in check_obj
                 or col_name in column_info.regex_match_patterns
             ) and col_name not in column_info.absent_column_names:
-                col = copy.deepcopy(col)
-                if schema.dtype is not None:
-                    # override column dtype with dataframe dtype
-                    col.dtype = schema.dtype  # type: ignore
-
-                # disable coercion at the schema component level since the
-                # dataframe-level schema already coerced it.
-                col.coerce = False  # type: ignore
+                if col.name != col_name:
+                    col.name = col_name
                 schema_components.append(col)
 
         if schema.index is not None:

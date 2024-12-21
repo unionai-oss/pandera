@@ -158,7 +158,11 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
         )
         try:
             self.run_schema_component_checks(
-                check_obj_subsample, schema_components, lazy, error_handler
+                check_obj_subsample,
+                schema,
+                schema_components,
+                lazy,
+                error_handler,
             )
         except SchemaError as exc:
             error_handler.collect_error(
@@ -186,6 +190,7 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
     def run_schema_component_checks(
         self,
         check_obj: DataFrame,
+        schema,
         schema_components: List,
         lazy: bool,
         error_handler: Optional[ErrorHandler],
