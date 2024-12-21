@@ -207,14 +207,13 @@ class ArraySchemaBackend(PandasSchemaBackend):
 
     @validate_scope(scope=ValidationScope.SCHEMA)
     def check_nullable(self, check_obj: pd.Series, schema) -> CoreCheckResult:
-        if schema.nullable:
+        if schema.nullable or not check_obj.hasnans:
             # Avoid to compute anything for perf reasons. GH#1533
             return CoreCheckResult(
                 passed=True,
                 check="not_nullable",
             )
 
-        # Check actual column contents
         isna = check_obj.isna()
         passed = schema.nullable or not isna.any()
         failure_cases = (

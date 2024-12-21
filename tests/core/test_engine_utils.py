@@ -42,8 +42,7 @@ def test_numpy_pandas_coerce_failure_cases(data_container):
     failure_cases = utils.numpy_pandas_coerce_failure_cases(
         data_container, int
     )
-    assert isinstance(failure_cases, pd.DataFrame)
-    assert failure_cases.empty
+    assert failure_cases is None
 
 
 @pytest.mark.parametrize(

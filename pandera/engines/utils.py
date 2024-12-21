@@ -40,7 +40,7 @@ def numpy_pandas_coercible(series: pd.Series, type_: Any) -> pd.Series:
 
 def numpy_pandas_coerce_failure_cases(
     data_container: Union[PandasObject, np.ndarray], type_: Any
-) -> PandasObject:
+) -> Union[PandasObject, None]:
     """
     Get the failure cases resulting from trying to coerce a pandas/numpy object
     into particular data type.
@@ -91,6 +91,12 @@ def numpy_pandas_coerce_failure_cases(
             f"type of data_container {type(data_container)} not understood. "
             "Must be a pandas Series, Index, or DataFrame."
         )
-    return error_formatters.reshape_failure_cases(
+    if failure_cases is None:
+        return failure_cases
+
+    failure_cases = error_formatters.reshape_failure_cases(
         failure_cases, ignore_na=False
     )
+    if failure_cases.empty:
+        return None
+    return failure_cases
