@@ -150,9 +150,6 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
         self.report_duplicates = report_duplicates
         self.unique_column_names = unique_column_names
 
-        # this attribute is not meant to be accessed by users and is explicitly
-        # set to True in the case that a schema is created by infer_schema.
-        self._IS_INFERRED = False
         self.metadata = metadata
 
     @staticmethod
@@ -180,15 +177,6 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
     def unique(self, value: Optional[Union[str, List[str]]]) -> None:
         """Set unique attribute."""
         self._unique = [value] if isinstance(value, str) else value
-
-    # the _is_inferred getter and setter methods are not public
-    @property
-    def _is_inferred(self) -> bool:
-        return self._IS_INFERRED
-
-    @_is_inferred.setter
-    def _is_inferred(self, value: bool) -> None:
-        self._IS_INFERRED = value
 
     @property
     def dtypes(self) -> Dict[str, DataType]:
@@ -355,15 +343,6 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
         inplace: bool = False,
         error_handler: ErrorHandler = None,
     ):
-        if self._is_inferred:
-            warnings.warn(
-                f"This {type(self)} is an inferred schema that hasn't been "
-                "modified. It's recommended that you refine the schema "
-                "by calling `add_columns`, `remove_columns`, or "
-                "`update_columns` before using it to validate data.",
-                UserWarning,
-            )
-
         return self.get_backend(check_obj).validate(
             check_obj=check_obj,
             schema=self,
@@ -470,9 +449,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
             return NotImplemented
 
         def _compare_dict(obj):
-            return {
-                k: v for k, v in obj.__dict__.items() if k != "_IS_INFERRED"
-            }
+            return {k: v for k, v in obj.__dict__.items() if k}
 
         return _compare_dict(self) == _compare_dict(other)
 

@@ -2,7 +2,7 @@
 
 import os
 from contextlib import contextmanager
-from copy import deepcopy
+from copy import copy
 from enum import Enum
 from typing import Optional
 
@@ -64,7 +64,7 @@ CONFIG = PanderaConfig(
     ),
 )
 
-_CONTEXT_CONFIG = deepcopy(CONFIG)
+_CONTEXT_CONFIG = copy(CONFIG)
 
 
 @contextmanager
@@ -96,7 +96,7 @@ def reset_config_context(conf: Optional[PanderaConfig] = None):
     """Reset the context configuration to the global configuration."""
     # pylint: disable=global-statement
     global _CONTEXT_CONFIG
-    _CONTEXT_CONFIG = deepcopy(conf or CONFIG)
+    _CONTEXT_CONFIG = copy(conf or CONFIG)
 
 
 def get_config_global() -> PanderaConfig:
@@ -110,7 +110,7 @@ def get_config_context(
     ] = ValidationDepth.SCHEMA_AND_DATA,
 ) -> PanderaConfig:
     """Gets the configuration context."""
-    config = deepcopy(_CONTEXT_CONFIG)
+    config = copy(_CONTEXT_CONFIG)
 
     if config.validation_depth is None and validation_depth_default:
         config.validation_depth = validation_depth_default

@@ -1,9 +1,9 @@
 """Common class for dataframe component specification."""
 
 import copy
-from typing import Any, Generic, List, Optional, TypeVar, cast
+from typing import Any, Generic, Optional, TypeVar, cast
 
-from pandera.api.base.schema import BaseSchema, inferred_schema_guard
+from pandera.api.base.schema import BaseSchema
 from pandera.api.base.types import CheckList, ParserList
 from pandera.api.checks import Check
 from pandera.api.hypotheses import Hypothesis
@@ -97,22 +97,9 @@ class ComponentSchema(Generic[TDataObject], BaseSchema):
         self.description = description
         self.default = default
 
-        # this attribute is not meant to be accessed by users and is explicitly
-        # set to True in the case that a schema is created by infer_schema.
-        self._IS_INFERRED = False
-
         self._validate_attributes()
 
     def _validate_attributes(self): ...
-
-    # the _is_inferred getter and setter methods are not public
-    @property
-    def _is_inferred(self):
-        return self._IS_INFERRED
-
-    @_is_inferred.setter
-    def _is_inferred(self, value: bool):
-        self._IS_INFERRED = value
 
     @property
     def _allow_groupby(self):
@@ -218,14 +205,13 @@ class ComponentSchema(Generic[TDataObject], BaseSchema):
     # Schema Transforms Methods #
     #############################
 
-    @inferred_schema_guard
-    def update_checks(self, checks: List[Check]):
+    def update_checks(self, checks: CheckList):
         """Create a new SeriesSchema with a new set of Checks
 
         :param checks: checks to set on the new schema
         :returns: a new SeriesSchema with a new set of checks
         """
-        schema_copy = cast(ComponentSchema, copy.deepcopy(self))
+        schema_copy = cast(ComponentSchema, copy.copy(self))
         schema_copy.checks = checks
         return schema_copy
 

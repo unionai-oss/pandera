@@ -83,7 +83,6 @@ def infer_dataframe_schema(df: pd.DataFrame) -> DataFrameSchema:
         index=_create_index(df_statistics["index"]),
         coerce=True,
     )
-    schema._is_inferred = True
     return schema
 
 
@@ -101,5 +100,4 @@ def infer_series_schema(series) -> SeriesSchema:
         name=series_statistics["name"],
         coerce=True,
     )
-    schema._is_inferred = True
     return schema

@@ -144,15 +144,6 @@ class DataFrameSchema(_DataFrameSchema[pd.DataFrame]):
         inplace: bool = False,
     ) -> pd.DataFrame:
 
-        if self._is_inferred:
-            warnings.warn(
-                f"This {type(self)} is an inferred schema that hasn't been "
-                "modified. It's recommended that you refine the schema "
-                "by calling `add_columns`, `remove_columns`, or "
-                "`update_columns` before using it to validate data.",
-                UserWarning,
-            )
-
         return self.get_backend(check_obj).validate(
             check_obj,
             schema=self,

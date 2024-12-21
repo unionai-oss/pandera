@@ -15,7 +15,6 @@ good-names=
     v,
     fp,
     bar,
-    _IS_INFERRED,
     eq,
     ne,
     gt,
