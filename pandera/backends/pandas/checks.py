@@ -95,6 +95,8 @@ class PandasCheckBackend(BaseCheckBackend):
         check_obj,
     ) -> Union[pd.Series, Dict[str, pd.Series]]:
         if self.check.groupby is None:
+            if self.check.ignore_na and check_obj.hasnans:
+                return check_obj.dropna()
             return check_obj
         return cast(
             Dict[str, pd.Series],
@@ -109,6 +111,8 @@ class PandasCheckBackend(BaseCheckBackend):
         key,
     ) -> Union[pd.DataFrame, Dict[str, pd.DataFrame]]:
         if self.check.groupby is None:
+            if self.check.ignore_na and check_obj[key].hasnans:
+                return check_obj[key].dropna()
             return check_obj[key]
         return cast(
             Dict[str, pd.DataFrame],
@@ -187,9 +191,14 @@ class PandasCheckBackend(BaseCheckBackend):
         )
 
     def _get_series_failure_cases(
-        self, check_obj, check_output: pd.Series
+        self,
+        check_obj,
+        check_output: pd.Series,
     ) -> Optional[pd.Series]:
         if not check_obj.index.equals(check_output.index):
+            return None
+
+        if check_output.all():
             return None
 
         failure_cases = check_obj[~check_output]
@@ -221,8 +230,6 @@ class PandasCheckBackend(BaseCheckBackend):
         if check_output.empty and check_output.dtype != bool:
             check_output = check_output.astype(bool)
 
-        if check_obj.index.equals(check_output.index) and self.check.ignore_na:
-            check_output = check_output | check_obj.isna()
         return CheckResult(
             check_output,
             check_output.all(),
