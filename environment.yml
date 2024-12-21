@@ -19,7 +19,6 @@ dependencies:
   - frictionless <= 4.40.8  # v5.* introduces breaking changes
   - pyarrow
   - pydantic
-  - multimethod
 
   # mypy extra
   - pandas-stubs
