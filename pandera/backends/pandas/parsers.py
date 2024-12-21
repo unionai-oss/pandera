@@ -4,7 +4,6 @@ from functools import partial
 from typing import Dict, Optional, Union
 
 import pandas as pd
-from multimethod import overload
 
 from pandera.api.base.parsers import ParserResult
 from pandera.api.pandas.types import is_field, is_table
@@ -22,40 +21,44 @@ class PandasParserBackend(BaseParserBackend):
         self.parser = parser
         self.parser_fn = partial(parser._parser_fn, **parser._parser_kwargs)
 
-    @overload
     def preprocess(
-        self, parse_obj, key  # pylint:disable=unused-argument
+        self, parse_obj, key
     ) -> pd.Series:  # pylint:disable=unused-argument
         """Preprocesses a parser object before applying the parse function."""
-        return parse_obj
+        if is_table(parse_obj) and key is not None:
+            return self.preprocess_table_with_key(parse_obj, key)
+        elif is_table(parse_obj) and key is None:
+            return self.preprocess_table(parse_obj)
+        else:
+            return parse_obj
 
-    @overload  # type: ignore [no-redef]
-    def preprocess(
+    def preprocess_table_with_key(
         self,
-        parse_obj: is_table,  # type: ignore [valid-type]
+        parse_obj,
         key,
     ) -> Union[pd.DataFrame, Dict[str, pd.DataFrame]]:
         return parse_obj[key]
 
-    @overload  # type: ignore [no-redef]
-    def preprocess(
-        self, parse_obj: is_table, key: None  # type: ignore [valid-type]  # pylint:disable=unused-argument
+    def preprocess_table(
+        self, parse_obj
     ) -> Union[pd.DataFrame, Dict[str, pd.DataFrame]]:
         return parse_obj
 
-    @overload
     def apply(self, parse_obj):
         """Apply the parse function to a parser object."""
-        raise NotImplementedError
+        if is_field(parse_obj):
+            return self.apply_field(parse_obj)
+        elif is_table(parse_obj):
+            return self.apply_table(parse_obj)
+        else:
+            raise NotImplementedError
 
-    @overload  # type: ignore [no-redef]
-    def apply(self, parse_obj: is_field):  # type: ignore [valid-type]
+    def apply_field(self, parse_obj):
         if self.parser.element_wise:
             return parse_obj.map(self.parser_fn)
         return self.parser_fn(parse_obj)
 
-    @overload  # type: ignore [no-redef]
-    def apply(self, parse_obj: is_table):  # type: ignore [valid-type]
+    def apply_table(self, parse_obj):
         if self.parser.element_wise:
             return getattr(parse_obj, "map", parse_obj.applymap)(
                 self.parser_fn

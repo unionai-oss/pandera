@@ -4,7 +4,6 @@ from functools import partial
 from typing import Any, Callable, Dict, Union, cast
 
 import pandas as pd
-from multimethod import overload
 
 from pandera import errors
 from pandera.api.hypotheses import Hypothesis
@@ -98,15 +97,18 @@ class PandasHypothesisBackend(PandasCheckBackend):
         """Return True if hypothesis is a one-sample test."""
         return len(self.check.samples) <= 1
 
-    @overload  # type: ignore [no-redef]
     def preprocess(self, check_obj, key) -> Any:
-        self.check.groups = self.check.samples
-        return super().preprocess(check_obj, key)
+        if is_table(check_obj) and key is None:
+            return self.preprocess_table(check_obj)
+        elif is_table(check_obj) and key is not None:
+            return self.preprocess_table_with_key(check_obj, key)
+        else:
+            self.check.groups = self.check.samples  # type: ignore[attr-defined]
+            return super().preprocess(check_obj, key)
 
-    @overload  # type: ignore [no-redef]
-    def preprocess(
+    def preprocess_table_with_key(
         self,
-        check_obj: is_table,  # type: ignore [valid-type]
+        check_obj,
         key,
     ) -> Union[pd.DataFrame, Dict[str, pd.DataFrame]]:
         if self.check.groupby is None:
@@ -118,12 +120,7 @@ class PandasHypothesisBackend(PandasCheckBackend):
             ),
         )
 
-    @overload  # type: ignore [no-redef]
-    def preprocess(
-        self,
-        check_obj: is_table,  # type: ignore [valid-type]
-        key: None,
-    ) -> pd.Series:
+    def preprocess_table(self, check_obj) -> pd.Series:
         """Preprocesses a check object before applying the check function."""
         # This handles the case of Series validation, which has no other context except
         # for the index to groupby on. Right now grouping by the index is not allowed.
@@ -136,7 +133,7 @@ class PandasHypothesisBackend(PandasCheckBackend):
             return check_obj[self.check.samples[0]]  # type: ignore
 
         check_obj = [
-            (sample, check_obj[sample]) for sample in self.check.samples
+            (sample, check_obj[sample]) for sample in self.check.samples  # type: ignore[attr-defined]
         ]
         return cast(
             Dict[str, pd.DataFrame],

@@ -52,7 +52,7 @@ def get_first_arg_type(fn):
     # object to validate is the first argument.
     data_type = [*fn_sig.parameters.values()][0].annotation
 
-    if typing_inspect.get_origin(data_type) is Tuple:
+    if typing_inspect.get_origin(data_type) in (tuple, Tuple):
         data_type, *_ = typing_inspect.get_args(data_type)
 
     if typing_inspect.get_origin(data_type) is Union:
