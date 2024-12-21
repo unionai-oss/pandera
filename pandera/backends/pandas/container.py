@@ -14,7 +14,6 @@ from pandera.backends.base import ColumnInfo, CoreCheckResult, CoreParserResult
 from pandera.backends.pandas.base import PandasSchemaBackend
 from pandera.backends.pandas.error_formatters import (
     reshape_failure_cases,
-    scalar_failure_case,
 )
 from pandera.backends.utils import convert_uniquesettings
 from pandera.config import ValidationScope
@@ -256,7 +255,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
                         check_index=check_index,
                         reason_code=SchemaErrorReason.CHECK_ERROR,
                         message=msg,
-                        failure_cases=scalar_failure_case(err_str),
+                        failure_cases=err_str,
                         original_exc=err,
                     )
                 )
@@ -390,7 +389,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
                         f" {schema.columns} requires a default value "
                         f"when non-nullable add_missing_columns is enabled"
                     ),
-                    failure_cases=scalar_failure_case(col_name),
+                    failure_cases=col_name,
                     check="add_missing_has_default",
                     reason_code=SchemaErrorReason.ADD_MISSING_COLUMN_NO_DEFAULT,
                 )
@@ -500,7 +499,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
                         f"column '{column}' not in {schema.__class__.__name__}"
                         f" {schema.columns}"
                     ),
-                    failure_cases=scalar_failure_case(column),
+                    failure_cases=column,
                     check="column_in_schema",
                     reason_code=SchemaErrorReason.COLUMN_NOT_IN_SCHEMA,
                 )
@@ -516,7 +515,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
                         schema=schema,
                         data=check_obj,
                         message=f"column '{column}' out-of-order",
-                        failure_cases=scalar_failure_case(column),
+                        failure_cases=column,
                         check="column_ordered",
                         reason_code=SchemaErrorReason.COLUMN_NOT_ORDERED,
                     )
@@ -729,7 +728,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
                 "dataframe contains multiple columns with label(s): "
                 f"{failed.tolist()}"
             )
-            failure_cases = scalar_failure_case(failed)
+            failure_cases = failed
 
         return CoreCheckResult(
             passed=passed,
@@ -756,7 +755,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
                             f"column '{colname}' not in dataframe. "
                             f"Columns in dataframe: {check_obj.columns.tolist()}"
                         ),
-                        failure_cases=scalar_failure_case(colname),
+                        failure_cases=colname,
                     )
                 )
         return results

@@ -19,7 +19,6 @@ from pandera.api.pandas.types import (
 from pandera.backends.base import CoreCheckResult
 from pandera.backends.pandas.array import ArraySchemaBackend
 from pandera.backends.pandas.container import DataFrameSchemaBackend
-from pandera.backends.pandas.error_formatters import scalar_failure_case
 from pandera.errors import (
     SchemaDefinitionError,
     SchemaError,
@@ -190,7 +189,7 @@ class ColumnBackend(ArraySchemaBackend):
                     "columns in the dataframe. Update the regex pattern so "
                     f"that it matches at least one column:\n{columns.tolist()}",
                 ),
-                failure_cases=scalar_failure_case(str(columns.tolist())),
+                failure_cases=str(columns.tolist()),
                 check=f"no_regex_column_match('{schema.name}')",
                 reason_code=SchemaErrorReason.INVALID_COLUMN_NAME,
             )
@@ -257,7 +256,7 @@ class ColumnBackend(ArraySchemaBackend):
                         check_index=check_index,
                         reason_code=SchemaErrorReason.CHECK_ERROR,
                         message=msg,
-                        failure_cases=scalar_failure_case(err_str),
+                        failure_cases=err_str,
                         original_exc=err,
                     )
                 )
@@ -493,14 +492,18 @@ class MultiIndexBackend(DataFrameSchemaBackend):
             # a more principled schema class hierarchy.
             schema_errors = []
             for schema_error in err.schema_errors:
+                if is_table(schema_error.failure_cases):
+                    failure_cases = schema_error.failure_cases.assign(
+                        column=schema_error.schema.name
+                    )
+                else:
+                    failure_cases = schema_error.failure_cases
                 schema_errors.append(
                     SchemaError(
                         schema,
                         check_obj,
                         schema_error.args[0],
-                        schema_error.failure_cases.assign(
-                            column=schema_error.schema.name
-                        ),
+                        failure_cases,
                         schema_error.check,
                         schema_error.check_index,
                         reason_code=schema_error.reason_code,

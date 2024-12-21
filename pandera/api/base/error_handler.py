@@ -63,11 +63,15 @@ class ErrorHandler:
 
         self._schema_errors.append(schema_error)
 
-        failure_cases_count = (
-            0
-            if schema_error.failure_cases is None
-            else len(schema_error.failure_cases)
-        )
+        # Failure cases can be a dataframe-like object or a scalar value. Try
+        # getting the number of elements in failure cases column or set to one.
+        try:
+            failure_cases_count = len(schema_error.failure_cases)
+        except TypeError:
+            if schema_error.failure_cases is None:
+                failure_cases_count = 0
+            else:
+                failure_cases_count = 1
 
         self._collected_errors.append(
             {
