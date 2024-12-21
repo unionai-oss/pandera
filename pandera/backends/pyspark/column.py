@@ -3,7 +3,6 @@
 import traceback
 from typing import Iterable, NamedTuple, Optional, cast
 
-from multimethod import DispatchError
 from pyspark.sql import DataFrame
 from pyspark.sql.functions import col
 
@@ -234,11 +233,6 @@ class ColumnSchemaBackend(PysparkSchemaBackend):
                 )
             except Exception as err:  # pylint: disable=broad-except
                 # catch other exceptions that may occur when executing the Check
-                if isinstance(err, DispatchError):
-                    # if the error was raised by a check registered via
-                    # multimethod, get the underlying __cause__
-                    err = err.__cause__
-
                 err_msg = f'"{err.args[0]}"' if len(err.args) > 0 else ""
                 err_str = f"{err.__class__.__name__}({ err_msg})"
                 error_handler.collect_error(

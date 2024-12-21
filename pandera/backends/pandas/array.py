@@ -3,7 +3,6 @@
 from typing import List, Optional, cast
 
 import pandas as pd
-from multimethod import DispatchError
 
 from pandera.api.base.error_handler import ErrorHandler
 from pandera.api.pandas.types import is_field
@@ -339,10 +338,6 @@ class ArraySchemaBackend(PandasSchemaBackend):
                 )
             except Exception as err:  # pylint: disable=broad-except
                 # catch other exceptions that may occur when executing the Check
-                if isinstance(err, DispatchError):
-                    # if the error was raised by a check registered via
-                    # multimethod, get the underlying __cause__
-                    err = err.__cause__
                 err_msg = f'"{err.args[0]}"' if len(err.args) > 0 else ""
                 msg = f"{err.__class__.__name__}({err_msg})"
                 check_results.append(

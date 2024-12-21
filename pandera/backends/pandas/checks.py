@@ -4,7 +4,7 @@ from functools import partial
 from typing import Dict, List, Optional, Union, cast
 
 import pandas as pd
-from multimethod import DispatchError, overload
+from multimethod import overload
 
 from pandera.api.base.checks import CheckResult, GroupbyObject
 from pandera.api.checks import Check
@@ -325,10 +325,5 @@ class PandasCheckBackend(BaseCheckBackend):
         key: Optional[str] = None,
     ) -> CheckResult:
         check_obj = self.preprocess(check_obj, key)
-        try:
-            check_output = self.apply(check_obj)
-        except DispatchError as exc:
-            if exc.__cause__ is not None:
-                raise exc.__cause__
-            raise exc
+        check_output = self.apply(check_obj)
         return self.postprocess(check_obj, check_output)
