@@ -88,6 +88,7 @@ class SchemaError(ReducedPickleExceptionBase):
         "parser",
         "parser_output",
         "reason_code",
+        "column_name",
     ]
 
     def __init__(
@@ -103,6 +104,7 @@ class SchemaError(ReducedPickleExceptionBase):
         parser_index=None,
         parser_output=None,
         reason_code=None,
+        column_name=None,
     ):
         super().__init__(message)
         self.schema = schema
@@ -115,6 +117,7 @@ class SchemaError(ReducedPickleExceptionBase):
         self.parser_index = parser_index
         self.parser_output = parser_output
         self.reason_code = reason_code
+        self.column_name = column_name
 
 
 class SchemaWarning(UserWarning):
@@ -178,9 +181,10 @@ class SchemaErrors(ReducedPickleExceptionBase):
         self.schema_errors = schema_errors
         self.data = data
 
-        failure_cases_metadata = schema.get_backend(
-            data
-        ).failure_cases_metadata(schema.name, schema_errors)
+        backend = schema.get_backend(data)
+        failure_cases_metadata = backend.failure_cases_metadata(
+            schema.name, schema_errors
+        )
         self.error_counts = failure_cases_metadata.error_counts
         self.failure_cases = failure_cases_metadata.failure_cases
         self.message = failure_cases_metadata.message

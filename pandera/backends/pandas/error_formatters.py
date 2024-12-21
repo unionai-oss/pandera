@@ -198,6 +198,8 @@ def consolidate_failure_cases(schema_errors: List[SchemaError]):
         if is_table(err.failure_cases):
             if "column" in err.failure_cases:
                 column = err.failure_cases["column"]
+            elif err.column_name is not None:
+                column = err.column_name
             else:
                 column = err.schema.name
 
