@@ -82,7 +82,10 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
         core_checks = [
             (self.check_column_presence, (check_obj, schema, column_info)),
             (self.check_column_values_are_unique, (sample, schema)),
-            (self.run_schema_component_checks, (sample, components, lazy)),
+            (
+                self.run_schema_component_checks,
+                (sample, schema, components, lazy),
+            ),
             (self.run_checks, (sample, schema)),
         ]
 
@@ -168,6 +171,7 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
     def run_schema_component_checks(
         self,
         check_obj: pl.LazyFrame,
+        schema,
         schema_components: List,
         lazy: bool,
     ) -> List[CoreCheckResult]:

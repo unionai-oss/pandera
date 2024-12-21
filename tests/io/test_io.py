@@ -1461,28 +1461,28 @@ def test_frictionless_schema_parses_correctly(frictionless_schema):
     assert err.value.failure_cases[["check", "failure_case"]].fillna(
         "NaN"
     ).to_dict(orient="records") == [
-        {"check": "column_in_schema", "failure_case": "unexpected_column"},
         {"check": "column_in_dataframe", "failure_case": "date_col"},
+        {"check": "column_in_schema", "failure_case": "unexpected_column"},
+        {"check": "coerce_dtype('float64')", "failure_case": "a"},
+        {"check": "str_length(3, None)", "failure_case": "1A"},
+        {"check": "isin([1.0, 2.0, 3.0])", "failure_case": 3.8},
+        {"check": "isin([1.0, 2.0, 3.0])", "failure_case": 1.1},
+        {"check": "not_nullable", "failure_case": "NaN"},
+        {"check": "str_length(None, 3)", "failure_case": "123A"},
+        {
+            "check": "str_matches('^\\d{3}[A-Z]$')",
+            "failure_case": "789c",
+        },
+        {"check": "field_uniqueness", "failure_case": 12},
         {
             "check": "str_length(3, 80)",
             "failure_case": "dddddddddddddddddddddddddddddddddddddddddddddddddddd"
             "dddddddddddddddddddddddddddddddddddddddddddddddd",
         },
-        {"check": "isin([1.0, 2.0, 3.0])", "failure_case": 3.8},
-        {"check": "isin([1.0, 2.0, 3.0])", "failure_case": 1.1},
-        {"check": "not_nullable", "failure_case": "NaN"},
-        {"check": "str_length(None, 3)", "failure_case": "123A"},
-        {"check": "str_length(3, None)", "failure_case": "1A"},
-        {
-            "check": "str_matches('^\\d{3}[A-Z]$')",
-            "failure_case": "789c",
-        },
         {"check": "str_length(3, 80)", "failure_case": "a"},
-        {"check": "coerce_dtype('float64')", "failure_case": "a"},
         {"check": "less_than_or_equal_to(30)", "failure_case": 113},
         {"check": "in_range(10, 99)", "failure_case": 180},
         {"check": "in_range(10, 99)", "failure_case": 1},
-        {"check": "field_uniqueness", "failure_case": 12},
         {"check": "field_uniqueness", "failure_case": 12},
         {"check": "dtype('float64')", "failure_case": "object"},
     ], "validation failure cases not as expected"

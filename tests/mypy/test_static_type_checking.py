@@ -103,7 +103,7 @@ def test_pandera_runtime_errors(fn) -> None:
     try:
         fn(pandas_dataframe.schema_df)
     except pa.errors.SchemaError as e:
-        assert e.failure_cases["failure_case"].item() == "age"
+        assert e.failure_cases == "age"
 
 
 PANDERA_INHERITANCE_ERRORS = [

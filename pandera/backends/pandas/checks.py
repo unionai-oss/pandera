@@ -201,6 +201,9 @@ class PandasCheckBackend(BaseCheckBackend):
         if check_output.all():
             return None
 
+        if check_output.dtype != bool:
+            check_output = check_output.astype(bool)
+
         failure_cases = check_obj[~check_output]
         if not failure_cases.empty and self.check.n_failure_cases is not None:
             # NOTE: this is a hack to support pyspark.pandas and modin, since you
