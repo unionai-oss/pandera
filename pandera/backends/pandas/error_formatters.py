@@ -68,20 +68,6 @@ def format_vectorized_error_message(
     )
 
 
-def scalar_failure_case(x) -> pd.DataFrame:
-    """Construct failure case from a scalar value.
-
-    :param x: a scalar value representing failure case.
-    :returns: DataFrame used for error reporting with ``SchemaErrors``.
-    """
-    return pd.DataFrame(
-        {
-            "index": [None],
-            "failure_case": [x],
-        }
-    )
-
-
 def reshape_failure_cases(
     failure_cases: Union[pd.DataFrame, pd.Series], ignore_na: bool = True
 ) -> pd.DataFrame:
@@ -166,11 +152,14 @@ def _multiindex_to_frame(df):
 
 def consolidate_failure_cases(schema_errors: List[SchemaError]):
     """Consolidate schema error dicts to produce data for error message."""
+    from pandera.api.pandas.types import is_table
+
     assert schema_errors, (
         "schema_errors input cannot be empty. Check how the backend "
         "validation logic is handling/raising SchemaError(s)."
     )
     check_failure_cases = []
+    scalar_check_failure_cases = []
 
     column_order = [
         "schema_context",
@@ -200,26 +189,45 @@ def consolidate_failure_cases(schema_errors: List[SchemaError]):
             )
         )
 
-        if err.failure_cases is not None:
+        err_metadata = {
+            "schema_context": err.schema.__class__.__name__,
+            "check": check_identifier,
+            "check_number": err.check_index,
+        }
+
+        if is_table(err.failure_cases):
             if "column" in err.failure_cases:
                 column = err.failure_cases["column"]
             else:
                 column = err.schema.name
 
             failure_cases = err.failure_cases.assign(
-                schema_context=err.schema.__class__.__name__,
-                check=check_identifier,
-                check_number=err.check_index,
-                # if the column key is a tuple (for MultiIndex column
-                # names), explicitly wrap `column` in a list of the
-                # same length as the number of failure cases.
                 column=(
+                    # if the column key is a tuple (for MultiIndex column
+                    # names), explicitly wrap `column` in a list of the
+                    # same length as the number of failure cases.
                     [column] * err.failure_cases.shape[0]
                     if isinstance(column, tuple)
                     else column
                 ),
+                **err_metadata,
             )
             check_failure_cases.append(failure_cases[column_order])
+        else:
+            # assume that err.failure_cases is a scalar value
+            scalar_check_failure_cases.append(
+                {
+                    "column": err.schema.name,
+                    "failure_case": err.failure_cases,
+                    "index": None,
+                    **err_metadata,
+                }
+            )
+
+    if scalar_check_failure_cases:
+        check_failure_cases.append(
+            pd.DataFrame.from_records(scalar_check_failure_cases)
+        )
 
     # NOTE: this is a hack to support pyspark.pandas and modin
     concat_fn = pd.concat  # type: ignore
@@ -235,6 +243,11 @@ def consolidate_failure_cases(schema_errors: List[SchemaError]):
             x if isinstance(x, ps.DataFrame) else ps.DataFrame(x)
             for x in check_failure_cases
         ]
+        return (
+            concat_fn(check_failure_cases)
+            .reset_index(drop=True)
+            .sort_values("schema_context", ascending=False)
+        )
     elif any(
         type(x).__module__.startswith("modin.pandas")
         for x in check_failure_cases

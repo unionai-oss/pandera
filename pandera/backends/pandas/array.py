@@ -8,10 +8,7 @@ from pandera.api.base.error_handler import ErrorHandler
 from pandera.api.pandas.types import is_field
 from pandera.backends.base import CoreCheckResult, CoreParserResult
 from pandera.backends.pandas.base import PandasSchemaBackend
-from pandera.backends.pandas.error_formatters import (
-    reshape_failure_cases,
-    scalar_failure_case,
-)
+from pandera.backends.pandas.error_formatters import reshape_failure_cases
 from pandera.backends.utils import convert_uniquesettings
 from pandera.config import ValidationScope
 from pandera.engines.pandas_engine import Engine
@@ -205,7 +202,7 @@ class ArraySchemaBackend(PandasSchemaBackend):
                 f"Expected {type(check_obj)} to have name '{schema.name}', "
                 f"found '{check_obj.name}'"
             ),
-            failure_cases=scalar_failure_case(check_obj.name),
+            failure_cases=check_obj.name,
         )
 
     @validate_scope(scope=ValidationScope.SCHEMA)
@@ -297,7 +294,7 @@ class ArraySchemaBackend(PandasSchemaBackend):
             if isinstance(dtype_check_results, bool):
                 passed = dtype_check_results
                 # TODO: optimize this so we don't have to create a whole dataframe
-                failure_cases = scalar_failure_case(str(check_obj.dtype))
+                failure_cases = str(check_obj.dtype)
                 msg = (
                     f"expected series '{check_obj.name}' to have type "
                     f"{schema.dtype}, got {check_obj.dtype}"
@@ -347,7 +344,7 @@ class ArraySchemaBackend(PandasSchemaBackend):
                         check_index=check_index,
                         reason_code=SchemaErrorReason.CHECK_ERROR,
                         message=msg,
-                        failure_cases=scalar_failure_case(msg),
+                        failure_cases=msg,
                         original_exc=err,
                     )
                 )
