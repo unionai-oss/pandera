@@ -20,7 +20,7 @@ from typing import (
 )
 
 from pandera import errors
-from pandera.api.base.schema import BaseSchema, inferred_schema_guard
+from pandera.api.base.schema import BaseSchema
 from pandera.api.base.types import CheckList, ParserList, StrictType
 from pandera.api.checks import Check
 from pandera.api.hypotheses import Hypothesis
@@ -180,9 +180,6 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
         self.add_missing_columns = add_missing_columns
         self.drop_invalid_rows = drop_invalid_rows
 
-        # this attribute is not meant to be accessed by users and is explicitly
-        # set to True in the case that a schema is created by infer_schema.
-        self._IS_INFERRED = False
         self.metadata = metadata
 
         self._validate_attributes()
@@ -227,15 +224,6 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
     def unique(self, value: Optional[Union[str, List[str]]]) -> None:
         """Set unique attribute."""
         self._unique = [value] if isinstance(value, str) else value
-
-    # the _is_inferred getter and setter methods are not public
-    @property
-    def _is_inferred(self) -> bool:
-        return self._IS_INFERRED
-
-    @_is_inferred.setter
-    def _is_inferred(self, value: bool) -> None:
-        self._IS_INFERRED = value
 
     @property
     def dtypes(self) -> Dict[str, DataType]:
@@ -416,12 +404,7 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
         if not isinstance(other, type(self)):
             return NotImplemented
 
-        def _compare_dict(obj):
-            return {
-                k: v for k, v in obj.__dict__.items() if k != "_IS_INFERRED"
-            }
-
-        return _compare_dict(self) == _compare_dict(other)
+        return self.__dict__ == other.__dict__
 
     if PYDANTIC_V2:
 
@@ -451,7 +434,6 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
     # Schema Transformation Methods #
     #################################
 
-    @inferred_schema_guard
     def add_columns(self, extra_schema_cols: Dict[str, Any]) -> Self:
         """
         Create a copy of the :class:`~pandera.api.dataframe.container.DataFrameSchema`
@@ -507,7 +489,6 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
         }
         return cast(Self, schema_copy)
 
-    @inferred_schema_guard
     def remove_columns(self, cols_to_remove: List[str]) -> Self:
         """
         Removes columns from a :class:`~pandera.api.dataframe.container.DataFrameSchema`
@@ -571,7 +552,6 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
 
         return cast(Self, schema_copy)
 
-    @inferred_schema_guard
     def update_column(self, column_name: str, **kwargs) -> Self:
         """
         Create copy of a :class:`~pandera.api.dataframe.container.DataFrameSchema`

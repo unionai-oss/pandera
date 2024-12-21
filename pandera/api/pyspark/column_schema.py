@@ -6,7 +6,7 @@ from typing import Any, List, Optional, Type, TypeVar, cast
 import pyspark.sql as ps
 
 from pandera.api.base.error_handler import ErrorHandler
-from pandera.api.base.schema import BaseSchema, inferred_schema_guard
+from pandera.api.base.schema import BaseSchema
 from pandera.api.checks import Check
 from pandera.api.pyspark.types import CheckList, PySparkDtypeInputTypes
 from pandera.backends.pyspark.register import register_pyspark_backends
@@ -165,7 +165,6 @@ class ColumnSchema(BaseSchema):
     # Schema Transforms Methods #
     #############################
 
-    @inferred_schema_guard
     def update_checks(self, checks: List[Check]):
         """Create a new Schema with a new set of Checks
 

@@ -8,7 +8,6 @@ together to implement the pandera schema specification.
 import inspect
 import os
 from abc import ABC
-from functools import wraps
 from typing import Any, Dict, Optional, Tuple, Type, Union
 
 from pandera.backends.base import BaseSchemaBackend
@@ -141,22 +140,3 @@ class BaseSchema(ABC):
 
     def __setstate__(self, state):
         self.__dict__ = state
-
-
-def inferred_schema_guard(method):
-    """
-    Invoking a method wrapped with this decorator will set _is_inferred to
-    False.
-    """
-
-    @wraps(method)
-    def wrapper(schema, *args, **kwargs):
-        new_schema = method(schema, *args, **kwargs)
-        if new_schema is not None and id(new_schema) != id(schema):
-            # if method returns a copy of the schema object,
-            # the original schema instance and the copy should be set to
-            # not inferred.
-            new_schema._is_inferred = False
-        return new_schema
-
-    return wrapper

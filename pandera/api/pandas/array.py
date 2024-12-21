@@ -225,14 +225,6 @@ class SeriesSchema(ArraySchema[pd.Series]):
         if not get_config_context().validation_enabled:
             return check_obj
 
-        if self._is_inferred:
-            warnings.warn(
-                f"This {type(self)} is an inferred schema that hasn't been "
-                "modified. It's recommended that you refine the schema "
-                "by calling `set_checks` before using it to validate data.",
-                UserWarning,
-            )
-
         if not is_field(check_obj):
             raise TypeError(f"expected pd.Series, got {type(check_obj)}")
 
