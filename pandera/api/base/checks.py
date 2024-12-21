@@ -17,7 +17,7 @@ from typing import (
 )
 
 import pandas as pd
-from pandera.api.function_dispatch import Dispatcher, get_first_arg_type
+from pandera.api.function_dispatch import Dispatcher
 
 from pandera.backends.base import BaseCheckBackend
 
@@ -51,7 +51,7 @@ class MetaCheck(type):  # pragma: no cover
     )  # noqa
     """Registry of check backends implemented for specific data objects."""
 
-    CHECK_FUNCTION_REGISTRY: Dict[str, Callable] = {}  # noqa
+    CHECK_FUNCTION_REGISTRY: Dict[str, Dispatcher] = {}  # noqa
     """Built-in check function registry."""
 
     REGISTERED_CUSTOM_CHECKS: Dict[str, Callable] = {}  # noqa
@@ -212,12 +212,13 @@ class BaseCheck(metaclass=MetaCheck):
 
     def _get_check_fn_code(self):
         check_fn = self.__dict__["_check_fn"]
+        if isinstance(check_fn, Dispatcher):
+            return check_fn.co_code
         try:
             code = check_fn.__code__.co_code
         except AttributeError:
             # try accessing the functools.partial wrapper
             code = check_fn.func.__code__.co_code
-
         return code
 
     def __hash__(self) -> int:

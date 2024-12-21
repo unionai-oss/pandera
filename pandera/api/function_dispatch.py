@@ -1,6 +1,5 @@
 """Multidispatcher implementation."""
 
-from functools import singledispatch
 from inspect import signature
 from typing import Callable, Dict, Tuple, Type, Union
 import typing_inspect
@@ -24,6 +23,14 @@ class Dispatcher:
         input_data_type = type(args[0])
         fn = self._function_registry[input_data_type]
         return fn(*args, **kwargs)
+
+    @property
+    def co_code(self):
+        """Method for getting bytecode of all the registered functions."""
+        _code = b""
+        for fn in self._function_registry.values():
+            _code += fn.__code__.co_code
+        return _code
 
     @property
     def __name__(self):
