@@ -18,7 +18,7 @@ certifi==2024.12.14
 cfgv==3.4.0
 chardet==5.2.0
 charset-normalizer==3.4.0
-click==8.1.7
+click==8.1.8
 cloudpickle==3.1.0
 colorlog==6.9.0
 comm==0.2.2
@@ -48,7 +48,7 @@ greenlet==3.1.1
 grpcio==1.68.1
 grpcio-status==1.68.1
 h11==0.14.0
-hypothesis==6.122.5
+hypothesis==6.122.6
 identify==2.6.3
 idna==3.10
 imagesize==1.4.1
@@ -62,7 +62,7 @@ jaraco-classes==3.4.0
 jaraco-context==6.0.1
 jaraco-functools==4.1.0
 jedi==0.19.2
-jinja2==3.1.4
+jinja2==3.1.5
 joblib==1.4.2
 json5==0.10.0
 jsonschema==4.23.0
@@ -180,14 +180,14 @@ twine==6.0.1
 typeguard==4.4.1
 typer==0.15.1
 types-click==7.1.8
-types-pytz==2024.2.0.20241003
-types-pyyaml==6.0.12.20240917
+types-pytz==2024.2.0.20241221
+types-pyyaml==6.0.12.20241221
 types-requests==2.32.0.20241016
 types-setuptools==75.6.0.20241126
 typing-extensions==4.12.2
 typing-inspect==0.9.0
 tzdata==2024.2
-urllib3==2.2.3
+urllib3==2.3.0
 uvicorn==0.34.0
 validators==0.34.0
 virtualenv==20.28.0
