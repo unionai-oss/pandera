@@ -265,7 +265,7 @@ def test_check_instance_method_decorator_error() -> None:
 
     with pytest.raises(
         errors.SchemaError,
-        match=r"^error in check_input decorator of function 'TestClass.test_method'",
+        match=r"^error in check_input decorator of function 'test_method'",
     ):
         test_instance = TestClass()
         test_instance.test_method(pd.DataFrame({"column2": ["a", "b", "c"]}))
