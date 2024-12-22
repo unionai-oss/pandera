@@ -12,7 +12,6 @@ dependencies:
   - numpy >= 1.19.0
   - pandas
   - scipy
-  - wrapt
   - pyyaml >=5.1
   - typing_inspect >= 0.6.0
   - typing_extensions >= 3.7.4.3
