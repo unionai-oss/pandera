@@ -226,8 +226,7 @@ class Check(BaseCheck):
             ``failure_cases``: subset of the check_object that failed.
         """
         if self.name is not None and self.is_builtin_check(self.name):
-            # since we use multimethod.multidispatch to dispatch built-in check
-            # functions, we need to reload the function here in case additional
+            # we need to reload the function here in case additional
             # type signatures have been registered for a specific built-in
             # check.
             self._check_fn = self.get_builtin_check_fn(self.name)
