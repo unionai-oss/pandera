@@ -1,5 +1,6 @@
 """Testing the Decorators that check a functions input or output."""
 
+import pickle
 import typing
 from asyncio import AbstractEventLoop
 
@@ -1173,3 +1174,28 @@ def test_coroutines(event_loop: AbstractEventLoop) -> None:
                 await coro(bad_df)
 
     event_loop.run_until_complete(check_coros())
+
+
+class Schema(DataFrameModel):
+    column1: Series[int]
+    column2: Series[float]
+    column3: Series[str]
+
+
+@check_types
+def process_data_and_check_types(df: DataFrame[Schema]) -> DataFrame[Schema]:
+    # Example processing: add a new column
+    return df
+
+
+def test_pickle_decorated_function(tmp_path):
+    path = tmp_path / "tmp.pkl"
+
+    with path.open("wb") as f:
+        pickle.dump(process_data_and_check_types, f)
+
+    with path.open("rb") as f:
+        _process_data_and_check_types = pickle.load(f)
+
+    # pylint: disable=comparison-with-callable
+    assert process_data_and_check_types == _process_data_and_check_types
