@@ -348,6 +348,11 @@ def ci_requirements(session: Session, pandas: str, pydantic: str) -> None:
                 "3.11",
             ):
                 line = "dask[dataframe]>=2023.9.2\n"
+            if _line.startswith("ibis-framework") and session.python in (
+                "3.8",
+                "3.9",
+            ):
+                continue
             requirements.append(line)
 
     with tempfile.NamedTemporaryFile("a") as f:
