@@ -237,6 +237,8 @@ jobs:
         - extra: modin-ray
           polars-version: "0.20.31"
         - extra: ibis
+          python-version: "3.8"
+        - extra: ibis
           polars-version: "0.20.31"
 
     steps:

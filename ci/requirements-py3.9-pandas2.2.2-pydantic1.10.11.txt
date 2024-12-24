@@ -33,6 +33,7 @@ dill==0.3.9
 distlib==0.3.9
 distributed==2024.8.0
 docutils==0.21.2
+duckdb==0.10.3
 exceptiongroup==1.2.2
 execnet==2.1.1
 executing==2.1.0
