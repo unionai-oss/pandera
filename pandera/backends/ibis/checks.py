@@ -8,7 +8,6 @@ import ibis
 import ibis.expr.types as ir
 from ibis import _, selectors as s
 from ibis.expr.types.groupby import GroupedTable
-from multimethod import overload
 
 from pandera.api.base.checks import CheckResult
 from pandera.api.checks import Check
@@ -88,15 +87,23 @@ class IbisCheckBackend(BaseCheckBackend):
                 f"output type of check_fn not recognized: {type(out)}"
             )
 
-    @overload
     def postprocess(self, check_obj, check_output):
         """Postprocesses the result of applying the check function."""
+        if isinstance(check_output, ir.BooleanScalar):
+            return self.postprocess_boolean_scalar_output(
+                check_obj, check_output
+            )
+        elif isinstance(check_output, ir.BooleanColumn):
+            return self.postprocess_boolean_column_output(
+                check_obj, check_output
+            )
+        elif isinstance(check_output, ir.Table):
+            return self.postprocess_table_output(check_obj, check_output)
         raise TypeError(  # pragma: no cover
             f"output type of check_fn not recognized: {type(check_output)}"
         )
 
-    @overload  # type: ignore [no-redef]
-    def postprocess(
+    def postprocess_boolean_scalar_output(
         self,
         check_obj: IbisData,
         check_output: ir.BooleanScalar,
@@ -109,8 +116,7 @@ class IbisCheckBackend(BaseCheckBackend):
             failure_cases=None,
         )
 
-    @overload  # type: ignore [no-redef]
-    def postprocess(
+    def postprocess_boolean_column_output(
         self,
         check_obj: IbisData,
         check_output: ir.BooleanColumn,
@@ -127,8 +133,7 @@ class IbisCheckBackend(BaseCheckBackend):
             failure_cases=failure_cases,
         )
 
-    @overload  # type: ignore [no-redef]
-    def postprocess(
+    def postprocess_table_output(
         self,
         check_obj: IbisData,
         check_output: ir.Table,
