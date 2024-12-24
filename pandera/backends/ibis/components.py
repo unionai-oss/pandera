@@ -9,7 +9,6 @@ import ibis.expr.types as ir
 from pandera.api.base.error_handler import ErrorHandler
 from pandera.backends.base import CoreCheckResult
 from pandera.backends.ibis.base import IbisSchemaBackend
-from pandera.backends.pandas.error_formatters import scalar_failure_case
 from pandera.config import ValidationScope
 from pandera.engines.ibis_engine import Engine
 from pandera.errors import SchemaError, SchemaErrorReason, SchemaErrors
@@ -101,7 +100,7 @@ class ColumnBackend(IbisSchemaBackend):
             )
             if isinstance(dtype_check_results, bool):
                 passed = dtype_check_results
-                failure_cases = scalar_failure_case(str(check_obj.type()))
+                failure_cases = str(check_obj.type())
                 msg = (
                     f"expected column '{check_obj.get_name()}' to have type "
                     f"{schema.dtype}, got {check_obj.type()}"

@@ -11,7 +11,6 @@ from pandera.api.base.error_handler import ErrorHandler
 from pandera.config import ValidationScope
 from pandera.backends.base import CoreCheckResult, ColumnInfo
 from pandera.backends.ibis.base import IbisSchemaBackend
-from pandera.backends.pandas.error_formatters import scalar_failure_case
 from pandera.errors import SchemaError, SchemaErrorReason, SchemaErrors
 from pandera.utils import is_regex
 from pandera.validation_depth import validate_scope, validation_type
@@ -244,7 +243,7 @@ class DataFrameSchemaBackend(IbisSchemaBackend):
                             f"column '{colname}' not in table. "
                             f"Columns in table: {check_obj.columns}"
                         ),
-                        failure_cases=scalar_failure_case(colname),
+                        failure_cases=colname,
                     )
                 )
         return results
