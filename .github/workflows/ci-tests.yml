@@ -196,6 +196,7 @@ jobs:
         - pyspark
         - modin-dask
         - modin-ray
+        - ibis
         include:
         - os: ubuntu-latest
           pip-cache: ~/.cache/pip
