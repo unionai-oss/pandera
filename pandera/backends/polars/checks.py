@@ -77,9 +77,7 @@ class PolarsCheckBackend(BaseCheckBackend):
 
     def postprocess(self, check_obj, check_output):
         """Postprocesses the result of applying the check function."""
-        if isinstance(check_obj, PolarsData) and isinstance(
-            check_output, pl.LazyFrame
-        ):
+        if isinstance(check_output, pl.LazyFrame):
             return self.postprocess_lazyframe_output(check_obj, check_output)
         elif isinstance(check_output, bool):
             return self.postprocess_bool_output(check_obj, check_output)
