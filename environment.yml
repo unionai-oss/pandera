@@ -63,6 +63,9 @@ dependencies:
   - uvicorn
   - python-multipart
 
+  # ibis testing
+  - duckdb
+
   # documentation
   - sphinx
   - sphinx-design
