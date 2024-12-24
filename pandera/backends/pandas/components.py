@@ -48,7 +48,7 @@ class ColumnBackend(ArraySchemaBackend):
         if not inplace:
             check_obj = check_obj.copy()
 
-        error_handler = ErrorHandler(lazy=lazy)
+        error_handler = ErrorHandler(lazy)
 
         if getattr(schema, "drop_invalid_rows", False) and not lazy:
             raise SchemaDefinitionError(
