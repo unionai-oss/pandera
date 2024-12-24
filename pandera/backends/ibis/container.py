@@ -53,7 +53,7 @@ class DataFrameSchemaBackend(IbisSchemaBackend):
         # run the checks
         core_checks = [
             (self.check_column_presence, (check_obj, schema, column_info)),
-            (self.run_schema_component_checks, (sample, components, lazy)),
+            (self.run_schema_component_checks, (sample, schema, components, lazy)),
         ]
 
         # pylint: disable=no-member
@@ -102,6 +102,7 @@ class DataFrameSchemaBackend(IbisSchemaBackend):
     def run_schema_component_checks(
         self,
         check_obj: ir.Table,
+        schema,
         schema_components: Iterable,
         lazy: bool,
     ) -> List[CoreCheckResult]:
