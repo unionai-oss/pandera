@@ -32,6 +32,9 @@ dependencies:
   - modin
   - protobuf
 
+  # ibis extra
+  - ibis-framework >= 3.1.0
+
   # geopandas extra
   - geopandas
   - shapely
