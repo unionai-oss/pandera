@@ -120,7 +120,6 @@ class PandasSchemaBackend(BaseSchemaBackend):
 
         if not passed:
             if check_result.failure_cases is None:
-                # encode scalar False values explicitly
                 failure_cases = check_result.check_passed
                 message = format_generic_error_message(
                     schema, check, check_index
