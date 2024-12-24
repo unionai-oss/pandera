@@ -200,7 +200,7 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
 
     @dtype.setter
     def dtype(self, value: Any) -> None:
-        """Set the pandas dtype property."""
+        """Set the dtype property."""
         raise NotImplementedError
 
     @property

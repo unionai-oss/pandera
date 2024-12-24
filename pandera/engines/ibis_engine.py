@@ -3,10 +3,11 @@
 import dataclasses
 import inspect
 import warnings
-from typing import Any, Iterable, Union
+from typing import Any, Iterable, Optional, Union
 
 import ibis
 import ibis.expr.datatypes as dt
+import ibis.expr.types as ir
 import numpy as np
 
 from pandera import dtypes
@@ -41,7 +42,7 @@ class DataType(dtypes.DataType):
     def check(
         self,
         pandera_dtype: dtypes.DataType,
-        data_container: Any,
+        data_container: Optional[ir.Table] = None,
     ) -> Union[bool, Iterable[bool]]:
         try:
             return self.type == pandera_dtype.type
@@ -62,11 +63,7 @@ class Engine(
         try:
             return engine.Engine.dtype(cls, data_type)
         except TypeError:
-            # TODO(deepyaman): Replace below with `data_type.to_numpy()`
-            #   once have https://github.com/ibis-project/ibis/pull/7910
-            from ibis.formats.numpy import NumpyType
-
-            np_dtype = NumpyType.from_ibis(data_type)
+            np_dtype = data_type.to_numpy()
 
         return engine.Engine.dtype(cls, np_dtype)
 
