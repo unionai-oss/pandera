@@ -214,7 +214,9 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
                 # dataframe-level schema already coerced it.
                 schema_component.coerce = False  # type: ignore
 
-                result = schema_component.validate(check_obj, lazy=lazy, inplace=True)
+                result = schema_component.validate(
+                    check_obj, lazy=lazy, inplace=True
+                )
 
                 # revert the schema component mutations
                 schema_component.dtype = _orig_dtype
