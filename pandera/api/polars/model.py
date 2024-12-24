@@ -1,4 +1,4 @@
-"""Class-based api for polars models."""
+"""Class-based API for Polars models."""
 
 import inspect
 from typing import Dict, List, Tuple, Type
@@ -20,7 +20,7 @@ from pandera.typing.polars import Series
 
 
 class DataFrameModel(_DataFrameModel[pl.LazyFrame, DataFrameSchema]):
-    """Model of a polars :class:`~pandera.api.pandas.container.DataFrameSchema`.
+    """Model of a Polars :class:`~pandera.api.pandas.container.DataFrameSchema`.
 
     See the :ref:`User Guide <dataframe-models>` for more.
     """
@@ -28,7 +28,7 @@ class DataFrameModel(_DataFrameModel[pl.LazyFrame, DataFrameSchema]):
     Config: Type[BaseConfig] = BaseConfig
 
     @classmethod
-    def build_schema_(cls, **kwargs):
+    def build_schema_(cls, **kwargs) -> DataFrameSchema:
         return DataFrameSchema(
             cls._build_columns(cls.__fields__, cls.__checks__),
             checks=cls.__root_checks__,
@@ -41,7 +41,6 @@ class DataFrameModel(_DataFrameModel[pl.LazyFrame, DataFrameSchema]):
         fields: Dict[str, Tuple[AnnotationInfo, FieldInfo]],
         checks: Dict[str, List[Check]],
     ) -> Dict[str, Column]:
-
         columns: Dict[str, Column] = {}
         for field_name, (annotation, field) in fields.items():
             field_checks = checks.get(field_name, [])

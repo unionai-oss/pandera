@@ -196,6 +196,7 @@ jobs:
         - pyspark
         - modin-dask
         - modin-ray
+        - ibis
         include:
         - os: ubuntu-latest
           pip-cache: ~/.cache/pip
@@ -234,6 +235,10 @@ jobs:
         - extra: modin-dask
           polars-version: "0.20.31"
         - extra: modin-ray
+          polars-version: "0.20.31"
+        - extra: ibis
+          python-version: "3.8"
+        - extra: ibis
           polars-version: "0.20.31"
 
     steps:

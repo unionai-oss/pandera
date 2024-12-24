@@ -10,12 +10,11 @@ from pandera.api.polars.types import PolarsCheckObjects
 from pandera.api.polars.utils import get_validation_depth
 from pandera.backends.polars.register import register_polars_backends
 from pandera.config import config_context, get_config_context
-from pandera.dtypes import DataType
 from pandera.engines import polars_engine
 
 
 class DataFrameSchema(_DataFrameSchema[PolarsCheckObjects]):
-    """A polars LazyFrame or DataFrame validator."""
+    """A Polars LazyFrame or DataFrame validator."""
 
     def _validate_attributes(self):
         super()._validate_attributes()
@@ -77,16 +76,9 @@ class DataFrameSchema(_DataFrameSchema[PolarsCheckObjects]):
 
         return output
 
-    @property
-    def dtype(
-        self,
-    ) -> DataType:
-        """Get the dtype property."""
-        return self._dtype  # type: ignore
-
-    @dtype.setter
+    @_DataFrameSchema.dtype.setter  # type: ignore[attr-defined]
     def dtype(self, value) -> None:
-        """Set the pandas dtype property."""
+        """Set the dtype property."""
         self._dtype = polars_engine.Engine.dtype(value) if value else None
 
     def strategy(

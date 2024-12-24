@@ -1,4 +1,4 @@
-"""Check backend for pandas."""
+"""Check backend for polars."""
 
 from functools import partial
 from typing import Optional
@@ -18,7 +18,7 @@ from pandera.constants import CHECK_OUTPUT_KEY
 
 
 class PolarsCheckBackend(BaseCheckBackend):
-    """Check backend ofr pandas."""
+    """Check backend for polars."""
 
     def __init__(self, check: Check):
         """Initializes a check backend object."""
@@ -77,9 +77,7 @@ class PolarsCheckBackend(BaseCheckBackend):
 
     def postprocess(self, check_obj, check_output):
         """Postprocesses the result of applying the check function."""
-        if isinstance(check_obj, PolarsData) and isinstance(
-            check_output, pl.LazyFrame
-        ):
+        if isinstance(check_output, pl.LazyFrame):
             return self.postprocess_lazyframe_output(check_obj, check_output)
         elif isinstance(check_output, bool):
             return self.postprocess_bool_output(check_obj, check_output)
