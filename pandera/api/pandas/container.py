@@ -8,7 +8,6 @@ import pandas as pd
 from pandera.api.dataframe.container import DataFrameSchema as _DataFrameSchema
 from pandera.api.pandas.types import PandasDtypeInputTypes
 from pandera.config import get_config_context
-from pandera.dtypes import DataType
 from pandera.engines import pandas_engine
 from pandera.errors import BackendNotFoundError
 from pandera.import_utils import strategy_import_error
@@ -18,16 +17,14 @@ from pandera.import_utils import strategy_import_error
 class DataFrameSchema(_DataFrameSchema[pd.DataFrame]):
     """A lightweight pandas DataFrame validator."""
 
-    @property
-    def dtype(
-        self,
-    ) -> DataType:
-        """Get the dtype property."""
-        return self._dtype  # type: ignore
+    def _register_default_backends(self):
+        from pandera.backends.pandas.register import register_pandas_backends
 
-    @dtype.setter
+        register_pandas_backends()
+
+    @_DataFrameSchema.dtype.setter
     def dtype(self, value: PandasDtypeInputTypes) -> None:
-        """Set the pandas dtype property."""
+        """Set the dtype property."""
         self._dtype = pandas_engine.Engine.dtype(value) if value else None
 
     def validate(
