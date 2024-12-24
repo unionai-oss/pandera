@@ -116,8 +116,8 @@ class ArraySchemaBackend(PandasSchemaBackend):
             (self.run_checks, (check_obj_subsample, schema)),
         ]
 
-        for core_check, args in core_checks:
-            results = core_check(*args)
+        for check, args in core_checks:
+            results = check(*args)
             if isinstance(results, CoreCheckResult):
                 results = [results]
             results = cast(List[CoreCheckResult], results)
