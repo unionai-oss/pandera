@@ -6,12 +6,14 @@ from typing import TYPE_CHECKING, List, Optional, cast
 
 import ibis.expr.types as ir
 
+from pandera.api.base.error_handler import ErrorHandler
 from pandera.backends.base import CoreCheckResult
 from pandera.backends.ibis.base import IbisSchemaBackend
 from pandera.backends.pandas.error_formatters import scalar_failure_case
+from pandera.config import ValidationScope
 from pandera.engines.ibis_engine import Engine
-from pandera.error_handlers import SchemaErrorHandler
 from pandera.errors import SchemaError, SchemaErrorReason, SchemaErrors
+from pandera.validation_depth import validate_scope, validation_type
 
 if TYPE_CHECKING:
     from pandera.api.ibis.components import Column
@@ -33,7 +35,7 @@ class ColumnBackend(IbisSchemaBackend):
         inplace: bool = False,
     ) -> ir.Table:
         """Validation backend implementation for Ibis table columns."""
-        error_handler = SchemaErrorHandler(lazy)
+        error_handler = ErrorHandler(lazy)
 
         # TODO(deepyaman): subsample the check object if head, tail, or sample are specified
         sample = check_obj[schema.name]
@@ -67,6 +69,7 @@ class ColumnBackend(IbisSchemaBackend):
                         reason_code=result.reason_code,
                     )
                     error_handler.collect_error(  # Why indent (unlike in container.py)?
+                        validation_type(result.reason_code),
                         result.reason_code,
                         error,
                         original_exc=result.original_exc,
@@ -81,6 +84,7 @@ class ColumnBackend(IbisSchemaBackend):
 
         return check_obj
 
+    @validate_scope(scope=ValidationScope.SCHEMA)
     def check_dtype(
         self, check_obj: ir.Column, schema: Column
     ) -> CoreCheckResult:
