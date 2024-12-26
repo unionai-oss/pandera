@@ -348,6 +348,25 @@ def test_check_input_method_decorators() -> None:
     )
 
 
+class DfModel(DataFrameModel):
+    col: int
+
+
+# pylint: disable=unused-argument
+@check_input(DfModel.to_schema())
+def fn_with_check_input(data: DataFrame[DfModel], *, kwarg: bool = False):
+    return data
+
+
+def test_check_input_on_fn_with_kwarg():
+    """
+    That that a check_input correctly validates a function where the first arg
+    is the dataframe and the function has other kwargs.
+    """
+    df = pd.DataFrame({"col": [1]})
+    fn_with_check_input(df, kwarg=True)
+
+
 def test_check_io() -> None:
     # pylint: disable=too-many-locals
     """Test that check_io correctly validates/invalidates data."""
@@ -777,13 +796,13 @@ def test_check_types_with_literal_type(arg_examples):
     """Test that using typing module types works with check_types"""
 
     for example in arg_examples:
-        arg_type = Literal[example]
+        arg_type = Literal[example]  # type: ignore
 
         @check_types
         def transform_with_literal(
             df: DataFrame[InSchema],
             # pylint: disable=unused-argument,cell-var-from-loop
-            arg: arg_type,
+            arg: arg_type,  # type: ignore
         ) -> DataFrame[OutSchema]:
             return df.assign(b=100)  # type: ignore
 

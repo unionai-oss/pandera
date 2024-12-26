@@ -258,41 +258,29 @@ def check_input(
                         pos_args[obj_getter], *validate_args
                     )
                     args = list(pos_args.values())
-            elif obj_getter is None and kwargs:
-                # get the first key in the same order specified in the
-                # function argument.
-                args_names = _get_fn_argnames(wrapped)
-
+            elif obj_getter is None:
                 try:
-                    kwargs[args_names[0]] = schema.validate(
-                        kwargs[args_names[0]], *validate_args
-                    )
-                except errors.SchemaError as e:
-                    _handle_schema_error(
-                        "check_input",
-                        wrapped,
-                        schema,
-                        kwargs[args_names[0]],
-                        e,
-                    )
-            elif obj_getter is None and args:
-                try:
-                    _fn = (
-                        wrapped
-                        if not hasattr(wrapped, "__wrapped__")
-                        else wrapped.__wrapped__
-                    )
+                    _fn = _unwrap_fn(wrapped)
+                    obj_arg_name, *_ = _get_fn_argnames(wrapped)
                     arg_spec_args = inspect.getfullargspec(_fn).args
-                    if arg_spec_args[0] in ("self", "cls"):
-                        arg_idx = 0 if len(args) == 1 else 1
+
+                    arg_idx = arg_spec_args.index(obj_arg_name)
+
+                    if obj_arg_name in kwargs:
+                        obj = kwargs[obj_arg_name]
+                        kwargs[obj_arg_name] = schema.validate(
+                            obj, *validate_args
+                        )
+                    elif obj_arg_name in pos_args:
+                        obj = args[arg_idx]
+                        args[arg_idx] = schema.validate(obj, *validate_args)
                     else:
-                        arg_idx = 0
-                    args[arg_idx] = schema.validate(
-                        args[arg_idx], *validate_args
-                    )
+                        raise ValueError(
+                            f"argument {obj_arg_name} not found in args or kwargs"
+                        )
                 except errors.SchemaError as e:
                     _handle_schema_error(
-                        "check_input", wrapped, schema, args[0], e
+                        "check_input", wrapped, schema, obj, e
                     )
             else:
                 raise TypeError(
