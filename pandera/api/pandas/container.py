@@ -17,11 +17,6 @@ from pandera.import_utils import strategy_import_error
 class DataFrameSchema(_DataFrameSchema[pd.DataFrame]):
     """A lightweight pandas DataFrame validator."""
 
-    def _register_default_backends(self):
-        from pandera.backends.pandas.register import register_pandas_backends
-
-        register_pandas_backends()
-
     @_DataFrameSchema.dtype.setter  # type: ignore[attr-defined]
     def dtype(self, value: PandasDtypeInputTypes) -> None:
         """Set the dtype property."""
