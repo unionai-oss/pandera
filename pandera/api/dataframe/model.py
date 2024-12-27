@@ -20,8 +20,6 @@ from typing import (
     cast,
 )
 
-import pandas as pd
-
 from pandera.api.base.model import BaseModel
 from pandera.api.base.schema import BaseSchema
 from pandera.api.checks import Check
@@ -575,10 +573,8 @@ class DataFrameModel(Generic[TDataFrame, TSchema], BaseModel):
     def empty(
         cls: Type[TDataFrameModel], *_args
     ) -> DataFrame[TDataFrameModel]:
-        schema = copy.deepcopy(cls.to_schema())
-        schema.coerce = True
-        empty_df = schema.coerce_dtype(pd.DataFrame(columns=[*schema.columns]))
-        return DataFrame[TDataFrameModel](empty_df)
+        """Create an empty DataFrame instance."""
+        raise NotImplementedError
 
     if PYDANTIC_V2:
 
