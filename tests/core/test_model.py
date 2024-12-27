@@ -1545,6 +1545,8 @@ def test_pandera_dtype() -> None:
 
 
 def test_empty() -> None:
+    """Test to generate an empty DataFrameModel."""
+
     class Schema(pa.DataFrameModel):
         a: Series[pa.Float]
         b: Series[pa.Int]
