@@ -12,7 +12,7 @@ from pandera.backends.ibis.register import register_ibis_backends
 from pandera.constants import CHECK_OUTPUT_KEY
 
 
-@pytest.fixture(autouse=True)
+@pytest.fixture(autouse=True, scope="module")
 def _register_ibis_backends():
     register_ibis_backends()
 
