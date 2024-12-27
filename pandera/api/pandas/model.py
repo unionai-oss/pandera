@@ -1,6 +1,8 @@
 """Class-based api for pandas models."""
 
-from typing import Any, Dict, List, Optional, Tuple, Type, Union
+import copy
+
+from typing import Any, Dict, List, Optional, Self, Tuple, Type, Union
 
 import pandas as pd
 
@@ -14,7 +16,12 @@ from pandera.api.pandas.model_config import BaseConfig
 from pandera.api.parsers import Parser
 from pandera.engines.pandas_engine import Engine
 from pandera.errors import SchemaInitError
-from pandera.typing import get_index_types, get_series_types, AnnotationInfo
+from pandera.typing import (
+    get_index_types,
+    get_series_types,
+    AnnotationInfo,
+    DataFrame,
+)
 
 SchemaIndex = Union[Index, MultiIndex]
 
@@ -190,6 +197,14 @@ class DataFrameModel(_DataFrameModel[pd.DataFrame, DataFrameSchema]):
                 for field in table_schema["fields"]
             },
         }
+
+    @classmethod
+    def empty(cls: Type[Self], *_args) -> DataFrame[Self]:
+        """Create an empty DataFrame with the schema of this model."""
+        schema = copy.deepcopy(cls.to_schema())
+        schema.coerce = True
+        empty_df = schema.coerce_dtype(pd.DataFrame(columns=[*schema.columns]))
+        return DataFrame[DataFrameModel](empty_df)
 
 
 def _build_schema_index(
