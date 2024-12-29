@@ -1,5 +1,6 @@
 """Class-based api for pandas models."""
 
+from __future__ import annotations
 import copy
 
 from typing import Any, Dict, List, Optional, Self, Tuple, Type, Union
@@ -204,7 +205,7 @@ class DataFrameModel(_DataFrameModel[pd.DataFrame, DataFrameSchema]):
         schema = copy.deepcopy(cls.to_schema())
         schema.coerce = True
         empty_df = schema.coerce_dtype(pd.DataFrame(columns=[*schema.columns]))
-        return DataFrame[DataFrameModel](empty_df)
+        return DataFrame[Self](empty_df)
 
 
 def _build_schema_index(
