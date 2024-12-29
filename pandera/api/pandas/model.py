@@ -1,9 +1,8 @@
 """Class-based api for pandas models."""
 
-from __future__ import annotations
 import copy
-
-from typing import Any, Dict, List, Optional, Self, Tuple, Type, Union
+import sys
+from typing import Any, Dict, List, Optional, Tuple, Type, Union
 
 import pandas as pd
 
@@ -23,6 +22,12 @@ from pandera.typing import (
     AnnotationInfo,
     DataFrame,
 )
+
+# if python version is < 3.11, import Self from typing_extensions
+if sys.version_info < (3, 11):
+    from typing_extensions import Self
+else:
+    from typing import Self
 
 SchemaIndex = Union[Index, MultiIndex]
 
