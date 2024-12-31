@@ -21,3 +21,4 @@ def register_ibis_backends():
     DataFrameSchema.register_backend(ir.Table, DataFrameSchemaBackend)
     Column.register_backend(ir.Table, ColumnBackend)
     Check.register_backend(ir.Table, IbisCheckBackend)
+    Check.register_backend(ir.Column, IbisCheckBackend)

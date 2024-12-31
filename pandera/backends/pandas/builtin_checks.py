@@ -1,4 +1,4 @@
-"""Pandas implementation of built-in checks"""
+"""Built-in checks for pandas."""
 
 import sys
 import operator
