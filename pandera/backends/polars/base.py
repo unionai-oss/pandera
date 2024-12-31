@@ -252,7 +252,9 @@ class PolarsSchemaBackend(BaseSchemaBackend):
         valid_rows = check_outputs.select(
             valid_rows=pl.fold(
                 acc=pl.lit(True),
-                function=lambda acc, x: acc & x,
+                # if nullable=True for a column, the check_outputs values will be null for that row
+                # if the row value is null
+                function=lambda acc, x: acc & (x | x.is_null()),
                 exprs=pl.col(pl.Boolean),
             )
         )["valid_rows"]
