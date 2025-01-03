@@ -32,10 +32,22 @@ def _column_check_fn_scalar_out(data: pa.PolarsData) -> pl.LazyFrame:
 
 
 @pytest.mark.parametrize(
-    "check_fn, invalid_data, expected_output",
+    "check_fn, invalid_data, expected_output, ignore_na",
     [
-        [_column_check_fn_df_out, [-1, 2, 3, -2], [False, True, True, False]],
-        [_column_check_fn_scalar_out, [-1, 2, 3, -2], [False]],
+        [
+            _column_check_fn_df_out,
+            [-1, 2, 3, -2],
+            [False, True, True, False],
+            False,
+        ],
+        [_column_check_fn_scalar_out, [-1, 2, 3, -2], [False], False],
+        [
+            _column_check_fn_df_out,
+            [-1, 2, 3, None],
+            [False, True, True, True],
+            True,
+        ],
+        [_column_check_fn_scalar_out, [-1, 2, 3, None], [False], True],
     ],
 )
 def test_polars_column_check(
@@ -43,8 +55,9 @@ def test_polars_column_check(
     check_fn,
     invalid_data,
     expected_output,
+    ignore_na,
 ):
-    check = pa.Check(check_fn)
+    check = pa.Check(check_fn, ignore_na=ignore_na)
     check_result = check(column_lf, column="col")
     assert check_result.check_passed.collect().item()
 
