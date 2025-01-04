@@ -10,11 +10,6 @@ from pandera.ibis import Column, DataFrameSchema
 from pandera.backends.ibis.register import register_ibis_backends
 
 
-@pytest.fixture(autouse=True)
-def _register_ibis_backends():
-    register_ibis_backends()
-
-
 class BaseClass:
     """This is the base class for the all the test cases class"""
 
