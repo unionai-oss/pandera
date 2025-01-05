@@ -1,5 +1,8 @@
 """Unit tests for Ibis checks."""
 
+import decimal
+from operator import methodcaller
+
 import ibis
 import ibis.expr.datatypes as dt
 import pytest
@@ -7,7 +10,6 @@ import pytest
 import pandera.ibis as pa
 from pandera.errors import SchemaError
 from pandera.ibis import Column, DataFrameSchema
-from pandera.backends.ibis.register import register_ibis_backends
 
 
 class BaseClass:

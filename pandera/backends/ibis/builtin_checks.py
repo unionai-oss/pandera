@@ -2,7 +2,6 @@
 
 from typing import Any, TypeVar
 
-import ibis
 import ibis.expr.types as ir
 
 from pandera.api.extensions import register_builtin_check
