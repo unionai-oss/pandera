@@ -282,8 +282,8 @@ def str_length(
 ) -> PandasData:
     """Ensure that the length of strings is within a specified range.
 
-    :param min_value: Minimum length of strings (default: no minimum)
-    :param max_value: Maximum length of strings (default: no maximum)
+    :param min_value: Minimum length of strings. No minimum by default.
+    :param max_value: Maximum length of strings. No maximum by default.
     """
     str_len = data.str.len()
     if min_value is None and max_value is None:

@@ -17,9 +17,9 @@ T = TypeVar("T")
 def equal_to(data: IbisData, value: Any) -> ir.Table:
     """Ensure all elements of a data container equal a certain value.
 
-    :param data: NamedTuple PolarsData contains the dataframe and column name for the check. The keys
-                to access the dataframe is "dataframe" and column name using "key".
-    :param value: values in this polars data structure must be
+    :param data: NamedTuple IbisData contains the table and column name for the check. The key
+        to access the table is "table", and the key to access the column name is "key".
+    :param value: Values in this Ibis data structure must be
         equal to this value.
     """
     return data.table[data.key] == value
