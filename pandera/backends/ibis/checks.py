@@ -42,8 +42,8 @@ class IbisCheckBackend(BaseCheckBackend):
 
     def preprocess(self, check_obj: Union[ir.Column, ir.Table], key: Optional[str]):
         """Preprocesses a check object before applying the check function."""
-        # This handles the case of Series validation, which has no other context except
-        # for the index to groupby on. Right now grouping by the index is not allowed.
+        # This handles the case of Column validation by promoting it to
+        # a Table with a single column. Table inputs are unaffected.
         return check_obj.as_table()
 
     def apply(self, check_obj: IbisData):
