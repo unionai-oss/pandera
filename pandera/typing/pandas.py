@@ -122,6 +122,7 @@ class DataFrame(DataFrameBase, pd.DataFrame, Generic[T]):
                 Formats.feather: pd.read_feather,
                 Formats.parquet: pd.read_parquet,
                 Formats.pickle: pd.read_pickle,
+                Formats.json_normalize: pd.json_normalize,
             }[Formats(config.from_format)]
 
         return reader(obj, **(config.from_format_kwargs or {}))  # type: ignore
