@@ -40,7 +40,9 @@ class IbisCheckBackend(BaseCheckBackend):
         """Implements aggregation behavior for check object."""
         raise NotImplementedError
 
-    def preprocess(self, check_obj: Union[ir.Column, ir.Table], key: Optional[str]):
+    def preprocess(
+        self, check_obj: Union[ir.Column, ir.Table], key: Optional[str]
+    ):
         """Preprocesses a check object before applying the check function."""
         # This handles the case of Column validation by promoting it to
         # a Table with a single column. Table inputs are unaffected.
