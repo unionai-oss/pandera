@@ -62,7 +62,7 @@ class BaseClass:
     }
 
     def pytest_generate(self, metafunc):
-        """This function passes the parameter for each function based on parameter form get_data_param function"""
+        """This function passes the parameter for each function based on parameter from get_data_param function"""
         raise NotImplementedError
 
     @staticmethod
