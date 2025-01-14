@@ -64,6 +64,10 @@ class InSchemaPickleCallable(InSchema):
         from_format = pd.read_pickle
 
 
+class InSchemaJsonNormalize(InSchema):
+    class Config:
+        from_format = "json_normalize"
+
 class OutSchema(InSchema):
     float_col: pa.typing.Series[float]
 
@@ -194,6 +198,7 @@ def _needs_pyarrow(schema) -> bool:
         [InSchemaParquet, lambda df, x: df.to_parquet(x), io.BytesIO],
         [InSchemaPickle, lambda df, x: df.to_pickle(x), io.BytesIO],
         [InSchemaPickleCallable, lambda df, x: df.to_pickle(x), io.BytesIO],
+        [InSchemaJsonNormalize, lambda df: df.to_json(), io.StringIO],
     ],
 )
 def test_from_format(schema, to_fn, buf_cls):
