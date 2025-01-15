@@ -42,6 +42,9 @@ class Formats(Enum):
     #: python pickle file format
     pickle = "pickle"
 
+    #: python json_normalize
+    json_normalize = "json_normalize"
+
 
 Format = Union[
     Literal[Formats.csv],
@@ -50,4 +53,5 @@ Format = Union[
     Literal[Formats.feather],
     Literal[Formats.parquet],
     Literal[Formats.pickle],
+    Literal[Formats.json_normalize],
 ]
