@@ -1,5 +1,5 @@
 aiosignal==1.3.2
-alabaster==0.7.16
+alabaster==1.0.0
 anyio==4.8.0
 appnope==0.1.4
 argcomplete==3.5.3
@@ -9,7 +9,6 @@ asv==0.6.4
 asv-runner==0.2.1
 attrs==25.1.0
 babel==2.17.0
-backports-tarfile==1.2.0
 beautifulsoup4==4.13.3
 black==25.1.0
 build==1.2.2.post1
@@ -23,16 +22,14 @@ colorlog==6.9.0
 comm==0.2.2
 commonmark==0.9.1
 coverage==7.6.12
-dask==2024.8.0
-dask-expr==1.1.10
+dask==2024.2.1
 debugpy==1.8.12
 decorator==5.1.1
 dependency-groups==1.3.0
 dill==0.3.9
 distlib==0.3.9
-distributed==2024.8.0
+distributed==2024.2.1
 docutils==0.21.2
-exceptiongroup==1.2.2
 execnet==2.1.1
 executing==2.2.0
 fastapi==0.115.8
@@ -55,7 +52,7 @@ imagesize==1.4.1
 importlib-metadata==8.6.1
 iniconfig==2.0.0
 ipykernel==6.29.5
-ipython==8.18.1
+ipython==8.32.0
 isodate==0.7.2
 isort==5.13.2
 jaraco-classes==3.4.0
@@ -79,13 +76,13 @@ matplotlib-inline==0.1.7
 mccabe==0.7.0
 mdit-py-plugins==0.4.2
 mdurl==0.1.2
-modin==0.32.0
+modin==0.22.3
 more-itertools==10.6.0
 msgpack==1.1.0
 mypy==1.10.0
 mypy-extensions==1.0.0
 myst-nb==1.2.0
-myst-parser==3.0.1
+myst-parser==4.0.1
 nbclient==0.10.2
 nbformat==5.10.4
 nest-asyncio==1.6.0
@@ -94,8 +91,8 @@ nodeenv==1.9.1
 nox==2025.2.9
 numpy==1.26.4
 packaging==24.2
-pandas==2.2.2
-pandas-stubs==2.2.2.240807
+pandas==1.5.3
+pandas-stubs==2.2.3.241126
 parso==0.8.4
 partd==1.4.2
 pathspec==0.12.1
@@ -118,7 +115,7 @@ pygments==2.19.1
 pylint==3.2.7
 pympler==1.1
 pyogrio==0.10.0
-pyproj==3.6.1
+pyproj==3.7.1
 pyproject-hooks==1.2.0
 pyspark==3.5.4
 pytest==8.3.4
@@ -140,7 +137,7 @@ requests-toolbelt==1.0.0
 rfc3986==2.0.0
 rich==13.9.4
 rpds-py==0.22.3
-scipy==1.13.1
+scipy==1.15.2
 setuptools==75.8.0
 shapely==2.0.7
 shellingham==1.5.4
@@ -150,7 +147,7 @@ sniffio==1.3.1
 snowballstemmer==2.2.0
 sortedcontainers==2.4.0
 soupsieve==2.6
-sphinx==7.4.7
+sphinx==8.1.3
 sphinx-autodoc-typehints==1.14.1
 sphinx-basic-ng==1.0.0b2
 sphinx-copybutton==0.5.2
@@ -169,7 +166,6 @@ stringcase==1.2.0
 tabulate==0.9.0
 tblib==3.0.0
 text-unidecode==1.3
-tomli==2.2.1
 tomlkit==0.13.2
 toolz==1.0.0
 tornado==6.4.2
@@ -184,7 +180,6 @@ types-requests==2.32.0.20241016
 types-setuptools==75.8.0.20250210
 typing-extensions==4.12.2
 typing-inspect==0.9.0
-tzdata==2025.1
 urllib3==2.3.0
 uvicorn==0.34.0
 validators==0.34.0
