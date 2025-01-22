@@ -119,27 +119,29 @@ class ColumnBackend(ArraySchemaBackend):
                 except SchemaErrors as exc:
                     error_handler.collect_errors(exc.schema_errors)
 
-            if schema.parsers:
-                for parser_index, parser in enumerate(schema.parsers):
-                    check_obj[column_name] = self.run_parser(
-                        check_obj[column_name],
-                        parser,
-                        parser_index,
-                    ).parser_output
-
             if is_table(check_obj[column_name]):
                 for i in range(check_obj[column_name].shape[1]):
-                    validate_column(
-                        check_obj[column_name].iloc[:, [i]], column_name
+                    validated_column = validate_column(
+                        check_obj[column_name].iloc[:, [i]],
+                        column_name,
+                        return_check_obj=True,
                     )
+                    if schema.parsers:
+                        check_obj[column_name] = validated_column
             else:
                 if getattr(schema, "drop_invalid_rows", False):
-                    # replace the check_obj with the validated check_obj
+                    # replace the check_obj with the validated
                     check_obj = validate_column(
                         check_obj, column_name, return_check_obj=True
                     )
-                else:
-                    validate_column(check_obj, column_name)
+
+                validated_column = validate_column(
+                    check_obj,
+                    column_name,
+                    return_check_obj=True,
+                )
+                if schema.parsers:
+                    check_obj[column_name] = validated_column
 
         if lazy and error_handler.collected_errors:
             raise SchemaErrors(

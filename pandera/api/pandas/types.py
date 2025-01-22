@@ -108,6 +108,7 @@ def get_backend_types(check_cls_fqn: str) -> BackendTypes:
     register_fn = {
         "pandas": register_pandas_backend,
         "dask_expr": register_dask_backend,
+        "dask": register_dask_backend,
         "modin": register_modin_backend,
         "pyspark": register_pyspark_backend,
         "geopandas": register_geopandas_backend,
