@@ -7,6 +7,7 @@ coercion examples."""
 import dataclasses
 import datetime
 import inspect
+import platform
 import re
 import sys
 from decimal import Decimal
@@ -516,6 +517,10 @@ def test_default_numeric_dtypes():
         == pandas_engine.Engine.dtype(int)
         == pandas_engine.Engine.dtype("int")
     )
+    if platform.system() == "Windows":
+        assert default_int_dtype == np.dtype("int32")
+    else:
+        assert default_int_dtype == np.dtype("int64")
 
     default_float_dtype = pd.Series([1.0]).dtype
     assert (

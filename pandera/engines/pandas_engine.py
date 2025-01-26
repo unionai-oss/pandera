@@ -335,11 +335,13 @@ def _register_numpy_numbers(
 
     builtin_type = getattr(builtins, builtin_name, None)  # uint doesn't exist
 
-    # default to int64 regardless of OS
-    default_pd_dtype = {
-        "int": np.dtype("int64"),
-        "uint": np.dtype("uint64"),
+    # use OS-specific type for integers. This will be int32 for Windows, int64
+    # for other systems.
+    default_int_dtype = {
+        "int": np.dtype("int32"),
+        "uint": np.dtype("uint32"),
     }.get(builtin_name, pd.Series([1], dtype=builtin_name).dtype)
+    # default_int_dtype = pd.Series([1], dtype=builtin_name).dtype
 
     for bit_width in sizes:
         # e.g.: numpy.int64
@@ -354,10 +356,10 @@ def _register_numpy_numbers(
             )
         )
 
-        if np_dtype == default_pd_dtype:
+        if np_dtype == default_int_dtype:
             equivalents |= set(
                 (
-                    default_pd_dtype,
+                    default_int_dtype,
                     builtin_name,
                     getattr(dtypes, pandera_name),
                     getattr(dtypes, pandera_name)(),
