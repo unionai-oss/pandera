@@ -49,6 +49,7 @@ class TestPanderaConfig:
             "validation_depth": ValidationDepth.SCHEMA_AND_DATA,
             "cache_dataframe": False,
             "keep_cached_dataframe": False,
+            "full_table_validation": None,
         }
 
         with config_context(validation_enabled=False):
@@ -72,6 +73,7 @@ class TestPanderaConfig:
             "validation_depth": ValidationDepth.SCHEMA_ONLY,
             "cache_dataframe": False,
             "keep_cached_dataframe": False,
+            "full_table_validation": None,
         }
         input_df = spark_df(spark, self.sample_data, sample_spark_schema)
 
@@ -159,6 +161,7 @@ class TestPanderaConfig:
             "validation_depth": ValidationDepth.DATA_ONLY,
             "cache_dataframe": False,
             "keep_cached_dataframe": False,
+            "full_table_validation": None,
         }
 
         input_df = spark_df(spark, self.sample_data, sample_spark_schema)
@@ -255,6 +258,7 @@ class TestPanderaConfig:
             "validation_depth": ValidationDepth.SCHEMA_AND_DATA,
             "cache_dataframe": False,
             "keep_cached_dataframe": False,
+            "full_table_validation": None,
         }
 
         input_df = spark_df(spark, self.sample_data, sample_spark_schema)
@@ -383,9 +387,23 @@ class TestPanderaConfig:
             "validation_depth": ValidationDepth.SCHEMA_AND_DATA,
             "cache_dataframe": cache_dataframe,
             "keep_cached_dataframe": keep_cached_dataframe,
+            "full_table_validation": None,
         }
         with config_context(
             cache_dataframe=cache_dataframe,
             keep_cached_dataframe=keep_cached_dataframe,
         ):
+            assert get_config_context().dict() == expected
+
+    @pytest.mark.parametrize("full_table_validation", [True, False])
+    def test_full_table_validation_settings(self, full_table_validation):
+        """This function validates that the full table validation is set correctly."""
+        expected = {
+            "validation_enabled": True,
+            "validation_depth": ValidationDepth.SCHEMA_AND_DATA,
+            "cache_dataframe": False,
+            "keep_cached_dataframe": False,
+            "full_table_validation": full_table_validation,
+        }
+        with config_context(full_table_validation=full_table_validation):
             assert get_config_context().dict() == expected

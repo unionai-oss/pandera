@@ -49,11 +49,46 @@ class TestPandasDataFrameConfig:
             "keep_cached_dataframe": False,
             "validation_enabled": False,
             "validation_depth": ValidationDepth.SCHEMA_AND_DATA,
+            "full_table_validation": None,
         }
 
         assert get_config_context().dict() == expected
         assert pandera_schema.validate(self.sample_data) is self.sample_data
         assert TestSchema.validate(self.sample_data) is self.sample_data
+
+    def test_full_table_validation_true(self):
+        """
+        Validates the full table validation is true for default pandas backend
+        #TODO: Need to check if there is anything else that needs to be tested here.
+        """
+        with config_context(full_table_validation=True):
+            expected = {
+                "cache_dataframe": False,
+                "keep_cached_dataframe": False,
+                "validation_enabled": False,
+                "validation_depth": ValidationDepth.SCHEMA_AND_DATA,
+                "full_table_validation": True,
+            }
+            pandera_schema = DataFrameSchema(
+                {
+                    "product": pa.Column(
+                        str, pa.Check(lambda s: s.str.startswith("B"))
+                    ),
+                    "price_val": pa.Column(int),
+                }
+            )
+
+            class TestSchema(DataFrameModel):
+                """Test Schema class"""
+
+                product: str = pa.Field(str_startswith="B")
+                price_val: int = pa.Field()
+
+            assert get_config_context().dict() == expected
+            assert (
+                pandera_schema.validate(self.sample_data) is self.sample_data
+            )
+            assert TestSchema.validate(self.sample_data) is self.sample_data
 
 
 class TestPandasSeriesConfig:
@@ -69,6 +104,7 @@ class TestPandasSeriesConfig:
             "keep_cached_dataframe": False,
             "validation_enabled": False,
             "validation_depth": ValidationDepth.SCHEMA_AND_DATA,
+            "full_table_validation": None,
         }
         pandera_schema = SeriesSchema(
             int, pa.Check(lambda s: s.value_counts() == 2, element_wise=False)

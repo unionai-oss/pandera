@@ -32,6 +32,7 @@ class PanderaConfig(BaseModel):
     export PANDERA_VALIDATION_DEPTH=DATA_ONLY
     export PANDERA_CACHE_DATAFRAME=True
     export PANDERA_KEEP_CACHED_DATAFRAME=True
+    export PANDERA_FULL_TABLE_VALIDATION=True
     """
 
     validation_enabled: bool = True
@@ -42,6 +43,8 @@ class PanderaConfig(BaseModel):
     validation_depth: Optional[ValidationDepth] = None
     cache_dataframe: bool = False
     keep_cached_dataframe: bool = False
+    # flag used to validate the complete dataframe or not, used to filter invalid rows
+    full_table_validation: Optional[bool] = None
 
 
 # this config variable should be accessible globally
@@ -62,6 +65,10 @@ CONFIG = PanderaConfig(
         "PANDERA_KEEP_CACHED_DATAFRAME",
         False,
     ),
+    full_table_validation=os.environ.get(
+        "PANDERA_FULL_TABLE_VALIDATION",
+        None,
+    ),
 )
 
 _CONTEXT_CONFIG = copy(CONFIG)
@@ -73,6 +80,7 @@ def config_context(
     validation_depth: Optional[ValidationDepth] = None,
     cache_dataframe: Optional[bool] = None,
     keep_cached_dataframe: Optional[bool] = None,
+    full_table_validation: Optional[bool] = None,
 ):
     """Temporarily set pandera config options to custom settings."""
     _outer_config_ctx = get_config_context(validation_depth_default=None)
@@ -86,7 +94,8 @@ def config_context(
             _CONTEXT_CONFIG.cache_dataframe = cache_dataframe
         if keep_cached_dataframe is not None:
             _CONTEXT_CONFIG.keep_cached_dataframe = keep_cached_dataframe
-
+        if full_table_validation is not None:
+            _CONTEXT_CONFIG.full_table_validation = full_table_validation
         yield
     finally:
         reset_config_context(_outer_config_ctx)
@@ -108,11 +117,15 @@ def get_config_context(
     validation_depth_default: Optional[
         ValidationDepth
     ] = ValidationDepth.SCHEMA_AND_DATA,
+    full_table_validation_default: Optional[bool] = None,
 ) -> PanderaConfig:
     """Gets the configuration context."""
     config = copy(_CONTEXT_CONFIG)
 
     if config.validation_depth is None and validation_depth_default:
         config.validation_depth = validation_depth_default
+
+    if config.full_table_validation is None and full_table_validation_default:
+        config.full_table_validation = full_table_validation_default
 
     return config
