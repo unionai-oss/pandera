@@ -31,11 +31,6 @@ from pandera.typing.common import (
 from pandera.typing.formats import Formats
 from pandera.config import config_context
 
-try:
-    from typing import get_args
-except ImportError:
-    from typing_extensions import get_args
-
 
 try:
     from typing import _GenericAlias  # type: ignore[attr-defined]
@@ -200,20 +195,23 @@ class DataFrame(DataFrameBase, pd.DataFrame, Generic[T]):
                 "int64": core_schema.int_schema(),
                 "float64": core_schema.float_schema(),
                 "bool": core_schema.bool_schema(),
-                "datetime64[ns]": core_schema.datetime_schema()
+                "datetime64[ns]": core_schema.datetime_schema(),
             }
             return core_schema.no_info_plain_validator_function(
-                    functools.partial(
+                functools.partial(
                     cls.pydantic_validate,
                     schema_model=schema_model,
                 ),
                 json_schema_input_schema=core_schema.list_schema(
-                core_schema.typed_dict_schema(
-                    {
-                        i:core_schema.typed_dict_field(type_map[str(j.dtype)]) for i,j in schema.columns.items()
-                    },
-                )
-            )
+                    core_schema.typed_dict_schema(
+                        {
+                            i: core_schema.typed_dict_field(
+                                type_map[str(j.dtype)]
+                            )
+                            for i, j in schema.columns.items()
+                        },
+                    )
+                ),
             )
 
     else:
