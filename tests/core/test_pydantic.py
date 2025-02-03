@@ -79,6 +79,10 @@ def test_invalid_typed_dataframe():
         class PydanticModel(BaseModel):
             pa_schema: DataFrame[InvalidSchema]
 
+    # This check prevents Linters from raising an error about not using the PydanticModel class
+    with pytest.raises(UnboundLocalError):
+        PydanticModel(pa_schema=InvalidSchema)
+
 
 def test_dataframemodel():
     """Test that DataFrameModel is compatible with pydantic."""
