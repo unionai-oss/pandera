@@ -18,7 +18,13 @@ from typing import (
     TypeVar,
     Union,
     cast,
+    overload,
 )
+
+# TODO hard dependence on pandas and polars, use string forwardref instead?
+import pandas as pd  # TODO tmp
+import polars as pl
+from pandera.typing.polars import LazyFrame
 
 from pandera.api.base.model import BaseModel
 from pandera.api.base.schema import BaseSchema
@@ -271,24 +277,50 @@ class DataFrameModel(Generic[TDataFrame, TSchema], BaseModel):
         """
         return cls.to_schema().to_yaml(stream)
 
+    # Overloads specify effectively check_obj: TDataFrame -> TDataFrame[TDataFrameModel]
+    # but to do this directly would required higher kinded typevars (https://github.com/python/typing/issues/548)
+
+    @overload
     @classmethod
-    @docstring_substitution(validate_doc=BaseSchema.validate.__doc__)
     def validate(
         cls: Type[TDataFrameModel],
-        check_obj: TDataFrame,
+        check_obj: pl.LazyFrame,
         head: Optional[int] = None,
         tail: Optional[int] = None,
         sample: Optional[int] = None,
         random_state: Optional[int] = None,
         lazy: bool = False,
         inplace: bool = False,
-    ) -> DataFrameBase[TDataFrameModel]:
+    ) -> LazyFrame[TDataFrameModel]: ...
+
+    @overload
+    @classmethod
+    def validate(
+        cls: Type[TDataFrameModel],
+        check_obj: pd.DataFrame,
+        head: Optional[int] = None,
+        tail: Optional[int] = None,
+        sample: Optional[int] = None,
+        random_state: Optional[int] = None,
+        lazy: bool = False,
+        inplace: bool = False,
+    ) -> DataFrame[TDataFrameModel]: ...
+
+    @classmethod
+    @docstring_substitution(validate_doc=BaseSchema.validate.__doc__)
+    def validate(
+        cls: Type[TDataFrameModel],
+        check_obj: pd.DataFrame | pl.LazyFrame,
+        head: Optional[int] = None,
+        tail: Optional[int] = None,
+        sample: Optional[int] = None,
+        random_state: Optional[int] = None,
+        lazy: bool = False,
+        inplace: bool = False,
+    ) -> DataFrame[TDataFrameModel] | LazyFrame[TDataFrameModel]:
         """%(validate_doc)s"""
-        return cast(
-            DataFrameBase[TDataFrameModel],
-            cls.to_schema().validate(
-                check_obj, head, tail, sample, random_state, lazy, inplace
-            ),
+        return cls.to_schema().validate(
+            check_obj, head, tail, sample, random_state, lazy, inplace
         )
 
     # TODO: add docstring_substitution using generic class
