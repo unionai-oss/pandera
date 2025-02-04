@@ -31,7 +31,6 @@ from pandera.typing.common import (
 from pandera.typing.formats import Formats
 from pandera.config import config_context
 
-
 try:
     from typing import _GenericAlias  # type: ignore[attr-defined]
 except ImportError:  # pragma: no cover
@@ -187,15 +186,17 @@ class DataFrame(DataFrameBase, pd.DataFrame, Generic[T]):
         def __get_pydantic_core_schema__(
             cls, _source_type: Any, _handler: GetCoreSchemaHandler
         ) -> core_schema.CoreSchema:
+            # prevent validation in __setattr__ function in DataFrameBase class
             with config_context(validation_enabled=False):
                 schema_model = _source_type().__orig_class__.__args__[0]
-                schema = schema_model.to_schema()
+            schema = schema_model.to_schema()
+            schema_json_columns = schema_model.to_json_schema()["properties"]
             type_map = {
-                "str": core_schema.str_schema(),
-                "int64": core_schema.int_schema(),
-                "float64": core_schema.float_schema(),
-                "bool": core_schema.bool_schema(),
-                "datetime64[ns]": core_schema.datetime_schema(),
+                "string": core_schema.str_schema(),
+                "integer": core_schema.int_schema(),
+                "number": core_schema.float_schema(),
+                "boolean": core_schema.bool_schema(),
+                "datetime": core_schema.datetime_schema(),
             }
             return core_schema.no_info_plain_validator_function(
                 functools.partial(
@@ -205,10 +206,12 @@ class DataFrame(DataFrameBase, pd.DataFrame, Generic[T]):
                 json_schema_input_schema=core_schema.list_schema(
                     core_schema.typed_dict_schema(
                         {
-                            i: core_schema.typed_dict_field(
-                                type_map[str(j.dtype)]
+                            key: core_schema.typed_dict_field(
+                                type_map[
+                                    schema_json_columns[key]["items"]["type"]
+                                ]
                             )
-                            for i, j in schema.columns.items()
+                            for key in schema.columns.keys()
                         },
                     )
                 ),
