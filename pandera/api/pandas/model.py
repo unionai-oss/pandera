@@ -2,10 +2,11 @@
 
 import copy
 import sys
-from typing import Any, Dict, List, Optional, Tuple, Type, Union
+from typing import Any, Dict, List, Optional, Tuple, Type, Union, cast
 
 import pandas as pd
 
+from pandera.api.base.schema import BaseSchema
 from pandera.api.checks import Check
 from pandera.api.dataframe.model import DataFrameModel as _DataFrameModel
 from pandera.api.dataframe.model import get_dtype_kwargs
@@ -22,6 +23,7 @@ from pandera.typing import (
     AnnotationInfo,
     DataFrame,
 )
+from pandera.utils import docstring_substitution
 
 # if python version is < 3.11, import Self from typing_extensions
 if sys.version_info < (3, 11):
@@ -170,6 +172,26 @@ class DataFrameModel(_DataFrameModel[pd.DataFrame, DataFrameSchema]):
                 )
 
         return columns, _build_schema_index(indices, **multiindex_kwargs)
+
+    @classmethod
+    @docstring_substitution(validate_doc=BaseSchema.validate.__doc__)
+    def validate(
+        cls: Type[Self],
+        check_obj: pd.DataFrame,
+        head: Optional[int] = None,
+        tail: Optional[int] = None,
+        sample: Optional[int] = None,
+        random_state: Optional[int] = None,
+        lazy: bool = False,
+        inplace: bool = False,
+    ) -> DataFrame[Self]:
+        """%(validate_doc)s"""
+        return cast(
+            DataFrame[Self],
+            cls.to_schema().validate(
+                check_obj, head, tail, sample, random_state, lazy, inplace
+            ),
+        )
 
     @classmethod
     def to_json_schema(cls):
