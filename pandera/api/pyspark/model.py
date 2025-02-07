@@ -301,7 +301,7 @@ class DataFrameModel(BaseModel):
         random_state: Optional[int] = None,
         lazy: bool = True,
         inplace: bool = False,
-    ) -> Optional[DataFrame[TDataFrameModel]]:
+    ) -> DataFrame[TDataFrameModel]:
         """%(validate_doc)s"""
         return cast(
             DataFrame[TDataFrameModel],

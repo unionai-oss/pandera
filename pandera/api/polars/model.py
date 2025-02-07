@@ -1,7 +1,7 @@
 """Class-based api for polars models."""
 
 import inspect
-from typing import Dict, List, Tuple, Type, cast, Optional
+from typing import Dict, List, Tuple, Type, cast, Optional, overload
 from typing_extensions import Self
 
 import pandas as pd
@@ -18,7 +18,7 @@ from pandera.api.polars.model_config import BaseConfig
 from pandera.engines import polars_engine as pe
 from pandera.errors import SchemaInitError
 from pandera.typing import AnnotationInfo
-from pandera.typing.polars import Series, LazyFrame
+from pandera.typing.polars import Series, LazyFrame, DataFrame
 from pandera.utils import docstring_substitution
 
 
@@ -113,7 +113,20 @@ class DataFrameModel(_DataFrameModel[pl.LazyFrame, DataFrameSchema]):
         return columns
 
     @classmethod
-    @docstring_substitution(validate_doc=BaseSchema.validate.__doc__)
+    @overload
+    def validate(
+        cls: Type[Self],
+        check_obj: pl.DataFrame,
+        head: Optional[int] = None,
+        tail: Optional[int] = None,
+        sample: Optional[int] = None,
+        random_state: Optional[int] = None,
+        lazy: bool = False,
+        inplace: bool = False,
+    ) -> DataFrame[Self]: ...
+
+    @classmethod
+    @overload
     def validate(
         cls: Type[Self],
         check_obj: pl.LazyFrame,
@@ -123,14 +136,28 @@ class DataFrameModel(_DataFrameModel[pl.LazyFrame, DataFrameSchema]):
         random_state: Optional[int] = None,
         lazy: bool = False,
         inplace: bool = False,
-    ) -> LazyFrame[Self]:
+    ) -> LazyFrame[Self]: ...
+
+    @classmethod
+    @docstring_substitution(validate_doc=BaseSchema.validate.__doc__)
+    def validate(
+        cls: Type[Self],
+        check_obj: pl.LazyFrame | pl.DataFrame,
+        head: Optional[int] = None,
+        tail: Optional[int] = None,
+        sample: Optional[int] = None,
+        random_state: Optional[int] = None,
+        lazy: bool = False,
+        inplace: bool = False,
+    ) -> LazyFrame[Self] | DataFrame[Self]:
         """%(validate_doc)s"""
-        return cast(
-            LazyFrame[Self],
-            cls.to_schema().validate(
-                check_obj, head, tail, sample, random_state, lazy, inplace
-            ),
+        result = cls.to_schema().validate(
+            check_obj, head, tail, sample, random_state, lazy, inplace
         )
+        if isinstance(check_obj, pl.LazyFrame):
+            return cast(LazyFrame[Self], result)
+        else:
+            return cast(DataFrame[Self], result)
 
     @classmethod
     def to_json_schema(cls):
