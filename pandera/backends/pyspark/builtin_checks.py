@@ -56,10 +56,10 @@ def equal_to(data: PysparkDataframeColumnObject, value: Any) -> bool:
     )
 )
 def not_equal_to(data: PysparkDataframeColumnObject, value: Any) -> bool:
-    """Ensure no elements of a data container equals a certain value.
+    """Ensure no element of a data container equals a certain value.
 
     :param data: NamedTuple PysparkDataframeColumnObject contains the dataframe and column name for the check. The keys
-                to access the dataframe is "dataframe" and column name using "column_name".
+        to access the dataframe is "dataframe" and column name using "column_name".
     :param value: This value must not occur in the checked
     """
     cond = col(data.column_name) != value
