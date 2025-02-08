@@ -1,7 +1,7 @@
 """Class-based api for polars models."""
 
 import inspect
-from typing import Dict, List, Tuple, Type, cast, Optional, overload
+from typing import Dict, List, Tuple, Type, cast, Optional, overload, Union
 from typing_extensions import Self
 
 import pandas as pd
@@ -149,7 +149,7 @@ class DataFrameModel(_DataFrameModel[pl.LazyFrame, DataFrameSchema]):
         random_state: Optional[int] = None,
         lazy: bool = False,
         inplace: bool = False,
-    ) -> LazyFrame[Self] | DataFrame[Self]:
+    ) -> Union[LazyFrame[Self], DataFrame[Self]]:
         """%(validate_doc)s"""
         result = cls.to_schema().validate(
             check_obj, head, tail, sample, random_state, lazy, inplace
