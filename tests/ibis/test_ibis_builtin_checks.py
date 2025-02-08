@@ -117,6 +117,8 @@ class BaseClass:
 
 
 class TestEqualToCheck(BaseClass):
+    """This class is used to test the equal to check"""
+
     sample_numeric_data = {
         "test_pass_data": [("foo", 30), ("bar", 30)],
         "test_fail_data": [("foo", 30), ("bar", 31)],
@@ -161,6 +163,63 @@ class TestEqualToCheck(BaseClass):
 
     @pytest.mark.parametrize("check_fn", [pa.Check.equal_to, pa.Check.eq])
     def test_equal_to_check(self, check_fn, datatype, data) -> None:
+        """Test the Check to see if all the values are equal to defined value"""
+        self.check_function(
+            check_fn,
+            data["test_pass_data"],
+            data["test_fail_data"],
+            datatype,
+            data["test_expression"],
+        )
+
+
+class TestNotEqualToCheck(BaseClass):
+    """This class is used to test the not equal to check"""
+
+    sample_numeric_data = {
+        "test_pass_data": [("foo", 31), ("bar", 32)],
+        "test_fail_data": [("foo", 30), ("bar", 31)],
+        "test_expression": 30,
+    }
+
+    sample_string_data = {
+        "test_pass_data": [("foo", "b"), ("bar", "c")],
+        "test_fail_data": [("foo", "a"), ("bar", "a")],
+        "test_expression": "a",
+    }
+
+    def pytest_generate_tests(self, metafunc):
+        """This function passes the parameter for each function based on parameter form get_data_param function"""
+        # called once per each test function
+        funcarglist = self.get_data_param()[metafunc.function.__name__]
+        argnames = sorted(funcarglist[0])
+        metafunc.parametrize(
+            argnames,
+            [
+                [funcargs[name] for name in argnames]
+                for funcargs in funcarglist
+            ],
+        )
+
+    def get_data_param(self):
+        """Generate the params which will be used to test this function. All the acceptable
+        data types would be tested"""
+        return {
+            "test_not_equal_to_check": [
+                {"datatype": dt.Int32, "data": self.sample_numeric_data},
+                {"datatype": dt.Int64, "data": self.sample_numeric_data},
+                {"datatype": dt.String, "data": self.sample_string_data},
+                {
+                    "datatype": dt.Float64,
+                    "data": self.convert_data(
+                        self.sample_numeric_data, "float64"
+                    ),
+                },
+            ]
+        }
+
+    @pytest.mark.parametrize("check_fn", [pa.Check.not_equal_to, pa.Check.ne])
+    def test_not_equal_to_check(self, check_fn, datatype, data) -> None:
         """Test the Check to see if all the values are equal to defined value"""
         self.check_function(
             check_fn,
