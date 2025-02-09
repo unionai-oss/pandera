@@ -149,9 +149,21 @@ class TestEqualToCheck(BaseClass):
         data types would be tested"""
         return {
             "test_equal_to_check": [
+                {"datatype": dt.UInt8, "data": self.sample_numeric_data},
+                {"datatype": dt.UInt16, "data": self.sample_numeric_data},
+                {"datatype": dt.UInt32, "data": self.sample_numeric_data},
+                {"datatype": dt.UInt64, "data": self.sample_numeric_data},
+                {"datatype": dt.Int8, "data": self.sample_numeric_data},
+                {"datatype": dt.Int16, "data": self.sample_numeric_data},
                 {"datatype": dt.Int32, "data": self.sample_numeric_data},
                 {"datatype": dt.Int64, "data": self.sample_numeric_data},
                 {"datatype": dt.String, "data": self.sample_string_data},
+                {
+                    "datatype": dt.Float32,
+                    "data": self.convert_data(
+                        self.sample_numeric_data, "float32"
+                    ),
+                },
                 {
                     "datatype": dt.Float64,
                     "data": self.convert_data(
@@ -206,9 +218,21 @@ class TestNotEqualToCheck(BaseClass):
         data types would be tested"""
         return {
             "test_not_equal_to_check": [
+                {"datatype": dt.UInt8, "data": self.sample_numeric_data},
+                {"datatype": dt.UInt16, "data": self.sample_numeric_data},
+                {"datatype": dt.UInt32, "data": self.sample_numeric_data},
+                {"datatype": dt.UInt64, "data": self.sample_numeric_data},
+                {"datatype": dt.Int8, "data": self.sample_numeric_data},
+                {"datatype": dt.Int16, "data": self.sample_numeric_data},
                 {"datatype": dt.Int32, "data": self.sample_numeric_data},
                 {"datatype": dt.Int64, "data": self.sample_numeric_data},
                 {"datatype": dt.String, "data": self.sample_string_data},
+                {
+                    "datatype": dt.Float32,
+                    "data": self.convert_data(
+                        self.sample_numeric_data, "float32"
+                    ),
+                },
                 {
                     "datatype": dt.Float64,
                     "data": self.convert_data(
