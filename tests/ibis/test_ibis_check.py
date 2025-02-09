@@ -105,7 +105,7 @@ def _df_check_fn_scalar_out(data: pa.IbisData) -> ir.BooleanScalar:
                 "col_1": [-1, 2, 3, 4],
                 "col_2": [2, 1, 2, 5],
             },
-            [False],
+            False,
         ],
     ],
 )
