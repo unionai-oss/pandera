@@ -84,6 +84,26 @@ class Engine(
 
 
 @Engine.register_dtype(
+    equivalents=[np.int8, dtypes.Int8, dtypes.Int8(), dt.Int8, dt.int8]
+)
+@immutable
+class Int8(DataType, dtypes.Int8):
+    """Semantic representation of a :class:`dt.Int8`."""
+
+    type = dt.int8
+
+
+@Engine.register_dtype(
+    equivalents=[np.int16, dtypes.Int16, dtypes.Int16(), dt.Int16, dt.int16]
+)
+@immutable
+class Int16(DataType, dtypes.Int16):
+    """Semantic representation of a :class:`dt.Int16`."""
+
+    type = dt.int16
+
+
+@Engine.register_dtype(
     equivalents=[np.int32, dtypes.Int32, dtypes.Int32(), dt.Int32, dt.int32]
 )
 @immutable
@@ -111,8 +131,85 @@ class Int64(DataType, dtypes.Int64):
 
 
 ###############################################################################
+# unsigned integer
+###############################################################################
+
+
+@Engine.register_dtype(
+    equivalents=[np.uint8, dtypes.UInt8, dtypes.UInt8(), dt.UInt8, dt.uint8]
+)
+@immutable
+class UInt8(DataType, dtypes.UInt8):
+    """Semantic representation of a :class:`dt.UInt8`."""
+
+    type = dt.uint8
+
+
+@Engine.register_dtype(
+    equivalents=[
+        np.uint16,
+        dtypes.UInt16,
+        dtypes.UInt16(),
+        dt.UInt16,
+        dt.uint16,
+    ]
+)
+@immutable
+class UInt16(DataType, dtypes.UInt16):
+    """Semantic representation of a :class:`dt.UInt16`."""
+
+    type = dt.uint16
+
+
+@Engine.register_dtype(
+    equivalents=[
+        np.uint32,
+        dtypes.UInt32,
+        dtypes.UInt32(),
+        dt.UInt32,
+        dt.uint32,
+    ]
+)
+@immutable
+class UInt32(DataType, dtypes.UInt32):
+    """Semantic representation of a :class:`dt.UInt32`."""
+
+    type = dt.uint32
+
+
+@Engine.register_dtype(
+    equivalents=[
+        np.uint64,
+        dtypes.UInt64,
+        dtypes.UInt64(),
+        dt.UInt64,
+        dt.uint64,
+    ]
+)
+@immutable
+class UInt64(DataType, dtypes.UInt64):
+    """Semantic representation of a :class:`dt.UInt64`."""
+
+    type = dt.uint64
+
+
+###############################################################################
 # float
 ###############################################################################
+
+
+@Engine.register_dtype(
+    equivalents=[
+        np.float32,
+        dtypes.Float32,
+        dtypes.Float32(),
+        dt.Float32,
+        dt.float32,
+    ]
+)
+@immutable
+class Float32(DataType, dtypes.Float32):
+    """Semantic representation of a :class:`dt.Float32`."""
 
 
 @Engine.register_dtype(

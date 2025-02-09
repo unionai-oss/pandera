@@ -31,7 +31,7 @@ def equal_to(data: PolarsData, value: Any) -> pl.LazyFrame:
     error="not_equal_to({value})",
 )
 def not_equal_to(data: PolarsData, value: Any) -> pl.LazyFrame:
-    """Ensure no elements of a data container equals a certain value.
+    """Ensure no element of a data container equals a certain value.
 
     :param data: NamedTuple PolarsData contains the dataframe and column name for the check. The key
         to access the dataframe is "dataframe", and the key the to access the column name is "key".
