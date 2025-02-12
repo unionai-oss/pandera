@@ -41,6 +41,7 @@ from pandera.api.pyspark.model_config import BaseConfig
 from pandera.errors import SchemaInitError
 from pandera.typing import AnnotationInfo
 from pandera.typing.common import DataFrameBase
+from pandera.typing.pyspark import DataFrame
 
 try:
     from typing_extensions import get_type_hints
@@ -300,10 +301,10 @@ class DataFrameModel(BaseModel):
         random_state: Optional[int] = None,
         lazy: bool = True,
         inplace: bool = False,
-    ) -> Optional[DataFrameBase[TDataFrameModel]]:
+    ) -> DataFrame[TDataFrameModel]:
         """%(validate_doc)s"""
         return cast(
-            DataFrameBase[TDataFrameModel],
+            DataFrame[TDataFrameModel],
             cls.to_schema().validate(
                 check_obj, head, tail, sample, random_state, lazy, inplace
             ),
