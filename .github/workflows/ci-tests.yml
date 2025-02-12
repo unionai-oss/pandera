@@ -57,6 +57,7 @@ jobs:
             types-pyyaml \
             types-requests \
             types-setuptools \
+            setuptools \
             polars
       - name: Pip info
         run: python -m pip list
