@@ -451,6 +451,21 @@ def test_polars_nested_dtypes_try_coercion(
 
 
 @pytest.mark.parametrize(
+    "array",
+    [
+        pl.Array(pl.Int64(), (2, 2)),
+        pl.Array(pl.Int64(), (2, 2, 2)),
+        pl.Array(pl.Int64(), (2, 2, 2, 2)),
+    ],
+)
+def test_polars_nested_dtypes_shape(array):
+    pandera_dtype = pe.Engine.dtype(array)
+
+    assert len(array.shape) == len(pandera_dtype.type.shape)
+    assert array.shape == pandera_dtype.type.shape
+
+
+@pytest.mark.parametrize(
     "dtype",
     [
         "datetime",
