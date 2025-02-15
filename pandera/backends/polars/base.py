@@ -47,7 +47,10 @@ class PolarsSchemaBackend(BaseSchemaBackend):
             obj_subsample.append(check_obj.tail(tail))
         if sample is not None:
             obj_subsample.append(
-                check_obj.sample(sample, random_state=random_state)
+                # mypy is detecting a bug https://github.com/unionai-oss/pandera/issues/1912
+                check_obj.sample(  # type:ignore [attr-defined]
+                    sample, random_state=random_state
+                )
             )
         return (
             check_obj
