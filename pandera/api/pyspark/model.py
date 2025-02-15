@@ -365,7 +365,7 @@ class DataFrameModel(BaseModel):
         Similar to inspect.get_members but bypass descriptors __get__.
         """
         bases = inspect.getmro(cls)[:-1]  # bases -> DataFrameModel -> object
-        attrs = {}
+        attrs: Dict[str, Any] = {}
         for base in reversed(bases):
             if issubclass(base, DataFrameModel):
                 attrs.update(base.__dict__)
