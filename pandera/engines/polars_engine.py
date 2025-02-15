@@ -124,7 +124,7 @@ def polars_coerce_failure_cases(
 class DataType(dtypes.DataType):
     """Base `DataType` for boxing Polars data types."""
 
-    type: pl.DataType = dataclasses.field(repr=False, init=False)
+    type: Type[pl.DataType] = dataclasses.field(repr=False, init=False)
 
     def __init__(self, dtype: Optional[Any] = None):
         super().__init__()
@@ -673,7 +673,7 @@ class Categorical(DataType):
 
     def __init__(  # pylint:disable=super-init-not-called
         self,
-        ordering: str = "physical",
+        ordering: Literal["physical", "lexical"] = "physical",
     ) -> None:
         object.__setattr__(self, "ordering", ordering)
         object.__setattr__(self, "type", pl.Categorical(ordering=ordering))

@@ -22,6 +22,10 @@ try:
 except ImportError:
     from typing_extensions import Annotated  # type: ignore
 
+from typing import (
+    Type,
+)  # when python 3.9 is minimum version, use `type` instead
+
 
 @pytest.fixture
 def ldf_basic():
@@ -406,7 +410,7 @@ def test_set_defaults(ldf_basic, ldf_schema_basic):
     assert validated_data.equals(expected_data.collect())
 
 
-def _failure_value(column: str, dtype: Optional[pl.DataType] = None):
+def _failure_value(column: str, dtype: Optional[Type[pl.DataType]] = None):
     if column.startswith("string"):
         return pl.lit("9", dtype=dtype or pl.Utf8)
     elif column.startswith("int"):
