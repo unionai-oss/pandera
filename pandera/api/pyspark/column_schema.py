@@ -1,7 +1,7 @@
 """Core pyspark column specification."""
 
 import copy
-from typing import Any, List, Optional, Type, TypeVar, cast
+from typing import Any, Optional, Type, TypeVar, cast
 
 import pyspark.sql as ps
 
@@ -165,7 +165,7 @@ class ColumnSchema(BaseSchema):
     # Schema Transforms Methods #
     #############################
 
-    def update_checks(self, checks: List[Check]):
+    def update_checks(self, checks: CheckList):
         """Create a new Schema with a new set of Checks
 
         :param checks: checks to set on the new schema
