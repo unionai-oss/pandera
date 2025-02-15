@@ -30,7 +30,7 @@ class ColumnBackend(ColumnSchemaBackend):
         random_state: Optional[int] = None,
         lazy: bool = False,
         inplace: bool = False,
-        error_handler: ErrorHandler = None,
+        error_handler: Optional[ErrorHandler] = None,
     ) -> DataFrame:
         """Validation backend implementation for pyspark dataframe columns.."""
 

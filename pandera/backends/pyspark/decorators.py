@@ -4,7 +4,7 @@ import functools
 import logging
 import warnings
 from contextlib import contextmanager
-from typing import List, Type
+from typing import List, Type, Optional
 
 from pyspark.sql import DataFrame
 
@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 
 def register_input_datatypes(
-    acceptable_datatypes: List[Type[PysparkDefaultTypes]] = None,
+    acceptable_datatypes: Optional[List[Type[PysparkDefaultTypes]]] = None,
 ):
     """
     This decorator is used to register the input datatype for the check.

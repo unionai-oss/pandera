@@ -56,8 +56,8 @@ class PySparkCheckBackend(BaseCheckBackend):
     def apply(
         self,
         check_obj: Union[DataFrameTypes, is_table],
-        column_name: str = None,
-        kwargs: dict = None,
+        column_name: Optional[str] = None,
+        kwargs: Optional[Dict] = None,
     ):
         if column_name and kwargs:
             check_obj_and_col_name = PysparkDataframeColumnObject(

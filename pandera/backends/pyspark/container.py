@@ -115,7 +115,7 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
         random_state: Optional[int] = None,
         lazy: bool = False,
         inplace: bool = False,
-        error_handler: ErrorHandler = None,
+        error_handler: Optional[ErrorHandler] = None,
     ):
         """
         Parse and validate a check object, returning type-coerced and validated
@@ -401,7 +401,7 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
         check_obj: DataFrame,
         *,
         schema=None,
-        error_handler: ErrorHandler = None,
+        error_handler: Optional[ErrorHandler] = None,
     ):
         """Coerces check object to the expected type."""
         assert schema is not None, "The `schema` argument must be provided."
@@ -508,7 +508,7 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
         check_obj: DataFrame,
         *,
         schema=None,
-        error_handler: ErrorHandler = None,
+        error_handler: Optional[ErrorHandler] = None,
     ):
         """Check uniqueness in the check object."""
         assert schema is not None, "The `schema` argument must be provided."
