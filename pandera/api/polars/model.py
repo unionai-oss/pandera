@@ -142,7 +142,7 @@ class DataFrameModel(_DataFrameModel[pl.LazyFrame, DataFrameSchema]):
     @docstring_substitution(validate_doc=BaseSchema.validate.__doc__)
     def validate(
         cls: Type[Self],
-        check_obj: pl.LazyFrame | pl.DataFrame,
+        check_obj: Union[pl.LazyFrame, pl.DataFrame],
         head: Optional[int] = None,
         tail: Optional[int] = None,
         sample: Optional[int] = None,
