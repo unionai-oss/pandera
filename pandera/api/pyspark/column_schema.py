@@ -1,7 +1,7 @@
 """Core pyspark column specification."""
 
 import copy
-from typing import Any, List, Optional, Type, TypeVar, cast
+from typing import Any, Optional, Type, TypeVar, cast
 
 import pyspark.sql as ps
 
@@ -25,7 +25,7 @@ class ColumnSchema(BaseSchema):
         checks: Optional[CheckList] = None,
         nullable: bool = False,
         coerce: bool = False,
-        name: Any = None,
+        name: Optional[Any] = None,
         title: Optional[str] = None,
         description: Optional[str] = None,
         metadata: Optional[dict] = None,
@@ -95,7 +95,7 @@ class ColumnSchema(BaseSchema):
         random_state: Optional[int] = None,
         lazy: bool = False,
         inplace: bool = False,
-        error_handler: ErrorHandler = None,
+        error_handler: Optional[ErrorHandler] = None,
     ):
         # pylint: disable=too-many-locals,too-many-branches,too-many-statements
         """Validate a specific column in a dataframe.
@@ -165,7 +165,7 @@ class ColumnSchema(BaseSchema):
     # Schema Transforms Methods #
     #############################
 
-    def update_checks(self, checks: List[Check]):
+    def update_checks(self, checks: CheckList):
         """Create a new Schema with a new set of Checks
 
         :param checks: checks to set on the new schema

@@ -1,7 +1,7 @@
 """Utility functions for pyspark validation."""
 
 from functools import lru_cache
-from typing import List, NamedTuple, Tuple, Type, Union
+from typing import List, NamedTuple, Tuple, Type, Union, Any
 from numpy import bool_ as np_bool
 from packaging import version
 
@@ -93,7 +93,7 @@ def supported_types() -> SupportedTypes:
     )
 
 
-def is_table(obj):
+def is_table(obj: Any) -> bool:
     """Verifies whether an object is table-like.
 
     Where a table is a 2-dimensional data matrix of rows and columns, which
@@ -102,6 +102,6 @@ def is_table(obj):
     return isinstance(obj, supported_types().table_types)
 
 
-def is_bool(x):
+def is_bool(x: Any) -> bool:
     """Verifies whether an object is a boolean type."""
     return isinstance(x, (bool, type(pst.BooleanType()), np_bool))

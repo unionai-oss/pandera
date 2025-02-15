@@ -54,6 +54,7 @@ repos:
           - types-pyyaml
           - types-requests
           - types-setuptools
+          - polars
         args: ["pandera", "tests", "scripts"]
         exclude: (^docs/|^tests/mypy/modules/)
         pass_filenames: false
