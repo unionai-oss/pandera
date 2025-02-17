@@ -23,7 +23,7 @@ class Column(ComponentSchema[PolarsCheckObjects]):
 
     def __init__(
         self,
-        dtype: PolarsDtypeInputTypes = None,
+        dtype: Optional[PolarsDtypeInputTypes] = None,
         checks: Optional[CheckList] = None,
         nullable: bool = False,
         unique: bool = False,
