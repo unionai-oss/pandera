@@ -51,7 +51,7 @@ setup(
         "pandas >= 1.2.0",
         "pydantic",
         "typeguard",
-        "typing_extensions >= 3.7.4.3 ; python_version<'3.8'",
+        "typing_extensions >= 3.7.4.3",
         "typing_inspect >= 0.6.0",
     ],
     extras_require=extras_require,
