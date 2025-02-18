@@ -47,7 +47,7 @@ googleapis-common-protos==1.67.0
 grpcio==1.70.0
 grpcio-status==1.70.0
 h11==0.14.0
-hypothesis==6.125.3
+hypothesis==6.126.0
 id==1.5.0
 identify==2.6.7
 idna==3.10
@@ -92,7 +92,7 @@ nest-asyncio==1.6.0
 nh3==0.2.20
 nodeenv==1.9.1
 nox==2025.2.9
-numpy==1.26.4
+numpy==2.0.2
 packaging==24.2
 pandas==2.2.2
 pandas-stubs==2.2.2.240807
@@ -112,7 +112,7 @@ psutil==7.0.0
 ptyprocess==0.7.0
 pure-eval==0.2.3
 py4j==0.10.9.7
-pyarrow==19.0.0
+pyarrow==19.0.1
 pydantic==1.10.11
 pygments==2.19.1
 pylint==3.2.7
@@ -120,7 +120,7 @@ pympler==1.1
 pyogrio==0.10.0
 pyproj==3.6.1
 pyproject-hooks==1.2.0
-pyspark==3.5.4
+pyspark==3.5.1
 pytest==8.3.4
 pytest-asyncio==0.25.3
 pytest-cov==6.0.0
