@@ -1,12 +1,6 @@
 """Unit tests for polars dataframe model."""
 
-import sys
-from typing import Optional
-
-try:  # python 3.9+
-    from typing import Annotated  # type: ignore
-except ImportError:
-    from typing_extensions import Annotated  # type: ignore
+from typing import Annotated, Optional
 
 import polars as pl
 import pytest
@@ -216,10 +210,6 @@ def schema_with_list_type():
     )
 
 
-@pytest.mark.skipif(
-    sys.version_info < (3, 9),
-    reason="standard collection generics are not supported in python < 3.9",
-)
 def test_polars_python_list_df_model(schema_with_list_type):
     class ModelWithNestedDtypes(DataFrameModel):
         # pylint: disable=unsubscriptable-object

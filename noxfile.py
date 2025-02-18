@@ -10,7 +10,6 @@ import re
 import shutil
 import sys
 import tempfile
-from typing import Dict, List
 
 try:
     import tomllib
@@ -116,7 +115,7 @@ def _build_requires() -> Dict[str, Dict[str, str]]:
     return requires
 
 
-REQUIRES: Dict[str, Dict[str, str]] = _build_requires()
+REQUIRES: dict[str, dict[str, str]] = _build_requires()
 
 CONDA_ARGS = [
     "--channel=conda-forge",

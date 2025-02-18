@@ -1,7 +1,7 @@
 # pylint: disable=redefined-outer-name
 """Unit tests for polars container."""
 
-from typing import Optional
+from typing import Annotated, Optional
 
 import polars as pl
 import pytest
@@ -16,11 +16,6 @@ from pandera.api.polars.types import PolarsData
 from pandera.api.polars.utils import get_lazyframe_column_names
 from pandera.engines import polars_engine as pe
 from pandera.polars import Column, DataFrameModel, DataFrameSchema
-
-try:
-    from typing import Annotated  # type: ignore
-except ImportError:
-    from typing_extensions import Annotated  # type: ignore
 
 
 @pytest.fixture

@@ -2,7 +2,7 @@
 
 import copy
 import sys
-from typing import Any, Dict, List, Optional, Tuple, Type, Union, cast
+from typing import Any, Optional, Union, cast
 
 import pandas as pd
 
@@ -42,7 +42,7 @@ class DataFrameModel(_DataFrameModel[pd.DataFrame, DataFrameSchema]):
     See the :ref:`User Guide <dataframe-models>` for more.
     """
 
-    Config: Type[BaseConfig] = BaseConfig
+    Config: type[BaseConfig] = BaseConfig
 
     @classmethod
     def build_schema_(cls, **kwargs) -> DataFrameSchema:
@@ -68,12 +68,12 @@ class DataFrameModel(_DataFrameModel[pd.DataFrame, DataFrameSchema]):
     @classmethod
     def _build_columns_index(  # pylint:disable=too-many-locals,too-many-branches
         cls,
-        fields: Dict[str, Tuple[AnnotationInfo, FieldInfo]],
-        checks: Dict[str, List[Check]],
-        parsers: Dict[str, List[Parser]],
+        fields: dict[str, tuple[AnnotationInfo, FieldInfo]],
+        checks: dict[str, list[Check]],
+        parsers: dict[str, list[Parser]],
         **multiindex_kwargs: Any,
-    ) -> Tuple[
-        Dict[str, Column],
+    ) -> tuple[
+        dict[str, Column],
         Optional[Union[Index, MultiIndex]],
     ]:
         index_count = sum(
@@ -81,8 +81,8 @@ class DataFrameModel(_DataFrameModel[pd.DataFrame, DataFrameSchema]):
             for annotation, _ in fields.values()
         )
 
-        columns: Dict[str, Column] = {}
-        indices: List[Index] = []
+        columns: dict[str, Column] = {}
+        indices: list[Index] = []
         for field_name, (annotation, field) in fields.items():
             field_checks = checks.get(field_name, [])
             field_parsers = parsers.get(field_name, [])
@@ -176,7 +176,7 @@ class DataFrameModel(_DataFrameModel[pd.DataFrame, DataFrameSchema]):
     @classmethod
     @docstring_substitution(validate_doc=BaseSchema.validate.__doc__)
     def validate(
-        cls: Type[Self],
+        cls: type[Self],
         check_obj: pd.DataFrame,
         head: Optional[int] = None,
         tail: Optional[int] = None,
@@ -233,7 +233,7 @@ class DataFrameModel(_DataFrameModel[pd.DataFrame, DataFrameSchema]):
         }
 
     @classmethod
-    def empty(cls: Type[Self], *_args) -> DataFrame[Self]:
+    def empty(cls: type[Self], *_args) -> DataFrame[Self]:
         """Create an empty DataFrame with the schema of this model."""
         schema = copy.deepcopy(cls.to_schema())
         schema.coerce = True
@@ -242,7 +242,7 @@ class DataFrameModel(_DataFrameModel[pd.DataFrame, DataFrameSchema]):
 
 
 def _build_schema_index(
-    indices: List[Index], **multiindex_kwargs: Any
+    indices: list[Index], **multiindex_kwargs: Any
 ) -> Optional[SchemaIndex]:
     index: Optional[SchemaIndex] = None
     if indices:

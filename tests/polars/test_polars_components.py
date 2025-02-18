@@ -1,6 +1,7 @@
 """Unit tests for polars components."""
 
-from typing import Iterable, List, Optional, Union
+from typing import Optional, Union
+from collections.abc import Iterable
 
 import polars as pl
 import pytest
@@ -141,7 +142,7 @@ def test_check_nullable(dtype, data, nullable):
     data = pl.LazyFrame({"column": pl.Series(data, dtype=dtype)})
     column_schema = pa.Column(dtype, nullable=nullable, name="column")
     backend = ColumnBackend()
-    check_results: List[CoreCheckResult] = backend.check_nullable(
+    check_results: list[CoreCheckResult] = backend.check_nullable(
         data, column_schema
     )
     for result in check_results:

@@ -9,9 +9,7 @@ import warnings
 from pathlib import Path
 from typing import (
     Any,
-    Dict,
     Generic,
-    List,
     Optional,
     TypeVar,
     Union,
@@ -49,7 +47,7 @@ N_INDENT_SPACES = 4
 class DataFrameSchema(Generic[TDataObject], BaseSchema):
     def __init__(
         self,
-        columns: Optional[Dict[Any, Any]] = None,
+        columns: Optional[dict[Any, Any]] = None,
         checks: Optional[CheckList] = None,
         parsers: Optional[ParserList] = None,
         index=None,
@@ -58,7 +56,7 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
         strict: StrictType = False,
         name: Optional[str] = None,
         ordered: bool = False,
-        unique: Optional[Union[str, List[str]]] = None,
+        unique: Optional[Union[str, list[str]]] = None,
         report_duplicates: UniqueSettings = "all",
         unique_column_names: bool = False,
         add_missing_columns: bool = False,
@@ -166,7 +164,7 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
             metadata=metadata,
         )
 
-        self.columns: Dict[Any, Any] = (  # type: ignore [name-defined]
+        self.columns: dict[Any, Any] = (  # type: ignore [name-defined]
             {} if columns is None else columns
         )
 
@@ -221,12 +219,12 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
         return self._unique
 
     @unique.setter
-    def unique(self, value: Optional[Union[str, List[str]]]) -> None:
+    def unique(self, value: Optional[Union[str, list[str]]]) -> None:
         """Set unique attribute."""
         self._unique = [value] if isinstance(value, str) else value
 
     @property
-    def dtypes(self) -> Dict[str, DataType]:
+    def dtypes(self) -> dict[str, DataType]:
         # pylint:disable=anomalous-backslash-in-string
         """
         A dict where the keys are column names and values are
@@ -249,7 +247,7 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
 
     def get_metadata(self) -> Optional[dict]:
         """Provide metadata for columns and schema level"""
-        res: Dict[Any, Any] = {"columns": {}}
+        res: dict[Any, Any] = {"columns": {}}
         for k in self.columns.keys():
             res["columns"][k] = self.columns[k].properties["metadata"]
 
@@ -259,7 +257,7 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
         meta[self.name] = res
         return meta
 
-    def get_dtypes(self, check_obj: TDataObject) -> Dict[str, DataType]:
+    def get_dtypes(self, check_obj: TDataObject) -> dict[str, DataType]:
         """
         Same as the ``dtype`` property, but expands columns where
         ``regex == True`` based on the supplied dataframe.
@@ -434,7 +432,7 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
     # Schema Transformation Methods #
     #################################
 
-    def add_columns(self, extra_schema_cols: Dict[str, Any]) -> Self:
+    def add_columns(self, extra_schema_cols: dict[str, Any]) -> Self:
         """
         Create a copy of the :class:`~pandera.api.dataframe.container.DataFrameSchema`
         with extra columns.
@@ -489,7 +487,7 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
         }
         return cast(Self, schema_copy)
 
-    def remove_columns(self, cols_to_remove: List[str]) -> Self:
+    def remove_columns(self, cols_to_remove: list[str]) -> Self:
         """
         Removes columns from a :class:`~pandera.api.dataframe.container.DataFrameSchema`
         and returns a new copy.
@@ -539,7 +537,7 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
         schema_copy = copy.deepcopy(self)
 
         # ensure all specified keys are present in the columns
-        not_in_cols: List[str] = [
+        not_in_cols: list[str] = [
             x for x in cols_to_remove if x not in schema_copy.columns.keys()
         ]
         if not_in_cols:
@@ -620,7 +618,7 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
 
     def update_columns(
         self,
-        update_dict: Dict[str, Dict[str, Any]],
+        update_dict: dict[str, dict[str, Any]],
     ) -> Self:
         """
         Create copy of a :class:`~pandera.api.dataframe.container.DataFrameSchema`
@@ -674,7 +672,7 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
         new_schema = copy.deepcopy(self)
 
         # ensure all specified keys are present in the columns
-        not_in_cols: List[str] = [
+        not_in_cols: list[str] = [
             x for x in update_dict.keys() if x not in new_schema.columns.keys()
         ]
         if not_in_cols:
@@ -682,7 +680,7 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
                 f"Keys {not_in_cols} not found in schema columns!"
             )
 
-        new_columns: Dict[str, Column] = {}
+        new_columns: dict[str, Column] = {}
         for col in new_schema.columns:
             # check
             if update_dict.get(col):
@@ -707,7 +705,7 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
 
         return cast(Self, new_schema)
 
-    def rename_columns(self, rename_dict: Dict[str, str]) -> Self:
+    def rename_columns(self, rename_dict: dict[str, str]) -> Self:
         """Rename columns using a dictionary of key-value pairs.
 
         :param rename_dict: dictionary of 'old_name': 'new_name' key-value
@@ -758,7 +756,7 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
         new_schema = copy.deepcopy(self)
 
         # ensure all specified keys are present in the columns
-        not_in_cols: List[str] = [
+        not_in_cols: list[str] = [
             x for x in rename_dict.keys() if x not in new_schema.columns.keys()
         ]
         if not_in_cols:
@@ -770,7 +768,7 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
         rename_dict = {k: v for k, v in rename_dict.items() if k != v}
 
         # ensure all new keys are not present in the current column names
-        already_in_columns: List[str] = [
+        already_in_columns: list[str] = [
             x for x in rename_dict.values() if x in new_schema.columns.keys()
         ]
         if already_in_columns:
@@ -793,7 +791,7 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
         new_schema.columns = new_columns
         return cast(Self, new_schema)
 
-    def select_columns(self, columns: List[Any]) -> Self:
+    def select_columns(self, columns: list[Any]) -> Self:
         """Select subset of columns in the schema.
 
         *New in version 0.4.5*
@@ -841,7 +839,7 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
         """
         new_schema = copy.deepcopy(self)
         # ensure all specified keys are present in the columns
-        not_in_cols: List[str] = [
+        not_in_cols: list[str] = [
             x for x in columns if x not in new_schema.columns.keys()
         ]
         if not_in_cols:
@@ -857,7 +855,7 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
         return cast(Self, new_schema)
 
     def set_index(
-        self, keys: List[str], drop: bool = True, append: bool = False
+        self, keys: list[str], drop: bool = True, append: bool = False
     ) -> Self:
         """
         A method for setting the :class:`Index` of a
@@ -949,12 +947,12 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
 
         new_schema = copy.deepcopy(self)
 
-        keys_temp: List = (
+        keys_temp: list = (
             list(set(keys)) if not isinstance(keys, list) else keys
         )
 
         # ensure all specified keys are present in the columns
-        not_in_cols: List[str] = [
+        not_in_cols: list[str] = [
             x for x in keys_temp if x not in new_schema.columns.keys()
         ]
         if not_in_cols:
@@ -964,7 +962,7 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
 
         # if there is already an index, append or replace according to
         # parameters
-        ind_list: List = (
+        ind_list: list = (
             []
             if new_schema.index is None or not append
             else (
@@ -997,7 +995,7 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
         return cast(Self, new_schema)
 
     def reset_index(
-        self, level: Optional[List[str]] = None, drop: bool = False
+        self, level: Optional[list[str]] = None, drop: bool = False
     ) -> Self:
         """
         A method for resetting the :class:`Index` of a
@@ -1095,12 +1093,12 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
             )
 
         # ensure no duplicates
-        level_temp: Union[List[Any], List[str]] = (
+        level_temp: Union[list[Any], list[str]] = (
             new_schema.index.names if level is None else list(set(level))
         )
 
         # ensure all specified keys are present in the index
-        level_not_in_index: Union[List[Any], List[str], None] = (
+        level_not_in_index: Union[list[Any], list[str], None] = (
             [x for x in level_temp if x not in new_schema.index.names]
             if isinstance(new_schema.index, MultiIndex) and level_temp
             else (
@@ -1152,7 +1150,7 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
         )
 
         if not drop:
-            additional_columns: Dict[str, Any] = (
+            additional_columns: dict[str, Any] = (
                 {col: new_schema.index.columns.get(col) for col in level_temp}
                 if isinstance(new_schema.index, MultiIndex)
                 else {new_schema.index.name: new_schema.index}

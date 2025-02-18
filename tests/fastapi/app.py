@@ -1,4 +1,6 @@
 # pylint: skip-file
+from typing import Annotated
+
 from fastapi import Body, FastAPI, File
 from fastapi.responses import HTMLResponse
 
@@ -11,11 +13,6 @@ from tests.fastapi.models import (
     TransactionsDictOut,
     TransactionsParquet,
 )
-
-try:
-    from typing import Annotated  # type: ignore[attr-defined]
-except ImportError:
-    from typing_extensions import Annotated  # type: ignore[assignment]
 
 app = FastAPI()
 

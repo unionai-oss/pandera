@@ -1,7 +1,7 @@
 """Core pandas dataframe container specification."""
 
 import warnings
-from typing import Optional, Type
+from typing import Optional
 
 import pandas as pd
 
@@ -156,7 +156,7 @@ class DataFrameSchema(_DataFrameSchema[pd.DataFrame]):
         )
 
     @staticmethod
-    def register_default_backends(check_obj_cls: Type):
+    def register_default_backends(check_obj_cls: type):
         from pandera.backends.pandas.register import register_pandas_backends
 
         _cls = check_obj_cls

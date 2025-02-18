@@ -5,16 +5,13 @@ from itertools import chain
 from typing import (
     Any,
     Callable,
-    Dict,
-    Iterable,
     NamedTuple,
     Optional,
-    Tuple,
-    Type,
     TypeVar,
     Union,
     no_type_check,
 )
+from collections.abc import Iterable
 
 import pandas as pd
 from pandera.api.function_dispatch import Dispatcher
@@ -36,8 +33,8 @@ GroupbyObject = Union[
     pd.core.groupby.generic.DataFrameGroupBy,
 ]
 
-SeriesCheckObj = Union[pd.Series, Dict[str, pd.Series]]
-DataFrameCheckObj = Union[pd.DataFrame, Dict[str, pd.DataFrame]]
+SeriesCheckObj = Union[pd.Series, dict[str, pd.Series]]
+DataFrameCheckObj = Union[pd.DataFrame, dict[str, pd.DataFrame]]
 
 
 _T = TypeVar("_T", bound="BaseCheck")
@@ -46,15 +43,15 @@ _T = TypeVar("_T", bound="BaseCheck")
 class MetaCheck(type):  # pragma: no cover
     """Check metaclass."""
 
-    BACKEND_REGISTRY: Dict[Tuple[Type, Type], Type[BaseCheckBackend]] = (
+    BACKEND_REGISTRY: dict[tuple[type, type], type[BaseCheckBackend]] = (
         {}
     )  # noqa
     """Registry of check backends implemented for specific data objects."""
 
-    CHECK_FUNCTION_REGISTRY: Dict[str, Dispatcher] = {}  # noqa
+    CHECK_FUNCTION_REGISTRY: dict[str, Dispatcher] = {}  # noqa
     """Built-in check function registry."""
 
-    REGISTERED_CUSTOM_CHECKS: Dict[str, Callable] = {}  # noqa
+    REGISTERED_CUSTOM_CHECKS: dict[str, Callable] = {}  # noqa
     """User-defined custom checks."""
 
     def __getattr__(cls, name: str) -> Any:
@@ -85,7 +82,7 @@ class MetaCheck(type):  # pragma: no cover
     # see https://mypy.readthedocs.io/en/stable/metaclasses.html#gotchas-and-limitations-of-metaclass-support
     # pylint: enable=line-too-long
     @no_type_check
-    def __contains__(cls: Type[_T], item: Union[_T, str]) -> bool:
+    def __contains__(cls: type[_T], item: Union[_T, str]) -> bool:
         """Allow lookups for registered checks."""
         if isinstance(item, cls):
             name = item.name
@@ -102,7 +99,7 @@ class BaseCheck(metaclass=MetaCheck):
         self,
         name: Optional[str] = None,
         error: Optional[str] = None,
-        statistics: Optional[Dict[str, Any]] = None,
+        statistics: Optional[dict[str, Any]] = None,
     ):
         self.name = name
         self.error = error
@@ -136,7 +133,7 @@ class BaseCheck(metaclass=MetaCheck):
         name: str,
         init_kwargs,
         error: Union[str, Callable],
-        statistics: Optional[Dict[str, Any]] = None,
+        statistics: Optional[dict[str, Any]] = None,
         **check_kwargs,
     ):
         """Create a Check object from a built-in check's name."""
@@ -156,13 +153,13 @@ class BaseCheck(metaclass=MetaCheck):
         )
 
     @classmethod
-    def register_backend(cls, type_: Type, backend: Type[BaseCheckBackend]):
+    def register_backend(cls, type_: type, backend: type[BaseCheckBackend]):
         """Register a backend for the specified type."""
         if (cls, type_) not in cls.BACKEND_REGISTRY:
             cls.BACKEND_REGISTRY[(cls, type_)] = backend
 
     @classmethod
-    def get_backend(cls, check_obj: Any) -> Type[BaseCheckBackend]:
+    def get_backend(cls, check_obj: Any) -> type[BaseCheckBackend]:
         """Get the backend associated with the type of ``check_obj`` ."""
 
         check_obj_cls = type(check_obj)

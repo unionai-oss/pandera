@@ -7,7 +7,8 @@ import dataclasses
 import datetime
 import inspect
 import warnings
-from typing import Any, Dict, Iterable, List, Optional, Union, cast
+from typing import Any, Optional, Union, cast
+from collections.abc import Iterable
 
 import numpy as np
 from numpy.typing import DTypeLike
@@ -120,8 +121,8 @@ class Bool(DataType, dtypes.Bool):
 
 
 def _build_number_equivalents(
-    builtin_name: str, pandera_name: str, sizes: List[int]
-) -> Dict[int, List[Union[type, str, np.dtype, dtypes.DataType]]]:
+    builtin_name: str, pandera_name: str, sizes: list[int]
+) -> dict[int, list[Union[type, str, np.dtype, dtypes.DataType]]]:
     """Return a dict of equivalent builtin, numpy, pandera dtypes
     indexed by size in bit_width."""
     builtin_type = getattr(builtins, builtin_name, None)

@@ -6,7 +6,8 @@ together to implement the pandera schema specification.
 """
 
 from abc import ABC
-from typing import Any, FrozenSet, Iterable, List, NamedTuple, Optional, Union
+from typing import Any, NamedTuple, Optional, Union
+from collections.abc import Iterable
 
 # from pandera.api.base.checks import BaseCheck
 from pandera.errors import SchemaError, SchemaErrorReason
@@ -30,10 +31,10 @@ class ColumnInfo(NamedTuple):
     """Column metadata used during validation."""
 
     sorted_column_names: Iterable
-    expanded_column_names: FrozenSet
-    destuttered_column_names: List
-    absent_column_names: List
-    regex_match_patterns: List
+    expanded_column_names: frozenset
+    destuttered_column_names: list
+    absent_column_names: list
+    regex_match_patterns: list
 
 
 class CoreParserResult(NamedTuple):
@@ -140,7 +141,7 @@ class BaseSchemaBackend(ABC):
         raise NotImplementedError
 
     def failure_cases_metadata(
-        self, schema_name: str, schema_errors: List[SchemaError]
+        self, schema_name: str, schema_errors: list[SchemaError]
     ):
         """Get failure cases metadata for lazy validation."""
         raise NotImplementedError

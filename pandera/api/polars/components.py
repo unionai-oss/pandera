@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Optional, Type
+from typing import Any, Optional
 
 import polars as pl
 
@@ -107,7 +107,7 @@ class Column(ComponentSchema[PolarsCheckObjects]):
 
     @staticmethod
     def register_default_backends(
-        check_obj_cls: Type,
+        check_obj_cls: type,
     ):  # pylint: disable=unused-argument
         register_polars_backends()
 

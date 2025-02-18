@@ -1,7 +1,7 @@
 """Base module for `hypothesis`-based strategies for data synthesis."""
 
 from functools import wraps
-from typing import Callable, Dict, Generic, Tuple, Type, TypeVar, cast
+from typing import Callable, Generic, TypeVar, cast
 
 F = TypeVar("F", bound=Callable)
 
@@ -27,7 +27,7 @@ else:
 
 # This strategy registry maps (check_name, data_type) -> strategy_function
 # For example: ("greater_than", pd.DataFrame) -> (<function gt_strategy>)
-STRATEGY_DISPATCHER: Dict[Tuple[str, Type], Callable] = {}
+STRATEGY_DISPATCHER: dict[tuple[str, type], Callable] = {}
 
 
 def strategy_import_error(fn: F) -> F:

@@ -6,7 +6,8 @@ import re
 import runpy
 from copy import deepcopy
 from enum import Enum
-from typing import Any, Generic, Iterable, List, Optional, TypeVar, Type
+from typing import Any, Generic, Optional, TypeVar
+from collections.abc import Iterable
 
 import numpy as np
 import pandas as pd
@@ -145,7 +146,7 @@ def test_optional_column() -> None:
         a: Optional[Series[str]]
         b: Optional[Series[str]] = pa.Field(eq="b")
         c: Optional[Series[String]]  # test pandera.typing alias
-        d: Optional[Series[List[int]]]
+        d: Optional[Series[list[int]]]
 
     schema = Schema.to_schema()
     assert not schema.columns["a"].required
@@ -661,20 +662,20 @@ def test_dataframe_check_passthrough_kwargs() -> None:
         @pa.dataframe_check(column="a", enum=MockTypesOne)
         @classmethod
         def type_id_valid(
-            cls, df: pd.DataFrame, column: str, enum: Type[Enum]
+            cls, df: pd.DataFrame, column: str, enum: type[Enum]
         ) -> Iterable[bool]:
             return cls._field_in_enum(df, column, enum)  # type: ignore
 
         @pa.dataframe_check(column="b", enum=MockTypesTwo)
         @classmethod
         def calc_type_valid(
-            cls, df: pd.DataFrame, column: str, enum: Type[Enum]
+            cls, df: pd.DataFrame, column: str, enum: type[Enum]
         ) -> Iterable[bool]:
             return cls._field_in_enum(df, column, enum)  # type: ignore
 
         @classmethod
         def _field_in_enum(
-            cls, df: pd.DataFrame, column: str, enum: Type[Enum]
+            cls, df: pd.DataFrame, column: str, enum: type[Enum]
         ) -> Iterable[bool]:
             return df[column].isin([member.value for member in enum])  # type: ignore
 

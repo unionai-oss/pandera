@@ -1,7 +1,8 @@
 # pylint: disable=cyclic-import
 """Geopandas data types for the pandas type engine."""
 
-from typing import Any, Iterable, Optional, Union
+from typing import Any, Optional, Union
+from collections.abc import Iterable
 
 try:
     import geopandas as gpd

@@ -9,6 +9,7 @@ from typing import (  # type: ignore[attr-defined]
     Generic,
     TypeVar,
     Union,
+    _GenericAlias,
     _type_check,
     get_args,
 )
@@ -26,11 +27,6 @@ if PYDANTIC_V2:
 
 try:
     import geopandas as gpd
-
-    try:
-        from typing import _GenericAlias  # type: ignore[attr-defined]
-    except ImportError:  # pragma: no cover
-        _GenericAlias = None
 
     GEOPANDAS_INSTALLED = True
 except ImportError:  # pragma: no cover

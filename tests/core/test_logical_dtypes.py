@@ -3,7 +3,8 @@
 from datetime import date, datetime
 from decimal import Decimal
 from types import ModuleType
-from typing import Any, Generator, Iterable, List, cast
+from typing import Any, cast
+from collections.abc import Generator, Iterable
 
 import numpy as np
 import pandas as pd
@@ -86,7 +87,7 @@ def test_logical_datatype_check(
     datacontainer_lib: ModuleType,  # pylint: disable=redefined-outer-name
     data,
     expected_datatype: pandas_engine.DataType,
-    expected_results: List[bool],
+    expected_results: list[bool],
 ):
     """Test decimal check."""
     data = datacontainer_lib.Series(data, dtype="object")  # type:ignore
@@ -142,7 +143,7 @@ def test_logical_datatype_coerce(
     datacontainer_lib: ModuleType,  # pylint: disable=redefined-outer-name
     data,
     expected_datatype: pandas_engine.DataType,
-    failure_cases: List[bool],
+    failure_cases: list[bool],
 ):
     """Test decimal coerce."""
     if datacontainer_lib.__name__.startswith("modin.pandas") and isinstance(

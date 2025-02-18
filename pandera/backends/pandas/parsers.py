@@ -1,7 +1,7 @@
 """Parser backend for pandas"""
 
 from functools import partial
-from typing import Dict, Optional, Union
+from typing import Optional, Union
 
 import pandas as pd
 
@@ -36,12 +36,12 @@ class PandasParserBackend(BaseParserBackend):
         self,
         parse_obj,
         key,
-    ) -> Union[pd.DataFrame, Dict[str, pd.DataFrame]]:
+    ) -> Union[pd.DataFrame, dict[str, pd.DataFrame]]:
         return parse_obj[key]
 
     def preprocess_table(
         self, parse_obj
-    ) -> Union[pd.DataFrame, Dict[str, pd.DataFrame]]:
+    ) -> Union[pd.DataFrame, dict[str, pd.DataFrame]]:
         return parse_obj
 
     def apply(self, parse_obj):

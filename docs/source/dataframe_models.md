@@ -339,10 +339,8 @@ to python 3.6.
 ✅ Good:
 
 ```{code-cell} python
-try:
-    from typing import Annotated  # python 3.9+
-except ImportError:
-    from typing_extensions import Annotated
+from typing import Annotated
+
 
 class Schema(pa.DataFrameModel):
     col: Series[Annotated[pd.DatetimeTZDtype, "ns", "est"]]

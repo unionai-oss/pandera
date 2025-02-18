@@ -1,7 +1,7 @@
 """Core pandas array specification."""
 
 import warnings
-from typing import Any, Optional, Type, cast
+from typing import Any, Optional, cast
 
 import pandas as pd
 
@@ -43,7 +43,7 @@ class ArraySchema(ComponentSchema[TDataObject]):
         self._dtype = pandas_engine.Engine.dtype(value) if value else None
 
     @staticmethod
-    def register_default_backends(check_obj_cls: Type):
+    def register_default_backends(check_obj_cls: type):
         from pandera.backends.pandas.register import register_pandas_backends
 
         _cls = check_obj_cls

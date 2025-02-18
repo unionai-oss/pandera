@@ -13,7 +13,8 @@ import inspect
 import re
 import sys
 import warnings
-from typing import Any, Iterable, Optional, Union
+from typing import Any, Optional, Union
+from collections.abc import Iterable
 
 import pyspark
 import pyspark.sql.types as pst

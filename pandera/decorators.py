@@ -2,18 +2,14 @@
 
 import functools
 import inspect
-import sys
 import types
 import typing
+from collections.abc import Iterable
 from typing import (
     Any,
     Callable,
-    Dict,
-    Iterable,
-    List,
     NoReturn,
     Optional,
-    Tuple,
     TypeVar,
     Union,
     cast,
@@ -47,7 +43,7 @@ def _unwrap_fn(fn: Callable) -> Callable:
     return fn
 
 
-def _get_fn_argnames(fn: Callable) -> List[str]:
+def _get_fn_argnames(fn: Callable) -> list[str]:
     """Get argument names of a function.
 
     :param fn: get argument names for this function.
@@ -73,12 +69,9 @@ def _get_fn_argnames(fn: Callable) -> List[str]:
 
     first_arg_is_self = arg_spec_args[0] == "self"
     first_arg_is_cls = arg_spec_args[0] == "cls"
-    is_py_newer_than_39 = sys.version_info[:2] >= (3, 9)
     # Exclusion criteria
     is_regular_method = inspect.ismethod(fn) and first_arg_is_self
-    is_decorated_cls_method = (
-        is_decorated_classmethod(fn) and is_py_newer_than_39
-    )
+    is_decorated_cls_method = is_decorated_classmethod(fn)
     is_cls_method_from_meta_method = is_classmethod_from_meta(fn)
     if (
         first_arg_is_self
@@ -442,8 +435,8 @@ def check_io(
     inplace: bool = False,
     out: Union[
         Schemas,
-        Tuple[OutputGetter, Schemas],
-        List[Tuple[OutputGetter, Schemas]],
+        tuple[OutputGetter, Schemas],
+        list[tuple[OutputGetter, Schemas]],
         None,
     ] = None,
     **inputs: Schemas,
@@ -601,10 +594,10 @@ def check_types(
         )
 
     # Front-load annotation parsing
-    annotated_schema_models: Dict[
+    annotated_schema_models: dict[
         str,
         Iterable[
-            Tuple[Union[DataFrameModel, None], Union[AnnotationInfo, None]]
+            tuple[Union[DataFrameModel, None], Union[AnnotationInfo, None]]
         ],
     ] = {}
     for arg_name_, annotation in typing.get_type_hints(wrapped).items():
@@ -729,8 +722,8 @@ def check_types(
     sig = inspect.signature(wrapped)
 
     def validate_args(
-        named_arguments: Dict[str, Any], arguments: Tuple[Any, ...]
-    ) -> List[Any]:
+        named_arguments: dict[str, Any], arguments: tuple[Any, ...]
+    ) -> list[Any]:
         """
         Validates schemas of both explicit and *args-like function arguments.
 
@@ -768,8 +761,8 @@ def check_types(
             )
 
     def validate_kwargs(
-        named_kwargs: Dict[str, Any], kwargs: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        named_kwargs: dict[str, Any], kwargs: dict[str, Any]
+    ) -> dict[str, Any]:
         """
         Validates schemas of both explicit and **kwargs-like function arguments.
 
@@ -808,9 +801,9 @@ def check_types(
             }
 
     def validate_inputs(
-        args: Tuple[Any, ...],
-        kwargs: Dict[str, Any],
-    ) -> Tuple[List[Any], Dict[str, Any]]:
+        args: tuple[Any, ...],
+        kwargs: dict[str, Any],
+    ) -> tuple[list[Any], dict[str, Any]]:
         validated_pos = validate_args(sig.bind_partial(*args).arguments, args)
         validated_kwd = validate_kwargs(
             sig.bind_partial(**kwargs).arguments, kwargs

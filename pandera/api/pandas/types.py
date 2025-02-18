@@ -2,7 +2,7 @@
 """Utility functions for pandas validation."""
 
 from functools import lru_cache
-from typing import Any, NamedTuple, Type, TypeVar, Union, Optional
+from typing import NamedTuple, TypeVar, Union, Optional
 
 import numpy as np
 import pandas as pd
@@ -15,7 +15,7 @@ PandasDtypeInputTypes = Union[
     str,
     type,
     DataType,
-    Type,
+    type,
     pd.core.dtypes.base.ExtensionDtype,
     np.dtype,
 ]
@@ -135,11 +135,11 @@ def get_backend_types(check_cls_fqn: str) -> BackendTypes:
 T = TypeVar("T")
 
 
-def _get_fullname(_cls: Type) -> str:
+def _get_fullname(_cls: type) -> str:
     return f"{_cls.__module__}.{_cls.__name__}"
 
 
-def get_backend_types_from_mro(_cls: Type) -> Optional[BackendTypes]:
+def get_backend_types_from_mro(_cls: type) -> Optional[BackendTypes]:
     try:
         return get_backend_types(_get_fullname(_cls))
     except BackendNotFoundError:

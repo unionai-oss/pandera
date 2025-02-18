@@ -4,13 +4,11 @@ import re
 from typing import (
     Any,
     Callable,
-    Dict,
-    Iterable,
-    List,
     Optional,
     TypeVar,
     Union,
 )
+from collections.abc import Iterable
 
 from pandera import errors
 from pandera.api.base.checks import BaseCheck, CheckResult
@@ -25,8 +23,8 @@ class Check(BaseCheck):
     def __init__(
         self,
         check_fn: Callable,
-        groups: Optional[Union[str, List[str]]] = None,
-        groupby: Optional[Union[str, List[str], Callable]] = None,
+        groups: Optional[Union[str, list[str]]] = None,
+        groupby: Optional[Union[str, list[str], Callable]] = None,
         ignore_na: bool = True,
         element_wise: bool = False,
         name: Optional[str] = None,
@@ -35,7 +33,7 @@ class Check(BaseCheck):
         n_failure_cases: Optional[int] = None,
         title: Optional[str] = None,
         description: Optional[str] = None,
-        statistics: Optional[Dict[str, Any]] = None,
+        statistics: Optional[dict[str, Any]] = None,
         strategy: Optional[Any] = None,
         **check_kwargs,
     ) -> None:
@@ -192,7 +190,7 @@ class Check(BaseCheck):
         self.groupby = groupby
         if isinstance(groups, str):
             groups = [groups]
-        self.groups: Optional[List[str]] = groups
+        self.groups: Optional[list[str]] = groups
 
         self.statistics = statistics or check_kwargs or {}
         self.statistics_args = [*self.statistics.keys()]

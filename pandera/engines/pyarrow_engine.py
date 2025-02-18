@@ -3,7 +3,8 @@
 
 import dataclasses
 import datetime
-from typing import Any, Dict, Iterable, Optional, Tuple, Union
+from typing import Any, Optional, Union
+from collections.abc import Iterable
 
 import pandas as pd
 import pyarrow
@@ -339,8 +340,8 @@ class ArrowStruct(ArrowDataType):
     type: Optional[pd.ArrowDtype] = dataclasses.field(default=None, init=False)
     fields: Optional[
         Union[
-            Iterable[Union[pyarrow.Field, Tuple[str, pyarrow.DataType]]],
-            Dict[str, pyarrow.DataType],
+            Iterable[Union[pyarrow.Field, tuple[str, pyarrow.DataType]]],
+            dict[str, pyarrow.DataType],
         ]
     ] = tuple()
 

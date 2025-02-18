@@ -484,10 +484,8 @@ schema = pa.DataFrameSchema(
 :::{tab-item} DataFrameModel (Annotated)
 
 ```{testcode} polars
-try:
-    from typing import Annotated  # python 3.9+
-except ImportError:
-    from typing_extensions import Annotated
+from typing import Annotated
+
 
 class ModelWithAnnotated(pa.DataFrameModel):
     list_col: Annotated[pl.List, pl.Int64()]

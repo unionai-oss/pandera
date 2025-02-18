@@ -1,7 +1,8 @@
 """Validation backend for polars components."""
 
 import warnings
-from typing import Any, Callable, Iterable, List, Optional, cast
+from typing import Any, Callable, Optional, cast
+from collections.abc import Iterable
 
 import polars as pl
 
@@ -64,7 +65,7 @@ class ColumnBackend(PolarsSchemaBackend):
                 "When drop_invalid_rows is True, lazy must be set to True."
             )
 
-        core_parsers: List[Callable[..., Any]] = [
+        core_parsers: list[Callable[..., Any]] = [
             self.coerce_dtype,
             self.set_default,
         ]
@@ -128,7 +129,7 @@ class ColumnBackend(PolarsSchemaBackend):
             results = core_check(*args)
             if isinstance(results, CoreCheckResult):
                 results = [results]
-            results = cast(List[CoreCheckResult], results)
+            results = cast(list[CoreCheckResult], results)
             for result in results:
                 if result.passed:
                     continue
@@ -197,7 +198,7 @@ class ColumnBackend(PolarsSchemaBackend):
         self,
         check_obj: pl.LazyFrame,
         schema,
-    ) -> List[CoreCheckResult]:
+    ) -> list[CoreCheckResult]:
         """Check if a column is nullable.
 
         This check considers nulls and nan values as effectively equivalent.
@@ -255,7 +256,7 @@ class ColumnBackend(PolarsSchemaBackend):
         self,
         check_obj: pl.LazyFrame,
         schema,
-    ) -> List[CoreCheckResult]:
+    ) -> list[CoreCheckResult]:
         check_name = "field_uniqueness"
         if not schema.unique:
             return [
@@ -311,7 +312,7 @@ class ColumnBackend(PolarsSchemaBackend):
         self,
         check_obj: pl.LazyFrame,
         schema: Column,
-    ) -> List[CoreCheckResult]:
+    ) -> list[CoreCheckResult]:
 
         passed = True
         failure_cases = None
@@ -352,8 +353,8 @@ class ColumnBackend(PolarsSchemaBackend):
 
     # pylint: disable=unused-argument
     @validate_scope(scope=ValidationScope.DATA)
-    def run_checks(self, check_obj, schema) -> List[CoreCheckResult]:
-        check_results: List[CoreCheckResult] = []
+    def run_checks(self, check_obj, schema) -> list[CoreCheckResult]:
+        check_results: list[CoreCheckResult] = []
         for check_index, check in enumerate(schema.checks):
             try:
                 check_results.append(

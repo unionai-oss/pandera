@@ -1,7 +1,7 @@
 """Multidispatcher implementation."""
 
 from inspect import signature
-from typing import Callable, Dict, Tuple, Type, Union
+from typing import Callable, Union
 import typing_inspect
 
 
@@ -9,7 +9,7 @@ class Dispatcher:
     """Dispatch implementation."""
 
     def __init__(self):
-        self._function_registry: Dict[Type, Callable] = {}
+        self._function_registry: dict[type, Callable] = {}
         self._name = None
 
     def register(self, fn):
@@ -52,7 +52,7 @@ def get_first_arg_type(fn):
     # object to validate is the first argument.
     data_type = [*fn_sig.parameters.values()][0].annotation
 
-    if typing_inspect.get_origin(data_type) in (tuple, Tuple):
+    if typing_inspect.get_origin(data_type) in (tuple, tuple):
         data_type, *_ = typing_inspect.get_args(data_type)
 
     if typing_inspect.get_origin(data_type) is Union:

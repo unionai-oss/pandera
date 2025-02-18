@@ -3,7 +3,8 @@
 # pylint:disable=redefined-outer-name,unused-argument
 # pylint:disable=missing-function-docstring,missing-class-docstring
 import re
-from typing import Any, Generator, List, Union
+from typing import Any, Union
+from collections.abc import Generator
 
 import pytest
 
@@ -26,7 +27,7 @@ class SimpleDtype(BaseDataType):
 
 
 @pytest.fixture
-def equivalents() -> List[Any]:
+def equivalents() -> list[Any]:
     return [int, "int", 1]
 
 
@@ -42,7 +43,7 @@ def engine() -> Generator[Engine, None, None]:
     del FakeEngine
 
 
-def test_register_equivalents(engine: Engine, equivalents: List[Any]):
+def test_register_equivalents(engine: Engine, equivalents: list[Any]):
     """Test that a dtype with equivalents can be registered."""
     engine.register_dtype(SimpleDtype, equivalents=equivalents)
 
@@ -104,7 +105,7 @@ def test_register_notclassmethod_from_parametrized_dtype(engine: Engine):
                 return x
 
 
-def test_register_dtype_complete(engine: Engine, equivalents: List[Any]):
+def test_register_dtype_complete(engine: Engine, equivalents: list[Any]):
     """Test that a dtype with equivalents and from_parametrized_dtype
     can be registered.
     """
