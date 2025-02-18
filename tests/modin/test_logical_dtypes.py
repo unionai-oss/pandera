@@ -1,7 +1,7 @@
 """Tests logical dtypes."""
 
 from types import ModuleType
-from typing import Generator
+from collections.abc import Generator
 
 import modin.pandas as mpd
 

@@ -1,7 +1,8 @@
 """Built-in checks for polars."""
 
 import re
-from typing import Any, Iterable, Optional, TypeVar, Union
+from typing import Any, Optional, TypeVar, Union
+from collections.abc import Iterable
 
 import polars as pl
 
