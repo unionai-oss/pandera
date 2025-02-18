@@ -7,16 +7,11 @@ import inspect
 import warnings
 from typing import (
     Any,
-    Dict,
-    Iterable,
     Literal,
-    Mapping,
     Optional,
-    Sequence,
-    Tuple,
-    Type,
     Union,
 )
+from collections.abc import Iterable, Mapping, Sequence
 
 import polars as pl
 from packaging import version
@@ -88,7 +83,7 @@ def polars_failure_cases_from_coercible(
 def polars_coerce_failure_cases(
     data_container: PolarsData,
     type_: Any,
-) -> Tuple[pl.DataFrame, pl.DataFrame]:
+) -> tuple[pl.DataFrame, pl.DataFrame]:
     """
     Get the failure cases resulting from trying to coerce a polars object
     into particular data type.
@@ -460,7 +455,7 @@ class Date(DataType, dtypes.Date):
 class DateTime(DataType, dtypes.DateTime):
     """Polars datetime data type."""
 
-    type: Type[pl.Datetime] = pl.Datetime
+    type: type[pl.Datetime] = pl.Datetime
     time_zone_agnostic: bool = False
 
     def __init__(  # pylint:disable=super-init-not-called
@@ -567,12 +562,12 @@ class Array(DataType):
     def __init__(  # pylint:disable=super-init-not-called
         self,
         inner: Optional[PolarsDataType] = None,
-        shape: Union[int, Tuple[int, ...], None] = None,
+        shape: Union[int, tuple[int, ...], None] = None,
         *,
         width: Optional[int] = None,
     ) -> None:
 
-        kwargs: Dict[str, Union[int, Tuple[int, ...]]] = {}
+        kwargs: dict[str, Union[int, tuple[int, ...]]] = {}
         if width is not None:
             kwargs["shape"] = width
         elif shape is not None:

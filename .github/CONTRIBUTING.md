@@ -39,7 +39,7 @@ Pandera offers a `environment.yml` to set up a conda-based environment and
 Install [miniconda](https://docs.conda.io/en/latest/miniconda.html), then run:
 
 ```bash
-conda create -n pandera-dev python=3.12  # or any python version 3.8+
+conda create -n pandera-dev python=3.12  # or any python version 3.9+
 conda env update -n pandera-dev -f environment.yml
 conda activate pandera-dev
 pip install -e .
@@ -52,7 +52,7 @@ pip install virtualenv
 virtualenv .venv/pandera-dev
 source .venv/pandera-dev/bin/activate
 pip install --upgrade pip
-pip install -r dev/requirements-3.12.txt  # or any python version 3.8+
+pip install -r dev/requirements-3.12.txt  # or any python version 3.9+
 pip install -e .
 ```
 
@@ -164,16 +164,16 @@ You should see an output like this:
 
 ```bash
 ...
-* tests(extra='core', pydantic='1.10.11', python='3.8', pandas='1.5.3') -> Run the test suite.
-* tests(extra='strategies', pydantic='1.10.11', python='3.8', pandas='1.5.3') -> Run the test suite.
-* tests(extra='hypotheses', pydantic='1.10.11', python='3.8', pandas='1.5.3') -> Run the test suite.
+* tests(extra='core', pydantic='1.10.11', python='3.9', pandas='1.5.3') -> Run the test suite.
+* tests(extra='strategies', pydantic='1.10.11', python='3.9', pandas='1.5.3') -> Run the test suite.
+* tests(extra='hypotheses', pydantic='1.10.11', python='3.9', pandas='1.5.3') -> Run the test suite.
 ...
 ```
 
 Then run a specific test condition with:
 
 ```bash
-nox -db mamba --envdir .nox-mamba -s "tests(extra='core', pydantic='1.10.11', python='3.8', pandas='1.5.3')"
+nox -db mamba --envdir .nox-mamba -s "tests(extra='core', pydantic='1.10.11', python='3.9', pandas='1.5.3')"
 ```
 
 ### Project Releases

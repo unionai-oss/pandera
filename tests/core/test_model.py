@@ -5,7 +5,8 @@ import os
 import re
 import runpy
 from copy import deepcopy
-from typing import Any, Generic, Iterable, List, Optional, TypeVar
+from typing import Any, Generic, Optional, TypeVar
+from collections.abc import Iterable
 
 import numpy as np
 import pandas as pd
@@ -144,7 +145,7 @@ def test_optional_column() -> None:
         a: Optional[Series[str]]
         b: Optional[Series[str]] = pa.Field(eq="b")
         c: Optional[Series[String]]  # test pandera.typing alias
-        d: Optional[Series[List[int]]]
+        d: Optional[Series[list[int]]]
 
     schema = Schema.to_schema()
     assert not schema.columns["a"].required

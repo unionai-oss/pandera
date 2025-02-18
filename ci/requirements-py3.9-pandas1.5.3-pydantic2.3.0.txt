@@ -47,7 +47,7 @@ googleapis-common-protos==1.67.0
 grpcio==1.70.0
 grpcio-status==1.70.0
 h11==0.14.0
-hypothesis==6.125.3
+hypothesis==6.126.0
 id==1.5.0
 identify==2.6.7
 idna==3.10
@@ -112,7 +112,7 @@ psutil==7.0.0
 ptyprocess==0.7.0
 pure-eval==0.2.3
 py4j==0.10.9.7
-pyarrow==19.0.0
+pyarrow==19.0.1
 pydantic==2.3.0
 pydantic-core==2.6.3
 pygments==2.19.1

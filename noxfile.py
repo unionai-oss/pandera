@@ -6,7 +6,6 @@ import re
 import shutil
 import sys
 import tempfile
-from typing import Dict, List
 
 # setuptools must be imported before distutils !
 import setuptools
@@ -27,8 +26,8 @@ nox.options.sessions = (
     "doctests",
 )
 
-DEFAULT_PYTHON = "3.8"
-PYTHON_VERSIONS = ["3.8", "3.9", "3.10", "3.11", "3.12"]
+DEFAULT_PYTHON = "3.9"
+PYTHON_VERSIONS = ["3.9", "3.10", "3.11", "3.12"]
 PANDAS_VERSIONS = ["1.5.3", "2.2.2"]
 PYDANTIC_VERSIONS = ["1.10.11", "2.3.0"]
 
@@ -53,7 +52,7 @@ else:
 LINE_LENGTH = 79
 
 
-def _build_setup_requirements() -> Dict[str, List[Requirement]]:
+def _build_setup_requirements() -> dict[str, list[Requirement]]:
     """Load requirments from setup.py."""
     dist = run_setup("setup.py")
     reqs = {"core": dist.install_requires}  # type: ignore
@@ -63,7 +62,7 @@ def _build_setup_requirements() -> Dict[str, List[Requirement]]:
     }
 
 
-def _build_dev_requirements() -> List[Requirement]:
+def _build_dev_requirements() -> list[Requirement]:
     """Load requirements from file."""
     with open(REQUIREMENT_PATH, encoding="utf-8") as req_file:
         reqs = []
@@ -73,11 +72,11 @@ def _build_dev_requirements() -> List[Requirement]:
         return reqs
 
 
-SETUP_REQUIREMENTS: Dict[str, List[Requirement]] = _build_setup_requirements()
-DEV_REQUIREMENTS: List[Requirement] = _build_dev_requirements()
+SETUP_REQUIREMENTS: dict[str, list[Requirement]] = _build_setup_requirements()
+DEV_REQUIREMENTS: list[Requirement] = _build_dev_requirements()
 
 
-def _requirement_to_dict(reqs: List[Requirement]) -> Dict[str, str]:
+def _requirement_to_dict(reqs: list[Requirement]) -> dict[str, str]:
     """Return a dict {PKG_NAME:PIP_SPECS}."""
     req_dict = {}
     for req in reqs:
@@ -87,7 +86,7 @@ def _requirement_to_dict(reqs: List[Requirement]) -> Dict[str, str]:
     return req_dict
 
 
-def _build_requires() -> Dict[str, Dict[str, str]]:
+def _build_requires() -> dict[str, dict[str, str]]:
     """Return a dictionary of requirements {EXTRA_NAME: {PKG_NAME:PIP_SPECS}}.
 
     Adds fake extras "core" and "all".
@@ -121,7 +120,7 @@ def _build_requires() -> Dict[str, Dict[str, str]]:
     return requires
 
 
-REQUIRES: Dict[str, Dict[str, str]] = _build_requires()
+REQUIRES: dict[str, dict[str, str]] = _build_requires()
 
 CONDA_ARGS = [
     "--channel=conda-forge",
@@ -311,7 +310,6 @@ PYTHON_PANDAS_PARAMETER = [
     (python, pandas)
     for python in PYTHON_VERSIONS
     for pandas in PANDAS_VERSIONS
-    if (python, pandas) != ("3.8", "2.2.0")
 ]
 
 
@@ -320,9 +318,6 @@ PYTHON_PANDAS_PARAMETER = [
 @nox.parametrize("pydantic", PYDANTIC_VERSIONS)
 def ci_requirements(session: Session, pandas: str, pydantic: str) -> None:
     """Install pinned dependencies for CI."""
-    if session.python == "3.8" and pandas == "2.2.2":
-        session.skip()
-
     _numpy: str | None = None
     if pandas != "2.2.2":
         _numpy = "< 2"

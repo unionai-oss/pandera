@@ -34,7 +34,6 @@ pytz
 xdoctest
 nox
 setuptools
-importlib_metadata
 uvicorn
 python-multipart
 sphinx

@@ -1,7 +1,7 @@
 """DataFrame Schema for Polars."""
 
 import warnings
-from typing import Optional, Type
+from typing import Optional
 
 import polars as pl
 
@@ -36,7 +36,7 @@ class DataFrameSchema(_DataFrameSchema[PolarsCheckObjects]):
 
     @staticmethod
     def register_default_backends(
-        check_obj_cls: Type,
+        check_obj_cls: type,
     ):  # pylint: disable=unused-argument
         register_polars_backends()
 
