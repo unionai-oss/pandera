@@ -482,9 +482,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
     # Schema IO Methods #
     #####################
 
-    def to_script(
-        self, fp: Optional[Union[str, Path]] = None
-    ) -> "DataFrameSchema":
+    def to_script(self, fp: Union[str, Path] = None) -> DataFrameSchema:
         """Create DataFrameSchema from yaml file.
 
         :param path: str, Path to write script
