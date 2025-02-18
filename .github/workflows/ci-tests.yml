@@ -15,7 +15,7 @@ on:
       - "release/*"
 
 env:
-  DEFAULT_PYTHON: 3.8
+  DEFAULT_PYTHON: 3.9
   CI: "true"
 
 concurrency:
@@ -118,9 +118,6 @@ jobs:
           pip-cache: ~/Library/Caches/pip
         - os: windows-latest
           pip-cache: ~/AppData/Local/pip/Cache
-        exclude:
-        - python-version: "3.8"
-          pandas-version: "2.2.2"
         - python-version: "3.11"
           pandas-version: "1.5.3"
         - python-version: "3.12"
