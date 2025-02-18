@@ -112,10 +112,8 @@ express this same type with the class-based API, we need to use an
 {py:class}`~typing.Annotated` type:
 
 ```{code-cell} python
-try:
-    from typing import Annotated  # python 3.9+
-except ImportError:
-    from typing_extensions import Annotated
+from typing import Annotated
+
 
 class DateTimeModel(pa.DataFrameModel):
     dt: Series[Annotated[pd.DatetimeTZDtype, "ns", "UTC"]]
@@ -266,10 +264,7 @@ And when using class-based API, you must specify actual types (string aliases
 are not supported):
 
 ```{code-cell} python
-try:
-    from typing import Annotated  # python 3.9+
-except ImportError:
-    from typing_extensions import Annotated
+from typing import Annotated
 
 
 class PyarrowModel(pa.DataFrameModel):

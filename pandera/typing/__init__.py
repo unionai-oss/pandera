@@ -5,7 +5,6 @@ the typing module.
 """
 
 from functools import lru_cache
-from typing import Set, Type
 from pandera.typing.common import (
     BOOL,
     INT8,
@@ -53,7 +52,7 @@ def get_dataframe_types():
         pyspark_sql,
     )
 
-    dataframe_types: Set[Type] = {DataFrame}
+    dataframe_types: set[type] = {DataFrame}
     if dask.DASK_INSTALLED:
         dataframe_types.update({dask.DataFrame})
 
@@ -81,7 +80,7 @@ def get_series_types():
         pyspark,
     )
 
-    series_types: Set[Type] = {Series}
+    series_types: set[type] = {Series}
     if dask.DASK_INSTALLED:
         series_types.update({dask.Series})
 
@@ -101,7 +100,7 @@ def get_series_types():
 def get_index_types():
     from pandera.typing import dask, modin, pyspark
 
-    index_types: Set[Type] = {Index}
+    index_types: set[type] = {Index}
     if dask.DASK_INSTALLED:
         index_types.update({dask.Index})
 

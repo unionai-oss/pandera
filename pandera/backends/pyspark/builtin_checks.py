@@ -1,6 +1,7 @@
 """PySpark implementation of built-in checks"""
 
-from typing import Any, Iterable, TypeVar
+from typing import Any, TypeVar
+from collections.abc import Iterable
 
 import pyspark.sql.types as pst
 from pyspark.sql.functions import col

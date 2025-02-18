@@ -3,7 +3,7 @@
 import copy
 import traceback
 import warnings
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from pyspark.sql import DataFrame
 from pyspark.sql.functions import col, count
@@ -191,7 +191,7 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
         self,
         check_obj: DataFrame,
         schema,
-        schema_components: List,
+        schema_components: list,
         lazy: bool,
         error_handler: Optional[ErrorHandler],
     ):
@@ -266,9 +266,9 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
         lazy: bool,
     ) -> ColumnInfo:
         """Collect column metadata."""
-        column_names: List[Any] = []
-        absent_column_names: List[Any] = []
-        lazy_exclude_column_names: List[Any] = []
+        column_names: list[Any] = []
+        absent_column_names: list[Any] = []
+        lazy_exclude_column_names: list[Any] = []
 
         for col_name, col_schema in schema.columns.items():
             if (
@@ -567,7 +567,7 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
         """Check for column name uniquness."""
         if not schema.unique_column_names:
             return
-        column_count_dict: Dict[Any, Any] = {}
+        column_count_dict: dict[Any, Any] = {}
         failed = []
         for column_name in check_obj.columns:
             if column_count_dict.get(column_name):
