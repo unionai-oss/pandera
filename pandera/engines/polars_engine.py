@@ -585,7 +585,11 @@ class Array(DataType):
     def from_parametrized_dtype(cls, polars_dtype: pl.Array):
         shape = polars_dtype.shape
 
-        if isinstance(shape, tuple) and isinstance(shape[0], int) and len(shape) > 1:
+        if (
+            isinstance(shape, tuple)
+            and isinstance(shape[0], int)
+            and len(shape) > 1
+        ):
             offset = len(shape) - 1
             shape = shape[offset:]
 
