@@ -1,5 +1,6 @@
-from setuptools import find_packages, setup
+from setuptools import setup
 
+<<<<<<< HEAD
 with open("README.md") as f:
     long_description = f.read()
 
@@ -72,3 +73,6 @@ setup(
         "Topic :: Scientific/Engineering",
     ],
 )
+=======
+setup()
+>>>>>>> 69d27d7 (regenerate ci requirements files)

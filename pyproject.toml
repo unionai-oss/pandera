@@ -30,9 +30,9 @@ classifiers = [
     "Topic :: Scientific/Engineering",
 ]
 dependencies = [
-    "numpy >= 1.19.0",
+    "numpy >= 1.24.4",
     "packaging >= 20.0",
-    "pandas >= 1.2.0",
+    "pandas >= 2.1.1",
     "pydantic",
     "typeguard",
     "typing_extensions >= 3.7.4.3 ; python_version<'3.8'",

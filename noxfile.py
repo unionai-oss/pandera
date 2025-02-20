@@ -26,10 +26,10 @@ nox.options.sessions = (
     "doctests",
 )
 
-DEFAULT_PYTHON = "3.8"
-PYTHON_VERSIONS = ["3.8", "3.9", "3.10", "3.11", "3.12"]
-PANDAS_VERSIONS = ["1.5.3", "2.2.2"]
-PYDANTIC_VERSIONS = ["1.10.11", "2.3.0"]
+DEFAULT_PYTHON = "3.9"
+PYTHON_VERSIONS = ["3.9", "3.10", "3.11", "3.12"]
+PANDAS_VERSIONS = ["2.1.1", "2.2.3"]
+PYDANTIC_VERSIONS = ["1.10.11", "2.10.6"]
 
 PACKAGE = "pandera"
 
@@ -302,7 +302,7 @@ PYTHON_PANDAS_PARAMETER = [
     (python, pandas)
     for python in PYTHON_VERSIONS
     for pandas in PANDAS_VERSIONS
-    if (python, pandas) != ("3.8", "2.2.0")
+    if (python, pandas) != ("3.8", "2.2.3")
 ]
 
 
@@ -311,11 +311,11 @@ PYTHON_PANDAS_PARAMETER = [
 @nox.parametrize("pydantic", PYDANTIC_VERSIONS)
 def ci_requirements(session: Session, pandas: str, pydantic: str) -> None:
     """Install pinned dependencies for CI."""
-    if session.python == "3.8" and pandas == "2.2.2":
+    if session.python == "3.8" and pandas == "2.2.3":
         session.skip()
 
     _numpy: str | None = None
-    if pandas != "2.2.2":
+    if pandas != "2.2.3":
         _numpy = "< 2"
 
     session.install("uv")
