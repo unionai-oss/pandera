@@ -1,26 +1,25 @@
+# /// script
+# dependencies = ["nox"]
+# ///
+
 """Nox sessions."""
 
 # isort: skip_file
 import os
 import re
 import shutil
-import sys
+import tomllib
 import tempfile
 from typing import Dict, List
 
-# setuptools must be imported before distutils !
-import setuptools
-from distutils.core import (
-    run_setup,
-)
-
 import nox
 from nox import Session
-from pkg_resources import Requirement, parse_requirements
+
+# from pkg_resources import Requirement, parse_requirements
 
 
 nox.options.sessions = (
-    "requirements",
+    # "requirements",
     "ci_requirements",
     "tests",
     "docs",
@@ -53,38 +52,49 @@ else:
 LINE_LENGTH = 79
 
 
-def _build_setup_requirements() -> Dict[str, List[Requirement]]:
+def _build_setup_requirements() -> Dict[str, List[str]]:
     """Load requirments from setup.py."""
-    dist = run_setup("setup.py")
-    reqs = {"core": dist.install_requires}  # type: ignore
-    reqs.update(dist.extras_require)  # type: ignore
+    # read pyproject.toml to get optional dependencies
+
+    with open("pyproject.toml", "rb") as f:
+        pyproject = tomllib.load(f)
+
+    # Get core dependencies
+    core_deps = pyproject["project"]["dependencies"]
+
+    # Get optional dependencies
+    optional_deps = pyproject["project"]["optional-dependencies"]
     return {
-        extra: list(parse_requirements(reqs)) for extra, reqs in reqs.items()
+        "core": [req for req in core_deps],
+        **{
+            extra: [req for req in deps]
+            for extra, deps in optional_deps.items()
+        },
     }
 
 
-def _build_dev_requirements() -> List[Requirement]:
-    """Load requirements from file."""
-    with open(REQUIREMENT_PATH, encoding="utf-8") as req_file:
-        reqs = []
-        for req in parse_requirements(req_file.read()):
-            req.marker = None
-            reqs.append(req)
-        return reqs
+# def _build_dev_requirements() -> List[str]:
+#     """Load requirements from file."""
+#     with open(REQUIREMENT_PATH, "rt", encoding="utf-8") as req_file:
+#         reqs = []
+#         for req in parse_requirements(req_file.read()):
+#             req.marker = None
+#             reqs.append(req)
+#         return reqs
 
 
-SETUP_REQUIREMENTS: Dict[str, List[Requirement]] = _build_setup_requirements()
-DEV_REQUIREMENTS: List[Requirement] = _build_dev_requirements()
+SETUP_REQUIREMENTS: Dict[str, List[str]] = _build_setup_requirements()
+# DEV_REQUIREMENTS: List[Requirement] = _build_dev_requirements()
 
 
-def _requirement_to_dict(reqs: List[Requirement]) -> Dict[str, str]:
-    """Return a dict {PKG_NAME:PIP_SPECS}."""
-    req_dict = {}
-    for req in reqs:
-        specs = req.specs[0] if req.specs else []
-        specs_str = " ".join([req.unsafe_name, *specs]).replace(" ", "")
-        req_dict[req.unsafe_name] = specs_str
-    return req_dict
+# def _requirement_to_dict(reqs: List[Requirement]) -> Dict[str, str]:
+#     """Return a dict {PKG_NAME:PIP_SPECS}."""
+#     req_dict = {}
+#     for req in reqs:
+#         specs = req.specs[0] if req.specs else []
+#         specs_str = " ".join([req.unsafe_name, *specs]).replace(" ", "")
+#         req_dict[req.unsafe_name] = specs_str
+#     return req_dict
 
 
 def _build_requires() -> Dict[str, Dict[str, str]]:
@@ -95,25 +105,20 @@ def _build_requires() -> Dict[str, Dict[str, str]]:
     extras = {
         extra: reqs
         for extra, reqs in SETUP_REQUIREMENTS.items()
-        if extra not in ("core", "all")
+        if extra not in ("core")
     }
-    extras["all"] = DEV_REQUIREMENTS
-
-    optionals = [
-        req.project_name
-        for extra, reqs in extras.items()
-        for req in reqs
-        if extra != "all"
-    ]
-    requires = {"all": _requirement_to_dict(extras["all"])}
-    requires["core"] = {
-        pkg: specs
-        for pkg, specs in requires["all"].items()
-        if pkg not in optionals
+    requires = {
+        "core": SETUP_REQUIREMENTS["core"],
+        "all": [
+            *SETUP_REQUIREMENTS["core"],
+            *extras["all"],
+            *extras["dev"],
+            *extras["docs"],
+        ],
     }
     requires.update(  # add extras
         {
-            extra_name: {**_requirement_to_dict(pkgs), **requires["core"]}
+            extra_name: [*pkgs, *requires["core"]]
             for extra_name, pkgs in extras.items()
             if extra_name != "all"
         }
@@ -176,20 +181,6 @@ def install(session: Session, *args: str):
     else:
         print("using pip installer")
         session.install(*args)
-
-
-def install_from_requirements(session: Session, *packages: str) -> None:
-    """
-    Install dependencies, respecting the version specified in requirements.
-    """
-    for package in packages:
-        try:
-            specs = REQUIRES["all"][package]
-        except KeyError:
-            raise ValueError(
-                f"{package} cannot be found in {REQUIREMENT_PATH}."
-            ) from None
-        install(session, specs)
 
 
 def install_extras(
@@ -259,39 +250,39 @@ def _generate_pip_deps_from_conda(
     session.run("python", *args)
 
 
-@nox.session(python=PYTHON_VERSIONS)
-def requirements(session: Session) -> None:  # pylint:disable=unused-argument
-    """Check that setup.py requirements match requirements-dev.txt"""
-    install(session, "pyyaml")
-    try:
-        _generate_pip_deps_from_conda(session, compare=True)
-    except nox.command.CommandFailed as err:
-        _generate_pip_deps_from_conda(session)
-        print(f"{REQUIREMENT_PATH} has been re-generated ✨ 🍰 ✨")
-        raise err
+# @nox.session(python=PYTHON_VERSIONS)
+# def requirements(session: Session) -> None:  # pylint:disable=unused-argument
+#     """Check that setup.py requirements match requirements-dev.txt"""
+#     install(session, "pyyaml")
+#     try:
+#         _generate_pip_deps_from_conda(session, compare=True)
+#     except nox.command.CommandFailed as err:
+#         _generate_pip_deps_from_conda(session)
+#         print(f"{REQUIREMENT_PATH} has been re-generated ✨ 🍰 ✨")
+#         raise err
 
-    ignored_pkgs = {"black", "pandas", "pandas-stubs", "modin"}
-    mismatched = []
-    # only compare package versions, not python version markers.
-    str_dev_reqs = [str(x) for x in DEV_REQUIREMENTS]
-    for extra, reqs in SETUP_REQUIREMENTS.items():
-        for req in reqs:
-            if (
-                req.project_name not in ignored_pkgs
-                and str(req) not in str_dev_reqs
-            ):
-                mismatched.append(f"{extra}: {req.project_name}")
+#     ignored_pkgs = {"black", "pandas", "pandas-stubs", "modin"}
+#     mismatched = []
+#     # only compare package versions, not python version markers.
+#     str_dev_reqs = [str(x) for x in DEV_REQUIREMENTS]
+#     for extra, reqs in SETUP_REQUIREMENTS.items():
+#         for req in reqs:
+#             if (
+#                 req.project_name not in ignored_pkgs
+#                 and str(req) not in str_dev_reqs
+#             ):
+#                 mismatched.append(f"{extra}: {req.project_name}")
 
-    if mismatched:
-        print(
-            f"Packages {mismatched} defined in setup.py "
-            + f"do not match {REQUIREMENT_PATH}."
-        )
-        print(
-            "Modify environment.yml, "
-            + f"then run 'nox -s requirements' to generate {REQUIREMENT_PATH}"
-        )
-        sys.exit(1)
+#     if mismatched:
+#         print(
+#             f"Packages {mismatched} defined in setup.py "
+#             + f"do not match {REQUIREMENT_PATH}."
+#         )
+#         print(
+#             "Modify environment.yml, "
+#             + f"then run 'nox -s requirements' to generate {REQUIREMENT_PATH}"
+#         )
+#         sys.exit(1)
 
 
 def _ci_requirement_file_name(
@@ -367,6 +358,38 @@ def ci_requirements(session: Session, pandas: str, pydantic: str) -> None:
         )
 
 
+def _get_pinned_requirements(
+    session: Session, pandas: str, pydantic: str
+) -> None:
+    _requirements = REQUIRES["all"]
+    _pinned_requirements = []
+
+    _numpy: str | None = None
+    if pandas != "2.2.2":
+        _numpy = "< 2"
+
+    for req in _requirements:
+        req = req.strip()
+        if req == "pandas" or req.startswith("pandas "):
+            req = f"pandas=={pandas}\n"
+        if req == "pydantic" or req.startswith("pydantic "):
+            req = f"pydantic=={pydantic}\n"
+        if req.startswith("numpy") and _numpy is not None:
+            print("adding numpy constraint <2")
+            req = f"{req}, {_numpy}\n"
+        # for some reason uv will try to install an old version of dask,
+        # have to specifically pin dask[dataframe] to a higher version
+        if (
+            req == "dask[dataframe]" or req.startswith("dask[dataframe] ")
+        ) and session.python in ("3.9", "3.10", "3.11"):
+            req = "dask[dataframe]>=2023.9.2\n"
+
+        if req not in _pinned_requirements:
+            _pinned_requirements.append(req)
+
+    return _pinned_requirements
+
+
 @nox.session(python=PYTHON_VERSIONS)
 def dev_requirements(session: Session) -> None:
     """Install pinned dependencies for CI."""
@@ -391,7 +414,7 @@ EXTRA_NAMES = [
     if (
         extra != "all"
         and "python_version" not in extra
-        and extra not in {"modin"}
+        and extra not in {"modin", "dev", "docs"}
     )
 ]
 
@@ -403,6 +426,8 @@ EXTRA_NAMES = [
 def tests(session: Session, pandas: str, pydantic: str, extra: str) -> None:
     """Run the test suite."""
 
+    # pinned_requirements = _get_pinned_requirements(session, pandas, pydantic)
+
     if not isinstance(session.virtualenv, nox.virtualenv.PassthroughEnv):
         session.install("uv")
         session.run(
@@ -411,9 +436,9 @@ def tests(session: Session, pandas: str, pydantic: str, extra: str) -> None:
             "install",
             "-r",
             _ci_requirement_file_name(session, pandas, pydantic),
+            # "--upgrade",
+            # *pinned_requirements,
         )
-
-    session.run("pip", "list")
 
     env = {}
     if extra.startswith("modin"):
@@ -495,3 +520,7 @@ def docs(session: Session) -> None:
             "_build",
         ]
         session.run("sphinx-build", *args)
+
+
+if __name__ == "__main__":
+    nox.main()

@@ -1,3 +1,5 @@
+pandera/_version.py
+uv.lock
 *.db
 .vscode
 dask-worker-space

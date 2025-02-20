@@ -1,3 +1,116 @@
+[build-system]
+requires = ["setuptools>=61.0", "setuptools_scm"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools_scm]
+version_file = "pandera/_version.py"
+
+[project]
+name = "pandera"
+dynamic = ["version"]
+authors = [
+    {name = "Niels Bantilan", email = "niels.bantilan@gmail.com"},
+]
+description = "A light-weight and flexible data validation and testing tool for statistical data objects."
+readme = "README.md"
+license = {file = "LICENSE.txt"}
+requires-python = ">=3.8"
+keywords = ["pandas", "validation", "data-structures"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Operating System :: OS Independent",
+    "License :: OSI Approved :: MIT License",
+    "Intended Audience :: Science/Research",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Scientific/Engineering",
+]
+dependencies = [
+    "numpy >= 1.19.0",
+    "packaging >= 20.0",
+    "pandas >= 1.2.0",
+    "pydantic",
+    "typeguard",
+    "typing_extensions >= 3.7.4.3 ; python_version<'3.8'",
+    "typing_inspect >= 0.6.0",
+]
+
+[project.urls]
+Documentation = "https://pandera.readthedocs.io"
+"Issue Tracker" = "https://github.com/pandera-dev/pandera/issues"
+Homepage = "https://github.com/pandera-dev/pandera"
+
+[project.optional-dependencies]
+strategies = ["hypothesis >= 6.92.7"]
+hypotheses = ["scipy"]
+io = ["pyyaml >= 5.1", "black", "frictionless <= 4.40.8"]
+pyspark = ["pyspark[connect] >= 3.2.0"]
+modin = ["modin", "ray", "dask[dataframe]", "distributed"]
+modin-ray = ["modin", "ray"]
+modin-dask = ["modin", "dask[dataframe]", "distributed"]
+dask = ["dask[dataframe]", "distributed"]
+mypy = ["pandas-stubs"]
+fastapi = ["fastapi"]
+geopandas = ["geopandas", "shapely"]
+polars = ["polars >= 0.20.0"]
+all = [
+    "hypothesis >= 6.92.7",
+    "scipy",
+    "pyyaml >= 5.1",
+    "black",
+    "frictionless <= 4.40.8",
+    "pyspark[connect] >= 3.2.0",
+    "modin",
+    "ray",
+    "dask[dataframe]",
+    "pandas-stubs",
+    "fastapi",
+    "geopandas",
+    "shapely",
+    "polars >= 0.20.0",
+]
+dev = [
+    "isort >= 5.7.0",
+    "joblib",
+    "mypy == 1.10.0",
+    "pylint <= 2.17.3",
+    "pytest",
+    "pytest-cov",
+    "pytest-xdist",
+    "pytest-asyncio",
+    "pytz",
+    "xdoctest",
+    "nox",
+    "importlib_metadata",
+    "uvicorn",
+    "python-multipart",
+]
+docs = [
+    "sphinx",
+    "sphinx-design",
+    "sphinx-autodoc-typehints <= 1.14.1",
+    "sphinx-copybutton",
+    "recommonmark",
+    "myst-nb",
+    "furo",
+    "sphinx-docsearch",
+    "grpcio",
+    "ray",
+    "types-click",
+    "types-pytz",
+    "types-pyyaml",
+    "types-requests",
+    "types-setuptools",
+]
+
+[tool.setuptools]
+packages = ["pandera"]
+package-data = {"pandera" = ["py.typed"]}
+
 [tool.pyright]
 include = ["pandera", "tests"]
 exclude = [".nox/**", ".nox-*/**"]
@@ -5,6 +118,16 @@ exclude = [".nox/**", ".nox-*/**"]
 [tool.pytest.ini_options]
 log_cli = true
 log_cli_level = 20
+
+[tool.ruff]
+line-length = 120
+extend-exclude = [
+    "setup.py",
+    ".venv",
+    ".nox",
+    ".git",
+    "asv_bench",
+]
 
 [tool.black]
 line-length = 79

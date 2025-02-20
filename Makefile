@@ -38,18 +38,18 @@ nox:
 NOX_FLAGS ?= "-r"
 
 nox-mamba:
-	nox -db mamba --envdir .nox-mamba ${NOX_FLAGS}
+	nox -db uv ${NOX_FLAGS}
 
 deps-from-conda:
 	python scripts/generate_pip_deps_from_conda.py
 
 nox-ci-requirements: deps-from-conda
-	nox -db mamba --envdir .nox-mamba -s ci_requirements ${NOX_FLAGS}
+	nox -db uv -s ci_requirements ${NOX_FLAGS}
 
 nox-dev-requirements: deps-from-conda
-	nox -db mamba --envdir .nox-mamba -s dev_requirements ${NOX_FLAGS}
+	nox -db uv -s dev_requirements ${NOX_FLAGS}
 
 nox-requirements: nox-ci-requirements nox-dev-requirements
 
 nox-tests:
-	nox -db mamba --envdir .nox-mamba -s tests ${NOX_FLAGS}
+	nox -db uv -s tests ${NOX_FLAGS}
