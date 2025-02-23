@@ -20,6 +20,7 @@ from typing import (
 
 import polars as pl
 from packaging import version
+from polars._typing import ColumnNameOrSelector, PythonDataType
 from polars.datatypes import DataTypeClass
 
 from pandera import dtypes, errors
@@ -94,17 +95,17 @@ def polars_coerce_failure_cases(
     into particular data type.
     """
     try:
-        is_coercible = polars_object_coercible(data_container, type_)
+        is_coercible_lf = polars_object_coercible(data_container, type_)
     except (TypeError, pl.InvalidOperationError):
-        is_coercible = data_container.lazyframe.with_columns(
+        is_coercible_lf = data_container.lazyframe.with_columns(
             **{CHECK_OUTPUT_KEY: pl.lit(False)}
         ).select(CHECK_OUTPUT_KEY)
 
     try:
         failure_cases = polars_failure_cases_from_coercible(
-            data_container, is_coercible
+            data_container, is_coercible_lf
         ).collect()
-        is_coercible = is_coercible.collect()
+        is_coercible = is_coercible_lf.collect()
     except COERCION_ERRORS:
         # If coercion fails, all of the relevant rows are failure cases
         failure_cases = data_container.lazyframe.select(
@@ -158,7 +159,13 @@ class DataType(dtypes.DataType):
         """Coerce data container to the data type."""
         if isinstance(data_container, pl.LazyFrame):
             data_container = PolarsData(data_container)
-
+        dtypes: Union[
+            Mapping[
+                ColumnNameOrSelector | PolarsDataType,
+                PolarsDataType | PythonDataType,
+            ],
+            PolarsDataType,
+        ]
         if data_container.key is None:
             dtypes = self.type
         else:
@@ -373,9 +380,11 @@ class Decimal(DataType, dtypes.Decimal):
 
     def __init__(  # pylint:disable=super-init-not-called
         self,
-        precision: int = dtypes.DEFAULT_PYTHON_PREC,
+        precision: int | None = None,
         scale: int = 0,
     ) -> None:
+        if precision is None:
+            precision = dtypes.DEFAULT_PYTHON_PREC
         object.__setattr__(self, "precision", precision)
         object.__setattr__(self, "scale", scale)
         object.__setattr__(
@@ -467,18 +476,17 @@ class DateTime(DataType, dtypes.DateTime):
         self,
         time_zone_agnostic: bool = False,
         time_zone: Optional[str] = None,
-        time_unit: Optional[str] = None,
+        time_unit: Optional[Literal["ns", "us", "ms"]] = None,
     ) -> None:
 
-        _kwargs = {}
         if time_unit is not None:
             # avoid deprecated warning when initializing pl.Datetime:
             # passing time_unit=None is deprecated.
-            _kwargs["time_unit"] = time_unit
+            dt = pl.Datetime(time_zone=time_zone, time_unit=time_unit)
+        else:
+            dt = pl.Datetime(time_zone=time_zone)
 
-        object.__setattr__(
-            self, "type", pl.Datetime(time_zone=time_zone, **_kwargs)
-        )
+        object.__setattr__(self, "type", dt)
         object.__setattr__(self, "time_zone_agnostic", time_zone_agnostic)
 
     @classmethod
