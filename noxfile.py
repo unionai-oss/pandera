@@ -368,7 +368,7 @@ def ci_requirements(session: Session, pandas: str, pydantic: str) -> None:
 def _get_pinned_requirements(
     session: Session, pandas: str, pydantic: str, extra: str
 ) -> None:
-    _requirements = REQUIRES[extra]
+    _requirements = [*REQUIRES[extra], REQUIRES["dev"]]
     _pinned_requirements = []
 
     _numpy: str | None = None
