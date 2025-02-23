@@ -17,9 +17,9 @@ build:
       # Install numpy<v2 to avoid breaking docs. This is because the env has
       # pyspark installed, which requires numpy<2.
       - pip install uv
-      - UV_PROJECT_ENVIRONMENT=$READTHEDOCS_VIRTUALENV_PATH uv pip install 'numpy<2'
-      - UV_PROJECT_ENVIRONMENT=$READTHEDOCS_VIRTUALENV_PATH uv pip install -r requirements.in
-      - UV_PROJECT_ENVIRONMENT=$READTHEDOCS_VIRTUALENV_PATH uv sync --link-mode=copy
+      # - UV_PROJECT_ENVIRONMENT=$READTHEDOCS_VIRTUALENV_PATH uv pip install 'numpy<2'
+      # - UV_PROJECT_ENVIRONMENT=$READTHEDOCS_VIRTUALENV_PATH uv pip install -r requirements.in
+      - UV_PROJECT_ENVIRONMENT=$READTHEDOCS_VIRTUALENV_PATH uv sync --all-extras --link-mode=copy
 
 # Build documentation in the docs/ directory with Sphinx
 # conda:

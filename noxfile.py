@@ -9,9 +9,13 @@ import os
 import re
 import shutil
 import sys
-import tomllib
 import tempfile
 from typing import Dict, List
+
+try:
+    import tomllib
+except ModuleNotFoundError:
+    import pip._vendor.tomli as tomllib
 
 import nox
 from nox import Session
