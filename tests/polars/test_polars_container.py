@@ -2,6 +2,9 @@
 """Unit tests for polars container."""
 
 from typing import Optional
+from typing import (
+    Type,
+)  # when python 3.9 is minimum version, use `type` instead
 
 import polars as pl
 import pytest
@@ -21,10 +24,6 @@ try:
     from typing import Annotated  # type: ignore
 except ImportError:
     from typing_extensions import Annotated  # type: ignore
-
-from typing import (
-    Type,
-)  # when python 3.9 is minimum version, use `type` instead
 
 
 @pytest.fixture
