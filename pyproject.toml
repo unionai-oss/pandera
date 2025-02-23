@@ -75,6 +75,7 @@ all = [
     "polars >= 0.20.0",
 ]
 dev = [
+    "hypothesis >= 6.92.7",
     "isort >= 5.7.0",
     "joblib",
     "mypy == 1.10.0",
