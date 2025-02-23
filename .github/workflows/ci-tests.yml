@@ -211,7 +211,10 @@ jobs:
           os: windows-latest
         - extra: modin-ray
           os: windows-latest
-        # pyspark < 4.0 is doesn't work on 3.12
+        # pyspark serialization issue on windows: "pandas" module not found
+        - extra: pyspark
+          os: windows-latest
+        # pyspark < 4.0 doesn't work on 3.12
         - extra: pyspark
           python-version: "3.12"
 
