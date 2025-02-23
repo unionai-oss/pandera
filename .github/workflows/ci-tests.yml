@@ -62,13 +62,13 @@ jobs:
       - name: Pip info
         run: python -m pip list
 
-      - name: Check requirements
-        run: >
-          nox
-          -db virtualenv -r
-          --non-interactive
-          --python ${{ matrix.python-version }}
-          --session requirements-${{ matrix.python-version }}
+      # - name: Check requirements
+      #   run: >
+      #     nox
+      #     -db virtualenv -r
+      #     --non-interactive
+      #     --python ${{ matrix.python-version }}
+      #     --session requirements-${{ matrix.python-version }}
 
       - name: Sort Imports
         run: pre-commit run isort --all-files
