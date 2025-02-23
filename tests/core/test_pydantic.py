@@ -64,6 +64,10 @@ def test_typed_dataframe():
         TypedDfPydantic(df=invalid_df)
 
 
+@pytest.mark.skipif(
+    not PYDANTIC_V2,
+    reason="Pydantic <2 cannot catch the invalid dataframe model error",
+)
 def test_invalid_typed_dataframe():
     """Test that an invalid typed DataFrame is recognized by pandera."""
     with pytest.raises(ValidationError):

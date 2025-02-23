@@ -8,6 +8,7 @@
 import os
 import re
 import shutil
+import sys
 import tomllib
 import tempfile
 from typing import Dict, List
@@ -331,6 +332,12 @@ def ci_requirements(session: Session, pandas: str, pydantic: str) -> None:
             if _line.startswith("numpy") and _numpy is not None:
                 print("adding numpy constraint <2")
                 line = f"{_line}, {_numpy}\n"
+            if (
+                _line == "polars"
+                or _line.startswith("polars ")
+                and sys.platform == "darwin"
+            ):
+                _line = "polars-lts-cpu"
             # for some reason uv will try to install an old version of dask,
             # have to specifically pin dask[dataframe] to a higher version
             if _line == "dask[dataframe]" and session.python in (
@@ -359,9 +366,9 @@ def ci_requirements(session: Session, pandas: str, pydantic: str) -> None:
 
 
 def _get_pinned_requirements(
-    session: Session, pandas: str, pydantic: str
+    session: Session, pandas: str, pydantic: str, extra: str
 ) -> None:
-    _requirements = REQUIRES["all"]
+    _requirements = REQUIRES[extra]
     _pinned_requirements = []
 
     _numpy: str | None = None
@@ -377,6 +384,12 @@ def _get_pinned_requirements(
         if req.startswith("numpy") and _numpy is not None:
             print("adding numpy constraint <2")
             req = f"{req}, {_numpy}\n"
+        if (
+            req == "polars"
+            or req.startswith("polars ")
+            and sys.platform == "darwin"
+        ):
+            req = "polars-lts-cpu"
         # for some reason uv will try to install an old version of dask,
         # have to specifically pin dask[dataframe] to a higher version
         if (
@@ -426,7 +439,9 @@ EXTRA_NAMES = [
 def tests(session: Session, pandas: str, pydantic: str, extra: str) -> None:
     """Run the test suite."""
 
-    # pinned_requirements = _get_pinned_requirements(session, pandas, pydantic)
+    pinned_requirements = _get_pinned_requirements(
+        session, pandas, pydantic, extra
+    )
 
     if not isinstance(session.virtualenv, nox.virtualenv.PassthroughEnv):
         session.install("uv")
@@ -434,11 +449,13 @@ def tests(session: Session, pandas: str, pydantic: str, extra: str) -> None:
             "uv",
             "pip",
             "install",
-            "-r",
-            _ci_requirement_file_name(session, pandas, pydantic),
-            # "--upgrade",
-            # *pinned_requirements,
+            # "-r",
+            # _ci_requirement_file_name(session, pandas, pydantic),
+            "--upgrade",
+            *pinned_requirements,
         )
+
+    session.run("uv", "pip", "list")
 
     env = {}
     if extra.startswith("modin"):

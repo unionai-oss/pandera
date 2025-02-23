@@ -67,6 +67,7 @@ all = [
     "modin",
     "ray",
     "dask[dataframe]",
+    "distributed",
     "pandas-stubs",
     "fastapi",
     "geopandas",

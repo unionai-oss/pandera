@@ -94,7 +94,7 @@ jobs:
         shell: pwsh
     env:
       PYTHONUTF8: 1
-      NOX_FLAGS: -v --no-install --no-venv --non-interactive
+      NOX_FLAGS: -v -db uv --non-interactive
       PYTEST_FLAGS: --cov=pandera --cov-report=term-missing --cov-report=xml --cov-append
       HYPOTHESIS_FLAGS: -n=auto -q --hypothesis-profile=ci
     strategy:
@@ -141,14 +141,8 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pip-
 
-      - name: Install deps
-        run: |
-          pip install uv
-          uv pip install --system -r requirements.in
-
-      - run: |
-          pip list
-          printenv | sort
+      - name: Install uv
+        run: pip install uv
 
       - name: Unit Tests - Core
         run: nox ${{ env.NOX_FLAGS }} --session "tests(extra='core', pydantic='${{ matrix.pydantic-version }}', python='${{ matrix.python-version }}', pandas='${{ matrix.pandas-version }}')"
@@ -173,7 +167,7 @@ jobs:
         shell: pwsh
     env:
       PYTHONUTF8: 1
-      NOX_FLAGS: -v --no-install --no-venv --non-interactive
+      NOX_FLAGS: -v -db uv --non-interactive
       PYTEST_FLAGS: --cov=pandera --cov-report=term-missing --cov-report=xml --cov-append
       HYPOTHESIS_FLAGS: -n=auto -q --hypothesis-profile=ci
     strategy:
