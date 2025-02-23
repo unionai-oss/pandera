@@ -48,7 +48,7 @@ Homepage = "https://github.com/pandera-dev/pandera"
 strategies = ["hypothesis >= 6.92.7"]
 hypotheses = ["scipy"]
 io = ["pyyaml >= 5.1", "black", "frictionless <= 4.40.8"]
-pyspark = ["pyspark[connect] >= 3.2.0", "distutils ; python_version>='3.12'"]
+pyspark = ["pyspark[connect] >= 3.2.0"]
 modin = ["modin", "ray", "dask[dataframe]", "distributed"]
 modin-ray = ["modin", "ray"]
 modin-dask = ["modin", "dask[dataframe]", "distributed"]
@@ -68,7 +68,6 @@ all = [
     "ray",
     "dask[dataframe]",
     "distributed",
-    "distutils ; python_version>='3.12'",
     "pandas-stubs",
     "fastapi",
     "geopandas",
