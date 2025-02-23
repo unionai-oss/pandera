@@ -7,7 +7,6 @@ import inspect
 import warnings
 from typing import (
     Any,
-    Dict,
     Iterable,
     Literal,
     Mapping,
@@ -16,12 +15,14 @@ from typing import (
     Tuple,
     Type,
     Union,
+    TypedDict,
 )
 
 import polars as pl
 from packaging import version
 from polars._typing import ColumnNameOrSelector, PythonDataType
 from polars.datatypes import DataTypeClass
+from typing_extensions import NotRequired
 
 from pandera import dtypes, errors
 from pandera.api.polars.types import PolarsData
@@ -37,7 +38,6 @@ COERCION_ERRORS = (
     pl.exceptions.InvalidOperationError,
     pl.exceptions.ComputeError,
 )
-
 
 SchemaDict = Mapping[str, PolarsDataType]
 
@@ -565,6 +565,11 @@ class Timedelta(DataType, dtypes.Timedelta):
 ###############################################################################
 
 
+class _ArrayKwargs(TypedDict):
+    shape: NotRequired[Union[int | tuple[int, ...]]]
+    width: NotRequired[Union[int, None]]
+
+
 @Engine.register_dtype(equivalents=[pl.Array])
 @immutable(init=True)
 class Array(DataType):
@@ -580,13 +585,15 @@ class Array(DataType):
         width: Optional[int] = None,
     ) -> None:
 
-        kwargs: Dict[str, Union[int, Tuple[int, ...]]] = {}
-        if width is not None:
+        kwargs: _ArrayKwargs = {}
+        if (
+            width is not None
+        ):  # width deprecated in polars 0.20.31, replaced by shape
             kwargs["shape"] = width
         elif shape is not None:
             kwargs["shape"] = shape
 
-        if inner or shape or width:
+        if inner and (shape or width):
             object.__setattr__(self, "type", pl.Array(inner=inner, **kwargs))
 
     @classmethod
@@ -677,11 +684,9 @@ class Categorical(DataType):
 
     type = pl.Categorical
 
-    ordering = None
-
     def __init__(  # pylint:disable=super-init-not-called
         self,
-        ordering: Literal["physical", "lexical"] = "physical",
+        ordering: Optional[Literal["physical", "lexical"]] = "physical",
     ) -> None:
         object.__setattr__(self, "ordering", ordering)
         object.__setattr__(self, "type", pl.Categorical(ordering=ordering))
@@ -706,8 +711,9 @@ class Enum(DataType):
         self,
         categories: Union[pl.Series, Iterable[str], None] = None,
     ) -> None:
-        object.__setattr__(self, "categories", categories)
-        object.__setattr__(self, "type", pl.Enum(categories=categories))
+        if categories is not None:
+            object.__setattr__(self, "categories", categories)
+            object.__setattr__(self, "type", pl.Enum(categories=categories))
 
     @classmethod
     def from_parametrized_dtype(cls, polars_dtype: pl.Enum):
@@ -781,8 +787,10 @@ class Category(DataType, dtypes.Category):
             return self.coerce(data_container)
         except Exception as exc:  # pylint:disable=broad-except
             is_coercible: pl.LazyFrame = polars_object_coercible(
-                data_container, self.type
-            ) & self.__belongs_to_categories(
+                data_container,
+                self.type,
+                # TODO this is incorrect, appears not to be covered by tests
+            ) & self.__belongs_to_categories(  # type: ignore  # TEMP ONLY!
                 data_container.lazyframe, key=data_container.key
             )
 
@@ -800,7 +808,9 @@ class Category(DataType, dtypes.Category):
         lf: pl.LazyFrame,
         key: Optional[str] = None,
     ) -> pl.LazyFrame:
-        return lf.select(pl.col(key or "*").is_in(self.categories))
+        # self.categories not None here.
+        expr = pl.col(key or "*").is_in(self.categories)  # type: ignore[arg-type]
+        return lf.select(expr)
 
     def __str__(self):
         return "Category"
