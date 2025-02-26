@@ -29,7 +29,6 @@ below we'll use the {ref}`class-based API <dataframe-models>` to define a
 
 ```python
 import modin.pandas as pd
-import pandas as pd
 import pandera as pa
 
 from pandera.typing.modin import DataFrame, Series
