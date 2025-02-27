@@ -79,6 +79,8 @@ dev = [
     "isort >= 5.7.0",
     "joblib",
     "mypy == 1.10.0",
+    "pip",
+    "pre_commit",
     "pyarrow",
     "pylint <= 2.17.3",
     "pytest",

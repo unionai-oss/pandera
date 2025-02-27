@@ -4,8 +4,8 @@
 pip
 packaging >= 20.0
 hypothesis >= 6.92.7
-numpy >= 1.19.0
-pandas
+numpy >= 1.24.4
+pandas >= 2.1.1
 scipy
 pyyaml >=5.1
 typing_inspect >= 0.6.0

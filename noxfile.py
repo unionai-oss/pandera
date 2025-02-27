@@ -20,11 +20,8 @@ except ModuleNotFoundError:
 import nox
 from nox import Session
 
-# from pkg_resources import Requirement, parse_requirements
-
 
 nox.options.sessions = (
-    # "requirements",
     "ci_requirements",
     "tests",
     "docs",
@@ -78,28 +75,17 @@ def _build_setup_requirements() -> Dict[str, List[str]]:
     }
 
 
-# def _build_dev_requirements() -> List[str]:
-#     """Load requirements from file."""
-#     with open(REQUIREMENT_PATH, "rt", encoding="utf-8") as req_file:
-#         reqs = []
-#         for req in parse_requirements(req_file.read()):
-#             req.marker = None
-#             reqs.append(req)
-#         return reqs
+def _build_dev_requirements() -> List[str]:
+    """Load requirements from file."""
+    with open(REQUIREMENT_PATH, encoding="utf-8") as req_file:
+        reqs = []
+        for req in req_file.readlines():
+            reqs.append(req.strip())
+        return reqs
 
 
 SETUP_REQUIREMENTS: Dict[str, List[str]] = _build_setup_requirements()
-# DEV_REQUIREMENTS: List[Requirement] = _build_dev_requirements()
-
-
-# def _requirement_to_dict(reqs: List[Requirement]) -> Dict[str, str]:
-#     """Return a dict {PKG_NAME:PIP_SPECS}."""
-#     req_dict = {}
-#     for req in reqs:
-#         specs = req.specs[0] if req.specs else []
-#         specs_str = " ".join([req.unsafe_name, *specs]).replace(" ", "")
-#         req_dict[req.unsafe_name] = specs_str
-#     return req_dict
+DEV_REQUIREMENTS: List[str] = _build_dev_requirements()
 
 
 def _build_requires() -> Dict[str, Dict[str, str]]:
@@ -255,39 +241,38 @@ def _generate_pip_deps_from_conda(
     session.run("python", *args)
 
 
-# @nox.session(python=PYTHON_VERSIONS)
-# def requirements(session: Session) -> None:  # pylint:disable=unused-argument
-#     """Check that setup.py requirements match requirements-dev.txt"""
-#     install(session, "pyyaml")
-#     try:
-#         _generate_pip_deps_from_conda(session, compare=True)
-#     except nox.command.CommandFailed as err:
-#         _generate_pip_deps_from_conda(session)
-#         print(f"{REQUIREMENT_PATH} has been re-generated ✨ 🍰 ✨")
-#         raise err
+@nox.session(python=PYTHON_VERSIONS)
+def requirements(session: Session) -> None:  # pylint:disable=unused-argument
+    """Check that setup.py requirements match requirements-dev.txt"""
+    install(session, "pyyaml")
+    try:
+        _generate_pip_deps_from_conda(session, compare=True)
+    except nox.command.CommandFailed as err:
+        _generate_pip_deps_from_conda(session)
+        print(f"{REQUIREMENT_PATH} has been re-generated ✨ 🍰 ✨")
+        raise err
 
-#     ignored_pkgs = {"black", "pandas", "pandas-stubs", "modin"}
-#     mismatched = []
-#     # only compare package versions, not python version markers.
-#     str_dev_reqs = [str(x) for x in DEV_REQUIREMENTS]
-#     for extra, reqs in SETUP_REQUIREMENTS.items():
-#         for req in reqs:
-#             if (
-#                 req.project_name not in ignored_pkgs
-#                 and str(req) not in str_dev_reqs
-#             ):
-#                 mismatched.append(f"{extra}: {req.project_name}")
+    ignored_pkgs = {"black", "pandas", "pandas-stubs", "modin"}
+    mismatched = []
 
-#     if mismatched:
-#         print(
-#             f"Packages {mismatched} defined in setup.py "
-#             + f"do not match {REQUIREMENT_PATH}."
-#         )
-#         print(
-#             "Modify environment.yml, "
-#             + f"then run 'nox -s requirements' to generate {REQUIREMENT_PATH}"
-#         )
-#         sys.exit(1)
+    # only compare package versions, not python version markers.
+    str_dev_reqs = [str(x) for x in DEV_REQUIREMENTS]
+    for extra, reqs in SETUP_REQUIREMENTS.items():
+        for req in reqs:
+            req = req.split(";")[0].strip()
+            if req not in ignored_pkgs and req not in str_dev_reqs:
+                mismatched.append(f"{extra}: {req}")
+
+    if mismatched:
+        print(
+            f"Packages {mismatched} defined in setup.py "
+            + f"do not match {REQUIREMENT_PATH}."
+        )
+        print(
+            "Modify environment.yml, "
+            + f"then run 'nox -s requirements' to generate {REQUIREMENT_PATH}"
+        )
+        sys.exit(1)
 
 
 def _ci_requirement_file_name(
