@@ -2,6 +2,8 @@
 
 # pylint:disable=import-outside-toplevel,abstract-method
 
+from dataclasses import asdict
+
 import pyspark.sql.types as T
 import pytest
 
@@ -52,7 +54,7 @@ class TestPanderaConfig:
         }
 
         with config_context(validation_enabled=False):
-            assert get_config_context().dict() == expected
+            assert asdict(get_config_context()) == expected
             assert pandera_schema.validate(input_df) == input_df
             assert TestSchema.validate(input_df) == input_df
 
@@ -79,7 +81,7 @@ class TestPanderaConfig:
             validation_enabled=True,
             validation_depth=ValidationDepth.SCHEMA_ONLY,
         ):
-            assert get_config_context().dict() == expected
+            assert asdict(get_config_context()) == expected
             output_dataframeschema_df = pandera_schema.validate(input_df)
 
         expected_dataframeschema = {
@@ -166,7 +168,7 @@ class TestPanderaConfig:
             validation_enabled=True,
             validation_depth=ValidationDepth.DATA_ONLY,
         ):
-            assert get_config_context().dict() == expected
+            assert asdict(get_config_context()) == expected
             output_dataframeschema_df = pandera_schema.validate(input_df)
 
         expected_dataframeschema = {
@@ -263,7 +265,7 @@ class TestPanderaConfig:
             validation_enabled=True,
             validation_depth=ValidationDepth.SCHEMA_AND_DATA,
         ):
-            assert get_config_context().dict() == expected
+            assert asdict(get_config_context()) == expected
             output_dataframeschema_df = pandera_schema.validate(input_df)
 
         expected_dataframeschema = {
@@ -388,4 +390,4 @@ class TestPanderaConfig:
             cache_dataframe=cache_dataframe,
             keep_cached_dataframe=keep_cached_dataframe,
         ):
-            assert get_config_context().dict() == expected
+            assert asdict(get_config_context()) == expected

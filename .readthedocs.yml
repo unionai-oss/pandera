@@ -6,27 +6,30 @@
 version: 2
 
 build:
-  os: ubuntu-20.04
+  os: ubuntu-24.04
   apt_packages:
     # Install OpenJDK as Java backend to run PySpark examples.
     - openjdk-11-jre-headless
   tools:
-    python: "mambaforge-4.10"
+    python: "3.11"
   jobs:
     post_install:
       # Install numpy<v2 to avoid breaking docs. This is because the env has
       # pyspark installed, which requires numpy<2.
-      - python -m pip install "numpy<2"
+      - pip install uv
+      # - UV_PROJECT_ENVIRONMENT=$READTHEDOCS_VIRTUALENV_PATH uv pip install 'numpy<2'
+      # - UV_PROJECT_ENVIRONMENT=$READTHEDOCS_VIRTUALENV_PATH uv pip install -r requirements.in
+      - UV_PROJECT_ENVIRONMENT=$READTHEDOCS_VIRTUALENV_PATH uv sync --all-extras --link-mode=copy
 
 # Build documentation in the docs/ directory with Sphinx
-conda:
-  environment: environment.yml
+# conda:
+#   environment: environment.yml
 
 # Optionally set the version of Python and requirements required to build your docs
-python:
-  install:
-    - method: pip
-      path: .
+# python:
+#   install:
+#     - method: pip
+#       path: .
 
 sphinx:
   configuration: docs/source/conf.py
