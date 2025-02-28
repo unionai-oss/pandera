@@ -192,6 +192,7 @@ def test_pandas_stubs_false_positives(
         "pandera_types.py",
         "pandas_time.py",
         "pandas_index.py",
+        "pandas_series.py",
     }
     if module in xfail_modules:
         pytest.xfail(
@@ -241,4 +242,12 @@ def test_pandas_stubs_false_positives(
 )
 def test_pandas_modules_importable(module):
     """Make sure that static type linting modules can be executed."""
+    xfail_modules = {
+        "pandas_series",
+    }
+    if module in xfail_modules:
+        pytest.xfail(
+            f"{xfail_modules} are unstable when it comes due to maturing "
+            "pandas-stubs library"
+        )
     importlib.import_module(f"tests.mypy.modules.{module}")

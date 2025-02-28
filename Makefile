@@ -17,8 +17,16 @@ upload-pypi:
 		twine upload dist/* && \
 		rm -rf dist
 
-requirements:
-	pip install -r requirements-dev.txt
+.PHONY: install-uv
+install-uv:
+	pip install uv
+
+setup: install-uv
+	uv sync --all-extras
+
+setup-macos: install-uv
+	uv sync --all-extras
+	uv pip install polars-lts-cpu
 
 docs-clean:
 	rm -rf docs/source/reference/generated docs/**/generated docs/**/methods docs/_build docs/source/_contents
@@ -32,24 +40,13 @@ quick-docs:
 code-cov:
 	pytest --cov-report=html --cov=pandera tests/
 
-nox:
-	nox -r --envdir .nox-virtualenv
-
 NOX_FLAGS ?= "-r"
 
-nox-mamba:
-	nox -db mamba --envdir .nox-mamba ${NOX_FLAGS}
-
-deps-from-conda:
+deps-from-environment.yml:
 	python scripts/generate_pip_deps_from_conda.py
 
-nox-ci-requirements: deps-from-conda
-	nox -db mamba --envdir .nox-mamba -s ci_requirements ${NOX_FLAGS}
-
-nox-dev-requirements: deps-from-conda
-	nox -db mamba --envdir .nox-mamba -s dev_requirements ${NOX_FLAGS}
-
-nox-requirements: nox-ci-requirements nox-dev-requirements
+unit-tests:
+	pytest tests/core
 
 nox-tests:
-	nox -db mamba --envdir .nox-mamba -s tests ${NOX_FLAGS}
+	nox -db uv -s tests ${NOX_FLAGS}

@@ -3,10 +3,9 @@
 import os
 from contextlib import contextmanager
 from copy import copy
+from dataclasses import dataclass
 from enum import Enum
 from typing import Optional
-
-from pydantic import BaseModel
 
 
 class ValidationDepth(Enum):
@@ -24,7 +23,8 @@ class ValidationScope(Enum):
     DATA = "data"
 
 
-class PanderaConfig(BaseModel):
+@dataclass
+class PanderaConfig:
     """Pandera config base class.
 
     This should pick up environment variables automatically, e.g.:
@@ -44,26 +44,32 @@ class PanderaConfig(BaseModel):
     keep_cached_dataframe: bool = False
 
 
-# this config variable should be accessible globally
-CONFIG = PanderaConfig(
-    validation_enabled=os.environ.get(
-        "PANDERA_VALIDATION_ENABLED",
-        True,
-    ),
-    validation_depth=os.environ.get(
-        "PANDERA_VALIDATION_DEPTH",
-        None,
-    ),
-    cache_dataframe=os.environ.get(
-        "PANDERA_CACHE_DATAFRAME",
-        False,
-    ),
-    keep_cached_dataframe=os.environ.get(
-        "PANDERA_KEEP_CACHED_DATAFRAME",
-        False,
-    ),
-)
+def _config_from_env_vars():
+    validation_enabled = (
+        os.environ.get("PANDERA_VALIDATION_ENABLED", None) == "True" or True
+    )
+    validation_depth = os.environ.get("PANDERA_VALIDATION_DEPTH", None)
+    if validation_depth is not None:
+        validation_depth = ValidationDepth(validation_depth)
 
+    cache_dataframe = (
+        os.environ.get("PANDERA_CACHE_DATAFRAME", None) == "True" or False
+    )
+    keep_cached_dataframe = (
+        os.environ.get("PANDERA_KEEP_CACHED_DATAFRAME", None) == "True"
+        or False
+    )
+
+    return PanderaConfig(
+        validation_enabled=validation_enabled,
+        validation_depth=validation_depth,
+        cache_dataframe=cache_dataframe,
+        keep_cached_dataframe=keep_cached_dataframe,
+    )
+
+
+# this config variable should be accessible globally
+CONFIG = _config_from_env_vars()
 _CONTEXT_CONFIG = copy(CONFIG)
 
 

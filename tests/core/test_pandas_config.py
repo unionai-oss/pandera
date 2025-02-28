@@ -2,6 +2,7 @@
 
 # pylint:disable=import-outside-toplevel,abstract-method,redefined-outer-name
 
+from dataclasses import asdict
 
 import pandas as pd
 import pytest
@@ -51,7 +52,7 @@ class TestPandasDataFrameConfig:
             "validation_depth": ValidationDepth.SCHEMA_AND_DATA,
         }
 
-        assert get_config_context().dict() == expected
+        assert asdict(get_config_context()) == expected
         assert pandera_schema.validate(self.sample_data) is self.sample_data
         assert TestSchema.validate(self.sample_data) is self.sample_data
 
@@ -73,5 +74,5 @@ class TestPandasSeriesConfig:
         pandera_schema = SeriesSchema(
             int, pa.Check(lambda s: s.value_counts() == 2, element_wise=False)
         )
-        assert get_config_context().dict() == expected
+        assert asdict(get_config_context()) == expected
         assert pandera_schema.validate(self.sample_data) is self.sample_data

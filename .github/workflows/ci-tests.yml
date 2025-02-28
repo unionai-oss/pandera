@@ -30,7 +30,7 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
+        python-version: ["3.9", "3.10", "3.11", "3.12"]
     defaults:
       run:
         shell: bash -l {0}
@@ -94,20 +94,21 @@ jobs:
         shell: pwsh
     env:
       PYTHONUTF8: 1
-      NOX_FLAGS: -v --no-install --no-venv --non-interactive
+      NOX_FLAGS: -v -db uv --non-interactive
       PYTEST_FLAGS: --cov=pandera --cov-report=term-missing --cov-report=xml --cov-append
       HYPOTHESIS_FLAGS: -n=auto -q --hypothesis-profile=ci
     strategy:
-      fail-fast: true
+      # fail-fast: true
+      fail-fast: false
       matrix:
         os:
         - ubuntu-latest
         - windows-latest
         - macos-13
         # - macos-latest  # see: https://github.com/actions/setup-python/issues/696
-        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
-        pandas-version: ["1.5.3", "2.2.2"]
-        pydantic-version: ["1.10.11", "2.3.0"]
+        python-version: ["3.9", "3.10", "3.11", "3.12"]
+        pandas-version: ["2.1.1", "2.2.3"]
+        pydantic-version: ["1.10.11", "2.10.6"]
         include:
         - os: ubuntu-latest
           pip-cache: ~/.cache/pip
@@ -141,14 +142,8 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pip-
 
-      - name: Install deps
-        run: |
-          pip install uv
-          uv pip install --system -r requirements.in
-
-      - run: |
-          pip list
-          printenv | sort
+      - name: Install dev deps
+        run: pip install uv nox
 
       - name: Unit Tests - Core
         run: nox ${{ env.NOX_FLAGS }} --session "tests(extra='core', pydantic='${{ matrix.pydantic-version }}', python='${{ matrix.python-version }}', pandas='${{ matrix.pandas-version }}')"
@@ -156,9 +151,9 @@ jobs:
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
 
-      # - name: Check Docstrings
-      #   if: ${{ matrix.os != 'windows-latest' && matrix.python-version == '3.11' && matrix.pandas-version == '2.2.2' }}
-      #   run: nox ${{ env.NOX_FLAGS }} --session doctests
+      - name: Check Docstrings
+        if: ${{ matrix.os != 'windows-latest' && matrix.python-version == '3.11' && matrix.pandas-version == '2.2.2' }}
+        run: nox ${{ env.NOX_FLAGS }} --session doctests
 
       # - name: Check Docs
       #   if: ${{ matrix.os != 'windows-latest' && matrix.python-version == '3.11' && matrix.pydantic-version == '2.2.2' }}
@@ -173,21 +168,22 @@ jobs:
         shell: pwsh
     env:
       PYTHONUTF8: 1
-      NOX_FLAGS: -v --no-install --no-venv --non-interactive
+      NOX_FLAGS: -v -db uv --non-interactive
       PYTEST_FLAGS: --cov=pandera --cov-report=term-missing --cov-report=xml --cov-append
       HYPOTHESIS_FLAGS: -n=auto -q --hypothesis-profile=ci
     strategy:
-      fail-fast: true
+      # fail-fast: true
+      fail-fast: false
       matrix:
         os:
         - ubuntu-latest
         - windows-latest
         - macos-13
         # - macos-latest  # see: https://github.com/actions/setup-python/issues/696
-        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
-        pandas-version: ["2.2.2"]
-        pydantic-version: ["2.3.0"]
-        polars-version: ["0.20.31", "1.2.0"]
+        python-version: ["3.9", "3.10", "3.11", "3.12"]
+        pandas-version: ["2.2.3"]
+        pydantic-version: ["2.10.6"]
+        polars-version: ["1.22.0"]
         extra:
         - hypotheses
         - io
@@ -210,40 +206,17 @@ jobs:
         - os: windows-latest
           pip-cache: ~/AppData/Local/pip/Cache
         exclude:
-        - python-version: "3.8"
-          pandas-version: "2.2.2"
-        - python-version: "3.11"
-          pandas-version: "1.5.3"
-        - python-version: "3.12"
-          pandas-version: "1.5.3"
           # mypy tests hang on windows
         - extra: mypy
           os: windows-latest
         - extra: modin-ray
           os: windows-latest
-        - extra: hypotheses
-          polars-version: "0.20.31"
-        - extra: io
-          polars-version: "0.20.31"
-        - extra: mypy
-          polars-version: "0.20.31"
-        - extra: strategies
-          polars-version: "0.20.31"
-        - extra: fastapi
-          polars-version: "0.20.31"
-        - extra: geopandas
-          polars-version: "0.20.31"
-        - extra: dask
-          polars-version: "0.20.31"
+        # pyspark serialization issue on windows: "pandas" module not found
         - extra: pyspark
-          polars-version: "0.20.31"
-        # pyspark < 4.0 is doesn't work on 3.12
+          os: windows-latest
+        # pyspark < 4.0 doesn't work on 3.12
         - extra: pyspark
           python-version: "3.12"
-        - extra: modin-dask
-          polars-version: "0.20.31"
-        - extra: modin-ray
-          polars-version: "0.20.31"
 
     steps:
       - uses: actions/checkout@v4
@@ -261,18 +234,9 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pip-
 
-      - name: Install deps
+      - name: Install dev deps
         shell: bash
-        # install numpy<2 for all extras. It seems to effects most packages in
-        # the ecosystem.
-        # install openjdk for pyspark extra.
-        run: |
-          pip install uv
-          uv pip install --system -r requirements.in
-          uv pip install --system --force-reinstall "polars==${{ matrix.polars-version }}";
-          uv pip install --system --force-reinstall "numpy<2.0.0";
-          uv pip install --system install-jdk==1.1.0
-          export JAVA_HOME=$(python -c "import jdk; print(jdk.install('11', vendor='temurin'))")
+        run: pip install uv nox
 
       - run: |
           pip list

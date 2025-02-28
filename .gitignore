@@ -1,3 +1,5 @@
+pandera/_version.py
+uv.lock
 *.db
 .vscode
 dask-worker-space
@@ -127,3 +129,4 @@ docs/source/reference/generated
 
 # ignore markdown files copied from .github
 docs/source/CONTRIBUTING.md
+.aider*
