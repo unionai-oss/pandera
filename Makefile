@@ -21,10 +21,10 @@ upload-pypi:
 install-uv:
 	pip install uv
 
-requirements: install-uv
+setup: install-uv
 	uv sync --all-extras
 
-requirements-macos: install-uv
+setup-macos: install-uv
 	uv sync --all-extras
 	uv pip install polars-lts-cpu
 

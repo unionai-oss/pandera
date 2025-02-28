@@ -22,7 +22,6 @@ from nox import Session
 
 
 nox.options.sessions = (
-    "ci_requirements",
     "tests",
     "docs",
     "doctests",
@@ -163,73 +162,62 @@ def conda_install(session: Session, *args):
         )
 
 
-def install(session: Session, *args: str):
-    """Install dependencies in the appropriate virtual environment
-    (conda or virtualenv) and return the type of the environmment."""
-    if isinstance(session.virtualenv, nox.virtualenv.CondaEnv):
-        print("using conda installer")
-        conda_install(session, *args)
-    else:
-        print("using pip installer")
-        session.install(*args)
+# def install_extras(
+#     session: Session,
+#     extra: str = "core",
+#     force_pip: bool = False,
+#     pandas: str = "latest",
+#     pandas_stubs: bool = True,
+# ) -> None:
+#     """Install dependencies."""
 
+#     if isinstance(session.virtualenv, nox.virtualenv.PassthroughEnv):
+#         # skip this step if there's no virtual environment specified
+#         session.run("pip", "install", "-e", ".", "--no-deps")
+#         return
 
-def install_extras(
-    session: Session,
-    extra: str = "core",
-    force_pip: bool = False,
-    pandas: str = "latest",
-    pandas_stubs: bool = True,
-) -> None:
-    """Install dependencies."""
+#     specs, pip_specs = [], []
+#     pandas_version = "" if pandas == "latest" else f"=={pandas}"
+#     for spec in REQUIRES[extra].values():
+#         req_name = extract_requirement_name(spec)
+#         if req_name == "pandas-stubs" and not pandas_stubs:
+#             # this is a temporary measure until all pandas-related mypy errors
+#             # are addressed
+#             continue
 
-    if isinstance(session.virtualenv, nox.virtualenv.PassthroughEnv):
-        # skip this step if there's no virtual environment specified
-        session.run("pip", "install", "-e", ".", "--no-deps")
-        return
+#         req = Requirement(spec)  # type: ignore
 
-    specs, pip_specs = [], []
-    pandas_version = "" if pandas == "latest" else f"=={pandas}"
-    for spec in REQUIRES[extra].values():
-        req_name = extract_requirement_name(spec)
-        if req_name == "pandas-stubs" and not pandas_stubs:
-            # this is a temporary measure until all pandas-related mypy errors
-            # are addressed
-            continue
+#         # this is needed until ray is supported on python 3.10
+#         # pylint: disable=line-too-long
+#         if req.name in {"ray", "geopandas"} and session.python == "3.10":  # type: ignore[attr-defined]  # noqa
+#             continue
 
-        req = Requirement(spec)  # type: ignore
+#         if req.name in ALWAYS_USE_PIP:  # type: ignore[attr-defined]
+#             pip_specs.append(spec)
+#         elif req_name == "pandas" and pandas != "latest":
+#             specs.append(f"pandas~={pandas}")
+#         else:
+#             specs.append(
+#                 spec if spec != "pandas" else f"pandas{pandas_version}"
+#             )
+#     if extra in {"core", "pyspark", "modin", "fastapi"}:
+#         specs.append(REQUIRES["all"]["hypothesis"])
 
-        # this is needed until ray is supported on python 3.10
-        # pylint: disable=line-too-long
-        if req.name in {"ray", "geopandas"} and session.python == "3.10":  # type: ignore[attr-defined]  # noqa
-            continue
+#     # CI installs conda dependencies, so only run this for local runs
+#     if (
+#         isinstance(session.virtualenv, nox.virtualenv.CondaEnv)
+#         and not force_pip
+#         and not CI_RUN
+#     ):
+#         print("using conda installer")
+#         conda_install(session, *specs)
+#     else:
+#         print("using pip installer")
+#         session.install(*specs)
 
-        if req.name in ALWAYS_USE_PIP:  # type: ignore[attr-defined]
-            pip_specs.append(spec)
-        elif req_name == "pandas" and pandas != "latest":
-            specs.append(f"pandas~={pandas}")
-        else:
-            specs.append(
-                spec if spec != "pandas" else f"pandas{pandas_version}"
-            )
-    if extra in {"core", "pyspark", "modin", "fastapi"}:
-        specs.append(REQUIRES["all"]["hypothesis"])
-
-    # CI installs conda dependencies, so only run this for local runs
-    if (
-        isinstance(session.virtualenv, nox.virtualenv.CondaEnv)
-        and not force_pip
-        and not CI_RUN
-    ):
-        print("using conda installer")
-        conda_install(session, *specs)
-    else:
-        print("using pip installer")
-        session.install(*specs)
-
-    # always use pip for these packages)
-    session.install(*pip_specs)
-    session.install("-e", ".", "--no-deps")  # install pandera
+#     # always use pip for these packages)
+#     session.install(*pip_specs)
+#     session.install("-e", ".", "--no-deps")  # install pandera
 
 
 def _generate_pip_deps_from_conda(
@@ -244,7 +232,7 @@ def _generate_pip_deps_from_conda(
 @nox.session(python=PYTHON_VERSIONS)
 def requirements(session: Session) -> None:  # pylint:disable=unused-argument
     """Check that setup.py requirements match requirements-dev.txt"""
-    install(session, "pyyaml")
+    session.install("pyyaml")
     try:
         _generate_pip_deps_from_conda(session, compare=True)
     except nox.command.CommandFailed as err:
@@ -275,83 +263,11 @@ def requirements(session: Session) -> None:  # pylint:disable=unused-argument
         sys.exit(1)
 
 
-def _ci_requirement_file_name(
-    session: Session,
-    pandas: str,
-    pydantic: str,
-) -> str:
-    return (
-        "ci/requirements-"
-        f"py{session.python}-"
-        f"pandas{pandas}-"
-        f"pydantic{pydantic}.txt"
-    )
-
-
 PYTHON_PANDAS_PARAMETER = [
     (python, pandas)
     for python in PYTHON_VERSIONS
     for pandas in PANDAS_VERSIONS
-    if (python, pandas) != ("3.8", "2.2.3")
 ]
-
-
-@nox.session
-@nox.parametrize("python,pandas", PYTHON_PANDAS_PARAMETER)
-@nox.parametrize("pydantic", PYDANTIC_VERSIONS)
-def ci_requirements(session: Session, pandas: str, pydantic: str) -> None:
-    """Install pinned dependencies for CI."""
-    if session.python == "3.8" and pandas == "2.2.3":
-        session.skip()
-
-    _numpy: str | None = None
-    if pandas != "2.2.3":
-        _numpy = "< 2"
-
-    session.install("uv")
-
-    requirements = []
-    with open("requirements.in") as f:
-        for line in f.readlines():
-            _line = line.strip()
-            if _line == "pandas":
-                line = f"pandas=={pandas}\n"
-            if _line == "pydantic":
-                line = f"pydantic=={pydantic}\n"
-            if _line.startswith("numpy") and _numpy is not None:
-                print("adding numpy constraint <2")
-                line = f"{_line}, {_numpy}\n"
-            if (
-                _line == "polars"
-                or _line.startswith("polars ")
-                and sys.platform == "darwin"
-            ):
-                _line = "polars-lts-cpu"
-            # for some reason uv will try to install an old version of dask,
-            # have to specifically pin dask[dataframe] to a higher version
-            if _line == "dask[dataframe]" and session.python in (
-                "3.9",
-                "3.10",
-                "3.11",
-                "3.12",
-            ):
-                line = "dask[dataframe]>=2023.9.2\n"
-            requirements.append(line)
-
-    with tempfile.NamedTemporaryFile("a") as f:
-        f.writelines(requirements)
-        f.seek(0)
-        session.run(
-            "uv",
-            "pip",
-            "compile",
-            f"{f.name}",
-            "--output-file",
-            _ci_requirement_file_name(session, pandas, pydantic),
-            "--no-header",
-            "--upgrade",
-            "--no-annotate",
-        )
 
 
 def _get_pinned_requirements(
@@ -392,24 +308,6 @@ def _get_pinned_requirements(
     return _pinned_requirements
 
 
-@nox.session(python=PYTHON_VERSIONS)
-def dev_requirements(session: Session) -> None:
-    """Install pinned dependencies for CI."""
-    session.install("uv")
-    output_file = f"dev/requirements-{session.python}.txt"
-    session.run(
-        "uv",
-        "pip",
-        "compile",
-        "requirements.in",
-        "--output-file",
-        output_file,
-        "--no-header",
-        "--upgrade",
-        "--no-annotate",
-    )
-
-
 EXTRA_NAMES = [
     extra
     for extra in REQUIRES
@@ -421,6 +319,20 @@ EXTRA_NAMES = [
 ]
 
 
+def _install_extras(
+    session: Session, extra: str, pandas: str, pydantic: str
+) -> None:
+    if not isinstance(session.virtualenv, nox.virtualenv.PassthroughEnv):
+        session.install("uv")
+        session.run(
+            "uv",
+            "pip",
+            "install",
+            "--upgrade",
+            *_get_pinned_requirements(session, pandas, pydantic, extra),
+        )
+
+
 @nox.session
 @nox.parametrize("python,pandas", PYTHON_PANDAS_PARAMETER)
 @nox.parametrize("pydantic", PYDANTIC_VERSIONS)
@@ -428,22 +340,7 @@ EXTRA_NAMES = [
 def tests(session: Session, pandas: str, pydantic: str, extra: str) -> None:
     """Run the test suite."""
 
-    pinned_requirements = _get_pinned_requirements(
-        session, pandas, pydantic, extra
-    )
-
-    if not isinstance(session.virtualenv, nox.virtualenv.PassthroughEnv):
-        session.install("uv")
-        session.run(
-            "uv",
-            "pip",
-            "install",
-            # "-r",
-            # _ci_requirement_file_name(session, pandas, pydantic),
-            "--upgrade",
-            *pinned_requirements,
-        )
-
+    _install_extras(session, extra, pandas, pydantic)
     session.run("uv", "pip", "list")
 
     env = {}
@@ -483,7 +380,10 @@ def tests(session: Session, pandas: str, pydantic: str, extra: str) -> None:
 @nox.session(python=PYTHON_VERSIONS)
 def doctests(session: Session) -> None:
     """Build the documentation."""
-    install_extras(session, extra="all", force_pip=True)
+    _install_extras(session, "all", PANDAS_VERSIONS[-1], PYDANTIC_VERSIONS[-1])
+    if session.python == "3.12":
+        # skip 3.12 because of pyspark depends on distutils and 3.12 dropped it
+        session.skip()
     session.run("xdoctest", PACKAGE, "--quiet")
 
 
@@ -491,10 +391,9 @@ def doctests(session: Session) -> None:
 def docs(session: Session) -> None:
     """Build the documentation."""
     # this is needed until ray and geopandas are supported on python 3.10
-    if session.python == "3.10":
-        session.skip()
 
-    install_extras(session, extra="all", force_pip=True)
+    _install_extras(session, "all", PANDAS_VERSIONS[-1], PYDANTIC_VERSIONS[-1])
+    session.run("uv", "sync", "--active")
     session.chdir("docs")
 
     # build html docs
