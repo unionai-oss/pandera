@@ -5,7 +5,7 @@ on:
     types: [published]
   push:
     branches:
-      - update-publish-ci
+      - test-publish-ci
 
 jobs:
   publish:
