@@ -8,7 +8,7 @@ on:
       - test-publish-ci
 
 jobs:
-  publish:
+  build_wheel_and_sdist:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -25,10 +25,30 @@ jobs:
       - name: Build wheel and sdist
         run: python -m build
         shell: bash
-      - name: Build and publish
-        run: ls -la .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pandera-artifact
+          path: ./dist
       # - name: Build and publish
       #   env:
       #     TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
       #     TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
       #   run: twine upload dist/*
+
+  pypi-publish:
+    name: Upload release to PyPI
+    needs: [build_wheel_and_sdist]
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write # IMPORTANT: this permission is mandatory for trusted publishing
+    environment: release
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: pandera-artifact
+          path: dist
+      - run: ls dist
+      - name: Publish package distributions to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          attestations: false
