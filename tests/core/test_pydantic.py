@@ -1,13 +1,14 @@
 """Unit tests for pydantic compatibility."""
 
 # pylint:disable=too-few-public-methods,missing-class-docstring
-from typing import Optional
+from typing import Annotated, ClassVar, Optional
 
 import pandas as pd
 import pytest
 
 import pandera as pa
 from pandera.engines import pydantic_version
+from pandera.errors import SchemaError
 from pandera.typing import DataFrame, Series
 
 try:
@@ -54,6 +55,25 @@ class SeriesSchemaPydantic(BaseModel):
     pa_index: Optional[pa.Index]
 
 
+class AnnotatedDfPydantic(BaseModel):
+    """Test pydantic model with annotated dataframe model."""
+
+    # Required because pandas.DataFrame is not a valid pydantic type. Using
+    # arbitrary_types_allowed=True essentially adds an isinstance check for
+    # the annotated type.
+    if PYDANTIC_V2:
+        from pydantic import ConfigDict
+
+        model_config: ClassVar[ConfigDict] = ConfigDict(
+            arbitrary_types_allowed=True
+        )
+        df: Annotated[pd.DataFrame, SimpleSchema]
+    else:
+
+        class Config:
+            arbitrary_types_allowed = True
+
+
 def test_typed_dataframe():
     """Test that typed DataFrame is compatible with pydantic."""
     valid_df = pd.DataFrame({"str_col": ["hello", "world"]})
@@ -62,6 +82,16 @@ def test_typed_dataframe():
     invalid_df = pd.DataFrame({"str_col": ["hello", "hello"]})
     with pytest.raises(ValidationError):
         TypedDfPydantic(df=invalid_df)
+
+
+def test_annotated_dataframe_model():
+    """Test that annotated DataFrame is compatible with pydantic."""
+    valid_df = pd.DataFrame({"str_col": ["hello", "world"]})
+    assert isinstance(AnnotatedDfPydantic(df=valid_df), AnnotatedDfPydantic)
+
+    invalid_df = pd.DataFrame({"str_col": ["hello", "hello"]})
+    with pytest.raises(SchemaError):
+        AnnotatedDfPydantic(df=invalid_df)  # right type, wrong schema
 
 
 @pytest.mark.skipif(
@@ -86,6 +116,16 @@ def test_invalid_typed_dataframe():
     # This check prevents Linters from raising an error about not using the PydanticModel class
     with pytest.raises(UnboundLocalError):
         PydanticModel(pa_schema=InvalidSchema)
+
+
+@pytest.mark.skipif(
+    not PYDANTIC_V2,
+    reason="Pydantic <2 cannot catch the invalid dataframe model error",
+)
+def test_invalid_annotated_dataframe():
+    """Test that an invalid annotated DataFrame is recognized by pandera."""
+    with pytest.raises(ValidationError):
+        AnnotatedDfPydantic(df=1)
 
 
 def test_dataframemodel():
