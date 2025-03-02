@@ -9,15 +9,15 @@ dependencies:
   # pandera dependencies
   - packaging >= 20.0
   - hypothesis >= 6.92.7
-  - numpy >= 1.24.4
-  - pandas >= 2.1.1
-  - scipy
   - pyyaml >= 5.1
   - typing_inspect >= 0.6.0
   - typing_extensions >= 3.7.4.3
   - frictionless <= 4.40.8  # v5.* introduces breaking changes
   - pyarrow
   - pydantic
+
+  # hypotheses extra
+  - scipy
 
   # mypy extra
   - pandas-stubs
@@ -43,6 +43,8 @@ dependencies:
   - black >= 24.0
 
   # testing
+  - numpy >= 1.24.4
+  - pandas >= 2.1.1
   - isort >= 5.7.0
   - joblib
   - mypy = 1.10.0

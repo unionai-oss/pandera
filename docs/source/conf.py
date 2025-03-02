@@ -323,7 +323,7 @@ nb_execution_excludepatterns = ["_contents/try_pandera.ipynb"]
 # docsearch configuration
 docsearch_container = "#docsearch"
 docsearch_app_id = os.getenv("DOCSEARCH_SEARCH_APP_ID", "GA9NROLUXR")
-docsearch_api_key = os.getenv("DOCSEARCH_SEARCH_API_KEY")
+docsearch_api_key = os.getenv("DOCSEARCH_SEARCH_API_KEY", "<PLACEHOLDER>")
 docsearch_index_name = os.getenv("DOCSEARCH_INDEX_NAME", "pandera")
 docsearch_search_parameters = {
     "facetFilters": [f"version:{os.getenv('READTHEDOCS_VERSION', 'stable')}"]
