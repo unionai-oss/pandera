@@ -1,7 +1,7 @@
 """Unit tests for pydantic compatibility."""
 
 # pylint:disable=too-few-public-methods,missing-class-docstring
-from typing import Annotated, ClassVar, Optional
+from typing import Annotated, Optional
 
 import pandas as pd
 import pytest
@@ -55,23 +55,27 @@ class SeriesSchemaPydantic(BaseModel):
     pa_index: Optional[pa.Index]
 
 
-class AnnotatedDfPydantic(BaseModel):
-    """Test pydantic model with annotated dataframe model."""
+if PYDANTIC_V2:
+    from pydantic import ConfigDict
 
-    # Required because pandas.DataFrame is not a valid pydantic type. Using
-    # arbitrary_types_allowed=True essentially adds an isinstance check for
-    # the annotated type.
-    if PYDANTIC_V2:
-        from pydantic import ConfigDict
+    class AnnotatedDfPydantic(BaseModel):  # type: ignore[no-redef]
+        """Test pydantic model with annotated dataframe model."""
 
-        model_config: ClassVar[ConfigDict] = ConfigDict(
-            arbitrary_types_allowed=True
-        )
+        # arbitrary_types_allowed=True required for pandas.DataFrame
+        model_config = ConfigDict(arbitrary_types_allowed=True)
+
         df: Annotated[pd.DataFrame, SimpleSchema]
-    else:
 
+else:
+
+    class AnnotatedDfPydantic(BaseModel):  # type: ignore[no-redef]
+        """Test pydantic model with annotated dataframe model."""
+
+        # arbitrary_types_allowed=True required for pandas.DataFrame
         class Config:
             arbitrary_types_allowed = True
+
+        df: Annotated[pd.DataFrame, SimpleSchema]
 
 
 def test_typed_dataframe():
