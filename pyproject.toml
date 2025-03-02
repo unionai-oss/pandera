@@ -30,9 +30,7 @@ classifiers = [
     "Topic :: Scientific/Engineering",
 ]
 dependencies = [
-    "numpy >= 1.24.4",
     "packaging >= 20.0",
-    "pandas >= 2.1.1",
     "pydantic",
     "typeguard",
     "typing_inspect >= 0.6.0",
@@ -44,17 +42,43 @@ Documentation = "https://pandera.readthedocs.io"
 Homepage = "https://github.com/pandera-dev/pandera"
 
 [project.optional-dependencies]
+pandas = [
+    "numpy >= 1.24.4",
+    "pandas >= 2.1.1",
+]
 strategies = ["hypothesis >= 6.92.7"]
 hypotheses = ["scipy"]
-io = ["pyyaml >= 5.1", "black", "frictionless <= 4.40.8"]
+io = [
+    "pyyaml >= 5.1",
+    "black",
+    "frictionless <= 4.40.8",
+]
 pyspark = ["pyspark[connect] >= 3.2.0"]
-modin = ["modin", "ray", "dask[dataframe]", "distributed"]
-modin-ray = ["modin", "ray"]
-modin-dask = ["modin", "dask[dataframe]", "distributed"]
-dask = ["dask[dataframe]", "distributed"]
+modin = [
+    "modin",
+    "ray",
+    "dask[dataframe]",
+    "distributed",
+]
+modin-ray = [
+    "modin",
+    "ray",
+]
+modin-dask = [
+    "modin",
+    "dask[dataframe]",
+    "distributed",
+]
+dask = [
+    "dask[dataframe]",
+    "distributed",
+]
 mypy = ["pandas-stubs"]
 fastapi = ["fastapi"]
-geopandas = ["geopandas", "shapely"]
+geopandas = [
+    "geopandas",
+    "shapely",
+]
 polars = ["polars >= 0.20.0"]
 all = [
     "hypothesis >= 6.92.7",

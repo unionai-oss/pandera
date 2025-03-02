@@ -46,7 +46,7 @@ from pandera.dtypes import (
 from pandera.errors import PysparkSchemaError, SchemaInitError
 from pandera.schema_inference.pandas import infer_schema
 from pandera.typing import pyspark_sql
-from pandera.version import __version__
+from pandera._version import __version__
 
 
 external_config._set_pyspark_environment_variables()
