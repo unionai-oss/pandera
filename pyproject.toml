@@ -30,9 +30,7 @@ classifiers = [
     "Topic :: Scientific/Engineering",
 ]
 dependencies = [
-    "numpy >= 1.24.4",
     "packaging >= 20.0",
-    "pandas >= 2.1.1",
     "pydantic",
     "typeguard",
     "typing_extensions >= 3.7.4.3 ; python_version<'3.8'",
@@ -78,7 +76,9 @@ dev = [
     "hypothesis >= 6.92.7",
     "isort >= 5.7.0",
     "joblib",
+    "numpy >= 1.24.4",
     "mypy == 1.10.0",
+    "pandas >= 2.1.1",
     "pip",
     "pre_commit",
     "pyarrow",
