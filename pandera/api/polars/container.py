@@ -59,9 +59,10 @@ class DataFrameSchema(_DataFrameSchema[PolarsCheckObjects]):
         with config_context(validation_depth=get_validation_depth(check_obj)):
             if is_dataframe:
                 # if validating a polars DataFrame, use the global config setting
-                check_obj = check_obj.lazy()
-
-            output = self.get_backend(check_obj).validate(
+                backend = self.get_backend(check_type=pl.LazyFrame)
+            else:
+                backend = self.get_backend(check_obj)
+            output = backend.validate(
                 check_obj=check_obj,
                 schema=self,
                 head=head,

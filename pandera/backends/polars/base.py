@@ -39,6 +39,7 @@ class PolarsSchemaBackend(BaseSchemaBackend):
         tail: Optional[int] = None,
         sample: Optional[int] = None,
         random_state: Optional[int] = None,
+        check_obj_lazyframe: bool = True,
     ):
         obj_subsample = []
         if head is not None:
@@ -46,11 +47,13 @@ class PolarsSchemaBackend(BaseSchemaBackend):
         if tail is not None:
             obj_subsample.append(check_obj.tail(tail))
         if sample is not None:
-            obj_subsample.append(
-                # mypy is detecting a bug https://github.com/unionai-oss/pandera/issues/1912
-                check_obj.sample(  # type:ignore [attr-defined]
-                    sample, random_state=random_state
+            if check_obj_lazyframe:
+                raise NotImplementedError(
+                    "Sample is not supported as polars does not implement LazyFrame.sample. "
+                    "Instead either pass a DataFrame, or validate using head/tail."
                 )
+            obj_subsample.append(
+                check_obj.collect().sample(sample, seed=random_state).lazy()
             )
         return (
             check_obj
