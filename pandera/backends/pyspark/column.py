@@ -66,7 +66,7 @@ class ColumnSchemaBackend(PysparkSchemaBackend):
         random_state: Optional[int] = None,  # pylint: disable=unused-argument
         lazy: bool = False,
         inplace: bool = False,
-        error_handler: ErrorHandler = None,
+        error_handler: Optional[ErrorHandler] = None,
     ):
         # pylint: disable=too-many-locals
         check_obj = self.preprocess(check_obj, inplace)

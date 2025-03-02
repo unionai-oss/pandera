@@ -353,7 +353,7 @@ class CustomWarningSuppressor(pylogging.Filter):
 
         if (
             msg.strip().startswith("document isn't included in any toctree")
-            and record.location == "_tags/tagsindex"
+            and record.location == "_tags/tagsindex"  # type: ignore [attr-defined]
         ):
             # ignore this warning, since we don't want the side nav to be
             # cluttered with the tags index page.
