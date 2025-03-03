@@ -3,6 +3,7 @@
 
 import sys
 
+from pandera._version import __version__
 
 try:
     import pandas as pd
@@ -10,7 +11,6 @@ except ImportError:
     _pandas_installed = False
 else:
     _pandas_installed = True
-    import numpy as np
 
 
 if not _pandas_installed:
@@ -18,3 +18,6 @@ if not _pandas_installed:
 
 
 from pandera.pandas import *
+from pandera.pandas import __all__
+
+__all__.append("__version__")
