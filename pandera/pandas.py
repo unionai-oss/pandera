@@ -9,6 +9,7 @@ from packaging.version import parse
 import pandas as pd
 import numpy as np
 
+
 _min_pandas_version = parse("2.1.1")
 _min_numpy_version = parse("1.24.4")
 
@@ -105,11 +106,6 @@ from pandera.engines.pandas_engine import (
     pandas_version,
 )
 from pandera.schema_inference.pandas import infer_schema
-from pandera.version import __version__
-
-if platform.system() != "Windows":
-    # pylint: disable=ungrouped-imports
-    from pandera.dtypes import Complex256, Float128
 
 
 __all__ = [
@@ -119,7 +115,6 @@ __all__ = [
     "Complex",
     "Complex64",
     "Complex128",
-    "Complex256",
     "Date",
     "DataType",
     "DateTime",
@@ -128,7 +123,6 @@ __all__ = [
     "Float16",
     "Float32",
     "Float64",
-    "Float128",
     "Int",
     "Int8",
     "Int16",
@@ -188,6 +182,11 @@ __all__ = [
     # schemas
     "DataFrameSchema",
     "SeriesSchema",
-    # version
-    "__version__",
 ]
+
+
+if platform.system() != "Windows":
+    # pylint: disable=ungrouped-imports
+    from pandera.dtypes import Complex256, Float128
+
+    __all__.extend(["Complex256", "Float128"])
