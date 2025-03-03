@@ -14,8 +14,6 @@ else:
     _pandas_installed = True
     import numpy as np
 
-    # check minimum pandas version
-
 
 if not _pandas_installed:
     sys.exit(0)
