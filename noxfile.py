@@ -331,6 +331,7 @@ def _install_extras(
             "--upgrade",
             *_get_pinned_requirements(session, pandas, pydantic, extra),
         )
+        session.run("uv", "pip", "install", ".")
 
 
 @nox.session
