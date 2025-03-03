@@ -136,8 +136,8 @@ class BaseCheckInfo:  # pylint:disable=too-few-public-methods
                 self.check_fn, "__name__", self.check_fn.__class__.__name__
             )
 
-        def _adapter(arg: Any) -> Union[bool, Iterable[bool]]:
-            return self.check_fn(model_cls, arg)
+        def _adapter(arg: Any, **kwargs) -> Union[bool, Iterable[bool]]:
+            return self.check_fn(model_cls, arg, **kwargs)
 
         return Check(_adapter, name=name, **self.check_kwargs)
 
