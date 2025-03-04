@@ -593,7 +593,7 @@ class Array(DataType):
         elif shape is not None:
             kwargs["shape"] = shape
 
-        if inner and (shape or width):
+        if inner or shape or width:
             object.__setattr__(self, "type", pl.Array(inner=inner, **kwargs))
 
     @classmethod
