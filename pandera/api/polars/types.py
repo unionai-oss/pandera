@@ -1,13 +1,26 @@
 """Polars types."""
 
-from typing import NamedTuple, Optional, Union
+from typing import NamedTuple, Union
 
 import polars as pl
 
 
-class PolarsData(NamedTuple):
+class AllColumnsPolarsCheckData(NamedTuple):
+    """Container for check data applying to all columns."""
+
     lazyframe: pl.LazyFrame
-    key: Optional[str] = None
+
+    @property
+    def key(self) -> None:
+        """Dummy attribute to allow deducing all columns check data from single columns without isinstance checks."""
+        return None
+
+
+class PolarsData(NamedTuple):
+    """Container for check data which applies to a single column."""
+
+    lazyframe: pl.LazyFrame
+    key: str
 
 
 class CheckResult(NamedTuple):

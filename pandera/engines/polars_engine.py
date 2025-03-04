@@ -25,12 +25,14 @@ from polars.datatypes import DataTypeClass
 from typing_extensions import NotRequired
 
 from pandera import dtypes, errors
-from pandera.api.polars.types import PolarsData
+from pandera.api.polars.types import PolarsData, AllColumnsPolarsCheckData
 from pandera.constants import CHECK_OUTPUT_KEY
 from pandera.dtypes import immutable
 from pandera.engines import engine
 
-PolarsDataContainer = Union[pl.LazyFrame, PolarsData]
+PolarsDataContainer = Union[
+    pl.LazyFrame, PolarsData, AllColumnsPolarsCheckData
+]
 PolarsDataType = Union[DataTypeClass, pl.DataType]
 
 COERCION_ERRORS = (
@@ -65,7 +67,8 @@ def convert_py_dtype_to_polars_dtype(dtype):
 
 
 def polars_object_coercible(
-    data_container: PolarsData, type_: PolarsDataType
+    data_container: PolarsData | AllColumnsPolarsCheckData,
+    type_: PolarsDataType,
 ) -> pl.LazyFrame:
     """Checks whether a polars object is coercible with respect to a type."""
     key = data_container.key or "*"
@@ -77,7 +80,7 @@ def polars_object_coercible(
 
 
 def polars_failure_cases_from_coercible(
-    data_container: PolarsData,
+    data_container: PolarsData | AllColumnsPolarsCheckData,
     is_coercible: pl.LazyFrame,
 ) -> pl.LazyFrame:
     """Get the failure cases resulting from trying to coerce a polars object."""
@@ -87,7 +90,7 @@ def polars_failure_cases_from_coercible(
 
 
 def polars_coerce_failure_cases(
-    data_container: PolarsData,
+    data_container: PolarsData | AllColumnsPolarsCheckData,
     type_: Any,
 ) -> Tuple[pl.DataFrame, pl.DataFrame]:
     """
@@ -157,23 +160,21 @@ class DataType(dtypes.DataType):
 
     def coerce(self, data_container: PolarsDataContainer) -> pl.LazyFrame:
         """Coerce data container to the data type."""
-        if isinstance(data_container, pl.LazyFrame):
-            data_container = PolarsData(data_container)
-        dtypes: Union[
-            Mapping[
-                ColumnNameOrSelector | PolarsDataType,
-                PolarsDataType | PythonDataType,
-            ],
-            PolarsDataType,
+        dtypes: Mapping[
+            ColumnNameOrSelector | PolarsDataType,
+            Union[PolarsDataType, PythonDataType],
         ]
-        if data_container.key is None:
-            dtypes = self.type
+        if isinstance(data_container, AllColumnsPolarsCheckData):
+            data_container = data_container.lazyframe
+        if isinstance(data_container, pl.LazyFrame):
+            return data_container.cast(self.type, strict=True)
         else:
             dtypes = {data_container.key: self.type}
-
         return data_container.lazyframe.cast(dtypes, strict=True)
 
-    def try_coerce(self, data_container: PolarsDataContainer) -> pl.LazyFrame:
+    def try_coerce(
+        self, data_container: PolarsDataContainer | AllColumnsPolarsCheckData
+    ) -> pl.LazyFrame:
         """Coerce data container to the data type,
         raises a :class:`~pandera.errors.ParserError` if the coercion fails
         :raises: :class:`~pandera.errors.ParserError`: if coercion fails
@@ -181,7 +182,7 @@ class DataType(dtypes.DataType):
         from pandera.api.polars.utils import get_lazyframe_schema
 
         if isinstance(data_container, pl.LazyFrame):
-            data_container = PolarsData(data_container)
+            data_container = AllColumnsPolarsCheckData(data_container)
 
         try:
             lf = self.coerce(data_container)
@@ -209,7 +210,7 @@ class DataType(dtypes.DataType):
     def check(
         self,
         pandera_dtype: dtypes.DataType,
-        data_container: Optional[PolarsDataContainer] = None,
+        data_container: None = None,
     ) -> Union[bool, Iterable[bool]]:
         try:
             pandera_dtype = Engine.dtype(pandera_dtype)
@@ -400,7 +401,7 @@ class Decimal(DataType, dtypes.Decimal):
     def coerce(self, data_container: PolarsDataContainer) -> pl.LazyFrame:
         """Coerce data container to the data type."""
         if isinstance(data_container, pl.LazyFrame):
-            data_container = PolarsData(data_container)
+            data_container = AllColumnsPolarsCheckData(data_container)
 
         key = data_container.key or "*"
         return data_container.lazyframe.cast({key: pl.Float64}).cast(
@@ -411,7 +412,7 @@ class Decimal(DataType, dtypes.Decimal):
     def check(
         self,
         pandera_dtype: dtypes.DataType,
-        data_container: Optional[PolarsDataContainer] = None,
+        data_container: None = None,
     ) -> Union[bool, Iterable[bool]]:
         try:
             pandera_dtype = Engine.dtype(pandera_dtype)
@@ -500,7 +501,7 @@ class DateTime(DataType, dtypes.DateTime):
     def check(
         self,
         pandera_dtype: dtypes.DataType,
-        data_container: Optional[PolarsDataContainer] = None,
+        data_container: None = None,
     ) -> Union[bool, Iterable[bool]]:
         try:
             pandera_dtype = Engine.dtype(pandera_dtype)
@@ -724,7 +725,7 @@ class Enum(DataType):
     def check(
         self,
         pandera_dtype: dtypes.DataType,
-        data_container: Optional[PolarsDataContainer] = None,
+        data_container: None = None,
     ) -> Union[bool, Iterable[bool]]:
         try:
             pandera_dtype = Engine.dtype(pandera_dtype)
@@ -754,7 +755,7 @@ class Category(DataType, dtypes.Category):
     def coerce(self, data_container: PolarsDataContainer) -> pl.LazyFrame:
         """Coerce data container to the data type."""
         if isinstance(data_container, pl.LazyFrame):
-            data_container = PolarsData(data_container)
+            data_container = AllColumnsPolarsCheckData(data_container)
 
         lf = data_container.lazyframe.cast(self.type, strict=True)
 
@@ -781,7 +782,7 @@ class Category(DataType, dtypes.Category):
         :raises: :class:`~pandera.errors.ParserError`: if coercion fails
         """
         if isinstance(data_container, pl.LazyFrame):
-            data_container = PolarsData(data_container)
+            data_container = AllColumnsPolarsCheckData(data_container)
 
         try:
             return self.coerce(data_container)
