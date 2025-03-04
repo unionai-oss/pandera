@@ -45,7 +45,9 @@ class PolarsCheckBackend(BaseCheckBackend):
         # for the index to groupby on. Right now grouping by the index is not allowed.
         return check_obj
 
-    def apply(self, check_obj: PolarsData | AllColumnsPolarsCheckData):
+    def apply(
+        self, check_obj: PolarsData | AllColumnsPolarsCheckData
+    ) -> bool | pl.LazyFrame:
         """Apply the check function to a check object."""
         if self.check.element_wise:
             selector = pl.col(check_obj.key or "*")
@@ -75,11 +77,13 @@ class PolarsCheckBackend(BaseCheckBackend):
 
         return out
 
-    def postprocess(self, check_obj, check_output):
+    def postprocess(
+        self, check_obj: PolarsData | AllColumnsPolarsCheckData, check_output
+    ):
         """Postprocesses the result of applying the check function."""
-        if isinstance(check_obj, PolarsData) and isinstance(
-            check_output, pl.LazyFrame
-        ):
+        if isinstance(
+            check_obj, PolarsData | AllColumnsPolarsCheckData
+        ) and isinstance(check_output, pl.LazyFrame):
             return self.postprocess_lazyframe_output(check_obj, check_output)
         elif isinstance(check_output, bool):
             return self.postprocess_bool_output(check_obj, check_output)
@@ -89,7 +93,7 @@ class PolarsCheckBackend(BaseCheckBackend):
 
     def postprocess_lazyframe_output(
         self,
-        check_obj: PolarsData,
+        check_obj: PolarsData | AllColumnsPolarsCheckData,
         check_output: pl.LazyFrame,
     ) -> CheckResult:
         """Postprocesses the result of applying the check function."""
@@ -114,7 +118,7 @@ class PolarsCheckBackend(BaseCheckBackend):
 
     def postprocess_bool_output(
         self,
-        check_obj: PolarsData,
+        check_obj: PolarsData | AllColumnsPolarsCheckData,
         check_output: bool,
     ) -> CheckResult:
         """Postprocesses the result of applying the check function."""

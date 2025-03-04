@@ -16,6 +16,7 @@ from typing import (
     Type,
     Union,
     TypedDict,
+    overload,
 )
 
 import polars as pl
@@ -578,6 +579,24 @@ class Array(DataType):
 
     type = pl.Array
 
+    @overload
+    def __init__(
+        self,
+        inner: Literal[None] = ...,
+        shape: Literal[None] = ...,
+        *,
+        width: Literal[None] = ...,
+    ) -> None: ...
+
+    @overload
+    def __init__(
+        self,
+        inner: PolarsDataType = ...,
+        shape: Union[int, Tuple[int, ...], None] = ...,
+        *,
+        width: Optional[int] = ...,
+    ) -> None: ...
+
     def __init__(  # pylint:disable=super-init-not-called
         self,
         inner: Optional[PolarsDataType] = None,
@@ -593,8 +612,7 @@ class Array(DataType):
             kwargs["shape"] = width
         elif shape is not None:
             kwargs["shape"] = shape
-
-        if inner or shape or width:
+        if inner:
             object.__setattr__(self, "type", pl.Array(inner=inner, **kwargs))
 
     @classmethod
