@@ -207,7 +207,7 @@ class DataFrameModel(_DataFrameModel[pd.DataFrame, DataFrameSchema]):
         """
         schema = cls.to_schema()
         empty = pd.DataFrame(columns=schema.columns.keys()).astype(
-            {k: v.type for k, v in schema.dtypes.items()}
+            {k: v.type if v else None for k, v in schema.dtypes.items()}
         )
         table_schema = pd.io.json.build_table_schema(empty)
 
