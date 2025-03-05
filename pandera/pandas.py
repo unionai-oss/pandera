@@ -182,6 +182,8 @@ __all__ = [
     # schemas
     "DataFrameSchema",
     "SeriesSchema",
+    # extensions
+    "extensions",
 ]
 
 
