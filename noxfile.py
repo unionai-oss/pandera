@@ -9,7 +9,7 @@ import os
 import re
 import shutil
 import sys
-import tempfile
+from typing import Optional
 
 try:
     import tomllib
@@ -52,7 +52,7 @@ else:
 LINE_LENGTH = 79
 
 
-def _build_setup_requirements() -> Dict[str, List[str]]:
+def _build_setup_requirements() -> dict[str, list[str]]:
     """Load requirments from setup.py."""
     # read pyproject.toml to get optional dependencies
 
@@ -73,7 +73,7 @@ def _build_setup_requirements() -> Dict[str, List[str]]:
     }
 
 
-def _build_dev_requirements() -> List[str]:
+def _build_dev_requirements() -> list[str]:
     """Load requirements from file."""
     with open(REQUIREMENT_PATH, encoding="utf-8") as req_file:
         reqs = []
@@ -82,11 +82,11 @@ def _build_dev_requirements() -> List[str]:
         return reqs
 
 
-SETUP_REQUIREMENTS: Dict[str, List[str]] = _build_setup_requirements()
-DEV_REQUIREMENTS: List[str] = _build_dev_requirements()
+SETUP_REQUIREMENTS: dict[str, list[str]] = _build_setup_requirements()
+DEV_REQUIREMENTS: list[str] = _build_dev_requirements()
 
 
-def _build_requires() -> Dict[str, Dict[str, str]]:
+def _build_requires() -> dict[str, list[str]]:
     """Return a dictionary of requirements {EXTRA_NAME: {PKG_NAME:PIP_SPECS}}.
 
     Adds fake extras "core" and "all".
@@ -115,7 +115,7 @@ def _build_requires() -> Dict[str, Dict[str, str]]:
     return requires
 
 
-REQUIRES: dict[str, dict[str, str]] = _build_requires()
+REQUIRES = _build_requires()
 
 CONDA_ARGS = [
     "--channel=conda-forge",
@@ -271,11 +271,11 @@ PYTHON_PANDAS_PARAMETER = [
 
 def _get_pinned_requirements(
     session: Session, pandas: str, pydantic: str, extra: str
-) -> None:
+) -> list[str]:
     _requirements = REQUIRES["all"]
-    _pinned_requirements = []
+    _pinned_requirements: list[str] = []
 
-    _numpy: str | None = None
+    _numpy: Optional[str] = None
     if pandas != "2.2.2":
         _numpy = "< 2"
 
