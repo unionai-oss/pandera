@@ -5,7 +5,8 @@ import os
 import re
 import runpy
 from copy import deepcopy
-from typing import Any, Generic, Iterable, List, Optional, TypeVar
+from enum import Enum
+from typing import Any, Generic, Iterable, List, Optional, TypeVar, Type
 
 import numpy as np
 import pandas as pd
@@ -638,6 +639,50 @@ def test_dataframe_check() -> None:
         schema.validate(df, lazy=True)
 
     assert len(e.value.message["DATA"]) == 1
+
+
+def test_dataframe_check_passthrough_kwargs() -> None:
+    """Test dataframe checks with passthrough kwargs."""
+
+    class MockTypesOne(Enum):
+        ONE = 1
+        TWO = 2
+        THREE = 3
+
+    class MockTypesTwo(Enum):
+        AVG = "avg"
+        SUM = "sum"
+        MEAN = "mean"
+
+    class Base(pa.DataFrameModel):
+        a: Series[int]
+        b: Series[str]
+
+        @pa.dataframe_check(column="a", enum=MockTypesOne)
+        @classmethod
+        def type_id_valid(
+            cls, df: pd.DataFrame, column: str, enum: Type[Enum]
+        ) -> Iterable[bool]:
+            return cls._field_in_enum(df, column, enum)  # type: ignore
+
+        @pa.dataframe_check(column="b", enum=MockTypesTwo)
+        @classmethod
+        def calc_type_valid(
+            cls, df: pd.DataFrame, column: str, enum: Type[Enum]
+        ) -> Iterable[bool]:
+            return cls._field_in_enum(df, column, enum)  # type: ignore
+
+        @classmethod
+        def _field_in_enum(
+            cls, df: pd.DataFrame, column: str, enum: Type[Enum]
+        ) -> Iterable[bool]:
+            return df[column].isin([member.value for member in enum])  # type: ignore
+
+    schema = Base.to_schema()
+    assert len(schema.checks) == 2
+
+    df = pd.DataFrame({"a": [1, 2], "b": ["avg", "mean"]})
+    schema.validate(df, lazy=True)
 
 
 def test_registered_dataframe_checks(
