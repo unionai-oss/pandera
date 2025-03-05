@@ -1556,3 +1556,23 @@ def test_empty() -> None:
     df = Schema.empty()
     assert df.empty
     assert Schema.validate(df).empty  # type: ignore [attr-defined]
+
+
+def test_model_with_pydantic_base_model_with_df_init():
+    """
+    Test that a dataframe can be initialized within a pydantic base model that
+    defines the dataframe model as a class attribute.
+    """
+    from pydantic import BaseModel
+
+    # pylint: disable=unused-variable
+    class PydanticModel(BaseModel):
+
+        class PanderaDataFrameModel(pa.DataFrameModel):
+            """The DF we use to represent code/label/description associations."""
+
+            field: pa.typing.Series[Any]
+
+        df: pa.typing.DataFrame[PanderaDataFrameModel] = pd.DataFrame(
+            {"field": [1, 2, 3]}
+        )

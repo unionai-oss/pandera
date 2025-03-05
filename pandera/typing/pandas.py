@@ -198,24 +198,29 @@ class DataFrame(DataFrameBase, pd.DataFrame, Generic[T]):
                 "boolean": core_schema.bool_schema(),
                 "datetime": core_schema.datetime_schema(),
             }
-            return core_schema.no_info_plain_validator_function(
-                functools.partial(
-                    cls.pydantic_validate,
-                    schema_model=schema_model,
-                ),
-                json_schema_input_schema=core_schema.list_schema(
-                    core_schema.typed_dict_schema(
-                        {
-                            key: core_schema.typed_dict_field(
-                                type_map[
-                                    schema_json_columns[key]["items"]["type"]
-                                ]
-                            )
-                            for key in schema.columns.keys()
-                        },
-                    )
-                ),
+            function = functools.partial(
+                cls.pydantic_validate,
+                schema_model=schema_model,
             )
+            json_schema_input_schema = core_schema.list_schema(
+                core_schema.typed_dict_schema(
+                    {
+                        key: core_schema.typed_dict_field(
+                            type_map[schema_json_columns[key]["items"]["type"]]
+                        )
+                        for key in schema.columns.keys()
+                    },
+                )
+            )
+            try:
+                # json schema input schema is only available in
+                # pydantic_core >=2.30.0
+                return core_schema.no_info_plain_validator_function(
+                    function,
+                    json_schema_input_schema=json_schema_input_schema,
+                )
+            except TypeError:
+                return core_schema.no_info_plain_validator_function(function)
 
     else:
 
