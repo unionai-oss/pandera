@@ -5,12 +5,7 @@ import datetime
 import decimal
 import inspect
 import warnings
-from typing import (
-    Any,
-    Literal,
-    Optional,
-    Union,
-)
+from typing import Any, Literal, Optional, Union, Type
 from collections.abc import Iterable, Mapping, Sequence
 
 import polars as pl
@@ -229,8 +224,7 @@ class Engine(  # pylint:disable=too-few-public-methods
                 pl_dtype = convert_py_dtype_to_polars_dtype(data_type)
             except ValueError:
                 raise TypeError(
-                    f"data type '{data_type}' not understood by "
-                    f"{cls.__name__}."
+                    f"data type '{data_type}' not understood by {cls.__name__}."
                 ) from None
 
             try:
@@ -455,7 +449,7 @@ class Date(DataType, dtypes.Date):
 class DateTime(DataType, dtypes.DateTime):
     """Polars datetime data type."""
 
-    type: type[pl.Datetime] = pl.Datetime
+    type: Type[pl.Datetime] = pl.Datetime
     time_zone_agnostic: bool = False
 
     def __init__(  # pylint:disable=super-init-not-called
@@ -464,7 +458,6 @@ class DateTime(DataType, dtypes.DateTime):
         time_zone: Optional[str] = None,
         time_unit: Optional[str] = None,
     ) -> None:
-
         _kwargs = {}
         if time_unit is not None:
             # avoid deprecated warning when initializing pl.Datetime:
@@ -566,7 +559,6 @@ class Array(DataType):
         *,
         width: Optional[int] = None,
     ) -> None:
-
         kwargs: dict[str, Union[int, tuple[int, ...]]] = {}
         if width is not None:
             kwargs["shape"] = width
@@ -723,8 +715,7 @@ class Enum(DataType):
             return False
 
         return (
-            self.type == pandera_dtype.type
-            and (self.type.categories == pandera_dtype.categories).all()  # type: ignore
+            self.type == pandera_dtype.type and (self.type.categories == pandera_dtype.categories).all()  # type: ignore
         )
 
 

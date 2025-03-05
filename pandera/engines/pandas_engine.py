@@ -21,6 +21,7 @@ from typing import (
     Literal,
     NamedTuple,
     Optional,
+    Type,
     Union,
     cast,
 )
@@ -1216,11 +1217,11 @@ class Interval(DataType):
 class PydanticModel(DataType):
     """A pydantic model datatype applying to rows in a dataframe."""
 
-    type: type[BaseModel] = dataclasses.field(default=None, init=False)  # type: ignore[assignment]
+    type: Type[BaseModel] = dataclasses.field(default=None, init=False)  # type: ignore[assignment]
     auto_coerce = True
 
     # pylint:disable=super-init-not-called
-    def __init__(self, model: type[BaseModel]) -> None:
+    def __init__(self, model: Type[BaseModel]) -> None:
         object.__setattr__(self, "type", model)
 
     def coerce(self, data_container: PandasObject) -> PandasObject:
@@ -1281,7 +1282,7 @@ class PythonGenericType(DataType):
     type: Any = dataclasses.field(default=None, init=False)  # type: ignore
     generic_type: Any = dataclasses.field(default=None, init=False)
     special_type: Any = dataclasses.field(default=None, init=False)
-    coercion_model: type[BaseModel] = dataclasses.field(  # type: ignore
+    coercion_model: Type[BaseModel] = dataclasses.field(  # type: ignore
         default=None, init=False
     )
     _pandas_type = object
