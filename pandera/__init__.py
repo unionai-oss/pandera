@@ -8,12 +8,6 @@ from pandera._version import __version__
 try:
     import pandas as pd
 except ImportError:
-    _pandas_installed = False
-else:
-    _pandas_installed = True
-
-
-if not _pandas_installed:
     sys.exit(0)
 
 
