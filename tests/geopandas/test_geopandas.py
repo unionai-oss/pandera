@@ -1,5 +1,7 @@
 """Unit tests for the geopandas integration."""
 
+from typing import Annotated
+
 import geopandas as gpd
 import pandas as pd
 import pytest
@@ -9,11 +11,6 @@ import pandera as pa
 from pandera.engines.geopandas_engine import Geometry
 from pandera.typing import Series
 from pandera.typing.geopandas import GeoDataFrame, GeoSeries
-
-try:  # python 3.9+
-    from typing import Annotated  # type: ignore
-except ImportError:
-    from typing_extensions import Annotated  # type: ignore
 
 
 def test_dataframe_schema():

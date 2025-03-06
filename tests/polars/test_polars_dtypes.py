@@ -3,7 +3,8 @@
 import datetime
 import decimal
 from decimal import Decimal
-from typing import Sequence, Tuple, Union
+from typing import Union
+from collections.abc import Sequence
 
 import polars as pl
 import pytest
@@ -21,7 +22,7 @@ from pandera.engines.polars_engine import polars_object_coercible
 
 
 def convert_object_to_decimal(
-    number: Union[Decimal, float, str, Tuple[int, Sequence[int], int]],
+    number: Union[Decimal, float, str, tuple[int, Sequence[int], int]],
     precision: int,
     scale: int,
 ) -> decimal.Decimal:

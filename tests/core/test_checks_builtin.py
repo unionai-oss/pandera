@@ -2,7 +2,7 @@
 """
 
 import pickle
-from typing import Iterable
+from collections.abc import Iterable
 
 import pandas as pd
 import pytest
