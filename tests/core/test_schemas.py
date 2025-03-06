@@ -2477,6 +2477,33 @@ def test_schema_coerce_with_regex() -> None:
     assert isinstance(schema_with_regex.validate(df), pd.DataFrame)
 
 
+def test_schema_coerce_preserve_value():
+    """Test that coercing an invalid data preserves the original coerce value."""
+
+    schema = DataFrameSchema(
+        {
+            "chr": Column(
+                str, checks=Check.str_length(min_value=1), coerce=True
+            ),
+            "start": Column(int, checks=Check.ge(0)),
+        }
+    )
+    assert schema.columns["chr"].coerce
+
+    schema.validate(pd.DataFrame({"chr": ["chr1", "chr2"], "start": [0, 10]}))
+    assert schema.columns["chr"].coerce
+
+    try:
+        schema.validate(pd.DataFrame({"chr": ["", "chr1"], "start": [0, 10]}))
+        raise AssertionError(
+            "Dataframe should fail validation as str_length constraint not met"
+        )
+    except errors.SchemaError:
+        ...
+
+    assert schema.columns["chr"].coerce
+
+
 @pytest.mark.parametrize(
     "schema, obj, expected_obj",
     [
