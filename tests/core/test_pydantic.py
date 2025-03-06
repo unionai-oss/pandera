@@ -180,3 +180,31 @@ def test_invalid_seriesschema():
 
     with pytest.raises(TypeError if PYDANTIC_V2 else ValidationError):
         SeriesSchemaPydantic(pa_index="1")
+
+
+@pytest.mark.parametrize(
+    "col_type,dtype,item",
+    [
+        (pa.STRING, "string", "hello"),
+        (pa.UINT8, "UInt8", 1),
+        (pa.INT8, "Int8", 1),
+        (pa.BOOL, "boolean", True),
+    ],
+)
+def test_model_with_extensiondtype_column(col_type, dtype, item):
+    """Test that a model with an external dtype is recognized by pydantic."""
+
+    class ExtensionDtypeModel(pa.DataFrameModel):
+        a: Series[col_type]
+
+    class PydanticModel(BaseModel):
+        df: DataFrame[ExtensionDtypeModel]
+
+    assert isinstance(
+        PydanticModel(
+            df=DataFrame[ExtensionDtypeModel](
+                pd.DataFrame({"a": [item]}, dtype=dtype)
+            )
+        ),
+        PydanticModel,
+    )

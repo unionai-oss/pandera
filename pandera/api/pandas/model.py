@@ -214,7 +214,13 @@ class DataFrameModel(_DataFrameModel[pd.DataFrame, DataFrameSchema]):
         def _field_json_schema(field):
             return {
                 "type": "array",
-                "items": {"type": field["type"]},
+                "items": {
+                    "type": (
+                        field["type"]
+                        if field["type"] != "any" or "extDtype" not in field
+                        else field["extDtype"]
+                    )
+                },
             }
 
         return {
