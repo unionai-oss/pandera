@@ -79,6 +79,7 @@ geopandas = [
     "geopandas",
     "shapely",
 ]
+polars = ["polars >= 0.20.0"]
 all = [
     "hypothesis >= 6.92.7",
     "scipy",
