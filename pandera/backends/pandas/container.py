@@ -200,12 +200,12 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
         check_passed = []
         # schema-component-level checks
         for schema_component in schema_components:
-            try:
-                # make sure the schema component mutations are reverted after
-                # validation
-                _orig_dtype = schema_component.dtype
-                _orig_coerce = schema_component.coerce
+            # make sure the schema component mutations are reverted after
+            # validation
+            _orig_dtype = schema_component.dtype
+            _orig_coerce = schema_component.coerce
 
+            try:
                 if schema.dtype is not None:
                     # override column dtype with dataframe dtype
                     schema_component.dtype = schema.dtype  # type: ignore
@@ -217,10 +217,6 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
                 result = schema_component.validate(
                     check_obj, lazy=lazy, inplace=True
                 )
-
-                # revert the schema component mutations
-                schema_component.dtype = _orig_dtype
-                schema_component.coerce = _orig_coerce
 
                 check_passed.append(is_table(result))
             except SchemaError as err:
@@ -244,6 +240,11 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
                         for schema_error in err.schema_errors
                     ]
                 )
+            finally:
+                # revert the schema component mutations
+                schema_component.dtype = _orig_dtype
+                schema_component.coerce = _orig_coerce
+
         assert all(check_passed)
         return check_results
 
