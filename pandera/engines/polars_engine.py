@@ -7,7 +7,6 @@ import inspect
 import warnings
 from typing import (
     Any,
-    Dict,
     Iterable,
     Literal,
     Mapping,
@@ -16,19 +15,25 @@ from typing import (
     Tuple,
     Type,
     Union,
+    TypedDict,
+    overload,
 )
 
 import polars as pl
 from packaging import version
+from polars._typing import ColumnNameOrSelector, PythonDataType
 from polars.datatypes import DataTypeClass
+from typing_extensions import NotRequired
 
 from pandera import dtypes, errors
-from pandera.api.polars.types import PolarsData
+from pandera.api.polars.types import PolarsData, AllColumnsPolarsCheckData
 from pandera.constants import CHECK_OUTPUT_KEY
 from pandera.dtypes import immutable
 from pandera.engines import engine
 
-PolarsDataContainer = Union[pl.LazyFrame, PolarsData]
+PolarsDataContainer = Union[
+    pl.LazyFrame, PolarsData, AllColumnsPolarsCheckData
+]
 PolarsDataType = Union[DataTypeClass, pl.DataType]
 
 COERCION_ERRORS = (
@@ -36,7 +41,6 @@ COERCION_ERRORS = (
     pl.exceptions.InvalidOperationError,
     pl.exceptions.ComputeError,
 )
-
 
 SchemaDict = Mapping[str, PolarsDataType]
 
@@ -64,7 +68,8 @@ def convert_py_dtype_to_polars_dtype(dtype):
 
 
 def polars_object_coercible(
-    data_container: PolarsData, type_: PolarsDataType
+    data_container: PolarsData | AllColumnsPolarsCheckData,
+    type_: PolarsDataType,
 ) -> pl.LazyFrame:
     """Checks whether a polars object is coercible with respect to a type."""
     key = data_container.key or "*"
@@ -76,7 +81,7 @@ def polars_object_coercible(
 
 
 def polars_failure_cases_from_coercible(
-    data_container: PolarsData,
+    data_container: PolarsData | AllColumnsPolarsCheckData,
     is_coercible: pl.LazyFrame,
 ) -> pl.LazyFrame:
     """Get the failure cases resulting from trying to coerce a polars object."""
@@ -86,7 +91,7 @@ def polars_failure_cases_from_coercible(
 
 
 def polars_coerce_failure_cases(
-    data_container: PolarsData,
+    data_container: PolarsData | AllColumnsPolarsCheckData,
     type_: Any,
 ) -> Tuple[pl.DataFrame, pl.DataFrame]:
     """
@@ -94,17 +99,17 @@ def polars_coerce_failure_cases(
     into particular data type.
     """
     try:
-        is_coercible = polars_object_coercible(data_container, type_)
+        is_coercible_lf = polars_object_coercible(data_container, type_)
     except (TypeError, pl.InvalidOperationError):
-        is_coercible = data_container.lazyframe.with_columns(
+        is_coercible_lf = data_container.lazyframe.with_columns(
             **{CHECK_OUTPUT_KEY: pl.lit(False)}
         ).select(CHECK_OUTPUT_KEY)
 
     try:
         failure_cases = polars_failure_cases_from_coercible(
-            data_container, is_coercible
+            data_container, is_coercible_lf
         ).collect()
-        is_coercible = is_coercible.collect()
+        is_coercible = is_coercible_lf.collect()
     except COERCION_ERRORS:
         # If coercion fails, all of the relevant rows are failure cases
         failure_cases = data_container.lazyframe.select(
@@ -124,7 +129,7 @@ def polars_coerce_failure_cases(
 class DataType(dtypes.DataType):
     """Base `DataType` for boxing Polars data types."""
 
-    type: pl.DataType = dataclasses.field(repr=False, init=False)
+    type: Type[pl.DataType] = dataclasses.field(repr=False, init=False)
 
     def __init__(self, dtype: Optional[Any] = None):
         super().__init__()
@@ -156,17 +161,21 @@ class DataType(dtypes.DataType):
 
     def coerce(self, data_container: PolarsDataContainer) -> pl.LazyFrame:
         """Coerce data container to the data type."""
+        dtypes: Mapping[
+            ColumnNameOrSelector | PolarsDataType,
+            Union[PolarsDataType, PythonDataType],
+        ]
+        if isinstance(data_container, AllColumnsPolarsCheckData):
+            data_container = data_container.lazyframe
         if isinstance(data_container, pl.LazyFrame):
-            data_container = PolarsData(data_container)
-
-        if data_container.key is None:
-            dtypes = self.type
+            return data_container.cast(self.type, strict=True)
         else:
             dtypes = {data_container.key: self.type}
-
         return data_container.lazyframe.cast(dtypes, strict=True)
 
-    def try_coerce(self, data_container: PolarsDataContainer) -> pl.LazyFrame:
+    def try_coerce(
+        self, data_container: PolarsDataContainer | AllColumnsPolarsCheckData
+    ) -> pl.LazyFrame:
         """Coerce data container to the data type,
         raises a :class:`~pandera.errors.ParserError` if the coercion fails
         :raises: :class:`~pandera.errors.ParserError`: if coercion fails
@@ -174,7 +183,7 @@ class DataType(dtypes.DataType):
         from pandera.api.polars.utils import get_lazyframe_schema
 
         if isinstance(data_container, pl.LazyFrame):
-            data_container = PolarsData(data_container)
+            data_container = AllColumnsPolarsCheckData(data_container)
 
         try:
             lf = self.coerce(data_container)
@@ -202,7 +211,7 @@ class DataType(dtypes.DataType):
     def check(
         self,
         pandera_dtype: dtypes.DataType,
-        data_container: Optional[PolarsDataContainer] = None,
+        data_container: None = None,
     ) -> Union[bool, Iterable[bool]]:
         try:
             pandera_dtype = Engine.dtype(pandera_dtype)
@@ -373,9 +382,11 @@ class Decimal(DataType, dtypes.Decimal):
 
     def __init__(  # pylint:disable=super-init-not-called
         self,
-        precision: int = dtypes.DEFAULT_PYTHON_PREC,
+        precision: int | None = None,
         scale: int = 0,
     ) -> None:
+        if precision is None:
+            precision = dtypes.DEFAULT_PYTHON_PREC
         object.__setattr__(self, "precision", precision)
         object.__setattr__(self, "scale", scale)
         object.__setattr__(
@@ -391,7 +402,7 @@ class Decimal(DataType, dtypes.Decimal):
     def coerce(self, data_container: PolarsDataContainer) -> pl.LazyFrame:
         """Coerce data container to the data type."""
         if isinstance(data_container, pl.LazyFrame):
-            data_container = PolarsData(data_container)
+            data_container = AllColumnsPolarsCheckData(data_container)
 
         key = data_container.key or "*"
         return data_container.lazyframe.cast({key: pl.Float64}).cast(
@@ -402,7 +413,7 @@ class Decimal(DataType, dtypes.Decimal):
     def check(
         self,
         pandera_dtype: dtypes.DataType,
-        data_container: Optional[PolarsDataContainer] = None,
+        data_container: None = None,
     ) -> Union[bool, Iterable[bool]]:
         try:
             pandera_dtype = Engine.dtype(pandera_dtype)
@@ -467,18 +478,17 @@ class DateTime(DataType, dtypes.DateTime):
         self,
         time_zone_agnostic: bool = False,
         time_zone: Optional[str] = None,
-        time_unit: Optional[str] = None,
+        time_unit: Optional[Literal["ns", "us", "ms"]] = None,
     ) -> None:
 
-        _kwargs = {}
         if time_unit is not None:
             # avoid deprecated warning when initializing pl.Datetime:
             # passing time_unit=None is deprecated.
-            _kwargs["time_unit"] = time_unit
+            dt = pl.Datetime(time_zone=time_zone, time_unit=time_unit)
+        else:
+            dt = pl.Datetime(time_zone=time_zone)
 
-        object.__setattr__(
-            self, "type", pl.Datetime(time_zone=time_zone, **_kwargs)
-        )
+        object.__setattr__(self, "type", dt)
         object.__setattr__(self, "time_zone_agnostic", time_zone_agnostic)
 
     @classmethod
@@ -492,7 +502,7 @@ class DateTime(DataType, dtypes.DateTime):
     def check(
         self,
         pandera_dtype: dtypes.DataType,
-        data_container: Optional[PolarsDataContainer] = None,
+        data_container: None = None,
     ) -> Union[bool, Iterable[bool]]:
         try:
             pandera_dtype = Engine.dtype(pandera_dtype)
@@ -557,12 +567,35 @@ class Timedelta(DataType, dtypes.Timedelta):
 ###############################################################################
 
 
+class _ArrayKwargs(TypedDict):
+    shape: NotRequired[Union[int | tuple[int, ...]]]
+    width: NotRequired[Union[int, None]]
+
+
 @Engine.register_dtype(equivalents=[pl.Array])
 @immutable(init=True)
 class Array(DataType):
     """Polars Array nested type."""
 
     type = pl.Array
+
+    @overload
+    def __init__(
+        self,
+        inner: Literal[None] = ...,
+        shape: Literal[None] = ...,
+        *,
+        width: Literal[None] = ...,
+    ) -> None: ...
+
+    @overload
+    def __init__(
+        self,
+        inner: PolarsDataType = ...,
+        shape: Union[int, Tuple[int, ...], None] = ...,
+        *,
+        width: Optional[int] = ...,
+    ) -> None: ...
 
     def __init__(  # pylint:disable=super-init-not-called
         self,
@@ -572,13 +605,14 @@ class Array(DataType):
         width: Optional[int] = None,
     ) -> None:
 
-        kwargs: Dict[str, Union[int, Tuple[int, ...]]] = {}
-        if width is not None:
+        kwargs: _ArrayKwargs = {}
+        if (
+            width is not None
+        ):  # width deprecated in polars 0.20.31, replaced by shape
             kwargs["shape"] = width
         elif shape is not None:
             kwargs["shape"] = shape
-
-        if inner or shape or width:
+        if inner:
             object.__setattr__(self, "type", pl.Array(inner=inner, **kwargs))
 
     @classmethod
@@ -679,11 +713,9 @@ class Categorical(DataType):
 
     type = pl.Categorical
 
-    ordering = None
-
     def __init__(  # pylint:disable=super-init-not-called
         self,
-        ordering: str = "physical",
+        ordering: Optional[Literal["physical", "lexical"]] = "physical",
     ) -> None:
         object.__setattr__(self, "ordering", ordering)
         object.__setattr__(self, "type", pl.Categorical(ordering=ordering))
@@ -708,8 +740,9 @@ class Enum(DataType):
         self,
         categories: Union[pl.Series, Iterable[str], None] = None,
     ) -> None:
-        object.__setattr__(self, "categories", categories)
-        object.__setattr__(self, "type", pl.Enum(categories=categories))
+        if categories is not None:
+            object.__setattr__(self, "categories", categories)
+            object.__setattr__(self, "type", pl.Enum(categories=categories))
 
     @classmethod
     def from_parametrized_dtype(cls, polars_dtype: pl.Enum):
@@ -720,7 +753,7 @@ class Enum(DataType):
     def check(
         self,
         pandera_dtype: dtypes.DataType,
-        data_container: Optional[PolarsDataContainer] = None,
+        data_container: None = None,
     ) -> Union[bool, Iterable[bool]]:
         try:
             pandera_dtype = Engine.dtype(pandera_dtype)
@@ -750,7 +783,7 @@ class Category(DataType, dtypes.Category):
     def coerce(self, data_container: PolarsDataContainer) -> pl.LazyFrame:
         """Coerce data container to the data type."""
         if isinstance(data_container, pl.LazyFrame):
-            data_container = PolarsData(data_container)
+            data_container = AllColumnsPolarsCheckData(data_container)
 
         lf = data_container.lazyframe.cast(self.type, strict=True)
 
@@ -777,14 +810,16 @@ class Category(DataType, dtypes.Category):
         :raises: :class:`~pandera.errors.ParserError`: if coercion fails
         """
         if isinstance(data_container, pl.LazyFrame):
-            data_container = PolarsData(data_container)
+            data_container = AllColumnsPolarsCheckData(data_container)
 
         try:
             return self.coerce(data_container)
         except Exception as exc:  # pylint:disable=broad-except
             is_coercible: pl.LazyFrame = polars_object_coercible(
-                data_container, self.type
-            ) & self.__belongs_to_categories(
+                data_container,
+                self.type,
+                # TODO this is incorrect, appears not to be covered by tests
+            ) & self.__belongs_to_categories(  # type: ignore  # TEMP ONLY!
                 data_container.lazyframe, key=data_container.key
             )
 
@@ -802,7 +837,9 @@ class Category(DataType, dtypes.Category):
         lf: pl.LazyFrame,
         key: Optional[str] = None,
     ) -> pl.LazyFrame:
-        return lf.select(pl.col(key or "*").is_in(self.categories))
+        # self.categories not None here.
+        expr = pl.col(key or "*").is_in(self.categories)  # type: ignore[arg-type]
+        return lf.select(expr)
 
     def __str__(self):
         return "Category"

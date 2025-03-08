@@ -13,7 +13,7 @@ from polars.testing import assert_frame_equal
 from polars.testing.parametric import dataframes
 
 import pandera.errors
-from pandera.api.polars.types import PolarsData
+from pandera.api.polars.types import AllColumnsPolarsCheckData
 from pandera.api.polars.utils import get_lazyframe_column_dtypes
 from pandera.constants import CHECK_OUTPUT_KEY
 from pandera.engines import polars_engine as pe
@@ -98,7 +98,9 @@ def test_coerce_no_cast(dtype, data):
         pl.enable_string_cache()
     pandera_dtype = dtype()
     df = data.draw(get_dataframe_strategy(type_=pandera_dtype.type))
-    coerced = pandera_dtype.coerce(data_container=PolarsData(df))
+    coerced = pandera_dtype.coerce(
+        data_container=AllColumnsPolarsCheckData(df)
+    )
     assert_frame_equal(df, coerced)
 
 
@@ -317,7 +319,9 @@ def test_polars_object_coercible(to_dtype, container, result):
     Test that polars_object_coercible can detect that a polars object is
     coercible or not.
     """
-    is_coercible = polars_object_coercible(PolarsData(container), to_dtype)
+    is_coercible = polars_object_coercible(
+        AllColumnsPolarsCheckData(container), to_dtype
+    )
     assert_frame_equal(is_coercible, result)
 
 
@@ -439,12 +443,14 @@ def test_polars_nested_dtypes_try_coercion(
     data,
 ):
     pandera_dtype = pe.Engine.dtype(coercible_dtype)
-    coerced_data = pandera_dtype.try_coerce(PolarsData(data))
+    coerced_data = pandera_dtype.try_coerce(AllColumnsPolarsCheckData(data))
     assert coerced_data.collect().equals(data.collect())
 
     # coercing data with invalid type should raise an error
     try:
-        pe.Engine.dtype(noncoercible_dtype).try_coerce(PolarsData(data))
+        pe.Engine.dtype(noncoercible_dtype).try_coerce(
+            AllColumnsPolarsCheckData(data)
+        )
     except pandera.errors.ParserError as exc:
         col = pl.col(exc.failure_cases.columns[0])
         assert exc.failure_cases.select(col).equals(data.collect())

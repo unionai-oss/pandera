@@ -14,7 +14,7 @@ class Column(ColumnSchema):
 
     def __init__(
         self,
-        dtype: PySparkDtypeInputTypes = None,
+        dtype: Optional[PySparkDtypeInputTypes] = None,
         checks: Optional[CheckList] = None,
         nullable: bool = False,
         coerce: bool = False,
@@ -125,7 +125,7 @@ class Column(ColumnSchema):
         random_state: Optional[int] = None,
         lazy: bool = True,
         inplace: bool = False,
-        error_handler: ErrorHandler = None,
+        error_handler: Optional[ErrorHandler] = None,
     ) -> ps.DataFrame:
         """Validate a Column in a DataFrame object.
 
