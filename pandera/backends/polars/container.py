@@ -3,7 +3,7 @@
 import copy
 import traceback
 import warnings
-from typing import Any, Callable, List, Optional, Tuple
+from typing import Any, Callable, List, Optional, Tuple, Union
 
 import polars as pl
 
@@ -29,7 +29,7 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
     # pylint: disable=too-many-branches
     def validate(
         self,
-        check_obj: pl.LazyFrame,
+        check_obj: Union[pl.LazyFrame, pl.DataFrame],
         schema: DataFrameSchema,
         *,
         head: Optional[int] = None,
@@ -39,12 +39,18 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
         lazy: bool = False,
         inplace: bool = False,
     ):
+        if isinstance(check_obj, pl.DataFrame):
+            check_lf = check_obj.lazy()
+            check_obj_is_lf = False
+        else:
+            check_lf = check_obj
+            check_obj_is_lf = True
         if inplace:
             warnings.warn("setting inplace=True will have no effect.")
 
         error_handler = ErrorHandler(lazy)
 
-        column_info = self.collect_column_info(check_obj, schema)
+        column_info = self.collect_column_info(check_lf, schema)
 
         if getattr(schema, "drop_invalid_rows", False) and not lazy:
             raise SchemaDefinitionError(
@@ -60,7 +66,7 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
 
         for parser, args in core_parsers:
             try:
-                check_obj = parser(check_obj, *args)
+                check_lf = parser(check_lf, *args)
             except SchemaError as exc:
                 error_handler.collect_error(
                     validation_type(exc.reason_code),
@@ -71,16 +77,21 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
                 error_handler.collect_errors(exc.schema_errors)
 
         components = self.collect_schema_components(
-            check_obj,
-            schema,
-            column_info,
+            check_lf, schema, column_info
         )
 
         # subsample the check object if head, tail, or sample are specified
-        sample = self.subsample(check_obj, head, tail, sample, random_state)
+        sample = self.subsample(
+            check_lf,
+            head,
+            tail,
+            sample,
+            random_state,
+            check_obj_lazyframe=check_obj_is_lf,
+        )
 
         core_checks = [
-            (self.check_column_presence, (check_obj, schema, column_info)),
+            (self.check_column_presence, (check_lf, schema, column_info)),
             (self.check_column_values_are_unique, (sample, schema)),
             (
                 self.run_schema_component_checks,
@@ -104,7 +115,7 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
                 else:
                     error = SchemaError(
                         schema,
-                        data=check_obj,
+                        data=check_lf,
                         message=result.message,
                         failure_cases=result.failure_cases,
                         check=result.check,
@@ -121,15 +132,15 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
 
         if error_handler.collected_errors:
             if getattr(schema, "drop_invalid_rows", False):
-                check_obj = self.drop_invalid_rows(check_obj, error_handler)
+                check_lf = self.drop_invalid_rows(check_lf, error_handler)
             else:
                 raise SchemaErrors(
                     schema=schema,
                     schema_errors=error_handler.schema_errors,
-                    data=check_obj,
+                    data=check_lf,
                 )
 
-        return check_obj
+        return check_lf
 
     @validate_scope(scope=ValidationScope.DATA)
     def run_checks(
