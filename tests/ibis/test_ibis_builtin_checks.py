@@ -1,5 +1,6 @@
 """Unit tests for Ibis checks."""
 
+import datetime
 import decimal
 from operator import methodcaller
 
@@ -125,10 +126,34 @@ class TestEqualToCheck(BaseClass):
         "test_expression": 30,
     }
 
+    sample_datetime_data = {
+        "test_pass_data": [
+            ("foo", datetime.datetime(2020, 10, 1, 10, 0)),
+            ("bar", datetime.datetime(2020, 10, 1, 10, 0)),
+        ],
+        "test_fail_data": [
+            ("foo", datetime.datetime(2020, 10, 2, 11, 0)),
+            ("bar", datetime.datetime(2020, 10, 2, 11, 0)),
+        ],
+        "test_expression": datetime.datetime(2020, 10, 1, 10, 0),
+    }
+
     sample_string_data = {
         "test_pass_data": [("foo", "a"), ("bar", "a")],
         "test_fail_data": [("foo", "a"), ("bar", "b")],
         "test_expression": "a",
+    }
+
+    sample_duration_data = {
+        "test_pass_data": [
+            ("foo", datetime.timedelta(100, 10, 1)),
+            ("bar", datetime.timedelta(100, 10, 1)),
+        ],
+        "test_fail_data": [
+            ("foo", datetime.timedelta(100, 10, 1)),
+            ("bar", datetime.timedelta(100, 11, 1)),
+        ],
+        "test_expression": datetime.timedelta(100, 10, 1),
     }
 
     def pytest_generate_tests(self, metafunc):
@@ -170,6 +195,26 @@ class TestEqualToCheck(BaseClass):
                         self.sample_numeric_data, "float64"
                     ),
                 },
+                {
+                    "datatype": dt.Date,
+                    "data": self.convert_data(
+                        self.sample_datetime_data, "date"
+                    ),
+                },
+                {
+                    "datatype": dt.Timestamp.from_unit("us"),
+                    "data": self.sample_datetime_data,
+                },
+                {
+                    "datatype": dt.Time,
+                    "data": self.convert_data(
+                        self.sample_datetime_data, "time"
+                    ),
+                },
+                {
+                    "datatype": dt.Interval(unit="us"),
+                    "data": self.sample_duration_data,
+                },
             ]
         }
 
@@ -194,10 +239,66 @@ class TestNotEqualToCheck(BaseClass):
         "test_expression": 30,
     }
 
+    sample_datetime_data = {
+        "test_pass_data": [
+            ("foo", datetime.datetime(2020, 10, 1, 11, 0)),
+            ("bar", datetime.datetime(2020, 10, 2, 11, 0)),
+        ],
+        "test_fail_data": [
+            ("foo", datetime.datetime(2020, 10, 3, 10, 0)),
+            ("bar", datetime.datetime(2020, 10, 2, 11, 0)),
+        ],
+        "test_expression": datetime.datetime(2020, 10, 3, 10, 0),
+    }
+
     sample_string_data = {
         "test_pass_data": [("foo", "b"), ("bar", "c")],
         "test_fail_data": [("foo", "a"), ("bar", "a")],
         "test_expression": "a",
+    }
+
+    sample_duration_data = {
+        "test_pass_data": [
+            (
+                "foo",
+                datetime.timedelta(
+                    100,
+                    11,
+                    1,
+                ),
+            ),
+            (
+                "bar",
+                datetime.timedelta(
+                    100,
+                    11,
+                    1,
+                ),
+            ),
+        ],
+        "test_fail_data": [
+            (
+                "foo",
+                datetime.timedelta(
+                    100,
+                    10,
+                    1,
+                ),
+            ),
+            (
+                "bar",
+                datetime.timedelta(
+                    100,
+                    10,
+                    1,
+                ),
+            ),
+        ],
+        "test_expression": datetime.timedelta(
+            100,
+            10,
+            1,
+        ),
     }
 
     def pytest_generate_tests(self, metafunc):
@@ -238,6 +339,26 @@ class TestNotEqualToCheck(BaseClass):
                     "data": self.convert_data(
                         self.sample_numeric_data, "float64"
                     ),
+                },
+                {
+                    "datatype": dt.Date,
+                    "data": self.convert_data(
+                        self.sample_datetime_data, "date"
+                    ),
+                },
+                {
+                    "datatype": dt.Timestamp.from_unit("us"),
+                    "data": self.sample_datetime_data,
+                },
+                {
+                    "datatype": dt.Time,
+                    "data": self.convert_data(
+                        self.sample_datetime_data, "time"
+                    ),
+                },
+                {
+                    "datatype": dt.Interval(unit="us"),
+                    "data": self.sample_duration_data,
                 },
             ]
         }
