@@ -66,7 +66,7 @@ def equal_to(data: PandasData, value: Any) -> PandasData:
     error="not_equal_to({value})",
 )
 def not_equal_to(data: PandasData, value: Any) -> PandasData:
-    """Ensure no elements of a data container equals a certain value.
+    """Ensure no element of a data container equals a certain value.
 
     :param value: This value must not occur in the checked
         :class:`pandas.Series`.
