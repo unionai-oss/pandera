@@ -508,8 +508,8 @@ class DateTime(DataType, dtypes.DateTime):
 
     @classmethod
     def from_parametrized_dtype(cls, polars_dtype: pl.Datetime):
-        """Convert a :class:`polars.Decimal` to
-        a Pandera :class:`pandera.engines.polars_engine.Decimal`."""
+        """Convert a :class:`polars.Datetime` to
+        a Pandera :class:`pandera.engines.polars_engine.DateTime`."""
         return cls(
             time_zone=polars_dtype.time_zone, time_unit=polars_dtype.time_unit
         )
