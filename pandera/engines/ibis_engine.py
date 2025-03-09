@@ -1,9 +1,10 @@
 """Ibis engine and data types."""
 
 import dataclasses
+import datetime
 import inspect
 import warnings
-from typing import Any, Iterable, Optional, Union
+from typing import Any, Iterable, Literal, Optional, Type, Union
 
 import ibis
 import ibis.expr.datatypes as dt
@@ -251,3 +252,41 @@ class String(DataType, dtypes.String):
     """Semantic representation of a :class:`dt.String`."""
 
     type = dt.string
+
+
+###############################################################################
+# temporal
+###############################################################################
+
+
+@Engine.register_dtype(
+    equivalents=[
+        "datetime",
+        datetime.datetime,
+        np.datetime64,
+        dtypes.DateTime,
+        dtypes.DateTime(),
+        dt.Timestamp,
+        dt.timestamp,
+    ]
+)
+@immutable(init=True)
+class DateTime(DataType, dtypes.DateTime):
+    """Semantic representation of a :class:`dt.Timestamp`."""
+
+    type: Type[dt.Timestamp]
+
+    def __init__(
+        self,
+        timezone: Optional[str] = None,
+        scale: Optional[Literal[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]] = None,
+    ):
+        object.__setattr__(
+            self, "type", dt.Timestamp(timezone=timezone, scale=scale)
+        )
+
+    @classmethod
+    def from_parametrized_dtype(cls, ibis_dtype: dt.Timestamp):
+        """Convert a :class:`dt.Timestamp` to a Pandera
+        :class:`~pandera.engines.ibis_engine.DateTime`."""
+        return cls(timezone=ibis_dtype.timezone, scale=ibis_dtype.scale)
