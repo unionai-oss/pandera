@@ -309,7 +309,9 @@ class Timedelta(DataType, dtypes.DateTime):
 
     type: Type[dt.Interval]
 
-    def __init__(self, unit: IntervalUnit = "us"):  # pylint: disable=super-init-not-called
+    def __init__(
+        self, unit: IntervalUnit = "us"
+    ):  # pylint: disable=super-init-not-called
         object.__setattr__(self, "type", dt.Interval(unit=unit))
 
     @classmethod
