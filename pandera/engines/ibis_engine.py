@@ -10,6 +10,7 @@ import ibis
 import ibis.expr.datatypes as dt
 import ibis.expr.types as ir
 import numpy as np
+from ibis.common.temporal import IntervalUnit
 
 from pandera import dtypes
 from pandera.dtypes import immutable
@@ -274,7 +275,7 @@ class DateTime(DataType, dtypes.DateTime):
 
     type: Type[dt.Timestamp]
 
-    def __init__(
+    def __init__(  # pylint: disable=super-init-not-called
         self,
         timezone: Optional[str] = None,
         scale: Optional[Literal[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]] = None,
@@ -288,3 +289,29 @@ class DateTime(DataType, dtypes.DateTime):
         """Convert a :class:`dt.Timestamp` to a Pandera
         :class:`~pandera.engines.ibis_engine.DateTime`."""
         return cls(timezone=ibis_dtype.timezone, scale=ibis_dtype.scale)
+
+
+@Engine.register_dtype(
+    equivalents=[
+        "timedelta",
+        datetime.timedelta,
+        np.timedelta64,
+        dtypes.Timedelta,
+        dtypes.Timedelta(),
+        dt.Interval,
+    ]
+)
+@immutable(init=True)
+class Timedelta(DataType, dtypes.DateTime):
+    """Semantic representation of a :class:`dt.Timestamp`."""
+
+    type: Type[dt.Interval]
+
+    def __init__(self, unit: IntervalUnit = "us"):  # pylint: disable=super-init-not-called
+        object.__setattr__(self, "type", dt.Interval(unit=unit))
+
+    @classmethod
+    def from_parametrized_dtype(cls, ibis_dtype: dt.Interval):
+        """Convert a :class:`dt.Interval` to a Pandera
+        :class:`~pandera.engines.ibis_engine.Timedelta`."""
+        return cls(unit=ibis_dtype.unit)
