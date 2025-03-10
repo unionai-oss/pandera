@@ -1,7 +1,7 @@
 """Class-based api for polars models."""
 
 import inspect
-from typing import Dict, List, Tuple, Type, cast, Optional, overload, Union
+from typing import cast, Optional, overload, Union
 from typing_extensions import Self
 
 import pandas as pd
@@ -28,7 +28,7 @@ class DataFrameModel(_DataFrameModel[pl.LazyFrame, DataFrameSchema]):
     See the :ref:`User Guide <dataframe-models>` for more.
     """
 
-    Config: Type[BaseConfig] = BaseConfig
+    Config: type[BaseConfig] = BaseConfig
 
     @classmethod
     def build_schema_(cls, **kwargs):
@@ -41,11 +41,11 @@ class DataFrameModel(_DataFrameModel[pl.LazyFrame, DataFrameSchema]):
     @classmethod
     def _build_columns(  # pylint:disable=too-many-locals
         cls,
-        fields: Dict[str, Tuple[AnnotationInfo, FieldInfo]],
-        checks: Dict[str, List[Check]],
-    ) -> Dict[str, Column]:
+        fields: dict[str, tuple[AnnotationInfo, FieldInfo]],
+        checks: dict[str, list[Check]],
+    ) -> dict[str, Column]:
 
-        columns: Dict[str, Column] = {}
+        columns: dict[str, Column] = {}
         for field_name, (annotation, field) in fields.items():
             field_checks = checks.get(field_name, [])
             field_name = field.name
@@ -115,7 +115,7 @@ class DataFrameModel(_DataFrameModel[pl.LazyFrame, DataFrameSchema]):
     @classmethod
     @overload
     def validate(
-        cls: Type[Self],
+        cls: type[Self],
         check_obj: pl.DataFrame,
         head: Optional[int] = None,
         tail: Optional[int] = None,
@@ -128,7 +128,7 @@ class DataFrameModel(_DataFrameModel[pl.LazyFrame, DataFrameSchema]):
     @classmethod
     @overload
     def validate(
-        cls: Type[Self],
+        cls: type[Self],
         check_obj: pl.LazyFrame,
         head: Optional[int] = None,
         tail: Optional[int] = None,
@@ -141,7 +141,7 @@ class DataFrameModel(_DataFrameModel[pl.LazyFrame, DataFrameSchema]):
     @classmethod
     @docstring_substitution(validate_doc=BaseSchema.validate.__doc__)
     def validate(
-        cls: Type[Self],
+        cls: type[Self],
         check_obj: Union[pl.LazyFrame, pl.DataFrame],
         head: Optional[int] = None,
         tail: Optional[int] = None,

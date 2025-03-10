@@ -1,8 +1,9 @@
 """Testing the Decorators that check a functions input or output."""
 
 import pickle
-import typing
 from asyncio import AbstractEventLoop
+from collections.abc import Callable
+from typing import Literal, Optional, Union
 
 import numpy as np
 import pandas as pd
@@ -26,12 +27,6 @@ from pandera import (
 )
 from pandera.engines.pandas_engine import Engine
 from pandera.typing import DataFrame, Index, Series
-
-try:
-    # python 3.8+
-    from typing import Literal  # type: ignore[attr-defined]
-except ImportError:  # pragma: no cover
-    from typing_extensions import Literal  # type: ignore[assignment]
 
 
 def test_check_function_decorators() -> None:
@@ -222,9 +217,7 @@ def test_check_decorator_coercion() -> None:
     def test_func_out_dict_obj_getter(df):
         return {"key": df.assign(column2=10)}
 
-    cases: typing.Iterable[
-        typing.Tuple[typing.Callable, typing.Union[int, str, None]]
-    ] = [
+    cases: list[tuple[Callable, Union[int, str, None]]] = [
         (test_func_io, None),
         (test_func_out_tuple_obj_getter, 1),
         (test_func_out_list_obj_getter, 1),
@@ -708,7 +701,7 @@ def test_check_types_optional_out() -> None:
     @check_types
     def optional_derived_out(
         df: DataFrame[InSchema],  # pylint: disable=unused-argument
-    ) -> typing.Optional[DataFrame[DerivedOutSchema]]:
+    ) -> Optional[DataFrame[DerivedOutSchema]]:
         return None
 
     df = pd.DataFrame({"a": [1]}, index=["1"])
@@ -717,7 +710,7 @@ def test_check_types_optional_out() -> None:
     @check_types
     def optional_out(
         df: DataFrame[InSchema],  # pylint: disable=unused-argument
-    ) -> typing.Optional[DataFrame[OutSchema]]:
+    ) -> Optional[DataFrame[OutSchema]]:
         return None
 
     df = pd.DataFrame({"a": [1]}, index=["1"])
@@ -730,7 +723,7 @@ def test_check_types_optional_in() -> None:
     @check_types
     def optional_in(
         # pylint: disable=unused-argument
-        df: typing.Optional[DataFrame[InSchema]],
+        df: Optional[DataFrame[InSchema]],
     ) -> None:
         return None
 
@@ -746,8 +739,8 @@ def test_check_types_optional_in_out() -> None:
     @check_types
     def transform_derived(
         # pylint: disable=unused-argument
-        df: typing.Optional[DataFrame[InSchema]],
-    ) -> typing.Optional[DataFrame[DerivedOutSchema]]:
+        df: Optional[DataFrame[InSchema]],
+    ) -> Optional[DataFrame[DerivedOutSchema]]:
         return None
 
     assert transform_derived(None) is None
@@ -755,8 +748,8 @@ def test_check_types_optional_in_out() -> None:
     @check_types
     def transform(
         # pylint: disable=unused-argument
-        df: typing.Optional[DataFrame[InSchema]],
-    ) -> typing.Optional[DataFrame[OutSchema]]:
+        df: Optional[DataFrame[InSchema]],
+    ) -> Optional[DataFrame[OutSchema]]:
         return None
 
     assert transform(None) is None
@@ -913,16 +906,16 @@ def test_check_types_method_args() -> None:
 
 def test_check_types_union_args() -> None:
     """Test that the @check_types decorator works with
-    typing.Union[pandera.typing.DataFrame[S1], pandera.typing.DataFrame[S2]] type inputs/outputs
+    Union[pandera.typing.DataFrame[S1], pandera.typing.DataFrame[S2]] type inputs/outputs
     """
 
     @check_types
     def validate_union(
-        df: typing.Union[
+        df: Union[
             DataFrame[OnlyZeroesSchema],
             DataFrame[OnlyOnesSchema],
         ],
-    ) -> typing.Union[DataFrame[OnlyZeroesSchema], DataFrame[OnlyOnesSchema]]:
+    ) -> Union[DataFrame[OnlyZeroesSchema], DataFrame[OnlyOnesSchema]]:
         return df
 
     validate_union(pd.DataFrame({"a": [0, 0]}))  # type: ignore [arg-type]
@@ -935,10 +928,8 @@ def test_check_types_union_args() -> None:
 
     @check_types
     def validate_union_wrong_outputs(
-        df: typing.Union[
-            DataFrame[OnlyZeroesSchema], DataFrame[OnlyOnesSchema]
-        ],
-    ) -> typing.Union[DataFrame[OnlyZeroesSchema], DataFrame[OnlyOnesSchema]]:
+        df: Union[DataFrame[OnlyZeroesSchema], DataFrame[OnlyOnesSchema]],
+    ) -> Union[DataFrame[OnlyZeroesSchema], DataFrame[OnlyOnesSchema]]:
         new_df = df.copy()
         new_df["a"] = [0, 1]
         return new_df  # type: ignore [return-value]
@@ -955,9 +946,7 @@ def test_check_types_non_dataframes() -> None:
         return val
 
     @check_types
-    def union_int_str_types(
-        val: typing.Union[int, str]
-    ) -> typing.Union[int, str]:
+    def union_int_str_types(val: Union[int, str]) -> Union[int, str]:
         return val
 
     only_int_type(1)
@@ -968,8 +957,8 @@ def test_check_types_non_dataframes() -> None:
 
     @check_types(with_pydantic=True)
     def union_df_int_types_pydantic_check(
-        val: typing.Union[DataFrame[OnlyZeroesSchema], int]
-    ) -> typing.Union[DataFrame[OnlyZeroesSchema], int]:
+        val: Union[DataFrame[OnlyZeroesSchema], int],
+    ) -> Union[DataFrame[OnlyZeroesSchema], int]:
         return val
 
     union_df_int_types_pydantic_check(pd.DataFrame({"a": [0, 0]}))  # type: ignore [arg-type]
@@ -1021,15 +1010,15 @@ def test_check_types_star_kwargs() -> None:
         # pylint: disable=unused-argument
         kwarg1: int = 1,
         **kwargs: int,
-    ) -> typing.List[str]:
+    ) -> list[str]:
         return list(kwargs.keys())
 
     @check_types
     def get_star_kwargs_keys_dataframe(
         # pylint: disable=unused-argument
-        kwarg1: typing.Optional[DataFrame[InSchema]] = None,
+        kwarg1: Optional[DataFrame[InSchema]] = None,
         **kwargs: DataFrame[InSchema],
-    ) -> typing.List[str]:
+    ) -> list[str]:
         return list(kwargs.keys())
 
     in_1 = pd.DataFrame({"a": [1]}, index=["1"])

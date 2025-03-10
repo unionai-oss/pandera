@@ -5,7 +5,7 @@ import warnings
 from enum import Enum
 from functools import partial, wraps
 from inspect import signature
-from typing import Callable, List, Optional, Tuple, Type, Union
+from typing import Callable, Optional, Union
 
 import pandas as pd
 import typing_inspect
@@ -26,8 +26,8 @@ class BuiltinCheckRegistrationError(Exception):
 def register_builtin_check(
     fn=None,
     strategy: Optional[Callable] = None,
-    _check_cls: Type = Check,
-    aliases: Optional[List[str]] = None,
+    _check_cls: type = Check,
+    aliases: Optional[list[str]] = None,
     **outer_kwargs,
 ):
     """Register a check method to the Check namespace.
@@ -58,7 +58,7 @@ def register_builtin_check(
     # object to validate is the first argument.
     data_type = [*fn_sig.parameters.values()][0].annotation
 
-    if typing_inspect.get_origin(data_type) is Tuple:
+    if typing_inspect.get_origin(data_type) is tuple:
         data_type, *_ = typing_inspect.get_args(data_type)
 
     if typing_inspect.get_origin(data_type) is Union:
@@ -137,8 +137,8 @@ def register_check_statistics(statistics_args):
 def register_check_method(  # pylint:disable=too-many-branches
     check_fn=None,
     *,
-    statistics: Optional[List[str]] = None,
-    supported_types: Optional[Union[type, Tuple, List]] = None,
+    statistics: Optional[list[str]] = None,
+    supported_types: Optional[Union[type, tuple, list]] = None,
     check_type: Union[CheckType, str] = "vectorized",
     strategy=None,
 ):

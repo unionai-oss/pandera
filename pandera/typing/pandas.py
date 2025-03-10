@@ -6,19 +6,17 @@ import io
 from typing import (  # type: ignore[attr-defined]
     TYPE_CHECKING,
     Any,
-    Dict,
     Generic,
-    List,
-    Tuple,
-    Type,
     TypeVar,
     Union,
+    _GenericAlias,
     _type_check,
 )
 
 import numpy as np
 import pandas as pd
 
+from pandera.config import config_context
 from pandera.engines import PYDANTIC_V2
 from pandera.errors import SchemaError, SchemaInitError
 from pandera.typing.common import (
@@ -29,13 +27,6 @@ from pandera.typing.common import (
     SeriesBase,
 )
 from pandera.typing.formats import Formats
-from pandera.config import config_context
-
-try:
-    from typing import _GenericAlias  # type: ignore[attr-defined]
-except ImportError:  # pragma: no cover
-    _GenericAlias = None
-
 
 if PYDANTIC_V2:
     from pydantic import GetCoreSchemaHandler
@@ -174,8 +165,7 @@ class DataFrame(DataFrameBase, pd.DataFrame, Generic[T]):
     def _get_schema_model(cls, field):
         if not field.sub_fields:
             raise TypeError(
-                "Expected a typed pandera.typing.DataFrame,"
-                " e.g. DataFrame[Schema]"
+                "Expected a typed pandera.typing.DataFrame, e.g. DataFrame[Schema]"
             )
         schema_model = field.sub_fields[0].type_
         return schema_model
@@ -268,9 +258,9 @@ class DataFrame(DataFrameBase, pd.DataFrame, Generic[T]):
 
     @staticmethod
     def from_records(  # type: ignore
-        schema: Type[T],
+        schema: type[T],
         data: Union[  # type: ignore
-            np.ndarray, List[Tuple[Any, ...]], Dict[Any, Any], pd.DataFrame
+            np.ndarray, list[tuple[Any, ...]], dict[Any, Any], pd.DataFrame
         ],
         **kwargs,
     ) -> "DataFrame[T]":
