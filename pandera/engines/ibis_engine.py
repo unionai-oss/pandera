@@ -1,14 +1,16 @@
 """Ibis engine and data types."""
 
 import dataclasses
+import datetime
 import inspect
 import warnings
-from typing import Any, Iterable, Optional, Union
+from typing import Any, Iterable, Literal, Optional, Type, Union
 
 import ibis
 import ibis.expr.datatypes as dt
 import ibis.expr.types as ir
 import numpy as np
+from ibis.common.temporal import IntervalUnit
 
 from pandera import dtypes
 from pandera.dtypes import immutable
@@ -84,6 +86,26 @@ class Engine(
 
 
 @Engine.register_dtype(
+    equivalents=[np.int8, dtypes.Int8, dtypes.Int8(), dt.Int8, dt.int8]
+)
+@immutable
+class Int8(DataType, dtypes.Int8):
+    """Semantic representation of a :class:`dt.Int8`."""
+
+    type = dt.int8
+
+
+@Engine.register_dtype(
+    equivalents=[np.int16, dtypes.Int16, dtypes.Int16(), dt.Int16, dt.int16]
+)
+@immutable
+class Int16(DataType, dtypes.Int16):
+    """Semantic representation of a :class:`dt.Int16`."""
+
+    type = dt.int16
+
+
+@Engine.register_dtype(
     equivalents=[np.int32, dtypes.Int32, dtypes.Int32(), dt.Int32, dt.int32]
 )
 @immutable
@@ -111,8 +133,85 @@ class Int64(DataType, dtypes.Int64):
 
 
 ###############################################################################
+# unsigned integer
+###############################################################################
+
+
+@Engine.register_dtype(
+    equivalents=[np.uint8, dtypes.UInt8, dtypes.UInt8(), dt.UInt8, dt.uint8]
+)
+@immutable
+class UInt8(DataType, dtypes.UInt8):
+    """Semantic representation of a :class:`dt.UInt8`."""
+
+    type = dt.uint8
+
+
+@Engine.register_dtype(
+    equivalents=[
+        np.uint16,
+        dtypes.UInt16,
+        dtypes.UInt16(),
+        dt.UInt16,
+        dt.uint16,
+    ]
+)
+@immutable
+class UInt16(DataType, dtypes.UInt16):
+    """Semantic representation of a :class:`dt.UInt16`."""
+
+    type = dt.uint16
+
+
+@Engine.register_dtype(
+    equivalents=[
+        np.uint32,
+        dtypes.UInt32,
+        dtypes.UInt32(),
+        dt.UInt32,
+        dt.uint32,
+    ]
+)
+@immutable
+class UInt32(DataType, dtypes.UInt32):
+    """Semantic representation of a :class:`dt.UInt32`."""
+
+    type = dt.uint32
+
+
+@Engine.register_dtype(
+    equivalents=[
+        np.uint64,
+        dtypes.UInt64,
+        dtypes.UInt64(),
+        dt.UInt64,
+        dt.uint64,
+    ]
+)
+@immutable
+class UInt64(DataType, dtypes.UInt64):
+    """Semantic representation of a :class:`dt.UInt64`."""
+
+    type = dt.uint64
+
+
+###############################################################################
 # float
 ###############################################################################
+
+
+@Engine.register_dtype(
+    equivalents=[
+        np.float32,
+        dtypes.Float32,
+        dtypes.Float32(),
+        dt.Float32,
+        dt.float32,
+    ]
+)
+@immutable
+class Float32(DataType, dtypes.Float32):
+    """Semantic representation of a :class:`dt.Float32`."""
 
 
 @Engine.register_dtype(
@@ -152,3 +251,67 @@ class String(DataType, dtypes.String):
     """Semantic representation of a :class:`dt.String`."""
 
     type = dt.string
+
+
+###############################################################################
+# temporal
+###############################################################################
+
+
+@Engine.register_dtype(
+    equivalents=[
+        "datetime",
+        datetime.datetime,
+        np.datetime64,
+        dtypes.DateTime,
+        dtypes.DateTime(),
+        dt.Timestamp,
+        dt.timestamp,
+    ]
+)
+@immutable(init=True)
+class DateTime(DataType, dtypes.DateTime):
+    """Semantic representation of a :class:`dt.Timestamp`."""
+
+    type: Type[dt.Timestamp]
+
+    def __init__(  # pylint: disable=super-init-not-called
+        self,
+        timezone: Optional[str] = None,
+        scale: Optional[Literal[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]] = None,
+    ):
+        object.__setattr__(
+            self, "type", dt.Timestamp(timezone=timezone, scale=scale)
+        )
+
+    @classmethod
+    def from_parametrized_dtype(cls, ibis_dtype: dt.Timestamp):
+        """Convert a :class:`dt.Timestamp` to a Pandera
+        :class:`~pandera.engines.ibis_engine.DateTime`."""
+        return cls(timezone=ibis_dtype.timezone, scale=ibis_dtype.scale)
+
+
+@Engine.register_dtype(
+    equivalents=[
+        "timedelta",
+        datetime.timedelta,
+        np.timedelta64,
+        dtypes.Timedelta,
+        dtypes.Timedelta(),
+        dt.Interval,
+    ]
+)
+@immutable(init=True)
+class Timedelta(DataType, dtypes.DateTime):
+    """Semantic representation of a :class:`dt.Timestamp`."""
+
+    type: Type[dt.Interval]
+
+    def __init__(self, unit: IntervalUnit = "us"):  # pylint: disable=super-init-not-called
+        object.__setattr__(self, "type", dt.Interval(unit=unit))
+
+    @classmethod
+    def from_parametrized_dtype(cls, ibis_dtype: dt.Interval):
+        """Convert a :class:`dt.Interval` to a Pandera
+        :class:`~pandera.engines.ibis_engine.Timedelta`."""
+        return cls(unit=ibis_dtype.unit)
