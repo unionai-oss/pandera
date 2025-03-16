@@ -34,9 +34,7 @@ def _to_lazy(df: PolarsFrame) -> pl.LazyFrame:
 
 def _to_frame_kind(obj: PolarsFrame, kind: type[PolarsFrame2]) -> PolarsFrame2:
     if isinstance(obj, pl.DataFrame):
-        if issubclass(
-            kind, pl.DataFrame
-        ):  # subclass overkill, but makes mypy happy
+        if issubclass(kind, pl.DataFrame):
             return obj
         else:
             return obj.lazy()
@@ -112,10 +110,7 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
         sample_lf = _to_lazy(sample)
 
         core_checks = [
-            (
-                self.check_column_presence,
-                (check_lf, schema, column_info),
-            ),
+            (self.check_column_presence, (check_lf, schema, column_info)),
             (self.check_column_values_are_unique, (sample_lf, schema)),
             (
                 self.run_schema_component_checks,
