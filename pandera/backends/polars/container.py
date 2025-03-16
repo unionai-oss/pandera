@@ -3,13 +3,13 @@
 import copy
 import traceback
 import warnings
-from typing import Any, Callable, List, Optional, Tuple, Union
+from typing import Any, Callable, List, Optional, Tuple
 
 import polars as pl
 
 from pandera.api.base.error_handler import ErrorHandler
 from pandera.api.polars.container import DataFrameSchema
-from pandera.api.polars.types import PolarsData
+from pandera.api.polars.types import PolarsData, PolarsFrame, PolarsFrame2
 from pandera.api.polars.utils import get_lazyframe_column_names
 from pandera.backends.base import ColumnInfo, CoreCheckResult
 from pandera.backends.polars.base import PolarsSchemaBackend
@@ -25,11 +25,33 @@ from pandera.utils import is_regex
 from pandera.validation_depth import validate_scope, validation_type
 
 
+def _to_lazy(df: PolarsFrame) -> pl.LazyFrame:
+    if isinstance(df, pl.DataFrame):
+        return df.lazy()
+    else:
+        return df
+
+
+def _to_frame_kind(obj: PolarsFrame, kind: type[PolarsFrame2]) -> PolarsFrame2:
+    if isinstance(obj, pl.DataFrame):
+        if issubclass(
+            kind, pl.DataFrame
+        ):  # subclass overkill, but makes mypy happy
+            return obj
+        else:
+            return obj.lazy()
+    else:
+        if issubclass(kind, pl.DataFrame):
+            return obj.collect()
+        else:
+            return obj
+
+
 class DataFrameSchemaBackend(PolarsSchemaBackend):
     # pylint: disable=too-many-branches
     def validate(
         self,
-        check_obj: Union[pl.LazyFrame, pl.DataFrame],
+        check_obj: PolarsFrame,
         schema: DataFrameSchema,
         *,
         head: Optional[int] = None,
@@ -38,13 +60,10 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
         random_state: Optional[int] = None,
         lazy: bool = False,
         inplace: bool = False,
-    ):
-        if isinstance(check_obj, pl.DataFrame):
-            check_lf = check_obj.lazy()
-            check_obj_is_lf = False
-        else:
-            check_lf = check_obj
-            check_obj_is_lf = True
+    ) -> PolarsFrame:
+        return_type = type(check_obj)
+        check_lf = _to_lazy(check_obj)  # parsers only accept lazyframe
+
         if inplace:
             warnings.warn("setting inplace=True will have no effect.")
 
@@ -79,19 +98,22 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
         components = self.collect_schema_components(
             check_lf, schema, column_info
         )
+        check_obj_parsed = _to_frame_kind(check_lf, return_type)
 
         # subsample the check object if head, tail, or sample are specified
         sample = self.subsample(
-            check_lf,
+            check_obj_parsed,
             head,
             tail,
             sample,
             random_state,
-            check_obj_lazyframe=check_obj_is_lf,
         )
 
         core_checks = [
-            (self.check_column_presence, (check_lf, schema, column_info)),
+            (
+                self.check_column_presence,
+                (check_obj_parsed, schema, column_info),
+            ),
             (self.check_column_values_are_unique, (sample, schema)),
             (
                 self.run_schema_component_checks,
@@ -132,15 +154,17 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
 
         if error_handler.collected_errors:
             if getattr(schema, "drop_invalid_rows", False):
-                check_lf = self.drop_invalid_rows(check_lf, error_handler)
+                check_obj_parsed = self.drop_invalid_rows(
+                    check_obj_parsed, error_handler
+                )
             else:
                 raise SchemaErrors(
                     schema=schema,
                     schema_errors=error_handler.schema_errors,
-                    data=check_lf,
+                    data=check_obj_parsed,
                 )
 
-        return check_lf
+        return check_obj_parsed
 
     @validate_scope(scope=ValidationScope.DATA)
     def run_checks(

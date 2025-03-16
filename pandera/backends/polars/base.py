@@ -7,7 +7,7 @@ from typing import Dict, List, Optional
 import polars as pl
 
 from pandera.api.base.error_handler import ErrorHandler
-from pandera.api.polars.types import CheckResult
+from pandera.api.polars.types import CheckResult, PolarsFrame
 from pandera.api.polars.utils import get_lazyframe_column_dtypes
 from pandera.backends.base import BaseSchemaBackend, CoreCheckResult
 from pandera.constants import CHECK_OUTPUT_KEY
@@ -34,27 +34,24 @@ class PolarsSchemaBackend(BaseSchemaBackend):
 
     def subsample(
         self,
-        check_obj: pl.LazyFrame,
+        check_obj: PolarsFrame,
         head: Optional[int] = None,
         tail: Optional[int] = None,
         sample: Optional[int] = None,
         random_state: Optional[int] = None,
-        check_obj_lazyframe: bool = True,
-    ):
+    ) -> PolarsFrame:
         obj_subsample = []
         if head is not None:
             obj_subsample.append(check_obj.head(head))
         if tail is not None:
             obj_subsample.append(check_obj.tail(tail))
         if sample is not None:
-            if check_obj_lazyframe:
+            if isinstance(check_obj, pl.LazyFrame):
                 raise NotImplementedError(
-                    "Sample is not supported as polars does not implement LazyFrame.sample. "
-                    "Instead either pass a DataFrame, or validate using head/tail."
+                    "Sample is not pl.LazyFrame inputs as polars does not implement LazyFrame.sample. "
+                    "Instead either pass a pl.DataFrame, or validate a subset using head/tail."
                 )
-            obj_subsample.append(
-                check_obj.collect().sample(sample, seed=random_state).lazy()
-            )
+            obj_subsample.append(check_obj.sample(sample, seed=random_state))
         return (
             check_obj
             if not obj_subsample
@@ -247,9 +244,9 @@ class PolarsSchemaBackend(BaseSchemaBackend):
 
     def drop_invalid_rows(
         self,
-        check_obj: pl.LazyFrame,
+        check_obj: PolarsFrame,
         error_handler: ErrorHandler,
-    ) -> pl.LazyFrame:
+    ) -> PolarsFrame:
         """Remove invalid elements in a check obj according to failures in caught by the error handler."""
         errors = error_handler.schema_errors
         check_outputs = pl.DataFrame(
