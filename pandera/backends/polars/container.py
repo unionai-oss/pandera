@@ -108,18 +108,20 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
             sample,
             random_state,
         )
+        # all checks after subsampling are run on lazyframe
+        sample_lf = _to_lazy(sample)
 
         core_checks = [
             (
                 self.check_column_presence,
-                (check_obj_parsed, schema, column_info),
+                (check_lf, schema, column_info),
             ),
-            (self.check_column_values_are_unique, (sample, schema)),
+            (self.check_column_values_are_unique, (sample_lf, schema)),
             (
                 self.run_schema_component_checks,
-                (sample, schema, components, lazy),
+                (sample_lf, schema, components, lazy),
             ),
-            (self.run_checks, (sample, schema)),
+            (self.run_checks, (sample_lf, schema)),
         ]
 
         for check, args in core_checks:
