@@ -48,7 +48,7 @@ Next we'll create a FastAPI app and define a `/transactions/` POST endpoint:
 
 ```{literalinclude} ../../tests/fastapi/app.py
 :language: python
-:lines: 3,6,15-16,23-28
+:lines: 2-6,14-21,28-34
 ```
 
 ## Reading File Uploads
@@ -77,7 +77,7 @@ and the modified data in json format.
 
 ```{literalinclude} ../../tests/fastapi/app.py
 :language: python
-:lines: 7,30-38
+:lines: 37-44
 ```
 
 Pandera's {py:class}`~pandera.typing.fastapi.UploadFile` type is a subclass of FastAPI's
