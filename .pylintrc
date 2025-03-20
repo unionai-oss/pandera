@@ -56,5 +56,6 @@ disable=
     logging-fstring-interpolation,
     multiple-statements,
     cyclic-import,
+    too-many-positional-arguments,
     # Due to custom `immutable` decorator replacing `dataclasses.dataclass`
     invalid-field-call
