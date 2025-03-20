@@ -26,5 +26,6 @@ def register_polars_backends(
     from pandera.backends.polars.container import DataFrameSchemaBackend
 
     DataFrameSchema.register_backend(pl.LazyFrame, DataFrameSchemaBackend)
+    DataFrameSchema.register_backend(pl.DataFrame, DataFrameSchemaBackend)
     Column.register_backend(pl.LazyFrame, ColumnBackend)
     Check.register_backend(pl.LazyFrame, PolarsCheckBackend)
