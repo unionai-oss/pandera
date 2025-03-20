@@ -218,6 +218,11 @@ class DataFrame(DataFrameBase, pd.DataFrame, Generic[T]):
                 return core_schema.no_info_plain_validator_function(
                     function,
                     json_schema_input_schema=json_schema_input_schema,
+                    serialization=core_schema.plain_serializer_function_ser_schema(
+                        function=lambda df: df,
+                        info_arg=False,
+                        return_schema=json_schema_input_schema,
+                    ),
                 )
             except TypeError:
                 return core_schema.no_info_plain_validator_function(function)
