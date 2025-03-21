@@ -1,7 +1,6 @@
 # pylint: disable=wrong-import-position
 """A flexible and expressive dataframe validation library."""
 
-
 from logging import getLogger
 
 from pandera._version import __version__
@@ -18,12 +17,13 @@ try:
 
     from pandera.pandas import *
     from pandera.pandas import __all__
+
     __all__.append("__version__")
 
 except ImportError as err:
-    if 'pandas' or 'numpy' in str(err):
+    if "pandas" in str(err) or "numpy" in str(err):
         log.warn(
-            'Pandas and Numpy are required for this version of pandera.',
+            "Pandas and Numpy are required for this version of pandera.",
             err,
         )
     else:
