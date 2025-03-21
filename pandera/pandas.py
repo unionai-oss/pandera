@@ -35,7 +35,15 @@ warnings.warn(
     "`import pandera.pandas as pa`.",
     FutureWarning,
 )
-
+warnings.warn(
+    "The default dependency on Pandas is deprecated,"
+    " and will be removed soon."
+    " If your project depends on pandas, ensure that you include it"
+    " as an explicit dependency."
+    " Pandera now provides an optional extra pandera[pandas]"
+    " which is recomended when using pandera for pandas.",
+    FutureWarning,
+)
 
 from pandera._patch_numpy2 import _patch_numpy2
 
