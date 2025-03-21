@@ -891,7 +891,7 @@ def test_defined_check_strategy(
     if "custom_check_with_strategy" in pa.Check.REGISTERED_CUSTOM_CHECKS:
         del pa.Check.REGISTERED_CUSTOM_CHECKS["custom_check_with_strategy"]
 
-    @pa.extensions.register_check_method(
+    @pa.extensions.register_check_method(  # type: ignore
         strategy=custom_strategy,
         statistics=["min_val", "max_val"],
     )
