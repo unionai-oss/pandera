@@ -54,6 +54,7 @@ dependencies:
   - pytz
   - xdoctest
   - nox
+  - uv
   - setuptools # required in noxfile and not automatically provided by python >= 3.12
   - importlib_metadata # required if python < 3.8
 

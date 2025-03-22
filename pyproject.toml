@@ -93,6 +93,7 @@ dev = [
     "importlib_metadata",
     "uvicorn",
     "python-multipart",
+    "uv",
 ]
 docs = [
     "sphinx",
