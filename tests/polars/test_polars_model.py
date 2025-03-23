@@ -1,5 +1,6 @@
 """Unit tests for polars dataframe model."""
 
+from datetime import datetime
 import sys
 from typing import Optional
 
@@ -34,6 +35,20 @@ def ldf_model_basic():
         int_col: int
 
     return BasicModel
+
+
+def test_empty() -> None:
+    """Test to generate an empty DataFrameModel."""
+
+    class Schema(DataFrameModel):
+        a: float
+        b: int
+        c: str
+        d: datetime
+
+    df = Schema.empty()
+    assert df.is_empty()
+    assert Schema.validate(df).is_empty()  # type: ignore [attr-defined]
 
 
 @pytest.fixture
