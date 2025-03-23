@@ -573,7 +573,7 @@ class DataFrameModel(Generic[TDataFrame, TSchema], BaseModel):
     @classmethod
     def empty(
         cls: Type[TDataFrameModel], *_args
-    ) -> DataFrame[TDataFrameModel] | PolarsDataFrame[TDataFrameModel]:
+    ) -> Union[DataFrame[TDataFrameModel], PolarsDataFrame[TDataFrameModel]]:
         """Create an empty DataFrame instance."""
         raise NotImplementedError
 
