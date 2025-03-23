@@ -1,14 +1,14 @@
 """Check backend for pandas."""
 
 from functools import partial
-from typing import Optional
+from typing import Optional, Union
 
 import polars as pl
 from polars.lazyframe.group_by import LazyGroupBy
 
 from pandera.api.base.checks import CheckResult
 from pandera.api.checks import Check
-from pandera.api.polars.types import PolarsData
+from pandera.api.polars.types import PolarsData, AllColumnsPolarsCheckData
 from pandera.api.polars.utils import (
     get_lazyframe_schema,
     get_lazyframe_column_names,
@@ -45,7 +45,9 @@ class PolarsCheckBackend(BaseCheckBackend):
         # for the index to groupby on. Right now grouping by the index is not allowed.
         return check_obj
 
-    def apply(self, check_obj: PolarsData):
+    def apply(
+        self, check_obj: PolarsData | AllColumnsPolarsCheckData
+    ) -> bool | pl.LazyFrame:
         """Apply the check function to a check object."""
         if self.check.element_wise:
             selector = pl.col(check_obj.key or "*")
@@ -75,11 +77,13 @@ class PolarsCheckBackend(BaseCheckBackend):
 
         return out
 
-    def postprocess(self, check_obj, check_output):
+    def postprocess(
+        self, check_obj: PolarsData | AllColumnsPolarsCheckData, check_output
+    ):
         """Postprocesses the result of applying the check function."""
-        if isinstance(check_obj, PolarsData) and isinstance(
-            check_output, pl.LazyFrame
-        ):
+        if isinstance(
+            check_obj, PolarsData | AllColumnsPolarsCheckData
+        ) and isinstance(check_output, pl.LazyFrame):
             return self.postprocess_lazyframe_output(check_obj, check_output)
         elif isinstance(check_output, bool):
             return self.postprocess_bool_output(check_obj, check_output)
@@ -89,7 +93,7 @@ class PolarsCheckBackend(BaseCheckBackend):
 
     def postprocess_lazyframe_output(
         self,
-        check_obj: PolarsData,
+        check_obj: PolarsData | AllColumnsPolarsCheckData,
         check_output: pl.LazyFrame,
     ) -> CheckResult:
         """Postprocesses the result of applying the check function."""
@@ -114,7 +118,7 @@ class PolarsCheckBackend(BaseCheckBackend):
 
     def postprocess_bool_output(
         self,
-        check_obj: PolarsData,
+        check_obj: PolarsData | AllColumnsPolarsCheckData,
         check_output: bool,
     ) -> CheckResult:
         """Postprocesses the result of applying the check function."""
@@ -132,6 +136,10 @@ class PolarsCheckBackend(BaseCheckBackend):
         key: Optional[str] = None,
     ) -> CheckResult:
         check_obj = self.preprocess(check_obj, key)
-        polars_data = PolarsData(check_obj, key)
+        polars_data: Union[AllColumnsPolarsCheckData, PolarsData]
+        if key is None:
+            polars_data = AllColumnsPolarsCheckData(check_obj)
+        else:
+            polars_data = PolarsData(check_obj, key)
         check_output = self.apply(polars_data)
         return self.postprocess(polars_data, check_output)

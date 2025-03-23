@@ -43,7 +43,7 @@ class FieldInfo(BaseFieldInfo):
         self,
         dtype: PySparkDtypeInputTypes,
         component: Type[SchemaComponent],
-        checks: CheckArg = None,
+        checks: Optional[CheckArg] = None,
         **kwargs: Any,
     ) -> SchemaComponent:
         if self.dtype_kwargs:
@@ -54,9 +54,9 @@ class FieldInfo(BaseFieldInfo):
     def to_column(
         self,
         dtype: PySparkDtypeInputTypes,
-        checks: CheckArg = None,
+        checks: Optional[CheckArg] = None,
         required: bool = True,
-        name: str = None,
+        name: Optional[str] = None,
     ) -> Column:
         """Create a schema_components.Column from a field."""
         return self._to_schema_component(
@@ -92,15 +92,15 @@ class FieldInfo(BaseFieldInfo):
 
 def Field(
     *,
-    eq: Any = None,
-    ne: Any = None,
-    gt: Any = None,
-    ge: Any = None,
-    lt: Any = None,
-    le: Any = None,
-    in_range: Dict[str, Any] = None,
-    isin: Iterable = None,
-    notin: Iterable = None,
+    eq: Optional[Any] = None,
+    ne: Optional[Any] = None,
+    gt: Optional[Any] = None,
+    ge: Optional[Any] = None,
+    lt: Optional[Any] = None,
+    le: Optional[Any] = None,
+    in_range: Optional[Dict[str, Any]] = None,
+    isin: Optional[Iterable] = None,
+    notin: Optional[Iterable] = None,
     str_contains: Optional[str] = None,
     str_endswith: Optional[str] = None,
     str_length: Optional[Dict[str, Any]] = None,
@@ -112,8 +112,8 @@ def Field(
     regex: bool = False,
     ignore_na: bool = True,
     raise_warning: bool = False,
-    n_failure_cases: int = None,
-    alias: Any = None,
+    n_failure_cases: Optional[int] = None,
+    alias: Optional[Any] = None,
     check_name: Optional[bool] = None,
     dtype_kwargs: Optional[Dict[str, Any]] = None,
     title: Optional[str] = None,

@@ -47,7 +47,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
             Dict[Any, pandera.api.pyspark.components.Column]  # type: ignore [name-defined]
         ] = None,
         checks: Optional[CheckList] = None,
-        dtype: PySparkDtypeInputTypes = None,
+        dtype: Optional[PySparkDtypeInputTypes] = None,
         coerce: bool = False,
         strict: StrictType = False,
         name: Optional[str] = None,
@@ -354,7 +354,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
         random_state: Optional[int] = None,
         lazy: bool = False,
         inplace: bool = False,
-        error_handler: ErrorHandler = None,
+        error_handler: Optional[ErrorHandler] = None,
     ):
         return self.get_backend(check_obj).validate(
             check_obj=check_obj,
