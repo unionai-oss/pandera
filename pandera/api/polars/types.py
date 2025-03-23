@@ -21,7 +21,6 @@ class CheckResult(NamedTuple):
 
 PolarsCheckObjects = Union[pl.LazyFrame, pl.DataFrame]
 PolarsFrame = TypeVar("PolarsFrame", pl.LazyFrame, pl.DataFrame)
-PolarsFrame2 = TypeVar("PolarsFrame2", pl.LazyFrame, pl.DataFrame)
 
 PolarsDtypeInputTypes = Union[
     str,

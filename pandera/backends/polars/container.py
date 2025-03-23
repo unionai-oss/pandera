@@ -9,7 +9,7 @@ import polars as pl
 
 from pandera.api.base.error_handler import ErrorHandler
 from pandera.api.polars.container import DataFrameSchema
-from pandera.api.polars.types import PolarsData, PolarsFrame, PolarsFrame2
+from pandera.api.polars.types import PolarsData, PolarsFrame
 from pandera.api.polars.utils import get_lazyframe_column_names
 from pandera.backends.base import ColumnInfo, CoreCheckResult
 from pandera.backends.polars.base import PolarsSchemaBackend
@@ -32,17 +32,11 @@ def _to_lazy(df: PolarsFrame) -> pl.LazyFrame:
         return df
 
 
-def _to_frame_kind(obj: PolarsFrame, kind: type[PolarsFrame2]) -> PolarsFrame2:
-    if isinstance(obj, pl.DataFrame):
-        if issubclass(kind, pl.DataFrame):
-            return obj
-        else:
-            return obj.lazy()
+def _to_frame_kind(lf: pl.LazyFrame, kind: type[PolarsFrame]) -> PolarsFrame:
+    if issubclass(kind, pl.DataFrame):
+        return lf.collect()
     else:
-        if issubclass(kind, pl.DataFrame):
-            return obj.collect()
-        else:
-            return obj
+        return lf
 
 
 class DataFrameSchemaBackend(PolarsSchemaBackend):
