@@ -75,7 +75,11 @@ from pandera.engines.pandas_engine import (
     pandas_version,
 )
 from pandera.schema_inference.pandas import infer_schema
-from pandera.version import __version__
+
+try:
+    from pandera._version import __version__
+except ImportError:
+    from pandera.version import __version__
 
 if platform.system() != "Windows":
     # pylint: disable=ungrouped-imports
