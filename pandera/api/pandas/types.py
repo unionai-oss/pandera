@@ -2,7 +2,7 @@
 """Utility functions for pandas validation."""
 
 from functools import lru_cache
-from typing import Any, NamedTuple, Type, TypeVar, Union, Optional
+from typing import Any, Dict, NamedTuple, Type, TypeVar, Union, Optional
 
 import numpy as np
 import pandas as pd
@@ -19,6 +19,15 @@ PandasDtypeInputTypes = Union[
     pd.core.dtypes.base.ExtensionDtype,
     np.dtype,
 ]
+
+GroupbyObject = Union[
+    pd.core.groupby.generic.SeriesGroupBy,
+    pd.core.groupby.generic.DataFrameGroupBy,
+]
+
+SeriesCheckObj = Union[pd.Series, Dict[str, pd.Series]]
+DataFrameCheckObj = Union[pd.DataFrame, Dict[str, pd.DataFrame]]
+
 
 PANDAS_LIKE_CLS_NAMES = frozenset(
     [

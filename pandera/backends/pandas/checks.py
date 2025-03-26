@@ -5,13 +5,14 @@ from typing import Dict, List, Optional, Union, cast
 
 import pandas as pd
 
-from pandera.api.base.checks import CheckResult, GroupbyObject
+from pandera.api.base.checks import CheckResult
 from pandera.api.checks import Check
 from pandera.api.pandas.types import (
     is_bool,
     is_field,
     is_table,
     is_table_or_field,
+    GroupbyObject,
 )
 from pandera.backends.base import BaseCheckBackend
 
