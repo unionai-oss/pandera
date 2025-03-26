@@ -46,12 +46,22 @@ pandas = [
     "numpy >= 1.24.4",
     "pandas >= 2.1.1",
 ]
-strategies = ["hypothesis >= 6.92.7"]
-hypotheses = ["scipy"]
+strategies = [
+    "hypothesis >= 6.92.7",
+]
+hypotheses = [
+    "scipy",
+]
 io = [
     "pyyaml >= 5.1",
     "black",
     "frictionless <= 4.40.8",
+]
+mypy = ["pandas-stubs"]
+fastapi = ["fastapi"]
+geopandas = [
+    "geopandas",
+    "shapely",
 ]
 pyspark = ["pyspark[connect] >= 3.2.0"]
 modin = [
@@ -73,12 +83,7 @@ dask = [
     "dask[dataframe]",
     "distributed",
 ]
-mypy = ["pandas-stubs"]
-fastapi = ["fastapi"]
-geopandas = [
-    "geopandas",
-    "shapely",
-]
+
 polars = ["polars >= 0.20.0"]
 all = [
     "hypothesis >= 6.92.7",
@@ -97,6 +102,8 @@ all = [
     "shapely",
     "polars >= 0.20.0",
 ]
+
+[dependency-groups]
 dev = [
     "hypothesis >= 6.92.7",
     "isort >= 5.7.0",
@@ -106,16 +113,18 @@ dev = [
     "pre_commit",
     "pyarrow",
     "pylint < 3.3",
-    "pytest",
-    "pytest-cov",
-    "pytest-xdist",
-    "pytest-asyncio",
     "pytz",
     "xdoctest",
     "nox",
     "uvicorn",
     "python-multipart",
     "uv",
+]
+testing = [
+    "pytest",
+    "pytest-cov",
+    "pytest-xdist",
+    "pytest-asyncio",
 ]
 docs = [
     "sphinx",

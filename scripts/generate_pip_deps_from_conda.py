@@ -28,7 +28,7 @@ RENAME: Dict[str, str] = {}
 
 REPO_PATH = Path(__file__).resolve().absolute().parents[1]
 CONDA_REQUIREMENTS_FILE = REPO_PATH / "environment.yml"
-PIP_REQUIREMENTS_FILE = REPO_PATH / "requirements.in"
+PIP_REQUIREMENTS_FILE = REPO_PATH / "requirements.txt"
 
 
 def conda_package_to_pip(package: str) -> Optional[str]:

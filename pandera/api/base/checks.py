@@ -16,7 +16,6 @@ from typing import (
     no_type_check,
 )
 
-import pandas as pd
 from pandera.api.function_dispatch import Dispatcher
 
 from pandera.backends.base import BaseCheckBackend
@@ -29,15 +28,6 @@ class CheckResult(NamedTuple):
     check_passed: Any
     checked_object: Any
     failure_cases: Any
-
-
-GroupbyObject = Union[
-    pd.core.groupby.generic.SeriesGroupBy,
-    pd.core.groupby.generic.DataFrameGroupBy,
-]
-
-SeriesCheckObj = Union[pd.Series, Dict[str, pd.Series]]
-DataFrameCheckObj = Union[pd.DataFrame, Dict[str, pd.DataFrame]]
 
 
 _T = TypeVar("_T", bound="BaseCheck")

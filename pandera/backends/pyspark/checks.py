@@ -1,9 +1,9 @@
 """Check backend for pyspark."""
 
 from functools import partial
-from typing import Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
-from pandera.api.base.checks import CheckResult, GroupbyObject
+from pandera.api.base.checks import CheckResult
 from pandera.api.checks import Check
 from pandera.api.pyspark.types import (
     PysparkDataframeColumnObject,
@@ -41,7 +41,7 @@ class PySparkCheckBackend(BaseCheckBackend):
 
     @staticmethod
     def _format_groupby_input(
-        groupby_obj: GroupbyObject,
+        groupby_obj: Any,
         groups: Optional[List[str]],
     ) -> Dict[str, DataFrameTypes]:  # pragma: no cover
         raise NotImplementedError
