@@ -33,6 +33,7 @@ pytest-asyncio
 pytz
 xdoctest
 nox
+uv
 setuptools
 importlib_metadata
 uvicorn
