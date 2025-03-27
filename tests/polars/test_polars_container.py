@@ -487,6 +487,17 @@ def test_ordered(ldf_basic, ldf_schema_basic):
         invalid_order.pipe(ldf_schema_basic.validate).collect()
 
 
+def test_sample_dataframe_schema(df_basic, ldf_basic, ldf_schema_basic):
+
+    with pytest.raises(NotImplementedError):
+        ldf_schema_basic.validate(ldf_basic, sample=1, random_state=1)
+
+    validated_data = ldf_schema_basic.validate(
+        df_basic, sample=1, random_state=1
+    )
+    assert validated_data.equals(df_basic)
+
+
 @pytest.mark.parametrize("arg", ["exclude_first", "exclude_last"])
 def test_report_duplicates(arg):
     with pytest.warns(

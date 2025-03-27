@@ -1,6 +1,6 @@
 """Polars types."""
 
-from typing import NamedTuple, Optional, Union
+from typing import NamedTuple, Optional, Union, TypeVar
 
 import polars as pl
 
@@ -20,7 +20,7 @@ class CheckResult(NamedTuple):
 
 
 PolarsCheckObjects = Union[pl.LazyFrame, pl.DataFrame]
-
+PolarsFrame = TypeVar("PolarsFrame", pl.LazyFrame, pl.DataFrame)
 
 PolarsDtypeInputTypes = Union[
     str,
