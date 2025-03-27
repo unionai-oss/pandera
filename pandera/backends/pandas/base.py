@@ -188,18 +188,30 @@ class PandasSchemaBackend(BaseSchemaBackend):
         )
 
     def drop_invalid_rows(self, check_obj, error_handler: ErrorHandler):
-        """Remove invalid elements in a check obj according to failures in caught by the error handler."""
+        """Remove invalid elements in a check obj according to failures caught by the error handler."""
         errors = error_handler.schema_errors
         for err in errors:
-            index_values = err.failure_cases["index"]
             if isinstance(check_obj.index, pd.MultiIndex):
                 # MultiIndex values are saved on the error as strings so need to be cast back
                 # to their original types
-                index_tuples = err.failure_cases["index"].apply(eval)
-                index_values = pd.MultiIndex.from_tuples(index_tuples)
+                if isinstance(err.failure_cases, str):
+                    # string type failure cases indicates that the entire column/dataframe
+                    # being checked didn't pass validation, meaning the entire dataframe
+                    # is invalid.
+                    index_values = check_obj.index
+                else:
+                    index_tuples = err.failure_cases["index"].apply(eval)
+                    index_values = pd.MultiIndex.from_tuples(index_tuples)
+            else:
+                if isinstance(err.failure_cases, str):
+                    # string type failure cases indicates that the entire column/dataframe
+                    # being checked didn't pass validation, meaning the entire dataframe
+                    # is invalid.
+                    index_values = check_obj.index
+                else:
+                    index_values = err.failure_cases["index"]
 
             mask = ~check_obj.index.isin(index_values)
-
             check_obj = check_obj.loc[mask]
 
         return check_obj
