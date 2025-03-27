@@ -16,12 +16,15 @@ from pandera.dtypes import DataType
 # Handles optional Spark Connect imports for pyspark>=3.4 (if available)
 if version.parse(pyspark.__version__) >= version.parse("3.4"):
     from pyspark.sql.connect.dataframe import DataFrame as psc_DataFrame
+    from pyspark.sql.connect.group import GroupedData
 else:
     from pyspark.sql import (
         DataFrame as psc_DataFrame,
     )
+    from pyspark.sql.group import GroupedData
 
 DataFrameTypes = Union[DataFrame, psc_DataFrame]
+GroupbyObject = GroupedData
 
 CheckList = Union[Check, List[Check]]
 
