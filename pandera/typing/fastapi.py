@@ -1,15 +1,10 @@
 """FastAPI-specific types."""
 
 import functools
-from typing import Any, BinaryIO, Generic, Type
+from typing import Any, BinaryIO, Generic, get_args
 
 from pandera.engines import PYDANTIC_V2
 from pandera.typing.common import T
-
-try:
-    from typing import get_args
-except ImportError:
-    from typing_extensions import get_args
 
 try:
     import fastapi
@@ -71,7 +66,7 @@ if FASTAPI_INSTALLED:
 
             @classmethod
             def pydantic_validate_v2(
-                cls: Type["UploadFile"], obj: Any, dataframe_type
+                cls: type["UploadFile"], obj: Any, dataframe_type
             ) -> Any:
                 """
                 Pydantic validation method for validating dataframes in the context
@@ -98,7 +93,7 @@ if FASTAPI_INSTALLED:
 
             @classmethod
             def pydantic_validate_v1(
-                cls: Type["UploadFile"], obj: Any, field: ModelField
+                cls: type["UploadFile"], obj: Any, field: ModelField
             ) -> Any:
                 """
                 Pydantic validation method for validating dataframes in the context

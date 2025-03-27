@@ -1,7 +1,7 @@
 """Testing the components of the Schema objects."""
 
 import copy
-from typing import Any, List, Optional, Tuple, Type
+from typing import Any, Optional
 
 import numpy as np
 import pandas as pd
@@ -443,8 +443,8 @@ def test_column_regex_multiindex() -> None:
 )
 def test_column_regex_matching(
     column_name_regex: str,
-    expected_matches: Optional[List[Tuple[str, str]]],
-    error: Type[BaseException],
+    expected_matches: Optional[list[tuple[str, str]]],
+    error: type[BaseException],
 ) -> None:
     """
     Column regex pattern matching should yield correct matches and raise
@@ -527,7 +527,7 @@ DATETIME_REGEX = r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}"
     ],
 )
 def test_column_regex_matching_non_str_types(
-    column_name_regex: str, expected_matches: List
+    column_name_regex: str, expected_matches: list
 ) -> None:
     """Non-string column names should be cast into str for regex matching."""
     columns = pd.Index([1, 2.2, 3.1415, -1, -3.6, pd.Timestamp("2018/01/01")])
@@ -561,7 +561,7 @@ def test_column_regex_matching_non_str_types(
     ],
 )
 def test_column_regex_matching_non_str_types_multiindex(
-    column_name_regex: Tuple[str, str], expected_matches: List[Tuple[Any, Any]]
+    column_name_regex: tuple[str, str], expected_matches: list[tuple[Any, Any]]
 ) -> None:
     """
     Non-string column names should be cast into str for regex matching in
@@ -866,7 +866,7 @@ def test_multiindex_unordered(
         [Index(int), Index(int, name="a")],
     ],
 )
-def test_multiindex_unordered_init_exception(indexes: List[Index]) -> None:
+def test_multiindex_unordered_init_exception(indexes: list[Index]) -> None:
     """Un-named indexes in unordered MultiIndex raises an exception."""
     with pytest.raises(errors.SchemaInitError):
         MultiIndex(indexes, ordered=False)

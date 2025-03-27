@@ -1,7 +1,7 @@
 """Make schema error messages human-friendly."""
 
 import re
-from typing import Any, List, Union
+from typing import Any, Union
 
 import pandas as pd
 
@@ -150,7 +150,7 @@ def _multiindex_to_frame(df):
     return df.index.to_frame().drop_duplicates()
 
 
-def consolidate_failure_cases(schema_errors: List[SchemaError]):
+def consolidate_failure_cases(schema_errors: list[SchemaError]):
     """Consolidate schema error dicts to produce data for error message."""
     from pandera.api.pandas.types import is_table
 

@@ -19,14 +19,12 @@ from functools import partial, wraps
 from typing import (
     Any,
     Callable,
-    Dict,
-    List,
     Optional,
-    Sequence,
     TypeVar,
     Union,
     cast,
 )
+from collections.abc import Sequence
 
 import numpy as np
 import pandas as pd
@@ -65,7 +63,7 @@ F = TypeVar("F", bound=Callable)
 
 
 def _mask(
-    val: Union[pd.Series, pd.Index], null_mask: List[bool]
+    val: Union[pd.Series, pd.Index], null_mask: list[bool]
 ) -> Union[pd.Series, pd.Index]:
     if pd.api.types.is_timedelta64_dtype(val):  # type: ignore [arg-type]
         return val.mask(null_mask, pd.NaT)  # type: ignore [union-attr,arg-type]
@@ -95,7 +93,7 @@ def null_field_masks(draw, strategy: Optional[SearchStrategy]):
 def null_dataframe_masks(
     draw,
     strategy: Optional[SearchStrategy],
-    nullable_columns: Dict[str, bool],
+    nullable_columns: dict[str, bool],
 ):
     """Strategy for masking a values in a pandas DataFrame.
 
@@ -251,7 +249,7 @@ def convert_dtype(array: Union[pd.Series, pd.Index], col_dtype: Any):
     return array.astype(col_dtype)
 
 
-def convert_dtypes(df: pd.DataFrame, col_dtypes: Dict[Union[int, str], Any]):
+def convert_dtypes(df: pd.DataFrame, col_dtypes: dict[Union[int, str], Any]):
     """Convert datatypes of a dataframe."""
     for col_name, col_dtype in col_dtypes.items():
         array: pd.Series = df[col_name]  # type: ignore[assignment]
@@ -959,9 +957,9 @@ def dataframe_strategy(
     pandera_dtype: Optional[DataType] = None,
     strategy: Optional[SearchStrategy] = None,
     *,
-    columns: Optional[Dict] = None,
+    columns: Optional[dict] = None,
     checks: Optional[Sequence] = None,
-    unique: Optional[List[str]] = None,
+    unique: Optional[list[str]] = None,
     index: Optional[IndexComponent] = None,
     size: Optional[int] = None,
     n_regex_columns: int = 1,
@@ -1098,7 +1096,7 @@ def dataframe_strategy(
                     )
 
         # collect all non-element-wise column checks with undefined strategies
-        undefined_strat_column_checks: Dict[str, list] = defaultdict(list)
+        undefined_strat_column_checks: dict[str, list] = defaultdict(list)
         for col_name, column in expanded_columns.items():
             undefined_strat_column_checks[col_name].extend(
                 check
@@ -1186,7 +1184,7 @@ def multiindex_strategy(
     pandera_dtype: Optional[DataType] = None,
     strategy: Optional[SearchStrategy] = None,
     *,
-    indexes: Optional[List] = None,
+    indexes: Optional[list] = None,
     size: Optional[int] = None,
 ):
     """Strategy to generate a pandas MultiIndex object.

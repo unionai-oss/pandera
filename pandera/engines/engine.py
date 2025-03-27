@@ -11,13 +11,8 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    Dict,
-    List,
     NamedTuple,
     Optional,
-    Set,
-    Tuple,
-    Type,
     TypeVar,
     get_type_hints,
 )
@@ -35,7 +30,7 @@ else:
 
 _DataType = TypeVar("_DataType", bound=DataType)
 _Engine = TypeVar("_Engine", bound="Engine")
-_EngineType = Type[_Engine]
+_EngineType = type[_Engine]
 
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -56,11 +51,11 @@ else:
     Dispatch = Callable[[Any], DataType]
 
 
-def _is_typeddict(x: Type) -> bool:
+def _is_typeddict(x: type) -> bool:
     return x.__class__.__name__ == "_TypedDictMeta"
 
 
-def _is_namedtuple(x: Type) -> bool:
+def _is_namedtuple(x: type) -> bool:
     return tuple in getattr(x, "__bases__", ()) and hasattr(
         x, "__annotations__"
     )
@@ -69,7 +64,7 @@ def _is_namedtuple(x: Type) -> bool:
 @dataclass
 class _DtypeRegistry:
     dispatch: Dispatch
-    equivalents: Dict[Any, DataType]
+    equivalents: dict[Any, DataType]
 
 
 class Engine(ABCMeta):
@@ -78,9 +73,9 @@ class Engine(ABCMeta):
     Keep a registry of concrete Engines.
     """
 
-    _registry: Dict["Engine", _DtypeRegistry] = {}
-    _registered_dtypes: Set[Type[DataType]]
-    _base_pandera_dtypes: Tuple[Type[DataType]]
+    _registry: dict["Engine", _DtypeRegistry] = {}
+    _registered_dtypes: set[type[DataType]]
+    _base_pandera_dtypes: tuple[type[DataType]]
 
     def __new__(mcs, name, bases, namespace, **kwargs):
         base_pandera_dtypes = kwargs.pop("base_pandera_dtypes")
@@ -115,7 +110,7 @@ class Engine(ABCMeta):
 
     def _register_from_parametrized_dtype(
         cls,
-        pandera_dtype_cls: Type[DataType],
+        pandera_dtype_cls: type[DataType],
     ) -> None:
         method = pandera_dtype_cls.__dict__["from_parametrized_dtype"]
         if not isinstance(method, classmethod):
@@ -137,7 +132,7 @@ class Engine(ABCMeta):
             cls._registry[cls].dispatch.register(source_dtype, _method)
 
     def _register_equivalents(
-        cls, pandera_dtype_cls: Type[DataType], *source_dtypes: Any
+        cls, pandera_dtype_cls: type[DataType], *source_dtypes: Any
     ) -> None:
         pandera_dtype = pandera_dtype_cls()  # type: ignore
         for source_dtype in source_dtypes:
@@ -146,9 +141,9 @@ class Engine(ABCMeta):
 
     def register_dtype(
         cls: _EngineType,
-        pandera_dtype_cls: Optional[Type[_DataType]] = None,
+        pandera_dtype_cls: Optional[type[_DataType]] = None,
         *,
-        equivalents: Optional[List[Any]] = None,
+        equivalents: Optional[list[Any]] = None,
     ) -> Callable:
         """Register a Pandera :class:`~pandera.dtypes.DataType` with the engine,
         as class decorator.
@@ -180,7 +175,7 @@ class Engine(ABCMeta):
 
         """
 
-        def _wrapper(pandera_dtype_cls: Type[_DataType]) -> Type[_DataType]:
+        def _wrapper(pandera_dtype_cls: type[_DataType]) -> type[_DataType]:
             if not inspect.isclass(pandera_dtype_cls):
                 raise ValueError(
                     f"{cls.__name__}.register_dtype can only decorate a class,"
@@ -274,7 +269,7 @@ class Engine(ABCMeta):
 
     def get_registered_dtypes(  # pylint:disable=W1401
         cls,
-    ) -> List[Type[DataType]]:
+    ) -> list[type[DataType]]:
         r"""Return the :class:`pandera.dtypes.DataType`\s registered
         with this engine."""
         return list(cls._registered_dtypes)
