@@ -15,7 +15,7 @@ on:
       - "release/*"
 
 env:
-  DEFAULT_PYTHON: 3.8
+  DEFAULT_PYTHON: 3.11
   CI: "true"
 
 concurrency:
@@ -87,9 +87,9 @@ jobs:
         if: always()
         run: pre-commit run mypy --all-files
 
-  tests:
+  unit-tests:
     name: >
-      CI Core Tests (${{ matrix.python-version }}, ${{ matrix.os }}, pandas-${{ matrix.pandas-version }}, pydantic-${{ matrix.pydantic-version }})
+      Unit Tests: ${{ matrix.extra }} (${{ matrix.python-version }}, ${{ matrix.os }}, pandas-${{ matrix.pandas-version }}, pydantic-${{ matrix.pydantic-version }}, polars-${{ matrix.polars-version }})
     runs-on: ${{ matrix.os }}
     defaults:
       run:
@@ -100,93 +100,15 @@ jobs:
       PYTEST_FLAGS: --cov=pandera --cov-report=term-missing --cov-report=xml --cov-append
       HYPOTHESIS_FLAGS: -n=auto -q --hypothesis-profile=ci
     strategy:
-      # fail-fast: true
       fail-fast: false
       matrix:
-        os:
-        - ubuntu-latest
-        - windows-latest
-        - macos-13
-        # - macos-latest  # see: https://github.com/actions/setup-python/issues/696
-        python-version: ["3.9", "3.10", "3.11", "3.12"]
-        pandas-version: ["2.1.1", "2.2.3"]
-        pydantic-version: ["1.10.11", "2.10.6"]
-        include:
-        - os: ubuntu-latest
-          pip-cache: ~/.cache/pip
-        # - os: macos-latest
-        #   pip-cache: ~/Library/Caches/pip
-        - os: macos-13
-          pip-cache: ~/Library/Caches/pip
-        - os: windows-latest
-          pip-cache: ~/AppData/Local/pip/Cache
-        exclude:
-        - python-version: "3.8"
-          pandas-version: "2.2.2"
-        - python-version: "3.11"
-          pandas-version: "1.5.3"
-        - python-version: "3.12"
-          pandas-version: "1.5.3"
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
-
-      - name: Cache pip
-        uses: actions/cache@v4
-        with:
-          path: ${{ matrix.pip-cache }}
-          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.in') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
-
-      - name: Install dev deps
-        run: pip install uv nox
-
-      - name: Unit Tests - Core
-        run: nox ${{ env.NOX_FLAGS }} --session "tests(extra='core', pydantic='${{ matrix.pydantic-version }}', python='${{ matrix.python-version }}', pandas='${{ matrix.pandas-version }}')"
-
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
-
-      - name: Check Docstrings
-        if: ${{ matrix.os != 'windows-latest' && matrix.python-version == '3.11' && matrix.pandas-version == '2.2.2' }}
-        run: nox ${{ env.NOX_FLAGS }} --session doctests
-
-      # - name: Check Docs
-      #   if: ${{ matrix.os != 'windows-latest' && matrix.python-version == '3.11' && matrix.pydantic-version == '2.2.2' }}
-      #   run: nox ${{ env.NOX_FLAGS }} --session docs
-
-  extras-tests:
-    name: >
-      CI Extras Tests: ${{ matrix.extra }} (${{ matrix.python-version }}, ${{ matrix.os }}, pandas-${{ matrix.pandas-version }}, pydantic-${{ matrix.pydantic-version }}, polars-${{ matrix.polars-version }})
-    runs-on: ${{ matrix.os }}
-    defaults:
-      run:
-        shell: pwsh
-    env:
-      PYTHONUTF8: 1
-      NOX_FLAGS: -v -db uv --non-interactive
-      PYTEST_FLAGS: --cov=pandera --cov-report=term-missing --cov-report=xml --cov-append
-      HYPOTHESIS_FLAGS: -n=auto -q --hypothesis-profile=ci
-    strategy:
-      # fail-fast: true
-      fail-fast: false
-      matrix:
-        os:
-        - ubuntu-latest
-        - windows-latest
-        - macos-13
-        # - macos-latest  # see: https://github.com/actions/setup-python/issues/696
+        os: [ubuntu-latest, windows-latest, macos-latest]
         python-version: ["3.9", "3.10", "3.11", "3.12"]
         pandas-version: ["2.2.3"]
         pydantic-version: ["2.10.6"]
-        polars-version: ["1.22.0"]
+        polars-version: ["1.26.0"]
         extra:
+        - pandas
         - hypotheses
         - io
         - mypy
@@ -201,14 +123,17 @@ jobs:
         include:
         - os: ubuntu-latest
           pip-cache: ~/.cache/pip
-        # - os: macos-latest
-        #   pip-cache: ~/Library/Caches/pip
-        - os: macos-13
+        - os: macos-latest
           pip-cache: ~/Library/Caches/pip
         - os: windows-latest
           pip-cache: ~/AppData/Local/pip/Cache
+        # add lower bounds for pandas and pydantic
+        - extra: pandas
+          pandas-version: "2.1.1"
+        - extra: pydantic
+          pydantic-version: "1.10.11"
         exclude:
-          # mypy tests hang on windows
+        # mypy tests hang on windows
         - extra: mypy
           os: windows-latest
         - extra: modin-ray
@@ -216,9 +141,9 @@ jobs:
         # pyspark serialization issue on windows: "pandas" module not found
         - extra: pyspark
           os: windows-latest
-        # pyspark < 4.0 doesn't work on 3.12
-        - extra: pyspark
-          python-version: "3.12"
+        # # pyspark < 4.0 doesn't work on 3.12
+        # - extra: pyspark
+        #   python-version: "3.12"
 
     steps:
       - uses: actions/checkout@v4
@@ -249,3 +174,39 @@ jobs:
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
+
+  docs:
+    name: Docs (${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        python-version: ["3.9", "3.10", "3.11", "3.12"]
+    defaults:
+      run:
+        shell: bash -l {0}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip  # ubuntu location
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements-dev.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+      - name: Install dependencies
+        run: pip install uv nox
+      - name: Pip info
+        run: python -m pip list
+
+      - name: Build docs and run doctest
+        run: >
+          nox
+          -db virtualenv -r
+          --non-interactive
+          --session docs-${{ matrix.python-version }}
