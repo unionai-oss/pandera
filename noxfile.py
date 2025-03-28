@@ -113,6 +113,7 @@ def _testing_requirements(
 
     _requirements = PYPROJECT["project"]["dependencies"]
     _requirements += PYPROJECT["project"]["optional-dependencies"][extra]
+    _requirements = list(set(_requirements))
 
     _numpy: str | None = None
     if pandas != "2.2.3":
@@ -150,12 +151,31 @@ def _testing_requirements(
     ]
 
 
+EXTRA_PYTHON_PYDANTIC = []
+for extra in OPTIONAL_DEPENDENCIES:
+    if extra == "pandas":
+        # Only test upper and lower bounds of pandas and pydantic with the
+        # pandas extra. The other dataframe library intregations assume either
+        # no pandas version, latest supported pandas version, and latest
+        # pydantic version. None of the other dataframe libraries use the
+        # pydantic integration.
+        EXTRA_PYTHON_PYDANTIC.extend(
+            [
+                (extra, pandas, pydantic)
+                for pandas in PANDAS_VERSIONS
+                for pydantic in PYDANTIC_VERSIONS
+            ]
+        )
+    else:
+        EXTRA_PYTHON_PYDANTIC.append(
+            (extra, PYTHON_VERSIONS[-1], PYTHON_VERSIONS[-1])
+        )
+
+
 @nox.session(venv_backend="uv")
 @nox.parametrize("python", PYTHON_VERSIONS)
-@nox.parametrize("pandas", PANDAS_VERSIONS)
-@nox.parametrize("pydantic", PYDANTIC_VERSIONS)
-@nox.parametrize("extra", OPTIONAL_DEPENDENCIES)
-def tests(session: Session, pandas: str, pydantic: str, extra: str) -> None:
+@nox.parametrize("extra, pandas, pydantic", EXTRA_PYTHON_PYDANTIC)
+def tests(session: Session, extra: str, pandas: str, pydantic: str) -> None:
     """Run the test suite."""
 
     requirements = _testing_requirements(session, extra, pandas, pydantic)
@@ -163,7 +183,12 @@ def tests(session: Session, pandas: str, pydantic: str, extra: str) -> None:
 
     env = {}
     if extra.startswith("modin"):
-        extra, engine = extra.split("-")
+        modin_split = extra.split("-")
+        if len(modin_split) == 1:
+            # default to ray
+            engine = "ray"
+        else:
+            extra, engine = extra.split("-")
         if engine not in {"dask", "ray"}:
             raise ValueError(f"{engine} is not a valid modin engine")
         env = {"CI_MODIN_ENGINES": engine}
