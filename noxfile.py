@@ -168,7 +168,7 @@ for extra in OPTIONAL_DEPENDENCIES:
         )
     else:
         EXTRA_PYTHON_PYDANTIC.append(
-            (extra, PYTHON_VERSIONS[-1], PYDANTIC_VERSIONS[-1])
+            (extra, PANDAS_VERSIONS[-1], PYDANTIC_VERSIONS[-1])
         )
 
 

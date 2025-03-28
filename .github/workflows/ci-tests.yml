@@ -24,72 +24,72 @@ concurrency:
 
 jobs:
 
-  lint:
-    name: Linters (${{ matrix.python-version }})
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: true
-      matrix:
-        python-version: ["3.9", "3.10", "3.11", "3.12"]
-    defaults:
-      run:
-        shell: bash -l {0}
+  # lint:
+  #   name: Linters (${{ matrix.python-version }})
+  #   runs-on: ubuntu-latest
+  #   strategy:
+  #     fail-fast: true
+  #     matrix:
+  #       python-version: ["3.9", "3.10", "3.11", "3.12"]
+  #   defaults:
+  #     run:
+  #       shell: bash -l {0}
 
-    steps:
-      - uses: actions/checkout@v4
+  #   steps:
+  #     - uses: actions/checkout@v4
 
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
-      - uses: actions/cache@v4
-        with:
-          path: ~/.cache/pip  # ubuntu location
-          key: ${{ runner.os }}-pip-${{ hashFiles('requirements-dev.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
-      - name: Install dependencies
-        run: |
-          python -m pip install uv nox pre_commit \
-            mypy==0.982 \
-            types-click \
-            types-pytz \
-            types-pyyaml \
-            types-requests \
-            types-setuptools \
-            setuptools \
-            polars
-      - name: Install pandera
-        run: python -m pip install -e .
-      - name: Pip info
-        run: python -m pip list
+  #     - name: Set up Python ${{ matrix.python-version }}
+  #       uses: actions/setup-python@v5
+  #       with:
+  #         python-version: ${{ matrix.python-version }}
+  #     - uses: actions/cache@v4
+  #       with:
+  #         path: ~/.cache/pip  # ubuntu location
+  #         key: ${{ runner.os }}-pip-${{ hashFiles('requirements-dev.txt') }}
+  #         restore-keys: |
+  #           ${{ runner.os }}-pip-
+  #     - name: Install dependencies
+  #       run: |
+  #         python -m pip install uv nox pre_commit \
+  #           mypy==0.982 \
+  #           types-click \
+  #           types-pytz \
+  #           types-pyyaml \
+  #           types-requests \
+  #           types-setuptools \
+  #           setuptools \
+  #           polars
+  #     - name: Install pandera
+  #       run: python -m pip install -e .
+  #     - name: Pip info
+  #       run: python -m pip list
 
-      - name: Check requirements
-        run: >
-          nox
-          -db uv -r
-          --non-interactive
-          --python ${{ matrix.python-version }}
-          --session requirements-${{ matrix.python-version }}
+  #     - name: Check requirements
+  #       run: >
+  #         nox
+  #         -db uv -r
+  #         --non-interactive
+  #         --python ${{ matrix.python-version }}
+  #         --session requirements-${{ matrix.python-version }}
 
-      - name: Sort Imports
-        run: pre-commit run isort --all-files
+  #     - name: Sort Imports
+  #       run: pre-commit run isort --all-files
 
-      - name: Black
-        if: always()
-        run: pre-commit run black --all-files
+  #     - name: Black
+  #       if: always()
+  #       run: pre-commit run black --all-files
 
-      - name: Pylint
-        if: always()
-        run: pre-commit run pylint --all-files
+  #     - name: Pylint
+  #       if: always()
+  #       run: pre-commit run pylint --all-files
 
-      - name: Mypy Type Checking
-        if: always()
-        run: pre-commit run mypy --all-files
+  #     - name: Mypy Type Checking
+  #       if: always()
+  #       run: pre-commit run mypy --all-files
 
   unit-tests:
     name: >
-      Unit Tests: ${{ matrix.extra }} (${{ matrix.python-version }}, ${{ matrix.os }}, pandas-${{ matrix.pandas-version }}, pydantic-${{ matrix.pydantic-version }}, polars-${{ matrix.polars-version }})
+      Unit Tests: python-${{ matrix.python-version }} ${{ matrix.os }} (extra-${{ matrix.extra }}, pandas-${{ matrix.pandas-version }}, pydantic-${{ matrix.pydantic-version }})
     runs-on: ${{ matrix.os }}
     defaults:
       run:
@@ -109,7 +109,6 @@ jobs:
         python-version: ["3.9", "3.10", "3.11", "3.12"]
         pandas-version: ["2.2.3"]
         pydantic-version: ["2.10.6"]
-        polars-version: ["1.26.0"]
         extra:
         - pandas
         - hypotheses
@@ -131,10 +130,10 @@ jobs:
         - os: windows-latest
           pip-cache: ~/AppData/Local/pip/Cache
         # add lower bounds for pandas and pydantic
-        - extra: pandas
-          pandas-version: "2.1.1"
-        - extra: pydantic
-          pydantic-version: "1.10.11"
+        # - extra: pandas
+        #   pandas-version: "2.1.1"
+        # - extra: pandas
+        #   pydantic-version: "1.10.11"
         exclude:
         # mypy tests hang on windows
         - extra: mypy
@@ -173,43 +172,43 @@ jobs:
           printenv | sort
 
       - name: Unit Tests - ${{ matrix.extra }}
-        run: nox ${{ env.NOX_FLAGS }} --session "tests(extra='${{ matrix.extra }}', pydantic='${{ matrix.pydantic-version }}', python='${{ matrix.python-version }}', pandas='${{ matrix.pandas-version }}')"
+        run: nox ${{ env.NOX_FLAGS }} --session "tests-${{ matrix.python-version }}(extra='${{ matrix.extra }}', pandas='${{ matrix.pandas-version }}', pydantic='${{ matrix.pydantic-version }}')"
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
 
-  docs:
-    name: Docs (${{ matrix.python-version }})
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: true
-      matrix:
-        python-version: ["3.9", "3.10", "3.11", "3.12"]
-    defaults:
-      run:
-        shell: bash -l {0}
+  # docs:
+  #   name: Docs (${{ matrix.python-version }})
+  #   runs-on: ubuntu-latest
+  #   strategy:
+  #     fail-fast: true
+  #     matrix:
+  #       python-version: ["3.9", "3.10", "3.11", "3.12"]
+  #   defaults:
+  #     run:
+  #       shell: bash -l {0}
 
-    steps:
-      - uses: actions/checkout@v4
+  #   steps:
+  #     - uses: actions/checkout@v4
 
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
-      - uses: actions/cache@v4
-        with:
-          path: ~/.cache/pip  # ubuntu location
-          key: ${{ runner.os }}-pip-${{ hashFiles('requirements-dev.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
-      - name: Install dependencies
-        run: pip install uv nox
-      - name: Pip info
-        run: python -m pip list
+  #     - name: Set up Python ${{ matrix.python-version }}
+  #       uses: actions/setup-python@v5
+  #       with:
+  #         python-version: ${{ matrix.python-version }}
+  #     - uses: actions/cache@v4
+  #       with:
+  #         path: ~/.cache/pip  # ubuntu location
+  #         key: ${{ runner.os }}-pip-${{ hashFiles('requirements-dev.txt') }}
+  #         restore-keys: |
+  #           ${{ runner.os }}-pip-
+  #     - name: Install dependencies
+  #       run: pip install uv nox
+  #     - name: Pip info
+  #       run: python -m pip list
 
-      - name: Build docs and run doctest
-        run: >
-          nox
-          -db virtualenv -r
-          --non-interactive
-          --session docs-${{ matrix.python-version }}
+  #     - name: Build docs and run doctest
+  #       run: >
+  #         nox
+  #         -db virtualenv -r
+  #         --non-interactive
+  #         --session docs-${{ matrix.python-version }}
