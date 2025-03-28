@@ -199,6 +199,14 @@ def test_pandas_stubs_false_positives(
             f"{xfail_modules} are unstable when it comes due to maturing "
             "pandas-stubs library"
         )
+    if (
+        module == "python_slice.py"
+        and config == "plugin_mypy.ini"
+        and sys.version_info >= (3, 9)
+    ):
+        pytest.xfail(
+            "pandas-stubs library for python 3.9 doesn't raise 'Slice index must be an integer' error"
+        )
 
     cache_dir = str(
         test_module_dir

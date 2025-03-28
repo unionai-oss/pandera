@@ -16,9 +16,12 @@ try:
     import numpy as np
 
     from pandera.pandas import *
-    from pandera.pandas import __all__
+    from pandera.pandas import __all__ as __all_pandas
 
-    __all__.append("__version__")
+    __all__ = [
+        "__version__",
+        *__all_pandas,
+    ]
 
 except ImportError as err:
     if "pandas" in str(err) or "numpy" in str(err):

@@ -9,7 +9,7 @@ import os
 import re
 import shutil
 import sys
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 import nox
 from nox import Session
@@ -27,6 +27,14 @@ PYDANTIC_VERSIONS = ["1.10.11", "2.10.6"]
 PACKAGE = "pandera"
 SOURCE_PATHS = PACKAGE, "tests", "noxfile.py"
 REQUIREMENT_PATH = "requirements.txt"
+EXTRAS_REQUIRING_PANDAS = frozenset(
+    [
+        "fastapi",
+        "hypotheses",
+        "mypy",
+        "strategies",
+    ]
+)
 
 CI_RUN = os.environ.get("CI") == "true"
 if CI_RUN:
@@ -106,16 +114,27 @@ def requirements(session: Session) -> None:  # pylint:disable=unused-argument
 
 def _testing_requirements(
     session: Session,
-    extra: str,
-    pandas: str = PANDAS_VERSIONS[-1],
-    pydantic: str = PYDANTIC_VERSIONS[-1],
+    extra: Optional[str] = None,
+    pandas: Optional[str] = None,
+    pydantic: Optional[str] = None,
 ) -> list[str]:
 
+    pandas = pandas or PANDAS_VERSIONS[-1]
+    pydantic = pydantic or PYDANTIC_VERSIONS[-1]
+
     _requirements = PYPROJECT["project"]["dependencies"]
-    _requirements += PYPROJECT["project"]["optional-dependencies"][extra]
+    if extra is not None:
+        _requirements += PYPROJECT["project"]["optional-dependencies"][extra]
+
+    # some of the extras are only supported with the pandas extra
+    if extra in ["fastapi", "hypotheses"]:
+        _requirements.extend(
+            PYPROJECT["project"]["optional-dependencies"]["pandas"]
+        )
+
     _requirements = list(set(_requirements))
 
-    _numpy: str | None = None
+    _numpy: Optional[str] = None
     if pandas != "2.2.3":
         _numpy = "< 2"
 
@@ -151,7 +170,8 @@ def _testing_requirements(
     ]
 
 
-EXTRA_PYTHON_PYDANTIC = []
+# the base module with no extras
+EXTRA_PYTHON_PYDANTIC = [(None, None, None)]
 for extra in OPTIONAL_DEPENDENCIES:
     if extra == "pandas":
         # Only test upper and lower bounds of pandas and pydantic with the
@@ -168,26 +188,35 @@ for extra in OPTIONAL_DEPENDENCIES:
         )
     else:
         EXTRA_PYTHON_PYDANTIC.append(
-            (extra, PYTHON_VERSIONS[-1], PYDANTIC_VERSIONS[-1])
+            (extra, PANDAS_VERSIONS[-1], PYDANTIC_VERSIONS[-1])
         )
 
 
 @nox.session(venv_backend="uv", python=PYTHON_VERSIONS)
 @nox.parametrize("extra, pandas, pydantic", EXTRA_PYTHON_PYDANTIC)
-def tests(session: Session, extra: str, pandas: str, pydantic: str) -> None:
+def tests(
+    session: Session,
+    extra: Optional[str] = None,
+    pandas: Optional[str] = None,
+    pydantic: Optional[str] = None,
+) -> None:
     """Run the test suite."""
 
     requirements = _testing_requirements(session, extra, pandas, pydantic)
     session.install(*requirements)
+    session.install("-e", ".", "--config-settings", "editable_mode=compat")
 
     env = {}
-    if extra.startswith("modin"):
+    test_dir = "base" if extra is None else extra
+
+    if extra and extra.startswith("modin"):
         modin_split = extra.split("-")
         if len(modin_split) == 1:
             # default to ray
             engine = "ray"
         else:
-            extra, engine = extra.split("-")
+            extra, engine = modin_split
+            test_dir = extra
         if engine not in {"dask", "ray"}:
             raise ValueError(f"{engine} is not a valid modin engine")
         env = {"CI_MODIN_ENGINES": engine}
@@ -195,7 +224,7 @@ def tests(session: Session, extra: str, pandas: str, pydantic: str) -> None:
     if session.posargs:
         args = session.posargs
     else:
-        path = f"tests/{extra}/" if extra != "all" else "tests"
+        path = f"tests/{test_dir}/" if extra != "all" else "tests"
         args = []
         if extra == "strategies":
             profile = "ci"

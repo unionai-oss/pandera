@@ -107,6 +107,8 @@ all = [
 dev = [
     "hypothesis >= 6.92.7",
     "isort >= 5.7.0",
+    "geopandas",
+    "shapely",
     "joblib",
     "mypy == 1.10.0",
     "pip",
