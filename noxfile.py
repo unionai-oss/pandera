@@ -179,6 +179,7 @@ def tests(session: Session, extra: str, pandas: str, pydantic: str) -> None:
 
     requirements = _testing_requirements(session, extra, pandas, pydantic)
     session.install(*requirements)
+    session.install("-e", ".", "--config-settings", "editable_mode=compat")
 
     env = {}
     if extra.startswith("modin"):
