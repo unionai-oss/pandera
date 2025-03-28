@@ -9,8 +9,6 @@ from packaging.version import parse
 import pandas as pd
 import numpy as np
 
-from pandera._version import __version__
-
 
 _min_pandas_version = parse("2.1.1")
 _min_numpy_version = parse("1.24.4")
@@ -193,8 +191,6 @@ __all__ = [
     "SeriesSchema",
     # extensions
     "extensions",
-    # version
-    "__version__",
 ]
 
 
