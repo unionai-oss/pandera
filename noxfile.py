@@ -168,12 +168,11 @@ for extra in OPTIONAL_DEPENDENCIES:
         )
     else:
         EXTRA_PYTHON_PYDANTIC.append(
-            (extra, PYTHON_VERSIONS[-1], PYTHON_VERSIONS[-1])
+            (extra, PYTHON_VERSIONS[-1], PYDANTIC_VERSIONS[-1])
         )
 
 
-@nox.session(venv_backend="uv")
-@nox.parametrize("python", PYTHON_VERSIONS)
+@nox.session(venv_backend="uv", python=PYTHON_VERSIONS)
 @nox.parametrize("extra, pandas, pydantic", EXTRA_PYTHON_PYDANTIC)
 def tests(session: Session, extra: str, pandas: str, pydantic: str) -> None:
     """Run the test suite."""
