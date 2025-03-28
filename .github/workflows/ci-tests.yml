@@ -50,7 +50,7 @@ jobs:
             ${{ runner.os }}-pip-
       - name: Install dependencies
         run: |
-          python -m pip install nox pre_commit \
+          python -m pip install uv nox pre_commit \
             mypy==0.982 \
             types-click \
             types-pytz \
@@ -67,7 +67,7 @@ jobs:
       - name: Check requirements
         run: >
           nox
-          -db virtualenv -r
+          -db uv -r
           --non-interactive
           --python ${{ matrix.python-version }}
           --session requirements-${{ matrix.python-version }}
