@@ -260,6 +260,23 @@ class String(DataType, dtypes.String):
 
 @Engine.register_dtype(
     equivalents=[
+        "date",
+        datetime.date,
+        dtypes.Date,
+        dtypes.Date(),
+        dt.Date,
+        dt.date,
+    ]
+)
+@immutable
+class Date(DataType, dtypes.Date):
+    """Semantic representation of a :class:`dt.Date`."""
+
+    type = dt.date
+
+
+@Engine.register_dtype(
+    equivalents=[
         "datetime",
         datetime.datetime,
         np.datetime64,
