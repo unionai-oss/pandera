@@ -61,6 +61,12 @@ class DataType(dtypes.DataType):
         except TypeError:
             return False
 
+    def __str__(self) -> str:
+        return str(self.type)
+
+    def __repr__(self) -> str:
+        return f"DataType({self})"
+
 
 class Engine(
     metaclass=engine.Engine,
@@ -306,6 +312,21 @@ class DateTime(DataType, dtypes.DateTime):
         """Convert a :class:`dt.Timestamp` to a Pandera
         :class:`~pandera.engines.ibis_engine.DateTime`."""
         return cls(timezone=ibis_dtype.timezone, scale=ibis_dtype.scale)
+
+
+@Engine.register_dtype(
+    equivalents=[
+        "time",
+        datetime.time,
+        dt.Time,
+        dt.time,
+    ]
+)
+@immutable
+class Time(DataType):
+    """Semantic representation of a :class:`dt.Time`."""
+
+    type = dt.time
 
 
 @Engine.register_dtype(
