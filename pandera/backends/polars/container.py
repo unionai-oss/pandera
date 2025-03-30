@@ -9,7 +9,7 @@ import polars as pl
 
 from pandera.api.base.error_handler import ErrorHandler
 from pandera.api.polars.container import DataFrameSchema
-from pandera.api.polars.types import PolarsData
+from pandera.api.polars.types import PolarsData, PolarsFrame
 from pandera.api.polars.utils import get_lazyframe_column_names
 from pandera.backends.base import ColumnInfo, CoreCheckResult
 from pandera.backends.polars.base import PolarsSchemaBackend
@@ -25,11 +25,25 @@ from pandera.utils import is_regex
 from pandera.validation_depth import validate_scope, validation_type
 
 
+def _to_lazy(df: PolarsFrame) -> pl.LazyFrame:
+    if isinstance(df, pl.DataFrame):
+        return df.lazy()
+    else:
+        return df
+
+
+def _to_frame_kind(lf: pl.LazyFrame, kind: type[PolarsFrame]) -> PolarsFrame:
+    if issubclass(kind, pl.DataFrame):
+        return lf.collect()
+    else:
+        return lf
+
+
 class DataFrameSchemaBackend(PolarsSchemaBackend):
     # pylint: disable=too-many-branches
     def validate(
         self,
-        check_obj: pl.LazyFrame,
+        check_obj: PolarsFrame,
         schema: DataFrameSchema,
         *,
         head: Optional[int] = None,
@@ -38,13 +52,16 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
         random_state: Optional[int] = None,
         lazy: bool = False,
         inplace: bool = False,
-    ):
+    ) -> PolarsFrame:
+        return_type = type(check_obj)
+        check_lf = _to_lazy(check_obj)  # parsers only accept lazyframe
+
         if inplace:
             warnings.warn("setting inplace=True will have no effect.")
 
         error_handler = ErrorHandler(lazy)
 
-        column_info = self.collect_column_info(check_obj, schema)
+        column_info = self.collect_column_info(check_lf, schema)
 
         if getattr(schema, "drop_invalid_rows", False) and not lazy:
             raise SchemaDefinitionError(
@@ -60,7 +77,7 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
 
         for parser, args in core_parsers:
             try:
-                check_obj = parser(check_obj, *args)
+                check_lf = parser(check_lf, *args)
             except SchemaError as exc:
                 error_handler.collect_error(
                     validation_type(exc.reason_code),
@@ -71,22 +88,29 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
                 error_handler.collect_errors(exc.schema_errors)
 
         components = self.collect_schema_components(
-            check_obj,
-            schema,
-            column_info,
+            check_lf, schema, column_info
         )
+        check_obj_parsed = _to_frame_kind(check_lf, return_type)
 
         # subsample the check object if head, tail, or sample are specified
-        sample = self.subsample(check_obj, head, tail, sample, random_state)
+        sample = self.subsample(
+            check_obj_parsed,
+            head,
+            tail,
+            sample,
+            random_state,
+        )
+        # all checks after subsampling are run on lazyframe
+        sample_lf = _to_lazy(sample)
 
         core_checks = [
-            (self.check_column_presence, (check_obj, schema, column_info)),
-            (self.check_column_values_are_unique, (sample, schema)),
+            (self.check_column_presence, (check_lf, schema, column_info)),
+            (self.check_column_values_are_unique, (sample_lf, schema)),
             (
                 self.run_schema_component_checks,
-                (sample, schema, components, lazy),
+                (sample_lf, schema, components, lazy),
             ),
-            (self.run_checks, (sample, schema)),
+            (self.run_checks, (sample_lf, schema)),
         ]
 
         for check, args in core_checks:
@@ -104,7 +128,7 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
                 else:
                     error = SchemaError(
                         schema,
-                        data=check_obj,
+                        data=check_lf,
                         message=result.message,
                         failure_cases=result.failure_cases,
                         check=result.check,
@@ -121,15 +145,17 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
 
         if error_handler.collected_errors:
             if getattr(schema, "drop_invalid_rows", False):
-                check_obj = self.drop_invalid_rows(check_obj, error_handler)
+                check_obj_parsed = self.drop_invalid_rows(
+                    check_obj_parsed, error_handler
+                )
             else:
                 raise SchemaErrors(
                     schema=schema,
                     schema_errors=error_handler.schema_errors,
-                    data=check_obj,
+                    data=check_obj_parsed,
                 )
 
-        return check_obj
+        return check_obj_parsed
 
     @validate_scope(scope=ValidationScope.DATA)
     def run_checks(
