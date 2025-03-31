@@ -56,7 +56,7 @@ dask = ["dask[dataframe]", "distributed"]
 mypy = ["pandas-stubs"]
 fastapi = ["fastapi"]
 geopandas = ["geopandas", "shapely"]
-ibis = ["ibis-framework >= 3.1.0"]
+ibis = ["ibis-framework"]
 polars = ["polars >= 0.20.0"]
 all = [
     "hypothesis >= 6.92.7",
@@ -73,7 +73,7 @@ all = [
     "fastapi",
     "geopandas",
     "shapely",
-    "ibis-framework >= 3.1.0",
+    "ibis-framework",
     "polars >= 0.20.0",
 ]
 dev = [
@@ -83,7 +83,7 @@ dev = [
     "mypy == 1.10.0",
     "pip",
     "pre_commit",
-    "pyarrow",
+    "pyarrow >= 13",
     "pylint < 3.3",
     "pytest",
     "pytest-cov",
@@ -95,7 +95,6 @@ dev = [
     "importlib_metadata",
     "uvicorn",
     "python-multipart",
-    "ibis-framework[duckdb]",
 ]
 docs = [
     "sphinx",

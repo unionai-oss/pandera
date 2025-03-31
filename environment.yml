@@ -90,7 +90,7 @@ dependencies:
       - distributed
 
       # ibis extra
-      - ibis-framework >= 3.1.0 ; python_version >= '3.9'
+      - ibis-framework
 
       # docs
       - furo
