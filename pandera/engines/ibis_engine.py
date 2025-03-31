@@ -14,6 +14,8 @@ from pandera import dtypes
 from pandera.dtypes import immutable
 from pandera.engines import engine, numpy_engine
 
+IbisObject = Union[ir.Column, ir.Table]
+
 
 @immutable(init=True)
 class DataType(dtypes.DataType):
@@ -38,6 +40,14 @@ class DataType(dtypes.DataType):
         object.__setattr__(
             self, "type", ibis.dtype(self.type)
         )  # pragma: no cover
+
+    def coerce(self, data_container: IbisObject) -> IbisObject:
+        """Coerce data container to the data type."""
+        return data_container.cast(
+            self.type
+            if isinstance(data_container, ir.Column)
+            else dict.fromkeys(data_container.columns, self.type)
+        )
 
     def check(
         self,
