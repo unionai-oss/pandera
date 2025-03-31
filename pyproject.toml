@@ -95,6 +95,7 @@ dev = [
     "importlib_metadata",
     "uvicorn",
     "python-multipart",
+    "ibis-framework[duckdb]",
 ]
 docs = [
     "sphinx",
