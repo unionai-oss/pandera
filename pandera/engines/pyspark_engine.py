@@ -25,7 +25,7 @@ from pandera.dtypes import immutable
 from pandera.engines import engine
 
 
-PysparkObject = DataFrame
+PysparkObject = Union[DataFrame]
 
 
 DEFAULT_PYSPARK_PREC = pst.DecimalType().precision

@@ -207,7 +207,7 @@ jobs:
         - os: windows-latest
           pip-cache: ~/AppData/Local/pip/Cache
         exclude:
-          # mypy tests hang on windows
+        # mypy tests hang on windows
         - extra: mypy
           os: windows-latest
         - extra: modin-ray
