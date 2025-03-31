@@ -1,4 +1,5 @@
 """A flexible and expressive Ibis validation library."""
+
 # pylint: disable=unused-import
 import pandera.backends.ibis
 from pandera.api.checks import Check
