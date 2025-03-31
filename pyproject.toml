@@ -127,6 +127,7 @@ testing = [
     "pytest-cov",
     "pytest-xdist",
     "pytest-asyncio",
+    "ibis-framework[duckdb]",
 ]
 docs = [
     "setuptools",
