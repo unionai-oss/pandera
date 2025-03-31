@@ -38,6 +38,7 @@ importlib_metadata
 ibis-framework[duckdb]
 uvicorn
 python-multipart
+duckdb
 sphinx
 sphinx-design
 sphinx-autodoc-typehints <= 1.14.1
