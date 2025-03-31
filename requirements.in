@@ -9,7 +9,6 @@ pandas >= 2.1.1
 scipy
 pyyaml >= 5.1
 typing_inspect >= 0.6.0
-typing_extensions >= 3.7.4.3
 frictionless <= 4.40.8
 pyarrow
 pydantic
@@ -34,7 +33,6 @@ pytz
 xdoctest
 nox
 setuptools
-importlib_metadata
 uvicorn
 python-multipart
 sphinx
