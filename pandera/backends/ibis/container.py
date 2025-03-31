@@ -100,7 +100,9 @@ class DataFrameSchemaBackend(IbisSchemaBackend):
         # schema-component-level checks
         for schema_component in schema_components:
             try:
-                result = schema_component.validate(check_obj, lazy=lazy, inplace=True)
+                result = schema_component.validate(
+                    check_obj, lazy=lazy, inplace=True
+                )
                 check_passed.append(isinstance(result, ir.Table))
             except SchemaError as err:
                 check_results.append(
