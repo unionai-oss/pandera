@@ -91,6 +91,7 @@ dev = [
     "nox",
     "uvicorn",
     "python-multipart",
+    "uv",
 ]
 docs = [
     "sphinx",
