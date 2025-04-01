@@ -31,6 +31,21 @@ except ImportError as err:
     else:
         raise  # Re-raise any other `ImportError` exceptions
 
+    from pandera.api.checks import Check
+    from pandera.api.dataframe.model_components import (
+        Field,
+        check,
+        dataframe_check,
+        dataframe_parser,
+        parser,
+    )
+
     __all__ = [
         "__version__",
+        "Check",
+        "Field",
+        "check",
+        "dataframe_check",
+        "dataframe_parser",
+        "parser",
     ]

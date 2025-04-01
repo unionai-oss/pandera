@@ -107,8 +107,6 @@ all = [
 dev = [
     "hypothesis >= 6.92.7",
     "isort >= 5.7.0",
-    "geopandas",
-    "shapely",
     "joblib",
     "mypy == 1.10.0",
     "pip",
@@ -121,6 +119,11 @@ dev = [
     "uvicorn",
     "python-multipart",
     "uv",
+]
+# for dev dependencies for extras that use pandas as a transitive dependency
+dev-pandas = [
+    "geopandas",
+    "shapely",
 ]
 testing = [
     "pytest",

@@ -12,7 +12,7 @@ import pandas as pd
 import pytest
 
 import pandera as pa
-from pandera import strategies
+from pandera.strategies import pandas_strategies as strategies
 from pandera.api.checks import Check
 from pandera.api.extensions import register_check_statistics
 from pandera.dtypes import is_category, is_complex, is_float
@@ -705,7 +705,7 @@ def test_field_element_strategy(data_type, data):
     element = data.draw(strategy)
 
     expected_type = strategies.to_numpy_dtype(data_type).type
-    if strategies.pandas_strategies._is_datetime_tz(data_type):
+    if strategies._is_datetime_tz(data_type):
         assert isinstance(element, pd.Timestamp)
         assert element.tz == data_type.tz
     else:

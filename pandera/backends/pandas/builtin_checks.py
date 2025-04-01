@@ -7,7 +7,7 @@ from typing import Any, Iterable, Optional, TypeVar, Union, cast
 
 import pandas as pd
 
-import pandera.strategies as st
+import pandera.strategies.pandas_strategies as st
 from pandera.api.extensions import register_builtin_check
 
 

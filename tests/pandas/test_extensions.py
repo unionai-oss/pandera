@@ -8,7 +8,7 @@ import pandas as pd
 import pytest
 
 import pandera as pa
-import pandera.strategies as st
+import pandera.strategies.pandas_strategies as st
 from pandera import DataType, extensions
 from pandera.api.checks import Check
 

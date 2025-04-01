@@ -31,8 +31,13 @@ EXTRAS_REQUIRING_PANDAS = frozenset(
     [
         "fastapi",
         "hypotheses",
-        "mypy",
         "strategies",
+        "geopandas",
+        "modin",
+        "modin-dask",
+        "modin-ray",
+        "dask",
+        "pyspark",
     ]
 )
 
@@ -127,7 +132,9 @@ def _testing_requirements(
         _requirements += PYPROJECT["project"]["optional-dependencies"][extra]
 
     # some of the extras are only supported with the pandas extra
-    if extra in ["fastapi", "hypotheses"]:
+    _dependency_groups = ["dev", "testing", "docs"]
+    if extra in EXTRAS_REQUIRING_PANDAS:
+        _dependency_groups.append("dev-pandas")
         _requirements.extend(
             PYPROJECT["project"]["optional-dependencies"]["pandas"]
         )
@@ -166,7 +173,7 @@ def _testing_requirements(
 
     return [
         *_updated_requirements,
-        *nox.project.dependency_groups(PYPROJECT, "dev", "testing", "docs"),
+        *nox.project.dependency_groups(PYPROJECT, *_dependency_groups),
     ]
 
 
@@ -205,6 +212,7 @@ def tests(
     requirements = _testing_requirements(session, extra, pandas, pydantic)
     session.install(*requirements)
     session.install("-e", ".", "--config-settings", "editable_mode=compat")
+    session.run("uv", "pip", "list")
 
     env = {}
     test_dir = "base" if extra is None else extra
