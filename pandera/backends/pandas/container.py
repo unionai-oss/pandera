@@ -1,4 +1,4 @@
-"""Pandas Parsing, Validation, and Error Reporting Backends."""
+"""Pandas parsing, validation, and error-reporting backends."""
 
 import copy
 import itertools
@@ -158,7 +158,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
             (self.run_checks, (sample, schema)),
         ]
         for check, args in core_checks:
-            results = check(*args)  # type: ignore [operator]
+            results = check(*args)
             if isinstance(results, CoreCheckResult):
                 results = [results]
 
@@ -759,7 +759,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
     def check_column_presence(
         self, check_obj: pd.DataFrame, schema, column_info: ColumnInfo
     ) -> List[CoreCheckResult]:
-        """Check for presence of specified columns in the data object."""
+        """Check that all columns in the schema are present in the dataframe."""
         results = []
         if column_info.absent_column_names and not schema.add_missing_columns:
             for colname in column_info.absent_column_names:

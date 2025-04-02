@@ -1,4 +1,4 @@
-"""Class-based api for pandas models."""
+"""Class-based API for pandas models."""
 
 import copy
 import sys

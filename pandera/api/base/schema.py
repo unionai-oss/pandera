@@ -104,8 +104,7 @@ class BaseSchema(ABC):
         check_obj: Optional[Any] = None,
         check_type: Optional[Type] = None,
     ) -> BaseSchemaBackend:
-        """Get the backend associated with the type of ``check_obj`` ."""
-
+        """Get the backend associated with the type of ``check_obj``."""
         if check_obj is not None:
             check_obj_cls = type(check_obj)
         elif check_type is not None:
