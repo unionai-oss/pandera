@@ -8,4 +8,4 @@ Data Synthesis Strategies
    :template: strategies_module.rst
    :nosignatures:
 
-   pandera.strategies
+   pandera.strategies.pandas_strategies
