@@ -11,6 +11,12 @@ import pandera as pa
 import pandera.strategies.pandas_strategies as st
 from pandera import DataType, extensions
 from pandera.api.checks import Check
+from pandera.backends.pandas.register import register_pandas_backends
+
+
+@pytest.fixture(scope="function", autouse=True)
+def register_pandas_backends_fixture():
+    register_pandas_backends("pandas.DataFrame")
 
 
 def test_custom_checks_in_dir(extra_registered_checks):
