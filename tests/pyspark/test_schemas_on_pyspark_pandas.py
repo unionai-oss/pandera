@@ -14,7 +14,7 @@ from packaging import version
 import pandera as pa
 from pandera.typing import pyspark as pyspark_typing
 from pandera import dtypes, extensions, system
-from pandera.engines import numpy_engine, pandas_engine, geopandas_engine
+from pandera.engines import numpy_engine, pandas_engine
 from pandera.typing import DataFrame, Index, Series
 from tests.strategies.test_strategies import NULLABLE_DTYPES
 from tests.strategies.test_strategies import (
@@ -32,14 +32,7 @@ else:
     HAS_HYPOTHESIS = True
 
 
-DTYPES = [
-    dtype_cls
-    for dtype_cls in pandas_engine.Engine.get_registered_dtypes()
-    if not (
-        geopandas_engine.GEOPANDAS_INSTALLED
-        and dtype_cls == geopandas_engine.Geometry
-    )
-]
+DTYPES = [*pandas_engine.Engine.get_registered_dtypes()]
 UNSUPPORTED_STRATEGY_DTYPE_CLS = set(UNSUPPORTED_STRATEGY_DTYPE_CLS)
 UNSUPPORTED_STRATEGY_DTYPE_CLS.add(numpy_engine.Object)
 
@@ -280,10 +273,6 @@ def test_index_dtypes(
             pandas_engine.Engine.dtype(pandas_engine.BOOL),
             pandas_engine.DateTime(tz="UTC"),  # type: ignore[call-arg]
         }
-        and not (
-            geopandas_engine.GEOPANDAS_INSTALLED
-            and dt == pandas_engine.Engine.dtype(geopandas_engine.Geometry)
-        )
     ],
 )
 @hypothesis.given(st.data())

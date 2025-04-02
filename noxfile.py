@@ -34,12 +34,6 @@ EXTRAS_REQUIRING_PANDAS = frozenset(
         "fastapi",
         "hypotheses",
         "strategies",
-        "geopandas",
-        "modin",
-        "modin-dask",
-        "modin-ray",
-        "dask",
-        "pyspark",
     ]
 )
 
@@ -134,9 +128,7 @@ def _testing_requirements(
         _requirements += PYPROJECT["project"]["optional-dependencies"][extra]
 
     # some of the extras are only supported with the pandas extra
-    _dependency_groups = ["dev", "testing", "docs"]
     if extra in EXTRAS_REQUIRING_PANDAS:
-        _dependency_groups.append("dev-pandas")
         _requirements.extend(
             PYPROJECT["project"]["optional-dependencies"]["pandas"]
         )
@@ -144,7 +136,10 @@ def _testing_requirements(
     _requirements = list(set(_requirements))
 
     _numpy: Optional[str] = None
-    if pandas != "2.2.3":
+    if pandas != "2.2.3" or (
+        extra == "pyspark" and session.python in ("3.9", "3.10")
+    ):
+        # constrain numpy < 2 for older versions of pandas and pyspark on py3.9 and py3.10
         _numpy = "< 2"
 
     _updated_requirements = []
@@ -175,7 +170,7 @@ def _testing_requirements(
 
     return [
         *_updated_requirements,
-        *nox.project.dependency_groups(PYPROJECT, *_dependency_groups),
+        *nox.project.dependency_groups(PYPROJECT, *["dev", "testing", "docs"]),
     ]
 
 

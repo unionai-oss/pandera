@@ -120,11 +120,6 @@ dev = [
     "python-multipart",
     "uv",
 ]
-# for dev dependencies for extras that use pandas as a transitive dependency
-dev-pandas = [
-    "geopandas",
-    "shapely",
-]
 testing = [
     "pytest",
     "pytest-cov",

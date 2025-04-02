@@ -173,7 +173,7 @@ PANDAS_SERIES_ERRORS_PLUGIN = [
         ["pandas_time.py", "no_plugin.ini", PANDAS_TIME_ERRORS],
         ["pandas_time.py", "plugin_mypy.ini", PANDAS_TIME_ERRORS],
         ["python_slice.py", "no_plugin.ini", PYTHON_SLICE_ERRORS],
-        ["python_slice.py", "plugin_mypy.ini", PYTHON_SLICE_ERRORS],
+        ["python_slice.py", "plugin_mypy.ini", []],
         ["pandas_index.py", "no_plugin.ini", []],
         ["pandas_index.py", "plugin_mypy.ini", []],
         ["pandas_series.py", "no_plugin.ini", PANDAS_SERIES_ERRORS_NO_PLUGIN],
@@ -199,14 +199,6 @@ def test_pandas_stubs_false_positives(
             f"{xfail_modules} are unstable when it comes due to maturing "
             "pandas-stubs library"
         )
-    if (
-        module == "python_slice.py"
-        and config == "plugin_mypy.ini"
-        and sys.version_info >= (3, 9)
-    ):
-        pytest.xfail(
-            "pandas-stubs library for python 3.9 doesn't raise 'Slice index must be an integer' error"
-        )
 
     cache_dir = str(
         test_module_dir
@@ -218,7 +210,7 @@ def test_pandas_stubs_false_positives(
         sys.executable,
         "-m",
         "mypy",
-        str(test_module_dir / "modules" / module),
+        str(test_module_dir / "pandas_modules" / module),
         "--cache-dir",
         cache_dir,
         "--config-file",
@@ -258,4 +250,4 @@ def test_pandas_modules_importable(module):
             f"{xfail_modules} are unstable when it comes due to maturing "
             "pandas-stubs library"
         )
-    importlib.import_module(f"tests.mypy.modules.{module}")
+    importlib.import_module(f"tests.mypy.pandas_modules.{module}")

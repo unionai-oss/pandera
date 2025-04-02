@@ -16,7 +16,7 @@ from pandera.strategies import pandas_strategies as strategies
 from pandera.api.checks import Check
 from pandera.api.extensions import register_check_statistics
 from pandera.dtypes import is_category, is_complex, is_float
-from pandera.engines import pandas_engine, geopandas_engine
+from pandera.engines import pandas_engine
 
 try:
     import hypothesis
@@ -85,10 +85,6 @@ for data_type in pandas_engine.Engine.get_registered_dtypes():
         getattr(data_type, "bit_width", -1) > 64
         or is_category(data_type)
         or data_type in UNSUPPORTED_DTYPE_CLS
-        or (
-            geopandas_engine.GEOPANDAS_INSTALLED
-            and data_type == geopandas_engine.Geometry
-        )
     ):
         continue
 
