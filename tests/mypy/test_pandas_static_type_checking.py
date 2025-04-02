@@ -16,7 +16,7 @@ from pathlib import Path
 import pytest
 
 import pandera as pa
-from tests.mypy.modules import pandas_dataframe
+from tests.mypy.pandas_modules import pandas_dataframe
 
 test_module_dir = Path(os.path.dirname(__file__))
 

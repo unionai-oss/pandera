@@ -29,6 +29,8 @@ SOURCE_PATHS = PACKAGE, "tests", "noxfile.py"
 REQUIREMENT_PATH = "requirements.txt"
 EXTRAS_REQUIRING_PANDAS = frozenset(
     [
+        "io",
+        "mypy",
         "fastapi",
         "hypotheses",
         "strategies",
