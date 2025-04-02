@@ -583,8 +583,12 @@ class DataFrameModel(Generic[TDataFrame, TSchema], BaseModel):
         def __get_pydantic_core_schema__(
             cls, _source_type: Any, _handler: GetCoreSchemaHandler
         ) -> core_schema.CoreSchema:
-            return core_schema.no_info_plain_validator_function(
-                cls.pydantic_validate,
+            if issubclass(_source_type, cls):
+                return core_schema.no_info_plain_validator_function(
+                    cls.pydantic_validate,
+                )
+            return core_schema.no_info_after_validator_function(
+                cls.validate, _handler(_source_type)
             )
 
         @classmethod
