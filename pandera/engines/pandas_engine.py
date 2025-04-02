@@ -903,7 +903,7 @@ class DateTime(_BaseDateTime, dtypes.Timestamp):
         }
 
         def _to_datetime(col: PandasObject) -> PandasObject:
-            col = to_datetime_fn(col, **self.to_datetime_kwargs)
+            col = to_datetime_fn(col, utc=True, **self.to_datetime_kwargs)
             pdtype_tz = getattr(pandas_dtype, "tz", None)
             coltype_tz = getattr(col.dtype, "tz", None)
             if pdtype_tz is not None or coltype_tz is not None:
