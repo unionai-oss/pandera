@@ -1,11 +1,12 @@
 """Class-based API for Polars models."""
 
+import copy
 import inspect
-from typing import Dict, List, Tuple, Type, cast, Optional, overload, Union
-from typing_extensions import Self
+from typing import Dict, List, Optional, Tuple, Type, Union, cast, overload
 
 import pandas as pd
 import polars as pl
+from typing_extensions import Self
 
 from pandera.api.base.schema import BaseSchema
 from pandera.api.checks import Check
@@ -18,7 +19,7 @@ from pandera.api.polars.model_config import BaseConfig
 from pandera.engines import polars_engine as pe
 from pandera.errors import SchemaInitError
 from pandera.typing import AnnotationInfo
-from pandera.typing.polars import Series, LazyFrame, DataFrame
+from pandera.typing.polars import DataFrame, LazyFrame, Series
 from pandera.utils import docstring_substitution
 
 
@@ -105,8 +106,7 @@ class DataFrameModel(_DataFrameModel[pl.LazyFrame, DataFrameSchema]):
 
             else:
                 raise SchemaInitError(
-                    f"Invalid annotation '{field_name}: "
-                    f"{annotation.raw_annotation}'."
+                    f"Invalid annotation '{field_name}: {annotation.raw_annotation}'."
                 )
 
         return columns
@@ -190,3 +190,11 @@ class DataFrameModel(_DataFrameModel[pl.LazyFrame, DataFrameSchema]):
                 for field in table_schema["fields"]
             },
         }
+
+    @classmethod
+    def empty(cls: Type[Self], *_args) -> DataFrame[Self]:
+        """Create an empty DataFrame with the schema of this model."""
+        schema = copy.deepcopy(cls.to_schema())
+        schema.coerce = True
+        empty_df = schema.coerce_dtype(pl.DataFrame(schema=[*schema.columns]))
+        return DataFrame[Self](empty_df)

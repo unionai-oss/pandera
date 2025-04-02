@@ -35,7 +35,6 @@ dependencies = [
     "pandas >= 2.1.1",
     "pydantic",
     "typeguard",
-    "typing_extensions >= 3.7.4.3 ; python_version<'3.8'",
     "typing_inspect >= 0.6.0",
 ]
 
@@ -92,9 +91,9 @@ dev = [
     "pytz",
     "xdoctest",
     "nox",
-    "importlib_metadata",
     "uvicorn",
     "python-multipart",
+    "uv",
 ]
 docs = [
     "sphinx",
