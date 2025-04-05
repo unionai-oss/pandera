@@ -4,7 +4,6 @@ import copy
 import inspect
 from typing import Dict, List, Optional, Tuple, Type, Union, cast, overload
 
-import pandas as pd
 import polars as pl
 from typing_extensions import Self
 
@@ -169,7 +168,16 @@ class DataFrameModel(_DataFrameModel[pl.LazyFrame, DataFrameSchema]):
             This function is currently does not fully specify a pandera schema,
             and is primarily used internally to render OpenAPI docs via the
             FastAPI integration.
+
+        :raises ImportError: if ``pandas`` is not installed.
         """
+        try:
+            import pandas as pd
+        except ImportError as exc:
+            raise ImportError(
+                "pandas is required to serialize polars schema to json-schema"
+            ) from exc
+
         schema = cls.to_schema()
         empty = pl.DataFrame(
             schema={k: v.type for k, v in schema.dtypes.items()}

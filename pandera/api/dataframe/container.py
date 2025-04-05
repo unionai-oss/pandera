@@ -669,7 +669,7 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
 
         """
         # pylint: disable=import-outside-toplevel,import-outside-toplevel
-        from pandera.api.pandas.components import Column
+        from pandera.api.dataframe.components import ComponentSchema
 
         new_schema = copy.deepcopy(self)
 
@@ -682,7 +682,7 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
                 f"Keys {not_in_cols} not found in schema columns!"
             )
 
-        new_columns: Dict[str, Column] = {}
+        new_columns: Dict[str, ComponentSchema] = {}
         for col in new_schema.columns:
             # check
             if update_dict.get(col):

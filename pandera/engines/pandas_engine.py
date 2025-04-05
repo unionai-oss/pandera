@@ -158,7 +158,14 @@ class DataType(dtypes.DataType):
 
     def coerce(self, data_container: PandasObject) -> PandasObject:
         """Pure coerce without catching exceptions."""
-        coerced = data_container.astype(self.type)
+        try:
+            coerced = data_container.astype(self.type)
+        except AttributeError:
+            # attempt to use underlying numpy dtype if pandas extension type
+            if is_extension_dtype(self.type):
+                coerced = data_container.astype(self.type.type)
+            else:
+                raise
         if type(data_container).__module__.startswith("modin.pandas"):
             # NOTE: this is a hack to enable catching of errors in modin
             coerced.__str__()

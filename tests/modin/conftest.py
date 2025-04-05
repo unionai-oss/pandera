@@ -1,15 +1,23 @@
 """Registers fixtures for core"""
 
 import os
+from typing import Generator
 
 import pytest
+from pandera.api.checks import Check
 
 # pylint: disable=unused-import
-from tests.core.checks_fixtures import custom_check_teardown  # noqa
-
 ENGINES = os.getenv("CI_MODIN_ENGINES", "").split(",")
 if ENGINES == [""]:
     ENGINES = ["dask"]
+
+
+@pytest.fixture(scope="function")
+def custom_check_teardown() -> Generator[None, None, None]:
+    """Remove all custom checks after execution of each pytest function."""
+    yield
+    for check_name in list(Check.REGISTERED_CUSTOM_CHECKS):
+        del Check.REGISTERED_CUSTOM_CHECKS[check_name]
 
 
 @pytest.fixture(scope="session", params=ENGINES, autouse=True)

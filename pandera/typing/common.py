@@ -15,11 +15,9 @@ from typing import (  # type: ignore[attr-defined]
     _GenericAlias,
 )
 
-import pandas as pd
 import typing_inspect
 
 from pandera import dtypes, errors
-from pandera.engines import numpy_engine, pandas_engine
 
 Bool = dtypes.Bool  #: ``"bool"`` numpy dtype
 Date = dtypes.Date  #: ``datetime.date`` object dtype
@@ -40,20 +38,6 @@ UInt8 = dtypes.UInt8  #: ``"uint8"`` numpy dtype
 UInt16 = dtypes.UInt16  #: ``"uint16"`` numpy dtype
 UInt32 = dtypes.UInt32  #: ``"uint32"`` numpy dtype
 UInt64 = dtypes.UInt64  #: ``"uint64"`` numpy dtype
-INT8 = pandas_engine.INT8  #: ``"Int8"`` pandas dtype:: pandas 0.24.0+
-INT16 = pandas_engine.INT16  #: ``"Int16"`` pandas dtype: pandas 0.24.0+
-INT32 = pandas_engine.INT32  #: ``"Int32"`` pandas dtype: pandas 0.24.0+
-INT64 = pandas_engine.INT64  #: ``"Int64"`` pandas dtype: pandas 0.24.0+
-UINT8 = pandas_engine.UINT8  #: ``"UInt8"`` pandas dtype:: pandas 0.24.0+
-UINT16 = pandas_engine.UINT16  #: ``"UInt16"`` pandas dtype: pandas 0.24.0+
-UINT32 = pandas_engine.UINT32  #: ``"UInt32"`` pandas dtype: pandas 0.24.0+
-UINT64 = pandas_engine.UINT64  #: ``"UInt64"`` pandas dtype: pandas 0.24.0+
-Object = numpy_engine.Object  #: ``"object"`` numpy dtype
-String = dtypes.String  #: ``"str"`` numpy dtype
-#: ``"string"`` pandas dtypes: pandas 1.0.0+. For <1.0.0, this enum will
-#: fall back on the str-as-object-array representation.
-STRING = pandas_engine.STRING  #: ``"str"`` numpy dtype
-BOOL = pandas_engine.BOOL  #: ``"str"`` numpy dtype
 
 
 GenericDtype = TypeVar(  # type: ignore
@@ -63,7 +47,6 @@ GenericDtype = TypeVar(  # type: ignore
         int,
         str,
         float,
-        pd.core.dtypes.base.ExtensionDtype,
         Bool,
         Date,
         DateTime,
@@ -83,17 +66,6 @@ GenericDtype = TypeVar(  # type: ignore
         UInt16,
         UInt32,
         UInt64,
-        INT8,
-        INT16,
-        INT32,
-        INT64,
-        UINT8,
-        UINT16,
-        UINT32,
-        UINT64,
-        Object,
-        String,
-        STRING,
     ],
 )
 

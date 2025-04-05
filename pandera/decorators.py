@@ -20,7 +20,6 @@ from typing import (
     overload,
 )
 
-import pandas as pd
 from pydantic import validate_arguments
 
 from pandera import errors
@@ -718,11 +717,7 @@ def check_types(
 
             raise errors.SchemaErrors(
                 schema=schema,
-                schema_errors=(
-                    error_handler.schema_errors
-                    if isinstance(arg_value, pd.DataFrame)
-                    else error_handler.collect_errors  # type: ignore
-                ),
+                schema_errors=error_handler.schema_errors,
                 data=arg_value,
             )
 

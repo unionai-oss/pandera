@@ -7,7 +7,6 @@ from functools import partial, wraps
 from inspect import signature
 from typing import Callable, List, Optional, Tuple, Type, Union
 
-import pandas as pd
 import typing_inspect
 
 from pandera.api.checks import Check
@@ -179,6 +178,14 @@ def register_check_method(  # pylint:disable=too-many-branches
     from pandera.strategies.pandas_strategies import register_check_strategy
 
     # NOTE: this needs to handle different dataframe types more elegantly
+
+    try:
+        import pandas as pd
+
+        PANDAS_INSTALLED = True
+    except ImportError:
+        PANDAS_INSTALLED = False
+
     try:
         import pyspark.sql as ps
 
@@ -198,7 +205,9 @@ def register_check_method(  # pylint:disable=too-many-branches
     )
 
     if supported_types is None:
-        supported_types = [pd.DataFrame, pd.Series]
+        supported_types = []
+        if PANDAS_INSTALLED:
+            supported_types.extend([pd.DataFrame, pd.Series])
         if PYSPARK_INSTALLED:
             supported_types.append(ps.DataFrame)
 
@@ -207,16 +216,18 @@ def register_check_method(  # pylint:disable=too-many-branches
     elif not isinstance(supported_types, tuple):
         supported_types = (supported_types,)
 
-    ALLOWED_TYPES = (
-        {pd.DataFrame, pd.Series, ps.DataFrame}
-        if PYSPARK_INSTALLED
-        else {pd.DataFrame, pd.Series}
-    )
+    ALLOWED_TYPES = []
+    if PANDAS_INSTALLED:
+        ALLOWED_TYPES.extend([pd.DataFrame, pd.Series])
+    if PYSPARK_INSTALLED:
+        ALLOWED_TYPES.append(ps.DataFrame)
+
+    ALLOWED_TYPES = tuple(ALLOWED_TYPES)
     for supported_type in supported_types:  # type: ignore
         if supported_type not in ALLOWED_TYPES:
             raise TypeError(msg.format(supported_type))
 
-    if check_type is CheckType.ELEMENT_WISE and set(supported_types) != ALLOWED_TYPES:  # type: ignore
+    if check_type is CheckType.ELEMENT_WISE and set(supported_types) != set(ALLOWED_TYPES):  # type: ignore
         raise ValueError(
             "Element-wise checks should support DataFrame and Series "
             "validation. Use the default setting for the 'supported_types' "

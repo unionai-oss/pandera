@@ -19,12 +19,14 @@ from typing import (  # type: ignore[attr-defined]
 import numpy as np
 import pandas as pd
 
+from pandera import dtypes
 from pandera.engines import PYDANTIC_V2
+from pandera.engines import numpy_engine, pandas_engine
 from pandera.errors import SchemaError, SchemaInitError
 from pandera.typing.common import (
     DataFrameBase,
     DataFrameModel,
-    GenericDtype,
+    GenericDtype as _CommonGenericDtype,
     IndexBase,
     SeriesBase,
 )
@@ -40,6 +42,83 @@ except ImportError:  # pragma: no cover
 if PYDANTIC_V2:
     from pydantic import GetCoreSchemaHandler
     from pydantic_core import core_schema
+
+
+Bool = dtypes.Bool  #: ``"bool"`` numpy dtype
+Date = dtypes.Date  #: ``datetime.date`` object dtype
+DateTime = dtypes.DateTime  #: ``"datetime64[ns]"`` numpy dtype
+Decimal = dtypes.Decimal  #: ``decimal.Decimal`` object dtype
+Timedelta = dtypes.Timedelta  #: ``"timedelta64[ns]"`` numpy dtype
+Category = dtypes.Category  #: pandas ``"categorical"`` datatype
+Float = dtypes.Float  #: ``"float"`` numpy dtype
+Float16 = dtypes.Float16  #: ``"float16"`` numpy dtype
+Float32 = dtypes.Float32  #: ``"float32"`` numpy dtype
+Float64 = dtypes.Float64  #: ``"float64"`` numpy dtype
+Int = dtypes.Int  #: ``"int"`` numpy dtype
+Int8 = dtypes.Int8  #: ``"int8"`` numpy dtype
+Int16 = dtypes.Int16  #: ``"int16"`` numpy dtype
+Int32 = dtypes.Int32  #: ``"int32"`` numpy dtype
+Int64 = dtypes.Int64  #: ``"int64"`` numpy dtype
+UInt8 = dtypes.UInt8  #: ``"uint8"`` numpy dtype
+UInt16 = dtypes.UInt16  #: ``"uint16"`` numpy dtype
+UInt32 = dtypes.UInt32  #: ``"uint32"`` numpy dtype
+UInt64 = dtypes.UInt64  #: ``"uint64"`` numpy dtype
+INT8 = pandas_engine.INT8  #: ``"Int8"`` pandas dtype:: pandas 0.24.0+
+INT16 = pandas_engine.INT16  #: ``"Int16"`` pandas dtype: pandas 0.24.0+
+INT32 = pandas_engine.INT32  #: ``"Int32"`` pandas dtype: pandas 0.24.0+
+INT64 = pandas_engine.INT64  #: ``"Int64"`` pandas dtype: pandas 0.24.0+
+UINT8 = pandas_engine.UINT8  #: ``"UInt8"`` pandas dtype:: pandas 0.24.0+
+UINT16 = pandas_engine.UINT16  #: ``"UInt16"`` pandas dtype: pandas 0.24.0+
+UINT32 = pandas_engine.UINT32  #: ``"UInt32"`` pandas dtype: pandas 0.24.0+
+UINT64 = pandas_engine.UINT64  #: ``"UInt64"`` pandas dtype: pandas 0.24.0+
+Object = numpy_engine.Object  #: ``"object"`` numpy dtype
+String = dtypes.String  #: ``"str"`` numpy dtype
+#: ``"string"`` pandas dtypes: pandas 1.0.0+. For <1.0.0, this enum will
+#: fall back on the str-as-object-array representation.
+STRING = pandas_engine.STRING  #: ``"str"`` numpy dtype
+BOOL = pandas_engine.BOOL  #: ``"str"`` numpy dtype
+
+
+GenericDtype = TypeVar(  # type: ignore
+    "GenericDtype",
+    bound=Union[
+        bool,
+        int,
+        str,
+        float,
+        Bool,
+        Date,
+        DateTime,
+        Decimal,
+        Timedelta,
+        Category,
+        Float,
+        Float16,
+        Float32,
+        Float64,
+        Int,
+        Int8,
+        Int16,
+        Int32,
+        Int64,
+        UInt8,
+        UInt16,
+        UInt32,
+        UInt64,
+        pd.core.dtypes.base.ExtensionDtype,
+        INT8,
+        INT16,
+        INT32,
+        INT64,
+        UINT8,
+        UINT16,
+        UINT32,
+        UINT64,
+        Object,
+        String,
+        STRING,
+    ],
+)
 
 
 # pylint:disable=too-few-public-methods

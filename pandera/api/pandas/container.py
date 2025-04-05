@@ -184,7 +184,7 @@ class DataFrameSchema(_DataFrameSchema[pd.DataFrame]):
         :param n_regex_columns: number of regex columns to generate.
         :returns: a strategy that generates pandas DataFrame objects.
         """
-        from pandera import strategies as st
+        import pandera.strategies.pandas_strategies as st
 
         self.register_default_backends(pd.DataFrame)
 

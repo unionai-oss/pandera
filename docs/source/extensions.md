@@ -82,7 +82,7 @@ The corresponding strategy for this check would be:
 ```{code-cell} python
 from typing import Optional
 import hypothesis
-import pandera.strategies as st
+import pandera.strategies.pandas_strategies as st
 
 def equals_strategy(
     pandera_dtype: pa.DataType,
@@ -101,8 +101,8 @@ As you may notice, the `pandera` strategy interface has two positional arguments
 followed by keyword-only arguments that match the check function keyword-only
 check statistics. The `pandera_dtype` positional argument is useful for
 ensuring the correct data type. In the above example, we're using the
-{func}`~pandera.strategies.pandas_dtype_strategy` strategy to make sure the
-generated `value` is of the correct data type.
+{func}`~pandera.strategies.pandas_strategies.pandas_dtype_strategy` strategy to
+make sure the generated `value` is of the correct data type.
 
 The optional `strategy` argument allows us to use the check strategy as a
 *base strategy* or a *chained strategy*. There's a detail that we're
