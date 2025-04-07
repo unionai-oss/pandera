@@ -63,12 +63,12 @@ def greater_than(data: PolarsData, min_value: Any) -> pl.LazyFrame:
     error="greater_than_or_equal_to({min_value})",
 )
 def greater_than_or_equal_to(data: PolarsData, min_value: Any) -> pl.LazyFrame:
-    """Ensure all values are greater or equal a certain value.
+    """Ensure all values are greater than or equal to a certain value.
 
     :param data: NamedTuple PolarsData contains the dataframe and column name for the check. The key
         to access the dataframe is "dataframe", and the key the to access the column name is "key".
-    :param min_value: Allowed minimum value for values of a series. Must be
-        a type comparable to the dtype of the series datatype of Polars.
+    :param min_value: Allowed minimum value. Must be a type comparable
+        to the dtype of the series datatype of Polars.
     """
     return data.lazyframe.select(pl.col(data.key).ge(min_value))
 
