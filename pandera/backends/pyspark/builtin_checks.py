@@ -58,7 +58,7 @@ def equal_to(data: PysparkDataframeColumnObject, value: Any) -> bool:
 def not_equal_to(data: PysparkDataframeColumnObject, value: Any) -> bool:
     """Ensure no element of a data container equals a certain value.
 
-    :param data: NamedTuple PysparkDataframeColumnObject contains the dataframe and column name for the check. The keys
+    :param data: NamedTuple PysparkDataframeColumnObject contains the dataframe and column name for the check. The key
         to access the dataframe is "dataframe" and column name using "column_name".
     :param value: This value must not occur in the checked
     """
@@ -74,11 +74,11 @@ def not_equal_to(data: PysparkDataframeColumnObject, value: Any) -> bool:
     acceptable_datatypes=convert_to_list(ALL_NUMERIC_TYPE, ALL_DATE_TYPE)
 )
 def greater_than(data: PysparkDataframeColumnObject, min_value: Any) -> bool:
-    """
-    Ensure values of a data container are strictly greater than a minimum
+    """Ensure values of a data container are strictly greater than a minimum
     value.
-    :param data: NamedTuple PysparkDataframeColumnObject contains the dataframe and column name for the check. The keys
-                to access the dataframe is "dataframe" and column name using "column_name".
+
+    :param data: NamedTuple PysparkDataframeColumnObject contains the dataframe and column name for the check. The key
+        to access the dataframe is "dataframe" and column name using "column_name".
     :param min_value: Lower bound to be exceeded.
     """
     cond = col(data.column_name) > min_value
@@ -95,11 +95,12 @@ def greater_than(data: PysparkDataframeColumnObject, min_value: Any) -> bool:
 def greater_than_or_equal_to(
     data: PysparkDataframeColumnObject, min_value: Any
 ) -> bool:
-    """Ensure all values are greater or equal a certain value.
+    """Ensure all values are greater than or equal to a certain value.
+
     :param data: NamedTuple PysparkDataframeColumnObject contains the dataframe and column name for the check. The keys
-                to access the dataframe is "dataframe" and column name using "column_name".
-    :param min_value: Allowed minimum value for values of a series. Must be
-        a type comparable to the dtype of the column datatype of pyspark
+        to access the dataframe is "dataframe" and column name using "column_name".
+    :param min_value: Allowed minimum value. Must be a type comparable
+        to the dtype of the column datatype of pyspark
     """
     cond = col(data.column_name) >= min_value
     return data.dataframe.filter(~cond).limit(1).count() == 0
