@@ -88,8 +88,7 @@ def greater_than(data: PandasData, min_value: Any) -> PandasData:
     value.
 
     :param min_value: Lower bound to be exceeded. Must be a type comparable
-        to the dtype of the :class:`pandas.Series` to be validated (e.g. a
-        numerical type for float or int and a datetime for datetime).
+        to the dtype of the :class:`pandas.Series` to be validated.
     """
     return data > min_value
 
@@ -100,11 +99,10 @@ def greater_than(data: PandasData, min_value: Any) -> PandasData:
     error="greater_than_or_equal_to({min_value})",
 )
 def greater_than_or_equal_to(data: PandasData, min_value: Any) -> PandasData:
-    """Ensure all values are greater or equal a certain value.
+    """Ensure all values are greater than or equal to a certain value.
 
-    :param min_value: Allowed minimum value for values of a series. Must be
-        a type comparable to the dtype of the :class:`pandas.Series` to be
-        validated.
+    :param min_value: Allowed minimum value. Must be a type comparable
+        to the dtype of the :class:`pandas.Series` to be validated.
     """
     return data >= min_value
 
