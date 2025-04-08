@@ -184,7 +184,7 @@ class Column(ArraySchema[pd.DataFrame]):
     @strategy_import_error
     def strategy_component(self):
         """Generate column data object for use by DataFrame strategy."""
-        import pandera.strategies as st
+        import pandera.strategies.pandas_strategies as st
 
         return st.column_strategy(
             self.dtype,
@@ -243,7 +243,7 @@ class Index(ArraySchema[pd.Index]):
         :param size: number of elements to generate.
         :returns: index strategy.
         """
-        import pandera.strategies as st
+        import pandera.strategies.pandas_strategies as st
 
         return st.index_strategy(
             self.dtype,  # type: ignore
@@ -257,7 +257,7 @@ class Index(ArraySchema[pd.Index]):
     @strategy_import_error
     def strategy_component(self):
         """Generate column data object for use by MultiIndex strategy."""
-        import pandera.strategies as st
+        import pandera.strategies.pandas_strategies as st
 
         return st.column_strategy(
             self.dtype,
@@ -432,7 +432,7 @@ class MultiIndex(DataFrameSchema):
     # https://github.com/pandera-dev/pandera/issues/403
     # pylint: disable=arguments-differ
     def strategy(self, *, size=None):  # type: ignore
-        import pandera.strategies as st
+        import pandera.strategies.pandas_strategies as st
 
         return st.multiindex_strategy(indexes=self.indexes, size=size)
 

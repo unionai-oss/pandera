@@ -40,9 +40,8 @@ from pandera.api.parsers import Parser
 from pandera.engines import PYDANTIC_V2
 from pandera.errors import SchemaInitError
 from pandera.import_utils import strategy_import_error
-from pandera.typing import AnnotationInfo, DataFrame
+from pandera.typing import AnnotationInfo
 from pandera.typing.common import DataFrameBase
-from pandera.typing.polars import DataFrame as PolarsDataFrame
 from pandera.utils import docstring_substitution
 
 if PYDANTIC_V2:
@@ -573,7 +572,7 @@ class DataFrameModel(Generic[TDataFrame, TSchema], BaseModel):
     @classmethod
     def empty(
         cls: Type[TDataFrameModel], *_args
-    ) -> Union[DataFrame[TDataFrameModel], PolarsDataFrame[TDataFrameModel]]:
+    ) -> DataFrameBase[TDataFrameModel]:
         """Create an empty DataFrame instance."""
         raise NotImplementedError
 

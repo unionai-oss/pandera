@@ -30,9 +30,7 @@ classifiers = [
     "Topic :: Scientific/Engineering",
 ]
 dependencies = [
-    "numpy >= 1.24.4",
     "packaging >= 20.0",
-    "pandas >= 2.1.1",
     "pydantic",
     "typeguard",
     "typing_inspect >= 0.6.0",
@@ -44,17 +42,48 @@ Documentation = "https://pandera.readthedocs.io"
 Homepage = "https://github.com/pandera-dev/pandera"
 
 [project.optional-dependencies]
-strategies = ["hypothesis >= 6.92.7"]
-hypotheses = ["scipy"]
-io = ["pyyaml >= 5.1", "black", "frictionless <= 4.40.8"]
-pyspark = ["pyspark[connect] >= 3.2.0"]
-modin = ["modin", "ray", "dask[dataframe]", "distributed"]
-modin-ray = ["modin", "ray"]
-modin-dask = ["modin", "dask[dataframe]", "distributed"]
-dask = ["dask[dataframe]", "distributed"]
+pandas = [
+    "numpy >= 1.24.4",
+    "pandas >= 2.1.1",
+]
+strategies = [
+    "hypothesis >= 6.92.7",
+]
+hypotheses = [
+    "scipy",
+]
+io = [
+    "pyyaml >= 5.1",
+    "black",
+    "frictionless <= 4.40.8",
+]
 mypy = ["pandas-stubs"]
 fastapi = ["fastapi"]
-geopandas = ["geopandas", "shapely"]
+geopandas = [
+    "geopandas",
+    "shapely",
+]
+pyspark = ["pyspark[connect] >= 3.2.0"]
+modin = [
+    "modin",
+    "ray",
+    "dask[dataframe]",
+    "distributed",
+]
+modin-ray = [
+    "modin",
+    "ray",
+]
+modin-dask = [
+    "modin",
+    "dask[dataframe]",
+    "distributed",
+]
+dask = [
+    "dask[dataframe]",
+    "distributed",
+]
+
 polars = ["polars >= 0.20.0"]
 all = [
     "hypothesis >= 6.92.7",
@@ -73,6 +102,8 @@ all = [
     "shapely",
     "polars >= 0.20.0",
 ]
+
+[dependency-groups]
 dev = [
     "hypothesis >= 6.92.7",
     "isort >= 5.7.0",
@@ -82,16 +113,18 @@ dev = [
     "pre_commit",
     "pyarrow",
     "pylint < 3.3",
-    "pytest",
-    "pytest-cov",
-    "pytest-xdist",
-    "pytest-asyncio",
     "pytz",
     "xdoctest",
     "nox",
     "uvicorn",
     "python-multipart",
     "uv",
+]
+testing = [
+    "pytest",
+    "pytest-cov",
+    "pytest-xdist",
+    "pytest-asyncio",
 ]
 docs = [
     "sphinx",

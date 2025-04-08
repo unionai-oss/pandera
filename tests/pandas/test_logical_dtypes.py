@@ -2,8 +2,7 @@
 
 from datetime import date, datetime
 from decimal import Decimal
-from types import ModuleType
-from typing import Any, Generator, Iterable, List, cast
+from typing import Any, Iterable, List, cast
 
 import numpy as np
 import pandas as pd
@@ -13,32 +12,6 @@ from pandas.testing import assert_series_equal
 import pandera as pa
 from pandera.engines import pandas_engine
 from pandera.errors import ParserError
-
-
-@pytest.fixture(scope="module")
-def datacontainer_lib(request) -> Generator[ModuleType, None, None]:
-    """Yield the data container library to test against."""
-    local_path = str(request.fspath)
-    if "modin" in local_path:
-        import modin.pandas as mpd  # pylint: disable=import-outside-toplevel
-
-        yield mpd
-
-    elif "pyspark" in local_path:
-        import pyspark.pandas as ps  # pylint: disable=import-outside-toplevel
-
-        yield ps
-
-    elif "dask" in local_path:
-        import dask.dataframe as dd  # pylint: disable=import-outside-toplevel
-
-        yield dd
-
-    elif "core" in local_path or "pandas" in local_path:
-        yield pd
-
-    else:
-        raise NotImplementedError(f"Not supported test package {local_path}")
 
 
 @pa.dtypes.immutable
@@ -83,13 +56,12 @@ class SimpleDtype(pa.DataType):
     ],
 )
 def test_logical_datatype_check(
-    datacontainer_lib: ModuleType,  # pylint: disable=redefined-outer-name
     data,
     expected_datatype: pandas_engine.DataType,
     expected_results: List[bool],
 ):
     """Test decimal check."""
-    data = datacontainer_lib.Series(data, dtype="object")  # type:ignore
+    data = pd.Series(data, dtype="object")  # type:ignore
     actual_datatype = pandas_engine.Engine.dtype(data.dtype)
 
     # wrong data type argument, should return all False
@@ -139,19 +111,12 @@ def test_logical_datatype_check(
     ],
 )
 def test_logical_datatype_coerce(
-    datacontainer_lib: ModuleType,  # pylint: disable=redefined-outer-name
     data,
     expected_datatype: pandas_engine.DataType,
     failure_cases: List[bool],
 ):
     """Test decimal coerce."""
-    if datacontainer_lib.__name__.startswith("modin.pandas") and isinstance(
-        expected_datatype, pandas_engine.Decimal
-    ):
-        # NOTE: Modin tests fail with decimal types
-        pytest.skip("Modin does not support coercion")
-
-    data = datacontainer_lib.Series(data)  # type:ignore
+    data = pd.Series(data)  # type:ignore
     failure_cases = pd.Series(failure_cases)
 
     if failure_cases.any():

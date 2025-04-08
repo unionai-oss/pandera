@@ -12,11 +12,11 @@ import pandas as pd
 import pytest
 
 import pandera as pa
-from pandera import strategies
+from pandera.strategies import pandas_strategies as strategies
 from pandera.api.checks import Check
 from pandera.api.extensions import register_check_statistics
 from pandera.dtypes import is_category, is_complex, is_float
-from pandera.engines import pandas_engine, geopandas_engine
+from pandera.engines import pandas_engine
 
 try:
     import hypothesis
@@ -85,10 +85,6 @@ for data_type in pandas_engine.Engine.get_registered_dtypes():
         getattr(data_type, "bit_width", -1) > 64
         or is_category(data_type)
         or data_type in UNSUPPORTED_DTYPE_CLS
-        or (
-            geopandas_engine.GEOPANDAS_INSTALLED
-            and data_type == geopandas_engine.Geometry
-        )
     ):
         continue
 
@@ -705,7 +701,7 @@ def test_field_element_strategy(data_type, data):
     element = data.draw(strategy)
 
     expected_type = strategies.to_numpy_dtype(data_type).type
-    if strategies.pandas_strategies._is_datetime_tz(data_type):
+    if strategies._is_datetime_tz(data_type):
         assert isinstance(element, pd.Timestamp)
         assert element.tz == data_type.tz
     else:
@@ -891,7 +887,7 @@ def test_defined_check_strategy(
     if "custom_check_with_strategy" in pa.Check.REGISTERED_CUSTOM_CHECKS:
         del pa.Check.REGISTERED_CUSTOM_CHECKS["custom_check_with_strategy"]
 
-    @pa.extensions.register_check_method(
+    @pa.extensions.register_check_method(  # type: ignore
         strategy=custom_strategy,
         statistics=["min_val", "max_val"],
     )

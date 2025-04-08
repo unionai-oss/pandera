@@ -163,8 +163,8 @@ def test_register_base_pandera_dtypes():
     with pytest.raises(
         ValueError,
         match=re.escape(
-            "Subclasses of ['tests.core.test_engine.BaseDataType', "
-            + "'tests.core.test_engine.BaseDataType'] "
+            "Subclasses of ['tests.pandas.test_engine.BaseDataType', "
+            + "'tests.pandas.test_engine.BaseDataType'] "
             + "cannot be registered with FakeEngine."
         ),
     ):

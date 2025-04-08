@@ -6,41 +6,46 @@ the typing module.
 
 from functools import lru_cache
 from typing import Set, Type
-from pandera.typing.common import (
-    BOOL,
-    INT8,
-    INT16,
-    INT32,
-    INT64,
-    STRING,
-    UINT8,
-    UINT16,
-    UINT32,
-    UINT64,
-    AnnotationInfo,
-    Bool,
-    Category,
-    Date,
-    DateTime,
-    Decimal,
-    Float,
-    Float16,
-    Float32,
-    Float64,
-    Int,
-    Int8,
-    Int16,
-    Int32,
-    Int64,
-    Object,
-    String,
-    Timedelta,
-    UInt8,
-    UInt16,
-    UInt32,
-    UInt64,
-)
-from pandera.typing.pandas import DataFrame, Index, Series
+from pandera.typing.common import AnnotationInfo
+
+try:
+    from pandera.typing.pandas import (
+        DataFrame,
+        Index,
+        Series,
+        Bool,
+        Category,
+        Date,
+        DateTime,
+        Decimal,
+        Float,
+        Float16,
+        Float32,
+        Float64,
+        Int,
+        Int8,
+        Int16,
+        Int32,
+        Int64,
+        Object,
+        String,
+        Timedelta,
+        UInt8,
+        UInt16,
+        UInt32,
+        UInt64,
+        INT8,
+        INT16,
+        INT32,
+        INT64,
+        UINT8,
+        UINT16,
+        UINT32,
+        UINT64,
+        STRING,
+    )
+except ImportError:
+    pass
 
 
 @lru_cache
@@ -115,6 +120,7 @@ def get_index_types():
 
 
 __all__ = [
+    "AnnotationInfo",
     "DataFrame",
     "Series",
     "Index",

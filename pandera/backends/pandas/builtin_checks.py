@@ -7,15 +7,12 @@ from typing import Any, Iterable, Optional, TypeVar, Union, cast
 
 import pandas as pd
 
-import pandera.strategies as st
+import pandera.strategies.pandas_strategies as st
 from pandera.api.extensions import register_builtin_check
 
 
 MODIN_IMPORTED = "modin" in sys.modules
 PYSPARK_IMPORTED = "pyspark" in sys.modules
-
-# pyspark 3.12.0 is not compatible with pyspark, which uses distutils
-PY_LT_312 = sys.version_info < (3, 12)
 
 
 # TODO: create a separate module for each framework: dask, modin, pyspark
@@ -24,11 +21,11 @@ if MODIN_IMPORTED and not PYSPARK_IMPORTED:  # pragma: no cover
     import modin.pandas as mpd
 
     PandasData = Union[pd.Series, pd.DataFrame, mpd.Series, mpd.DataFrame]
-elif not MODIN_IMPORTED and PYSPARK_IMPORTED and PY_LT_312:  # pragma: no cover
+elif not MODIN_IMPORTED and PYSPARK_IMPORTED:  # pragma: no cover
     import pyspark.pandas as ppd
 
     PandasData = Union[pd.Series, pd.DataFrame, ppd.Series, ppd.DataFrame]  # type: ignore[misc]
-elif MODIN_IMPORTED and PYSPARK_IMPORTED and PY_LT_312:  # pragma: no cover
+elif MODIN_IMPORTED and PYSPARK_IMPORTED:  # pragma: no cover
     import modin.pandas as mpd
     import pyspark.pandas as ppd
 
