@@ -40,18 +40,18 @@ dataframes.
 
 ## Install
 
-Pandera supports [multiple dataframe libraries](https://pandera.readthedocs.io/en/stable/supported_libraries.html), including [pandas](http://pandas.pydata.org), [polars](https://docs.pola.rs/), [pyspark](https://spark.apache.org/docs/latest/api/python/index.html), and more. To validate `pandas` DataFrames, you would install Pandera with the `pandas` extra:
+Pandera supports [multiple dataframe libraries](https://pandera.readthedocs.io/en/stable/supported_libraries.html), including [pandas](http://pandas.pydata.org), [polars](https://docs.pola.rs/), [pyspark](https://spark.apache.org/docs/latest/api/python/index.html), and more. To validate `pandas` DataFrames, install Pandera with the `pandas` extra:
 
 **With `pip`:**
 
 ```
-pip install pandera[pandas]
+pip install 'pandera[pandas]'
 ```
 
 **With `uv`:**
 
 ```
-pip install pandera[pandas]
+uv pip install 'pandera[pandas]'
 ```
 
 **With `conda`:**
@@ -61,6 +61,8 @@ conda install -c conda-forge pandera-pandas
 ```
 
 ## Get started
+
+First, create a dataframe:
 
 ```python
 import pandas as pd
@@ -72,7 +74,34 @@ df = pd.DataFrame({
     "column2": [1.1, 1.2, 1.3],
     "column3": ["a", "b", "c"],
 })
+```
 
+Validate the data using the object-based API:
+
+```python
+# define a schema
+schema = pa.DataFrameSchema({
+    "column1": pa.Column(int, pa.Check.ge(0)),
+    "column2": pa.Column(float, pa.Check.lt(10)),
+    "column3": pa.Column(
+        str,
+        [
+            pa.Check.isin([*"abc"]),
+            pa.Check(lambda series: series.str.len() == 1),
+        ]
+    ),
+})
+
+print(schema.validate(df))
+#    column1  column2 column3
+# 0        1      1.1       a
+# 1        2      1.2       b
+# 2        3      1.3       c
+```
+
+Or validate the data using the class-based API:
+
+```python
 # define a schema
 class Schema(pa.DataFrameModel):
     column1: int = pa.Field(ge=0)

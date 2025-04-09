@@ -120,16 +120,26 @@ settings. With `pandera`, you can:
 
 ## Install
 
-Install with `pip`:
+Pandera supports [multiple dataframe libraries](https://pandera.readthedocs.io/en/stable/supported_libraries.html), including [pandas](http://pandas.pydata.org), [polars](https://docs.pola.rs/), [pyspark](https://spark.apache.org/docs/latest/api/python/index.html), and more.
+
+Most of the documentation will use the `pandas` DataFrames, install Pandera with the `pandas` extra:
+
+With `pip`:
 
 ```bash
-pip install pandera
+pip install 'pandera[pandas]'
 ```
 
-Or `conda`:
+With `uv`:
+
+```
+uv pip install 'pandera[pandas]'
+```
+
+With `conda`:
 
 ```bash
-conda install -c conda-forge pandera
+conda install -c conda-forge pandera-pandas
 ```
 
 ### Extras
@@ -186,6 +196,32 @@ df = pd.DataFrame({
     "column3": ["a", "b", "c"],
 })
 
+schema = pa.DataFrameSchema({
+    "column1": pa.Column(int, pa.Check.ge(0)),
+    "column2": pa.Column(float, pa.Check.lt(10)),
+    "column3": pa.Column(
+        str,
+        [
+            pa.Check.isin([*"abc"]),
+            pa.Check(lambda series: series.str.len() == 1),
+        ]
+    ),
+}
+)
+
+validated_df = schema.validate(df)
+print(validated_df)
+```
+
+## Dataframe Model
+
+`pandera` also provides a class-based API for writing schemas inspired by
+[dataclasses](https://docs.python.org/3/library/dataclasses.html) and
+[pydantic](https://docs.pydantic.dev/latest/). The equivalent
+{class}`~pandera.api.pandas.model.DataFrameModel` for the above
+{class}`~pandera.pandas.DataFrameSchema` would be:
+
+```{code-cell}python
 # define a schema
 class Schema(pa.DataFrameModel):
     column1: int = pa.Field(ge=0)
@@ -212,8 +248,13 @@ In the case that a validation `Check` is violated:
 
 simple_schema = pa.DataFrameSchema({
     "column1": pa.Column(
-        int, pa.Check(lambda x: 0 <= x <= 10, element_wise=True,
-                    error="range checker [0, 10]"))
+        int,
+        pa.Check(
+            lambda x: 0 <= x <= 10,
+            element_wise=True,
+            error="range checker [0, 10]"
+        )
+    )
 })
 
 # validation rule violated
@@ -255,7 +296,12 @@ and dataframe:
 ```{code-cell} python
 :tags: [raises-exception]
 
-schema = pa.DataFrameSchema({"id": pa.Column(int, pa.Check.lt(10))}, name="MySchema", strict=True)
+schema = pa.DataFrameSchema(
+    {"id": pa.Column(int, pa.Check.lt(10))},
+    name="MySchema",
+    strict=True,
+)
+
 df = pd.DataFrame({"id": [1, None, 30], "extra_column": [1, 2, 3]})
 
 try:
@@ -406,7 +452,7 @@ consider citing the paper and/or software package.
 
 ### [Paper](https://conference.scipy.org/proceedings/scipy2020/niels_bantilan.html)
 
-```bash
+```
 @InProceedings{ niels_bantilan-proc-scipy-2020,
   author    = { {N}iels {B}antilan },
   title     = { pandera: {S}tatistical {D}ata {V}alidation of {P}andas {D}ataframes },

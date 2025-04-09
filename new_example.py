@@ -12,6 +12,22 @@ df = pd.DataFrame(
     }
 )
 
+schema = pa.DataFrameSchema(
+    {
+        "column1": pa.Column(int, pa.Check.ge(0)),
+        "column2": pa.Column(float, pa.Check.lt(10)),
+        "column3": pa.Column(
+            str,
+            [
+                pa.Check.isin([*"abc"]),
+                pa.Check(lambda series: series.str.len() == 1),
+            ],
+        ),
+    }
+)
+
+print(schema.validate(df))
+
 
 # define DataFrameModel Schema
 class Schema(pa.DataFrameModel):
