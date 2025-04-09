@@ -2,7 +2,7 @@
 """A flexible and expressive dataframe validation library."""
 
 from logging import getLogger
-
+import warnings
 from pandera._version import __version__
 
 

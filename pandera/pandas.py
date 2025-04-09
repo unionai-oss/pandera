@@ -26,23 +26,6 @@ if parse(np.__version__) < _min_numpy_version:
         f"{np.__version__}. Please upgrade numpy to the minimum supported version."
     )
 
-
-warnings.warn(
-    "The pandera module for pandas data validation has been moved to "
-    "`pandera.pandas`. Please update your import statement to "
-    "`import pandera.pandas as pa`.",
-    FutureWarning,
-)
-warnings.warn(
-    "The default dependency on Pandas is deprecated,"
-    " and will be removed soon."
-    " If your project depends on pandas, ensure that you include it"
-    " as an explicit dependency."
-    " Pandera now provides an optional extra pandera[pandas]"
-    " which is recomended when using pandera for pandas.",
-    FutureWarning,
-)
-
 from pandera._patch_numpy2 import _patch_numpy2
 
 _patch_numpy2()
@@ -114,6 +97,8 @@ from pandera.engines.pandas_engine import (
 )
 from pandera.schema_inference.pandas import infer_schema
 
+
+external_config._set_pyspark_environment_variables()
 
 __all__ = [
     # dtypes
