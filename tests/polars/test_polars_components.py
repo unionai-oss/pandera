@@ -275,6 +275,7 @@ def test_expr_as_default():
         "d": [1, 2, 3],
     }
 
+
 def test_missing_with_extra_columns():
     schema = pa.DataFrameSchema(
         columns={
@@ -290,5 +291,6 @@ def test_missing_with_extra_columns():
         "b": [1.0, 1.0, 1.0],
         "c": [4, 5, 6],
     }
+
 
 def test_column_schema_on_lazyframe_coerce(): ...
