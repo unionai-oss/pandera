@@ -204,7 +204,7 @@ class SeriesSchema(ArraySchema[pd.Series]):
         :example:
 
         >>> import pandas as pd
-        >>> import pandera as pa
+        >>> import pandera.pandas as pa
         >>>
         >>> series_schema = pa.SeriesSchema(
         ...     float, [

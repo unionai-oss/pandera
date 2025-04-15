@@ -221,7 +221,7 @@ print(validated_df)
 {class}`~pandera.api.pandas.model.DataFrameModel` for the above
 {class}`~pandera.pandas.DataFrameSchema` would be:
 
-```{code-cell}python
+```{code-cell} python
 # define a schema
 class Schema(pa.DataFrameModel):
     column1: int = pa.Field(ge=0)

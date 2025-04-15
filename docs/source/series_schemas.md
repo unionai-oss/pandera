@@ -17,7 +17,7 @@ The {class}`~pandera.api.pandas.array.SeriesSchema` class allows for the validat
 
 ```{code-cell} python
 import pandas as pd
-import pandera as pa
+import pandera.pandas as pa
 
 schema = pa.SeriesSchema(
     str,

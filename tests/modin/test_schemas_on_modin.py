@@ -7,7 +7,7 @@ import modin.pandas as mpd
 import pandas as pd
 import pytest
 
-import pandera as pa
+import pandera.pandas as pa
 from pandera import extensions
 from pandera.engines import numpy_engine, pandas_engine
 from pandera.typing.modin import DataFrame, Index, Series, modin_version

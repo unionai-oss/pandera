@@ -11,7 +11,7 @@ import pandas as pd
 import pytest
 from shapely.geometry import Point
 
-import pandera as pa
+import pandera.pandas as pa
 from pandera.engines import pandas_engine
 from pandera.typing.geopandas import GeoDataFrame, GeoSeries
 

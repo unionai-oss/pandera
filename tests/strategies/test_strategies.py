@@ -11,7 +11,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-import pandera as pa
+import pandera.pandas as pa
 from pandera.strategies import pandas_strategies as strategies
 from pandera.api.checks import Check
 from pandera.api.extensions import register_check_statistics
@@ -85,6 +85,7 @@ for data_type in pandas_engine.Engine.get_registered_dtypes():
         getattr(data_type, "bit_width", -1) > 64
         or is_category(data_type)
         or data_type in UNSUPPORTED_DTYPE_CLS
+        or "geometry" in str(data_type).lower()
     ):
         continue
 
@@ -102,6 +103,7 @@ NULLABLE_DTYPES = [
     if not is_complex(data_type)
     and not is_category(data_type)
     and not data_type == pandas_engine.Engine.dtype("object")
+    and "geometry" not in str(data_type).lower()
 ]
 
 

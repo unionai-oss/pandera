@@ -83,7 +83,7 @@ literals `"True"` and `"False"`.
 
 ```{code-cell} python
 import pandas as pd
-import pandera as pa
+import pandera.pandas as pa
 from pandera import dtypes
 from pandera.engines import pandas_engine
 
@@ -122,7 +122,7 @@ The example above performs the following steps:
 So far we did not override the default behavior:
 
 ```{code-cell} python
-import pandera as pa
+import pandera.pandas as pa
 
 try:
     pa.SeriesSchema("boolean", coerce=True).validate(data)

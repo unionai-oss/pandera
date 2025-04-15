@@ -29,7 +29,7 @@ of boolean values. For the check to pass, all of the elements in the boolean
 series must evaluate to `True`, for example:
 
 ```{code-cell} python
-import pandera as pa
+import pandera.pandas as pa
 import pandas as pd
 
 check_lt_10 = pa.Check(lambda s: s <= 10)
@@ -54,7 +54,7 @@ schema = pa.DataFrameSchema({
 For common validation tasks, built-in checks are available in `pandera`.
 
 ```{code-cell} python
-import pandera as pa
+import pandera.pandas as pa
 
 schema = pa.DataFrameSchema({
     "small_values": pa.Column(float, pa.Check.less_than(100)),
@@ -75,7 +75,7 @@ you can provide the `element_wise=True` keyword argument:
 
 ```{code-cell} python
 import pandas as pd
-import pandera as pa
+import pandera.pandas as pa
 
 schema = pa.DataFrameSchema({
     "a": pa.Column(
@@ -140,7 +140,7 @@ fly.
 
 ```{code-cell} python
 import pandas as pd
-import pandera as pa
+import pandera.pandas as pa
 
 schema = pa.DataFrameSchema({
     "height_in_feet": pa.Column(
@@ -195,7 +195,7 @@ columns in a `DataFrame`. For example, if you want to make assertions about
 
 ```{code-cell} python
 import pandas as pd
-import pandera as pa
+import pandera.pandas as pa
 
 
 df = pd.DataFrame({
@@ -267,7 +267,7 @@ import warnings
 
 import numpy as np
 import pandas as pd
-import pandera as pa
+import pandera.pandas as pa
 
 from scipy.stats import normaltest
 

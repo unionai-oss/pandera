@@ -21,7 +21,7 @@ from _pytest.python import Metafunc
 from hypothesis import strategies as st
 from pandas import DatetimeTZDtype, to_datetime
 
-import pandera as pa
+import pandera.pandas as pa
 from pandera.engines import pandas_engine
 from pandera.engines.utils import pandas_version
 from pandera.system import FLOAT_128_AVAILABLE

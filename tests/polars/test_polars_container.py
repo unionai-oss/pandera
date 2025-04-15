@@ -10,7 +10,7 @@ from hypothesis import strategies as st
 from polars.testing import assert_frame_equal
 from polars.testing.parametric import column, dataframes
 
-import pandera as pa
+import pandera.pandas as pa
 from pandera import Check as C
 from pandera.api.polars.types import PolarsData
 from pandera.api.polars.utils import get_lazyframe_column_names

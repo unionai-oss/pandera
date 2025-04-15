@@ -22,7 +22,7 @@ any other field:
 :tags: [raises-exception]
 
 import pandas as pd
-import pandera as pa
+import pandera.pandas as pa
 from pandera.typing import DataFrame, Series
 import pydantic
 
@@ -68,7 +68,7 @@ a `Record` model:
 ```{code-cell} python
 from pydantic import BaseModel
 
-import pandera as pa
+import pandera.pandas as pa
 
 
 class Record(BaseModel):

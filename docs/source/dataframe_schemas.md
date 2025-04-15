@@ -17,7 +17,7 @@ that verifies the columns and index of a pandas `DataFrame` object.
 The {class}`~pandera.api.pandas.container.DataFrameSchema` object consists of `Column`s and an `Index` (if applicable).
 
 ```{code-cell} python
-import pandera as pa
+import pandera.pandas as pa
 
 from pandera import Column, DataFrameSchema, Check, Index
 
@@ -88,7 +88,7 @@ nullable. In order to accept null values, you need to explicitly specify
 ```{code-cell} python
 import numpy as np
 import pandas as pd
-import pandera as pa
+import pandera.pandas as pa
 
 from pandera import Check, Column, DataFrameSchema
 
@@ -128,7 +128,7 @@ checks.
 
 ```{code-cell} python
 import pandas as pd
-import pandera as pa
+import pandera.pandas as pa
 
 from pandera import Column, DataFrameSchema
 
@@ -189,7 +189,7 @@ in the column constructor:
 
 ```{code-cell} python
 import pandas as pd
-import pandera as pa
+import pandera.pandas as pa
 
 from pandera import Column, DataFrameSchema
 
@@ -225,7 +225,7 @@ objects can also be used to validate columns in a dataframe on its own:
 
 ```{code-cell} python
 import pandas as pd
-import pandera as pa
+import pandera.pandas as pa
 
 df = pd.DataFrame({
     "column1": [1, 2, 3],
@@ -262,7 +262,7 @@ a set of meaningfully grouped columns that have `str` names.
 ```{code-cell} python
 import numpy as np
 import pandas as pd
-import pandera as pa
+import pandera.pandas as pa
 
 categories = ["A", "B", "C"]
 
@@ -331,7 +331,7 @@ schema, specify `strict=True`:
 
 ```{code-cell} python
 import pandas as pd
-import pandera as pa
+import pandera.pandas as pa
 
 from pandera import Column, DataFrameSchema
 
@@ -353,7 +353,7 @@ you can specify `strict='filter'`.
 
 ```{code-cell} python
 import pandas as pd
-import pandera as pa
+import pandera.pandas as pa
 
 from pandera import Column, DataFrameSchema
 
@@ -380,7 +380,7 @@ To validate the order of the Dataframe columns, specify `ordered=True`:
 
 ```{code-cell} python
 import pandas as pd
-import pandera as pa
+import pandera.pandas as pa
 
 schema = pa.DataFrameSchema(
     columns={"a": pa.Column(int), "b": pa.Column(int)}, ordered=True
@@ -401,7 +401,7 @@ In some cases you might want to ensure that a group of columns are unique:
 
 ```{code-cell} python
 import pandas as pd
-import pandera as pa
+import pandera.pandas as pa
 
 schema = pa.DataFrameSchema(
     columns={col: pa.Column(int) for col in ["a", "b", "c"]},
@@ -424,7 +424,7 @@ To control how unique errors are reported, the `report_duplicates` argument acce
 
 ```{code-cell} python
 import pandas as pd
-import pandera as pa
+import pandera.pandas as pa
 
 schema = pa.DataFrameSchema(
     columns={col: pa.Column(int) for col in ["a", "b", "c"]},
@@ -457,7 +457,7 @@ or to `NaN` if the column is nullable.
 
 ```{code-cell} python
 import pandas as pd
-import pandera as pa
+import pandera.pandas as pa
 
 schema = pa.DataFrameSchema(
     columns={
@@ -480,7 +480,7 @@ You can also specify an {class}`~pandera.api.pandas.components.Index` in the {cl
 
 ```{code-cell} python
 import pandas as pd
-import pandera as pa
+import pandera.pandas as pa
 
 from pandera import Column, DataFrameSchema, Index, Check
 
@@ -524,7 +524,7 @@ tuples for each level in the index hierarchy:
 
 ```{code-cell} python
 import pandas as pd
-import pandera as pa
+import pandera.pandas as pa
 
 from pandera import Column, DataFrameSchema, Index
 
@@ -550,7 +550,7 @@ indexes by composing a list of `pandera.Index` objects.
 
 ```{code-cell} python
 import pandas as pd
-import pandera as pa
+import pandera.pandas as pa
 
 schema = pa.DataFrameSchema(
     columns={"column1": pa.Column(int)},
@@ -587,7 +587,7 @@ Some examples of where this can be provided to pandas are:
 
 ```{code-cell} python
 import pandas as pd
-import pandera as pa
+import pandera.pandas as pa
 
 schema = pa.DataFrameSchema(
     columns={
@@ -626,7 +626,7 @@ changed or perhaps where additional checks may be required.
 
 ```{code-cell} python
 import pandas as pd
-import pandera as pa
+import pandera.pandas as pa
 
 data = pd.DataFrame({"col1": range(1, 6)})
 
@@ -653,7 +653,7 @@ Similarly, if you want dropped columns to be explicitly validated in a
 data pipeline:
 
 ```{code-cell} python
-import pandera as pa
+import pandera.pandas as pa
 
 schema = pa.DataFrameSchema(
     columns={
@@ -673,7 +673,7 @@ index, you can simply update the initial input schema using the
 the pipeline output.
 
 ```{code-cell} python
-import pandera as pa
+import pandera.pandas as pa
 
 from pandera import Column, DataFrameSchema, Check, Index
 

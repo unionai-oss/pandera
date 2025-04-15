@@ -7,7 +7,7 @@ import pytest
 import shapely
 from shapely.geometry import Point
 
-import pandera as pa
+import pandera.pandas as pa
 from pandera.engines.pandas_engine import DateTime
 from pandera.engines.geopandas_engine import Geometry
 

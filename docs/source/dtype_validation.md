@@ -21,7 +21,7 @@ With pandera schemas, there are multiple ways of specifying the data types of
 columns, indexes, or even whole dataframes.
 
 ```{code-cell} python
-import pandera as pa
+import pandera.pandas as pa
 import pandas as pd
 
 # schema with datatypes at the column and index level

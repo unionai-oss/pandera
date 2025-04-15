@@ -70,7 +70,7 @@ class Column(ComponentSchema[PolarsCheckObjects]):
         :example:
 
         >>> import pandas as pd
-        >>> import pandera as pa
+        >>> import pandera.pandas as pa
         >>>
         >>>
         >>> schema = pa.DataFrameSchema({

@@ -65,7 +65,7 @@ class DataFrameSchema(_DataFrameSchema[pd.DataFrame]):
         Calling ``schema.validate`` returns the dataframe.
 
         >>> import pandas as pd
-        >>> import pandera as pa
+        >>> import pandera.pandas as pa
         >>>
         >>> df = pd.DataFrame({
         ...     "probability": [0.1, 0.4, 0.52, 0.23, 0.8, 0.76],

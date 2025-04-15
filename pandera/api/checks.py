@@ -109,7 +109,7 @@ class Check(BaseCheck):
         :ref:`dataframe libraries <dataframe-libraries>`.
 
         >>> import pandas as pd
-        >>> import pandera as pa
+        >>> import pandera.pandas as pa
         >>>
         >>>
         >>> # column checks are vectorized by default

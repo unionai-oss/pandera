@@ -8,7 +8,7 @@ from typing import Any
 import pandas as pd
 import pytest
 
-import pandera as pa
+import pandera.pandas as pa
 from pandera.engines import pandas_engine
 
 

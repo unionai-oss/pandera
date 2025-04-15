@@ -15,7 +15,7 @@ from pathlib import Path
 
 import pytest
 
-import pandera as pa
+import pandera.pandas as pa
 from tests.mypy.pandas_modules import pandas_dataframe
 
 test_module_dir = Path(os.path.dirname(__file__))
@@ -173,7 +173,7 @@ PANDAS_SERIES_ERRORS_PLUGIN = [
         ["pandas_time.py", "no_plugin.ini", PANDAS_TIME_ERRORS],
         ["pandas_time.py", "plugin_mypy.ini", PANDAS_TIME_ERRORS],
         ["python_slice.py", "no_plugin.ini", PYTHON_SLICE_ERRORS],
-        ["python_slice.py", "plugin_mypy.ini", []],
+        ["python_slice.py", "plugin_mypy.ini", PYTHON_SLICE_ERRORS],
         ["pandas_index.py", "no_plugin.ini", []],
         ["pandas_index.py", "plugin_mypy.ini", []],
         ["pandas_series.py", "no_plugin.ini", PANDAS_SERIES_ERRORS_NO_PLUGIN],

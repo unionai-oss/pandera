@@ -29,7 +29,7 @@ Dropping invalid rows with {class}`~pandera.api.pandas.container.DataFrameSchema
 
 ```{code-cell} python
 import pandas as pd
-import pandera as pa
+import pandera.pandas as pa
 
 from pandera import Check, Column, DataFrameSchema
 
@@ -46,7 +46,7 @@ Dropping invalid rows with {class}`~pandera.api.pandas.array.SeriesSchema`:
 
 ```{code-cell} python
 import pandas as pd
-import pandera as pa
+import pandera.pandas as pa
 
 from pandera import Check, SeriesSchema
 
@@ -64,7 +64,7 @@ Dropping invalid rows with {class}`~pandera.api.pandas.components.Column`:
 
 ```{code-cell} python
 import pandas as pd
-import pandera as pa
+import pandera.pandas as pa
 
 from pandera import Check, Column
 
@@ -83,7 +83,7 @@ Dropping invalid rows with {class}`~pandera.api.pandas.model.DataFrameModel`:
 
 ```{code-cell} python
 import pandas as pd
-import pandera as pa
+import pandera.pandas as pa
 
 from pandera import Check, DataFrameModel, Field
 

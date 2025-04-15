@@ -23,7 +23,7 @@ type that supports this feature.
 Consider this simple example:
 
 ```{code-cell} python
-import pandera as pa
+import pandera.pandas as pa
 from pandera.typing import DataFrame, Series
 
 class InSchema(pa.DataFrameModel):

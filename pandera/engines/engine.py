@@ -163,7 +163,7 @@ class Engine(ABCMeta):
 
         :example:
 
-        >>> import pandera as pa
+        >>> import pandera.pandas as pa
         >>>
         >>> class MyDataType(pa.DataType):
         ...     pass

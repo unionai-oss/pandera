@@ -10,7 +10,7 @@ import pandas as pd
 import pytest
 from pandas.testing import assert_series_equal
 
-import pandera as pa
+import pandera.pandas as pa
 from pandera.engines import pandas_engine
 from pandera.errors import ParserError
 
