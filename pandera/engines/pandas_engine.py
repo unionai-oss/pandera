@@ -1,6 +1,6 @@
 """Pandas engine and data types."""
 
-# pylint:disable=too-many-ancestors
+# pylint:disable=too-many-ancestors,unused-argument
 
 # docstrings are inherited
 # pylint:disable=missing-class-docstring

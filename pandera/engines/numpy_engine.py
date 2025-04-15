@@ -1,7 +1,7 @@
 """Numpy engine and data types."""
 
 # docstrings are inherited
-# pylint:disable=missing-class-docstring,too-many-ancestors
+# pylint:disable=missing-class-docstring,too-many-ancestors,unused-argument
 import builtins
 import dataclasses
 import datetime
