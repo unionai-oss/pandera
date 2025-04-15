@@ -193,7 +193,7 @@ def check_input(
     Check the input of a decorated function.
 
     >>> import pandas as pd
-    >>> import pandera as pa
+    >>> import pandera.pandas as pa
     >>>
     >>>
     >>> schema = pa.DataFrameSchema({"column": pa.Column(int)})
@@ -335,7 +335,7 @@ def check_output(
     Check the output a decorated function.
 
     >>> import pandas as pd
-    >>> import pandera as pa
+    >>> import pandera.pandas as pa
     >>>
     >>>
     >>> schema = pa.DataFrameSchema(

@@ -7,7 +7,7 @@ from typing import Any, Optional, Union
 import pandas as pd
 import pytest
 
-import pandera as pa
+import pandera.pandas as pa
 import pandera.strategies.pandas_strategies as st
 from pandera import DataType, extensions
 from pandera.api.checks import Check

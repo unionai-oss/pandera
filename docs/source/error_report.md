@@ -41,7 +41,7 @@ to be aggregated and raised together as a `SchemaErrors`.
 
 ```{code-cell} python
 import pandas as pd
-import pandera as pa
+import pandera.pandas as pa
 import json
 
 pandas_schema = pa.DataFrameSchema(

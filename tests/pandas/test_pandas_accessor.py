@@ -6,7 +6,7 @@ from unittest.mock import patch
 import pandas as pd
 import pytest
 
-import pandera as pa
+import pandera.pandas as pa
 import pandera.api.pandas.container
 from pandera.errors import BackendNotFoundError
 

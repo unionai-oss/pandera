@@ -56,7 +56,7 @@ before calling `schema.validate` with the native dataframe API:
 
 ```{code-cell} python
 import pandas as pd
-import pandera as pa
+import pandera.pandas as pa
 
 schema = pa.DataFrameSchema({"a": pa.Column(int, pa.Check.ge(0))})
 data = pd.DataFrame({"a": [1, 2, -1]})

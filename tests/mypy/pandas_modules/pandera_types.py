@@ -1,7 +1,7 @@
 # pylint: skip-file
 import pandas as pd
 
-import pandera as pa
+import pandera.pandas as pa
 
 
 def fn(series: pa.typing.Series[int]) -> None:

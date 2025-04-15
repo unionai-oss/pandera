@@ -1,7 +1,7 @@
 # pylint: skip-file
 """With the pandera.mypy plugin, mypy ignores type overrides."""
 
-import pandera as pa
+import pandera.pandas as pa
 
 
 class Schema(pa.DataFrameModel):

@@ -2,7 +2,7 @@
 """A flexible and expressive dataframe validation library."""
 
 from logging import getLogger
-
+import warnings
 from pandera._version import __version__
 
 
@@ -17,6 +17,8 @@ try:
 
     from pandera.pandas import *
     from pandera.pandas import __all__ as __all_pandas
+    from pandera import dtypes
+    from pandera import typing
 
     __all__ = [
         "__version__",
@@ -31,6 +33,8 @@ except ImportError as err:
     else:
         raise  # Re-raise any other `ImportError` exceptions
 
+    from pandera import dtypes
+    from pandera import typing
     from pandera.api.checks import Check
     from pandera.api.dataframe.model_components import (
         Field,
@@ -48,4 +52,6 @@ except ImportError as err:
         "dataframe_check",
         "dataframe_parser",
         "parser",
+        "dtypes",
+        "typing",
     ]

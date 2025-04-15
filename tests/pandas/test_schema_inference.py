@@ -5,7 +5,7 @@ from typing import Type, Union
 import pandas as pd
 import pytest
 
-import pandera as pa
+import pandera.pandas as pa
 from pandera.schema_inference.pandas import (
     infer_dataframe_schema,
     infer_schema,

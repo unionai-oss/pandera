@@ -6,7 +6,7 @@ import pandas as pd
 import pytest
 from pydantic import BaseModel
 
-import pandera as pa
+import pandera.pandas as pa
 from pandera.api.pandas.array import ArraySchema
 from pandera.engines.pandas_engine import PydanticModel
 

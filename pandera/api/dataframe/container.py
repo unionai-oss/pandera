@@ -108,7 +108,7 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
 
         :examples:
 
-        >>> import pandera as pa
+        >>> import pandera.pandas as pa
         >>>
         >>> schema = pa.DataFrameSchema({
         ...     "str_column": pa.Column(str),
@@ -449,7 +449,7 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
         To add columns to the schema, pass a dictionary with column name and
         ``Column`` instance key-value pairs.
 
-        >>> import pandera as pa
+        >>> import pandera.pandas as pa
         >>>
         >>> example_schema = pa.DataFrameSchema(
         ...    {
@@ -506,7 +506,7 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
         To remove a column or set of columns from a schema, pass a list of
         columns to be removed:
 
-        >>> import pandera as pa
+        >>> import pandera.pandas as pa
         >>>
         >>> example_schema = pa.DataFrameSchema(
         ...     {
@@ -569,7 +569,7 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
         Calling ``schema.1`` returns the :class:`~pandera.api.dataframe.container.DataFrameSchema`
         with the updated column.
 
-        >>> import pandera as pa
+        >>> import pandera.pandas as pa
         >>>
         >>> example_schema = pa.DataFrameSchema({
         ...     "category" : pa.Column(str),
@@ -637,7 +637,7 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
         :class:`~pandera.api.dataframe.container.DataFrameSchema`
         with the updated columns.
 
-        >>> import pandera as pa
+        >>> import pandera.pandas as pa
         >>>
         >>> example_schema = pa.DataFrameSchema({
         ...     "category" : pa.Column(str),
@@ -721,7 +721,7 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
         To rename a column or set of columns, pass a dictionary of old column
         names and new column names, similar to the pandas DataFrame method.
 
-        >>> import pandera as pa
+        >>> import pandera.pandas as pa
         >>>
         >>> example_schema = pa.DataFrameSchema({
         ...     "category" : pa.Column(str),
@@ -808,7 +808,7 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
 
         To subset and reorder a schema by column, and return a new schema:
 
-        >>> import pandera as pa
+        >>> import pandera.pandas as pa
         >>>
         >>> example_schema = pa.DataFrameSchema({
         ...     "category": pa.Column(str),
@@ -878,7 +878,7 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
         existing column, you can set an index within the schema from an
         existing column in the schema.
 
-        >>> import pandera as pa
+        >>> import pandera.pandas as pa
         >>>
         >>> example_schema = pa.DataFrameSchema({
         ...     "category" : pa.Column(str),
@@ -1018,7 +1018,7 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
         To remove the entire index from the schema, just call the reset_index
         method with default parameters.
 
-        >>> import pandera as pa
+        >>> import pandera.pandas as pa
         >>>
         >>> example_schema = pa.DataFrameSchema(
         ...     {"probability" : pa.Column(float)},

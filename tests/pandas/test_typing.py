@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-import pandera as pa
+import pandera.pandas as pa
 from pandera.dtypes import DataType
 from pandera.typing import DataFrame, Index, Series
 

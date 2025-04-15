@@ -23,7 +23,7 @@ function.
 
 ```{code-cell} python
 import pandas as pd
-import pandera as pa
+import pandera.pandas as pa
 
 from pandera import DataFrameSchema, Column, Check, check_input
 
@@ -73,7 +73,7 @@ DataFrame/Series of the decorated function.
 
 ```{code-cell} python
 import pandas as pd
-import pandera as pa
+import pandera.pandas as pa
 
 from pandera import DataFrameSchema, Column, Check, check_output
 
@@ -129,7 +129,7 @@ decorator where you can specify input and output schemas more concisely:
 
 ```{code-cell} python
 import pandas as pd
-import pandera as pa
+import pandera.pandas as pa
 
 from pandera import DataFrameSchema, Column, Check, check_input
 
@@ -167,7 +167,7 @@ functions/coroutines. For example, one can use the same decorators on:
 All decorators work on sync/async regular/class/static methods of metaclasses as well.
 
 ```{code-cell} python
-import pandera as pa
+import pandera.pandas as pa
 from pandera.typing import DataFrame, Series
 
 class Schema(pa.DataFrameModel):

@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-import pandera as pa
+import pandera.pandas as pa
 import pandera.schema_statistics.pandas as schema_statistics
 from pandera import dtypes
 from pandera.engines import pandas_engine

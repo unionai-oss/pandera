@@ -4,7 +4,7 @@ from typing import Any
 
 import pytest
 
-import pandera as pa
+import pandera.pandas as pa
 from pandera.engines.pandas_engine import Engine
 
 

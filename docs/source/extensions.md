@@ -19,7 +19,7 @@ One of the strengths of `pandera` is its flexibility in enabling you to
 defining in-line custom checks on the fly:
 
 ```{code-cell} python
-import pandera as pa
+import pandera.pandas as pa
 
 # checks elements in a column/dataframe
 element_wise_check = pa.Check(lambda x: x < 0, element_wise=True)
@@ -40,7 +40,7 @@ let's define a custom method that checks whether a pandas object contains
 elements that lie within two values.
 
 ```{code-cell} python
-import pandera as pa
+import pandera.pandas as pa
 import pandera.extensions as extensions
 import pandas as pd
 
@@ -241,7 +241,7 @@ as the first argument otherwise.
 For example, to register zero, one, and two statistic dataframe checks one could do the following:
 
 ```{code-cell} python
-import pandera as pa
+import pandera.pandas as pa
 import pandera.extensions as extensions
 import numpy as np
 import pandas as pd

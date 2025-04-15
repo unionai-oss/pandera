@@ -29,7 +29,7 @@ For example:
 
 ```{code-cell} python
 import pandas as pd
-import pandera as pa
+import pandera.pandas as pa
 
 from pandera import Check, Column, DataFrameSchema
 
@@ -52,7 +52,7 @@ of all schemas and schema components gives you the option of doing just this:
 import json
 
 import pandas as pd
-import pandera as pa
+import pandera.pandas as pa
 
 from pandera import Check, Column, DataFrameSchema
 

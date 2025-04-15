@@ -6,7 +6,7 @@ from unittest import mock
 import pandas as pd
 import pytest
 
-import pandera as pa
+import pandera.pandas as pa
 import pandera.api.extensions as pa_ext
 
 __all__ = "custom_check_teardown", "extra_registered_checks"

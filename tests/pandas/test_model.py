@@ -12,7 +12,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-import pandera as pa
+import pandera.pandas as pa
 import pandera.api.extensions as pax
 from pandera.errors import SchemaError, SchemaInitError
 from pandera.typing import DataFrame, Index, Series, String

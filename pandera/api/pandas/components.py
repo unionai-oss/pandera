@@ -67,7 +67,7 @@ class Column(ArraySchema[pd.DataFrame]):
         :example:
 
         >>> import pandas as pd
-        >>> import pandera as pa
+        >>> import pandera.pandas as pa
         >>>
         >>>
         >>> schema = pa.DataFrameSchema({
@@ -314,7 +314,7 @@ class MultiIndex(DataFrameSchema):
         :example:
 
         >>> import pandas as pd
-        >>> import pandera as pa
+        >>> import pandera.pandas as pa
         >>>
         >>>
         >>> schema = pa.DataFrameSchema(

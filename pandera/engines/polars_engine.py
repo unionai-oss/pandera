@@ -1,3 +1,4 @@
+# pylint:disable=unused-argument
 """Polars engine and data types."""
 
 import dataclasses

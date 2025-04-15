@@ -11,7 +11,7 @@ import pyspark.pandas as ps
 import pytest
 from packaging import version
 
-import pandera as pa
+import pandera.pandas as pa
 from pandera.typing import pyspark as pyspark_typing
 from pandera import dtypes, extensions, system
 from pandera.engines import numpy_engine, pandas_engine
@@ -32,7 +32,13 @@ else:
     HAS_HYPOTHESIS = True
 
 
-DTYPES = [*pandas_engine.Engine.get_registered_dtypes()]
+DTYPES = []
+for _dtype in pandas_engine.Engine.get_registered_dtypes():
+    if "geometry" in str(_dtype).lower():
+        # exclude geopandas geometry types from pyspark tests
+        continue
+    DTYPES.append(_dtype)
+
 UNSUPPORTED_STRATEGY_DTYPE_CLS = set(UNSUPPORTED_STRATEGY_DTYPE_CLS)
 UNSUPPORTED_STRATEGY_DTYPE_CLS.add(numpy_engine.Object)
 

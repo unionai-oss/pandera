@@ -36,7 +36,7 @@ See the {ref}`Mypy Integration <mypy-integration>` for more details.
 
 ```{code-cell} python
 import pandas as pd
-import pandera as pa
+import pandera.pandas as pa
 from pandera.typing import Index, DataFrame, Series
 
 
@@ -134,7 +134,7 @@ on initialization:
 
 ```{code-cell} python
 import pandas as pd
-import pandera as pa
+import pandera.pandas as pa
 
 from pandera.typing import DataFrame, Series
 
@@ -189,7 +189,7 @@ The built-in {class}`typing.Union` type is supported for multiple `DataFrame` sc
 ```{code-cell} python
 from typing import Union
 import pandas as pd
-import pandera as pa
+import pandera.pandas as pa
 from pandera.typing import DataFrame, Series
 
 class OnlyZeroesSchema(pa.DataFrameModel):
@@ -221,7 +221,7 @@ with pandera. Pydantic should be used to check and/or coerce any built-in types.
 ```{code-cell} python
 import pandas as pd
 from typing import Union
-import pandera as pa
+import pandera.pandas as pa
 from pandera.typing import DataFrame, Series
 
 class OnlyZeroesSchema(pa.DataFrameModel):
@@ -280,7 +280,7 @@ You can learn more about how data type validation works
 ### Dtype aliases
 
 ```
-import pandera as pa
+import pandera.pandas as pa
 from pandera.typing import Series, String
 
 class Schema(pa.DataFrameModel):
@@ -398,7 +398,7 @@ thrown. If you want to make a column optional, annotate it with {data}`typing.Op
 from typing import Optional
 
 import pandas as pd
-import pandera as pa
+import pandera.pandas as pa
 from pandera.typing import Series
 
 
@@ -473,7 +473,7 @@ The {class}`~pandera.api.pandas.components.MultiIndex` capabilities are also sup
 the class-based API:
 
 ```{code-cell} python
-import pandera as pa
+import pandera.pandas as pa
 from pandera.typing import Index, Series
 
 class MultiIndexSchema(pa.DataFrameModel):
@@ -508,7 +508,7 @@ Use `check_name` to validate the index name of a single-index dataframe:
 
 ```{code-cell} python
 import pandas as pd
-import pandera as pa
+import pandera.pandas as pa
 from pandera.typing import Index, Series
 
 class Schema(pa.DataFrameModel):
@@ -538,7 +538,7 @@ Unlike the object-based API, custom checks can be specified as class methods.
 ### Column/Index checks
 
 ```{code-cell} python
-import pandera as pa
+import pandera.pandas as pa
 from pandera.typing import Index, Series
 
 class CustomCheckSchema(pa.DataFrameModel):
@@ -605,7 +605,7 @@ You can also define dataframe-level checks, similar to the
 
 ```{code-cell} python
 import pandas as pd
-import pandera as pa
+import pandera.pandas as pa
 from pandera.typing import Index, Series
 
 class DataFrameCheckSchema(pa.DataFrameModel):
@@ -633,7 +633,7 @@ The custom checks are inherited and therefore can be overwritten by the subclass
 
 ```{code-cell} python
 import pandas as pd
-import pandera as pa
+import pandera.pandas as pa
 from pandera.typing import Index, Series
 
 class Parent(pa.DataFrameModel):
@@ -676,7 +676,7 @@ except pa.errors.SchemaError as exc:
 Checks must reference the aliased names.
 
 ```{code-cell} python
-import pandera as pa
+import pandera.pandas as pa
 import pandas as pd
 
 class Schema(pa.DataFrameModel):
@@ -710,7 +710,7 @@ and therefore assign it a default {class}`~pandera.api.dataframe.model_component
 :::
 
 ```{code-cell} python
-import pandera as pa
+import pandera.pandas as pa
 import pandas as pd
 
 class Schema(pa.DataFrameModel):
@@ -751,7 +751,7 @@ As an example, the following class hierarchy can not remove the fields `b` and `
 get rid of them like this:
 
 ```{code-cell} python
-import pandera as pa
+import pandera.pandas as pa
 import pandas as pd
 
 class Foo(pa.DataFrameModel):

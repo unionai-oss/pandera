@@ -26,7 +26,7 @@ which can be called as in this example of a two-sample t-test:
 
 ```{code-cell} python
 import pandas as pd
-import pandera as pa
+import pandera.pandas as pa
 
 from pandera import Column, DataFrameSchema, Check, Hypothesis
 
@@ -117,7 +117,7 @@ the tidy dataset and schema might look like this:
 
 ```{code-cell} python
 import pandas as pd
-import pandera as pa
+import pandera.pandas as pa
 
 from pandera import Check, DataFrameSchema, Column, Hypothesis
 
@@ -145,7 +145,7 @@ The equivalent wide-form schema would look like this:
 
 ```{code-cell} python
 import pandas as pd
-import pandera as pa
+import pandera.pandas as pa
 
 from pandera import DataFrameSchema, Column, Hypothesis
 
