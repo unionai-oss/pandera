@@ -276,6 +276,8 @@ class DataFrame(DataFrameBase, pd.DataFrame, Generic[T]):
                 "number": core_schema.float_schema(),
                 "boolean": core_schema.bool_schema(),
                 "datetime": core_schema.datetime_schema(),
+                "duration": core_schema.timedelta_schema(),
+                "any": core_schema.any_schema(),
             }
             function = functools.partial(
                 cls.pydantic_validate,
