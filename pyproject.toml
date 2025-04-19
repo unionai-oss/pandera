@@ -32,7 +32,9 @@ classifiers = [
 dependencies = [
     "packaging >= 20.0",
     "pydantic",
+    "rich",
     "typeguard",
+    "typing_extensions",
     "typing_inspect >= 0.6.0",
 ]
 
