@@ -42,6 +42,12 @@ def register_pandas_backends(
     from pandera.api.parsers import Parser
     from pandera.api.pandas.types import get_backend_types
 
+    # NOTE: This registers the deprecated DataFrameSchema class. Remove this
+    # once the deprecated class is removed.
+    from pandera._pandas_deprecated import (
+        DataFrameSchema as _DataFrameSchemaDeprecated,
+    )
+
     assert check_cls_fqn is not None, (
         "pandas backend registration requires passing in the fully qualified "
         "check class name"
@@ -57,6 +63,7 @@ def register_pandas_backends(
 
     for t in backend_types.dataframe_datatypes:
         DataFrameSchema.register_backend(t, DataFrameSchemaBackend)
+        _DataFrameSchemaDeprecated.register_backend(t, DataFrameSchemaBackend)
         Column.register_backend(t, ColumnBackend)
         MultiIndex.register_backend(t, MultiIndexBackend)
         Index.register_backend(t, IndexBackend)
