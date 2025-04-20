@@ -63,7 +63,7 @@ def greater_than(data: PolarsData, min_value: Any) -> pl.LazyFrame:
     error="greater_than_or_equal_to({min_value})",
 )
 def greater_than_or_equal_to(data: PolarsData, min_value: Any) -> pl.LazyFrame:
-    """Ensure all values are greater than or equal to a certain value.
+    """Ensure all values are greater than or equal to a minimum value.
 
     :param data: NamedTuple PolarsData contains the dataframe and column name for the check. The key
         to access the dataframe is "dataframe", and the key the to access the column name is "key".
@@ -78,12 +78,13 @@ def greater_than_or_equal_to(data: PolarsData, min_value: Any) -> pl.LazyFrame:
     error="less_than({max_value})",
 )
 def less_than(data: PolarsData, max_value: Any) -> pl.LazyFrame:
-    """Ensure values of a series are strictly below a maximum value.
+    """Ensure values of a column are strictly less than a maximum value.
 
     :param data: NamedTuple PolarsData contains the dataframe and column name for the check. The key
         to access the dataframe is "dataframe", and the key the to access the column name is "key".
     :param max_value: All elements of a series must be strictly smaller
-        than this. Must be a type comparable to the dtype of the series datatype of Polars.
+        than this. Must be a type comparable to the dtype of the
+        :class:`pl.Series` to be validated.
     """
     return data.lazyframe.select(pl.col(data.key).lt(max_value))
 
@@ -93,12 +94,12 @@ def less_than(data: PolarsData, max_value: Any) -> pl.LazyFrame:
     error="less_than_or_equal_to({max_value})",
 )
 def less_than_or_equal_to(data: PolarsData, max_value: Any) -> pl.LazyFrame:
-    """Ensure values of a series are strictly below a maximum value.
+    """Ensure all values are less than or equal to a maximum value.
 
     :param data: NamedTuple PolarsData contains the dataframe and column name for the check. The key
         to access the dataframe is "dataframe", and the key the to access the column name is "key".
     :param max_value: Upper bound not to be exceeded. Must be a type comparable to the dtype of the
-    series datatype of Polars
+        :class:`pl.Series` to be validated.
     """
     return data.lazyframe.select(pl.col(data.key).le(max_value))
 
