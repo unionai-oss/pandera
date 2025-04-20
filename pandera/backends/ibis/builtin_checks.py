@@ -77,7 +77,7 @@ def greater_than(data: IbisData, min_value: Any) -> ir.Table:
     error="greater_than_or_equal_to({value})",
 )
 def greater_than_or_equal_to(data: IbisData, min_value: Any) -> ir.Table:
-    """Ensure all values are greater than or equal to a certain value.
+    """Ensure all values are greater than or equal to a minimum value.
 
     :param data: NamedTuple IbisData contains the table and column name for the check. The key
         to access the table is "table", and the key to access the column name is "key".
@@ -86,3 +86,36 @@ def greater_than_or_equal_to(data: IbisData, min_value: Any) -> ir.Table:
     """
     value = _infer_interval_with_mixed_units(min_value)
     return data.table[data.key] >= value
+
+
+@register_builtin_check(
+    aliases=["lt"],
+    error="less_than({max_value})",
+)
+def less_than(data: IbisData, max_value: Any) -> ir.Table:
+    """Ensure values of a column are strictly less than a maximum value.
+
+    :param data: NamedTuple IbisData contains the table and column name for the check. The key
+        to access the table is "table", and the key to access the column name is "key".
+    :param max_value: All elements of a column must be strictly smaller
+        than this. Must be a type comparable to the dtype of the
+        :class:`ir.Column` to be validated.
+    """
+    value = _infer_interval_with_mixed_units(max_value)
+    return data.table[data.key] < value
+
+
+@register_builtin_check(
+    aliases=["le"],
+    error="less_than_or_equal_to({value})",
+)
+def less_than_or_equal_to(data: IbisData, max_value: Any) -> ir.Table:
+    """Ensure all values are less than or equal to a maximum value.
+
+    :param data: NamedTuple IbisData contains the table and column name for the check. The key
+        to access the table is "table", and the key to access the column name is "key".
+    :param max_value: Upper bound not to be exceeded. Must be a type comparable to the dtype of the
+        :class:`ir.Column` to be validated.
+    """
+    value = _infer_interval_with_mixed_units(max_value)
+    return data.table[data.key] <= value
