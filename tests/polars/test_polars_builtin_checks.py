@@ -783,7 +783,7 @@ class TestLessThanCheck(BaseClass):
 
     @pytest.mark.parametrize("check_fn", [pa.Check.less_than, pa.Check.lt])
     def test_less_than_check(self, check_fn, datatype, data) -> None:
-        """Test the Check to see if all the values are less than the defined value"""
+        """Test the Check to see if all the values are equal to the defined value"""
         self.check_function(
             check_fn,
             data["test_pass_data"],
@@ -794,7 +794,7 @@ class TestLessThanCheck(BaseClass):
 
 
 class TestLessThanEqualToCheck(BaseClass):
-    """This class is used to test the less equal to check"""
+    """This class is used to test the less than equal to check"""
 
     sample_numeric_data = {
         "test_pass_data": [("foo", 31), ("bar", 33)],
@@ -893,7 +893,7 @@ class TestLessThanEqualToCheck(BaseClass):
     def test_less_than_or_equal_to_check(
         self, check_fn, datatype, data
     ) -> None:
-        """Test the Check to see if all the values are less or equal to the defined value"""
+        """Test the Check to see if all the values are equal to the defined value"""
         self.check_function(
             check_fn,
             data["test_pass_data"],
