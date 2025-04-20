@@ -1,5 +1,4 @@
-"""Tests for builtin checks in pandera.api.checks.Check
-"""
+"""Tests for builtin checks in pandera.api.checks.Check"""
 
 import pickle
 from typing import Iterable

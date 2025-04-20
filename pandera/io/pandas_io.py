@@ -795,7 +795,7 @@ class FrictionlessFieldParser:
 
 
 def from_frictionless_schema(
-    schema: Union[str, Path, Dict, FrictionlessSchema]
+    schema: Union[str, Path, Dict, FrictionlessSchema],
 ) -> DataFrameSchema:
     # pylint: disable=line-too-long,anomalous-backslash-in-string
     r"""Create a :class:`~pandera.api.pandas.container.DataFrameSchema` from either a

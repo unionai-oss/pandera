@@ -956,7 +956,7 @@ def test_check_types_non_dataframes() -> None:
 
     @check_types
     def union_int_str_types(
-        val: typing.Union[int, str]
+        val: typing.Union[int, str],
     ) -> typing.Union[int, str]:
         return val
 
@@ -968,7 +968,7 @@ def test_check_types_non_dataframes() -> None:
 
     @check_types(with_pydantic=True)
     def union_df_int_types_pydantic_check(
-        val: typing.Union[DataFrame[OnlyZeroesSchema], int]
+        val: typing.Union[DataFrame[OnlyZeroesSchema], int],
     ) -> typing.Union[DataFrame[OnlyZeroesSchema], int]:
         return val
 
