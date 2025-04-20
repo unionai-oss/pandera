@@ -29,7 +29,7 @@ def _infer_interval_with_mixed_units(value: Any) -> Any:
     error="equal_to({value})",
 )
 def equal_to(data: IbisData, value: Any) -> ir.Table:
-    """Ensure all elements of a data container equal a certain value.
+    """Ensure all elements of a column equal a certain value.
 
     :param data: NamedTuple IbisData contains the table and column name for the check. The key
         to access the table is "table", and the key to access the column name is "key".
@@ -45,7 +45,7 @@ def equal_to(data: IbisData, value: Any) -> ir.Table:
     error="not_equal_to({value})",
 )
 def not_equal_to(data: IbisData, value: Any) -> ir.Table:
-    """Ensure no element of a data container equal a certain value.
+    """Ensure no element of a column equals a certain value.
 
     :param data: NamedTuple IbisData contains the table and column name for the check. The key
         to access the table is "table", and the key to access the column name is "key".
@@ -60,7 +60,7 @@ def not_equal_to(data: IbisData, value: Any) -> ir.Table:
     error="greater_than({value})",
 )
 def greater_than(data: IbisData, min_value: Any) -> ir.Table:
-    """Ensure values of a data container are strictly greater than a minimum
+    """Ensure values of a column are strictly greater than a minimum
     value.
 
     :param data: NamedTuple IbisData contains the table and column name for the check. The key
