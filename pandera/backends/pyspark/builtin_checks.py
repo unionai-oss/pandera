@@ -100,7 +100,7 @@ def greater_than(data: PysparkDataframeColumnObject, min_value: Any) -> bool:
 def greater_than_or_equal_to(
     data: PysparkDataframeColumnObject, min_value: Any
 ) -> bool:
-    """Ensure all values are greater than or equal to a certain value.
+    """Ensure all values are greater than or equal to a minimum value.
 
     :param data: NamedTuple PysparkDataframeColumnObject contains the dataframe and column name for the check. The key
         to access the dataframe is "dataframe", and the key to access the column name is "column_name".
@@ -120,12 +120,13 @@ def greater_than_or_equal_to(
     acceptable_datatypes=convert_to_list(ALL_NUMERIC_TYPE, ALL_DATE_TYPE)
 )
 def less_than(data: PysparkDataframeColumnObject, max_value: Any) -> bool:
-    """Ensure values of a series are strictly below a maximum value.
+    """Ensure values of a column are strictly less than a maximum value.
 
-    :param data: NamedTuple PysparkDataframeColumnObject contains the dataframe and column name for the check. The keys
-                to access the dataframe is "dataframe" and column name using "column_name".
-    :param max_value: All elements of a series must be strictly smaller
-        than this. Must be a type comparable to the dtype of the column datatype of pyspark
+    :param data: NamedTuple PysparkDataframeColumnObject contains the dataframe and column name for the check. The key
+        to access the dataframe is "dataframe", and the key to access the column name is "column_name".
+    :param max_value: All elements of a column must be strictly smaller
+        than this. Must be a type comparable to the dtype of the
+        :class:`pyspark.sql.Column` to be validated.
     """
     # test case exists but not detected by pytest so no cover added
     if max_value is None:  # pragma: no cover
@@ -145,12 +146,12 @@ def less_than(data: PysparkDataframeColumnObject, max_value: Any) -> bool:
 def less_than_or_equal_to(
     data: PysparkDataframeColumnObject, max_value: Any
 ) -> bool:
-    """Ensure values of a series are strictly below a maximum value.
+    """Ensure all values are less than or equal to a maximum value.
 
-    :param data: NamedTuple PysparkDataframeColumnObject contains the dataframe and column name for the check. The keys
-                to access the dataframe is "dataframe" and column name using "column_name".
-    :param max_value: Upper bound not to be exceeded. Must be
-        a type comparable to the dtype of the column datatype of pyspark
+    :param data: NamedTuple PysparkDataframeColumnObject contains the dataframe and column name for the check. The key
+        to access the dataframe is "dataframe",  and the key to access the column name is "column_name".
+    :param max_value: Upper bound not to be exceeded. Must be a type comparable to the dtype of the
+        :class:`pyspark.sql.Column` to be validated.
     """
     # test case exists but not detected by pytest so no cover added
     if max_value is None:  # pragma: no cover

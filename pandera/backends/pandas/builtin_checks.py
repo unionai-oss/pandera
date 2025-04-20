@@ -83,8 +83,7 @@ def not_equal_to(data: PandasData, value: Any) -> PandasData:
     error="greater_than({min_value})",
 )
 def greater_than(data: PandasData, min_value: Any) -> PandasData:
-    """
-    Ensure values of a column are strictly greater than a minimum
+    """Ensure values of a column are strictly greater than a minimum
     value.
 
     :param min_value: Lower bound to be exceeded. Must be a type comparable
@@ -99,7 +98,7 @@ def greater_than(data: PandasData, min_value: Any) -> PandasData:
     error="greater_than_or_equal_to({min_value})",
 )
 def greater_than_or_equal_to(data: PandasData, min_value: Any) -> PandasData:
-    """Ensure all values are greater than or equal to a certain value.
+    """Ensure all values are greater than or equal to a minimum value.
 
     :param min_value: Allowed minimum value. Must be a type comparable
         to the dtype of the :class:`pandas.Series` to be validated.
@@ -113,7 +112,7 @@ def greater_than_or_equal_to(data: PandasData, min_value: Any) -> PandasData:
     error="less_than({max_value})",
 )
 def less_than(data: PandasData, max_value: Any) -> PandasData:
-    """Ensure values of a series are strictly below a maximum value.
+    """Ensure values of a column are strictly less than a maximum value.
 
     :param max_value: All elements of a series must be strictly smaller
         than this. Must be a type comparable to the dtype of the
@@ -130,11 +129,10 @@ def less_than(data: PandasData, max_value: Any) -> PandasData:
     error="less_than_or_equal_to({max_value})",
 )
 def less_than_or_equal_to(data: PandasData, max_value: Any) -> PandasData:
-    """Ensure values of a series are strictly below a maximum value.
+    """Ensure all values are less than or equal to a maximum value.
 
-    :param max_value: Upper bound not to be exceeded. Must be a type
-        comparable to the dtype of the :class:`pandas.Series` to be
-        validated.
+    :param max_value: Upper bound not to be exceeded. Must be a type comparable to the dtype of the
+        :class:`pandas.Series` to be validated.
     """
     if max_value is None:
         raise ValueError("max_value must not be None")
