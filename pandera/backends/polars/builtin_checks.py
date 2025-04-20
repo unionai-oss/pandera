@@ -17,10 +17,10 @@ T = TypeVar("T")
     error="equal_to({value})",
 )
 def equal_to(data: PolarsData, value: Any) -> pl.LazyFrame:
-    """Ensure all elements of a data container equal a certain value.
+    """Ensure all elements of a column equal a certain value.
 
     :param data: NamedTuple PolarsData contains the dataframe and column name for the check. The key
-        to access the dataframe is "dataframe", and the key the to access the column name is "key".
+        to access the dataframe is "dataframe", and the key to access the column name is "key".
     :param value: Values in this Polars data structure must be
         equal to this value.
     """
@@ -32,7 +32,7 @@ def equal_to(data: PolarsData, value: Any) -> pl.LazyFrame:
     error="not_equal_to({value})",
 )
 def not_equal_to(data: PolarsData, value: Any) -> pl.LazyFrame:
-    """Ensure no element of a data container equals a certain value.
+    """Ensure no element of a column equals a certain value.
 
     :param data: NamedTuple PolarsData contains the dataframe and column name for the check. The key
         to access the dataframe is "dataframe", and the key the to access the column name is "key".
@@ -47,7 +47,7 @@ def not_equal_to(data: PolarsData, value: Any) -> pl.LazyFrame:
 )
 def greater_than(data: PolarsData, min_value: Any) -> pl.LazyFrame:
     """
-    Ensure values of a data container are strictly greater than a minimum
+    Ensure values of a column are strictly greater than a minimum
     value.
 
     :param data: NamedTuple PolarsData contains the dataframe and column name for the check. The key
@@ -68,7 +68,7 @@ def greater_than_or_equal_to(data: PolarsData, min_value: Any) -> pl.LazyFrame:
     :param data: NamedTuple PolarsData contains the dataframe and column name for the check. The key
         to access the dataframe is "dataframe", and the key the to access the column name is "key".
     :param min_value: Allowed minimum value. Must be a type comparable
-        to the dtype of the series datatype of Polars.
+        to the dtype of the :class:`pl.Series` to be validated.
     """
     return data.lazyframe.select(pl.col(data.key).ge(min_value))
 
