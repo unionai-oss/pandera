@@ -55,9 +55,9 @@ T = TypeVar("T")
     error="equal_to({value})",
 )
 def equal_to(data: PandasData, value: Any) -> PandasData:
-    """Ensure all elements of a data container equal a certain value.
+    """Ensure all elements of a column equal a certain value.
 
-    :param value: values in this pandas data structure must be
+    :param value: Values in this pandas data structure must be
         equal to this value.
     """
     return data == value
@@ -69,7 +69,7 @@ def equal_to(data: PandasData, value: Any) -> PandasData:
     error="not_equal_to({value})",
 )
 def not_equal_to(data: PandasData, value: Any) -> PandasData:
-    """Ensure no element of a data container equals a certain value.
+    """Ensure no element of a column equals a certain value.
 
     :param value: This value must not occur in the checked
         :class:`pandas.Series`.
@@ -84,7 +84,7 @@ def not_equal_to(data: PandasData, value: Any) -> PandasData:
 )
 def greater_than(data: PandasData, min_value: Any) -> PandasData:
     """
-    Ensure values of a data container are strictly greater than a minimum
+    Ensure values of a column are strictly greater than a minimum
     value.
 
     :param min_value: Lower bound to be exceeded. Must be a type comparable
