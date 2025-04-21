@@ -283,7 +283,7 @@ class FieldParserInfo(ParserInfo):  # pylint:disable=too-few-public-methods
 
 
 def _to_function_and_classmethod(
-    fn: Union[AnyCallable, classmethod]
+    fn: Union[AnyCallable, classmethod],
 ) -> Tuple[AnyCallable, classmethod]:
     if isinstance(fn, classmethod):
         fn, method = fn.__func__, cast(classmethod, fn)

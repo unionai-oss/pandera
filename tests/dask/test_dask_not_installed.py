@@ -1,4 +1,4 @@
-"""Tests behavior when dask is not installed. """
+"""Tests behavior when dask is not installed."""
 
 import sys
 from unittest import mock

@@ -1,4 +1,4 @@
-""" Tests that basic Pandera functionality works for Dask objects. """
+"""Tests that basic Pandera functionality works for Dask objects."""
 
 from typing import cast
 
