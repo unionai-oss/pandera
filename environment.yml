@@ -8,7 +8,6 @@ dependencies:
 
   # pandera dependencies
   - packaging >= 20.0
-  - rich
   - typing_extensions
   - hypothesis >= 6.92.7
   - pyyaml >= 5.1

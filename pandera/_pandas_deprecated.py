@@ -1,4 +1,4 @@
-# pylint: disable=wrong-import-position,unused-import
+# pylint: disable=wrong-import-position,unused-import,global-statement,unused-wildcard-import
 """A flexible and expressive pandas dataframe validation library.
 
 This module is imported by the top-level pandera module and will be deprecated
@@ -7,11 +7,9 @@ in a future version of pandera.
 
 import os
 import platform
+import warnings
 
 from packaging.version import parse
-from rich.console import Console
-from rich.panel import Panel
-from rich.markdown import Markdown
 
 import pandas as pd
 import numpy as np
@@ -105,15 +103,12 @@ from pandera.engines.pandas_engine import (
 from pandera.schema_inference.pandas import infer_schema
 
 
-console = Console()
-
-
 _future_warning = """Importing pandas-specific classes and functions from the
 top-level pandera module will be **removed in a future version of pandera**.
 If you're using pandera to validate pandas objects, we highly recommend updating
 your import:
 
-```python
+```
 # old import
 import pandera as pa
 
@@ -122,12 +117,14 @@ import pandera.pandas as pa
 ```
 
 If you're using pandera to validate objects from other compatible libraries
-like pyspark or polars, see the [supported libraries](https://pandera.readthedocs.io/en/stable/supported_libraries.html)
-section of the documentation for more information on how to import pandera.
+like pyspark or polars, see the supported libraries section of the documentation
+for more information on how to import pandera:
+
+https://pandera.readthedocs.io/en/stable/supported_libraries.html
 
 To disable this warning, set the environment variable:
 
-```bash
+```
 export DISABLE_PANDERA_IMPORT_WARNING=True
 ```
 """
@@ -137,19 +134,17 @@ DISABLE_PANDERA_IMPORT_WARNING = (
     os.environ.get("DISABLE_PANDERA_IMPORT_WARNING", "false").lower() == "true"
 )
 
+_IMPORT_WARNING_ISSUED = False
+
 
 class DataFrameSchema(_DataFrameSchema):
     """A light-weight pandas DataFrame validator."""
 
     def __init__(self, *args, **kwargs):
-        if not DISABLE_PANDERA_IMPORT_WARNING:
-            console.print(
-                Panel(
-                    Markdown(_future_warning),
-                    title="FutureWarning",
-                    border_style="yellow",
-                )
-            )
+        global _IMPORT_WARNING_ISSUED
+        if not DISABLE_PANDERA_IMPORT_WARNING and not _IMPORT_WARNING_ISSUED:
+            warnings.warn(_future_warning, FutureWarning)
+            _IMPORT_WARNING_ISSUED = True
         super().__init__(*args, **kwargs)
 
 
@@ -157,14 +152,10 @@ class DataFrameModel(_DataFrameModel):
     """A DataFrameModel to express class-based pandera schemas."""
 
     def __init_subclass__(cls, **kwargs):
-        if not DISABLE_PANDERA_IMPORT_WARNING:
-            console.print(
-                Panel(
-                    Markdown(_future_warning),
-                    title="FutureWarning",
-                    border_style="yellow",
-                )
-            )
+        global _IMPORT_WARNING_ISSUED
+        if not DISABLE_PANDERA_IMPORT_WARNING and not _IMPORT_WARNING_ISSUED:
+            warnings.warn(_future_warning, FutureWarning)
+            _IMPORT_WARNING_ISSUED = True
         super().__init_subclass__(**kwargs)
 
 

@@ -31,11 +31,10 @@ Dropping invalid rows with {class}`~pandera.api.pandas.container.DataFrameSchema
 import pandas as pd
 import pandera.pandas as pa
 
-from pandera import Check, Column, DataFrameSchema
 
 df = pd.DataFrame({"counter": ["1", "2", "3"]})
-schema = DataFrameSchema(
-    {"counter": Column(int, checks=[Check(lambda x: x >= 3)])},
+schema = pa.DataFrameSchema(
+    {"counter": pa.Column(int, checks=[pa.Check(lambda x: x >= 3)])},
     drop_invalid_rows=True,
 )
 
@@ -48,12 +47,11 @@ Dropping invalid rows with {class}`~pandera.api.pandas.array.SeriesSchema`:
 import pandas as pd
 import pandera.pandas as pa
 
-from pandera import Check, SeriesSchema
 
 series = pd.Series(["1", "2", "3"])
-schema = SeriesSchema(
+schema = pa.SeriesSchema(
     int,
-    checks=[Check(lambda x: x >= 3)],
+    checks=[pa.Check(lambda x: x >= 3)],
     drop_invalid_rows=True,
 )
 
@@ -66,14 +64,13 @@ Dropping invalid rows with {class}`~pandera.api.pandas.components.Column`:
 import pandas as pd
 import pandera.pandas as pa
 
-from pandera import Check, Column
 
 df = pd.DataFrame({"counter": ["1", "2", "3"]})
-schema = Column(
+schema = pa.Column(
     int,
     name="counter",
     drop_invalid_rows=True,
-    checks=[Check(lambda x: x >= 3)]
+    checks=[pa.Check(lambda x: x >= 3)]
 )
 
 schema.validate(df, lazy=True)
@@ -85,10 +82,9 @@ Dropping invalid rows with {class}`~pandera.api.pandas.model.DataFrameModel`:
 import pandas as pd
 import pandera.pandas as pa
 
-from pandera import Check, DataFrameModel, Field
 
-class MySchema(DataFrameModel):
-    counter: int = Field(in_range={"min_value": 3, "max_value": 5})
+class MySchema(pa.DataFrameModel):
+    counter: int = pa.Field(in_range={"min_value": 3, "max_value": 5})
 
     class Config:
         drop_invalid_rows = True

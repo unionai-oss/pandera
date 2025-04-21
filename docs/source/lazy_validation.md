@@ -31,11 +31,10 @@ For example:
 import pandas as pd
 import pandera.pandas as pa
 
-from pandera import Check, Column, DataFrameSchema
 
 df = pd.DataFrame({"column": ["a", "b", "c"]})
 
-schema = pa.DataFrameSchema({"column": Column(int)})
+schema = pa.DataFrameSchema({"column": pa.Column(int)})
 
 try:
     schema.validate(df)
@@ -54,14 +53,13 @@ import json
 import pandas as pd
 import pandera.pandas as pa
 
-from pandera import Check, Column, DataFrameSchema
 
 schema = pa.DataFrameSchema(
     columns={
-        "int_column": Column(int),
-        "float_column": Column(float, Check.greater_than(0)),
-        "str_column": Column(str, Check.equal_to("a")),
-        "date_column": Column(pa.DateTime),
+        "int_column": pa.Column(int),
+        "float_column": pa.Column(float, pa.Check.greater_than(0)),
+        "str_column": pa.Column(str, pa.Check.equal_to("a")),
+        "date_column": pa.Column(pa.DateTime),
     },
     strict=True
 )

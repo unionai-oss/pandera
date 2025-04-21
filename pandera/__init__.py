@@ -1,14 +1,7 @@
 # pylint: disable=wrong-import-position
 """A flexible and expressive dataframe validation library."""
 
-from rich.console import Console
-from rich.panel import Panel
-from rich.markdown import Markdown
-
 from pandera._version import __version__
-
-
-console = Console()
 
 
 _warning_msg = """Pandas and numpy have been removed from the base pandera
@@ -41,15 +34,10 @@ try:
     ]
 
 except ImportError as err:
+    import warnings
+
     if "pandas" in str(err) or "numpy" in str(err):
-        console.print(
-            Panel(
-                Markdown(_warning_msg),
-                title="PandasImportWarning",
-                border_style="yellow",
-            )
-        )
-        console.print_exception()
+        warnings.warn(_warning_msg, UserWarning)
     else:
         raise  # Re-raise any other `ImportError` exceptions
 

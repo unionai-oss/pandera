@@ -280,7 +280,7 @@ def deserialize_schema(serialized_schema):
         the schema de-serialized into :class:`~pandera.api.pandas.container.DataFrameSchema`
     """
     # pylint: disable=import-outside-toplevel
-    from pandera import Index, MultiIndex
+    from pandera.pandas import Index, MultiIndex
 
     # GH#475
     serialized_schema = serialized_schema if serialized_schema else {}

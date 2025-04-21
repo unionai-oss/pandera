@@ -37,7 +37,7 @@ See the {ref}`Mypy Integration <mypy-integration>` for more details.
 ```{code-cell} python
 import pandas as pd
 import pandera.pandas as pa
-from pandera.typing import Index, DataFrame, Series
+from pandera.typing.pandas import Index, DataFrame, Series
 
 
 class InputSchema(pa.DataFrameModel):
@@ -114,7 +114,7 @@ This makes sure that each field attribute is bound to a unique `Field` instance.
 
 ```{code-cell} python
 from functools import partial
-from pandera import DataFrameModel, Field
+from pandera.pandas import DataFrameModel, Field
 
 NormalizedField = partial(Field, ge=0, le=1)
 

@@ -8,7 +8,7 @@ import pandas as pd
 import pytest
 
 import pandera.pandas as pa
-from pandera import DataFrameModel, DataFrameSchema, SeriesSchema
+from pandera.pandas import DataFrameModel, DataFrameSchema, SeriesSchema
 from pandera.config import ValidationDepth, config_context, get_config_context
 
 

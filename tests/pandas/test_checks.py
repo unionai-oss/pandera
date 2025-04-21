@@ -5,7 +5,7 @@ import copy
 import pandas as pd
 import pytest
 
-from pandera import (
+from pandera.pandas import (
     Bool,
     Check,
     Column,

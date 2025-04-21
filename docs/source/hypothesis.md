@@ -28,7 +28,6 @@ which can be called as in this example of a two-sample t-test:
 import pandas as pd
 import pandera.pandas as pa
 
-from pandera import Column, DataFrameSchema, Check, Hypothesis
 
 from scipy import stats
 
@@ -39,10 +38,10 @@ df = (
     })
 )
 
-schema = DataFrameSchema({
-    "height_in_feet": Column(
+schema = pa.DataFrameSchema({
+    "height_in_feet": pa.Column(
         float, [
-            Hypothesis.two_sample_ttest(
+            pa.Hypothesis.two_sample_ttest(
                 sample1="M",
                 sample2="F",
                 groupby="sex",
@@ -50,7 +49,7 @@ schema = DataFrameSchema({
                 alpha=0.05,
                 equal_var=True),
     ]),
-    "sex": Column(str)
+    "sex": pa.Column(str)
 })
 
 try:
@@ -86,10 +85,10 @@ def null_relationship(stat, pvalue, alpha=0.01):
     return pvalue / 2 >= alpha
 
 
-schema = DataFrameSchema({
-    "height_in_feet": Column(
+schema = pa.DataFrameSchema({
+    "height_in_feet": pa.Column(
         float, [
-            Hypothesis(
+            pa.Hypothesis(
                 test=two_sample_ttest,
                 samples=["M", "F"],
                 groupby="sex",
@@ -97,7 +96,7 @@ schema = DataFrameSchema({
                 relationship_kwargs={"alpha": 0.05}
             )
     ]),
-    "sex": Column(str, checks=Check.isin(["M", "F"]))
+    "sex": pa.Column(str, checks=pa.Check.isin(["M", "F"]))
 })
 
 schema.validate(df)
@@ -119,23 +118,22 @@ the tidy dataset and schema might look like this:
 import pandas as pd
 import pandera.pandas as pa
 
-from pandera import Check, DataFrameSchema, Column, Hypothesis
 
 df = pd.DataFrame({
     "height": [5.6, 7.5, 4.0, 7.9],
     "group": ["A", "B", "A", "B"],
 })
 
-schema = DataFrameSchema({
-    "height": Column(
-        float, Hypothesis.two_sample_ttest(
+schema = pa.DataFrameSchema({
+    "height": pa.Column(
+        float, pa.Hypothesis.two_sample_ttest(
             "A", "B",
             groupby="group",
             relationship="less_than",
             alpha=0.05
         )
     ),
-    "group": Column(str, Check(lambda s: s.isin(["A", "B"])))
+    "group": pa.Column(str, pa.Check(lambda s: s.isin(["A", "B"])))
 })
 
 schema.validate(df)
@@ -147,20 +145,19 @@ The equivalent wide-form schema would look like this:
 import pandas as pd
 import pandera.pandas as pa
 
-from pandera import DataFrameSchema, Column, Hypothesis
 
 df = pd.DataFrame({
     "height_A": [5.6, 4.0],
     "height_B": [7.5, 7.9],
 })
 
-schema = DataFrameSchema(
+schema = pa.DataFrameSchema(
     columns={
-        "height_A": Column(float),
-        "height_B": Column(float),
+        "height_A": pa.Column(float),
+        "height_B": pa.Column(float),
     },
     # define checks at the DataFrameSchema-level
-    checks=Hypothesis.two_sample_ttest(
+    checks=pa.Hypothesis.two_sample_ttest(
         "height_A", "height_B",
         relationship="less_than",
         alpha=0.05
