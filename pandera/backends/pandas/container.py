@@ -68,6 +68,9 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
         if hasattr(check_obj, "pandera"):
             check_obj = check_obj.pandera.add_schema(schema)
 
+        # run custom parsers
+        check_obj = self.run_parsers(schema, check_obj)
+
         # Collect status of columns against schema
         column_info = self.collect_column_info(check_obj, schema)
 
@@ -77,9 +80,6 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
             (self.set_defaults, (schema,)),
             (self.coerce_dtype, (schema,)),
         ]
-
-        # run custom parsers
-        check_obj = self.run_parsers(schema, check_obj)
 
         for parser, args in core_parsers:
             try:
