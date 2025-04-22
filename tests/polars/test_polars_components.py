@@ -276,4 +276,21 @@ def test_expr_as_default():
     }
 
 
+def test_missing_with_extra_columns():
+    schema = pa.DataFrameSchema(
+        columns={
+            "a": pa.Column(int),
+            "b": pa.Column(float, default=1),
+        },
+        add_missing_columns=True,
+        coerce=True,
+    )
+    df = pl.LazyFrame({"a": [1, 2, 3], "c": [4, 5, 6]})
+    assert schema.validate(df).collect().to_dict(as_series=False) == {
+        "a": [1, 2, 3],
+        "b": [1.0, 1.0, 1.0],
+        "c": [4, 5, 6],
+    }
+
+
 def test_column_schema_on_lazyframe_coerce(): ...
