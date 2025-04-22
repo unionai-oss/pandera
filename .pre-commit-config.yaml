@@ -1,23 +1,34 @@
+exclude: (^asv_bench|setup.py|requirements-dev.txt)
+
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.1.0
     hooks:
       - id: check-ast
+        description: Simply check whether files parse as valid python
       - id: check-case-conflict
+        description: Check for files that would conflict in case-insensitive filesystems
       - id: check-merge-conflict
+        description: Check for files that contain merge conflict strings
       - id: check-yaml
+        description: Attempts to load all yaml files to verify syntax
       - id: debug-statements
+        description: Check for debugger imports and py37+ breakpoint() calls in python source
       - id: end-of-file-fixer
+        description: Makes sure files end in a newline and only a newline
       - id: trailing-whitespace
+        description: Trims trailing whitespace
       - id: mixed-line-ending
+        description: Replaces or checks mixed line ending
+
   - repo: https://github.com/pre-commit/mirrors-isort
     rev: v5.10.1
     hooks:
       - id: isort
-        args: [--line-length=79, --skip=docs/source/conf.py, --diff]
+        args: ["--line-length=79", "--skip=docs/source/conf.py", "--diff"]
 
   - repo: https://github.com/ikamensh/flynt
-    rev: '0.76'
+    rev: "0.76"
     hooks:
       - id: flynt
 
@@ -36,7 +47,7 @@ repos:
     rev: v3.3.6
     hooks:
       - id: pylint
-        args: [--disable=import-error]
+        args: ["--disable=import-error"]
         exclude: (^docs/|^scripts)
 
   - repo: https://github.com/pre-commit/mirrors-mypy
@@ -50,16 +61,15 @@ repos:
           - types-requests
           - types-setuptools
           - polars
-        args: [pandera, tests, scripts]
+        args: ["pandera", "tests", "scripts"]
         exclude: (^docs/|^tests/mypy/modules/)
         pass_filenames: false
         require_serial: true
         verbose: true
+
   - repo: https://github.com/codespell-project/codespell
     rev: v2.4.1
     hooks:
       - id: codespell
         additional_dependencies:
           - tomli
-exclude: (^asv_bench|setup.py|requirements-dev.txt)
-
