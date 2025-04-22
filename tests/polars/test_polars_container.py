@@ -695,3 +695,21 @@ def test_dataframe_column_level_coerce():
 
     schema = schema.update_column("b", coerce=True)
     assert_frame_equal(schema.validate(df), df.cast({"a": int, "b": float}))
+
+
+def test_dataframe_level_check():
+    schema = DataFrameSchema(
+        {
+            "a": Column(int),
+            "b": Column(int),
+            "c": Column(int),
+        },
+        checks=[pa.Check.gt(0)],
+    )
+
+    lf = pl.LazyFrame({"a": [-1, 2, 3], "b": [4, -5, 6], "c": [7, 8, -9]})
+    try:
+        schema.validate(lf.collect(), lazy=True)
+    except pa.errors.SchemaErrors as exc:
+        # expect all rows to fail
+        assert exc.failure_cases.shape[0] == 3

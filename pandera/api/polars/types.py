@@ -1,13 +1,13 @@
 """Polars types."""
 
-from typing import NamedTuple, Optional, Union, TypeVar
+from typing import NamedTuple, Union, TypeVar
 
 import polars as pl
 
 
 class PolarsData(NamedTuple):
     lazyframe: pl.LazyFrame
-    key: Optional[str] = None
+    key: str = "*"
 
 
 class CheckResult(NamedTuple):

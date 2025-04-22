@@ -8,7 +8,10 @@ import polars as pl
 
 from pandera.api.base.error_handler import ErrorHandler
 from pandera.api.polars.types import CheckResult, PolarsFrame
-from pandera.api.polars.utils import get_lazyframe_column_dtypes
+from pandera.api.polars.utils import (
+    get_lazyframe_column_dtypes,
+    get_lazyframe_schema,
+)
 from pandera.backends.base import BaseSchemaBackend, CoreCheckResult
 from pandera.constants import CHECK_OUTPUT_KEY
 from pandera.errors import (
@@ -92,7 +95,11 @@ class PolarsSchemaBackend(BaseSchemaBackend):
                 )
             else:
                 # use check_result
-                failure_cases = check_result.failure_cases.collect()
+                _failure_cases = check_result.failure_cases
+                if CHECK_OUTPUT_KEY in get_lazyframe_schema(_failure_cases):
+                    _failure_cases = _failure_cases.drop(CHECK_OUTPUT_KEY)
+
+                failure_cases = _failure_cases.collect()
                 failure_cases_msg = failure_cases.head().rows(named=True)
                 message = (
                     f"{schema.__class__.__name__} '{schema.name}' failed "
