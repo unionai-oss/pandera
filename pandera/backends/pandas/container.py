@@ -78,6 +78,9 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
             (self.coerce_dtype, (schema,)),
         ]
 
+        # run custom parsers
+        check_obj = self.run_parsers(schema, check_obj)
+
         for parser, args in core_parsers:
             try:
                 check_obj = parser(check_obj, *args)
@@ -87,9 +90,6 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
                 )
             except SchemaErrors as exc:
                 error_handler.collect_errors(exc.schema_errors)
-
-        # run custom parsers
-        check_obj = self.run_parsers(schema, check_obj)
 
         # We may have modified columns, for example by
         # add_missing_columns, so regenerate column info

@@ -53,6 +53,12 @@ class ArraySchemaBackend(PandasSchemaBackend):
         if hasattr(schema, "default") and schema.default is not None:
             check_obj = self.set_default(check_obj, schema)
 
+        # run custom parsers
+        check_obj = self.run_parsers(
+            schema,
+            check_obj,
+        )
+
         try:
             if is_field(check_obj) and schema.coerce:
                 check_obj = self.coerce_dtype(check_obj, schema=schema)
@@ -66,12 +72,6 @@ class ArraySchemaBackend(PandasSchemaBackend):
                 exc.reason_code,
                 exc,
             )
-
-        # run custom parsers
-        check_obj = self.run_parsers(
-            schema,
-            check_obj,
-        )
 
         # run the core checks
         error_handler = self.run_checks_and_handle_errors(

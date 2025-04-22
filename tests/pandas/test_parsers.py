@@ -113,3 +113,48 @@ def test_parser_called_once():
 
     DFModel.validate(data)
     assert n_calls == 1
+
+
+def test_parser_with_coercion():
+    """Make sure that parser is applied before coercion."""
+
+    class SchemaParserWithIntCoercion(pa.DataFrameModel):
+        column: pd.Int64Dtype = pa.Field(nullable=True, coerce=True)
+
+        @pa.dataframe_parser
+        @classmethod
+        def replace_empty_with_na(cls, df: pd.DataFrame) -> pd.DataFrame:
+            return df.replace(["", " ", "nan"], pd.NA)
+
+    df = pd.DataFrame({"column": ["", " ", "nan", 100, ""]})
+    result = SchemaParserWithIntCoercion.validate(df)
+    assert result["column"].dtype == pd.Int64Dtype()
+    assert result["column"].isna().sum() == 4
+
+    class SchemaWithCategoryCoercion(pa.DataFrameModel):
+
+        col1: pd.CategoricalDtype = pa.Field(
+            dtype_kwargs={"categories": ["category1", "category2"]}
+        )
+        col2: pd.StringDtype
+
+        @pa.dataframe_parser
+        @classmethod
+        def normalize_string_values(cls, df):
+            return df.assign(
+                col1=df["col1"].str.strip().str.lower(),
+                col2=df["col2"].str.strip().str.lower(),
+            )
+
+        class Config:
+            coerce = True
+
+    test_df = pd.DataFrame(
+        data={"col1": ["CATEGORY1", "CatEGory2 "], "col2": ["foo", "Bar"]},
+        dtype="string",
+    )
+    validated_df = SchemaWithCategoryCoercion.validate(test_df)
+    assert validated_df["col1"].dtype == pd.CategoricalDtype(
+        categories=["category1", "category2"]
+    )
+    assert validated_df["col2"].dtype == pd.StringDtype()
