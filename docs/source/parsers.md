@@ -25,7 +25,7 @@ This feature is only available in the pandas validation backend.
 ## Parsing versus validation
 
 Pandera distinguishes between data validation and parsing. Validation is the act
-of verifying whether data follows some set of contraints, whereas parsing transforms
+of verifying whether data follows some set of constraints, whereas parsing transforms
 raw data into some desired set of constraints.
 
 Pandera ships with a few core parsers that you may already be familiar with:

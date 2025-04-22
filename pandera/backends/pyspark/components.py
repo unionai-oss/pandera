@@ -87,7 +87,7 @@ class ColumnBackend(ColumnSchemaBackend):
 
         :param schema: schema specification to use
         :param columns: columns to regex pattern match
-        :returns: matchin columns
+        :returns: matching columns
         """
         columns = check_obj.columns
         pattern = re.compile(schema.name)

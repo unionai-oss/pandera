@@ -51,7 +51,7 @@ OPTIONAL_DEPENDENCIES = [*PYPROJECT["project"]["optional-dependencies"]]
 
 
 def _pyproject_requirements() -> Dict[str, List[str]]:
-    """Load requirments from setup.py."""
+    """Load requirements from setup.py."""
     return {
         "core": PYPROJECT["project"]["dependencies"],
         **PYPROJECT["project"]["optional-dependencies"],

@@ -47,7 +47,7 @@ interface by:
 The classes that define this data type hierarchy are in the following modules:
 
 - {py:mod}`~pandera.dtypes`: these define senantic types, which are not
-  user-facing, and are meant to be inheritied by framework-specific engines.
+  user-facing, and are meant to be inherited by framework-specific engines.
 - {py:mod}`~pandera.engines.numpy_engine`: this module implements numpy datatypes,
   which pandas relies on.
 - {py:mod}`~pandera.engines.pandas_engine`: this module uses the `numpy_engine`

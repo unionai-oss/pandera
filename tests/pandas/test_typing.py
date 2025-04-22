@@ -288,10 +288,10 @@ class SchemaDefaultSparseDtype(pa.DataFrameModel):
     "model, dtype, has_mandatory_args",
     [
         (SchemaDefaultCategoricalDtype, pd.CategoricalDtype, False),
-        # DatetimeTZDtype: tz is implictly required
+        # DatetimeTZDtype: tz is implicitly required
         (SchemaDefaultDatetimeTZDtype, pd.DatetimeTZDtype, True),
         (SchemaDefaultIntervalDtype, pd.IntervalDtype, False),
-        # PeriodDtype: freq is implicitely required -> str(pd.PeriodDtype())
+        # PeriodDtype: freq is implicitly required -> str(pd.PeriodDtype())
         # raises AttributeError
         (SchemaDefaultPeriodDtype, pd.PeriodDtype, True),
         (SchemaDefaultSparseDtype, pd.SparseDtype, False),

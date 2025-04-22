@@ -535,7 +535,7 @@ class Check(BaseCheck):
         """Ensure that unique values in the data object contain all values.
 
         .. note::
-            In constrast with :func:`isin`, this check makes sure that all the
+            In contrast with :func:`isin`, this check makes sure that all the
             items in the ``values`` iterable are contained within the series.
 
         :param values: The set of values that must be present. Maybe any iterable.

@@ -82,8 +82,8 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
         :param ordered: whether or not to validate the columns order.
         :param unique: a list of columns that should be jointly unique.
         :param report_duplicates: how to report unique errors
-            - `exclude_first`: report all duplicates except first occurence
-            - `exclude_last`: report all duplicates except last occurence
+            - `exclude_first`: report all duplicates except first occurrence
+            - `exclude_last`: report all duplicates except last occurrence
             - `all`: (default) report all duplicates
         :param unique_column_names: whether or not column names must be unique.
         :param title: A human-readable label for the schema.
