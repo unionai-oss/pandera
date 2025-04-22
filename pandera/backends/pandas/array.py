@@ -54,10 +54,7 @@ class ArraySchemaBackend(PandasSchemaBackend):
             check_obj = self.set_default(check_obj, schema)
 
         # run custom parsers
-        check_obj = self.run_parsers(
-            schema,
-            check_obj,
-        )
+        check_obj = self.run_parsers(schema, check_obj)
 
         try:
             if is_field(check_obj) and schema.coerce:

@@ -5,6 +5,7 @@ import copy
 import numpy as np
 import pandas as pd
 import pytest
+from pandas._testing import assert_frame_equal
 
 import pandera.pandas as pa
 from pandera.api.pandas.array import SeriesSchema
@@ -158,3 +159,46 @@ def test_parser_with_coercion():
         categories=["category1", "category2"]
     )
     assert validated_df["col2"].dtype == pd.StringDtype()
+
+
+def test_parser_with_add_missing_columns():
+
+    class Schema(pa.DataFrameModel):
+        """Schema."""
+
+        a: str
+        b: int
+        c: int
+        index: pa.typing.Index[int]
+
+        class Config:
+            """Schema config."""
+
+            strict = False
+            coerce = True
+            add_missing_columns = True
+
+        @pa.dataframe_parser
+        @classmethod
+        def preprocess(cls, df: pd.DataFrame) -> pd.DataFrame:
+            """Preprocessing."""
+            if "b" not in df.columns and "c" not in df.columns:
+                raise pa.errors.SchemaError(
+                    schema=cls,
+                    data=df,
+                    message=f"No `b` or `c` in {df.columns}",
+                )
+
+            if "b" not in df.columns:
+                df["b"] = df["c"]
+            if "c" not in df.columns:
+                df["c"] = df["b"]
+            return df
+
+    validated_df = Schema.validate(pd.DataFrame({"a": ["xxx"], "b": 0}))
+    assert_frame_equal(
+        validated_df, pd.DataFrame({"a": ["xxx"], "b": 0, "c": 0})
+    )
+
+    with pytest.raises(pa.errors.SchemaError, match="No `b` or `c` in"):
+        Schema.validate(pd.DataFrame({"a": ["xxx"]}))
