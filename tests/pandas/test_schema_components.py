@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from pandera import (
+from pandera.pandas import (
     Check,
     Column,
     DataFrameSchema,

@@ -1,6 +1,11 @@
-# pylint: disable=wrong-import-position,unused-import
-"""A flexible and expressive pandas dataframe validation library."""
+# pylint: disable=wrong-import-position,unused-import,global-statement,unused-wildcard-import
+"""A flexible and expressive pandas dataframe validation library.
 
+This module is imported by the top-level pandera module and will be deprecated
+in a future version of pandera.
+"""
+
+import os
 import platform
 import warnings
 
@@ -46,8 +51,8 @@ from pandera.api.dataframe.model_components import (
 from pandera.api.hypotheses import Hypothesis
 from pandera.api.pandas.array import SeriesSchema
 from pandera.api.pandas.components import Column, Index, MultiIndex
-from pandera.api.pandas.container import DataFrameSchema
-from pandera.api.pandas.model import DataFrameModel
+from pandera.api.pandas.container import DataFrameSchema as _DataFrameSchema
+from pandera.api.pandas.model import DataFrameModel as _DataFrameModel
 from pandera.api.parsers import Parser
 from pandera.decorators import check_input, check_io, check_output, check_types
 from pandera.dtypes import (
@@ -96,6 +101,62 @@ from pandera.engines.pandas_engine import (
     pandas_version,
 )
 from pandera.schema_inference.pandas import infer_schema
+
+
+_future_warning = """Importing pandas-specific classes and functions from the
+top-level pandera module will be **removed in a future version of pandera**.
+If you're using pandera to validate pandas objects, we highly recommend updating
+your import:
+
+```
+# old import
+import pandera as pa
+
+# new import
+import pandera.pandas as pa
+```
+
+If you're using pandera to validate objects from other compatible libraries
+like pyspark or polars, see the supported libraries section of the documentation
+for more information on how to import pandera:
+
+https://pandera.readthedocs.io/en/stable/supported_libraries.html
+
+To disable this warning, set the environment variable:
+
+```
+export DISABLE_PANDERA_IMPORT_WARNING=True
+```
+"""
+
+
+DISABLE_PANDERA_IMPORT_WARNING = (
+    os.environ.get("DISABLE_PANDERA_IMPORT_WARNING", "false").lower() == "true"
+)
+
+_IMPORT_WARNING_ISSUED = False
+
+
+class DataFrameSchema(_DataFrameSchema):
+    """A light-weight pandas DataFrame validator."""
+
+    def __init__(self, *args, **kwargs):
+        global _IMPORT_WARNING_ISSUED
+        if not DISABLE_PANDERA_IMPORT_WARNING and not _IMPORT_WARNING_ISSUED:
+            warnings.warn(_future_warning, FutureWarning)
+            _IMPORT_WARNING_ISSUED = True
+        super().__init__(*args, **kwargs)
+
+
+class DataFrameModel(_DataFrameModel):
+    """A DataFrameModel to express class-based pandera schemas."""
+
+    def __init_subclass__(cls, **kwargs):
+        global _IMPORT_WARNING_ISSUED
+        if not DISABLE_PANDERA_IMPORT_WARNING and not _IMPORT_WARNING_ISSUED:
+            warnings.warn(_future_warning, FutureWarning)
+            _IMPORT_WARNING_ISSUED = True
+        super().__init_subclass__(**kwargs)
 
 
 external_config._set_pyspark_environment_variables()

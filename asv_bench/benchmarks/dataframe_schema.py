@@ -1,7 +1,7 @@
 # Airspeed Velocity Benchmarks for pandera
 import pandas as pd
 
-from pandera import (
+from pandera.pandas import (
     Column,
     DataFrameSchema,
     Bool,

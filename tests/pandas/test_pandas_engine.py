@@ -13,7 +13,7 @@ import pytest
 import pytz
 from hypothesis import given
 
-from pandera import Field, DataFrameModel, errors
+from pandera.pandas import Field, DataFrameModel, errors
 from pandera.engines import pandas_engine
 from pandera.errors import ParserError, SchemaError
 

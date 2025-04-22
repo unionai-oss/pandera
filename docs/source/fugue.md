@@ -61,10 +61,11 @@ Validation is then applied using pandera. A `price_validation` function is
 created that runs the validation. None of this will be new.
 
 ```{code-cell} python
-from pandera import Column, DataFrameSchema, Check
+import pandera.pandas as pa
 
-price_check = DataFrameSchema(
-    {"price": Column(int, Check.in_range(min_value=5,max_value=20))}
+
+price_check = pa.DataFrameSchema(
+    {"price": pa.Column(int, pa.Check.in_range(min_value=5,max_value=20))}
 )
 
 def price_validation(data: pd.DataFrame) -> pd.DataFrame:
@@ -112,12 +113,12 @@ Two {class}`~pandera.api.pandas.container.DataFrameSchema` will be created to re
 for the {class}`~pandera.api.checks.Check` differ.
 
 ```{code-cell} python
-price_check_FL = DataFrameSchema({
-    "price": Column(int, Check.in_range(min_value=7,max_value=13)),
+price_check_FL = pa.DataFrameSchema({
+    "price": pa.Column(int, pa.Check.in_range(min_value=7,max_value=13)),
 })
 
-price_check_CA = DataFrameSchema({
-    "price": Column(int, Check.in_range(min_value=15,max_value=21)),
+price_check_CA = pa.DataFrameSchema({
+    "price": pa.Column(int, pa.Check.in_range(min_value=15,max_value=21)),
 })
 
 price_checks = {'CA': price_check_CA, 'FL': price_check_FL}
@@ -133,17 +134,19 @@ through the `partition` argument. This splits up the data across different worke
 each run the `price_validation` function. Again, this is like a groupby-validation.
 
 ```python
-def price_validation(df:pd.DataFrame) -> pd.DataFrame:
+def price_validation(df: pd.DataFrame) -> pd.DataFrame:
     location = df['state'].iloc[0]
     check = price_checks[location]
     check.validate(df)
     return df
 
-spark_df = transform(data,
-            price_validation,
-            schema="*",
-            partition=dict(by="state"),
-            engine=spark)
+spark_df = transform(
+    data,
+    price_validation,
+    schema="*",
+    partition=dict(by="state"),
+    engine=spark,
+)
 
 spark_df.show()
 ```
@@ -188,8 +191,8 @@ check_number:int, failure_case:str, index:int"
 out_columns = ["schema_context", "column", "check",
 "check_number", "failure_case", "index"]
 
-price_check = DataFrameSchema(
-    {"price": Column(int, Check.in_range(min_value=12,max_value=20))}
+price_check = pa.DataFrameSchema(
+    {"price": pa.Column(int, pa.Check.in_range(min_value=12,max_value=20))}
 )
 
 def price_validation(data:pd.DataFrame) -> pd.DataFrame:
