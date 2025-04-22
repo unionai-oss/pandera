@@ -132,6 +132,6 @@ class PolarsCheckBackend(BaseCheckBackend):
         key: Optional[str] = None,
     ) -> CheckResult:
         check_obj = self.preprocess(check_obj, key)
-        polars_data = PolarsData(check_obj, key)
+        polars_data = PolarsData(check_obj, key or "*")
         check_output = self.apply(polars_data)
         return self.postprocess(polars_data, check_output)
