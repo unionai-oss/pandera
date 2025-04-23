@@ -168,35 +168,79 @@ class DataFrameModel(_DataFrameModel[pl.LazyFrame, DataFrameSchema]):
             This function is currently does not fully specify a pandera schema,
             and is primarily used internally to render OpenAPI docs via the
             FastAPI integration.
-
-        :raises ImportError: if ``pandas`` is not installed.
         """
-        try:
-            import pandas as pd
-        except ImportError as exc:
-            raise ImportError(
-                "pandas is required to serialize polars schema to json-schema"
-            ) from exc
-
         schema = cls.to_schema()
-        empty = pl.DataFrame(
-            schema={k: v.type for k, v in schema.dtypes.items()}
-        ).to_pandas()
-        table_schema = pd.io.json.build_table_schema(empty)
-
-        def _field_json_schema(field):
-            return {
+        
+        # Define a mapping from Polars data types to JSON schema types
+        # This is more robust than string parsing
+        POLARS_TO_JSON_TYPE_MAP = {
+            # Integer types
+            pl.Int8: "integer",
+            pl.Int16: "integer",
+            pl.Int32: "integer",
+            pl.Int64: "integer",
+            pl.UInt8: "integer",
+            pl.UInt16: "integer",
+            pl.UInt32: "integer",
+            pl.UInt64: "integer",
+            
+            # Float types
+            pl.Float32: "number",
+            pl.Float64: "number",
+            
+            # Boolean type
+            pl.Boolean: "boolean",
+            
+            # String types
+            pl.Utf8: "string",
+            pl.String: "string",
+            
+            # Date/Time types
+            pl.Date: "datetime",
+            pl.Datetime: "datetime",
+            pl.Time: "datetime",
+            pl.Duration: "datetime",
+        }
+        
+        def map_dtype_to_json_type(dtype):
+            """
+            Map a Polars data type to a JSON schema type.
+            
+            Args:
+                dtype: Polars data type
+                
+            Returns:
+                str: JSON schema type string
+            """
+            # First try the direct mapping
+            if dtype.__class__ in POLARS_TO_JSON_TYPE_MAP:
+                return POLARS_TO_JSON_TYPE_MAP[dtype.__class__]
+            
+            # Fallback to string representation check for edge cases
+            dtype_str = str(dtype).lower()
+            if 'float' in dtype_str:
+                return "number"
+            elif 'int' in dtype_str:
+                return "integer"
+            elif 'bool' in dtype_str:
+                return "boolean"
+            elif any(t in dtype_str for t in ['date', 'time', 'datetime']):
+                return "datetime"
+            else:
+                return "string"
+        
+        properties = {}
+        for col_name, col_schema in schema.dtypes.items():
+            json_type = map_dtype_to_json_type(col_schema.type)
+            properties[col_name] = {
                 "type": "array",
-                "items": {"type": field["type"]},
+                "items": {"type": json_type},
             }
 
         return {
             "title": schema.name or "pandera.DataFrameSchema",
             "type": "object",
-            "properties": {
-                field["name"]: _field_json_schema(field)
-                for field in table_schema["fields"]
-            },
+            "properties": properties,
         }
 
     @classmethod
