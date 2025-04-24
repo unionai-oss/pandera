@@ -107,7 +107,7 @@ def less_than(data: IbisData, max_value: Any) -> ir.Table:
 
 @register_builtin_check(
     aliases=["le"],
-    error="less_than_or_equal_to({value})",
+    error="less_than_or_equal_to({max_value})",
 )
 def less_than_or_equal_to(data: IbisData, max_value: Any) -> ir.Table:
     """Ensure all values are less than or equal to a maximum value.
