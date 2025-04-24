@@ -137,6 +137,9 @@ jobs:
         python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
         pandas-version: ["2.1.1", "2.2.3"]
         pydantic-version: ["1.10.11", "2.10.6"]
+        exclude:
+          - pandas-version: "2.1.1"
+            python-version: "3.13"
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python ${{ matrix.python-version }}
@@ -231,6 +234,10 @@ jobs:
         # pyspark serialization issue on windows: "pandas" module not found
         - extra: pyspark
           os: windows-latest
+        - extra: pyspark
+          python-version: "3.12"
+        - extra: pyspark
+          python-version: "3.13"
         - extra: modin-dask
           python-version: "3.13"
         - extra: modin-ray
