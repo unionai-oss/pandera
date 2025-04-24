@@ -231,6 +231,10 @@ jobs:
         # pyspark serialization issue on windows: "pandas" module not found
         - extra: pyspark
           os: windows-latest
+        - extra: modin-dask
+          python-version: "3.13"
+        - extra: modin-ray
+          python-version: "3.13"
 
     steps:
       - uses: actions/checkout@v4
@@ -265,7 +269,7 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
+        python-version: ["3.9", "3.10", "3.11", "3.12"]
     defaults:
       run:
         shell: bash -l {0}

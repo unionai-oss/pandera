@@ -170,7 +170,7 @@ def _testing_requirements(
 
     return [
         *_updated_requirements,
-        *nox.project.dependency_groups(PYPROJECT, *["dev", "testing", "docs"]),
+        *nox.project.dependency_groups(PYPROJECT, *["dev", "testing"]),
     ]
 
 
