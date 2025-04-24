@@ -130,7 +130,7 @@ class DataFrameBase(Generic[T]):
         # pylint: disable=no-member
         object.__setattr__(self, name, value)
         if name == "__orig_class__":
-            orig_class = getattr(self, "__orig_class__")
+            orig_class = value
             class_args = getattr(orig_class, "__args__", None)
             if class_args is not None and any(
                 x.__name__ == "DataFrameModel"
@@ -233,8 +233,14 @@ class AnnotationInfo:  # pylint:disable=too-few-public-methods
         self.arg = args[0] if args else args
 
         metadata = getattr(raw_annotation, "__metadata__", None)
+
         if metadata:
             self.is_annotated_type = True
+            try:
+                inspect.signature(self.arg)
+            except ValueError:
+                metadata = None
+
         elif metadata := getattr(self.arg, "__metadata__", None):
             self.arg = typing_inspect.get_args(self.arg)[0]
 

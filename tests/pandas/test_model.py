@@ -11,6 +11,7 @@ from typing import Any, Generic, Iterable, List, Optional, TypeVar, Type
 import numpy as np
 import pandas as pd
 import pytest
+from pandas._testing import assert_frame_equal
 
 import pandera.pandas as pa
 import pandera.api.extensions as pax
@@ -1118,7 +1119,7 @@ def test_validate_coerce_on_init():
     }
     pandera_validated_df = DataFrame[Schema](raw_data)
     pandas_df = pd.DataFrame(raw_data)
-    assert pandera_validated_df.equals(Schema.validate(pandas_df))
+    assert_frame_equal(pandera_validated_df, Schema.validate(pandas_df))
     assert isinstance(pandera_validated_df, DataFrame)
     assert isinstance(pandas_df, pd.DataFrame)
 

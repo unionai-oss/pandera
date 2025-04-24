@@ -4,7 +4,6 @@ import functools
 import inspect
 import sys
 import types
-import typing
 from typing import (
     Any,
     Callable,
@@ -21,6 +20,7 @@ from typing import (
 )
 
 from pydantic import validate_arguments
+from typing_extensions import get_type_hints
 
 from pandera import errors
 from pandera.api.base.error_handler import ErrorHandler
@@ -600,42 +600,55 @@ def check_types(
         )
 
     # Front-load annotation parsing
-    annotated_schema_models: Dict[
+    # @functools.lru_cache
+    def _get_annotated_schema_models(
+        wrapped: Callable,
+    ) -> Dict[
         str,
         Iterable[
             Tuple[Union[DataFrameModel, None], Union[AnnotationInfo, None]]
         ],
-    ] = {}
-    for arg_name_, annotation in typing.get_type_hints(wrapped).items():
-        annotation_info = AnnotationInfo(annotation)
-        if not annotation_info.is_generic_df:
-            # pylint: disable=comparison-with-callable
-            if annotation_info.origin == Union:
-                annotation_model_pairs = []
-                for annot in annotation_info.args:  # type: ignore[union-attr]
-                    sub_annotation_info = AnnotationInfo(annot)
-                    if not sub_annotation_info.is_generic_df:
-                        continue
+    ]:
+        annotated_schema_models: Dict[
+            str,
+            Iterable[
+                Tuple[Union[DataFrameModel, None], Union[AnnotationInfo, None]]
+            ],
+        ] = {}
+        for arg_name_, annotation in get_type_hints(
+            wrapped, include_extras=True
+        ).items():
+            annotation_info = AnnotationInfo(annotation)
+            if not annotation_info.is_generic_df:
+                # pylint: disable=comparison-with-callable
+                if annotation_info.origin == Union:
+                    annotation_model_pairs = []
+                    for annot in annotation_info.args:  # type: ignore[union-attr]
+                        sub_annotation_info = AnnotationInfo(annot)
+                        if not sub_annotation_info.is_generic_df:
+                            continue
 
-                    schema_model = cast(
-                        DataFrameModel, sub_annotation_info.arg
-                    )
-                    annotation_model_pairs.append(
-                        (schema_model, sub_annotation_info)
-                    )
+                        schema_model = cast(
+                            DataFrameModel, sub_annotation_info.arg
+                        )
+                        annotation_model_pairs.append(
+                            (schema_model, sub_annotation_info)
+                        )
+                else:
+                    continue
             else:
-                continue
-        else:
-            schema_model = cast(DataFrameModel, annotation_info.arg)
-            annotation_model_pairs = [(schema_model, annotation_info)]
+                schema_model = cast(DataFrameModel, annotation_info.arg)
+                annotation_model_pairs = [(schema_model, annotation_info)]
 
-        annotated_schema_models[arg_name_] = annotation_model_pairs
+            annotated_schema_models[arg_name_] = annotation_model_pairs
+        return annotated_schema_models
 
     def _check_arg(arg_name: str, arg_value: Any) -> Any:
         """
         Validate function's argument if annoted with a schema, else
         pass-through.
         """
+        annotated_schema_models = _get_annotated_schema_models(wrapped)
         annotation_model_pairs = annotated_schema_models.get(
             arg_name, [(None, None)]
         )

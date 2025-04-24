@@ -126,6 +126,7 @@ testing = [
     "pytest-cov",
     "pytest-xdist",
     "pytest-asyncio",
+    "sphinx",
 ]
 docs = [
     "sphinx",

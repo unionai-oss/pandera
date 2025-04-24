@@ -19,10 +19,10 @@ from typing import (
     Tuple,
     Type,
     TypeVar,
-    get_type_hints,
 )
 
 import typing_inspect
+from typing_extensions import get_type_hints
 
 from pandera.dtypes import DataType
 
