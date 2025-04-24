@@ -51,9 +51,9 @@ class DataFrameModel(_DataFrameModel[pl.LazyFrame, DataFrameSchema]):
             check_name = getattr(field, "check_name", None)
 
             try:
-                is_polars_dtype = inspect.isclass(annotation.raw_annotation) and issubclass(
-                    annotation.raw_annotation, pe.DataType
-                )
+                is_polars_dtype = inspect.isclass(
+                    annotation.raw_annotation
+                ) and issubclass(annotation.raw_annotation, pe.DataType)
             except TypeError:
                 is_polars_dtype = False
 
@@ -87,7 +87,9 @@ class DataFrameModel(_DataFrameModel[pl.LazyFrame, DataFrameSchema]):
                 or dtype
             ):
                 if check_name is False:
-                    raise SchemaInitError(f"'check_name' is not supported for {field_name}.")
+                    raise SchemaInitError(
+                        f"'check_name' is not supported for {field_name}."
+                    )
 
                 column_kwargs = (
                     field.column_properties(
@@ -102,7 +104,9 @@ class DataFrameModel(_DataFrameModel[pl.LazyFrame, DataFrameSchema]):
                 columns[field_name] = Column(**column_kwargs)
 
             else:
-                raise SchemaInitError(f"Invalid annotation '{field_name}: {annotation.raw_annotation}'.")
+                raise SchemaInitError(
+                    f"Invalid annotation '{field_name}: {annotation.raw_annotation}'."
+                )
 
         return columns
 
@@ -145,7 +149,9 @@ class DataFrameModel(_DataFrameModel[pl.LazyFrame, DataFrameSchema]):
         inplace: bool = False,
     ) -> Union[LazyFrame[Self], DataFrame[Self]]:
         """%(validate_doc)s"""
-        result = cls.to_schema().validate(check_obj, head, tail, sample, random_state, lazy, inplace)
+        result = cls.to_schema().validate(
+            check_obj, head, tail, sample, random_state, lazy, inplace
+        )
         if isinstance(check_obj, pl.LazyFrame):
             return cast(LazyFrame[Self], result)
         else:
