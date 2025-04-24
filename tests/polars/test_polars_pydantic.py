@@ -48,9 +48,7 @@ class PolarsDataFrameSchemaPydantic(BaseModel):
 def test_typed_polars_dataframe():
     """Test that typed Polars DataFrame is compatible with pydantic."""
     valid_df = pl.DataFrame({"str_col": ["hello", "world"]})
-    assert isinstance(
-        TypedPolarsDataFramePydantic(df=valid_df), TypedPolarsDataFramePydantic
-    )
+    assert isinstance(TypedPolarsDataFramePydantic(df=valid_df), TypedPolarsDataFramePydantic)
 
     invalid_df = pl.DataFrame({"str_col": ["hello", "hello"]})
     with pytest.raises(ValidationError):
@@ -140,10 +138,11 @@ def test_conversion_types():
     data_dict = {"str_col": ["hello", "world"]}
     model = TypedPolarsDataFramePydantic(df=data_dict)
     assert isinstance(model.df, pl.DataFrame)
-    
+
     # Test with pandas DataFrame
     try:
         import pandas as pd
+
         pandas_df = pd.DataFrame({"str_col": ["hello", "world"]})
         model = TypedPolarsDataFramePydantic(df=pandas_df)
         assert isinstance(model.df, pl.DataFrame)

@@ -51,9 +51,9 @@ class DataFrameModel(_DataFrameModel[pl.LazyFrame, DataFrameSchema]):
             check_name = getattr(field, "check_name", None)
 
             try:
-                is_polars_dtype = inspect.isclass(
-                    annotation.raw_annotation
-                ) and issubclass(annotation.raw_annotation, pe.DataType)
+                is_polars_dtype = inspect.isclass(annotation.raw_annotation) and issubclass(
+                    annotation.raw_annotation, pe.DataType
+                )
             except TypeError:
                 is_polars_dtype = False
 
@@ -87,9 +87,7 @@ class DataFrameModel(_DataFrameModel[pl.LazyFrame, DataFrameSchema]):
                 or dtype
             ):
                 if check_name is False:
-                    raise SchemaInitError(
-                        f"'check_name' is not supported for {field_name}."
-                    )
+                    raise SchemaInitError(f"'check_name' is not supported for {field_name}.")
 
                 column_kwargs = (
                     field.column_properties(
@@ -104,9 +102,7 @@ class DataFrameModel(_DataFrameModel[pl.LazyFrame, DataFrameSchema]):
                 columns[field_name] = Column(**column_kwargs)
 
             else:
-                raise SchemaInitError(
-                    f"Invalid annotation '{field_name}: {annotation.raw_annotation}'."
-                )
+                raise SchemaInitError(f"Invalid annotation '{field_name}: {annotation.raw_annotation}'.")
 
         return columns
 
@@ -149,9 +145,7 @@ class DataFrameModel(_DataFrameModel[pl.LazyFrame, DataFrameSchema]):
         inplace: bool = False,
     ) -> Union[LazyFrame[Self], DataFrame[Self]]:
         """%(validate_doc)s"""
-        result = cls.to_schema().validate(
-            check_obj, head, tail, sample, random_state, lazy, inplace
-        )
+        result = cls.to_schema().validate(check_obj, head, tail, sample, random_state, lazy, inplace)
         if isinstance(check_obj, pl.LazyFrame):
             return cast(LazyFrame[Self], result)
         else:
@@ -170,7 +164,7 @@ class DataFrameModel(_DataFrameModel[pl.LazyFrame, DataFrameSchema]):
             FastAPI integration.
         """
         schema = cls.to_schema()
-        
+
         # Define a mapping from Polars data types to JSON schema types
         # This is more robust than string parsing
         POLARS_TO_JSON_TYPE_MAP = {
@@ -183,52 +177,48 @@ class DataFrameModel(_DataFrameModel[pl.LazyFrame, DataFrameSchema]):
             pl.UInt16: "integer",
             pl.UInt32: "integer",
             pl.UInt64: "integer",
-            
             # Float types
             pl.Float32: "number",
             pl.Float64: "number",
-            
             # Boolean type
             pl.Boolean: "boolean",
-            
             # String types
             pl.Utf8: "string",
             pl.String: "string",
-            
             # Date/Time types
             pl.Date: "datetime",
             pl.Datetime: "datetime",
             pl.Time: "datetime",
             pl.Duration: "datetime",
         }
-        
+
         def map_dtype_to_json_type(dtype):
             """
             Map a Polars data type to a JSON schema type.
-            
+
             Args:
                 dtype: Polars data type
-                
+
             Returns:
                 str: JSON schema type string
             """
             # First try the direct mapping
             if dtype.__class__ in POLARS_TO_JSON_TYPE_MAP:
                 return POLARS_TO_JSON_TYPE_MAP[dtype.__class__]
-            
+
             # Fallback to string representation check for edge cases
             dtype_str = str(dtype).lower()
-            if 'float' in dtype_str:
+            if "float" in dtype_str:
                 return "number"
-            elif 'int' in dtype_str:
+            elif "int" in dtype_str:
                 return "integer"
-            elif 'bool' in dtype_str:
+            elif "bool" in dtype_str:
                 return "boolean"
-            elif any(t in dtype_str for t in ['date', 'time', 'datetime']):
+            elif any(t in dtype_str for t in ["date", "time", "datetime"]):
                 return "datetime"
             else:
                 return "string"
-        
+
         properties = {}
         for col_name, col_schema in schema.dtypes.items():
             json_type = map_dtype_to_json_type(col_schema.type)

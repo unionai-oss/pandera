@@ -68,9 +68,7 @@ if POLARS_INSTALLED:
                     try:
                         obj = pl.DataFrame(obj)
                     except Exception as exc:
-                        raise ValueError(
-                            f"Expected pl.DataFrame, found {type(obj)}"
-                        ) from exc
+                        raise ValueError(f"Expected pl.DataFrame, found {type(obj)}") from exc
                 return obj
 
             if callable(config.from_format):
@@ -85,20 +83,20 @@ if POLARS_INSTALLED:
                         f"Unsupported format: {config.from_format}. "
                         f"Polars natively supports: dict, csv, json, parquet, and feather."
                     ) from exc
-                
+
                 kwargs = config.from_format_kwargs or {}
-                
+
                 # Define a helper function to handle format-specific reading with error handling
                 def read_with_format(read_func, error_prefix):
                     """Helper to handle format-specific reading with standardized error handling.
-                    
+
                     Args:
                         read_func: Function to call for reading the data
                         error_prefix: Prefix for error message if the reading fails
-                    
+
                     Returns:
                         DataFrame: The resulting Polars DataFrame
-                        
+
                     Raises:
                         ValueError: If reading fails
                     """
@@ -106,7 +104,7 @@ if POLARS_INSTALLED:
                         return read_func()
                     except Exception as exc:
                         raise ValueError(f"{error_prefix}: {exc}") from exc
-                
+
                 # Handle different formats
                 if format_type == Formats.dict:
                     # Convert dict to DataFrame
@@ -114,48 +112,44 @@ if POLARS_INSTALLED:
                         return pl.DataFrame(obj)
                     else:
                         raise ValueError(f"Expected dict for dict format, got {type(obj)}")
-                
+
                 elif format_type == Formats.csv:
                     # Use polars read_csv
                     return read_with_format(
-                        lambda: pl.read_csv(obj, **kwargs),
-                        "Failed to read CSV with polars"
+                        lambda: pl.read_csv(obj, **kwargs), "Failed to read CSV with polars"
                     )
-                
+
                 elif format_type == Formats.json:
                     # Use polars read_json if possible
                     if isinstance(obj, (str, io.StringIO)):
                         return read_with_format(
-                            lambda: pl.read_json(obj, **kwargs),
-                            "Failed to read JSON with polars"
+                            lambda: pl.read_json(obj, **kwargs), "Failed to read JSON with polars"
                         )
                     elif isinstance(obj, (List, Mapping)):
                         # If it's a Python object that's JSON-serializable
                         return pl.DataFrame(obj)
                     else:
                         raise ValueError(f"Unsupported JSON input type: {type(obj)}")
-                
+
                 elif format_type == Formats.parquet:
                     # Use polars read_parquet
                     return read_with_format(
-                        lambda: pl.read_parquet(obj, **kwargs),
-                        "Failed to read Parquet with polars"
+                        lambda: pl.read_parquet(obj, **kwargs), "Failed to read Parquet with polars"
                     )
-                
+
                 elif format_type == Formats.feather:
                     # Use polars read_ipc for feather files
                     return read_with_format(
-                        lambda: pl.read_ipc(obj, **kwargs),
-                        "Failed to read Feather/IPC with polars"
+                        lambda: pl.read_ipc(obj, **kwargs), "Failed to read Feather/IPC with polars"
                     )
-                
+
                 elif format_type in (Formats.pickle, Formats.json_normalize):
                     # Formats not natively supported by polars
                     raise ValueError(
                         f"{format_type.value} format is not natively supported by polars. "
                         "Use a custom callable for from_format instead."
                     )
-                
+
                 else:
                     # For other formats not natively supported by polars
                     raise ValueError(
@@ -178,11 +172,7 @@ if POLARS_INSTALLED:
 
             if callable(config.to_format):
                 writer = functools.partial(config.to_format, data)
-                buffer = (
-                    config.to_format_buffer()
-                    if callable(config.to_format_buffer)
-                    else None
-                )
+                buffer = config.to_format_buffer() if callable(config.to_format_buffer) else None
                 args = [] if buffer is None else [buffer]
                 out = writer(*args, **(config.to_format_kwargs or {}))
                 return out if buffer is None else buffer
@@ -195,22 +185,22 @@ if POLARS_INSTALLED:
                         f"Unsupported format: {config.to_format}. "
                         f"Polars natively supports: dict, csv, json, parquet, and feather."
                     ) from exc
-                
+
                 kwargs = config.to_format_kwargs or {}
-                
+
                 # Helper function for writing to a buffer with error handling
                 def write_to_buffer(buffer_factory, write_method, error_prefix):
                     """
                     Helper to write DataFrame to a buffer with standardized error handling.
-                    
+
                     Args:
                         buffer_factory: Function that returns a new buffer
                         write_method: Method to call on the buffer (takes buffer and kwargs)
                         error_prefix: Prefix for error message if writing fails
-                    
+
                     Returns:
                         The buffer or buffer content
-                        
+
                     Raises:
                         ValueError: If writing fails
                     """
@@ -221,51 +211,43 @@ if POLARS_INSTALLED:
                         return buffer.getvalue() if isinstance(buffer, io.StringIO) else buffer
                     except Exception as exc:
                         raise ValueError(f"{error_prefix}: {exc}") from exc
-                
+
                 # Handle specific formats
                 if format_type == Formats.dict:
                     # Convert to dict
                     return data.to_dict()
-                
+
                 elif format_type == Formats.csv:
                     # Use polars write_csv
                     return write_to_buffer(
-                        io.StringIO,
-                        data.write_csv,
-                        "Failed to write CSV with polars"
+                        io.StringIO, data.write_csv, "Failed to write CSV with polars"
                     )
-                
+
                 elif format_type == Formats.json:
                     # Use polars write_json
                     return write_to_buffer(
-                        io.StringIO,
-                        data.write_json,
-                        "Failed to write JSON with polars"
+                        io.StringIO, data.write_json, "Failed to write JSON with polars"
                     )
-                
+
                 elif format_type == Formats.parquet:
                     # Use polars write_parquet
                     return write_to_buffer(
-                        io.BytesIO,
-                        data.write_parquet,
-                        "Failed to write Parquet with polars"
+                        io.BytesIO, data.write_parquet, "Failed to write Parquet with polars"
                     )
-                
+
                 elif format_type == Formats.feather:
                     # Use polars write_ipc for feather files
                     return write_to_buffer(
-                        io.BytesIO,
-                        data.write_ipc,
-                        "Failed to write Feather/IPC with polars"
+                        io.BytesIO, data.write_ipc, "Failed to write Feather/IPC with polars"
                     )
-                
+
                 elif format_type in (Formats.pickle, Formats.json_normalize):
                     # Formats not natively supported by polars
                     raise ValueError(
                         f"{format_type.value} format is not natively supported by polars. "
                         "Use a custom callable for to_format instead."
                     )
-                
+
                 else:
                     # For other formats not natively supported by polars
                     raise ValueError(
@@ -277,42 +259,42 @@ if POLARS_INSTALLED:
         def _get_schema_model(cls, field):
             if not field.sub_fields:
                 raise TypeError(
-                    "Expected a typed pandera.typing.polars.DataFrame,"
-                    " e.g. DataFrame[Schema]"
+                    "Expected a typed pandera.typing.polars.DataFrame," " e.g. DataFrame[Schema]"
                 )
             schema_model = field.sub_fields[0].type_
             return schema_model
 
         if PYDANTIC_V2:
+
             @classmethod
             def __get_pydantic_core_schema__(
                 cls, _source_type: Any, _handler: GetCoreSchemaHandler
             ) -> core_schema.CoreSchema:
                 """
                 Generate a Pydantic core schema for Polars DataFrames.
-                
+
                 This method is used by Pydantic v2 to validate and serialize Polars DataFrames.
                 It creates a schema that validates input data against the Pandera schema
                 and returns a properly validated DataFrame.
-                
+
                 Args:
                     _source_type: The annotated type
                     _handler: Pydantic schema handler
-                    
+
                 Returns:
                     CoreSchema: A Pydantic core schema for validation
-                
+
                 Note:
                     Compatible with Pydantic v2.0.0+ and requires Polars 0.19.0+
                 """
                 # prevent validation in __setattr__ function in DataFrameBase class
                 with config_context(validation_enabled=False):
                     schema_model = _source_type().__orig_class__.__args__[0]
-                
+
                 # Extract schema information
                 schema = schema_model.to_schema()
                 schema_json_columns = schema_model.to_json_schema()["properties"]
-                
+
                 # Map JSON schema types to Pydantic core schema types
                 type_map = {
                     "string": core_schema.str_schema(),
@@ -321,13 +303,13 @@ if POLARS_INSTALLED:
                     "boolean": core_schema.bool_schema(),
                     "datetime": core_schema.datetime_schema(),
                 }
-                
+
                 # Prepare the validator function
                 function = functools.partial(
                     cls.pydantic_validate,
                     schema_model=schema_model,
                 )
-                
+
                 # Generate the input schema for use in validation and serialization
                 json_schema_input_schema = core_schema.list_schema(
                     core_schema.typed_dict_schema(
@@ -339,7 +321,7 @@ if POLARS_INSTALLED:
                         },
                     )
                 )
-                
+
                 try:
                     # The json_schema_input_schema parameter is only available in
                     # pydantic_core >=2.30.0. On earlier versions, we'll fall back
@@ -356,7 +338,9 @@ if POLARS_INSTALLED:
                 except TypeError:
                     # Fallback for older pydantic_core versions
                     return core_schema.no_info_plain_validator_function(function)
+
         else:
+
             @classmethod
             def __get_validators__(cls):
                 yield cls._pydantic_validate
