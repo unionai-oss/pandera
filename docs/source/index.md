@@ -79,9 +79,9 @@ file_format: mystnb
 :target: https://anaconda.org/conda-forge/pandera
 ```
 
-```{image} https://img.shields.io/badge/discord-chat-purple?color=%235765F2&label=discord&logo=discord&style=for-the-badge
-:alt: Discord Community
-:target: https://discord.gg/vyanhWuaKB
+```{image} https://img.shields.io/badge/Slack-4A154B?logo=slack&logoColor=fff&style=for-the-badge
+:alt: Slack Community
+:target: https://flyte-org.slack.com/archives/C08FDTY2X3L
 ```
 
 Pandera is a [Union.ai](https://union.ai/blog-post/pandera-joins-union-ai) open
@@ -391,7 +391,7 @@ Submit issues, feature requests or bugfixes on
 There are many ways of getting help with your questions. You can ask a question
 on [Github Discussions](https://github.com/pandera-dev/pandera/discussions/categories/q-a)
 page or reach out to the maintainers and pandera community on
-[Discord](https://discord.gg/vyanhWuaKB)
+[Slack](https://flyte-org.slack.com/archives/C08FDTY2X3L)
 
 ```{toctree}
 :caption: Introduction
