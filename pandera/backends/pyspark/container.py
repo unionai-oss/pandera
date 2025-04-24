@@ -38,7 +38,7 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
         column_info: ColumnInfo,
         error_handler: ErrorHandler,
     ):
-        """run the checks related to columns presence, strictness and filter column if neccesary"""
+        """run the checks related to columns presence, strictness and filter column if necessary"""
 
         # check the container metadata, e.g. field names
         try:
@@ -540,7 +540,7 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
             .agg(count("*").alias("pandera_duplicate_counts"))
             .filter(
                 col("pandera_duplicate_counts") > 1
-            )  # long name to avoid colisions
+            )  # long name to avoid collisions
             .count()
         )
 
@@ -564,7 +564,7 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
 
     @validate_scope(scope=ValidationScope.SCHEMA)
     def check_column_names_are_unique(self, check_obj: DataFrame, schema):
-        """Check for column name uniquness."""
+        """Check for column name uniqueness."""
         if not schema.unique_column_names:
             return
         column_count_dict: Dict[Any, Any] = {}

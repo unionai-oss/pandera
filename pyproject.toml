@@ -185,3 +185,6 @@ exclude = '''
   | asv_bench
 )
 '''
+
+[tool.codespell]
+ignore-words-list = ["notin", "splitted", "fo", "strat"]

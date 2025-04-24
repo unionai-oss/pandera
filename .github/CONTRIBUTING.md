@@ -72,7 +72,7 @@ make deps-from-environment.yml
 
 This will invoke `python scripts/generate_pip_deps_from_conda.py` to convert
 `environment.yml` to a `requirements.in` file. This is so that you can install
-your development environment using the package manager of your choise like
+your development environment using the package manager of your choice like
 `pip`, `uv`, `conda`, etc.
 
 Moreover to add new extra dependencies in `pyproject.toml`, it is necessary to

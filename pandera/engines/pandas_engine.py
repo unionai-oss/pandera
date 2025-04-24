@@ -533,7 +533,7 @@ def _check_decimal(
         return is_decimal
 
     decimals = pandas_obj[is_decimal]
-    # fix for modin unamed series raises KeyError
+    # fix for modin unnamed series raises KeyError
     # https://github.com/modin-project/modin/issues/4317
     decimals.name = "decimals"  # type: ignore
 
@@ -1305,7 +1305,7 @@ class PythonGenericType(DataType):
 
     def _check_type(self, element: Any) -> bool:
         # if the element is None or pd.NA, this function should return True:
-        # the schema should only fail if nullable=False is specifed at the
+        # the schema should only fail if nullable=False is specified at the
         # schema/schema component level.
         if element is None or element is pd.NA:
             return True

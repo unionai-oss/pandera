@@ -409,8 +409,8 @@ except pa.errors.SchemaError as exc:
 ```
 
 To control how unique errors are reported, the `report_duplicates` argument accepts:
-: - `exclude_first`: (default) report all duplicates except first occurence
-  - `exclude_last`: report all duplicates except last occurence
+: - `exclude_first`: (default) report all duplicates except first occurrence
+  - `exclude_last`: report all duplicates except last occurrence
   - `all`: report all duplicates
 
 ```{code-cell} python
@@ -609,7 +609,7 @@ Once you've defined a schema, you can then make modifications to it, both on
 the schema level -- such as adding or removing columns and setting or resetting
 the index -- or on the column level -- such as changing the data type or checks.
 
-This is useful for re-using schema objects in a data pipeline when additional
+This is useful for reusing schema objects in a data pipeline when additional
 computation has been done on a dataframe, where the column objects may have
 changed or perhaps where additional checks may be required.
 

@@ -12,10 +12,10 @@ import pytest
 from packaging import version
 
 import pandera.pandas as pa
-from pandera.typing import pyspark as pyspark_typing
 from pandera import dtypes, extensions, system
 from pandera.engines import numpy_engine, pandas_engine
 from pandera.typing import DataFrame, Index, Series
+from pandera.typing import pyspark as pyspark_typing
 from tests.strategies.test_strategies import NULLABLE_DTYPES
 from tests.strategies.test_strategies import (
     UNSUPPORTED_DTYPE_CLS as UNSUPPORTED_STRATEGY_DTYPE_CLS,
@@ -456,7 +456,7 @@ def test_dtype_coercion(from_dtype, to_dtype, data):
         assert isinstance(to_schema(sample), ps.DataFrame)
         return
 
-    # strings that can't be intepreted as numbers are converted to NA
+    # strings that can't be interpreted as numbers are converted to NA
     if from_dtype is str and to_dtype in {int, float}:
         # first check if sample contains NAs
         if sample.astype(to_dtype).isna().any().item():

@@ -12,6 +12,7 @@ except ImportError:
 
 
 import dataclasses
+
 import numpy as np
 import pandas as pd
 import pyproj
@@ -110,7 +111,7 @@ class Geometry(pandas_engine.DataType):
                 # Allow assignment of CRS if currently
                 # null and a non-null value is designated.
                 # This will only work in the context of
-                # geopandas because assinging geometry
+                # geopandas because assigning geometry
                 # CRS to a pandas dataframe isn't supported.
                 value.crs = self.crs
             elif isinstance(value, gpd.GeoSeries) and self.crs != value.crs:

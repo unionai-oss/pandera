@@ -539,7 +539,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
 
         if schema.strict == "filter":
             if type(check_obj).__module__.startswith("pyspark.pandas"):
-                # NOTE: remove this when we have a seperate backend for pyspark
+                # NOTE: remove this when we have a separate backend for pyspark
                 # pandas.
                 check_obj = check_obj.drop(labels=filter_out_columns, axis=1)
             else:
@@ -726,7 +726,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
         check_obj: pd.DataFrame,
         schema,
     ) -> CoreCheckResult:
-        """Check for column name uniquness."""
+        """Check for column name uniqueness."""
 
         passed = True
         failure_cases = None

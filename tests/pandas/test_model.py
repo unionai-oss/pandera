@@ -1409,7 +1409,7 @@ def test_multiple_generic() -> None:
 
 
 def test_repeated_generic() -> None:
-    """Test that repeated use of Generic in a class hierachy results in the correct types"""
+    """Test that repeated use of Generic in a class hierarchy results in the correct types"""
     T1 = TypeVar("T1", int, float, str)
     T2 = TypeVar("T2", int, float, str)
     T3 = TypeVar("T3", int, float, str)
