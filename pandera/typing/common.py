@@ -137,6 +137,7 @@ class DataFrameBase(Generic[T]):
                 for x in inspect.getmro(class_args[0])
             ):
                 schema_model = value.__args__[0]
+                schema = schema_model.to_schema()
             else:
                 raise TypeError("Could not find DataFrameModel in class args")
 
@@ -147,12 +148,12 @@ class DataFrameBase(Generic[T]):
             if (
                 pandera_accessor is None
                 or pandera_accessor.schema is None
-                or pandera_accessor.schema != schema_model.to_schema()
+                or pandera_accessor.schema != schema
             ):
-                self.__dict__ = schema_model.validate(self).__dict__
+                self.__dict__.update(schema.validate(self).__dict__)
                 if pandera_accessor is None:
                     pandera_accessor = getattr(self, "pandera")
-                pandera_accessor.add_schema(schema_model.to_schema())
+                pandera_accessor.add_schema(schema)
 
 
 # pylint:disable=too-few-public-methods

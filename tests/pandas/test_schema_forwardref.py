@@ -114,7 +114,7 @@ def test_forwardref_with_pandera_dataframe_generic_initialization():
     class LocalModel(pa.DataFrameModel):
         a: int
 
-    expected = pd.DataFrame({"a": [1, 2, 3]})
+    expected = pa.typing.DataFrame[LocalModel]({"a": [1, 2, 3]})
     assert_frame_equal(func({"a": [1, 2, 3]}), expected)
 
     with pytest.raises(pa.errors.SchemaError):
