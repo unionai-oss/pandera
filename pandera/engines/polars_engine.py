@@ -841,7 +841,7 @@ class Category(DataType, dtypes.Category):
             )
             is_coercible: pl.LazyFrame = pl.concat(
                 (coercible, match_categories), how="horizontal"
-            ).select(pl.all_horizontal(CHECK_OUTPUT_KEY, "column_0"))
+            ).select(pl.all_horizontal(CHECK_OUTPUT_KEY, "belongs"))
 
             failure_cases = polars_failure_cases_from_coercible(
                 data_container, is_coercible
@@ -860,7 +860,9 @@ class Category(DataType, dtypes.Category):
         # self.categories can be None, and polars won't crash on this, though the types indicate this should not
         # be None
         return lf.select(
-            pl.col(key).is_in(self.categories)  # type:ignore [arg-type]
+            pl.col(key)
+            .is_in(self.categories)  # type:ignore [arg-type]
+            .alias("belongs")
         )
 
     def __str__(self):

@@ -125,7 +125,7 @@ def test_coerce_no_cast_special(to_dtype, strategy):
 )
 def test_polars_data_type_coerce(data_type_cls):
     """
-    Test that pandas data type coercion will raise a ParserError. on failure.
+    Test that polars data type coercion will raise a ParserError on failure.
     """
     try:
         data_type = data_type_cls()
