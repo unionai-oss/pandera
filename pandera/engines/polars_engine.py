@@ -79,11 +79,15 @@ def polars_object_coercible(
 def polars_failure_cases_from_coercible(
     data_container: PolarsData,
     is_coercible: pl.LazyFrame,
-) -> pl.LazyFrame:
+) -> pl.DataFrame:
     """Get the failure cases resulting from trying to coerce a polars object."""
-    return pl.concat(
-        items=[data_container.lazyframe, is_coercible], how="horizontal"
-    ).filter(pl.col(CHECK_OUTPUT_KEY).not_())
+    return (
+        pl.concat(
+            items=[data_container.lazyframe, is_coercible], how="horizontal"
+        )
+        .filter(pl.col(CHECK_OUTPUT_KEY).not_())
+        .collect()
+    )
 
 
 def polars_coerce_failure_cases(
@@ -104,7 +108,7 @@ def polars_coerce_failure_cases(
     try:
         failure_cases = polars_failure_cases_from_coercible(
             data_container, is_coercible
-        ).collect()
+        )
         is_coercible = is_coercible.collect()
     except COERCION_ERRORS:
         # If coercion fails, all of the relevant rows are failure cases
