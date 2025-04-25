@@ -15,6 +15,7 @@ from pandera.api.dataframe.model_components import FieldInfo
 from pandera.api.polars.components import Column
 from pandera.api.polars.container import DataFrameSchema
 from pandera.api.polars.model_config import BaseConfig
+from pandera.api.polars.types import PolarsFrame
 from pandera.engines import polars_engine as pe
 from pandera.errors import SchemaInitError
 from pandera.typing import AnnotationInfo
@@ -140,7 +141,7 @@ class DataFrameModel(_DataFrameModel[pl.LazyFrame, DataFrameSchema]):
     @docstring_substitution(validate_doc=BaseSchema.validate.__doc__)
     def validate(
         cls: Type[Self],
-        check_obj: Union[pl.LazyFrame, pl.DataFrame],
+        check_obj: PolarsFrame,
         head: Optional[int] = None,
         tail: Optional[int] = None,
         sample: Optional[int] = None,
