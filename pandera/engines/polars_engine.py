@@ -801,9 +801,9 @@ class Category(DataType, dtypes.Category):
     def __belongs_to_categories(
         self,
         lf: pl.LazyFrame,
-        key: Optional[str] = None,
+        key: str = "*",
     ) -> pl.LazyFrame:
-        return lf.select(pl.col(key or "*").is_in(self.categories))
+        return lf.select(pl.col(key).is_in(self.categories))
 
     def __str__(self):
         return "Category"
