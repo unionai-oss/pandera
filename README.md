@@ -30,7 +30,7 @@
 [![Monthly Downloads](https://img.shields.io/pypi/dm/pandera?style=for-the-badge&color=blue)](https://pepy.tech/project/pandera)
 [![Total Downloads](https://img.shields.io/pepy/dt/pandera?style=for-the-badge&color=blue)](https://pepy.tech/project/pandera)
 [![Conda Downloads](https://img.shields.io/conda/dn/conda-forge/pandera?style=for-the-badge)](https://anaconda.org/conda-forge/pandera)
-[![Discord](https://img.shields.io/badge/discord-chat-purple?color=%235765F2&label=discord&logo=discord&style=for-the-badge)](https://discord.gg/vyanhWuaKB)
+[![Slack](https://img.shields.io/badge/Slack-4A154B?logo=slack&logoColor=fff&style=for-the-badge)](https://flyte-org.slack.com/archives/C08FDTY2X3L)
 
 Pandera is a [Union.ai](https://union.ai/blog-post/pandera-joins-union-ai) open
 source project that provides a flexible and expressive API for performing data
