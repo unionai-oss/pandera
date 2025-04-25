@@ -134,8 +134,9 @@ html_theme = "furo"
 # documentation.
 
 announcement = """
-📢 Pandera 0.19.0 now supports <a href="polars.html">Polars</a> 🎉.
-If you like this project, <a href='https://github.com/unionai-oss/pandera' target='_blank'>give us a star ⭐️! </a>
+📢 Pandera 0.24.0 introduces the <i>pandera.pandas</i>
+module, which is the recommended way of defining schemas. Learn more details
+<a href='https://github.com/unionai-oss/pandera/releases/tag/v0.24.0'>here</a>
 """
 
 html_logo = "_static/pandera-banner.png"
