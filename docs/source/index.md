@@ -235,6 +235,29 @@ class Schema(pa.DataFrameModel):
 Schema.validate(df)
 ```
 
+:::{warning}
+Pandera `v0.24.0` introduces the `pandera.pandas` module, which is now the
+(highly) recommended way of defining `DataFrameSchema`s and `DataFrameModel`s
+for `pandas` data structures like `DataFrame`s. Defining a dataframe schema from
+the top-level `pandera` module will produce a `FutureWarning`:
+
+```python
+import pandera as pa
+
+schema = pa.DataFrameSchema({"col": pa.Column(str)})
+```
+
+Update your import to:
+
+```python
+import pandera.pandas as pa
+```
+
+And all of the rest of your pandera code should work. Using the top-level
+`pandera` module to access `DataFrameSchema` and the other pandera classes
+or functions will be deprecated in a future version
+:::
+
 ## Informative Errors
 
 If the dataframe does not pass validation checks, `pandera` provides
