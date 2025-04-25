@@ -160,7 +160,7 @@ class DataType(dtypes.DataType):
         if isinstance(data_container, pl.LazyFrame):
             data_container = PolarsData(data_container)
 
-        if data_container.key is None:
+        if data_container.key == "*":
             dtypes = self.type
         else:
             dtypes = {data_container.key: self.type}
@@ -184,13 +184,13 @@ class DataType(dtypes.DataType):
         except COERCION_ERRORS as exc:  # pylint:disable=broad-except
             _key = (
                 ""
-                if data_container.key is None
+                if data_container.key == "*"
                 else f"'{data_container.key}' in"
             )
             is_coercible, failure_cases = polars_coerce_failure_cases(
                 data_container=data_container, type_=self.type
             )
-            if data_container.key:
+            if data_container.key != "*":
                 failure_cases = failure_cases.select(data_container.key)
             raise errors.ParserError(
                 f"Could not coerce {_key} LazyFrame with schema "
