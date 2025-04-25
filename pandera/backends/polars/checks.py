@@ -103,7 +103,7 @@ class PolarsCheckBackend(BaseCheckBackend):
             [check_obj.lazyframe, results], how="horizontal"
         ).filter(pl.col(CHECK_OUTPUT_KEY).not_())
 
-        if check_obj.key is not None:
+        if check_obj.key != "*":
             failure_cases = failure_cases.select(check_obj.key)
         return CheckResult(
             check_output=results,
