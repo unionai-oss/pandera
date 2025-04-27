@@ -65,6 +65,26 @@ class IbisCheckBackend(BaseCheckBackend):
                 out = check_obj.table.mutate(
                     **{f"{k}{CHECK_OUTPUT_SUFFIX}": v for k, v in out.items()}
                 )
+            elif isinstance(out, ir.Table):
+                out = out.rename(f"{{name}}{CHECK_OUTPUT_SUFFIX}")
+                try:
+                    out = check_obj.table.join(out, how="positional")
+                except Exception:  # pylint: disable=broad-exception-caught
+                    # For backends that do not support positional joins:
+                    # https://github.com/ibis-project/ibis/issues/9486
+                    index_col = "__idx__"
+                    out = (
+                        check_obj.table.mutate(
+                            **{index_col: ibis.row_number().over()}
+                        )
+                        .join(
+                            out.mutate(
+                                **{index_col: ibis.row_number().over()}
+                            ),
+                            index_col,
+                        )
+                        .drop(index_col)
+                    )
 
         if isinstance(out, ir.Table):
             # for checks that return a boolean table, make sure all columns

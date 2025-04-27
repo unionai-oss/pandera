@@ -11,8 +11,6 @@ from ibis.common.selectors import Selector
 from pandera.api.extensions import register_builtin_check
 from pandera.api.ibis.types import IbisData
 from pandera.backends.ibis.utils import select_column
-from pandera.constants import check_col_name
-
 
 T = TypeVar("T")
 
@@ -46,9 +44,7 @@ def equal_to(data: IbisData, value: Any) -> ir.Table:
         equal to this value.
     """
     value = _infer_interval_with_mixed_units(value)
-    return data.table.mutate(
-        s.across(_selector(data.key), _ == value, names=check_col_name)
-    )
+    return data.table.select(s.across(_selector(data.key), _ == value))
 
 
 @register_builtin_check(
@@ -63,9 +59,7 @@ def not_equal_to(data: IbisData, value: Any) -> ir.Table:
     :param value: This value must not occur in the checked data structure.
     """
     value = _infer_interval_with_mixed_units(value)
-    return data.table.mutate(
-        s.across(_selector(data.key), _ != value, names=check_col_name)
-    )
+    return data.table.select(s.across(_selector(data.key), _ != value))
 
 
 @register_builtin_check(
@@ -82,9 +76,7 @@ def greater_than(data: IbisData, min_value: Any) -> ir.Table:
         to the dtype of the :class:`ir.Column` to be validated.
     """
     value = _infer_interval_with_mixed_units(min_value)
-    return data.table.mutate(
-        s.across(_selector(data.key), _ > value, names=check_col_name)
-    )
+    return data.table.select(s.across(_selector(data.key), _ > value))
 
 
 @register_builtin_check(
@@ -100,9 +92,7 @@ def greater_than_or_equal_to(data: IbisData, min_value: Any) -> ir.Table:
         to the dtype of the :class:`ir.Column` to be validated.
     """
     value = _infer_interval_with_mixed_units(min_value)
-    return data.table.mutate(
-        s.across(_selector(data.key), _ >= value, names=check_col_name)
-    )
+    return data.table.select(s.across(_selector(data.key), _ >= value))
 
 
 @register_builtin_check(
@@ -119,9 +109,7 @@ def less_than(data: IbisData, max_value: Any) -> ir.Table:
         :class:`ir.Column` to be validated.
     """
     value = _infer_interval_with_mixed_units(max_value)
-    return data.table.mutate(
-        s.across(_selector(data.key), _ < value, names=check_col_name)
-    )
+    return data.table.select(s.across(_selector(data.key), _ < value))
 
 
 @register_builtin_check(
@@ -137,6 +125,4 @@ def less_than_or_equal_to(data: IbisData, max_value: Any) -> ir.Table:
         :class:`ir.Column` to be validated.
     """
     value = _infer_interval_with_mixed_units(max_value)
-    return data.table.mutate(
-        s.across(_selector(data.key), _ <= value, names=check_col_name)
-    )
+    return data.table.select(s.across(_selector(data.key), _ <= value))
