@@ -433,20 +433,14 @@ def test_get_dataframe_schema_statistics():
         columns={
             "int": pa.Column(
                 int,
-                checks=[
-                    pa.Check.greater_than_or_equal_to(0),
-                    pa.Check.less_than_or_equal_to(100),
-                ],
+                checks=[pa.Check.in_range(0, 100)],
                 nullable=True,
                 description="Integer column with title",
                 title="integer_col",
             ),
             "float": pa.Column(
                 float,
-                checks=[
-                    pa.Check.greater_than_or_equal_to(50),
-                    pa.Check.less_than_or_equal_to(100),
-                ],
+                checks=[pa.Check.between(50, 100)],
                 description="Float col no title",
             ),
             "str": pa.Column(
@@ -466,16 +460,19 @@ def test_get_dataframe_schema_statistics():
         "columns": {
             "int": {
                 "dtype": DEFAULT_INT,
-                "checks": {
-                    "greater_than_or_equal_to": {
+                "checks": [
+                    {
+                        "include_max": True,
+                        "include_min": True,
                         "min_value": 0,
-                        "options": {"ignore_na": True, "raise_warning": False},
-                    },
-                    "less_than_or_equal_to": {
                         "max_value": 100,
-                        "options": {"ignore_na": True, "raise_warning": False},
-                    },
-                },
+                        "options": {
+                            "check_name": "in_range",
+                            "ignore_na": True,
+                            "raise_warning": False,
+                        },
+                    }
+                ],
                 "nullable": True,
                 "unique": False,
                 "coerce": False,
@@ -486,16 +483,19 @@ def test_get_dataframe_schema_statistics():
             },
             "float": {
                 "dtype": DEFAULT_FLOAT,
-                "checks": {
-                    "greater_than_or_equal_to": {
+                "checks": [
+                    {
+                        "include_max": True,
+                        "include_min": True,
                         "min_value": 50,
-                        "options": {"ignore_na": True, "raise_warning": False},
-                    },
-                    "less_than_or_equal_to": {
                         "max_value": 100,
-                        "options": {"ignore_na": True, "raise_warning": False},
-                    },
-                },
+                        "options": {
+                            "check_name": "in_range",
+                            "ignore_na": True,
+                            "raise_warning": False,
+                        },
+                    }
+                ],
                 "nullable": False,
                 "unique": False,
                 "coerce": False,
@@ -506,12 +506,16 @@ def test_get_dataframe_schema_statistics():
             },
             "str": {
                 "dtype": pandas_engine.Engine.dtype(str),
-                "checks": {
-                    "isin": {
+                "checks": [
+                    {
                         "allowed_values": ["foo", "bar", "baz"],
-                        "options": {"ignore_na": True, "raise_warning": False},
+                        "options": {
+                            "check_name": "isin",
+                            "ignore_na": True,
+                            "raise_warning": False,
+                        },
                     }
-                },
+                ],
                 "nullable": False,
                 "unique": False,
                 "coerce": False,
@@ -524,12 +528,16 @@ def test_get_dataframe_schema_statistics():
         "index": [
             {
                 "dtype": DEFAULT_INT,
-                "checks": {
-                    "greater_than_or_equal_to": {
+                "checks": [
+                    {
                         "min_value": 0,
-                        "options": {"ignore_na": True, "raise_warning": False},
+                        "options": {
+                            "check_name": "greater_than_or_equal_to",
+                            "ignore_na": True,
+                            "raise_warning": False,
+                        },
                     }
-                },
+                ],
                 "nullable": False,
                 "coerce": False,
                 "name": "int_index",
@@ -549,25 +557,22 @@ def test_get_series_schema_statistics():
     schema = pa.SeriesSchema(
         int,
         nullable=False,
-        checks=[
-            pa.Check.greater_than_or_equal_to(0),
-            pa.Check.less_than_or_equal_to(100),
-        ],
+        checks=[pa.Check.greater_than_or_equal_to(0)],
     )
     statistics = schema_statistics.get_series_schema_statistics(schema)
     assert statistics == {
         "dtype": pandas_engine.Engine.dtype(int),
         "nullable": False,
-        "checks": {
-            "greater_than_or_equal_to": {
+        "checks": [
+            {
                 "min_value": 0,
-                "options": {"ignore_na": True, "raise_warning": False},
+                "options": {
+                    "check_name": "greater_than_or_equal_to",
+                    "ignore_na": True,
+                    "raise_warning": False,
+                },
             },
-            "less_than_or_equal_to": {
-                "max_value": 100,
-                "options": {"ignore_na": True, "raise_warning": False},
-            },
-        },
+        ],
         "name": None,
         "coerce": False,
         "unique": False,
@@ -582,10 +587,7 @@ def test_get_series_schema_statistics():
         [
             pa.Index(
                 int,
-                checks=[
-                    pa.Check.greater_than_or_equal_to(10),
-                    pa.Check.less_than_or_equal_to(20),
-                ],
+                checks=[pa.Check.in_range(10, 20)],
                 nullable=False,
                 name="int_index",
             ),
@@ -593,22 +595,19 @@ def test_get_series_schema_statistics():
                 {
                     "dtype": pandas_engine.Engine.dtype(int),
                     "nullable": False,
-                    "checks": {
-                        "greater_than_or_equal_to": {
+                    "checks": [
+                        {
+                            "include_max": True,
+                            "include_min": True,
                             "min_value": 10,
-                            "options": {
-                                "ignore_na": True,
-                                "raise_warning": False,
-                            },
-                        },
-                        "less_than_or_equal_to": {
                             "max_value": 20,
                             "options": {
+                                "check_name": "in_range",
                                 "ignore_na": True,
                                 "raise_warning": False,
                             },
-                        },
-                    },
+                        }
+                    ],
                     "name": "int_index",
                     "coerce": False,
                     "unique": False,
@@ -633,12 +632,16 @@ def test_get_index_schema_statistics(index_schema_component, expectation):
         *[
             [
                 [check],
-                {
-                    check.name: {
+                [
+                    {
                         **(check.statistics or {}),
-                        "options": {"ignore_na": True, "raise_warning": False},
+                        "options": {
+                            "check_name": check.name,
+                            "ignore_na": True,
+                            "raise_warning": False,
+                        },
                     }
-                },
+                ],
             ]
             for check in [
                 pa.Check.greater_than(1),
@@ -657,40 +660,52 @@ def test_get_index_schema_statistics(index_schema_component, expectation):
         # multiple checks at once
         [
             [
-                pa.Check.greater_than_or_equal_to(10),
-                pa.Check.less_than_or_equal_to(50),
+                pa.Check.in_range(10, 50),
                 pa.Check.isin([10, 20, 30, 40, 50]),
             ],
-            {
-                "greater_than_or_equal_to": {
+            [
+                {
+                    "include_max": True,
+                    "include_min": True,
                     "min_value": 10,
-                    "options": {"ignore_na": True, "raise_warning": False},
-                },
-                "less_than_or_equal_to": {
                     "max_value": 50,
-                    "options": {"ignore_na": True, "raise_warning": False},
+                    "options": {
+                        "check_name": "in_range",
+                        "ignore_na": True,
+                        "raise_warning": False,
+                    },
                 },
-                "isin": {
+                {
                     "allowed_values": [10, 20, 30, 40, 50],
-                    "options": {"ignore_na": True, "raise_warning": False},
+                    "options": {
+                        "check_name": "isin",
+                        "ignore_na": True,
+                        "raise_warning": False,
+                    },
                 },
-            },
+            ],
         ],
         # incompatible checks
-        *[
+        [
             [
-                [
-                    pa.Check.greater_than_or_equal_to(min_value),
-                    pa.Check.less_than_or_equal_to(max_value),
-                ],
-                ValueError,
-            ]
-            for min_value, max_value in [
-                (5, 1),
-                (10, 1),
-                (100, 10),
-                (1000, 100),
-            ]
+                pa.Check.greater_than_or_equal_to(1),
+                pa.Check.less_than_or_equal_to(2),
+            ],
+            ValueError,
+        ],
+        [
+            [
+                pa.Check.ge(1),
+                pa.Check.le(2),
+            ],
+            ValueError,
+        ],
+        [
+            [
+                pa.Check.greater_than(1),
+                pa.Check.in_range(2, 4),
+            ],
+            ValueError,
         ],
     ],
 )
@@ -724,11 +739,15 @@ def test_parse_checks_and_statistics_no_param(extra_registered_checks):
     """
 
     checks = [pa.Check.no_param_check()]
-    expectation = {
-        "no_param_check": {
-            "options": {"ignore_na": True, "raise_warning": False}
+    expectation = [
+        {
+            "options": {
+                "check_name": "no_param_check",
+                "ignore_na": True,
+                "raise_warning": False,
+            }
         }
-    }
+    ]
     assert schema_statistics.parse_checks(checks) == expectation
 
     check_statistics = {check.name: check.statistics for check in checks}

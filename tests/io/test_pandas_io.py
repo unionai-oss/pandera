@@ -127,24 +127,24 @@ columns:
     dtype: int64
     nullable: false
     checks:
-      greater_than:
-        value: 0
-        options:
-          raise_warning: false
-          ignore_na: true
-      less_than:
-        value: 10
-        options:
-          raise_warning: false
-          ignore_na: true
-      in_range:
-        min_value: 0
-        max_value: 10
-        include_min: true
-        include_max: true
-        options:
-          raise_warning: false
-          ignore_na: true
+    - value: 0
+      options:
+        check_name: greater_than
+        raise_warning: false
+        ignore_na: true
+    - value: 10
+      options:
+        check_name: less_than
+        raise_warning: false
+        ignore_na: true
+    - min_value: 0
+      max_value: 10
+      include_min: true
+      include_max: true
+      options:
+        check_name: in_range
+        raise_warning: false
+        ignore_na: true
     unique: false
     coerce: false
     required: true
@@ -155,24 +155,24 @@ columns:
     dtype: float64
     nullable: false
     checks:
-      greater_than:
-        value: -10
-        options:
-          raise_warning: false
-          ignore_na: true
-      less_than:
-        value: 20
-        options:
-          raise_warning: false
-          ignore_na: true
-      in_range:
-        min_value: -10
-        max_value: 20
-        include_min: true
-        include_max: true
-        options:
-          raise_warning: false
-          ignore_na: true
+    - value: -10
+      options:
+        check_name: greater_than
+        raise_warning: false
+        ignore_na: true
+    - value: 20
+      options:
+        check_name: less_than
+        raise_warning: false
+        ignore_na: true
+    - min_value: -10
+      max_value: 20
+      include_min: true
+      include_max: true
+      options:
+        check_name: in_range
+        raise_warning: false
+        ignore_na: true
     unique: false
     coerce: false
     required: true
@@ -183,21 +183,21 @@ columns:
     dtype: str
     nullable: false
     checks:
-      isin:
-        value:
-        - foo
-        - bar
-        - x
-        - xy
-        options:
-          raise_warning: false
-          ignore_na: true
-      str_length:
-        min_value: 1
-        max_value: 3
-        options:
-          raise_warning: false
-          ignore_na: true
+    - value:
+      - foo
+      - bar
+      - x
+      - xy
+      options:
+        check_name: isin
+        raise_warning: false
+        ignore_na: true
+    - min_value: 1
+      max_value: 3
+      options:
+        check_name: str_length
+        raise_warning: false
+        ignore_na: true
     unique: false
     coerce: false
     required: true
@@ -208,16 +208,16 @@ columns:
     dtype: datetime64[ns]
     nullable: false
     checks:
-      greater_than:
-        value: '2010-01-01 00:00:00'
-        options:
-          raise_warning: false
-          ignore_na: true
-      less_than:
-        value: '2020-01-01 00:00:00'
-        options:
-          raise_warning: false
-          ignore_na: true
+    - value: '2010-01-01 00:00:00'
+      options:
+        check_name: greater_than
+        raise_warning: false
+        ignore_na: true
+    - value: '2020-01-01 00:00:00'
+      options:
+        check_name: less_than
+        raise_warning: false
+        ignore_na: true
     unique: false
     coerce: false
     required: true
@@ -228,16 +228,16 @@ columns:
     dtype: timedelta64[ns]
     nullable: false
     checks:
-      greater_than:
-        value: 1000
-        options:
-          raise_warning: false
-          ignore_na: true
-      less_than:
-        value: 10000
-        options:
-          raise_warning: false
-          ignore_na: true
+    - value: 1000
+      options:
+        check_name: greater_than
+        raise_warning: false
+        ignore_na: true
+    - value: 10000
+      options:
+        check_name: less_than
+        raise_warning: false
+        ignore_na: true
     unique: false
     coerce: false
     required: true
@@ -248,12 +248,12 @@ columns:
     dtype: str
     nullable: true
     checks:
-      str_length:
-        min_value: 1
-        max_value: 3
-        options:
-          raise_warning: false
-          ignore_na: true
+    - min_value: 1
+      max_value: 3
+      options:
+        check_name: str_length
+        raise_warning: false
+        ignore_na: true
     unique: false
     coerce: true
     required: false
@@ -264,15 +264,15 @@ columns:
     dtype: null
     nullable: false
     checks:
-      isin:
-        value:
-        - foo
-        - bar
-        - x
-        - xy
-        options:
-          raise_warning: false
-          ignore_na: true
+    - value:
+      - foo
+      - bar
+      - x
+      - xy
+      options:
+        check_name: isin
+        raise_warning: false
+        ignore_na: true
     unique: false
     coerce: false
     required: true
@@ -332,30 +332,37 @@ columns:
     dtype: float64
     nullable: false
     checks:
-      greater_than: -10
-      less_than: 20
-      in_range:
-        min_value: -10
-        max_value: 20
+    - value: -10
+      options:
+        check_name: greater_than
+    - value: 20
+      options:
+        check_name: less_than
+    - min_value: -10
+      max_value: 20
+      include_min: true
+      include_max: true
+      options:
+        check_name: in_range
   str_column:
     dtype: str
     nullable: false
     checks:
-      isin:
-        value:
-        - foo
-        - bar
-        - x
-        - xy
-        options:
-          raise_warning: false
-          ignore_na: true
-      str_length:
-        min_value: 1
-        max_value: 3
-        options:
-          raise_warning: false
-          ignore_na: true
+    - value:
+      - foo
+      - bar
+      - x
+      - xy
+      options:
+        check_name: isin
+        raise_warning: false
+        ignore_na: true
+    - min_value: 1
+      max_value: 3
+      options:
+        check_name: str_length
+        raise_warning: false
+        ignore_na: true
 index: null
 checks: null
 coerce: false
@@ -406,9 +413,10 @@ columns:
   object_column:
     dtype: object
 checks:
-  unregistered_check:
-    stat1: missing_str_stat
-    stat2: 11
+- stat1: missing_str_stat
+  stat2: 11
+  options:
+    check_name: unregistered_check
 index: null
 coerce: false
 strict: false
@@ -422,9 +430,10 @@ columns:
   int_column:
     dtype: int64
     checks:
-      unregistered_check:
-        stat1: missing_str_stat
-        stat2: 11
+    - stat1: missing_str_stat
+      stat2: 11
+      options:
+        check_name: unregistered_check
   float_column:
     dtype: float64
   str_column:
@@ -447,24 +456,24 @@ columns:
     dtype: int64
     nullable: false
     checks:
-      greater_than:
-        value: 0
-        options:
-          raise_warning: false
-          ignore_na: true
-      less_than:
-        value: 10
-        options:
-          raise_warning: false
-          ignore_na: true
-      in_range:
-        min_value: 0
-        max_value: 10
-        include_min: true
-        include_max: true
-        options:
-          raise_warning: false
-          ignore_na: true
+    - value: 0
+      options:
+        check_name: greater_than
+        raise_warning: false
+        ignore_na: true
+    - value: 10
+      options:
+        check_name: less_than
+        raise_warning: false
+        ignore_na: true
+    - min_value: 0
+      max_value: 10
+      include_min: true
+      include_max: true
+      options:
+        check_name: in_range
+        raise_warning: false
+        ignore_na: true
     unique: false
     coerce: false
     required: true
@@ -475,24 +484,24 @@ columns:
     dtype: float64
     nullable: false
     checks:
-      greater_than:
-        value: -10
-        options:
-          raise_warning: false
-          ignore_na: true
-      less_than:
-        value: 20
-        options:
-          raise_warning: false
-          ignore_na: true
-      in_range:
-        min_value: -10
-        max_value: 20
-        include_min: true
-        include_max: true
-        options:
-          raise_warning: false
-          ignore_na: true
+    - value: -10
+      options:
+        check_name: greater_than
+        raise_warning: false
+        ignore_na: true
+    - value: 20
+      options:
+        check_name: less_than
+        raise_warning: false
+        ignore_na: true
+    - min_value: -10
+      max_value: 20
+      include_min: true
+      include_max: true
+      options:
+        check_name: in_range
+        raise_warning: false
+        ignore_na: true
     unique: false
     coerce: false
     required: true
@@ -503,21 +512,21 @@ columns:
     dtype: str
     nullable: false
     checks:
-      isin:
-        value:
-        - foo
-        - bar
-        - x
-        - xy
-        options:
-          raise_warning: false
-          ignore_na: true
-      str_length:
-        min_value: 1
-        max_value: 3
-        options:
-          raise_warning: false
-          ignore_na: true
+    - value:
+      - foo
+      - bar
+      - x
+      - xy
+      options:
+        check_name: isin
+        raise_warning: false
+        ignore_na: true
+    - min_value: 1
+      max_value: 3
+      options:
+        check_name: str_length
+        raise_warning: false
+        ignore_na: true
     unique: false
     coerce: false
     required: true
@@ -528,16 +537,16 @@ columns:
     dtype: datetime64[ns]
     nullable: false
     checks:
-      greater_than:
-        value: '2010-01-01 00:00:00'
-        options:
-          raise_warning: false
-          ignore_na: true
-      less_than:
-        value: '2020-01-01 00:00:00'
-        options:
-          raise_warning: false
-          ignore_na: true
+    - value: '2010-01-01 00:00:00'
+      options:
+        check_name: greater_than
+        raise_warning: false
+        ignore_na: true
+    - value: '2020-01-01 00:00:00'
+      options:
+        check_name: less_than
+        raise_warning: false
+        ignore_na: true
     unique: false
     coerce: false
     required: true
@@ -548,16 +557,16 @@ columns:
     dtype: timedelta64[ns]
     nullable: false
     checks:
-      greater_than:
-        value: 1000
-        options:
-          raise_warning: false
-          ignore_na: true
-      less_than:
-        value: 10000
-        options:
-          raise_warning: false
-          ignore_na: true
+    - value: 1000
+      options:
+        check_name: greater_than
+        raise_warning: false
+        ignore_na: true
+    - value: 10000
+      options:
+        check_name: less_than
+        raise_warning: false
+        ignore_na: true
     unique: false
     coerce: false
     required: true
@@ -568,12 +577,12 @@ columns:
     dtype: str
     nullable: true
     checks:
-      str_length:
-        min_value: 1
-        max_value: 3
-        options:
-          raise_warning: false
-          ignore_na: true
+    - min_value: 1
+      max_value: 3
+      options:
+        check_name: str_length
+        raise_warning: false
+        ignore_na: true
     unique: false
     coerce: true
     required: false
@@ -584,15 +593,15 @@ columns:
     dtype: null
     nullable: false
     checks:
-      isin:
-        value:
-        - foo
-        - bar
-        - x
-        - xy
-        options:
-          raise_warning: false
-          ignore_na: true
+    - value:
+      - foo
+      - bar
+      - x
+      - xy
+      options:
+        check_name: isin
+        raise_warning: false
+        ignore_na: true
     unique: false
     coerce: false
     required: true
@@ -748,6 +757,7 @@ def test_from_yaml(yaml_str, schema_creator):
     """Test that from_yaml reads yaml string."""
     schema_from_yaml = io.from_yaml(yaml_str)
     expected_schema = schema_creator()
+
     assert schema_from_yaml == expected_schema
     assert expected_schema == schema_from_yaml
 
@@ -1244,14 +1254,14 @@ columns:
     dtype: {INT_DTYPE}
     nullable: false
     checks:
-      in_range:
-        min_value: 10
-        max_value: 99
-        include_min: true
-        include_max: true
-        options:
-          raise_warning: false
-          ignore_na: true
+    - min_value: 10
+      max_value: 99
+      include_min: true
+      include_max: true
+      options:
+        check_name: in_range
+        raise_warning: false
+        ignore_na: true
     unique: true
     coerce: true
     required: true
@@ -1262,11 +1272,11 @@ columns:
     dtype: {INT_DTYPE}
     nullable: true
     checks:
-      less_than_or_equal_to:
-        value: 30
-        options:
-          raise_warning: false
-          ignore_na: true
+    - value: 30
+      options:
+        check_name: less_than_or_equal_to
+        raise_warning: false
+        ignore_na: true
     unique: false
     coerce: true
     required: true
@@ -1277,12 +1287,12 @@ columns:
     dtype: {STR_DTYPE}
     nullable: true
     checks:
-      str_length:
-        min_value: 3
-        max_value: 80
-        options:
-          raise_warning: false
-          ignore_na: true
+    - min_value: 3
+      max_value: 80
+      options:
+        check_name: str_length
+        raise_warning: false
+        ignore_na: true
     unique: false
     coerce: true
     required: true
@@ -1293,11 +1303,11 @@ columns:
     dtype: {STR_DTYPE}
     nullable: true
     checks:
-      str_matches:
-        value: ^\\d{{3}}[A-Z]$
-        options:
-          raise_warning: false
-          ignore_na: true
+    - value: ^\\d{{3}}[A-Z]$
+      options:
+        check_name: str_matches
+        raise_warning: false
+        ignore_na: true
     unique: false
     coerce: true
     required: true
@@ -1308,12 +1318,12 @@ columns:
     dtype: {STR_DTYPE}
     nullable: true
     checks:
-      str_length:
-        min_value: 3
-        max_value: null
-        options:
-          raise_warning: false
-          ignore_na: true
+    - min_value: 3
+      max_value: null
+      options:
+        check_name: str_length
+        raise_warning: false
+        ignore_na: true
     unique: false
     coerce: true
     required: true
@@ -1324,12 +1334,12 @@ columns:
     dtype: {STR_DTYPE}
     nullable: true
     checks:
-      str_length:
-        min_value: null
-        max_value: 3
-        options:
-          raise_warning: false
-          ignore_na: true
+    - min_value: null
+      max_value: 3
+      options:
+        check_name: str_length
+        raise_warning: false
+        ignore_na: true
     unique: false
     coerce: true
     required: true
@@ -1340,14 +1350,14 @@ columns:
     dtype: category
     nullable: false
     checks:
-      isin:
-        value:
-        - 1.0
-        - 2.0
-        - 3.0
-        options:
-          raise_warning: false
-          ignore_na: true
+    - value:
+      - 1.0
+      - 2.0
+      - 3.0
+      options:
+        check_name: isin
+        raise_warning: false
+        ignore_na: true
     unique: false
     coerce: true
     required: true
@@ -1368,11 +1378,11 @@ columns:
     dtype: {STR_DTYPE}
     nullable: true
     checks:
-      greater_than_or_equal_to:
-        value: '20201231'
-        options:
-          raise_warning: false
-          ignore_na: true
+    - value: '20201231'
+      options:
+        check_name: greater_than_or_equal_to
+        raise_warning: false
+        ignore_na: true
     unique: false
     coerce: true
     required: true

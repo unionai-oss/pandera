@@ -5,7 +5,7 @@ import warnings
 from collections.abc import Mapping
 from functools import partial
 from pathlib import Path
-from typing import Dict, Optional, Union
+from typing import Dict, Optional, Union, List, Any
 
 import pandas as pd
 
@@ -97,14 +97,15 @@ def _serialize_dataframe_stats(dataframe_checks):
     Serialize global dataframe check statistics into json/yaml-compatible
     format.
     """
-    serialized_checks = {}
+    serialized_checks = []
 
-    for check_name, check_stats in dataframe_checks.items():
+    for check_stats in dataframe_checks:
         # The case that `check_name` is not registered is handled in
         # `parse_checks` so we know that `check_name` exists.
 
         # infer dtype of statistics and serialize them
-        serialized_checks[check_name] = _serialize_check_stats(check_stats)
+        serialized_check_stats = _serialize_check_stats(check_stats)
+        serialized_checks.append(serialized_check_stats)
 
     return serialized_checks
 
@@ -115,11 +116,12 @@ def _serialize_component_stats(component_stats):
     """
     serialized_checks = None
     if component_stats["checks"] is not None:
-        serialized_checks = {}
-        for check_name, check_stats in component_stats["checks"].items():
-            serialized_checks[check_name] = _serialize_check_stats(
+        serialized_checks = []
+        for check_stats in component_stats["checks"]:
+            serialized_check_stats = _serialize_check_stats(
                 check_stats, component_stats["dtype"]
             )
+            serialized_checks.append(serialized_check_stats)
 
     dtype = component_stats.get("dtype")
     if dtype:
@@ -247,9 +249,9 @@ def _deserialize_component_stats(serialized_component_stats):
     if checks is not None:
         checks = [
             _deserialize_check_stats(
-                getattr(Check, check_name), check_stats, dtype
+                getattr(Check, check["options"]["check_name"]), check, dtype
             )
-            for check_name, check_stats in checks.items()
+            for check in checks
         ]
     return {
         "title": title,
@@ -309,8 +311,10 @@ def deserialize_schema(serialized_schema):
     if checks is not None:
         # handles unregistered checks by raising AttributeErrors from getattr
         checks = [
-            _deserialize_check_stats(getattr(Check, check_name), check_stats)
-            for check_name, check_stats in checks.items()
+            _deserialize_check_stats(
+                getattr(Check, check["options"]["check_name"]), check
+            )
+            for check in checks
         ]
 
     if index is None:
@@ -681,7 +685,7 @@ class FrictionlessFieldParser:
         )
 
     @property
-    def checks(self) -> Optional[Dict]:
+    def checks(self) -> Optional[List[Dict[str, Any]]]:
         """Convert a set of frictionless schema field constraints into checks.
 
         This parses the standard set of frictionless constraints which can be
@@ -696,39 +700,63 @@ class FrictionlessFieldParser:
         if not self.constraints:
             return None
         constraints = self.constraints.copy()
-        checks = {}
+        checks = []
 
         def _combine_constraints(check_name, min_constraint, max_constraint):
             """Catches bounded constraints where we need to combine a min and max
             pair of constraints into a single check."""
             if min_constraint in constraints and max_constraint in constraints:
-                checks[check_name] = {
-                    "min_value": constraints.pop(min_constraint),
-                    "max_value": constraints.pop(max_constraint),
-                }
+                checks.append(
+                    {
+                        "min_value": constraints.pop(min_constraint),
+                        "max_value": constraints.pop(max_constraint),
+                        "options": {"check_name": check_name},
+                    }
+                )
 
         _combine_constraints("in_range", "minimum", "maximum")
         _combine_constraints("str_length", "minLength", "maxLength")
 
         for constraint_type, constraint_value in constraints.items():
+            base_stats = None
+            check_name = None
             if constraint_type == "maximum":
-                checks["less_than_or_equal_to"] = constraint_value
+                check_name = "less_than_or_equal_to"
+                base_stats = {
+                    "value": constraint_value,
+                }
             elif constraint_type == "minimum":
-                checks["greater_than_or_equal_to"] = constraint_value
+                check_name = "greater_than_or_equal_to"
+                base_stats = {
+                    "value": constraint_value,
+                }
             elif constraint_type == "maxLength":
-                checks["str_length"] = {
+                check_name = "str_length"
+                base_stats = {
                     "min_value": None,
                     "max_value": constraint_value,
                 }
             elif constraint_type == "minLength":
-                checks["str_length"] = {
+                check_name = "str_length"
+                base_stats = {
                     "min_value": constraint_value,
                     "max_value": None,
                 }
             elif constraint_type == "pattern":
-                checks["str_matches"] = rf"^{constraint_value}$"
+                check_name = "str_matches"
+                base_stats = {
+                    "value": rf"^{constraint_value}$",
+                }
             elif constraint_type == "enum":
-                checks["isin"] = constraint_value
+                check_name = "isin"
+                base_stats = {
+                    "value": constraint_value,
+                }
+
+            if base_stats and check_name:
+                base_stats["options"] = {"check_name": check_name}
+                checks.append(base_stats)
+
         return checks or None
 
     @property
