@@ -1265,11 +1265,6 @@ class TestInRangeCheck(BaseClass):
         ],
     }
 
-    sample_boolean_data = {
-        "test_pass_data": [("foo", [True]), ("bar", [True])],
-        "test_expression": [False],
-    }
-
     def pytest_generate_tests(self, metafunc):
         """This function passes the parameter for each function based on parameter from get_data_param function"""
         # called once per each test function
@@ -1358,7 +1353,7 @@ class TestInRangeCheck(BaseClass):
             return val1 - val2
 
     def test_inrange_exclude_min_max_check(self, datatype, data) -> None:
-        """Test the Check to see if any value is not in the specified value"""
+        """Test the Check to see if all the values are equal to the defined value"""
         min_val, max_val, add_value = self.create_min_max(data)
         self.check_function(
             pa.Check.in_range,
@@ -1374,7 +1369,7 @@ class TestInRangeCheck(BaseClass):
         )
 
     def test_inrange_exclude_min_only_check(self, datatype, data) -> None:
-        """Test the Check to see if any value is not in the specified value"""
+        """Test the Check to see if all the values are equal to the defined value"""
         min_val, max_val, add_value = self.create_min_max(data)
         self.check_function(
             pa.Check.in_range,
@@ -1385,7 +1380,7 @@ class TestInRangeCheck(BaseClass):
         )
 
     def test_inrange_exclude_max_only_check(self, datatype, data) -> None:
-        """Test the Check to see if any value is not in the specified value"""
+        """Test the Check to see if all the values are equal to the defined value"""
         min_val, max_val, add_value = self.create_min_max(data)
         self.check_function(
             pa.Check.in_range,
@@ -1396,12 +1391,8 @@ class TestInRangeCheck(BaseClass):
         )
 
     def test_inrange_include_min_max_check(self, datatype, data) -> None:
-        """Test the Check to see if any value is not in the specified value"""
-        (
-            min_val,
-            max_val,
-            add_value,  # pylint:disable=unused-variable
-        ) = self.create_min_max(data)
+        """Test the Check to see if all the values are equal to the defined value"""
+        min_val, max_val, _ = self.create_min_max(data)
         self.check_function(
             pa.Check.in_range,
             data["test_pass_data"],
