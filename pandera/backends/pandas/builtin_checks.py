@@ -168,9 +168,9 @@ def in_range(
     """
     # Using functions from operator module to keep conditions out of the
     # closure
-    left_op = operator.le if include_min else operator.lt
-    right_op = operator.ge if include_max else operator.gt
-    return left_op(min_value, data) & right_op(max_value, data)  # type: ignore
+    compare_min_op = operator.ge if include_min else operator.gt
+    compare_max_op = operator.le if include_max else operator.lt
+    return compare_min_op(data, min_value) & compare_max_op(data, max_value)  # type: ignore
 
 
 @register_builtin_check(
