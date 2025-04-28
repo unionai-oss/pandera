@@ -55,9 +55,9 @@ T = TypeVar("T")
     error="equal_to({value})",
 )
 def equal_to(data: PandasData, value: Any) -> PandasData:
-    """Ensure all elements of a data container equal a certain value.
+    """Ensure all elements of a column equal a certain value.
 
-    :param value: values in this pandas data structure must be
+    :param value: Values in this pandas data structure must be
         equal to this value.
     """
     return data == value
@@ -69,7 +69,7 @@ def equal_to(data: PandasData, value: Any) -> PandasData:
     error="not_equal_to({value})",
 )
 def not_equal_to(data: PandasData, value: Any) -> PandasData:
-    """Ensure no elements of a data container equals a certain value.
+    """Ensure no element of a column equals a certain value.
 
     :param value: This value must not occur in the checked
         :class:`pandas.Series`.
@@ -83,13 +83,11 @@ def not_equal_to(data: PandasData, value: Any) -> PandasData:
     error="greater_than({min_value})",
 )
 def greater_than(data: PandasData, min_value: Any) -> PandasData:
-    """
-    Ensure values of a data container are strictly greater than a minimum
+    """Ensure values of a column are strictly greater than a minimum
     value.
 
     :param min_value: Lower bound to be exceeded. Must be a type comparable
-        to the dtype of the :class:`pandas.Series` to be validated (e.g. a
-        numerical type for float or int and a datetime for datetime).
+        to the dtype of the :class:`pandas.Series` to be validated.
     """
     return data > min_value
 
@@ -100,11 +98,10 @@ def greater_than(data: PandasData, min_value: Any) -> PandasData:
     error="greater_than_or_equal_to({min_value})",
 )
 def greater_than_or_equal_to(data: PandasData, min_value: Any) -> PandasData:
-    """Ensure all values are greater or equal a certain value.
+    """Ensure all values are greater than or equal to a minimum value.
 
-    :param min_value: Allowed minimum value for values of a series. Must be
-        a type comparable to the dtype of the :class:`pandas.Series` to be
-        validated.
+    :param min_value: Allowed minimum value. Must be a type comparable
+        to the dtype of the :class:`pandas.Series` to be validated.
     """
     return data >= min_value
 
@@ -115,7 +112,7 @@ def greater_than_or_equal_to(data: PandasData, min_value: Any) -> PandasData:
     error="less_than({max_value})",
 )
 def less_than(data: PandasData, max_value: Any) -> PandasData:
-    """Ensure values of a series are strictly below a maximum value.
+    """Ensure values of a column are strictly less than a maximum value.
 
     :param max_value: All elements of a series must be strictly smaller
         than this. Must be a type comparable to the dtype of the
@@ -132,11 +129,10 @@ def less_than(data: PandasData, max_value: Any) -> PandasData:
     error="less_than_or_equal_to({max_value})",
 )
 def less_than_or_equal_to(data: PandasData, max_value: Any) -> PandasData:
-    """Ensure values of a series are strictly below a maximum value.
+    """Ensure all values are less than or equal to a maximum value.
 
-    :param max_value: Upper bound not to be exceeded. Must be a type
-        comparable to the dtype of the :class:`pandas.Series` to be
-        validated.
+    :param max_value: Upper bound not to be exceeded. Must be a type comparable to the dtype of the
+        :class:`pandas.Series` to be validated.
     """
     if max_value is None:
         raise ValueError("max_value must not be None")
@@ -172,9 +168,9 @@ def in_range(
     """
     # Using functions from operator module to keep conditions out of the
     # closure
-    left_op = operator.le if include_min else operator.lt
-    right_op = operator.ge if include_max else operator.gt
-    return left_op(min_value, data) & right_op(max_value, data)  # type: ignore
+    compare_min_op = operator.ge if include_min else operator.gt
+    compare_max_op = operator.le if include_max else operator.lt
+    return compare_min_op(data, min_value) & compare_max_op(data, max_value)  # type: ignore
 
 
 @register_builtin_check(

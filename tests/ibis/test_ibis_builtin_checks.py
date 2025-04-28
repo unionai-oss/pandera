@@ -1,5 +1,6 @@
 """Unit tests for Ibis checks."""
 
+import datetime
 import decimal
 from operator import methodcaller
 
@@ -117,10 +118,24 @@ class BaseClass:
 
 
 class TestEqualToCheck(BaseClass):
+    """This class is used to test the equal to check"""
+
     sample_numeric_data = {
         "test_pass_data": [("foo", 30), ("bar", 30)],
         "test_fail_data": [("foo", 30), ("bar", 31)],
         "test_expression": 30,
+    }
+
+    sample_datetime_data = {
+        "test_pass_data": [
+            ("foo", datetime.datetime(2020, 10, 1, 10, 0)),
+            ("bar", datetime.datetime(2020, 10, 1, 10, 0)),
+        ],
+        "test_fail_data": [
+            ("foo", datetime.datetime(2020, 10, 2, 11, 0)),
+            ("bar", datetime.datetime(2020, 10, 2, 11, 0)),
+        ],
+        "test_expression": datetime.datetime(2020, 10, 1, 10, 0),
     }
 
     sample_string_data = {
@@ -129,8 +144,20 @@ class TestEqualToCheck(BaseClass):
         "test_expression": "a",
     }
 
+    sample_duration_data = {
+        "test_pass_data": [
+            ("foo", datetime.timedelta(100, 10, 1)),
+            ("bar", datetime.timedelta(100, 10, 1)),
+        ],
+        "test_fail_data": [
+            ("foo", datetime.timedelta(100, 10, 1)),
+            ("bar", datetime.timedelta(100, 11, 1)),
+        ],
+        "test_expression": datetime.timedelta(100, 10, 1),
+    }
+
     def pytest_generate_tests(self, metafunc):
-        """This function passes the parameter for each function based on parameter form get_data_param function"""
+        """This function passes the parameter for each function based on parameter from get_data_param function"""
         # called once per each test function
         funcarglist = self.get_data_param()[metafunc.function.__name__]
         argnames = sorted(funcarglist[0])
@@ -147,25 +174,818 @@ class TestEqualToCheck(BaseClass):
         data types would be tested"""
         return {
             "test_equal_to_check": [
+                {"datatype": dt.UInt8, "data": self.sample_numeric_data},
+                {"datatype": dt.UInt16, "data": self.sample_numeric_data},
+                {"datatype": dt.UInt32, "data": self.sample_numeric_data},
+                {"datatype": dt.UInt64, "data": self.sample_numeric_data},
+                {"datatype": dt.Int8, "data": self.sample_numeric_data},
+                {"datatype": dt.Int16, "data": self.sample_numeric_data},
                 {"datatype": dt.Int32, "data": self.sample_numeric_data},
                 {"datatype": dt.Int64, "data": self.sample_numeric_data},
                 {"datatype": dt.String, "data": self.sample_string_data},
+                {
+                    "datatype": dt.Float32,
+                    "data": self.convert_data(
+                        self.sample_numeric_data, "float32"
+                    ),
+                },
                 {
                     "datatype": dt.Float64,
                     "data": self.convert_data(
                         self.sample_numeric_data, "float64"
                     ),
                 },
+                {
+                    "datatype": dt.Date,
+                    "data": self.convert_data(
+                        self.sample_datetime_data, "date"
+                    ),
+                },
+                {
+                    "datatype": dt.Timestamp.from_unit("us"),
+                    "data": self.sample_datetime_data,
+                },
+                {
+                    "datatype": dt.Time,
+                    "data": self.convert_data(
+                        self.sample_datetime_data, "time"
+                    ),
+                },
+                {
+                    "datatype": dt.Interval(unit="us"),
+                    "data": self.sample_duration_data,
+                },
             ]
         }
 
     @pytest.mark.parametrize("check_fn", [pa.Check.equal_to, pa.Check.eq])
     def test_equal_to_check(self, check_fn, datatype, data) -> None:
-        """Test the Check to see if all the values are equal to defined value"""
+        """Test the Check to see if all the values are equal to the defined value"""
         self.check_function(
             check_fn,
             data["test_pass_data"],
             data["test_fail_data"],
             datatype,
             data["test_expression"],
+        )
+
+
+class TestNotEqualToCheck(BaseClass):
+    """This class is used to test the not equal to check"""
+
+    sample_numeric_data = {
+        "test_pass_data": [("foo", 31), ("bar", 32)],
+        "test_fail_data": [("foo", 30), ("bar", 31)],
+        "test_expression": 30,
+    }
+
+    sample_datetime_data = {
+        "test_pass_data": [
+            ("foo", datetime.datetime(2020, 10, 1, 11, 0)),
+            ("bar", datetime.datetime(2020, 10, 2, 11, 0)),
+        ],
+        "test_fail_data": [
+            ("foo", datetime.datetime(2020, 10, 3, 10, 0)),
+            ("bar", datetime.datetime(2020, 10, 2, 11, 0)),
+        ],
+        "test_expression": datetime.datetime(2020, 10, 3, 10, 0),
+    }
+
+    sample_string_data = {
+        "test_pass_data": [("foo", "b"), ("bar", "c")],
+        "test_fail_data": [("foo", "a"), ("bar", "a")],
+        "test_expression": "a",
+    }
+
+    sample_duration_data = {
+        "test_pass_data": [
+            (
+                "foo",
+                datetime.timedelta(
+                    100,
+                    11,
+                    1,
+                ),
+            ),
+            (
+                "bar",
+                datetime.timedelta(
+                    100,
+                    11,
+                    1,
+                ),
+            ),
+        ],
+        "test_fail_data": [
+            (
+                "foo",
+                datetime.timedelta(
+                    100,
+                    10,
+                    1,
+                ),
+            ),
+            (
+                "bar",
+                datetime.timedelta(
+                    100,
+                    10,
+                    1,
+                ),
+            ),
+        ],
+        "test_expression": datetime.timedelta(
+            100,
+            10,
+            1,
+        ),
+    }
+
+    def pytest_generate_tests(self, metafunc):
+        """This function passes the parameter for each function based on parameter from get_data_param function"""
+        # called once per each test function
+        funcarglist = self.get_data_param()[metafunc.function.__name__]
+        argnames = sorted(funcarglist[0])
+        metafunc.parametrize(
+            argnames,
+            [
+                [funcargs[name] for name in argnames]
+                for funcargs in funcarglist
+            ],
+        )
+
+    def get_data_param(self):
+        """Generate the params which will be used to test this function. All the acceptable
+        data types would be tested"""
+        return {
+            "test_not_equal_to_check": [
+                {"datatype": dt.UInt8, "data": self.sample_numeric_data},
+                {"datatype": dt.UInt16, "data": self.sample_numeric_data},
+                {"datatype": dt.UInt32, "data": self.sample_numeric_data},
+                {"datatype": dt.UInt64, "data": self.sample_numeric_data},
+                {"datatype": dt.Int8, "data": self.sample_numeric_data},
+                {"datatype": dt.Int16, "data": self.sample_numeric_data},
+                {"datatype": dt.Int32, "data": self.sample_numeric_data},
+                {"datatype": dt.Int64, "data": self.sample_numeric_data},
+                {"datatype": dt.String, "data": self.sample_string_data},
+                {
+                    "datatype": dt.Float32,
+                    "data": self.convert_data(
+                        self.sample_numeric_data, "float32"
+                    ),
+                },
+                {
+                    "datatype": dt.Float64,
+                    "data": self.convert_data(
+                        self.sample_numeric_data, "float64"
+                    ),
+                },
+                {
+                    "datatype": dt.Date,
+                    "data": self.convert_data(
+                        self.sample_datetime_data, "date"
+                    ),
+                },
+                {
+                    "datatype": dt.Timestamp.from_unit("us"),
+                    "data": self.sample_datetime_data,
+                },
+                {
+                    "datatype": dt.Time,
+                    "data": self.convert_data(
+                        self.sample_datetime_data, "time"
+                    ),
+                },
+                {
+                    "datatype": dt.Interval(unit="us"),
+                    "data": self.sample_duration_data,
+                },
+            ]
+        }
+
+    @pytest.mark.parametrize("check_fn", [pa.Check.not_equal_to, pa.Check.ne])
+    def test_not_equal_to_check(self, check_fn, datatype, data) -> None:
+        """Test the Check to see if all the values are equal to the defined value"""
+        self.check_function(
+            check_fn,
+            data["test_pass_data"],
+            data["test_fail_data"],
+            datatype,
+            data["test_expression"],
+        )
+
+
+class TestGreaterThanCheck(BaseClass):
+    """This class is used to test the greater than check"""
+
+    sample_numeric_data = {
+        "test_pass_data": [("foo", 31), ("bar", 32)],
+        "test_fail_data": [("foo", 30), ("bar", 31)],
+        "test_expression": 30,
+    }
+
+    sample_datetime_data = {
+        "test_pass_data": [
+            ("foo", datetime.datetime(2020, 10, 2, 11, 0)),
+            ("bar", datetime.datetime(2020, 10, 2, 11, 0)),
+        ],
+        "test_fail_data": [
+            ("foo", datetime.datetime(2020, 10, 1, 10, 0)),
+            ("bar", datetime.datetime(2020, 10, 2, 11, 0)),
+        ],
+        "test_expression": datetime.datetime(2020, 10, 1, 10, 0),
+    }
+
+    sample_duration_data = {
+        "test_pass_data": [
+            ("foo", datetime.timedelta(100, 11, 1)),
+            ("bar", datetime.timedelta(100, 12, 1)),
+        ],
+        "test_fail_data": [
+            ("foo", datetime.timedelta(100, 10, 1)),
+            ("bar", datetime.timedelta(100, 11, 1)),
+        ],
+        "test_expression": datetime.timedelta(100, 10, 1),
+    }
+
+    def pytest_generate_tests(self, metafunc):
+        """This function passes the parameter for each function based on parameter from get_data_param function"""
+        # called once per each test function
+        funcarglist = self.get_data_param()[metafunc.function.__name__]
+        argnames = sorted(funcarglist[0])
+        metafunc.parametrize(
+            argnames,
+            [
+                [funcargs[name] for name in argnames]
+                for funcargs in funcarglist
+            ],
+        )
+
+    def get_data_param(self):
+        """Generate the params which will be used to test this function. All the acceptable
+        data types would be tested"""
+        return {
+            "test_greater_than_check": [
+                {"datatype": dt.UInt8, "data": self.sample_numeric_data},
+                {"datatype": dt.UInt16, "data": self.sample_numeric_data},
+                {"datatype": dt.UInt32, "data": self.sample_numeric_data},
+                {"datatype": dt.UInt64, "data": self.sample_numeric_data},
+                {"datatype": dt.Int8, "data": self.sample_numeric_data},
+                {"datatype": dt.Int16, "data": self.sample_numeric_data},
+                {"datatype": dt.Int32, "data": self.sample_numeric_data},
+                {"datatype": dt.Int64, "data": self.sample_numeric_data},
+                {
+                    "datatype": dt.Float32,
+                    "data": self.convert_data(
+                        self.sample_numeric_data, "float32"
+                    ),
+                },
+                {
+                    "datatype": dt.Float64,
+                    "data": self.convert_data(
+                        self.sample_numeric_data, "float64"
+                    ),
+                },
+                {
+                    "datatype": dt.Date,
+                    "data": self.convert_data(
+                        self.sample_datetime_data, "date"
+                    ),
+                },
+                {
+                    "datatype": dt.Timestamp.from_unit("us"),
+                    "data": self.sample_datetime_data,
+                },
+                {
+                    "datatype": dt.Time,
+                    "data": self.convert_data(
+                        self.sample_datetime_data, "time"
+                    ),
+                },
+                {
+                    "datatype": dt.Interval(unit="us"),
+                    "data": self.sample_duration_data,
+                },
+            ]
+        }
+
+    @pytest.mark.parametrize("check_fn", [pa.Check.greater_than, pa.Check.gt])
+    def test_greater_than_check(self, check_fn, datatype, data) -> None:
+        """Test the Check to see if all the values are equal to the defined value"""
+        self.check_function(
+            check_fn,
+            data["test_pass_data"],
+            data["test_fail_data"],
+            datatype,
+            data["test_expression"],
+        )
+
+
+class TestGreaterThanEqualToCheck(BaseClass):
+    """This class is used to test the greater than equal to check"""
+
+    sample_numeric_data = {
+        "test_pass_data": [("foo", 31), ("bar", 32)],
+        "test_fail_data": [("foo", 30), ("bar", 31)],
+        "test_expression": 31,
+    }
+
+    sample_datetime_data = {
+        "test_pass_data": [
+            ("foo", datetime.datetime(2020, 10, 1, 11, 0)),
+            ("bar", datetime.datetime(2020, 10, 2, 11, 0)),
+        ],
+        "test_fail_data": [
+            ("foo", datetime.datetime(2020, 10, 1, 11, 0)),
+            ("bar", datetime.datetime(2020, 9, 1, 10, 0)),
+        ],
+        "test_expression": datetime.datetime(2020, 10, 1, 11, 0),
+    }
+
+    sample_duration_data = {
+        "test_pass_data": [
+            ("foo", datetime.timedelta(100, 10, 1)),
+            ("bar", datetime.timedelta(100, 11, 1)),
+        ],
+        "test_fail_data": [
+            ("foo", datetime.timedelta(100, 11, 1)),
+            ("bar", datetime.timedelta(100, 9, 1)),
+        ],
+        "test_expression": datetime.timedelta(100, 10, 1),
+    }
+
+    def pytest_generate_tests(self, metafunc):
+        """This function passes the parameter for each function based on parameter from get_data_param function"""
+        # called once per each test function
+        funcarglist = self.get_data_param()[metafunc.function.__name__]
+        argnames = sorted(funcarglist[0])
+        metafunc.parametrize(
+            argnames,
+            [
+                [funcargs[name] for name in argnames]
+                for funcargs in funcarglist
+            ],
+        )
+
+    def get_data_param(self):
+        """Generate the params which will be used to test this function. All the acceptable
+        data types would be tested"""
+        return {
+            "test_greater_than_or_equal_to_check": [
+                {"datatype": dt.UInt8, "data": self.sample_numeric_data},
+                {"datatype": dt.UInt16, "data": self.sample_numeric_data},
+                {"datatype": dt.UInt32, "data": self.sample_numeric_data},
+                {"datatype": dt.UInt64, "data": self.sample_numeric_data},
+                {"datatype": dt.Int8, "data": self.sample_numeric_data},
+                {"datatype": dt.Int16, "data": self.sample_numeric_data},
+                {"datatype": dt.Int32, "data": self.sample_numeric_data},
+                {"datatype": dt.Int64, "data": self.sample_numeric_data},
+                {
+                    "datatype": dt.Float32,
+                    "data": self.convert_data(
+                        self.sample_numeric_data, "float32"
+                    ),
+                },
+                {
+                    "datatype": dt.Float64,
+                    "data": self.convert_data(
+                        self.sample_numeric_data, "float64"
+                    ),
+                },
+                {
+                    "datatype": dt.Date,
+                    "data": self.convert_data(
+                        self.sample_datetime_data, "date"
+                    ),
+                },
+                {
+                    "datatype": dt.Timestamp.from_unit("us"),
+                    "data": self.sample_datetime_data,
+                },
+                {
+                    "datatype": dt.Time,
+                    "data": self.convert_data(
+                        self.sample_datetime_data, "time"
+                    ),
+                },
+                {
+                    "datatype": dt.Interval(unit="us"),
+                    "data": self.sample_duration_data,
+                },
+            ]
+        }
+
+    @pytest.mark.parametrize(
+        "check_fn", [pa.Check.greater_than_or_equal_to, pa.Check.ge]
+    )
+    def test_greater_than_or_equal_to_check(
+        self, check_fn, datatype, data
+    ) -> None:
+        """Test the Check to see if all the values are equal to the defined value"""
+        self.check_function(
+            check_fn,
+            data["test_pass_data"],
+            data["test_fail_data"],
+            datatype,
+            data["test_expression"],
+        )
+
+
+class TestLessThanCheck(BaseClass):
+    """This class is used to test the less than check"""
+
+    sample_numeric_data = {
+        "test_pass_data": [("foo", 31), ("bar", 32)],
+        "test_fail_data": [("foo", 34), ("bar", 33)],
+        "test_expression": 33,
+    }
+
+    sample_datetime_data = {
+        "test_pass_data": [
+            ("foo", datetime.datetime(2020, 10, 1, 10, 0)),
+            ("bar", datetime.datetime(2020, 10, 1, 10, 0)),
+        ],
+        "test_fail_data": [
+            ("foo", datetime.datetime(2020, 11, 1, 11, 0)),
+            ("bar", datetime.datetime(2020, 12, 1, 12, 0)),
+        ],
+        "test_expression": datetime.datetime(2020, 11, 1, 11, 0),
+    }
+
+    sample_duration_data = {
+        "test_pass_data": [
+            ("foo", datetime.timedelta(100, 10, 1)),
+            ("bar", datetime.timedelta(100, 10, 1)),
+        ],
+        "test_fail_data": [
+            ("foo", datetime.timedelta(100, 15, 1)),
+            ("bar", datetime.timedelta(100, 10, 1)),
+        ],
+        "test_expression": datetime.timedelta(100, 15, 1),
+    }
+
+    def pytest_generate_tests(self, metafunc):
+        """This function passes the parameter for each function based on parameter from get_data_param function"""
+        # called once per each test function
+        funcarglist = self.get_data_param()[metafunc.function.__name__]
+        argnames = sorted(funcarglist[0])
+        metafunc.parametrize(
+            argnames,
+            [
+                [funcargs[name] for name in argnames]
+                for funcargs in funcarglist
+            ],
+        )
+
+    def get_data_param(self):
+        """Generate the params which will be used to test this function. All the acceptable
+        data types would be tested"""
+        return {
+            "test_less_than_check": [
+                {"datatype": dt.UInt8, "data": self.sample_numeric_data},
+                {"datatype": dt.UInt16, "data": self.sample_numeric_data},
+                {"datatype": dt.UInt32, "data": self.sample_numeric_data},
+                {"datatype": dt.UInt64, "data": self.sample_numeric_data},
+                {"datatype": dt.Int8, "data": self.sample_numeric_data},
+                {"datatype": dt.Int16, "data": self.sample_numeric_data},
+                {"datatype": dt.Int32, "data": self.sample_numeric_data},
+                {"datatype": dt.Int64, "data": self.sample_numeric_data},
+                {
+                    "datatype": dt.Float32,
+                    "data": self.convert_data(
+                        self.sample_numeric_data, "float32"
+                    ),
+                },
+                {
+                    "datatype": dt.Float64,
+                    "data": self.convert_data(
+                        self.sample_numeric_data, "float64"
+                    ),
+                },
+                {
+                    "datatype": dt.Date,
+                    "data": self.convert_data(
+                        self.sample_datetime_data, "date"
+                    ),
+                },
+                {
+                    "datatype": dt.Timestamp.from_unit("us"),
+                    "data": self.sample_datetime_data,
+                },
+                {
+                    "datatype": dt.Time,
+                    "data": self.convert_data(
+                        self.sample_datetime_data, "time"
+                    ),
+                },
+                {
+                    "datatype": dt.Interval(unit="us"),
+                    "data": self.sample_duration_data,
+                },
+            ]
+        }
+
+    @pytest.mark.parametrize("check_fn", [pa.Check.less_than, pa.Check.lt])
+    def test_less_than_check(self, check_fn, datatype, data) -> None:
+        """Test the Check to see if all the values are equal to the defined value"""
+        self.check_function(
+            check_fn,
+            data["test_pass_data"],
+            data["test_fail_data"],
+            datatype,
+            data["test_expression"],
+        )
+
+
+class TestLessThanEqualToCheck(BaseClass):
+    """This class is used to test the less than equal to check"""
+
+    sample_numeric_data = {
+        "test_pass_data": [("foo", 31), ("bar", 33)],
+        "test_fail_data": [("foo", 34), ("bar", 31)],
+        "test_expression": 33,
+    }
+
+    sample_datetime_data = {
+        "test_pass_data": [
+            ("foo", datetime.datetime(2020, 11, 1, 11, 0)),
+            ("bar", datetime.datetime(2020, 10, 1, 10, 0)),
+        ],
+        "test_fail_data": [
+            ("foo", datetime.datetime(2020, 11, 1, 11, 0)),
+            ("bar", datetime.datetime(2020, 12, 1, 12, 0)),
+        ],
+        "test_expression": datetime.datetime(2020, 11, 1, 11, 0),
+    }
+
+    sample_duration_data = {
+        "test_pass_data": [
+            ("foo", datetime.timedelta(100, 15, 1)),
+            ("bar", datetime.timedelta(100, 10, 1)),
+        ],
+        "test_fail_data": [
+            ("foo", datetime.timedelta(100, 16, 1)),
+            ("bar", datetime.timedelta(100, 16, 1)),
+        ],
+        "test_expression": datetime.timedelta(100, 15, 1),
+    }
+
+    def pytest_generate_tests(self, metafunc):
+        """This function passes the parameter for each function based on parameter from get_data_param function"""
+        # called once per each test function
+        funcarglist = self.get_data_param()[metafunc.function.__name__]
+        argnames = sorted(funcarglist[0])
+        metafunc.parametrize(
+            argnames,
+            [
+                [funcargs[name] for name in argnames]
+                for funcargs in funcarglist
+            ],
+        )
+
+    def get_data_param(self):
+        """Generate the params which will be used to test this function. All the acceptable
+        data types would be tested"""
+        return {
+            "test_less_than_or_equal_to_check": [
+                {"datatype": dt.UInt8, "data": self.sample_numeric_data},
+                {"datatype": dt.UInt16, "data": self.sample_numeric_data},
+                {"datatype": dt.UInt32, "data": self.sample_numeric_data},
+                {"datatype": dt.UInt64, "data": self.sample_numeric_data},
+                {"datatype": dt.Int8, "data": self.sample_numeric_data},
+                {"datatype": dt.Int16, "data": self.sample_numeric_data},
+                {"datatype": dt.Int32, "data": self.sample_numeric_data},
+                {"datatype": dt.Int64, "data": self.sample_numeric_data},
+                {
+                    "datatype": dt.Float32,
+                    "data": self.convert_data(
+                        self.sample_numeric_data, "float32"
+                    ),
+                },
+                {
+                    "datatype": dt.Float64,
+                    "data": self.convert_data(
+                        self.sample_numeric_data, "float64"
+                    ),
+                },
+                {
+                    "datatype": dt.Date,
+                    "data": self.convert_data(
+                        self.sample_datetime_data, "date"
+                    ),
+                },
+                {
+                    "datatype": dt.Timestamp.from_unit("us"),
+                    "data": self.sample_datetime_data,
+                },
+                {
+                    "datatype": dt.Time,
+                    "data": self.convert_data(
+                        self.sample_datetime_data, "time"
+                    ),
+                },
+                {
+                    "datatype": dt.Interval(unit="us"),
+                    "data": self.sample_duration_data,
+                },
+            ]
+        }
+
+    @pytest.mark.parametrize(
+        "check_fn", [pa.Check.less_than_or_equal_to, pa.Check.le]
+    )
+    def test_less_than_or_equal_to_check(
+        self, check_fn, datatype, data
+    ) -> None:
+        """Test the Check to see if all the values are equal to the defined value"""
+        self.check_function(
+            check_fn,
+            data["test_pass_data"],
+            data["test_fail_data"],
+            datatype,
+            data["test_expression"],
+        )
+
+
+class TestInRangeCheck(BaseClass):
+    """This class is used to test the value in range check"""
+
+    sample_numeric_data = {
+        "test_pass_data": [("foo", 31), ("bar", 33)],
+        "test_fail_data": [("foo", 35), ("bar", 31)],
+    }
+
+    sample_datetime_data = {
+        "test_pass_data": [
+            ("foo", datetime.datetime(2020, 10, 1, 11, 0)),
+            ("bar", datetime.datetime(2020, 10, 2, 11, 0)),
+        ],
+        "test_fail_data": [
+            ("foo", datetime.datetime(2020, 10, 1, 10, 0)),
+            ("bar", datetime.datetime(2020, 10, 5, 12, 0)),
+        ],
+    }
+
+    sample_duration_data = {
+        "test_pass_data": [
+            ("foo", datetime.timedelta(101, 20, 1)),
+            ("bar", datetime.timedelta(103, 20, 1)),
+        ],
+        "test_fail_data": [
+            ("foo", datetime.timedelta(105, 15, 1)),
+            ("bar", datetime.timedelta(101, 20, 1)),
+        ],
+    }
+
+    sample_boolean_data = {
+        "test_pass_data": [("foo", True), ("bar", False)],
+        "test_expression": [False],
+    }
+
+    def pytest_generate_tests(self, metafunc):
+        """This function passes the parameter for each function based on parameter from get_data_param function"""
+        # called once per each test function
+        funcarglist = self.get_data_param()[metafunc.function.__name__]
+        argnames = sorted(funcarglist[0])
+        metafunc.parametrize(
+            argnames,
+            [
+                [funcargs[name] for name in argnames]
+                for funcargs in funcarglist
+            ],
+        )
+
+    def create_min_max(self, data_dictionary):
+        """This function create the min and max value from the data dictionary to be used for in range test"""
+        value_dict = [value[1] for value in data_dictionary["test_pass_data"]]
+        min_val = min(value_dict)
+        max_val = max(value_dict)
+        if isinstance(
+            min_val, (datetime.datetime, datetime.date, datetime.timedelta)
+        ):
+            add_value = datetime.timedelta(1)
+        elif isinstance(min_val, datetime.time):
+            add_value = 1
+        else:
+            add_value = 1
+        return min_val, max_val, add_value
+
+    def get_data_param(self):
+        """Generate the params which will be used to test this function. All the acceptable
+        data types would be tested"""
+        param_vals = [
+            {"datatype": dt.UInt8, "data": self.sample_numeric_data},
+            {"datatype": dt.UInt16, "data": self.sample_numeric_data},
+            {"datatype": dt.UInt32, "data": self.sample_numeric_data},
+            {"datatype": dt.UInt64, "data": self.sample_numeric_data},
+            {"datatype": dt.Int8, "data": self.sample_numeric_data},
+            {"datatype": dt.Int16, "data": self.sample_numeric_data},
+            {"datatype": dt.Int32, "data": self.sample_numeric_data},
+            {"datatype": dt.Int64, "data": self.sample_numeric_data},
+            {
+                "datatype": dt.Float32,
+                "data": self.convert_data(self.sample_numeric_data, "float32"),
+            },
+            {
+                "datatype": dt.Float64,
+                "data": self.convert_data(self.sample_numeric_data, "float64"),
+            },
+            {
+                "datatype": dt.Date,
+                "data": self.convert_data(self.sample_datetime_data, "date"),
+            },
+            {
+                "datatype": dt.Timestamp.from_unit("us"),
+                "data": self.sample_datetime_data,
+            },
+            {
+                "datatype": dt.Time,
+                "data": self.convert_data(self.sample_datetime_data, "time"),
+            },
+            {
+                "datatype": dt.Interval(unit="us"),
+                "data": self.sample_duration_data,
+            },
+        ]
+
+        return {
+            "test_inrange_exclude_min_max_check": param_vals,
+            "test_inrange_exclude_min_only_check": param_vals,
+            "test_inrange_exclude_max_only_check": param_vals,
+            "test_inrange_include_min_max_check": param_vals,
+        }
+
+    def safe_add(self, val1, val2):
+        """It's not possible to add to datetime.time object, so wrapping +/- operations to handle this case"""
+        if isinstance(val1, datetime.time):
+            return datetime.time(val1.hour + val2)
+        else:
+            return val1 + val2
+
+    def safe_subtract(self, val1, val2):
+        """It's not possible to subtract from datetime.time object, so wrapping +/- operations to handle this case"""
+        if isinstance(val1, datetime.time):
+            return datetime.time(val1.hour - val2)
+        else:
+            return val1 - val2
+
+    @pytest.mark.parametrize("check_fn", [pa.Check.in_range, pa.Check.between])
+    def test_inrange_exclude_min_max_check(
+        self, check_fn, datatype, data
+    ) -> None:
+        """Test the Check to see if all the values are equal to the defined value"""
+        min_val, max_val, add_value = self.create_min_max(data)
+        self.check_function(
+            check_fn,
+            data["test_pass_data"],
+            data["test_fail_data"],
+            datatype,
+            (
+                self.safe_subtract(min_val, add_value),
+                self.safe_add(max_val, add_value),
+                False,
+                False,
+            ),
+        )
+
+    @pytest.mark.parametrize("check_fn", [pa.Check.in_range, pa.Check.between])
+    def test_inrange_exclude_min_only_check(
+        self, check_fn, datatype, data
+    ) -> None:
+        """Test the Check to see if all the values are equal to the defined value"""
+        min_val, max_val, add_value = self.create_min_max(data)
+        self.check_function(
+            check_fn,
+            data["test_pass_data"],
+            data["test_fail_data"],
+            datatype,
+            (min_val, self.safe_add(max_val, add_value), True, False),
+        )
+
+    @pytest.mark.parametrize("check_fn", [pa.Check.in_range, pa.Check.between])
+    def test_inrange_exclude_max_only_check(
+        self, check_fn, datatype, data
+    ) -> None:
+        """Test the Check to see if all the values are equal to the defined value"""
+        min_val, max_val, add_value = self.create_min_max(data)
+        self.check_function(
+            check_fn,
+            data["test_pass_data"],
+            data["test_fail_data"],
+            datatype,
+            (self.safe_subtract(min_val, add_value), max_val, False, True),
+        )
+
+    @pytest.mark.parametrize("check_fn", [pa.Check.in_range, pa.Check.between])
+    def test_inrange_include_min_max_check(
+        self, check_fn, datatype, data
+    ) -> None:
+        """Test the Check to see if all the values are equal to the defined value"""
+        min_val, max_val, _ = self.create_min_max(data)
+        self.check_function(
+            check_fn,
+            data["test_pass_data"],
+            data["test_fail_data"],
+            datatype,
+            (min_val, max_val, True, True),
         )

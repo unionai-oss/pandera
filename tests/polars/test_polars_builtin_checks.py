@@ -217,7 +217,7 @@ class TestEqualToCheck(BaseClass):
     }
 
     def pytest_generate_tests(self, metafunc):
-        """This function passes the parameter for each function based on parameter form get_data_param function"""
+        """This function passes the parameter for each function based on parameter from get_data_param function"""
         # called once per each test function
         funcarglist = self.get_data_param()[metafunc.function.__name__]
         argnames = sorted(funcarglist[0])
@@ -292,7 +292,7 @@ class TestEqualToCheck(BaseClass):
 
     @pytest.mark.parametrize("check_fn", [pa.Check.equal_to, pa.Check.eq])
     def test_equal_to_check(self, check_fn, datatype, data) -> None:
-        """Test the Check to see if all the values are equal to defined value"""
+        """Test the Check to see if all the values are equal to the defined value"""
         self.check_function(
             check_fn,
             data["test_pass_data"],
@@ -386,7 +386,7 @@ class TestNotEqualToCheck(BaseClass):
     }
 
     def pytest_generate_tests(self, metafunc):
-        """This function passes the parameter for each function based on parameter form get_data_param function"""
+        """This function passes the parameter for each function based on parameter from get_data_param function"""
         # called once per each test function
         funcarglist = self.get_data_param()[metafunc.function.__name__]
         argnames = sorted(funcarglist[0])
@@ -461,7 +461,7 @@ class TestNotEqualToCheck(BaseClass):
 
     @pytest.mark.parametrize("check_fn", [pa.Check.not_equal_to, pa.Check.ne])
     def test_not_equal_to_check(self, check_fn, datatype, data) -> None:
-        """Test the Check to see if all the values are equal to defined value"""
+        """Test the Check to see if all the values are equal to the defined value"""
         self.check_function(
             check_fn,
             data["test_pass_data"],
@@ -505,7 +505,7 @@ class TestGreaterThanCheck(BaseClass):
     }
 
     def pytest_generate_tests(self, metafunc):
-        """This function passes the parameter for each function based on parameter form get_data_param function"""
+        """This function passes the parameter for each function based on parameter from get_data_param function"""
         # called once per each test function
         funcarglist = self.get_data_param()[metafunc.function.__name__]
         argnames = sorted(funcarglist[0])
@@ -567,7 +567,7 @@ class TestGreaterThanCheck(BaseClass):
 
     @pytest.mark.parametrize("check_fn", [pa.Check.greater_than, pa.Check.gt])
     def test_greater_than_check(self, check_fn, datatype, data) -> None:
-        """Test the Check to see if all the values are equal to defined value"""
+        """Test the Check to see if all the values are equal to the defined value"""
         self.check_function(
             check_fn,
             data["test_pass_data"],
@@ -611,7 +611,7 @@ class TestGreaterThanEqualToCheck(BaseClass):
     }
 
     def pytest_generate_tests(self, metafunc):
-        """This function passes the parameter for each function based on parameter form get_data_param function"""
+        """This function passes the parameter for each function based on parameter from get_data_param function"""
         # called once per each test function
         funcarglist = self.get_data_param()[metafunc.function.__name__]
         argnames = sorted(funcarglist[0])
@@ -677,7 +677,7 @@ class TestGreaterThanEqualToCheck(BaseClass):
     def test_greater_than_or_equal_to_check(
         self, check_fn, datatype, data
     ) -> None:
-        """Test the Check to see if all the values are equal to defined value"""
+        """Test the Check to see if all the values are equal to the defined value"""
         self.check_function(
             check_fn,
             data["test_pass_data"],
@@ -721,7 +721,7 @@ class TestLessThanCheck(BaseClass):
     }
 
     def pytest_generate_tests(self, metafunc):
-        """This function passes the parameter for each function based on parameter form get_data_param function"""
+        """This function passes the parameter for each function based on parameter from get_data_param function"""
         # called once per each test function
         funcarglist = self.get_data_param()[metafunc.function.__name__]
         argnames = sorted(funcarglist[0])
@@ -783,7 +783,7 @@ class TestLessThanCheck(BaseClass):
 
     @pytest.mark.parametrize("check_fn", [pa.Check.less_than, pa.Check.lt])
     def test_less_than_check(self, check_fn, datatype, data) -> None:
-        """Test the Check to see if all the values are less than the defined value"""
+        """Test the Check to see if all the values are equal to the defined value"""
         self.check_function(
             check_fn,
             data["test_pass_data"],
@@ -794,7 +794,7 @@ class TestLessThanCheck(BaseClass):
 
 
 class TestLessThanEqualToCheck(BaseClass):
-    """This class is used to test the less equal to check"""
+    """This class is used to test the less than equal to check"""
 
     sample_numeric_data = {
         "test_pass_data": [("foo", 31), ("bar", 33)],
@@ -827,7 +827,7 @@ class TestLessThanEqualToCheck(BaseClass):
     }
 
     def pytest_generate_tests(self, metafunc):
-        """This function passes the parameter for each function based on parameter form get_data_param function"""
+        """This function passes the parameter for each function based on parameter from get_data_param function"""
         # called once per each test function
         funcarglist = self.get_data_param()[metafunc.function.__name__]
         argnames = sorted(funcarglist[0])
@@ -893,7 +893,7 @@ class TestLessThanEqualToCheck(BaseClass):
     def test_less_than_or_equal_to_check(
         self, check_fn, datatype, data
     ) -> None:
-        """Test the Check to see if all the values are less or equal to the defined value"""
+        """Test the Check to see if all the values are equal to the defined value"""
         self.check_function(
             check_fn,
             data["test_pass_data"],
@@ -949,7 +949,7 @@ class TestIsInCheck(BaseClass):
     }
 
     def pytest_generate_tests(self, metafunc):
-        """This function passes the parameter for each function based on parameter form get_data_param function"""
+        """This function passes the parameter for each function based on parameter from get_data_param function"""
         # called once per each test function
         funcarglist = self.get_data_param()[metafunc.function.__name__]
         argnames = sorted(funcarglist[0])
@@ -1074,7 +1074,7 @@ class TestNotInCheck(BaseClass):
     }
 
     def pytest_generate_tests(self, metafunc):
-        """This function passes the parameter for each function based on parameter form get_data_param function"""
+        """This function passes the parameter for each function based on parameter from get_data_param function"""
         # called once per each test function
         funcarglist = self.get_data_param()[metafunc.function.__name__]
         argnames = sorted(funcarglist[0])
@@ -1143,7 +1143,7 @@ class TestNotInCheck(BaseClass):
         }
 
     def test_notin_check(self, datatype, data) -> None:
-        """Test the Check to see if all the values are equal to defined value"""
+        """Test the Check to see if all the values are equal to the defined value"""
         self.check_function(
             pa.Check.notin,
             data["test_pass_data"],
@@ -1265,13 +1265,8 @@ class TestInRangeCheck(BaseClass):
         ],
     }
 
-    sample_boolean_data = {
-        "test_pass_data": [("foo", [True]), ("bar", [True])],
-        "test_expression": [False],
-    }
-
     def pytest_generate_tests(self, metafunc):
-        """This function passes the parameter for each function based on parameter form get_data_param function"""
+        """This function passes the parameter for each function based on parameter from get_data_param function"""
         # called once per each test function
         funcarglist = self.get_data_param()[metafunc.function.__name__]
         argnames = sorted(funcarglist[0])
@@ -1358,7 +1353,7 @@ class TestInRangeCheck(BaseClass):
             return val1 - val2
 
     def test_inrange_exclude_min_max_check(self, datatype, data) -> None:
-        """Test the Check to see if any value is not in the specified value"""
+        """Test the Check to see if all the values are equal to the defined value"""
         min_val, max_val, add_value = self.create_min_max(data)
         self.check_function(
             pa.Check.in_range,
@@ -1374,7 +1369,7 @@ class TestInRangeCheck(BaseClass):
         )
 
     def test_inrange_exclude_min_only_check(self, datatype, data) -> None:
-        """Test the Check to see if any value is not in the specified value"""
+        """Test the Check to see if all the values are equal to the defined value"""
         min_val, max_val, add_value = self.create_min_max(data)
         self.check_function(
             pa.Check.in_range,
@@ -1385,7 +1380,7 @@ class TestInRangeCheck(BaseClass):
         )
 
     def test_inrange_exclude_max_only_check(self, datatype, data) -> None:
-        """Test the Check to see if any value is not in the specified value"""
+        """Test the Check to see if all the values are equal to the defined value"""
         min_val, max_val, add_value = self.create_min_max(data)
         self.check_function(
             pa.Check.in_range,
@@ -1396,12 +1391,8 @@ class TestInRangeCheck(BaseClass):
         )
 
     def test_inrange_include_min_max_check(self, datatype, data) -> None:
-        """Test the Check to see if any value is not in the specified value"""
-        (
-            min_val,
-            max_val,
-            add_value,  # pylint:disable=unused-variable
-        ) = self.create_min_max(data)
+        """Test the Check to see if all the values are equal to the defined value"""
+        min_val, max_val, _ = self.create_min_max(data)
         self.check_function(
             pa.Check.in_range,
             data["test_pass_data"],
@@ -1457,7 +1448,7 @@ class TestUniqueValuesEQCheck(BaseClass):
     }
 
     def pytest_generate_tests(self, metafunc):
-        """This function passes the parameter for each function based on parameter form get_data_param function"""
+        """This function passes the parameter for each function based on parameter from get_data_param function"""
         # called once per each test function
         funcarglist = self.get_data_param()[metafunc.function.__name__]
         argnames = sorted(funcarglist[0])
