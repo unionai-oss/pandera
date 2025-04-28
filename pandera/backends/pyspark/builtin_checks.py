@@ -144,7 +144,7 @@ def less_than_or_equal_to(
     """Ensure all values are less than or equal to a maximum value.
 
     :param data: NamedTuple PysparkDataframeColumnObject contains the dataframe and column name for the check. The key
-        to access the dataframe is "dataframe",  and the key to access the column name is "column_name".
+        to access the dataframe is "dataframe", and the key to access the column name is "column_name".
     :param max_value: Upper bound not to be exceeded. Must be a type comparable to the dtype of the
         :class:`pyspark.sql.Column` to be validated.
     """
@@ -172,10 +172,10 @@ def in_range(
     """Ensure all values of a column are within an interval.
 
     Both endpoints must be a type comparable to the dtype of the
-    :class:`pyspark.sql.function.col` to be validated.
+    :class:`pyspark.sql.Column` to be validated.
 
-    :param data: NamedTuple PysparkDataframeColumnObject contains the dataframe and column name for the check. The keys
-                to access the dataframe is "dataframe" and column name using "column_name".
+    :param data: NamedTuple PysparkDataframeColumnObject contains the dataframe and column name for the check. The key
+        to access the dataframe is "dataframe", and the key to access the column name is "column_name".
     :param min_value: Left / lower endpoint of the interval.
     :param max_value: Right / upper endpoint of the interval. Must not be
         smaller than min_value.
@@ -186,19 +186,17 @@ def in_range(
         (the default) or whether all values must be strictly smaller than
         max_value.
     """
-    # Using functions from operator module to keep conditions out of the
-    # closure
-    cond_right = (
+    compare_min = (
         col(data.column_name) >= min_value
         if include_min
         else col(data.column_name) > min_value
     )
-    cond_left = (
+    compare_max = (
         col(data.column_name) <= max_value
         if include_max
         else col(data.column_name) < max_value
     )
-    return data.dataframe.filter(~(cond_right & cond_left)).limit(1).count() == 0  # type: ignore
+    return data.dataframe.filter(~(compare_min & compare_max)).limit(1).count() == 0  # type: ignore
 
 
 @register_builtin_check(
