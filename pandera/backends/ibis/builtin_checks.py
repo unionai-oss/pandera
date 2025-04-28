@@ -126,3 +126,42 @@ def less_than_or_equal_to(data: IbisData, max_value: Any) -> ir.Table:
     """
     value = _infer_interval_with_mixed_units(max_value)
     return data.table.select(s.across(_selector(data.key), _ <= value))
+
+
+@register_builtin_check(
+    aliases=["between"],
+    error="in_range({min_value}, {max_value})",
+)
+def in_range(
+    data: IbisData,
+    min_value: T,
+    max_value: T,
+    include_min: bool = True,
+    include_max: bool = True,
+) -> ir.Table:
+    """Ensure all values of a column are within an interval.
+
+    Both endpoints must be a type comparable to the dtype of the
+    :class:`ir.Column` to be validated.
+
+    :param data: NamedTuple IbisData contains the table and column name for the check. The key
+        to access the table is "table", and the key to access the column name is "key".
+    :param min_value: Left / lower endpoint of the interval.
+    :param max_value: Right / upper endpoint of the interval. Must not be
+        smaller than min_value.
+    :param include_min: Defines whether min_value is also an allowed value
+        (the default) or whether all values must be strictly greater than
+        min_value.
+    :param include_max: Defines whether min_value is also an allowed value
+        (the default) or whether all values must be strictly smaller than
+        max_value.
+    """
+    min_value = _infer_interval_with_mixed_units(min_value)
+    max_value = _infer_interval_with_mixed_units(max_value)
+    if include_min and include_max:
+        func = _.between(min_value, max_value)
+    else:
+        compare_min = _ >= min_value if include_min else _ > min_value
+        compare_max = _ <= max_value if include_max else _ < max_value
+        func = compare_min & compare_max
+    return data.table.select(s.across(_selector(data.key), func))
