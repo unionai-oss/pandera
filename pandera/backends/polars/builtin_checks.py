@@ -118,7 +118,7 @@ def in_range(
     """Ensure all values of a series are within an interval.
 
     Both endpoints must be a type comparable to the dtype of the
-    series datatype of Polars
+    :class:`pl.Series` to be validated.
 
     :param data: NamedTuple PolarsData contains the dataframe and column name for the check. The key
         to access the dataframe is "dataframe", and the key the to access the column name is "key".
@@ -133,10 +133,10 @@ def in_range(
         max_value.
     """
     col = pl.col(data.key)
-    is_in_min = col.ge(min_value) if include_min else col.gt(min_value)
-    is_in_max = col.le(max_value) if include_max else col.lt(max_value)
+    compare_min = col.ge(min_value) if include_min else col.gt(min_value)
+    compare_max = col.le(max_value) if include_max else col.lt(max_value)
 
-    return data.lazyframe.select(is_in_min.and_(is_in_max))
+    return data.lazyframe.select(compare_min.and_(compare_max))
 
 
 @register_builtin_check(
