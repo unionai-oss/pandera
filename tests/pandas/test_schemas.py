@@ -2196,6 +2196,33 @@ def test_column_set_unique():
     assert test_schema.columns["a"].unique
 
 
+def test_update_index_error_cases():
+    """Test error cases when updating schema index."""
+
+    schema = DataFrameSchema(
+        index=Index(dtype=int, name="a"),
+        columns={
+            "b": Column(int),
+        },
+    )
+
+    with pytest.raises(ValueError, match="cannot update 'name' of the index."):
+        schema.update_index("a", name="new_name")
+
+    schema_no_index = DataFrameSchema(
+        columns={
+            "b": Column(int),
+        },
+    )
+    with pytest.raises(errors.SchemaInitError, match="index not in schema"):
+        schema_no_index.update_index("a", dtype=str)
+
+    with pytest.raises(
+        errors.SchemaInitError, match=r"index 'non_existent' not in"
+    ):
+        schema.update_index("non_existent", dtype=str)
+
+
 def test_update_index():
     """
     Test that schemas can correctly update an index column via update_column method.
