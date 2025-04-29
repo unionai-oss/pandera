@@ -2223,6 +2223,33 @@ def test_update_index_error_cases():
         schema.update_index("non_existent", dtype=str)
 
 
+def test_update_indexes_error_cases():
+    """Test error cases when updating schema indexes."""
+
+    schema = DataFrameSchema(
+        index=MultiIndex(
+            [Index(dtype=int, name="a"), Index(dtype=float, name="b")]
+        ),
+        columns={
+            "c": Column(int),
+        },
+    )
+
+    with pytest.raises(errors.SchemaInitError):
+        schema.update_indexes({"a": {"name": "new_name"}})
+
+    schema_no_index = DataFrameSchema(
+        columns={
+            "c": Column(int),
+        },
+    )
+    with pytest.raises(errors.SchemaInitError):
+        schema_no_index.update_indexes({"a": {"dtype": str}})
+
+    with pytest.raises(errors.SchemaInitError):
+        schema.update_indexes({"non_existent": {"dtype": str}})
+
+
 def test_update_index():
     """
     Test that schemas can correctly update an index column via update_column method.
