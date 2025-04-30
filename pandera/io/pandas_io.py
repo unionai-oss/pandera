@@ -246,6 +246,17 @@ def _deserialize_component_stats(serialized_component_stats):
     title = serialized_component_stats.get("title")
 
     checks = serialized_component_stats.get("checks")
+    # For compatibility with previous versions convert checks in dictionary to list
+    if isinstance(checks, dict):
+        checks_list = []
+        for check_name, check in checks.items():
+            if not isinstance(check, dict):
+                check = {"value": check}
+            if "options" not in check:
+                check["options"] = {}
+            check["options"]["check_name"] = check_name
+            checks_list.append(check)
+        checks = checks_list
     if checks is not None:
         checks = [
             _deserialize_check_stats(
@@ -307,6 +318,18 @@ def deserialize_schema(serialized_schema):
             _deserialize_component_stats(index_component)
             for index_component in index
         ]
+
+    # For compatibility with previous versions convert checks in dictionary to list
+    if isinstance(checks, dict):
+        checks_list = []
+        for check_name, check in checks.items():
+            if not isinstance(check, dict):
+                check = {"value": check}
+            if "options" not in check:
+                check["options"] = {}
+            check["options"]["check_name"] = check_name
+            checks_list.append(check)
+        checks = checks_list
 
     if checks is not None:
         # handles unregistered checks by raising AttributeErrors from getattr

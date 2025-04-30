@@ -300,6 +300,189 @@ title: null
 description: null
 """
 
+YAML_SCHEMA_DICT_CHECK = f"""
+schema_type: dataframe
+version: {pandera.__version__}
+columns:
+  int_column:
+    title: integer_col
+    description: Integer column with title
+    dtype: int64
+    nullable: false
+    checks:
+      greater_than:
+        value: 0
+        options:
+          raise_warning: false
+          ignore_na: true
+      less_than:
+        value: 10
+        options:
+          raise_warning: false
+          ignore_na: true
+      in_range:
+        min_value: 0
+        max_value: 10
+        include_min: true
+        include_max: true
+        options:
+          raise_warning: false
+          ignore_na: true
+    unique: false
+    coerce: false
+    required: true
+    regex: false
+  float_column:
+    title: null
+    description: Float col no title
+    dtype: float64
+    nullable: false
+    checks:
+      greater_than:
+        value: -10
+        options:
+          raise_warning: false
+          ignore_na: true
+      less_than:
+        value: 20
+        options:
+          raise_warning: false
+          ignore_na: true
+      in_range:
+        min_value: -10
+        max_value: 20
+        include_min: true
+        include_max: true
+        options:
+          raise_warning: false
+          ignore_na: true
+    unique: false
+    coerce: false
+    required: true
+    regex: false
+  str_column:
+    title: null
+    description: null
+    dtype: str
+    nullable: false
+    checks:
+      isin:
+        value:
+        - foo
+        - bar
+        - x
+        - xy
+        options:
+          raise_warning: false
+          ignore_na: true
+      str_length:
+        min_value: 1
+        max_value: 3
+        options:
+          raise_warning: false
+          ignore_na: true
+    unique: false
+    coerce: false
+    required: true
+    regex: false
+  datetime_column:
+    title: null
+    description: null
+    dtype: datetime64[ns]
+    nullable: false
+    checks:
+      greater_than:
+        value: '2010-01-01 00:00:00'
+        options:
+          raise_warning: false
+          ignore_na: true
+      less_than:
+        value: '2020-01-01 00:00:00'
+        options:
+          raise_warning: false
+          ignore_na: true
+    unique: false
+    coerce: false
+    required: true
+    regex: false
+  timedelta_column:
+    title: null
+    description: null
+    dtype: timedelta64[ns]
+    nullable: false
+    checks:
+      greater_than:
+        value: 1000
+        options:
+          raise_warning: false
+          ignore_na: true
+      less_than:
+        value: 10000
+        options:
+          raise_warning: false
+          ignore_na: true
+    unique: false
+    coerce: false
+    required: true
+    regex: false
+  optional_props_column:
+    title: null
+    description: null
+    dtype: str
+    nullable: true
+    checks:
+      str_length:
+        min_value: 1
+        max_value: 3
+        options:
+          raise_warning: false
+          ignore_na: true
+    unique: false
+    coerce: true
+    required: false
+    regex: true
+  notype_column:
+    title: null
+    description: null
+    dtype: null
+    nullable: false
+    checks:
+      isin:
+        value:
+        - foo
+        - bar
+        - x
+        - xy
+        options:
+          raise_warning: false
+          ignore_na: true
+    unique: false
+    coerce: false
+    required: true
+    regex: false
+checks: null
+index:
+- title: null
+  description: null
+  dtype: int64
+  nullable: false
+  checks: null
+  name: null
+  unique: false
+  coerce: false
+dtype: null
+coerce: false
+strict: true
+name: null
+ordered: false
+unique: null
+report_duplicates: all
+unique_column_names: false
+add_missing_columns: false
+title: null
+description: null
+"""
+
 
 def _create_schema_null_index():
     return pandera.DataFrameSchema(
@@ -369,6 +552,44 @@ coerce: false
 strict: false
 """
 
+YAML_SCHEMA_NULL_INDEX_DICT_CHECK = f"""
+schema_type: dataframe
+version: {pandera.__version__}
+columns:
+  float_column:
+    dtype: float64
+    nullable: false
+    checks:
+      greater_than: -10
+      less_than: 20
+      in_range:
+        min_value: -10
+        max_value: 20
+  str_column:
+    dtype: str
+    nullable: false
+    checks:
+      isin:
+        value:
+        - foo
+        - bar
+        - x
+        - xy
+        options:
+          raise_warning: false
+          ignore_na: true
+      str_length:
+        min_value: 1
+        max_value: 3
+        options:
+          raise_warning: false
+          ignore_na: true
+index: null
+checks: null
+coerce: false
+strict: false
+"""
+
 
 def _create_schema_python_types():
     return pandera.DataFrameSchema(
@@ -422,6 +643,26 @@ coerce: false
 strict: false
 """
 
+YAML_SCHEMA_MISSING_GLOBAL_CHECK_DICT_CHECK = f"""
+schema_type: dataframe
+version: {pandera.__version__}
+columns:
+  int_column:
+    dtype: int64
+  float_column:
+    dtype: float64
+  str_column:
+    dtype: str
+  object_column:
+    dtype: object
+checks:
+  unregistered_check:
+    stat1: missing_str_stat
+    stat2: 11
+index: null
+coerce: false
+strict: false
+"""
 
 YAML_SCHEMA_MISSING_COLUMN_CHECK = f"""
 schema_type: dataframe
@@ -434,6 +675,27 @@ columns:
       stat2: 11
       options:
         check_name: unregistered_check
+  float_column:
+    dtype: float64
+  str_column:
+    dtype: str
+  object_column:
+    dtype: object
+index: null
+coerce: false
+strict: false
+"""
+
+YAML_SCHEMA_MISSING_COLUMN_CHECK_DICT_CHECK = f"""
+schema_type: dataframe
+version: {pandera.__version__}
+columns:
+  int_column:
+    dtype: int64
+    checks:
+      unregistered_check:
+        stat1: missing_str_stat
+        stat2: 11
   float_column:
     dtype: float64
   str_column:
@@ -629,6 +891,189 @@ title: null
 description: null
 """
 
+YAML_SCHEMA_NO_DESCR_NO_TITLE_DICT_CHECK = f"""
+schema_type: dataframe
+version: {pandera.__version__}
+columns:
+  int_column:
+    title: null
+    description: null
+    dtype: int64
+    nullable: false
+    checks:
+      greater_than:
+        value: 0
+        options:
+          raise_warning: false
+          ignore_na: true
+      less_than:
+        value: 10
+        options:
+          raise_warning: false
+          ignore_na: true
+      in_range:
+        min_value: 0
+        max_value: 10
+        include_min: true
+        include_max: true
+        options:
+          raise_warning: false
+          ignore_na: true
+    unique: false
+    coerce: false
+    required: true
+    regex: false
+  float_column:
+    title: null
+    description: null
+    dtype: float64
+    nullable: false
+    checks:
+      greater_than:
+        value: -10
+        options:
+          raise_warning: false
+          ignore_na: true
+      less_than:
+        value: 20
+        options:
+          raise_warning: false
+          ignore_na: true
+      in_range:
+        min_value: -10
+        max_value: 20
+        include_min: true
+        include_max: true
+        options:
+          raise_warning: false
+          ignore_na: true
+    unique: false
+    coerce: false
+    required: true
+    regex: false
+  str_column:
+    title: null
+    description: null
+    dtype: str
+    nullable: false
+    checks:
+      isin:
+        value:
+        - foo
+        - bar
+        - x
+        - xy
+        options:
+          raise_warning: false
+          ignore_na: true
+      str_length:
+        min_value: 1
+        max_value: 3
+        options:
+          raise_warning: false
+          ignore_na: true
+    unique: false
+    coerce: false
+    required: true
+    regex: false
+  datetime_column:
+    title: null
+    description: null
+    dtype: datetime64[ns]
+    nullable: false
+    checks:
+      greater_than:
+        value: '2010-01-01 00:00:00'
+        options:
+          raise_warning: false
+          ignore_na: true
+      less_than:
+        value: '2020-01-01 00:00:00'
+        options:
+          raise_warning: false
+          ignore_na: true
+    unique: false
+    coerce: false
+    required: true
+    regex: false
+  timedelta_column:
+    title: null
+    description: null
+    dtype: timedelta64[ns]
+    nullable: false
+    checks:
+      greater_than:
+        value: 1000
+        options:
+          raise_warning: false
+          ignore_na: true
+      less_than:
+        value: 10000
+        options:
+          raise_warning: false
+          ignore_na: true
+    unique: false
+    coerce: false
+    required: true
+    regex: false
+  optional_props_column:
+    title: null
+    description: null
+    dtype: str
+    nullable: true
+    checks:
+      str_length:
+        min_value: 1
+        max_value: 3
+        options:
+          raise_warning: false
+          ignore_na: true
+    unique: false
+    coerce: true
+    required: false
+    regex: true
+  notype_column:
+    title: null
+    description: null
+    dtype: null
+    nullable: false
+    checks:
+      isin:
+        value:
+        - foo
+        - bar
+        - x
+        - xy
+        options:
+          raise_warning: false
+          ignore_na: true
+    unique: false
+    coerce: false
+    required: true
+    regex: false
+checks: null
+index:
+- title: null
+  description: null
+  dtype: int64
+  nullable: false
+  checks: null
+  name: null
+  unique: false
+  coerce: false
+dtype: null
+coerce: false
+strict: true
+name: null
+ordered: false
+unique: null
+report_duplicates: all
+unique_column_names: false
+add_missing_columns: false
+title: null
+description: null
+"""
+
 
 def _create_schema_no_descr_no_title(index="single"):
     if index == "multi":
@@ -748,31 +1193,46 @@ def test_to_yaml():
     "yaml_str, schema_creator",
     [
         [YAML_SCHEMA, _create_schema],
+        [YAML_SCHEMA_DICT_CHECK, _create_schema],
         [YAML_SCHEMA_NULL_INDEX, _create_schema_null_index],
+        [YAML_SCHEMA_NULL_INDEX_DICT_CHECK, _create_schema_null_index],
         [YAML_SCHEMA_PYTHON_TYPES, _create_schema_python_types],
         [YAML_SCHEMA_NO_DESCR_NO_TITLE, _create_schema_no_descr_no_title],
+        [
+            YAML_SCHEMA_NO_DESCR_NO_TITLE_DICT_CHECK,
+            _create_schema_no_descr_no_title,
+        ],
     ],
 )
 def test_from_yaml(yaml_str, schema_creator):
     """Test that from_yaml reads yaml string."""
     schema_from_yaml = io.from_yaml(yaml_str)
     expected_schema = schema_creator()
-
     assert schema_from_yaml == expected_schema
     assert expected_schema == schema_from_yaml
 
 
-def test_from_yaml_unregistered_checks():
+@pytest.mark.skipif(
+    SKIP_YAML_TESTS,
+    reason="pyyaml >= 5.1.0 required",
+)
+@pytest.mark.parametrize(
+    "yaml_str",
+    [
+        YAML_SCHEMA_MISSING_COLUMN_CHECK,
+        YAML_SCHEMA_MISSING_COLUMN_CHECK_DICT_CHECK,
+        YAML_SCHEMA_MISSING_GLOBAL_CHECK,
+        YAML_SCHEMA_MISSING_GLOBAL_CHECK_DICT_CHECK,
+    ],
+)
+def test_from_yaml_unregistered_checks(yaml_str):
     """
     Test that from_yaml raises an exception when deserializing unregistered
     checks.
     """
 
     with pytest.raises(AttributeError, match=".*custom checks.*"):
-        io.from_yaml(YAML_SCHEMA_MISSING_COLUMN_CHECK)
-
-    with pytest.raises(AttributeError, match=".*custom checks.*"):
-        io.from_yaml(YAML_SCHEMA_MISSING_GLOBAL_CHECK)
+        io.from_yaml(yaml_str)
 
 
 def test_from_yaml_load_required_fields():
