@@ -2358,6 +2358,35 @@ def test_update_multi_indexes():
         )
 
 
+def test_rename_indexes():
+    """
+    Test that schemas can correctly rename an index column via rename_indexes method.
+    """
+
+    schema = DataFrameSchema(
+        index=MultiIndex(
+            [Index(dtype=int, name="a"), Index(dtype=float, name="b")]
+        ),
+        columns={
+            "c": Column(int),
+        },
+    )
+    schema = schema.rename_indexes({"a": "new_name"}).update_index(
+        "new_name", dtype=str
+    )
+
+    multi_idx = pd.MultiIndex.from_arrays(
+        [["hello"], [1.0]], names=["new_name", "b"]
+    )
+    df = pd.DataFrame({"c": [1]}, index=multi_idx)
+
+    assert isinstance(schema.validate(df), pd.DataFrame)
+    schema.validate(df)
+
+    with pytest.raises(errors.SchemaInitError):
+        schema.rename_indexes({"does_not_exist": "new_name"})
+
+
 def test_missing_columns():
     """Test that multiple missing columns is correctly reported."""
     schema = DataFrameSchema(
