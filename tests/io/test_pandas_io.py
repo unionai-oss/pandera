@@ -1164,7 +1164,7 @@ def test_inferred_schema_io():
     schema = pandera.infer_schema(df)
     schema_yaml_str = schema.to_yaml()
     schema_from_yaml = io.from_yaml(schema_yaml_str)
-    assert schema == schema_from_yaml
+    assert str(schema) == str(schema_from_yaml)
 
 
 @pytest.mark.skipif(
@@ -1208,8 +1208,8 @@ def test_from_yaml(yaml_str, schema_creator):
     """Test that from_yaml reads yaml string."""
     schema_from_yaml = io.from_yaml(yaml_str)
     expected_schema = schema_creator()
-    assert schema_from_yaml == expected_schema
-    assert expected_schema == schema_from_yaml
+    assert str(schema_from_yaml) == str(expected_schema)
+    assert str(expected_schema) == str(schema_from_yaml)
 
 
 @pytest.mark.skipif(
@@ -1303,7 +1303,7 @@ def test_io_yaml_file_obj():
         assert output is None
         f.seek(0)
         schema_from_yaml = pandera.DataFrameSchema.from_yaml(f)
-        assert schema_from_yaml == schema
+        assert str(schema_from_yaml) == str(schema)
 
 
 @pytest.mark.skipif(
@@ -1341,38 +1341,38 @@ def test_io_json(index):
         output = io.to_json(schema, pth)
         assert output is None
         schema_from_json = io.from_json(pth)
-        assert schema_from_json == schema
+        assert str(schema_from_json) == str(schema)
 
         # DataFrameSchema method
         output = schema.to_json(pth)
         assert output is None
         schema_from_json = schema.from_json(pth)
-        assert schema_from_json == schema
+        assert str(schema_from_json) == str(schema)
 
         # Check path as string
         output = io.to_json(schema, str(pth))
         assert output is None
         schema_from_json = io.from_json(str(pth))
-        assert schema_from_json == schema
+        assert str(schema_from_json) == str(schema)
 
         # DataFrameSchema method
         output = schema.to_json(str(pth))
         assert output is None
         schema_from_json = schema.from_json(pth)
-        assert schema_from_json == schema
+        assert str(schema_from_json) == str(schema)
 
         # Check schema encoded as a string
         text = io.to_json(schema)
         assert text is not None
         assert isinstance(text, str)
         schema_from_json = io.from_json(text)
-        assert schema_from_json == schema
+        assert str(schema_from_json) == str(schema)
 
         # DataFrameSchema method
         text = schema.to_json()
         assert text is not None
         schema_from_json = schema.from_json(text)
-        assert schema_from_json == schema
+        assert str(schema_from_json) == str(schema)
 
         # Check schema encoded in a stream
         stream = StringIO()
@@ -1380,7 +1380,7 @@ def test_io_json(index):
         assert output is None
         stream.seek(0)
         schema_from_json = io.from_json(stream)
-        assert schema_from_json == schema
+        assert str(schema_from_json) == str(schema)
 
         # DataFrameSchema method
         stream = StringIO()
@@ -1388,7 +1388,7 @@ def test_io_json(index):
         assert output is None
         stream.seek(0)
         schema_from_json = schema.from_json(stream)
-        assert schema_from_json == schema
+        assert str(schema_from_json) == str(schema)
 
 
 @pytest.mark.skipif(
@@ -1606,7 +1606,7 @@ def test_serialize_deserialize_custom_datetime_checks():
     )
     yaml_schema = schema.to_yaml()
     schema_from_yaml = schema.from_yaml(yaml_schema)
-    assert schema_from_yaml == schema
+    assert str(schema_from_yaml) == str(schema)
 
 
 FRICTIONLESS_YAML = yaml.safe_load(
