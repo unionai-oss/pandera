@@ -508,17 +508,16 @@ MultiIndex(indexes=[{indexes}])
 """
 
 
-def _format_checks(checks_dict):
+def _format_checks(checks_list):
     """Format checks into string representation including options."""
-    if checks_dict is None:
+    if checks_list is None:
         return "None"
 
     checks = []
-    for check_name, check_kwargs in checks_dict.items():
+    for check_kwargs in checks_list:
         if check_kwargs is None:
             warnings.warn(
-                f"Check {check_name} cannot be serialized. "
-                "This check will be ignored"
+                "Check cannot be serialized. This check will be ignored"
             )
             continue
 
@@ -528,6 +527,14 @@ def _format_checks(checks_dict):
             if isinstance(check_kwargs, dict)
             else {}
         )
+
+        if "check_name" not in options:
+            warnings.warn(
+                "Check cannot be serialized. This check will be ignored"
+            )
+            continue
+
+        check_name = options.pop("check_name")
 
         # Format main check arguments
         if isinstance(check_kwargs, dict):
