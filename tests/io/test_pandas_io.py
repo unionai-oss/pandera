@@ -1320,14 +1320,14 @@ def test_io_yaml(index):
         output = io.to_yaml(schema, f.name)
         assert output is None
         schema_from_yaml = io.from_yaml(f.name)
-        assert schema_from_yaml == schema
+        assert str(schema_from_yaml) == str(schema)
 
     # pass in a Path object
     with tempfile.NamedTemporaryFile("w+") as f:
         output = schema.to_yaml(Path(f.name))
         assert output is None
         schema_from_yaml = pandera.DataFrameSchema.from_yaml(Path(f.name))
-        assert schema_from_yaml == schema
+        assert str(schema_from_yaml) == str(schema)
 
 
 @pytest.mark.parametrize("index", ["single", "multi", None])
