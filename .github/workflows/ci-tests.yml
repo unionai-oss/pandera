@@ -71,12 +71,7 @@ jobs:
         run: which nox
 
       - name: Check requirements
-        run: |
-          nox
-          -db uv -r
-          --non-interactive
-          --python ${{ matrix.python-version }}
-          --session requirements-${{ matrix.python-version }}
+        run: nox -db uv -r --non-interactive --python ${{ matrix.python-version }} --session requirements-${{ matrix.python-version }}
 
   #     - name: Sort Imports
   #       run: pre-commit run isort --all-files
