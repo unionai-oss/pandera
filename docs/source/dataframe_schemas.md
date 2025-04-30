@@ -723,8 +723,9 @@ The available methods for altering the schema are:
 - {func}`~pandera.api.dataframe.container.DataFrameSchema.remove_columns`
 - {func}`~pandera.api.dataframe.container.DataFrameSchema.update_column`
 - {func}`~pandera.api.dataframe.container.DataFrameSchema.update_columns`
+- {func}`~pandera.api.dataframe.container.DataFrameSchema.rename_columns`
 - {func}`~pandera.api.dataframe.container.DataFrameSchema.update_index`
 - {func}`~pandera.api.dataframe.container.DataFrameSchema.update_indexes`
-- {func}`~pandera.api.dataframe.container.DataFrameSchema.rename_columns`
+- {func}`~pandera.api.dataframe.container.DataFrameSchema.rename_indexes`
 - {func}`~pandera.api.dataframe.container.DataFrameSchema.set_index`
 - {func}`~pandera.api.dataframe.container.DataFrameSchema.reset_index`
