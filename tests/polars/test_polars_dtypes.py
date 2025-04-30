@@ -121,6 +121,29 @@ def test_coerce_no_cast_special(to_dtype, strategy):
 
 
 @pytest.mark.parametrize(
+    "data_type_cls", list(pe.Engine.get_registered_dtypes())
+)
+def test_polars_data_type_coerce(data_type_cls):
+    """
+    Test that polars data type coercion will raise a ParserError on failure.
+    """
+    try:
+        data_type = data_type_cls()
+    except TypeError:
+        # don't test data types that require parameters
+        return
+    if data_type.type == pl.Struct:
+        pytest.skip(
+            "Polars panics: pyo3_runtime.PanicException: called `Option::unwrap()` on a `None` value"
+        )
+
+    try:
+        data_type.try_coerce(pl.LazyFrame([["1", "2", "a"]]))
+    except pandera.errors.ParserError as exc:
+        assert exc.failure_cases.shape[0] > 0
+
+
+@pytest.mark.parametrize(
     "from_dtype, to_dtype, strategy",
     [
         (pe.UInt32(), pe.UInt64(), get_dataframe_strategy),

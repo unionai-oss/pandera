@@ -79,11 +79,15 @@ def polars_object_coercible(
 def polars_failure_cases_from_coercible(
     data_container: PolarsData,
     is_coercible: pl.LazyFrame,
-) -> pl.LazyFrame:
+) -> pl.DataFrame:
     """Get the failure cases resulting from trying to coerce a polars object."""
-    return pl.concat(
-        items=[data_container.lazyframe, is_coercible], how="horizontal"
-    ).filter(pl.col(CHECK_OUTPUT_KEY).not_())
+    return (
+        pl.concat(
+            items=[data_container.lazyframe, is_coercible], how="horizontal"
+        )
+        .filter(pl.col(CHECK_OUTPUT_KEY).not_())
+        .collect()
+    )
 
 
 def polars_coerce_failure_cases(
@@ -104,7 +108,7 @@ def polars_coerce_failure_cases(
     try:
         failure_cases = polars_failure_cases_from_coercible(
             data_container, is_coercible
-        ).collect()
+        )
         is_coercible = is_coercible.collect()
     except COERCION_ERRORS:
         # If coercion fails, all of the relevant rows are failure cases
@@ -783,11 +787,13 @@ class Category(DataType, dtypes.Category):
         try:
             return self.coerce(data_container)
         except Exception as exc:  # pylint:disable=broad-except
-            is_coercible: pl.LazyFrame = polars_object_coercible(
-                data_container, self.type
-            ) & self.__belongs_to_categories(
+            coercible = polars_object_coercible(data_container, self.type)
+            match_categories = self.__belongs_to_categories(
                 data_container.lazyframe, key=data_container.key
             )
+            is_coercible: pl.LazyFrame = pl.concat(
+                (coercible, match_categories), how="horizontal"
+            ).select(pl.all_horizontal(CHECK_OUTPUT_KEY, "belongs"))
 
             failure_cases = polars_failure_cases_from_coercible(
                 data_container, is_coercible
@@ -803,7 +809,7 @@ class Category(DataType, dtypes.Category):
         lf: pl.LazyFrame,
         key: str = "*",
     ) -> pl.LazyFrame:
-        return lf.select(pl.col(key).is_in(self.categories))
+        return lf.select(pl.col(key).is_in(self.categories).alias("belongs"))
 
     def __str__(self):
         return "Category"
