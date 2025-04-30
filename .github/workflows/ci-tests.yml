@@ -50,7 +50,7 @@ jobs:
             ${{ runner.os }}-pip-
       - name: Install dependencies
         run: |
-          python -m pip install uv 'nox[uv]' pre_commit \
+          python -m pip install 'uv<0.7.0' 'nox[uv]' pre_commit \
             mypy==0.982 \
             types-click \
             types-pytz \
