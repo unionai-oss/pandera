@@ -901,6 +901,8 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
         new_schema = new_schema.rename_columns(rename_dict)
 
         new_schema = new_schema.set_index(
+            # Use the new name in the rename_dict if it exists
+            # otherwise use the original name
             [cast(str, rename_dict.get(n, n)) for n in tmp_index_cols]
         )
 
