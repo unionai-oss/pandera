@@ -232,7 +232,8 @@ def _deserialize_check_stats(check, serialized_check_stats, dtype=None):
     # Apply options if they exist
     if options:
         for option_name, option_value in options.items():
-            setattr(check_instance, option_name, option_value)
+            if option_name != "check_name":
+                setattr(check_instance, option_name, option_value)
 
     return check_instance
 
