@@ -82,8 +82,10 @@ def ldf_schema_with_regex_name():
     """Polars lazyframe schema with checks."""
     return DataFrameSchema(
         {
-            r"^string_col_\d+$": Column(pl.Utf8, C.isin([*"012"])),
-            r"^int_col_\d+$": Column(pl.Int64, C.ge(0)),
+            r"^string_col_\d+$": Column(
+                pl.Utf8, C.isin([*"012"]), required=False
+            ),
+            r"^int_col_\d+$": Column(pl.Int64, C.ge(0), required=False),
         }
     )
 
@@ -93,8 +95,12 @@ def ldf_schema_with_regex_option():
     """Polars lazyframe schema with checks."""
     return DataFrameSchema(
         {
-            r"string_col_\d+": Column(pl.Utf8, C.isin([*"012"]), regex=True),
-            r"int_col_\d+": Column(pl.Int64, C.ge(0), regex=True),
+            r"string_col_\d+": Column(
+                pl.Utf8, C.isin([*"012"]), regex=True, required=False
+            ),
+            r"int_col_\d+": Column(
+                pl.Int64, C.ge(0), regex=True, required=False
+            ),
         }
     )
 

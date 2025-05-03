@@ -3,7 +3,7 @@
 import copy
 import traceback
 import warnings
-from typing import Any, Callable, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import polars as pl
 
@@ -279,23 +279,24 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
     ):
         """Collects all schema components to use for validation."""
 
-        columns = schema.columns
+        from pandera.api.polars.components import Column
+
+        columns: Dict[str, Column] = schema.columns
 
         if not schema.columns and schema.dtype is not None:
             # set schema components to dataframe dtype if columns are not
             # specified by the dataframe-level dtype is specified.
-            from pandera.api.polars.components import Column
 
             columns = {}
-            for col in get_lazyframe_column_names(check_obj):
-                columns[col] = Column(schema.dtype, name=str(col))
+            for col_name in get_lazyframe_column_names(check_obj):
+                columns[col_name] = Column(schema.dtype, name=str(col_name))
 
         schema_components = []
         for col_name, col in columns.items():
             if (
                 col.required  # type: ignore
                 or col_name in check_obj
-                or col_name in column_info.regex_match_patterns
+                or col.selector in column_info.regex_match_patterns
             ) and col_name not in column_info.absent_column_names:
                 col = copy.deepcopy(col)
                 if schema.dtype is not None:
