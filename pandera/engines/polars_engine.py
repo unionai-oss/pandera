@@ -132,7 +132,7 @@ def polars_coerce_failure_cases(
 class DataType(dtypes.DataType):
     """Base `DataType` for boxing Polars data types."""
 
-    type: Type[pl.DataType] | DataTypeClass = dataclasses.field(
+    type: Union[Type[pl.DataType], DataTypeClass] = dataclasses.field(
         repr=False, init=False
     )
 
@@ -169,13 +169,13 @@ class DataType(dtypes.DataType):
         if isinstance(data_container, pl.LazyFrame):
             data_container = PolarsData(data_container)
 
-        dtypes: (
+        dtypes: Union[
             Mapping[
-                ColumnNameOrSelector | PolarsDataType,
-                PolarsDataType | PythonDataType,
-            ]
-            | PolarsDataType
-        )
+                Union[ColumnNameOrSelector, PolarsDataType],
+                Union[PolarsDataType, PythonDataType],
+            ],
+            PolarsDataType,
+        ]
 
         if data_container.key == "*":
             dtypes = self.type
@@ -585,7 +585,7 @@ class Timedelta(DataType, dtypes.Timedelta):
 class _ArrayKwargs(TypedDict):
     """typeddict for mypy."""
 
-    shape: NotRequired[Union[int | tuple[int, ...]]]
+    shape: NotRequired[Union[int, tuple[int, ...]]]
     width: NotRequired[Union[int, None]]
 
 
@@ -734,7 +734,7 @@ class Categorical(DataType):
 
     def __init__(  # pylint:disable=super-init-not-called
         self,
-        ordering: Literal["physical", "lexical"] | None = "physical",
+        ordering: Optional[Literal["physical", "lexical"]] = "physical",
     ) -> None:
         object.__setattr__(self, "ordering", ordering)
         object.__setattr__(self, "type", pl.Categorical(ordering=ordering))
