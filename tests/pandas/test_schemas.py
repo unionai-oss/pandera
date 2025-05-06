@@ -1646,8 +1646,7 @@ def test_lazy_dataframe_unique() -> None:
                     "SeriesSchema": {
                         # check name -> failure cases
                         "greater_than(0)": [
-                            "TypeError(\"'>' not supported between instances "
-                            "of 'str' and 'int'\")",
+                            "TypeError(\"'>' not supported between instances of 'str' and 'int'\")",
                             # TypeError raised in python=3.5
                             'TypeError("unorderable types: str() > int()")',
                         ],
@@ -2195,6 +2194,197 @@ def test_column_set_unique():
     assert not test_schema.columns["a"].unique
     test_schema = test_schema.update_column("a", unique=True)
     assert test_schema.columns["a"].unique
+
+
+def test_update_index_error_cases():
+    """Test error cases when updating schema index."""
+
+    schema = DataFrameSchema(
+        index=Index(dtype=int, name="a"),
+        columns={
+            "b": Column(int),
+        },
+    )
+
+    with pytest.raises(ValueError, match="cannot update 'name' of the index."):
+        schema.update_index("a", name="new_name")
+
+    schema_no_index = DataFrameSchema(
+        columns={
+            "b": Column(int),
+        },
+    )
+    with pytest.raises(errors.SchemaInitError, match="index not in schema"):
+        schema_no_index.update_index("a", dtype=str)
+
+    with pytest.raises(
+        errors.SchemaInitError, match=r"index 'non_existent' not in"
+    ):
+        schema.update_index("non_existent", dtype=str)
+
+
+def test_update_indexes_error_cases():
+    """Test error cases when updating schema indexes."""
+
+    schema = DataFrameSchema(
+        index=MultiIndex(
+            [Index(dtype=int, name="a"), Index(dtype=float, name="b")]
+        ),
+        columns={
+            "c": Column(int),
+        },
+    )
+
+    with pytest.raises(errors.SchemaInitError):
+        schema.update_indexes({"a": {"name": "new_name"}})
+
+    schema_no_index = DataFrameSchema(
+        columns={
+            "c": Column(int),
+        },
+    )
+    with pytest.raises(errors.SchemaInitError):
+        schema_no_index.update_indexes({"a": {"dtype": str}})
+
+    with pytest.raises(errors.SchemaInitError):
+        schema.update_indexes({"non_existent": {"dtype": str}})
+
+
+def test_update_index():
+    """
+    Test that schemas can correctly update an index column via update_column method.
+    """
+
+    schema = DataFrameSchema(
+        index=Index(dtype=int, name="a"),
+        columns={
+            "b": Column(int),
+        },
+    )
+    schema = schema.update_index("a", dtype=str)
+
+    df = pd.DataFrame({"b": [1]}, index=pd.Index(["hello"], name="a"))
+
+    assert isinstance(schema.validate(df), pd.DataFrame)
+    schema.validate(df)
+
+    with pytest.raises(errors.SchemaInitError):
+        schema.update_index("does_not_exist", dtype=str)
+
+
+def test_update_multi_index():
+    """
+    Test that schemas can correctly update a multi_index column via update_column method.
+    """
+
+    schema = DataFrameSchema(
+        index=MultiIndex(
+            [Index(dtype=int, name="a"), Index(dtype=float, name="b")]
+        ),
+        columns={
+            "c": Column(int),
+        },
+    )
+    schema = schema.update_index("a", dtype=str)
+    multi_idx = pd.MultiIndex.from_arrays([["hello"], [1.0]], names=["a", "b"])
+    df = pd.DataFrame({"c": [1]}, index=multi_idx)
+
+    assert isinstance(schema.validate(df), pd.DataFrame)
+    schema.validate(df)
+
+    with pytest.raises(errors.SchemaInitError):
+        schema.update_index("does_not_exist", dtype=str)
+
+
+def test_update_indexes():
+    """
+    Test that schemas can correctly update an index column via update_indexes method.
+    """
+
+    schema = DataFrameSchema(
+        index=Index(dtype=int, name="a"),
+        columns={
+            "b": Column(int),
+        },
+    )
+    schema = schema.update_indexes(
+        {
+            "a": {"dtype": str},
+        }
+    )
+
+    df = pd.DataFrame({"b": [1]}, index=pd.Index(["hello"], name="a"))
+
+    assert isinstance(schema.validate(df), pd.DataFrame)
+    schema.validate(df)
+
+    with pytest.raises(errors.SchemaInitError):
+        schema.update_indexes(
+            {
+                "does_not_exist": {"dtype": str},
+            }
+        )
+
+
+def test_update_multi_indexes():
+    """
+    Test that schemas can correctly update a multi_index column via update_indexes method.
+    """
+
+    schema = DataFrameSchema(
+        index=MultiIndex(
+            [Index(dtype=int, name="a"), Index(dtype=float, name="b")]
+        ),
+        columns={
+            "c": Column(int),
+        },
+    )
+    schema = schema.update_indexes(
+        {
+            "a": {"dtype": str},
+        }
+    )
+    multi_idx = pd.MultiIndex.from_arrays([["hello"], [1.0]], names=["a", "b"])
+    df = pd.DataFrame({"c": [1]}, index=multi_idx)
+
+    assert isinstance(schema.validate(df), pd.DataFrame)
+    schema.validate(df)
+
+    with pytest.raises(errors.SchemaInitError):
+        schema.update_indexes(
+            {
+                "does_not_exist": {"dtype": str},
+            }
+        )
+
+
+def test_rename_indexes():
+    """
+    Test that schemas can correctly rename an index column via rename_indexes method.
+    """
+
+    schema = DataFrameSchema(
+        index=MultiIndex(
+            [Index(dtype=int, name="a"), Index(dtype=float, name="b")]
+        ),
+        columns={
+            "c": Column(int),
+        },
+    )
+    schema = schema.rename_indexes({"a": "new_name"}).update_index(
+        "new_name", dtype=str
+    )
+
+    multi_idx = pd.MultiIndex.from_arrays(
+        [["hello"], [1.0]], names=["new_name", "b"]
+    )
+    df = pd.DataFrame({"c": [1]}, index=multi_idx)
+
+    assert isinstance(schema.validate(df), pd.DataFrame)
+    schema.validate(df)
+
+    with pytest.raises(errors.SchemaInitError):
+        schema.rename_indexes({"does_not_exist": "new_name"})
 
 
 def test_missing_columns():

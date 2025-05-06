@@ -187,8 +187,7 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
     def _validate_attributes(self):
         if self.strict not in (False, True, "filter"):
             raise errors.SchemaInitError(
-                "strict parameter must equal either `True`, `False`, "
-                "or `'filter'`."
+                "strict parameter must equal either `True`, `False`, or `'filter'`."
             )
 
     @property
@@ -791,6 +790,122 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
         }
 
         new_schema.columns = new_columns
+        return cast(Self, new_schema)
+
+    def update_index(self, index_name: str, **kwargs) -> Self:
+        """
+        Create copy of a :class:`~pandera.api.dataframe.container.DataFrameSchema`
+        with updated index properties.
+
+        :param index_name:
+        :param kwargs: key-word arguments supplied to
+            :class:`~pandera.api.pandas.components.Index`
+        :returns: a new :class:`~pandera.api.dataframe.container.DataFrameSchema` with updated index
+        :raises: :class:`~pandera.errors.SchemaInitError`: if index not in
+            schema or you try to change the name.
+
+        :example:
+
+        Calling ``schema.1`` returns the :class:`~pandera.api.dataframe.container.DataFrameSchema`
+        with the updated index.
+
+        """
+
+        schema = self
+        if "name" in kwargs:
+            raise ValueError("cannot update 'name' of the index.")
+        if schema.index is None:
+            raise errors.SchemaInitError("index not in schema")
+        if index_name not in schema.index.names:
+            raise errors.SchemaInitError(
+                f"index '{index_name}' not in {schema}"
+            )
+
+        tmp_index_cols = schema.index.names
+        schema = schema.reset_index()
+
+        schema = schema.update_column(index_name, **kwargs)
+
+        schema = schema.set_index(tmp_index_cols)
+
+        return cast(Self, schema)
+
+    def update_indexes(self, update_dict: Dict[str, Dict[str, Any]]) -> Self:
+        """
+        Create copy of a :class:`~pandera.api.dataframe.container.DataFrameSchema`
+        with updated index properties.
+
+        :param update_dict:
+        :return: a new :class:`~pandera.api.dataframe.container.DataFrameSchema` with updated index
+        :raises: :class:`~pandera.errors.SchemaInitError`: if index not in
+            schema or you try to change the name.
+
+        """
+        schema = self
+
+        if schema.index is None:
+            raise errors.SchemaInitError("index not in schema")
+
+        # ensure all specified keys are present in the index
+        not_in_cols: List[str] = [
+            x for x in update_dict.keys() if x not in schema.index.names
+        ]
+        if not_in_cols:
+            raise errors.SchemaInitError(
+                f"Keys {not_in_cols} not found in schema indexes!"
+            )
+
+        tmp_index_cols = schema.index.names
+        schema = schema.reset_index()
+
+        schema = schema.update_columns(update_dict)
+
+        schema = schema.set_index(tmp_index_cols)
+
+        return cast(Self, schema)
+
+    def rename_indexes(self, rename_dict: Dict[str, str]) -> Self:
+        """Rename indexes using a dictionary of key-value pairs.
+
+        :param rename_dict: dictionary of 'old_name': 'new_name' key-value
+            pairs.
+        :returns: :class:`~pandera.api.dataframe.container.DataFrameSchema` (copy of original)
+        :raises: :class:`~pandera.errors.SchemaInitError` if index not in the
+            schema.
+
+        :example:
+
+        To rename an index or set of indexes, pass a dictionary of old index
+        names and new index names, similar to the pandas DataFrame method.
+
+        .. seealso:: :func:`update_index`
+
+        """
+        new_schema = copy.deepcopy(self)
+
+        if new_schema.index is None:
+            raise errors.SchemaInitError("index not in schema")
+
+        # ensure all specified keys are present in the index
+        not_in_cols: List[str] = [
+            x for x in rename_dict.keys() if x not in new_schema.index.names
+        ]
+        if not_in_cols:
+            raise errors.SchemaInitError(
+                f"Keys {not_in_cols} not found in schema indexes!"
+            )
+
+        tmp_index_cols = new_schema.index.names
+        new_schema = new_schema.reset_index()
+
+        new_schema = new_schema.rename_columns(rename_dict)
+
+        new_schema = new_schema.set_index(
+            # Use the new name in the rename_dict if it exists
+            # otherwise use the original name
+            [cast(str, rename_dict.get(n, n)) for n in tmp_index_cols]
+        )
+
         return cast(Self, new_schema)
 
     def select_columns(self, columns: List[Any]) -> Self:

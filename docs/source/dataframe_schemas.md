@@ -607,11 +607,12 @@ schema.validate(df)
 
 Once you've defined a schema, you can then make modifications to it, both on
 the schema level -- such as adding or removing columns and setting or resetting
-the index -- or on the column level -- such as changing the data type or checks.
+the index -- or on the column or index level -- such as changing the data type
+or checks.
 
 This is useful for reusing schema objects in a data pipeline when additional
-computation has been done on a dataframe, where the column objects may have
-changed or perhaps where additional checks may be required.
+computation has been done on a dataframe, where the column or index objects
+may have changed or perhaps where additional checks may be required.
 
 ```{code-cell} python
 import pandas as pd
@@ -677,11 +678,54 @@ schema = pa.DataFrameSchema(
 schema.set_index(["column1"], append = True)
 ```
 
+And if you want to update the checks on a column or an index, you can use the
+{func}`~pandera.api.dataframe.container.DataFrameSchema.update_column` or
+{func}`~pandera.api.dataframe.container.DataFrameSchema.update_index` method.
+
+```{code-cell} python
+import pandas as pd
+import pandera.pandas as pa
+schema = pa.DataFrameSchema(
+    {
+        "column1": pa.Column(int),
+        "column2": pa.Column(float)
+    },
+    index=pa.Index(int, name = "column3"),
+    strict=True,
+    coerce=True,
+)
+df = pd.DataFrame(
+    data={"column1": [1, 2, 3], "column2": [1.0, 2.0, 3.0]},
+    index=pd.Index([0, 1, 2], name="column3")
+)
+schema.validate(df)
+
+schema = (
+  schema
+  .update_index(
+    "column3", checks=pa.Check(lambda s: s.isin([0, 1, 2])),
+  ).update_column(
+    "column1", checks=pa.Check(lambda s: s > 0)
+  )
+)
+df = pd.DataFrame(
+    data={"column1": [1, 2, 3], "column2": [1.0, 2.0, 3.0]},
+    index=pd.Index([0, 1, 2], name="column3")
+)
+
+schema.validate(df)
+```
+
+
 The available methods for altering the schema are:
 
 - {func}`~pandera.api.dataframe.container.DataFrameSchema.add_columns`
 - {func}`~pandera.api.dataframe.container.DataFrameSchema.remove_columns`
+- {func}`~pandera.api.dataframe.container.DataFrameSchema.update_column`
 - {func}`~pandera.api.dataframe.container.DataFrameSchema.update_columns`
 - {func}`~pandera.api.dataframe.container.DataFrameSchema.rename_columns`
+- {func}`~pandera.api.dataframe.container.DataFrameSchema.update_index`
+- {func}`~pandera.api.dataframe.container.DataFrameSchema.update_indexes`
+- {func}`~pandera.api.dataframe.container.DataFrameSchema.rename_indexes`
 - {func}`~pandera.api.dataframe.container.DataFrameSchema.set_index`
 - {func}`~pandera.api.dataframe.container.DataFrameSchema.reset_index`
