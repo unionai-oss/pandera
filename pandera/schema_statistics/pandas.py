@@ -1,7 +1,7 @@
 """Module for inferring the statistics of pandas objects."""
 
 import warnings
-from typing import Any, Dict, Union
+from typing import Any, Dict, Union, List
 
 import pandas as pd
 
@@ -156,10 +156,9 @@ def get_series_schema_statistics(series_schema):
     return _get_series_base_schema_statistics(series_schema)
 
 
-def parse_checks(checks) -> Union[Dict[str, Any], None]:
+def parse_checks(checks) -> Union[List[Dict[str, Any]], None]:
     """Convert Check object to check statistics including options."""
-    check_statistics = {}
-    _check_memo = {}
+    check_statistics = []
 
     for check in checks:
         if check not in Check:
@@ -175,6 +174,7 @@ def parse_checks(checks) -> Union[Dict[str, Any], None]:
 
         # Collect check options
         check_options = {
+            "check_name": check.name,
             "raise_warning": check.raise_warning,
             "n_failure_cases": check.n_failure_cases,
             "ignore_na": check.ignore_na,
@@ -186,29 +186,34 @@ def parse_checks(checks) -> Union[Dict[str, Any], None]:
         }
 
         # Combine statistics with options
-        check_statistics[check.name] = base_stats
         if check_options:
-            check_statistics[check.name]["options"] = check_options
-
-        _check_memo[check.name] = check
+            base_stats["options"] = check_options
+            check_statistics.append(base_stats)
 
     # Check for incompatible checks
-    if (
-        "greater_than_or_equal_to" in check_statistics
-        and "less_than_or_equal_to" in check_statistics
-    ):
-        min_value = check_statistics.get(
-            "greater_than_or_equal_to", float("-inf")
-        ).get("min_value", float("-inf"))
-        max_value = check_statistics.get(
-            "less_than_or_equal_to", float("inf")
-        ).get("max_value", float("inf"))
-        if min_value > max_value:
-            raise ValueError(
-                f"checks {_check_memo['greater_than_or_equal_to']} "
-                f"and {_check_memo['less_than_or_equal_to']} are incompatible, reason: "
-                f"min value {min_value} > max value {max_value}"
-            )
+    incompatibile_checks = {
+        "equal_to": "eq",
+        "greater_than": "gt",
+        "less_than": "lt",
+        "greater_than_or_equal_to": "lt",
+        "less_than_or_equal_to": "le",
+        "in_range": "between",
+    }
+
+    incompatibile_checks_count = sum(
+        map(
+            lambda check: check["options"]["check_name"]
+            in incompatibile_checks,
+            check_statistics,
+        )
+    )
+    if incompatibile_checks_count > 1:
+        error_message = ", ".join(
+            [f"{key} ({value})" for key, value in incompatibile_checks.items()]
+        )
+        warnings.warn(
+            "You do not need more than one check out of " f"{error_message}."
+        )
 
     return check_statistics if check_statistics else None
 
