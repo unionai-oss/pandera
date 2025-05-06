@@ -8,10 +8,12 @@ version_file = "pandera/_version.py"
 [project]
 name = "pandera"
 dynamic = ["version"]
-authors = [{ name = "Niels Bantilan", email = "niels.bantilan@gmail.com" }]
+authors = [
+    {name = "Niels Bantilan", email = "niels.bantilan@gmail.com"},
+]
 description = "A light-weight and flexible data validation and testing tool for statistical data objects."
 readme = "README.md"
-license = { file = "LICENSE.txt" }
+license = {file = "LICENSE.txt"}
 requires-python = ">=3.9"
 keywords = ["pandas", "validation", "data-structures"]
 classifiers = [
@@ -41,18 +43,47 @@ Documentation = "https://pandera.readthedocs.io"
 Homepage = "https://github.com/pandera-dev/pandera"
 
 [project.optional-dependencies]
-pandas = ["numpy >= 1.24.4", "pandas >= 2.1.1"]
-strategies = ["hypothesis >= 6.92.7"]
-hypotheses = ["scipy"]
-io = ["pyyaml >= 5.1", "black", "frictionless >= 5.18.1"]
+pandas = [
+    "numpy >= 1.24.4",
+    "pandas >= 2.1.1",
+]
+strategies = [
+    "hypothesis >= 6.92.7",
+]
+hypotheses = [
+    "scipy",
+]
+io = [
+    "pyyaml >= 5.1",
+    "black",
+    "frictionless >= 5.18.1",
+]
 mypy = ["pandas-stubs"]
 fastapi = ["fastapi"]
-geopandas = ["geopandas", "shapely"]
+geopandas = [
+    "geopandas",
+    "shapely",
+]
 pyspark = ["pyspark[connect] >= 3.2.0"]
-modin = ["modin", "ray", "dask[dataframe]", "distributed"]
-modin-ray = ["modin", "ray"]
-modin-dask = ["modin", "dask[dataframe]", "distributed"]
-dask = ["dask[dataframe]", "distributed"]
+modin = [
+    "modin",
+    "ray",
+    "dask[dataframe]",
+    "distributed",
+]
+modin-ray = [
+    "modin",
+    "ray",
+]
+modin-dask = [
+    "modin",
+    "dask[dataframe]",
+    "distributed",
+]
+dask = [
+    "dask[dataframe]",
+    "distributed",
+]
 
 polars = ["polars >= 0.20.0"]
 all = [
@@ -60,7 +91,7 @@ all = [
     "scipy",
     "pyyaml >= 5.1",
     "black",
-    "frictionless >= 5.18.1",
+    "frictionless <= 4.40.8",
     "pyspark[connect] >= 3.2.0",
     "modin",
     "ray",
@@ -90,7 +121,12 @@ dev = [
     "python-multipart",
     "uv",
 ]
-testing = ["pytest", "pytest-cov", "pytest-xdist", "pytest-asyncio"]
+testing = [
+    "pytest",
+    "pytest-cov",
+    "pytest-xdist",
+    "pytest-asyncio",
+]
 docs = [
     "sphinx",
     "sphinx-design",
@@ -111,7 +147,7 @@ docs = [
 
 [tool.setuptools]
 packages = ["pandera"]
-package-data = { "pandera" = ["py.typed"] }
+package-data = {"pandera" = ["py.typed"]}
 
 [tool.pyright]
 include = ["pandera", "tests"]
@@ -123,11 +159,22 @@ log_cli_level = 20
 
 [tool.ruff]
 line-length = 120
-extend-exclude = ["setup.py", ".venv", ".nox", ".git", "asv_bench"]
+extend-exclude = [
+    "setup.py",
+    ".venv",
+    ".nox",
+    ".git",
+    "asv_bench",
+]
 
 [tool.black]
 line-length = 79
-target-version = ['py39', 'py310', 'py311', 'py312']
+target-version = [
+  'py39',
+  'py310',
+  'py311',
+  'py312',
+]
 include = '\.pyi?$'
 exclude = '''
 (
