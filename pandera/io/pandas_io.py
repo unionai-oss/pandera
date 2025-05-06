@@ -5,8 +5,7 @@ import warnings
 from collections.abc import Mapping
 from functools import partial
 from pathlib import Path
-
-from typing import Dict, Optional, Union, List,Any
+from typing import Dict, Optional, Union, List, Any
 from frictionless.fields import AnyField
 import pandas as pd
 
