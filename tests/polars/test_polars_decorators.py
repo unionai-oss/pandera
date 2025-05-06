@@ -76,7 +76,7 @@ def test_polars_dataframe_check_types(data, invalid_data):
     def fn_check_io_invalid(
         x: pa_typing.DataFrame[Model],
     ) -> pa_typing.DataFrame[Model]:
-        return x.rename({"a": "b"})
+        return x.rename({"a": "b"})  # type: ignore
 
     # valid data should pass
     fn_check_input(data)
