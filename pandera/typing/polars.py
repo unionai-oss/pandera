@@ -12,15 +12,15 @@ from pandera.errors import SchemaError, SchemaInitError
 from pandera.typing.common import DataFrameBase, DataFrameModel, SeriesBase
 from pandera.typing.formats import Formats
 
-try:  # pragma: no cover
+try:
     import polars as pl
 
     POLARS_INSTALLED = True
-except ImportError:  # pragma: no cover
+except ImportError:
     POLARS_INSTALLED = False
 
 
-if PYDANTIC_V2:  # pragma: no cover
+if PYDANTIC_V2:
     from pydantic import GetCoreSchemaHandler
     from pydantic_core import core_schema
 
@@ -136,7 +136,7 @@ if POLARS_INSTALLED:
                         # If it's a Python object that's JSON-serializable
                         return pl.DataFrame(obj)
                     else:
-                        raise ValueError(  # pragma: no cover - tested via mock
+                        raise ValueError(
                             f"Unsupported JSON input type: {type(obj)}"
                         )
 
@@ -161,7 +161,7 @@ if POLARS_INSTALLED:
                         "Use a custom callable for from_format instead."
                     )
 
-                else:  # pragma: no cover - covered by tests via mock
+                else:
                     # For other formats not natively supported by polars
                     raise ValueError(
                         f"Format {format_type} is not supported natively by polars. "
@@ -192,11 +192,11 @@ if POLARS_INSTALLED:
                 args = [] if buffer is None else [buffer]
                 out = writer(*args, **(config.to_format_kwargs or {}))
                 return out if buffer is None else buffer
-            else:  # pragma: no cover - tested in unit tests via mock
+            else:
                 # Handle different formats natively using polars
                 try:
                     format_type = Formats(config.to_format)
-                except ValueError as exc:  # pragma: no cover - tested in unit tests via mock
+                except ValueError as exc:
                     raise ValueError(
                         f"Unsupported format: {config.to_format}. "
                         f"Polars natively supports: dict, csv, json, parquet, and feather."
@@ -222,7 +222,7 @@ if POLARS_INSTALLED:
                     Raises:
                         ValueError: If writing fails
                     """
-                    try:  # pragma: no cover - tested in unit tests via mock
+                    try:
                         buffer = buffer_factory()
                         write_method(buffer, **kwargs)
                         buffer.seek(0)
@@ -231,7 +231,7 @@ if POLARS_INSTALLED:
                             if isinstance(buffer, io.StringIO)
                             else buffer
                         )
-                    except Exception as exc:  # pragma: no cover - tested in unit tests via mock
+                    except Exception as exc:
                         raise ValueError(f"{error_prefix}: {exc}") from exc
 
                 # Handle specific formats
@@ -239,7 +239,7 @@ if POLARS_INSTALLED:
                     # Convert to dict
                     return data.to_dict()
 
-                elif format_type == Formats.csv:  # pragma: no cover - tested in unit tests via mock
+                elif format_type == Formats.csv:
                     # Use polars write_csv
                     return write_to_buffer(
                         io.StringIO,
@@ -247,7 +247,7 @@ if POLARS_INSTALLED:
                         "Failed to write CSV with polars",
                     )
 
-                elif format_type == Formats.json:  # pragma: no cover - tested in unit tests via mock
+                elif format_type == Formats.json:
                     # Use polars write_json
                     return write_to_buffer(
                         io.StringIO,
@@ -255,7 +255,7 @@ if POLARS_INSTALLED:
                         "Failed to write JSON with polars",
                     )
 
-                elif format_type == Formats.parquet:  # pragma: no cover - tested in unit tests via mock
+                elif format_type == Formats.parquet:
                     # Use polars write_parquet
                     return write_to_buffer(
                         io.BytesIO,
@@ -263,7 +263,7 @@ if POLARS_INSTALLED:
                         "Failed to write Parquet with polars",
                     )
 
-                elif format_type == Formats.feather:  # pragma: no cover - tested in unit tests via mock
+                elif format_type == Formats.feather:
                     # Use polars write_ipc for feather files
                     return write_to_buffer(
                         io.BytesIO,
@@ -295,7 +295,7 @@ if POLARS_INSTALLED:
             schema_model = field.sub_fields[0].type_
             return schema_model
 
-        if PYDANTIC_V2:  # pragma: no cover - requires pydantic v2
+        if PYDANTIC_V2:
 
             @classmethod
             def __get_pydantic_core_schema__(
@@ -357,7 +357,7 @@ if POLARS_INSTALLED:
                     )
                 )
 
-                try:  # pragma: no cover - requires specific pydantic_core version
+                try:
                     # The json_schema_input_schema parameter is only available in
                     # pydantic_core >=2.30.0. On earlier versions, we'll fall back
                     # to the simpler validation function.
@@ -370,13 +370,13 @@ if POLARS_INSTALLED:
                             return_schema=json_schema_input_schema,
                         ),
                     )
-                except TypeError:  # pragma: no cover - requires older pydantic_core version
+                except TypeError:
                     # Fallback for older pydantic_core versions
                     return core_schema.no_info_plain_validator_function(
                         function
                     )
 
-        else:  # pragma: no cover - requires pydantic v1
+        else:
 
             @classmethod
             def __get_validators__(cls):
