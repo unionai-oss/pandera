@@ -20,7 +20,7 @@ from typing import (
     Union,
     cast,
 )
-
+from typing_extensions import get_type_hints
 from pandera.api.base.model import BaseModel
 from pandera.api.base.schema import BaseSchema
 from pandera.api.checks import Check
@@ -48,11 +48,6 @@ from pandera.utils import docstring_substitution
 if PYDANTIC_V2:
     from pydantic import GetCoreSchemaHandler, GetJsonSchemaHandler
     from pydantic_core import core_schema
-
-try:
-    from typing_extensions import get_type_hints
-except ImportError:  # pragma: no cover
-    from typing import get_type_hints  # type: ignore
 
 
 TDataFrame = TypeVar("TDataFrame")
@@ -337,10 +332,7 @@ class DataFrameModel(Generic[TDataFrame, TSchema], BaseModel):
     def _collect_fields(cls) -> Dict[str, Tuple[AnnotationInfo, FieldInfo]]:
         """Centralize publicly named fields and their corresponding annotations."""
         # pylint: disable=unexpected-keyword-arg
-        annotations = get_type_hints(  # type: ignore[call-arg]
-            cls,
-            include_extras=True,
-        )
+        annotations = get_type_hints(cls, include_extras=True)
         # pylint: enable=unexpected-keyword-arg
         attrs = cls._get_model_attrs()
 
@@ -358,6 +350,8 @@ class DataFrameModel(Generic[TDataFrame, TSchema], BaseModel):
 
         fields = {}
         for field_name, annotation in annotations.items():
+            if not _is_field(field_name):
+                continue
             field = attrs[field_name]  # __init_subclass__ guarantees existence
             if not isinstance(field, FieldInfo):
                 raise SchemaInitError(
