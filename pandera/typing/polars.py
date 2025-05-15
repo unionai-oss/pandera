@@ -15,7 +15,7 @@ except ImportError:
 
 
 def polars_version():
-    """Return the modin version."""
+    """Return the polars version."""
     return version.parse(pl.__version__)
 
 
