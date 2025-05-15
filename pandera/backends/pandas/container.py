@@ -116,8 +116,18 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
 
         if error_handler.collected_errors:
             if getattr(schema, "drop_invalid_rows", False):
+                # if the failure cases are a string, it means the error is
+                # a schema-level error.
+                if any(
+                    isinstance(err.failure_cases, str)
+                    for err in error_handler.schema_errors
+                ):
+                    raise SchemaErrors(
+                        schema=schema,
+                        schema_errors=error_handler.schema_errors,
+                        data=check_obj,
+                    )
                 check_obj = self.drop_invalid_rows(check_obj, error_handler)
-                return check_obj
             else:
                 raise SchemaErrors(
                     schema=schema,
@@ -129,7 +139,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
 
     def run_checks_and_handle_errors(
         self,
-        error_handler,
+        error_handler: ErrorHandler,
         schema,
         check_obj,
         column_info,
@@ -139,7 +149,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
         head,
         tail,
         random_state,
-    ):
+    ) -> ErrorHandler:
         """Run checks on schema"""
         # pylint: disable=too-many-locals
 

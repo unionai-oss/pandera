@@ -32,7 +32,7 @@ import pandas as pd
 import pandera.pandas as pa
 
 
-df = pd.DataFrame({"counter": ["1", "2", "3"]})
+df = pd.DataFrame({"counter": [1, 2, 3]})
 schema = pa.DataFrameSchema(
     {"counter": pa.Column(int, checks=[pa.Check(lambda x: x >= 3)])},
     drop_invalid_rows=True,
@@ -48,7 +48,7 @@ import pandas as pd
 import pandera.pandas as pa
 
 
-series = pd.Series(["1", "2", "3"])
+series = pd.Series([1, 2, 3])
 schema = pa.SeriesSchema(
     int,
     checks=[pa.Check(lambda x: x >= 3)],
@@ -65,7 +65,7 @@ import pandas as pd
 import pandera.pandas as pa
 
 
-df = pd.DataFrame({"counter": ["1", "2", "3"]})
+df = pd.DataFrame({"counter": [1, 2, 3]})
 schema = pa.Column(
     int,
     name="counter",
