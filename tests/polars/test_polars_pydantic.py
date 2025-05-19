@@ -48,9 +48,7 @@ class PolarsDataFrameSchemaPydantic(BaseModel):
 def test_typed_polars_dataframe():
     """Test that typed Polars DataFrame is compatible with pydantic."""
     valid_df = pl.DataFrame({"str_col": ["hello", "world"]})
-    assert isinstance(
-        TypedPolarsDataFramePydantic(df=valid_df), TypedPolarsDataFramePydantic
-    )
+    assert isinstance(TypedPolarsDataFramePydantic(df=valid_df), TypedPolarsDataFramePydantic)
 
     invalid_df = pl.DataFrame({"str_col": ["hello", "hello"]})
     with pytest.raises(ValidationError):
@@ -126,6 +124,42 @@ def test_polars_dataframeschema():
         PolarsDataFrameSchemaPydantic(pa_schema=pa.DataFrameSchema()),
         PolarsDataFrameSchemaPydantic,
     )
+
+
+def test_optional_column_schema():
+    """Test that a Polars DataFrameModel with optional columns works correctly."""
+
+    class SchemaWithOptionalColumn(pa.DataFrameModel):
+        """Test Polars DataFrameModel with an optional column."""
+
+        required_col: Series[str]
+        optional_col: Optional[Series[int]]
+
+    # Create a custom pydantic model that uses our schema with optional column
+    class OptionalColumnModelPydantic(BaseModel):
+        df: DataFrame[SchemaWithOptionalColumn]
+
+    # Test with only the required column
+    df_required_only = pl.DataFrame({"required_col": ["value1", "value2"]})
+    model = OptionalColumnModelPydantic(df=df_required_only)
+    assert isinstance(model, OptionalColumnModelPydantic)
+
+    # Test with both required and optional columns
+    df_with_optional = pl.DataFrame({"required_col": ["value1", "value2"], "optional_col": [1, 2]})
+    model = OptionalColumnModelPydantic(df=df_with_optional)
+    assert isinstance(model, OptionalColumnModelPydantic)
+
+    # Test with invalid optional column type
+    df_invalid_optional = pl.DataFrame(
+        {"required_col": ["value1", "value2"], "optional_col": ["not_an_int", "invalid"]}
+    )
+    with pytest.raises(ValidationError):
+        OptionalColumnModelPydantic(df=df_invalid_optional)
+
+    # Test with missing required column
+    df_missing_required = pl.DataFrame({"optional_col": [1, 2]})
+    with pytest.raises(ValidationError):
+        OptionalColumnModelPydantic(df=df_missing_required)
 
 
 def test_invalid_polars_dataframeschema():
