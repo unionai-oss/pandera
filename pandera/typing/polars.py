@@ -81,7 +81,9 @@ if POLARS_INSTALLED:
                 # Handle different formats natively using polars
                 try:
                     format_type = Formats(config.from_format)
-                except ValueError as exc:  # pragma: no cover - tested via mocks
+                except (
+                    ValueError
+                ) as exc:  # pragma: no cover - tested via mocks
                     raise ValueError(
                         f"Unsupported format: {config.from_format}. "
                         f"Polars natively supports: dict, csv, json, parquet, and feather."

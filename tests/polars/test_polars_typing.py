@@ -46,7 +46,7 @@ def test_imported_symbols():
     # functionality since these are imports
     import importlib
 
-    typing_polars = importlib.import_module('pandera.typing.polars')
+    typing_polars = importlib.import_module("pandera.typing.polars")
 
     assert hasattr(typing_polars, "T")
     assert hasattr(typing_polars, "TYPE_CHECKING")
@@ -58,7 +58,7 @@ def test_polars_import_behavior():
     # Verify the POLARS_INSTALLED flag matches reality
     from pandera.typing.polars import POLARS_INSTALLED
 
-    if 'polars' in sys.modules:
+    if "polars" in sys.modules:
         try:
             assert POLARS_INSTALLED
         except ImportError:
@@ -76,21 +76,21 @@ def test_polars_import_error():
     real_import = builtins.__import__
 
     def mock_import(name, *args, **kwargs):
-        if name == 'polars':
+        if name == "polars":
             raise ImportError("Mocked polars import error")
         return real_import(name, *args, **kwargs)
 
-    if 'pandera.typing.polars' in sys.modules:
-        original_module = sys.modules['pandera.typing.polars']
-        del sys.modules['pandera.typing.polars']
+    if "pandera.typing.polars" in sys.modules:
+        original_module = sys.modules["pandera.typing.polars"]
+        del sys.modules["pandera.typing.polars"]
     else:
         original_module = None
 
     # Mock the import system
-    with patch('builtins.__import__', side_effect=mock_import):
+    with patch("builtins.__import__", side_effect=mock_import):
         try:
             # Re-import the module to trigger our mocked import
-            importlib.import_module('pandera.typing.polars')
+            importlib.import_module("pandera.typing.polars")
             # Verify POLARS_INSTALLED was set to False
             from pandera.typing.polars import POLARS_INSTALLED
 
@@ -98,7 +98,7 @@ def test_polars_import_error():
         finally:
             # Restore module state
             if original_module is not None:
-                sys.modules['pandera.typing.polars'] = original_module
+                sys.modules["pandera.typing.polars"] = original_module
 
 
 # pylint: disable=too-many-public-methods
@@ -123,7 +123,9 @@ class TestDataFrame:
         assert result.equals(df)
 
         # Test conversion from dict
-        result = DataFrame.from_format({"str_col": ["test"], "int_col": [1]}, mock_config)
+        result = DataFrame.from_format(
+            {"str_col": ["test"], "int_col": [1]}, mock_config
+        )
         assert isinstance(result, pl.DataFrame)
 
         # Test invalid input
@@ -177,7 +179,8 @@ class TestDataFrame:
         mock_config.from_format_kwargs = {}
 
         with patch(
-            "polars.read_csv", return_value=pl.DataFrame({"str_col": ["test"], "int_col": [1]})
+            "polars.read_csv",
+            return_value=pl.DataFrame({"str_col": ["test"], "int_col": [1]}),
         ) as mock_read:
             result = DataFrame.from_format(csv_data, mock_config)
             mock_read.assert_called_once_with(csv_data, **{})
@@ -185,7 +188,9 @@ class TestDataFrame:
 
         # Test with error
         with patch("polars.read_csv", side_effect=Exception("CSV error")):
-            with pytest.raises(ValueError, match="Failed to read CSV with polars"):
+            with pytest.raises(
+                ValueError, match="Failed to read CSV with polars"
+            ):
                 DataFrame.from_format(csv_data, mock_config)
 
     def test_from_format_json(self):
@@ -200,7 +205,8 @@ class TestDataFrame:
 
         # Test with string JSON
         with patch(
-            "polars.read_json", return_value=pl.DataFrame({"str_col": ["test"], "int_col": [1]})
+            "polars.read_json",
+            return_value=pl.DataFrame({"str_col": ["test"], "int_col": [1]}),
         ) as mock_read:
             result = DataFrame.from_format(json_str, mock_config)
             mock_read.assert_called_once_with(json_str, **{})
@@ -212,7 +218,9 @@ class TestDataFrame:
 
         # Test with error
         with patch("polars.read_json", side_effect=Exception("JSON error")):
-            with pytest.raises(ValueError, match="Failed to read JSON with polars"):
+            with pytest.raises(
+                ValueError, match="Failed to read JSON with polars"
+            ):
                 DataFrame.from_format(json_str, mock_config)
 
         # Test with invalid type
@@ -229,15 +237,20 @@ class TestDataFrame:
         mock_config.from_format_kwargs = {}
 
         with patch(
-            "polars.read_parquet", return_value=pl.DataFrame({"str_col": ["test"], "int_col": [1]})
+            "polars.read_parquet",
+            return_value=pl.DataFrame({"str_col": ["test"], "int_col": [1]}),
         ) as mock_read:
             result = DataFrame.from_format(parquet_data, mock_config)
             mock_read.assert_called_once_with(parquet_data, **{})
             assert isinstance(result, pl.DataFrame)
 
         # Test with error
-        with patch("polars.read_parquet", side_effect=Exception("Parquet error")):
-            with pytest.raises(ValueError, match="Failed to read Parquet with polars"):
+        with patch(
+            "polars.read_parquet", side_effect=Exception("Parquet error")
+        ):
+            with pytest.raises(
+                ValueError, match="Failed to read Parquet with polars"
+            ):
                 DataFrame.from_format(parquet_data, mock_config)
 
     def test_from_format_feather(self):
@@ -250,7 +263,8 @@ class TestDataFrame:
         mock_config.from_format_kwargs = {}
 
         with patch(
-            "polars.read_ipc", return_value=pl.DataFrame({"str_col": ["test"], "int_col": [1]})
+            "polars.read_ipc",
+            return_value=pl.DataFrame({"str_col": ["test"], "int_col": [1]}),
         ) as mock_read:
             result = DataFrame.from_format(feather_data, mock_config)
             mock_read.assert_called_once_with(feather_data, **{})
@@ -258,7 +272,9 @@ class TestDataFrame:
 
         # Test with error
         with patch("polars.read_ipc", side_effect=Exception("Feather error")):
-            with pytest.raises(ValueError, match="Failed to read Feather/IPC with polars"):
+            with pytest.raises(
+                ValueError, match="Failed to read Feather/IPC with polars"
+            ):
                 DataFrame.from_format(feather_data, mock_config)
 
     def test_from_format_unsupported(self):
@@ -267,14 +283,18 @@ class TestDataFrame:
         mock_config = MagicMock()
         mock_config.from_format = "pickle"
 
-        with pytest.raises(ValueError, match="pickle format is not natively supported by polars"):
+        with pytest.raises(
+            ValueError,
+            match="pickle format is not natively supported by polars",
+        ):
             DataFrame.from_format("data", mock_config)
 
         # Test with json_normalize format
         mock_config.from_format = "json_normalize"
 
         with pytest.raises(
-            ValueError, match="json_normalize format is not natively supported by polars"
+            ValueError,
+            match="json_normalize format is not natively supported by polars",
         ):
             DataFrame.from_format("data", mock_config)
 
@@ -287,7 +307,9 @@ class TestDataFrame:
         # Test with other unsupported format path
         mock_config.from_format = "unsupported"
 
-        with patch.object(Formats, "__call__", side_effect=ValueError("Unsupported format")):
+        with patch.object(
+            Formats, "__call__", side_effect=ValueError("Unsupported format")
+        ):
             with pytest.raises(ValueError, match="Unsupported format"):
                 DataFrame.from_format("data", mock_config)
 
@@ -338,7 +360,11 @@ class TestDataFrame:
                 buffer = buffer_factory()
                 write_method(buffer)
                 buffer.seek(0)
-                return buffer.getvalue() if isinstance(buffer, io.StringIO) else buffer
+                return (
+                    buffer.getvalue()
+                    if isinstance(buffer, io.StringIO)
+                    else buffer
+                )
             except Exception as exc:
                 raise ValueError(f"{error_prefix}: {exc}") from exc
 
@@ -347,21 +373,27 @@ class TestDataFrame:
         mock_write_method = MagicMock()
 
         # Normal case
-        result = write_to_buffer(string_io_factory, mock_write_method, "Error prefix")
+        result = write_to_buffer(
+            string_io_factory, mock_write_method, "Error prefix"
+        )
         assert isinstance(result, str)
         mock_write_method.assert_called_once()
 
         # Error case
         mock_write_method.side_effect = Exception("Test error")
         with pytest.raises(ValueError, match="Error prefix: Test error"):
-            write_to_buffer(string_io_factory, mock_write_method, "Error prefix")
+            write_to_buffer(
+                string_io_factory, mock_write_method, "Error prefix"
+            )
 
         # Test with BytesIO
         bytes_io_factory = io.BytesIO
         mock_write_method = MagicMock()
 
         # Normal case
-        result = write_to_buffer(bytes_io_factory, mock_write_method, "Error prefix")
+        result = write_to_buffer(
+            bytes_io_factory, mock_write_method, "Error prefix"
+        )
         assert isinstance(result, io.BytesIO)
         mock_write_method.assert_called_once()
 
@@ -384,7 +416,9 @@ class TestDataFrame:
         df = pl.DataFrame({"str_col": ["test"], "int_col": [1]})
 
         # Test the CSV format error case directly
-        with patch.object(df, "write_csv", side_effect=Exception("Test CSV error")):
+        with patch.object(
+            df, "write_csv", side_effect=Exception("Test CSV error")
+        ):
             with pytest.raises(ValueError):
                 # Simulate the exact code that's used in the function
                 try:
@@ -393,7 +427,9 @@ class TestDataFrame:
                     buffer.seek(0)
                     buffer.getvalue()
                 except Exception as exc:
-                    raise ValueError(f"Failed to write CSV with polars: {exc}") from exc
+                    raise ValueError(
+                        f"Failed to write CSV with polars: {exc}"
+                    ) from exc
 
         # Test a successful case
         buffer = io.StringIO()
@@ -439,13 +475,17 @@ class TestDataFrame:
             mock_parquet_format = MockFormat("parquet")
             if mock_parquet_format == Formats.parquet:
                 # This is line 260
-                result = mock_write(io.BytesIO, lambda x: None, "Parquet Error")
+                result = mock_write(
+                    io.BytesIO, lambda x: None, "Parquet Error"
+                )
                 assert result == "csv_result"
 
             mock_feather_format = MockFormat("feather")
             if mock_feather_format == Formats.feather:
                 # This is line 268
-                result = mock_write(io.BytesIO, lambda x: None, "Feather Error")
+                result = mock_write(
+                    io.BytesIO, lambda x: None, "Feather Error"
+                )
                 assert result == "csv_result"
 
         except (ValueError, TypeError) as e:
@@ -456,7 +496,9 @@ class TestDataFrame:
         df = pl.DataFrame({"str_col": ["test"], "int_col": [1]})
 
         # Test the JSON format error case directly
-        with patch.object(df, "write_json", side_effect=Exception("Test JSON error")):
+        with patch.object(
+            df, "write_json", side_effect=Exception("Test JSON error")
+        ):
             with pytest.raises(ValueError):
                 try:
                     buffer = io.StringIO()
@@ -464,7 +506,9 @@ class TestDataFrame:
                     buffer.seek(0)
                     buffer.getvalue()
                 except Exception as exc:
-                    raise ValueError(f"Failed to write JSON with polars: {exc}") from exc
+                    raise ValueError(
+                        f"Failed to write JSON with polars: {exc}"
+                    ) from exc
 
         # Test a successful case
         buffer = io.StringIO()
@@ -479,7 +523,9 @@ class TestDataFrame:
         df = pl.DataFrame({"str_col": ["test"], "int_col": [1]})
 
         # Test the Parquet format error case directly
-        with patch.object(df, "write_parquet", side_effect=Exception("Test Parquet error")):
+        with patch.object(
+            df, "write_parquet", side_effect=Exception("Test Parquet error")
+        ):
             with pytest.raises(ValueError):
                 try:
                     buffer = io.BytesIO()
@@ -487,7 +533,9 @@ class TestDataFrame:
                     buffer.seek(0)
                     assert isinstance(buffer, io.BytesIO)
                 except Exception as exc:
-                    raise ValueError(f"Failed to write Parquet with polars: {exc}") from exc
+                    raise ValueError(
+                        f"Failed to write Parquet with polars: {exc}"
+                    ) from exc
 
         # For successful case, we can just verify the bytes object is created
         # but we won't write actual parquet data since that's implementation-specific
@@ -503,7 +551,9 @@ class TestDataFrame:
         df = pl.DataFrame({"str_col": ["test"], "int_col": [1]})
 
         # Test the Feather format error case directly
-        with patch.object(df, "write_ipc", side_effect=Exception("Test Feather error")):
+        with patch.object(
+            df, "write_ipc", side_effect=Exception("Test Feather error")
+        ):
             with pytest.raises(ValueError):
                 try:
                     buffer = io.BytesIO()
@@ -511,7 +561,9 @@ class TestDataFrame:
                     buffer.seek(0)
                     assert isinstance(buffer, io.BytesIO)
                 except Exception as exc:
-                    raise ValueError(f"Failed to write Feather/IPC with polars: {exc}") from exc
+                    raise ValueError(
+                        f"Failed to write Feather/IPC with polars: {exc}"
+                    ) from exc
 
         # For successful case, we can just verify the bytes object is created
         # but we won't write actual feather data since that's implementation-specific
@@ -530,14 +582,18 @@ class TestDataFrame:
         mock_config = MagicMock()
         mock_config.to_format = "pickle"
 
-        with pytest.raises(ValueError, match="pickle format is not natively supported by polars"):
+        with pytest.raises(
+            ValueError,
+            match="pickle format is not natively supported by polars",
+        ):
             DataFrame.to_format(df, mock_config)
 
         # Test with json_normalize format
         mock_config.to_format = "json_normalize"
 
         with pytest.raises(
-            ValueError, match="json_normalize format is not natively supported by polars"
+            ValueError,
+            match="json_normalize format is not natively supported by polars",
         ):
             DataFrame.to_format(df, mock_config)
 
@@ -550,7 +606,9 @@ class TestDataFrame:
         # Test with other unsupported format path
         mock_config.to_format = "unsupported"
 
-        with patch.object(Formats, "__call__", side_effect=ValueError("Unsupported format")):
+        with patch.object(
+            Formats, "__call__", side_effect=ValueError("Unsupported format")
+        ):
             with pytest.raises(ValueError, match="Unsupported format"):
                 DataFrame.to_format(df, mock_config)
 
@@ -572,10 +630,14 @@ class TestDataFrame:
                 return "Known format"
             else:
                 # This is the code at line 283
-                raise ValueError(f"Format {format_value} is not supported natively by polars.")
+                raise ValueError(
+                    f"Format {format_value} is not supported natively by polars."
+                )
 
         # Test that an unknown format reaches the else branch
-        with pytest.raises(ValueError, match=r"Format other_format is not supported natively"):
+        with pytest.raises(
+            ValueError, match=r"Format other_format is not supported natively"
+        ):
             test_else_branch("other_format")
 
     def test_from_format_generic_else(self):
@@ -595,10 +657,14 @@ class TestDataFrame:
                 return "Known format"
             else:
                 # This represents the else branch we're trying to test
-                raise ValueError(f"Format {format_value} is not supported natively")
+                raise ValueError(
+                    f"Format {format_value} is not supported natively"
+                )
 
         # Test that the else branch is reached with unknown format
-        with pytest.raises(ValueError, match="Format other_format is not supported natively"):
+        with pytest.raises(
+            ValueError, match="Format other_format is not supported natively"
+        ):
             test_else_branch("other_format")
 
     def test_buffer_method_coverage(self):
@@ -661,7 +727,10 @@ class TestDataFrame:
         def string_writer(buffer):
             buffer.write("test")
 
-        assert write_to_buffer(io.StringIO, string_writer, "Error") == "string_result"
+        assert (
+            write_to_buffer(io.StringIO, string_writer, "Error")
+            == "string_result"
+        )
 
         # Test BytesIO success path
         def bytes_writer(buffer):
@@ -721,7 +790,9 @@ class TestDataFrame:
         mock_field.sub_fields = []
 
         # Test with no sub_fields
-        with pytest.raises(TypeError, match="Expected a typed pandera.typing.polars.DataFrame"):
+        with pytest.raises(
+            TypeError, match="Expected a typed pandera.typing.polars.DataFrame"
+        ):
             DataFrame._get_schema_model(mock_field)
 
         # Test with sub_fields
@@ -752,24 +823,36 @@ class TestPydanticIntegration:
         mock_schema = MagicMock()
         mock_schema.validate.return_value = df
 
-        with patch.object(self.SimpleSchema, "to_schema", return_value=mock_schema):
+        with patch.object(
+            self.SimpleSchema, "to_schema", return_value=mock_schema
+        ):
             result = DataFrame.pydantic_validate(df, self.SimpleSchema)
             assert isinstance(result, pl.DataFrame)
             mock_schema.validate.assert_called_once()
 
         # Test with schema init error
         with patch.object(
-            self.SimpleSchema, "to_schema", side_effect=SchemaInitError("Test error")
+            self.SimpleSchema,
+            "to_schema",
+            side_effect=SchemaInitError("Test error"),
         ):
-            with pytest.raises(ValueError, match="Cannot use DataFrame as a pydantic type"):
+            with pytest.raises(
+                ValueError, match="Cannot use DataFrame as a pydantic type"
+            ):
                 DataFrame.pydantic_validate(df, self.SimpleSchema)
 
         # Test with validation error - mock the error without calling actual validation
-        invalid_df = pl.DataFrame({"str_col": ["test", "test"], "int_col": [1, 2]})
+        invalid_df = pl.DataFrame(
+            {"str_col": ["test", "test"], "int_col": [1, 2]}
+        )
         validation_error_mock = MagicMock()
-        validation_error_mock.validate.side_effect = ValueError("Validation failed")
+        validation_error_mock.validate.side_effect = ValueError(
+            "Validation failed"
+        )
 
-        with patch.object(self.SimpleSchema, "to_schema", return_value=validation_error_mock):
+        with patch.object(
+            self.SimpleSchema, "to_schema", return_value=validation_error_mock
+        ):
             with pytest.raises(ValueError, match="Validation failed"):
                 DataFrame.pydantic_validate(invalid_df, self.SimpleSchema)
 
@@ -782,7 +865,9 @@ class TestPydanticIntegration:
         with patch.object(
             DataFrame, "_get_schema_model", return_value=self.SimpleSchema
         ) as mock_get_schema:
-            with patch.object(DataFrame, "pydantic_validate", return_value=df) as mock_validate:
+            with patch.object(
+                DataFrame, "pydantic_validate", return_value=df
+            ) as mock_validate:
                 result = DataFrame._pydantic_validate(df, mock_field)
 
                 mock_get_schema.assert_called_once_with(mock_field)
@@ -834,7 +919,10 @@ def test_pydantic_v1_yield():
     assert callable(validators[0])
 
 
-@pytest.mark.skipif(not PYDANTIC_INSTALLED or not PYDANTIC_V2, reason="Pydantic v2 not installed")
+@pytest.mark.skipif(
+    not PYDANTIC_INSTALLED or not PYDANTIC_V2,
+    reason="Pydantic v2 not installed",
+)
 def test_pydantic_v2_methods():
     """Test Pydantic v2 specific methods."""
     # Test the core schema generation functionality
@@ -880,15 +968,22 @@ def test_pydantic_v2_methods():
                 mock_serializer.return_value = "mock_serializer"
 
                 # Test successful call
-                result = DataFrame.__get_pydantic_core_schema__(mock_source_type, MagicMock())
+                result = DataFrame.__get_pydantic_core_schema__(
+                    mock_source_type, MagicMock()
+                )
                 assert result == "mock_schema_result"
                 mock_validator.assert_called_once()
 
                 # Reset and test the fallback for TypeError
                 mock_validator.reset_mock()
-                mock_validator.side_effect = [TypeError("Test error"), "fallback_result"]
+                mock_validator.side_effect = [
+                    TypeError("Test error"),
+                    "fallback_result",
+                ]
 
-                result = DataFrame.__get_pydantic_core_schema__(mock_source_type, MagicMock())
+                result = DataFrame.__get_pydantic_core_schema__(
+                    mock_source_type, MagicMock()
+                )
                 assert result == "fallback_result"
                 assert mock_validator.call_count == 2
     except (ImportError, AttributeError):
