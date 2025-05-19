@@ -212,15 +212,15 @@ def isin(data: PysparkDataframeColumnObject, allowed_values: Iterable) -> bool:
 
     Remember it can be a compute intensive check on large dataset. So, use it with caution.
 
-    This checks whether all elements of a :class:`pyspark.sql.function.col`
+    This checks whether all elements of a :class:`pyspark.sql.Column`
     are part of the set of elements of allowed values. If allowed
     values is a string, the set of elements consists of all distinct
     characters of the string. Thus only single characters which occur
     in allowed_values at least once can meet this condition. If you
     want to check for substrings use :meth:`Check.str_contains`.
 
-    :param data: NamedTuple PysparkDataframeColumnObject contains the dataframe and column name for the check. The keys
-                to access the dataframe is "dataframe" and column name using "column_name".
+    :param data: NamedTuple PysparkDataframeColumnObject contains the dataframe and column name for the check. The key
+        to access the dataframe is "dataframe", and the key to access the column name is "column_name".
     :param allowed_values: The set of allowed values. May be any iterable.
     """
     return (
