@@ -7,7 +7,7 @@ from unittest.mock import MagicMock, patch
 import polars as pl
 import pytest
 
-import pandera as pa
+import pandera.polars as pa
 from pandera.engines import PYDANTIC_V2
 from pandera.errors import SchemaInitError
 from pandera.typing.formats import Formats
