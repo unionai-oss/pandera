@@ -1018,7 +1018,7 @@ class TestIsInCheck(BaseClass):
         }
 
     def test_isin_check(self, datatype, data) -> None:
-        """Test the Check to see if all the values are is in the defined value"""
+        """Test the Check to see if all the values are equal to the defined value"""
         self.check_function(
             pa.Check.isin,
             data["test_pass_data"],
