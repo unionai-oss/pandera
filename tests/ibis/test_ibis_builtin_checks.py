@@ -989,3 +989,120 @@ class TestInRangeCheck(BaseClass):
             datatype,
             (min_val, max_val, True, True),
         )
+
+
+class TestIsInCheck(BaseClass):
+    """This class is used to test the isin check"""
+
+    sample_numeric_data = {
+        "test_pass_data": [("foo", 31), ("bar", 32)],
+        "test_fail_data": [("foo", 30), ("bar", 31)],
+        "test_expression": [31, 32],
+    }
+
+    sample_datetime_data = {
+        "test_pass_data": [
+            ("foo", datetime.datetime(2020, 10, 1, 10, 0)),
+            ("bar", datetime.datetime(2020, 10, 2, 10, 0)),
+        ],
+        "test_fail_data": [
+            ("foo", datetime.datetime(2020, 10, 3, 10, 0)),
+            ("bar", datetime.datetime(2020, 10, 2, 11, 0)),
+        ],
+        "test_expression": [
+            datetime.datetime(2020, 10, 1, 10, 0),
+            datetime.datetime(2020, 10, 2, 10, 0),
+        ],
+    }
+
+    sample_string_data = {
+        "test_pass_data": [("foo", "b"), ("bar", "c")],
+        "test_fail_data": [("foo", "a"), ("bar", "b")],
+        "test_expression": ["b", "c"],
+    }
+
+    sample_duration_data = {
+        "test_pass_data": [
+            ("foo", datetime.timedelta(100, 15, 1)),
+            ("bar", datetime.timedelta(100, 10, 1)),
+        ],
+        "test_fail_data": [
+            ("foo", datetime.timedelta(100, 15, 1)),
+            ("bar", datetime.timedelta(100, 20, 1)),
+        ],
+        "test_expression": [
+            datetime.timedelta(100, 15, 1),
+            datetime.timedelta(100, 10, 1),
+        ],
+    }
+
+    def pytest_generate_tests(self, metafunc):
+        """This function passes the parameter for each function based on parameter from get_data_param function"""
+        # called once per each test function
+        funcarglist = self.get_data_param()[metafunc.function.__name__]
+        argnames = sorted(funcarglist[0])
+        metafunc.parametrize(
+            argnames,
+            [
+                [funcargs[name] for name in argnames]
+                for funcargs in funcarglist
+            ],
+        )
+
+    def get_data_param(self):
+        """Generate the params which will be used to test this function. All the acceptable
+        data types would be tested"""
+        return {
+            "test_isin_check": [
+                {"datatype": dt.UInt8, "data": self.sample_numeric_data},
+                {"datatype": dt.UInt16, "data": self.sample_numeric_data},
+                {"datatype": dt.UInt32, "data": self.sample_numeric_data},
+                {"datatype": dt.UInt64, "data": self.sample_numeric_data},
+                {"datatype": dt.Int8, "data": self.sample_numeric_data},
+                {"datatype": dt.Int16, "data": self.sample_numeric_data},
+                {"datatype": dt.Int32, "data": self.sample_numeric_data},
+                {"datatype": dt.Int64, "data": self.sample_numeric_data},
+                {
+                    "datatype": dt.Float32,
+                    "data": self.convert_data(
+                        self.sample_numeric_data, "float32"
+                    ),
+                },
+                {
+                    "datatype": dt.Float64,
+                    "data": self.convert_data(
+                        self.sample_numeric_data, "float64"
+                    ),
+                },
+                {
+                    "datatype": dt.Date,
+                    "data": self.convert_data(
+                        self.sample_datetime_data, "date"
+                    ),
+                },
+                {
+                    "datatype": dt.Timestamp.from_unit("us"),
+                    "data": self.sample_datetime_data,
+                },
+                {
+                    "datatype": dt.Time,
+                    "data": self.convert_data(
+                        self.sample_datetime_data, "time"
+                    ),
+                },
+                {
+                    "datatype": dt.Interval(unit="us"),
+                    "data": self.sample_duration_data,
+                },
+            ]
+        }
+
+    def test_isin_check(self, datatype, data) -> None:
+        """Test the Check to see if all the values are equal to the defined value"""
+        self.check_function(
+            pa.Check.isin,
+            data["test_pass_data"],
+            data["test_fail_data"],
+            datatype,
+            data["test_expression"],
+        )

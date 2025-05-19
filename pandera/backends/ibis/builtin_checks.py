@@ -1,7 +1,7 @@
 """Built-in checks for Ibis."""
 
 import datetime
-from typing import Any, Optional, TypeVar
+from typing import Any, Iterable, Optional, TypeVar
 
 import ibis
 import ibis.expr.types as ir
@@ -165,3 +165,24 @@ def in_range(
         compare_max = _ <= max_value if include_max else _ < max_value
         func = compare_min & compare_max
     return data.table.select(s.across(_selector(data.key), func))
+
+
+@register_builtin_check(
+    error="isin({allowed_values})",
+)
+def isin(data: IbisData, allowed_values: Iterable) -> ir.Table:
+    """Ensure only allowed values occur within a column.
+
+    This checks whether all elements of a :class:`ir.Column`
+    are part of the set of elements of allowed values. If allowed
+    values is a string, the set of elements consists of all distinct
+    characters of the string. Thus only single characters which occur
+    in allowed_values at least once can meet this condition. If you
+    want to check for substrings use :meth:`Check.str_contains`.
+
+    :param data: NamedTuple IbisData contains the table and column name for the check. The key
+        to access the table is "table", and the key to access the column name is "key".
+    :param allowed_values: The set of allowed values. May be any iterable.
+    """
+    allowed_values = [_infer_interval_with_mixed_units(value) for value in allowed_values]
+    return data.table.select(s.across(_selector(data.key), _.isin(allowed_values)))
