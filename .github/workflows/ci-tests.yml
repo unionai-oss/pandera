@@ -232,6 +232,8 @@ jobs:
         # pyspark serialization issue on windows: "pandas" module not found
         - extra: pyspark
           os: windows-latest
+        - extra: pyspark
+          python-version: 3.12
 
     steps:
       - uses: actions/checkout@v4

@@ -128,6 +128,7 @@ testing = [
     "pytest-asyncio",
 ]
 docs = [
+    "setuptools",
     "sphinx",
     "sphinx-design",
     "sphinx-autodoc-typehints <= 1.14.1",
