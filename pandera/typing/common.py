@@ -130,13 +130,14 @@ class DataFrameBase(Generic[T]):
         # pylint: disable=no-member
         object.__setattr__(self, name, value)
         if name == "__orig_class__":
-            orig_class = getattr(self, "__orig_class__")
+            orig_class = value
             class_args = getattr(orig_class, "__args__", None)
             if class_args is not None and any(
                 x.__name__ == "DataFrameModel"
                 for x in inspect.getmro(class_args[0])
             ):
                 schema_model = value.__args__[0]
+                schema = schema_model.to_schema()
             else:
                 raise TypeError("Could not find DataFrameModel in class args")
 
@@ -147,12 +148,12 @@ class DataFrameBase(Generic[T]):
             if (
                 pandera_accessor is None
                 or pandera_accessor.schema is None
-                or pandera_accessor.schema != schema_model.to_schema()
+                or pandera_accessor.schema != schema
             ):
-                self.__dict__ = schema_model.validate(self).__dict__
+                self.__dict__.update(schema.validate(self).__dict__)
                 if pandera_accessor is None:
                     pandera_accessor = getattr(self, "pandera")
-                pandera_accessor.add_schema(schema_model.to_schema())
+                pandera_accessor.add_schema(schema)
 
 
 # pylint:disable=too-few-public-methods
@@ -233,8 +234,14 @@ class AnnotationInfo:  # pylint:disable=too-few-public-methods
         self.arg = args[0] if args else args
 
         metadata = getattr(raw_annotation, "__metadata__", None)
+
         if metadata:
             self.is_annotated_type = True
+            try:
+                inspect.signature(self.arg)
+            except ValueError:
+                metadata = None
+
         elif metadata := getattr(self.arg, "__metadata__", None):
             self.arg = typing_inspect.get_args(self.arg)[0]
 
