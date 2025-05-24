@@ -165,7 +165,7 @@ def isin(data: PolarsData, allowed_values: Collection) -> pl.LazyFrame:
 def notin(data: PolarsData, forbidden_values: Collection) -> pl.LazyFrame:
     """Ensure some defined values don't occur within a series.
 
-    Like :meth:`Check.isin` this check operates on single characters if
+    Like :meth:`Check.isin`, this check operates on single characters if
     it is applied on strings. If forbidden_values is a string, it is understood
     as set of prohibited characters. Any string of length > 1 can't be in it by
     design.
@@ -187,7 +187,7 @@ def str_matches(
     data: PolarsData,
     pattern: Union[str, re.Pattern],
 ) -> pl.LazyFrame:
-    """Ensure that string starts with a match of a regular expression pattern.
+    """Ensure that all values start with a match of a regular expression pattern.
 
     :param data: NamedTuple PolarsData contains the dataframe and column name for the check. The key
         to access the dataframe is "dataframe", and the key the to access the column name is "key".
