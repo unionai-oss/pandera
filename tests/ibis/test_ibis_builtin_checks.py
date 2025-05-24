@@ -1242,3 +1242,17 @@ class TestStringType(BaseClass):
         self.check_function(
             check_func, pass_data, fail_data, dt.String(), check_value
         )
+
+    @pytest.mark.parametrize(
+        "check_value",
+        ["Ba", r"Ba+", re.compile("Ba"), re.compile(r"Ba+")],
+    )
+    def test_str_contains_check(self, check_value) -> None:
+        """Test the Check to see if any value is not in the specified value"""
+        check_func = pa.Check.str_contains
+
+        pass_data = [("Bal", "Bat!"), ("Bal", "Bat78")]
+        fail_data = [("Bal", "Cs"), ("Bal", "Bam!")]
+        self.check_function(
+            check_func, pass_data, fail_data, dt.String(), check_value
+        )
