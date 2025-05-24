@@ -1256,3 +1256,14 @@ class TestStringType(BaseClass):
         self.check_function(
             check_func, pass_data, fail_data, dt.String(), check_value
         )
+
+    def test_str_startswith_check(self) -> None:
+        """Test the Check to see if any value is not in the specified value"""
+        check_func = pa.Check.str_startswith
+        check_value = "B"
+
+        pass_data = [("Bal", "Bread"), ("Bal", "Butter")]
+        fail_data = [("Bal", "Test"), ("Bal", "Butter")]
+        self.check_function(
+            check_func, pass_data, fail_data, dt.String(), check_value
+        )
