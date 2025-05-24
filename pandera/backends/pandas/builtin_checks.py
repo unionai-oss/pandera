@@ -55,9 +55,9 @@ T = TypeVar("T")
     error="equal_to({value})",
 )
 def equal_to(data: PandasData, value: Any) -> PandasData:
-    """Ensure all elements of a data container equal a certain value.
+    """Ensure all elements of a column equal a certain value.
 
-    :param value: values in this pandas data structure must be
+    :param value: Values in this pandas data structure must be
         equal to this value.
     """
     return data == value
@@ -69,7 +69,7 @@ def equal_to(data: PandasData, value: Any) -> PandasData:
     error="not_equal_to({value})",
 )
 def not_equal_to(data: PandasData, value: Any) -> PandasData:
-    """Ensure no elements of a data container equals a certain value.
+    """Ensure no element of a column equals a certain value.
 
     :param value: This value must not occur in the checked
         :class:`pandas.Series`.
@@ -83,13 +83,11 @@ def not_equal_to(data: PandasData, value: Any) -> PandasData:
     error="greater_than({min_value})",
 )
 def greater_than(data: PandasData, min_value: Any) -> PandasData:
-    """
-    Ensure values of a data container are strictly greater than a minimum
+    """Ensure values of a column are strictly greater than a minimum
     value.
 
     :param min_value: Lower bound to be exceeded. Must be a type comparable
-        to the dtype of the :class:`pandas.Series` to be validated (e.g. a
-        numerical type for float or int and a datetime for datetime).
+        to the dtype of the :class:`pandas.Series` to be validated.
     """
     return data > min_value
 
@@ -100,11 +98,10 @@ def greater_than(data: PandasData, min_value: Any) -> PandasData:
     error="greater_than_or_equal_to({min_value})",
 )
 def greater_than_or_equal_to(data: PandasData, min_value: Any) -> PandasData:
-    """Ensure all values are greater or equal a certain value.
+    """Ensure all values are greater than or equal to a minimum value.
 
-    :param min_value: Allowed minimum value for values of a series. Must be
-        a type comparable to the dtype of the :class:`pandas.Series` to be
-        validated.
+    :param min_value: Allowed minimum value. Must be a type comparable
+        to the dtype of the :class:`pandas.Series` to be validated.
     """
     return data >= min_value
 
@@ -115,7 +112,7 @@ def greater_than_or_equal_to(data: PandasData, min_value: Any) -> PandasData:
     error="less_than({max_value})",
 )
 def less_than(data: PandasData, max_value: Any) -> PandasData:
-    """Ensure values of a series are strictly below a maximum value.
+    """Ensure values of a column are strictly less than a maximum value.
 
     :param max_value: All elements of a series must be strictly smaller
         than this. Must be a type comparable to the dtype of the
@@ -132,11 +129,10 @@ def less_than(data: PandasData, max_value: Any) -> PandasData:
     error="less_than_or_equal_to({max_value})",
 )
 def less_than_or_equal_to(data: PandasData, max_value: Any) -> PandasData:
-    """Ensure values of a series are strictly below a maximum value.
+    """Ensure all values are less than or equal to a maximum value.
 
-    :param max_value: Upper bound not to be exceeded. Must be a type
-        comparable to the dtype of the :class:`pandas.Series` to be
-        validated.
+    :param max_value: Upper bound not to be exceeded. Must be a type comparable to the dtype of the
+        :class:`pandas.Series` to be validated.
     """
     if max_value is None:
         raise ValueError("max_value must not be None")
@@ -192,7 +188,6 @@ def isin(data: PandasData, allowed_values: Iterable) -> PandasData:
     want to check for substrings use :meth:`Check.str_contains`.
 
     :param allowed_values: The set of allowed values. May be any iterable.
-    :param kwargs: key-word arguments passed into the `Check` initializer.
     """
     return data.isin(allowed_values)
 
@@ -204,15 +199,13 @@ def isin(data: PandasData, allowed_values: Iterable) -> PandasData:
 def notin(data: PandasData, forbidden_values: Iterable) -> PandasData:
     """Ensure some defined values don't occur within a series.
 
-    Like :meth:`Check.isin` this check operates on single characters if
+    Like :meth:`Check.isin`, this check operates on single characters if
     it is applied on strings. If forbidden_values is a string, it is understood
     as set of prohibited characters. Any string of length > 1 can't be in it by
     design.
 
     :param forbidden_values: The set of values which should not occur. May
         be any iterable.
-    :param raise_warning: if True, check raises SchemaWarning instead of
-        SchemaError on validation.
     """
     return ~data.isin(forbidden_values)
 
@@ -225,10 +218,9 @@ def str_matches(
     data: PandasData,
     pattern: Union[str, re.Pattern],
 ) -> PandasData:
-    """Ensure that string values match a regular expression.
+    """Ensure that all values start with a match of a regular expression pattern.
 
-    :param pattern: Regular expression pattern to use for matching
-    :param kwargs: key-word arguments passed into the `Check` initializer.
+    :param pattern: Regular expression pattern to use for matching.
     """
     return data.str.match(cast(str, pattern), na=False)
 

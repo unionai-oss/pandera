@@ -7,6 +7,8 @@ import pytest
 import pandas as pd
 import ibis
 import ibis.expr.types as ir
+from ibis import _, selectors as s
+
 import pandera.ibis as pa
 from pandera.backends.ibis.register import register_ibis_backends
 from pandera.constants import CHECK_OUTPUT_KEY
@@ -65,6 +67,10 @@ def test_ibis_column_check(
         assert check_output == expected_output
 
 
+def _df_check_fn_table_out(data: pa.IbisData) -> ir.Table:
+    return data.table.select(s.across(s.numeric(), _ >= 0))
+
+
 def _df_check_fn_dict_out(data: pa.IbisData) -> Dict[str, ir.BooleanColumn]:
     return {col: data.table[col] >= 0 for col in data.table.columns}
 
@@ -83,6 +89,14 @@ def _df_check_fn_scalar_out(data: pa.IbisData) -> ir.BooleanScalar:
 @pytest.mark.parametrize(
     "check_fn, invalid_data, expected_output",
     [
+        [
+            _df_check_fn_table_out,
+            {
+                "col_1": [-1, 2, -3, 4],
+                "col_2": [1, 2, 3, -4],
+            },
+            [False, True, False, False],
+        ],
         [
             _df_check_fn_dict_out,
             {
