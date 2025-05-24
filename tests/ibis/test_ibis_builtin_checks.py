@@ -1267,3 +1267,14 @@ class TestStringType(BaseClass):
         self.check_function(
             check_func, pass_data, fail_data, dt.String(), check_value
         )
+
+    def test_str_endswith_check(self) -> None:
+        """Test the Check to see if any value is not in the specified value"""
+        check_func = pa.Check.str_endswith
+        check_value = "d"
+
+        pass_data = [("Bal", "Bread"), ("Bal", "Bad")]
+        fail_data = [("Bal", "Test"), ("Bal", "Bad")]
+        self.check_function(
+            check_func, pass_data, fail_data, dt.String(), check_value
+        )
