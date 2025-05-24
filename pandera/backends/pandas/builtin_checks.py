@@ -232,8 +232,7 @@ def str_contains(
 ) -> PandasData:
     """Ensure that a pattern can be found within each row.
 
-    :param pattern: Regular expression pattern to use for searching
-    :param kwargs: key-word arguments passed into the `Check` initializer.
+    :param pattern: Regular expression pattern to use for searching.
     """
     return data.str.contains(cast(str, pattern), na=False)
 
