@@ -208,7 +208,7 @@ def str_contains(
     data: PolarsData,
     pattern: Union[str, re.Pattern],
 ) -> pl.LazyFrame:
-    """Ensure that a pattern can be found in the string.
+    """Ensure that a pattern can be found within each row.
 
     :param data: NamedTuple PolarsData contains the dataframe and column name for the check. The key
         to access the dataframe is "dataframe", and the key the to access the column name is "key".
