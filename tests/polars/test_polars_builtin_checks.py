@@ -1163,7 +1163,7 @@ class TestStringType(BaseClass):
 
         pass_data = [("Bal", "Bread"), ("Bal", "Butter")]
         fail_data = [("Bal", "Test"), ("Bal", "Butter")]
-        BaseClass.check_function(
+        self.check_function(
             check_func, pass_data, fail_data, Utf8(), check_value
         )
 

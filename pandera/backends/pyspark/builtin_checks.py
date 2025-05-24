@@ -277,9 +277,9 @@ def str_contains(data: PysparkDataframeColumnObject, pattern: str) -> bool:
 
     Remember it can be a compute intensive check on large dataset. So, use it with caution.
 
-    :param data: NamedTuple PysparkDataframeColumnObject contains the dataframe and column name for the check. The keys
-                to access the dataframe is "dataframe" and column name using "column_name".
-    :param pattern: Regular expression pattern to use for searching
+    :param data: NamedTuple PysparkDataframeColumnObject contains the dataframe and column name for the check. The key
+        to access the dataframe is "dataframe", and the key to access the column name is "column_name".
+    :param pattern: Regular expression pattern to use for searching.
     """
     return (
         data.dataframe.filter(~col(data.column_name).rlike(pattern))
@@ -298,9 +298,9 @@ def str_startswith(data: PysparkDataframeColumnObject, string: str) -> bool:
 
     Remember it can be a compute intensive check on large dataset. So, use it with caution.
 
-    :param data: NamedTuple PysparkDataframeColumnObject contains the dataframe and column name for the check. The keys
-                to access the dataframe is "dataframe" and column name using "column_name".
-    :param string: String all values should start with
+    :param data: NamedTuple PysparkDataframeColumnObject contains the dataframe and column name for the check. The key
+        to access the dataframe is "dataframe", and the key to access the column name is "column_name".
+    :param string: String all values should start with.
     """
     cond = col(data.column_name).startswith(string)
     return data.dataframe.filter(~cond).limit(1).count() == 0
