@@ -263,7 +263,7 @@ def str_length(
     """
     if min_value is None and max_value is None:
         raise ValueError(
-            "Must provide at least on of 'min_value' and 'max_value'"
+            "Must provide at least one of 'min_value' and 'max_value'"
         )
 
     n_chars = pl.col(data.key).str.len_chars()

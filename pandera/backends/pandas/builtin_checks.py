@@ -271,15 +271,14 @@ def str_length(
 ) -> PandasData:
     """Ensure that the length of strings is within a specified range.
 
-    :param min_value: Minimum length of strings. No minimum by default.
-    :param max_value: Maximum length of strings. No maximum by default.
+    :param min_value: Minimum length of strings (inclusive). (default: no minimum)
+    :param max_value: Maximum length of strings (inclusive). (default: no maximum)
     """
-    str_len = data.str.len()
     if min_value is None and max_value is None:
         raise ValueError(
-            "At least a minimum or a maximum need to be specified. Got "
-            "None."
+            "Must provide at least one of 'min_value' and 'max_value'"
         )
+    str_len = data.str.len()
     if max_value is None:
         return str_len >= min_value  # type: ignore[operator]
     elif min_value is None:
