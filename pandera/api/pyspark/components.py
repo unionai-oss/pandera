@@ -2,14 +2,14 @@
 
 from typing import Any, Dict, Iterable, Optional, Tuple, Union
 
-import pyspark.sql as ps
 
 from pandera.api.base.error_handler import ErrorHandler
-from pandera.api.pyspark.column_schema import ColumnSchema
-from pandera.api.pyspark.types import CheckList, PySparkDtypeInputTypes
+from pandera.api.dataframe.components import ComponentSchema
+
+from .types import CheckList, PySparkDtypeInputTypes, PySparkDataFrameTypes
 
 
-class Column(ColumnSchema):
+class Column(ComponentSchema[PySparkDataFrameTypes]):
     """Validate types and properties of DataFrame columns."""
 
     def __init__(
@@ -118,7 +118,7 @@ class Column(ColumnSchema):
 
     def validate(
         self,
-        check_obj: ps.DataFrame,
+        check_obj: PySparkDataFrameTypes,
         head: Optional[int] = None,
         tail: Optional[int] = None,
         sample: Optional[int] = None,
@@ -126,7 +126,7 @@ class Column(ColumnSchema):
         lazy: bool = True,
         inplace: bool = False,
         error_handler: ErrorHandler = None,
-    ) -> ps.DataFrame:
+    ) -> PySparkDataFrameTypes:
         """Validate a Column in a DataFrame object.
 
         :param check_obj: pyspark DataFrame to validate.
@@ -163,9 +163,9 @@ class Column(ColumnSchema):
         :param columns: columns to regex pattern match
         :returns: matching columns
         """
-        return self.get_backend(check_type=ps.DataFrame).get_regex_columns(
-            self, check_obj
-        )
+        return self.get_backend(
+            check_type=PySparkDataFrameTypes
+        ).get_regex_columns(self, check_obj)
 
     def __eq__(self, other):
         if not isinstance(other, self.__class__):

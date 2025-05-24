@@ -25,7 +25,6 @@ from typing import (
 import pyspark.sql as ps
 from pyspark.sql.types import StructType
 
-from pandera.api.base.model import BaseModel
 from pandera.api.checks import Check
 from pandera.api.pyspark.components import Column
 from pandera.api.pyspark.container import DataFrameSchema
@@ -41,13 +40,16 @@ from pandera.api.pyspark.model_config import BaseConfig
 from pandera.errors import SchemaInitError
 from pandera.typing import AnnotationInfo
 from pandera.typing.common import DataFrameBase
-from pandera.typing.pyspark import DataFrame
+from pandera.typing.pyspark import DataFrame as PySparkPandasDataFrame
+from pandera.typing.pyspark_sql import DataFrame as PySparkSQLDataFrame
+from pandera.api.dataframe.model import DataFrameModel as _DataFrameModel
 
 try:
     from typing_extensions import get_type_hints
 except ImportError:  # pragma: no cover
     from typing import get_type_hints  # type: ignore
 
+DataFrame = Union[PySparkPandasDataFrame, PySparkSQLDataFrame]
 
 _CONFIG_KEY = "Config"
 MODEL_CACHE: Dict[Type["DataFrameModel"], DataFrameSchema] = {}
@@ -123,7 +125,7 @@ def _convert_extras_to_checks(extras: Dict[str, Any]) -> List[Check]:
     return checks
 
 
-class DataFrameModel(BaseModel):
+class DataFrameModel(_DataFrameModel[DataFrame, DataFrameSchema]):
     """Definition of a :class:`~pandera.api.pyspark.container.DataFrameSchema`.
 
     *new in 0.16.0*
