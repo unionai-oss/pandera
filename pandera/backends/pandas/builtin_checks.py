@@ -197,15 +197,13 @@ def isin(data: PandasData, allowed_values: Iterable) -> PandasData:
 def notin(data: PandasData, forbidden_values: Iterable) -> PandasData:
     """Ensure some defined values don't occur within a series.
 
-    Like :meth:`Check.isin` this check operates on single characters if
+    Like :meth:`Check.isin`, this check operates on single characters if
     it is applied on strings. If forbidden_values is a string, it is understood
     as set of prohibited characters. Any string of length > 1 can't be in it by
     design.
 
     :param forbidden_values: The set of values which should not occur. May
         be any iterable.
-    :param raise_warning: if True, check raises SchemaWarning instead of
-        SchemaError on validation.
     """
     return ~data.isin(forbidden_values)
 
