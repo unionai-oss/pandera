@@ -1,7 +1,7 @@
 """Utility functions for pyspark validation."""
 
 from functools import lru_cache
-from typing import List, NamedTuple, Tuple, Type, Union
+from typing import List, NamedTuple, Tuple, Type, TypeVar, Union
 from numpy import bool_ as np_bool
 from packaging import version
 
@@ -29,6 +29,13 @@ else:
 PySparkDataFrameTypes = Union[
     PySparkSQLDataFrame, PySparkPandasDataFrame, PySparkConnectDataFrame
 ]
+PySparkFrame = TypeVar(
+    "PySparkFrame",
+    PySparkSQLDataFrame,
+    PySparkPandasDataFrame,
+    PySparkConnectDataFrame,
+)
+
 GroupbyObject = GroupedData
 
 CheckList = Union[Check, List[Check]]

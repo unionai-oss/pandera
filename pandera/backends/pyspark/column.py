@@ -66,10 +66,11 @@ class ColumnSchemaBackend(PysparkSchemaBackend):
         random_state: Optional[int] = None,  # pylint: disable=unused-argument
         lazy: bool = False,
         inplace: bool = False,
-        error_handler: ErrorHandler = None,
     ):
         # pylint: disable=too-many-locals
         check_obj = self.preprocess(check_obj, inplace)
+
+        error_handler = ErrorHandler(lazy=lazy)
 
         if schema.coerce:
             try:
@@ -79,9 +80,6 @@ class ColumnSchemaBackend(PysparkSchemaBackend):
                     )
                 )
             except SchemaError as exc:
-                assert (
-                    error_handler is not None
-                ), "The `error_handler` argument must be provided."
                 error_handler.collect_error(
                     ErrorCategory.SCHEMA, exc.reason_code, exc
                 )

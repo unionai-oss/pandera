@@ -1,12 +1,17 @@
 """Core pyspark schema component specifications."""
 
-from typing import Any, Dict, Iterable, Optional, Tuple, Union
+from typing import Any, Dict, Iterable, Optional, Tuple, Type, Union
 
 
-from pandera.api.base.error_handler import ErrorHandler
+from pandera.api.base.types import CheckList
 from pandera.api.dataframe.components import ComponentSchema
+from pandera.backends.pyspark.register import register_pyspark_backends
 
-from .types import CheckList, PySparkDtypeInputTypes, PySparkDataFrameTypes
+from .types import (
+    PySparkDataFrameTypes,
+    PySparkDtypeInputTypes,
+    PySparkFrame,
+)
 
 
 class Column(ComponentSchema[PySparkDataFrameTypes]):
@@ -77,14 +82,23 @@ class Column(ComponentSchema[PySparkDataFrameTypes]):
             description=description,
             metadata=metadata,
         )
-        if name is not None and not isinstance(name, str) and regex:
+
+        self.required = required
+        self.regex = regex
+
+    def _validate_attributes(self):
+        if (
+            self.name is not None
+            and not isinstance(self.name, str)
+            and self.regex
+        ):
             raise ValueError(
                 "You cannot specify a non-string name when setting regex=True"
             )
-        self.required = required
-        self.name = name
-        self.regex = regex
-        self.metadata = metadata
+
+    @staticmethod
+    def register_default_backends(check_obj_cls: Type):
+        register_pyspark_backends()
 
     @property
     def _allow_groupby(self) -> bool:
@@ -107,26 +121,16 @@ class Column(ComponentSchema[PySparkDataFrameTypes]):
             "metadata": self.metadata,
         }
 
-    def set_name(self, name: str):
-        """Used to set or modify the name of a column object.
-
-        :param str name: the name of the column object
-
-        """
-        self.name = name
-        return self
-
     def validate(
         self,
-        check_obj: PySparkDataFrameTypes,
+        check_obj: PySparkFrame,
         head: Optional[int] = None,
         tail: Optional[int] = None,
         sample: Optional[int] = None,
         random_state: Optional[int] = None,
         lazy: bool = True,
         inplace: bool = False,
-        error_handler: ErrorHandler = None,
-    ) -> PySparkDataFrameTypes:
+    ) -> PySparkFrame:
         """Validate a Column in a DataFrame object.
 
         :param check_obj: pyspark DataFrame to validate.
@@ -154,7 +158,6 @@ class Column(ComponentSchema[PySparkDataFrameTypes]):
             random_state=random_state,
             lazy=lazy,
             inplace=inplace,
-            error_handler=error_handler,
         )
 
     def get_regex_columns(self, check_obj: Any) -> Iterable:
