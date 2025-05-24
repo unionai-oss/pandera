@@ -255,8 +255,7 @@ def str_startswith(data: PandasData, string: str) -> PandasData:
 def str_endswith(data: PandasData, string: str) -> PandasData:
     """Ensure that all values end with a certain string.
 
-    :param string: String all values should end with
-    :param kwargs: key-word arguments passed into the `Check` initializer.
+    :param string: String all values should end with.
     """
     return data.str.endswith(string, na=False)
 
