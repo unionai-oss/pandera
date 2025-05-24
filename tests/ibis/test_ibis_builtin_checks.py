@@ -2,6 +2,7 @@
 
 import datetime
 import decimal
+import re
 from operator import methodcaller
 
 import ibis
@@ -1222,4 +1223,22 @@ class TestNotInCheck(BaseClass):
             data["test_fail_data"],
             datatype,
             data["test_expression"],
+        )
+
+
+class TestStringType(BaseClass):
+    """This class is used to test the string type checks"""
+
+    @pytest.mark.parametrize(
+        "check_value",
+        ["Ba", r"Ba+", re.compile("Ba"), re.compile(r"Ba+")],
+    )
+    def test_str_matches_check(self, check_value) -> None:
+        """Test the Check to see if any value is not in the specified value"""
+        check_func = pa.Check.str_matches
+
+        pass_data = [("Bal", "Bat!"), ("Bal", "Bat78")]
+        fail_data = [("Bal", "fooBar"), ("Bal", "Bam!")]
+        self.check_function(
+            check_func, pass_data, fail_data, dt.String(), check_value
         )

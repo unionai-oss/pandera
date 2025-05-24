@@ -185,7 +185,6 @@ def isin(data: PandasData, allowed_values: Iterable) -> PandasData:
     want to check for substrings use :meth:`Check.str_contains`.
 
     :param allowed_values: The set of allowed values. May be any iterable.
-    :param kwargs: key-word arguments passed into the `Check` initializer.
     """
     return data.isin(allowed_values)
 
@@ -216,10 +215,9 @@ def str_matches(
     data: PandasData,
     pattern: Union[str, re.Pattern],
 ) -> PandasData:
-    """Ensure that string values match a regular expression.
+    """Ensure that all values start with a match of a regular expression pattern.
 
-    :param pattern: Regular expression pattern to use for matching
-    :param kwargs: key-word arguments passed into the `Check` initializer.
+    :param pattern: Regular expression pattern to use for matching.
     """
     return data.str.match(cast(str, pattern), na=False)
 
