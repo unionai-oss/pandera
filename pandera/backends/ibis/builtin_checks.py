@@ -191,3 +191,25 @@ def isin(data: IbisData, allowed_values: Iterable) -> ir.Table:
         _infer_interval_with_mixed_units(value) for value in allowed_values
     ]
     return _across(data.table, data.key, _.isin(allowed_values))
+
+
+@register_builtin_check(
+    error="notin({allowed_values})",
+)
+def notin(data: IbisData, forbidden_values: Iterable) -> ir.Table:
+    """Ensure some defined values don't occur within a series.
+
+    Like :meth:`Check.isin`, this check operates on single characters if
+    it is applied on strings. If forbidden_values is a string, it is understood
+    as set of prohibited characters. Any string of length > 1 can't be in it by
+    design.
+
+    :param data: NamedTuple IbisData contains the table and column name for the check. The key
+        to access the table is "table", and the key to access the column name is "key".
+    :param forbidden_values: The set of values which should not occur. May
+        be any iterable.
+    """
+    forbidden_values = [
+        _infer_interval_with_mixed_units(value) for value in forbidden_values
+    ]
+    return _across(data.table, data.key, _.notin(forbidden_values))
