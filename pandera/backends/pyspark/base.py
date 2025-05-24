@@ -13,7 +13,7 @@ from typing import (
 from pyspark.sql import DataFrame
 from pyspark.sql.functions import col
 
-from pandera.api.pyspark.types import DataFrameTypes
+from pandera.api.pyspark.types import PySparkDataFrameTypes
 from pandera.backends.base import BaseSchemaBackend
 from pandera.backends.pyspark.error_formatters import (
     format_generic_error_message,
@@ -32,7 +32,7 @@ class ColumnInfo(NamedTuple):
     lazy_exclude_column_names: list
 
 
-FieldCheckObj = Union[col, DataFrameTypes]
+FieldCheckObj = Union[col, PySparkDataFrameTypes]
 
 T = TypeVar(
     "T",
@@ -48,11 +48,11 @@ class PysparkSchemaBackend(BaseSchemaBackend):
 
     def subsample(
         self,
-        check_obj: DataFrameTypes,
-        head: int | None = None,
-        tail: int | None = None,
-        sample: float | None = None,
-        random_state: int | None = None,
+        check_obj: PySparkDataFrameTypes,
+        head: Optional[int] = None,
+        tail: Optional[int] = None,
+        sample: Optional[float] = None,
+        random_state: Optional[int] = None,
     ):
         if sample is not None:
             return check_obj.sample(

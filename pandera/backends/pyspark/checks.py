@@ -6,9 +6,9 @@ from typing import Optional, Union
 from pandera.api.base.checks import CheckResult
 from pandera.api.checks import Check
 from pandera.api.pyspark.types import (
-    DataFrameTypes,
     GroupbyObject,
     PysparkDataframeColumnObject,
+    PySparkDataFrameTypes,
     is_bool,
     is_table,
 )
@@ -25,7 +25,7 @@ class PySparkCheckBackend(BaseCheckBackend):
         self.check = check
         self.check_fn = partial(check._check_fn, **check._check_kwargs)
 
-    def groupby(self, check_obj: DataFrameTypes):  # pragma: no cover
+    def groupby(self, check_obj: PySparkDataFrameTypes):  # pragma: no cover
         """Implements groupby behavior for check object."""
         assert self.check.groupby is not None, "Check.groupby must be set."
         if isinstance(self.check.groupby, (str, list)):
@@ -43,20 +43,20 @@ class PySparkCheckBackend(BaseCheckBackend):
     @staticmethod
     def _format_groupby_input(
         groupby_obj: GroupbyObject,
-        groups: list[str] | None,
-    ) -> dict[str, DataFrameTypes]:  # pragma: no cover
+        groups: Optional[list[str]],
+    ) -> dict[str, PySparkDataFrameTypes]:  # pragma: no cover
         raise NotImplementedError
 
     def preprocess(
         self,
-        check_obj: DataFrameTypes,
+        check_obj: PySparkDataFrameTypes,
         key: str,  # type: ignore [valid-type]
-    ) -> DataFrameTypes:
+    ) -> PySparkDataFrameTypes:
         return check_obj
 
     def apply(
         self,
-        check_obj: Union[DataFrameTypes, is_table],
+        check_obj: Union[PySparkDataFrameTypes, is_table],
         column_name: str = None,
         kwargs: dict = None,
     ):
@@ -71,7 +71,7 @@ class PySparkCheckBackend(BaseCheckBackend):
 
     def postprocess(
         self,
-        check_obj: DataFrameTypes,
+        check_obj: PySparkDataFrameTypes,
         check_output: is_bool,  # type: ignore [valid-type]
     ) -> CheckResult:
         """Postprocesses the result of applying the check function."""
@@ -84,8 +84,8 @@ class PySparkCheckBackend(BaseCheckBackend):
 
     def __call__(
         self,
-        check_obj: DataFrameTypes,
-        key: str | None = None,
+        check_obj: PySparkDataFrameTypes,
+        key: Optional[str] = None,
     ) -> CheckResult:
         check_obj = self.preprocess(check_obj, key)
 

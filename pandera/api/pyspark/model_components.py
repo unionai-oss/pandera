@@ -16,13 +16,13 @@ from pandera.api.base.model_components import (
     to_checklist,
 )
 from pandera.api.checks import Check
-from pandera.api.pyspark.column_schema import ColumnSchema
+from pandera.api.dataframe.components import ComponentSchema
 from pandera.api.pyspark.components import Column
 from pandera.api.pyspark.types import PySparkDtypeInputTypes
 from pandera.errors import SchemaInitError
 
 AnyCallable = Callable[..., Any]
-SchemaComponent = TypeVar("SchemaComponent", bound=ColumnSchema)
+SchemaComponent = TypeVar("SchemaComponent", bound=ComponentSchema)
 
 CHECK_KEY = "__check_config__"
 DATAFRAME_CHECK_KEY = "__dataframe_check_config__"

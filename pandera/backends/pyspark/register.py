@@ -4,13 +4,15 @@ from functools import lru_cache
 from typing import Optional
 
 import pyspark
-import pyspark.sql as ps
+import pyspark.sql as pyspark_sql
+import pyspark.pandas as pyspark_pandas
 from packaging import version
 
 # Handles optional Spark Connect imports for pyspark>=3.4 (if available)
 CURRENT_PYSPARK_VERSION = version.parse(pyspark.__version__)
-if CURRENT_PYSPARK_VERSION >= version.parse("3.4"):
-    from pyspark.sql.connect import dataframe as psc
+PYSPARK_CONNECT_AVAILABLE = CURRENT_PYSPARK_VERSION >= version.parse("3.4")
+if PYSPARK_CONNECT_AVAILABLE:
+    from pyspark.sql.connect import dataframe as pyspark_connect
 
 
 @lru_cache
@@ -28,7 +30,7 @@ def register_pyspark_backends(
     _patch_numpy2()
 
     from pandera.api.checks import Check
-    from pandera.api.pyspark.column_schema import ColumnSchema
+    from pandera.api.dataframe.components import ComponentSchema
     from pandera.api.pyspark.components import Column
     from pandera.api.pyspark.container import DataFrameSchema
     from pandera.backends.pyspark import builtin_checks
@@ -37,14 +39,33 @@ def register_pyspark_backends(
     from pandera.backends.pyspark.components import ColumnBackend
     from pandera.backends.pyspark.container import DataFrameSchemaBackend
 
-    # Register classical DataFrame
-    Check.register_backend(ps.DataFrame, PySparkCheckBackend)
-    ColumnSchema.register_backend(ps.DataFrame, ColumnSchemaBackend)
-    Column.register_backend(ps.DataFrame, ColumnBackend)
-    DataFrameSchema.register_backend(ps.DataFrame, DataFrameSchemaBackend)
+    # Register PySpark SQL DataFrame
+    Check.register_backend(pyspark_sql.DataFrame, PySparkCheckBackend)
+    ComponentSchema.register_backend(
+        pyspark_sql.DataFrame, ColumnSchemaBackend
+    )
+    Column.register_backend(pyspark_sql.DataFrame, ColumnBackend)
+    DataFrameSchema.register_backend(
+        pyspark_sql.DataFrame, DataFrameSchemaBackend
+    )
+
+    # Register PySpark Pandas DataFrame
+    Check.register_backend(pyspark_pandas.DataFrame, PySparkCheckBackend)
+    ComponentSchema.register_backend(
+        pyspark_pandas.DataFrame, ColumnSchemaBackend
+    )
+    Column.register_backend(pyspark_pandas.DataFrame, ColumnBackend)
+    DataFrameSchema.register_backend(
+        pyspark_pandas.DataFrame, DataFrameSchemaBackend
+    )
+
     # Register Spark Connect DataFrame, if available
-    if CURRENT_PYSPARK_VERSION >= version.parse("3.4"):
-        Check.register_backend(psc.DataFrame, PySparkCheckBackend)
-        ColumnSchema.register_backend(psc.DataFrame, ColumnSchemaBackend)
-        Column.register_backend(psc.DataFrame, ColumnBackend)
-        DataFrameSchema.register_backend(psc.DataFrame, DataFrameSchemaBackend)
+    if PYSPARK_CONNECT_AVAILABLE:
+        Check.register_backend(pyspark_connect.DataFrame, PySparkCheckBackend)
+        ComponentSchema.register_backend(
+            pyspark_connect.DataFrame, ColumnSchemaBackend
+        )
+        Column.register_backend(pyspark_connect.DataFrame, ColumnBackend)
+        DataFrameSchema.register_backend(
+            pyspark_connect.DataFrame, DataFrameSchemaBackend
+        )
