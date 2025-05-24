@@ -233,3 +233,20 @@ def str_matches(
     if not pattern.startswith("^"):
         pattern = f"^{pattern}"
     return _across(data.table, data.key, _.re_search(pattern))
+
+
+@register_builtin_check(
+    error="str_contains({pattern})",
+)
+def str_contains(
+    data: IbisData,
+    pattern: Union[str, re.Pattern],
+) -> ir.Table:
+    """Ensure that a pattern can be found within each row.
+
+    :param data: NamedTuple IbisData contains the table and column name for the check. The key
+        to access the table is "table", and the key to access the column name is "key".
+    :param pattern: Regular expression pattern to use for searching.
+    """
+    pattern = pattern.pattern if isinstance(pattern, re.Pattern) else pattern
+    return _across(data.table, data.key, _.re_search(pattern))
