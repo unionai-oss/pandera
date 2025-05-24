@@ -168,6 +168,7 @@ def in_range(
         compare_min = _ >= min_value if include_min else _ > min_value
         compare_max = _ <= max_value if include_max else _ < max_value
         func = compare_min & compare_max
+
     return _across(data.table, data.key, func)
 
 
@@ -282,3 +283,33 @@ def str_endswith(
     :param pattern: String all values should end with.
     """
     return _across(data.table, data.key, _.endswith(string))
+
+
+@register_builtin_check(
+    error="str_length({length})",
+)
+def str_length(
+    data: IbisData,
+    min_value: Optional[int] = None,
+    max_value: Optional[int] = None,
+) -> ir.Table:
+    """Ensure that the length of strings is within a specified range.
+
+    :param data: NamedTuple IbisData contains the table and column name for the check. The key
+        to access the table is "table", and the key to access the column name is "key".
+    :param min_value: Minimum length of strings (inclusive). (default: no minimum)
+    :param max_value: Maximum length of strings (inclusive). (default: no maximum)
+    """
+    if min_value is None and max_value is None:
+        raise ValueError(
+            "Must provide at least one of 'min_value' and 'max_value'"
+        )
+
+    if min_value is None:
+        func = _.length() <= max_value
+    elif max_value is None:
+        func = _.length() >= min_value
+    else:
+        func = _.length().between(min_value, max_value)
+
+    return _across(data.table, data.key, func)
