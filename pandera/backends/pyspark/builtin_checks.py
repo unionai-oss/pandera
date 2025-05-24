@@ -313,9 +313,9 @@ def str_endswith(data: PysparkDataframeColumnObject, string: str) -> bool:
 
     Remember it can be a compute intensive check on large dataset. So, use it with caution.
 
-    :param data: NamedTuple PysparkDataframeColumnObject contains the dataframe and column name for the check. The keys
-                to access the dataframe is "dataframe" and column name using "column_name".
-    :param string: String all values should end with
+    :param data: NamedTuple PysparkDataframeColumnObject contains the dataframe and column name for the check. The key
+        to access the dataframe is "dataframe", and the key to access the column name is "column_name".
+    :param string: String all values should end with.
     """
     cond = col(data.column_name).endswith(string)
     return data.dataframe.filter(~cond).limit(1).count() == 0
