@@ -266,3 +266,19 @@ def str_startswith(
     :param pattern: String all values should start with.
     """
     return _across(data.table, data.key, _.startswith(string))
+
+
+@register_builtin_check(
+    error="str_endswith({pattern})",
+)
+def str_endswith(
+    data: IbisData,
+    string: str
+) -> ir.Table:
+    """Ensure that all values end with a certain string.
+
+    :param data: NamedTuple IbisData contains the table and column name for the check. The key
+        to access the table is "table", and the key to access the column name is "key".
+    :param pattern: String all values should end with.
+    """
+    return _across(data.table, data.key, _.endswith(string))
