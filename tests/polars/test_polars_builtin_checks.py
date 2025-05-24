@@ -1154,7 +1154,7 @@ class TestNotInCheck(BaseClass):
 
 
 class TestStringType(BaseClass):
-    """This class is used to test the string types checks"""
+    """This class is used to test the string type checks"""
 
     def test_str_startswith_check(self) -> None:
         """Test the Check to see if any value is not in the specified value"""
@@ -1188,7 +1188,7 @@ class TestStringType(BaseClass):
 
         pass_data = [("Bal", "Bat!"), ("Bal", "Bat78")]
         fail_data = [("Bal", "fooBar"), ("Bal", "Bam!")]
-        BaseClass.check_function(
+        self.check_function(
             check_func, pass_data, fail_data, Utf8(), check_value
         )
 
