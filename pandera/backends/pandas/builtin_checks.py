@@ -244,8 +244,7 @@ def str_contains(
 def str_startswith(data: PandasData, string: str) -> PandasData:
     """Ensure that all values start with a certain string.
 
-    :param string: String all values should start with
-    :param kwargs: key-word arguments passed into the `Check` initializer.
+    :param string: String all values should start with.
     """
     return data.str.startswith(string, na=False)
 
