@@ -1,7 +1,8 @@
 """Built-in checks for Ibis."""
 
 import datetime
-from typing import Any, Iterable, Optional, TypeVar
+import re
+from typing import Any, Iterable, Optional, TypeVar, Union
 
 import ibis
 import ibis.expr.types as ir
@@ -213,3 +214,22 @@ def notin(data: IbisData, forbidden_values: Iterable) -> ir.Table:
         _infer_interval_with_mixed_units(value) for value in forbidden_values
     ]
     return _across(data.table, data.key, _.notin(forbidden_values))
+
+
+@register_builtin_check(
+    error="str_matches({pattern})",
+)
+def str_matches(
+    data: IbisData,
+    pattern: Union[str, re.Pattern],
+) -> ir.Table:
+    """Ensure all values start with a match of a regular expression pattern.
+
+    :param data: NamedTuple IbisData contains the table and column name for the check. The key
+        to access the table is "table", and the key to access the column name is "key".
+    :param pattern: Regular expression pattern to use for matching.
+    """
+    pattern = pattern.pattern if isinstance(pattern, re.Pattern) else pattern
+    if not pattern.startswith("^"):
+        pattern = f"^{pattern}"
+    return _across(data.table, data.key, _.re_search(pattern))
