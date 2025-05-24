@@ -1,7 +1,7 @@
 """Utility functions for pyspark validation."""
 
-from functools import cache
-from typing import NamedTuple, Union
+from functools import lru_cache
+from typing import NamedTuple, TypeVar, Union
 from numpy import bool_ as np_bool
 from packaging import version
 
@@ -28,6 +28,13 @@ else:
 PySparkDataFrameTypes = Union[
     PySparkSQLDataFrame, PySparkPandasDataFrame, PySparkConnectDataFrame
 ]
+PySparkFrame = TypeVar(
+    "PySparkFrame",
+    PySparkSQLDataFrame,
+    PySparkPandasDataFrame,
+    PySparkConnectDataFrame,
+)
+
 GroupbyObject = GroupedData
 
 CheckList = Union[Check, list[Check]]
@@ -81,7 +88,7 @@ class PysparkDataframeColumnObject(NamedTuple):
     column_name: str
 
 
-@cache
+@lru_cache
 def supported_types() -> SupportedTypes:
     """Get the types supported by pandera schemas."""
     # pylint: disable=import-outside-toplevel

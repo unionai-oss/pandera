@@ -115,15 +115,13 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
         random_state: int | None = None,
         lazy: bool = False,
         inplace: bool = False,
-        error_handler: ErrorHandler = None,
     ):
         """
         Parse and validate a check object, returning type-coerced and validated
         object.
         """
-        assert error_handler is not None, (
-            "The `error_handler` argument must be provided."
-        )
+        error_handler = ErrorHandler(lazy=lazy)
+
         if not get_config_context().validation_enabled:
             warnings.warn(
                 "Skipping the validation checks as validation is disabled"
