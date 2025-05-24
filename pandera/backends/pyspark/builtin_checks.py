@@ -253,8 +253,8 @@ def notin(
     as set of prohibited characters. Any string of length > 1 can't be in it by
     design.
 
-    :param data: NamedTuple PysparkDataframeColumnObject contains the dataframe and column name for the check. The keys
-                to access the dataframe is "dataframe" and column name using "column_name".
+    :param data: NamedTuple PysparkDataframeColumnObject contains the dataframe and column name for the check. The key
+        to access the dataframe is "dataframe", and the key to access the column name is "column_name".
     :param forbidden_values: The set of values which should not occur. May
         be any iterable.
     """
