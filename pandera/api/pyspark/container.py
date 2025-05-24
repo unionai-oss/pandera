@@ -3,9 +3,6 @@
 from __future__ import annotations
 
 import copy
-import os
-import warnings
-from pathlib import Path
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -15,22 +12,22 @@ from typing import (
     Type,
     Union,
     cast,
-    overload,
 )
 
-from pyspark.sql import DataFrame, SparkSession
+from pyspark.sql import SparkSession
 from pyspark.sql.types import StructField, StructType
 
 from pandera import errors
 from pandera.api.base.error_handler import ErrorHandler
-from pandera.api.base.schema import BaseSchema
 from pandera.api.base.types import StrictType
 from pandera.api.checks import Check
-from pandera.api.pyspark.types import CheckList, PySparkDtypeInputTypes
+from pandera.api.dataframe.container import DataFrameSchema as _DataFrameSchema
 from pandera.backends.pyspark.register import register_pyspark_backends
 from pandera.config import get_config_context
 from pandera.dtypes import DataType, UniqueSettings
 from pandera.engines import pyspark_engine
+
+from .types import CheckList, PySparkDtypeInputTypes, PySparkDataFrameTypes
 
 if TYPE_CHECKING:
     import pandera.api.pyspark.components
@@ -38,7 +35,9 @@ if TYPE_CHECKING:
 N_INDENT_SPACES = 4
 
 
-class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
+class DataFrameSchema(
+    _DataFrameSchema[PySparkDataFrameTypes]
+):  # pylint: disable=too-many-public-methods
     """A light-weight PySpark DataFrame validator."""
 
     def __init__(
@@ -170,88 +169,6 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
         register_pyspark_backends()
 
     @property
-    def coerce(self) -> bool:
-        """Whether to coerce series to specified type."""
-        if isinstance(self.dtype, DataType):
-            return self.dtype.auto_coerce or self._coerce
-        return self._coerce
-
-    @coerce.setter
-    def coerce(self, value: bool) -> None:
-        """Set coerce attribute"""
-        self._coerce = value
-
-    @property
-    def unique(self):
-        """List of columns that should be jointly unique."""
-        return self._unique
-
-    @unique.setter
-    def unique(self, value: Optional[Union[str, List[str]]]) -> None:
-        """Set unique attribute."""
-        self._unique = [value] if isinstance(value, str) else value
-
-    @property
-    def dtypes(self) -> Dict[str, DataType]:
-        # pylint:disable=anomalous-backslash-in-string
-        """
-        A dict where the keys are column names and values are
-        :class:`~pandera.dtypes.DataType` s for the column. Excludes columns
-        where `regex=True`.
-
-        :returns: dictionary of columns and their associated dtypes.
-        """
-        regex_columns = [
-            name for name, col in self.columns.items() if col.regex
-        ]
-        if regex_columns:
-            warnings.warn(
-                "Schema has columns specified as regex column names: "
-                f"{regex_columns}. Use the `get_dtypes` to get the datatypes "
-                "for these columns.",
-                UserWarning,
-            )
-        return {n: c.dtype for n, c in self.columns.items() if not c.regex}
-
-    def get_metadata(self) -> Optional[dict]:
-        """Provide metadata for columns and schema level"""
-        res: Dict[Any, Any] = {"columns": {}}
-        for k in self.columns.keys():
-            res["columns"][k] = self.columns[k].properties["metadata"]
-
-        res["dataframe"] = self.metadata
-
-        meta = {}
-        meta[self.name] = res
-        return meta
-
-    def get_dtypes(self, dataframe: DataFrame) -> Dict[str, DataType]:
-        """
-        Same as the ``dtype`` property, but expands columns where
-        ``regex == True`` based on the supplied dataframe.
-
-        :returns: dictionary of columns and their associated dtypes.
-        """
-        regex_dtype = {}
-        for _, column in self.columns.items():
-            if column.regex:
-                regex_dtype.update(
-                    {
-                        c: column.dtype
-                        for c in column.get_backend(
-                            dataframe
-                        ).get_regex_columns(
-                            column,
-                            dataframe,
-                        )
-                    }
-                )
-        return {
-            **{n: c.dtype for n, c in self.columns.items() if not c.regex},
-            **regex_dtype,
-        }
-
-    @property
     def dtype(
         self,
     ) -> DataType:
@@ -265,12 +182,9 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
             pyspark_engine.Engine.dtype(value) if value else None
         )  # pylint:disable=no-value-for-parameter
 
-    def coerce_dtype(self, check_obj: DataFrame) -> DataFrame:
-        return self.get_backend(check_obj).coerce_dtype(check_obj, schema=self)
-
     def validate(
         self,
-        check_obj: DataFrame,
+        check_obj: PySparkDataFrameTypes,
         head: Optional[int] = None,
         tail: Optional[int] = None,
         sample: Optional[int] = None,
@@ -347,7 +261,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
 
     def _validate(
         self,
-        check_obj: DataFrame,
+        check_obj: PySparkDataFrameTypes,
         head: Optional[int] = None,
         tail: Optional[int] = None,
         sample: Optional[int] = None,
@@ -366,37 +280,6 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
             lazy=lazy,
             inplace=inplace,
             error_handler=error_handler,
-        )
-
-    def __call__(
-        self,
-        dataframe: DataFrame,
-        head: Optional[int] = None,
-        tail: Optional[int] = None,
-        sample: Optional[int] = None,
-        random_state: Optional[int] = None,
-        lazy: bool = True,
-        inplace: bool = False,
-    ):
-        """Alias for :func:`DataFrameSchema.validate` method.
-
-        :param dataframe: DataFrame object i.e. the dataframe to be validated.
-        :param head: Not used since spark has no concept of head or tail.
-        :type head: int
-        :param tail: Not used since spark has no concept of head or tail.
-        :type tail: int
-        :param sample: validate a random sample of n% rows. Value ranges from
-                0-1, for example 10% rows can be sampled using setting value as 0.1.
-                refer below documentation.
-                https://spark.apache.org/docs/3.1.2/api/python/reference/api/pyspark.sql.DataFrame.sample.html
-        :param lazy: if True, lazily evaluates dataframe against all validation
-            checks and raises a ``SchemaErrors``. Otherwise, raise
-            ``SchemaError`` as soon as one occurs.
-        :param inplace: if True, applies coercion to the object of validation,
-            otherwise creates a copy of the data.
-        """
-        return self.validate(
-            dataframe, head, tail, sample, random_state, lazy, inplace
         )
 
     def __repr__(self) -> str:
@@ -481,79 +364,6 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
     #####################
     # Schema IO Methods #
     #####################
-
-    def to_script(self, fp: Union[str, Path] = None) -> DataFrameSchema:
-        """Create DataFrameSchema from yaml file.
-
-        :param path: str, Path to write script
-        :returns: dataframe schema.
-        """
-        # pylint: disable=import-outside-toplevel,cyclic-import,redefined-outer-name
-        import pandera.io
-
-        return pandera.io.to_script(self, fp)
-
-    @classmethod
-    def from_yaml(cls, yaml_schema) -> DataFrameSchema:
-        """Create DataFrameSchema from yaml file.
-
-        :param yaml_schema: str, Path to yaml schema, or serialized yaml
-            string.
-        :returns: dataframe schema.
-        """
-        # pylint: disable=import-outside-toplevel,cyclic-import,redefined-outer-name
-        import pandera.io
-
-        return pandera.io.from_yaml(yaml_schema)
-
-    def to_yaml(self, stream: Optional[os.PathLike] = None) -> Optional[str]:
-        """Write DataFrameSchema to yaml file.
-
-        :param stream: file stream to write to. If None, dumps to string.
-        :returns: yaml string if stream is None, otherwise returns None.
-        """
-        # pylint: disable=import-outside-toplevel,cyclic-import,redefined-outer-name
-        import pandera.io
-
-        return pandera.io.to_yaml(self, stream=stream)
-
-    @classmethod
-    def from_json(cls, source) -> DataFrameSchema:
-        """Create DataFrameSchema from json file.
-
-        :param source: str, Path to json schema, or serialized yaml
-            string.
-        :returns: dataframe schema.
-        """
-        # pylint: disable=import-outside-toplevel,cyclic-import,redefined-outer-name
-        import pandera.io
-
-        return pandera.io.from_json(source)
-
-    @overload
-    def to_json(
-        self, target: None = None, **kwargs
-    ) -> str:  # pragma: no cover
-        ...
-
-    @overload
-    def to_json(
-        self, target: os.PathLike, **kwargs
-    ) -> None:  # pragma: no cover
-        ...
-
-    def to_json(
-        self, target: Optional[os.PathLike] = None, **kwargs
-    ) -> Optional[str]:
-        """Write DataFrameSchema to json file.
-
-        :param target: file target to write to. If None, dumps to string.
-        :returns: json string if target is None, otherwise returns None.
-        """
-        # pylint: disable=import-outside-toplevel,cyclic-import,redefined-outer-name
-        import pandera.io
-
-        return pandera.io.to_json(self, target, **kwargs)
 
     def to_structtype(self) -> StructType:
         """Recover fields of DataFrameSchema as a Pyspark StructType object.
