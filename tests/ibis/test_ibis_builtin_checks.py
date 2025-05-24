@@ -1278,3 +1278,31 @@ class TestStringType(BaseClass):
         self.check_function(
             check_func, pass_data, fail_data, dt.String(), check_value
         )
+
+    @pytest.mark.parametrize(
+        "check_value",
+        [(3, None), (None, 4), (3, 7), (1, 4), (3, 4), (None, None)],
+    )
+    def test_str_length_check(self, check_value) -> None:
+        """Test the Check to see if length of strings is within a specified range."""
+        check_func = pa.Check.str_length
+
+        pass_data = [("Bal", "Bat"), ("Bal", "Batt")]
+        fail_data = [("Bal", "Cs"), ("Bal", "BamBam")]
+
+        if check_value == (None, None):
+            fail_on_init = True
+            init_exception_cls = ValueError
+        else:
+            fail_on_init = False
+            init_exception_cls = None
+
+        self.check_function(
+            check_func,
+            pass_data,
+            fail_data,
+            dt.String(),
+            check_value,
+            fail_on_init=fail_on_init,
+            init_exception_cls=init_exception_cls,
+        )
