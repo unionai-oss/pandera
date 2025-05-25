@@ -226,6 +226,7 @@ jobs:
         - modin-ray
         - ibis
         exclude:
+        # mypy tests hang on windows
         - extra: mypy
           os: windows-latest
         - extra: modin-ray
