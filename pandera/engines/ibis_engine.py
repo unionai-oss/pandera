@@ -52,7 +52,9 @@ class DataType(dtypes.DataType):
     def check(
         self,
         pandera_dtype: dtypes.DataType,
-        data_container: Optional[ir.Table] = None,
+        data_container: Optional[  # pylint:disable=unused-argument
+            ir.Table
+        ] = None,
     ) -> Union[bool, Iterable[bool]]:
         try:
             return self.type == pandera_dtype.type
