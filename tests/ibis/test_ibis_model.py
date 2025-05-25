@@ -1,6 +1,9 @@
 """Unit tests for Ibis table model."""
 
+from typing import Optional
+
 import pytest
+import ibis.expr.datatypes as dt
 
 from pandera.ibis import Column, DataFrameModel, DataFrameSchema
 
@@ -18,8 +21,8 @@ def t_model_basic():
 def t_schema_basic():
     return DataFrameSchema(
         {
-            # "string_col": Column(str),
-            "int_col": Column(int),
+            # "string_col": Column(dt.String),
+            "int_col": Column(dt.Int64),
         }
     )
 
@@ -31,3 +34,18 @@ def test_model_schema_equivalency(
     """Test that Ibis DataFrameModel and DataFrameSchema are equivalent."""
     t_schema_basic.name = "BasicModel"
     assert t_model_basic.to_schema() == t_schema_basic
+
+
+def test_model_schema_equivalency_with_optional():
+    class ModelWithOptional(DataFrameModel):
+        # string_col: Optional[str]
+        int_col: Optional[int]
+
+    schema = DataFrameSchema(
+        name="ModelWithOptional",
+        columns={
+            # "string_col": Column(dt.String, required=False),
+            "int_col": Column(dt.Int64, required=False),
+        },
+    )
+    assert ModelWithOptional.to_schema() == schema
