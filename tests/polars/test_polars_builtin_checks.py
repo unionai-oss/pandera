@@ -1402,7 +1402,7 @@ class TestInRangeCheck(BaseClass):
         )
 
 
-class TestUniqueValuesEQCheck(BaseClass):
+class TestUniqueValuesEqCheck(BaseClass):
     """This class is used to test the unique values eq check"""
 
     sample_numeric_data = {
@@ -1517,7 +1517,7 @@ class TestUniqueValuesEQCheck(BaseClass):
         }
 
     def test_unique_values_eq_check(self, datatype, data) -> None:
-        """Test the Check to see if unique values in the data object contain all values"""
+        """Test the Check to see if all the values are equal to the defined value"""
         self.check_function(
             pa.Check.unique_values_eq,
             data["test_pass_data"],
