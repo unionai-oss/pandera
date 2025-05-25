@@ -296,6 +296,6 @@ def unique_values_eq(data: PandasData, values: Iterable):
         In contrast with :func:`isin`, this check makes sure that all the items
         in the ``values`` iterable are contained within the series.
 
-    :param values: The set of values that must be present. Maybe any iterable.
+    :param values: The set of values that must be present. May be any iterable.
     """
     return set(data.unique()) == values  # type: ignore[return-value,operator]
