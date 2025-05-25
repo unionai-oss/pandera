@@ -8,7 +8,7 @@ hypothesis >= 6.92.7
 pyyaml >= 5.1
 typing_inspect >= 0.6.0
 frictionless <= 4.40.8
-pyarrow
+pyarrow >= 13
 pydantic
 scipy
 pandas-stubs
@@ -16,7 +16,6 @@ pyspark[connect] >= 3.2.0, < 4.0.0
 polars >= 0.20.0
 modin
 protobuf
-ibis-framework >= 3.1.0
 geopandas
 shapely
 fastapi
@@ -36,6 +35,7 @@ xdoctest
 nox
 uv
 setuptools
+ibis-framework[duckdb]
 uvicorn
 python-multipart
 sphinx
@@ -49,6 +49,7 @@ asv >= 0.5.1
 pre_commit
 dask[dataframe]
 distributed
+ibis-framework >= 3.1.0 ; python_version >= '3.9'
 furo
 sphinx-docsearch
 grpcio
