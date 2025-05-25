@@ -99,6 +99,8 @@ class IbisCheckBackend(BaseCheckBackend):
                     )
                     acc = acc & out[col]
             return out.mutate({CHECK_OUTPUT_KEY: acc})
+        elif isinstance(out, bool):
+            return ibis.literal(out)
         elif out.type().is_boolean():
             return out
         else:
