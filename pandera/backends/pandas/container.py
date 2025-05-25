@@ -767,7 +767,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
     def check_column_presence(
         self, check_obj: pd.DataFrame, schema, column_info: ColumnInfo
     ) -> List[CoreCheckResult]:
-        """Check for presence of specified columns in the data object."""
+        """Check that all columns in the schema are present in the dataframe."""
         results = []
         if column_info.absent_column_names and not schema.add_missing_columns:
             for colname in column_info.absent_column_names:
