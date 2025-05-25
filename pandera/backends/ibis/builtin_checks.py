@@ -256,10 +256,7 @@ def str_contains(
 @register_builtin_check(
     error="str_startswith({pattern})",
 )
-def str_startswith(
-    data: IbisData,
-    string: str
-) -> ir.Table:
+def str_startswith(data: IbisData, string: str) -> ir.Table:
     """Ensure that all values start with a certain string.
 
     :param data: NamedTuple IbisData contains the table and column name for the check. The key
@@ -272,10 +269,7 @@ def str_startswith(
 @register_builtin_check(
     error="str_endswith({pattern})",
 )
-def str_endswith(
-    data: IbisData,
-    string: str
-) -> ir.Table:
+def str_endswith(data: IbisData, string: str) -> ir.Table:
     """Ensure that all values end with a certain string.
 
     :param data: NamedTuple IbisData contains the table and column name for the check. The key
@@ -313,3 +307,28 @@ def str_length(
         func = _.length().between(min_value, max_value)
 
     return _across(data.table, data.key, func)
+
+
+@register_builtin_check(
+    error="unique_values_eq({values})",
+)
+def unique_values_eq(data: IbisData, values: Iterable) -> ir.Table:
+    """Ensure that unique values in the data object contain all values.
+
+    .. note::
+        In contrast with :func:`isin`, this check makes sure that all the items
+        in the ``values`` iterable are contained within the series.
+
+    :param data: NamedTuple IbisData contains the table and column name for the check. The key
+        to access the table is "table", and the key to access the column name is "key".
+    :param values: The set of values that must be present. May be any iterable.
+    """
+    return (
+        set(
+            data.table.select(data.key)
+            .distinct()[data.key]
+            .to_pyarrow()
+            .to_pylist()
+        )
+        == values
+    )
