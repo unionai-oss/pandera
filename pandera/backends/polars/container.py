@@ -87,6 +87,7 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
             except SchemaErrors as exc:
                 error_handler.collect_errors(exc.schema_errors)
 
+        # collect schema components
         components = self.collect_schema_components(
             check_lf, schema, column_info
         )
@@ -285,8 +286,7 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
 
         if not schema.columns and schema.dtype is not None:
             # set schema components to dataframe dtype if columns are not
-            # specified by the dataframe-level dtype is specified.
-
+            # specified but the dataframe-level dtype is specified.
             columns = {}
             for col_name in get_lazyframe_column_names(check_obj):
                 columns[col_name] = Column(schema.dtype, name=str(col_name))
