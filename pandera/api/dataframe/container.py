@@ -136,6 +136,10 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
 
         See :ref:`here<DataFrameSchemas>` for more usage details.
 
+        Note:
+            DataFrameSchema is now hashable: you can use it as a dictionary key or in sets.
+            The hash is based on columns, checks, parsers, index, dtype, coerce, strict, name, ordered, unique, report_duplicates, unique_column_names, add_missing_columns, title, description, metadata, and drop_invalid_rows.
+
         """
 
         if columns is None:
@@ -404,6 +408,72 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
             return NotImplemented
 
         return self.__dict__ == other.__dict__
+
+    def __hash__(self):
+        """
+        Compute a hash value for the DataFrameSchema.
+
+        The hash is based on:
+        - columns (names and dtypes)
+        - checks
+        - parsers
+        - index
+        - dtype
+        - coerce
+        - strict
+        - name
+        - ordered
+        - unique
+        - report_duplicates
+        - unique_column_names
+        - add_missing_columns
+        - title
+        - description
+        - metadata
+        - drop_invalid_rows
+
+        This allows DataFrameSchema to be used as a dictionary key or in sets.
+        """
+        columns_hash = tuple(
+            sorted((col, str(self.columns[col].dtype)) for col in self.columns)
+        )
+        checks_hash = tuple(str(check) for check in self.checks)
+        parsers_hash = tuple(str(parser) for parser in getattr(self, 'parsers', []))
+        index_hash = str(self.index) if self.index is not None else ""
+        dtype_hash = str(self._dtype)
+        coerce_hash = bool(self._coerce)
+        strict_hash = str(self.strict)
+        name_hash = str(self.name)
+        ordered_hash = bool(self.ordered)
+        unique_hash = tuple(self._unique) if self._unique is not None else ()
+        report_duplicates_hash = str(self.report_duplicates)
+        unique_column_names_hash = bool(self.unique_column_names)
+        add_missing_columns_hash = bool(self.add_missing_columns)
+        title_hash = str(self.title)
+        description_hash = str(self.description)
+        metadata_hash = (
+            tuple(sorted(self.metadata.items())) if isinstance(self.metadata, dict) else str(self.metadata)
+        )
+        drop_invalid_rows_hash = bool(self.drop_invalid_rows)
+        return hash((
+            columns_hash,
+            checks_hash,
+            parsers_hash,
+            index_hash,
+            dtype_hash,
+            coerce_hash,
+            strict_hash,
+            name_hash,
+            ordered_hash,
+            unique_hash,
+            report_duplicates_hash,
+            unique_column_names_hash,
+            add_missing_columns_hash,
+            title_hash,
+            description_hash,
+            metadata_hash,
+            drop_invalid_rows_hash
+        ))
 
     if PYDANTIC_V2:
 

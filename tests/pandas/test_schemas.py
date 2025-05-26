@@ -2894,3 +2894,24 @@ def test_schema_column_default_handle_nans(
     df = pd.DataFrame({"column1": [input_value]})
     schema.validate(df, inplace=True)
     assert df.iloc[0]["column1"] == default
+
+
+def test_dataframe_schema_hashability() -> None:
+    """Test that DataFrameSchema is hashable and hashes are consistent with equality."""
+    schema1 = DataFrameSchema({"a": Column(int), "b": Column(float)}, checks=[Check.greater_than(0)], coerce=True)
+    schema2 = DataFrameSchema({"b": Column(float), "a": Column(int)}, checks=[Check.greater_than(0)], coerce=True)
+    schema3 = DataFrameSchema({"a": Column(int), "b": Column(float)}, checks=[Check.less_than(10)], coerce=True)
+
+    # Equivalent schemas should have the same hash
+    assert schema1 == schema2
+    assert hash(schema1) == hash(schema2)
+
+    # Different schemas should have different hashes
+    assert schema1 != schema3
+    assert hash(schema1) != hash(schema3)
+
+    # Should be usable as dict keys and in sets
+    d = {schema1: "first schema"}
+    assert d[schema2] == "first schema"
+    s = {schema1, schema2, schema3}
+    assert len(s) == 2
