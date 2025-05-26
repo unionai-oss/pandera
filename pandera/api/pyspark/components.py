@@ -6,6 +6,8 @@ from typing import Any, Dict, Iterable, Optional, Tuple, Type, Union
 from pandera.api.base.types import CheckList
 from pandera.api.dataframe.components import ComponentSchema
 from pandera.backends.pyspark.register import register_pyspark_backends
+from pandera.dtypes import DataType
+from pandera.engines import pyspark_engine
 
 from .types import (
     PySparkDataFrameTypes,
@@ -106,6 +108,20 @@ class Column(ComponentSchema[PySparkDataFrameTypes]):
         return True
 
     @property
+    def dtype(
+        self,
+    ) -> DataType:
+        """Get the dtype property."""
+        return self._dtype  # type: ignore
+
+    @dtype.setter
+    def dtype(self, value: PySparkDtypeInputTypes) -> None:
+        """Set the pyspark dtype property."""
+        self._dtype = (
+            pyspark_engine.Engine.dtype(value) if value else None
+        )  # pylint:disable=no-value-for-parameter
+
+    @property
     def properties(self) -> Dict[str, Any]:
         """Get column properties."""
         return {
@@ -128,7 +144,7 @@ class Column(ComponentSchema[PySparkDataFrameTypes]):
         tail: Optional[int] = None,
         sample: Optional[int] = None,
         random_state: Optional[int] = None,
-        lazy: bool = True,
+        lazy: bool = False,
         inplace: bool = False,
     ) -> PySparkFrame:
         """Validate a Column in a DataFrame object.

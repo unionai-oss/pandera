@@ -32,7 +32,7 @@ class ColumnSchemaBackend(PysparkSchemaBackend):
         return check_obj
 
     @validate_scope(scope=ValidationScope.SCHEMA)
-    def _core_checks(self, check_obj, schema, error_handler):
+    def _core_checks(self, check_obj, schema, error_handler: ErrorHandler) -> None:
         """This function runs the core checks"""
         # run the core checks
         for core_check in (
@@ -76,7 +76,7 @@ class ColumnSchemaBackend(PysparkSchemaBackend):
             try:
                 check_obj = (
                     self.coerce_dtype(  # pylint:disable=unexpected-keyword-arg
-                        check_obj, schema=schema, error_handler=error_handler
+                        check_obj, schema=schema
                     )
                 )
             except SchemaError as exc:
@@ -86,7 +86,7 @@ class ColumnSchemaBackend(PysparkSchemaBackend):
 
         self._core_checks(check_obj, schema, error_handler)
 
-        self.run_checks(check_obj, schema, error_handler, lazy)
+        self.run_checks(check_obj, schema)
 
         return check_obj
 
@@ -94,7 +94,6 @@ class ColumnSchemaBackend(PysparkSchemaBackend):
     def coerce_dtype(
         self,
         check_obj,
-        *,
         schema=None,
         # pylint: disable=unused-argument
     ):
@@ -209,8 +208,9 @@ class ColumnSchemaBackend(PysparkSchemaBackend):
 
     @validate_scope(scope=ValidationScope.DATA)
     # pylint: disable=unused-argument
-    def run_checks(self, check_obj, schema, error_handler, lazy):
+    def run_checks(self, check_obj, schema):
         check_results = []
+        error_handler = ErrorHandler()
         for check_index, check in enumerate(schema.checks):
             check_args = [schema.name]
             try:

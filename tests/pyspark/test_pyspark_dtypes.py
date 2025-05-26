@@ -27,11 +27,11 @@ class BaseClass:
         """
         This function validates the dataframe schema and pandera defined schema to ensure both work
         """
-        df_out = pandera_schema(df)
+        df_out = pandera_schema(df, lazy=True)
 
         assert df.pandera.schema == pandera_schema
-        assert isinstance(pandera_schema.validate(df), DataFrame)
-        assert isinstance(pandera_schema(df), DataFrame)
+        assert isinstance(pandera_schema.validate(df, lazy=True), DataFrame)
+        assert isinstance(df_out, DataFrame)
         return df_out
 
     def pytest_generate_tests(self, metafunc):
