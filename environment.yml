@@ -23,7 +23,7 @@ dependencies:
   - pandas-stubs
 
   # pyspark extra
-  - pyspark[connect] >= 3.2.0
+  - pyspark[connect] >= 3.2.0, < 4.0.0
 
   # polars extra
   - polars >= 0.20.0
