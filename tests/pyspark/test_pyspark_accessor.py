@@ -3,7 +3,7 @@
 from typing import Union
 
 import pytest
-from pyspark.sql import DataFrame, SparkSession
+from pyspark.sql import DataFrame, SparkSession, Column
 from pyspark.sql.functions import col
 from pyspark.sql.types import FloatType, LongType
 
@@ -12,6 +12,7 @@ from pandera.config import PanderaConfig, ValidationDepth
 from pandera.pyspark import pyspark_sql_accessor
 
 spark = SparkSession.builder.getOrCreate()
+spark.conf.set("spark.sql.ansi.enabled", False)
 
 
 @pytest.mark.parametrize(

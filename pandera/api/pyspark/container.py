@@ -55,7 +55,7 @@ class DataFrameSchema(_DataFrameSchema[PySparkDataFrameTypes]):
         tail: Optional[int] = None,
         sample: Optional[int] = None,
         random_state: Optional[int] = None,
-        lazy: bool = True,
+        lazy: bool = False,
         inplace: bool = False,
     ) -> PySparkFrame:
         """Check if all columns in a dataframe have a column in the Schema.
@@ -180,6 +180,7 @@ class DataFrameSchema(_DataFrameSchema[PySparkDataFrameTypes]):
         """
         # `StructType.toDDL()` is only available in internal java classes
         spark = SparkSession.builder.getOrCreate()
+        spark.conf.set("spark.sql.ansi.enabled", False)
         # Create a base dataframe from where we access underlying Java classes
         empty_df_with_schema = spark.createDataFrame([], self.to_structtype())
 

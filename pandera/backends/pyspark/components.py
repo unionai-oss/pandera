@@ -119,8 +119,9 @@ class ColumnBackend(ColumnSchemaBackend):
         return check_obj
 
     @validate_scope(scope=ValidationScope.DATA)
-    def run_checks(self, check_obj, schema, error_handler, lazy):
+    def run_checks(self, check_obj, schema):
         check_results = []
+        error_handler = ErrorHandler()
         for check_index, check in enumerate(schema.checks):
             check_args = [schema.name]
             try:

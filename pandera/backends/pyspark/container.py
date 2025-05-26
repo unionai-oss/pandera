@@ -76,7 +76,6 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
         check_obj = self.coerce_dtype(
             check_obj,
             schema=schema,
-            error_handler=error_handler,
         )
 
         return check_obj
@@ -94,7 +93,7 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
         # uniqueness of values
         try:
             check_obj = self.unique(
-                check_obj, schema=schema, error_handler=error_handler
+                check_obj, schema=schema
             )
         except SchemaError as err:
             error_handler.collect_error(
@@ -159,7 +158,10 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
 
         try:
             self.run_schema_component_checks(
-                sample, schema, schema_components, lazy, error_handler
+                sample,
+                schema,
+                schema_components,
+                lazy,
             )
         except SchemaError as exc:
             error_handler.collect_error(
@@ -168,7 +170,7 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
                 schema_error=exc,
             )
         try:
-            self.run_checks(sample, schema, error_handler)
+            self.run_checks(sample, schema)
         except SchemaError as exc:
             error_handler.collect_error(
                 error_type=ErrorCategory.DATA,
@@ -190,12 +192,9 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
         schema,
         schema_components: list,
         lazy: bool,
-        error_handler: ErrorHandler | None,
     ):
         """Run checks for all schema components."""
-        assert error_handler is not None, (
-            "The `error_handler` argument must be provided."
-        )
+        error_handler = ErrorHandler(lazy)
         check_results = []
         # schema-component-level checks
         for schema_component in schema_components:
@@ -204,7 +203,6 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
                     check_obj=check_obj,
                     lazy=lazy,
                     inplace=True,
-                    error_handler=error_handler,
                 )
                 check_results.append(is_table(result))
             except SchemaError as err:
@@ -216,10 +214,11 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
         assert all(check_results)
 
     @validate_scope(scope=ValidationScope.DATA)
-    def run_checks(self, check_obj: DataFrame, schema, error_handler):
+    def run_checks(self, check_obj: DataFrame, schema):
         """Run a list of checks on the check object."""
         # dataframe-level checks
         check_results = []
+        error_handler = ErrorHandler()
         for check_index, check in enumerate(
             schema.checks
         ):  # schema.checks is null
@@ -397,15 +396,11 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
     def coerce_dtype(
         self,
         check_obj: DataFrame,
-        *,
         schema=None,
-        error_handler: ErrorHandler = None,
     ):
         """Coerces check object to the expected type."""
         assert schema is not None, "The `schema` argument must be provided."
-        assert error_handler is not None, (
-            "The `error_handler` argument must be provided."
-        )
+        error_handler = ErrorHandler()
 
         if not (
             schema.coerce or any(col.coerce for col in schema.columns.values())
@@ -506,14 +501,9 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
         check_obj: DataFrame,
         *,
         schema=None,
-        error_handler: ErrorHandler = None,
     ):
         """Check uniqueness in the check object."""
         assert schema is not None, "The `schema` argument must be provided."
-        assert error_handler is not None, (
-            "The `error_handler` argument must be provided."
-        )
-
         if not schema.unique:
             return check_obj
 
