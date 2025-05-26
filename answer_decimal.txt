@@ -2,7 +2,7 @@ Hi! Here's how you can use the `Decimal` type as a dtype for a column in Pandera
 
 ---
 
-## 🐼 Pandas Backend
+##  Pandas Backend
 
 You can use the standard Python `decimal.Decimal` type for columns. Make sure your data is actually of type `Decimal` (not float or str):
 
@@ -34,7 +34,7 @@ df["amount"] = df["amount"].apply(Decimal)
 
 ---
 
-## 🦀 Polars Backend
+## Polars Backend
 
 Use `pandera.engines.polars_engine.Decimal` as the dtype. You can specify precision and scale if needed:
 
@@ -61,7 +61,7 @@ print(validated)
 
 ---
 
-## 🔥 PySpark Backend
+##  PySpark Backend
 
 Use `pyspark.sql.types.DecimalType` as the dtype:
 
@@ -79,7 +79,7 @@ validated = MySchema.validate(df)
 
 ---
 
-## 📚 References
+##  References
 - [Pandera dtype validation docs](https://pandera.readthedocs.io/en/stable/dtype_validation.html)
 - [Polars Decimal support](https://pandera.readthedocs.io/en/stable/polars.html#supported-data-types)
 - [PySpark DecimalType support](https://pandera.readthedocs.io/en/stable/pyspark.html#supported-data-types)

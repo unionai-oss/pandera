@@ -1,0 +1,68 @@
+Hi @e-pet, welcome to Pandera! This is a great question and a common point of confusion for new users.
+
+### 📝 **Best Practices for Type-Hinting with Pandera**
+
+#### **1. For General Functions**
+If you're writing a function that just takes or returns a pandas DataFrame or Series, **use the standard pandas types** for type hints:
+```python
+import pandas as pd
+
+def myfun(df: pd.DataFrame) -> None:
+    pass
+```
+This is the most compatible approach for static type checkers and IDEs.
+
+---
+
+#### **2. For Schema-Validated DataFrames/Series**
+Pandera's `pandera.typing.DataFrame[MySchema]` and `pandera.typing.Series[dtype]` are designed for use with Pandera's [DataFrameModel](https://pandera.readthedocs.io/en/stable/dataframe_models.html) system.  
+Use these when you want to:
+- Enforce schema validation at runtime
+- Get static type checking for DataFrame columns
+
+**Example:**
+```python
+import pandera as pa
+from pandera.typing import DataFrame, Series
+
+class MySchema(pa.DataFrameModel):
+    a: Series[int]
+    b: Series[float]
+
+@pa.check_types
+def process(df: DataFrame[MySchema]) -> DataFrame[MySchema]:
+    # df is validated at runtime and statically type-checked
+    return df
+```
+Here, `DataFrame[MySchema]` means the function expects a DataFrame that matches the schema defined by `MySchema`.
+
+---
+
+#### **3. For Standalone Series**
+You can use `pandera.typing.Series[dtype]` for type-hinting a Series, but this is mainly for use within a DataFrameModel. For function arguments, it's usually best to stick with `pd.Series`.
+
+---
+
+#### **4. Why Not Use `pandera.typing.DataFrame` Directly?**
+If you use `pandera.typing.DataFrame` or `Series` without a schema, type checkers will see them as "unknown" or "incomplete" types, leading to errors like the one you saw.  
+**So:**
+- Use `pd.DataFrame`/`pd.Series` for general code
+- Use `pandera.typing.DataFrame[MySchema]` for schema-validated code
+
+---
+
+### **Summary Table**
+
+| Use Case                        | Recommended Type Hint                |
+|----------------------------------|--------------------------------------|
+| General DataFrame/Series         | `pd.DataFrame`, `pd.Series`          |
+| Schema-validated DataFrame/Series| `pandera.typing.DataFrame[MySchema]` |
+| Standalone Series in Model       | `pandera.typing.Series[dtype]`       |
+
+---
+
+**References:**
+- [Pandera DataFrameModel docs](https://pandera.readthedocs.io/en/stable/dataframe_models.html)
+- [Pandera typing docs](https://pandera.readthedocs.io/en/stable/typing.html)
+
+Hope this helps clarify the best practices! If you have a specific use case or want to see more examples, feel free to ask. 
