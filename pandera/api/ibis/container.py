@@ -63,14 +63,14 @@ class DataFrameSchema(_DataFrameSchema[ir.Table]):
         >>>
         >>> schema_withchecks = pa.DataFrameSchema({
         ...     "probability": pa.Column(
-        ...         float, pa.Check(lambda s: (s >= 0) & (s <= 1))),
+        ...         float, pa.Check(lambda d: (d.table[d.key] >= 0) & (d.table[d.key] <= 1))),
         ...
         ...     # check that the "category" column contains a few discrete
         ...     # values, and the majority of the entries are dogs.
         ...     "category": pa.Column(
         ...         str, [
-        ...             pa.Check(lambda s: s.isin(["dog", "cat", "duck"])),
-        ...             pa.Check(lambda s: (s == "dog").mean() > 0.5),
+        ...             pa.Check(lambda d: d.table[d.key].isin(["dog", "cat", "duck"])),
+        ...             pa.Check(lambda d: (d.table[d.key] == "dog").mean() > 0.5),
         ...         ]),
         ... })
         >>>
