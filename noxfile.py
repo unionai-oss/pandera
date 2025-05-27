@@ -152,12 +152,12 @@ def _testing_requirements(
         if req.startswith("numpy") and _numpy is not None:
             print("adding numpy constraint <2")
             req = f"{req}, {_numpy}"
-        if (
-            req == "polars"
-            or req.startswith("polars ")
-            and sys.platform == "darwin"
-        ):
-            req = "polars-lts-cpu"
+        if req == "polars" or req.startswith("polars "):
+            # TODO(deepyaman): Support latest Polars.
+            if sys.platform == "darwin":
+                req = "polars-lts-cpu < 1.30.0"
+            else:
+                req = "polars < 1.30.0"
         # for some reason uv will try to install an old version of dask,
         # have to specifically pin dask[dataframe] to a higher version
         if (
