@@ -74,7 +74,7 @@ class DataFrameSchema(_DataFrameSchema[ir.Table]):
         ...         ]),
         ... })
         >>>
-        >>> schema_withchecks.validate(t)[["probability", "category"]]
+        >>> schema_withchecks.validate(t)[["probability", "category"]].execute()
            probability category
         0         0.10      dog
         1         0.40      dog
