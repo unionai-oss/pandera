@@ -12,7 +12,7 @@ pyarrow
 pydantic
 scipy
 pandas-stubs
-pyspark[connect] >= 3.2.0
+pyspark[connect] >= 3.2.0, < 4.0.0
 polars >= 0.20.0
 modin
 protobuf
