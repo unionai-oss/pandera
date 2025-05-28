@@ -50,7 +50,7 @@ asv >= 0.5.1
 pre_commit
 dask[dataframe]
 distributed
-ibis-framework >= 3.1.0 ; python_version >= '3.9'
+ibis-framework
 furo
 sphinx-docsearch
 grpcio
