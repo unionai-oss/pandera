@@ -84,7 +84,7 @@ dask = [
     "dask[dataframe]",
     "distributed",
 ]
-ibis = ["ibis-framework >= 3.1.0"]
+ibis = ["ibis-framework"]
 polars = ["polars >= 0.20.0"]
 all = [
     "hypothesis >= 6.92.7",
@@ -101,7 +101,7 @@ all = [
     "fastapi",
     "geopandas",
     "shapely",
-    "ibis-framework >= 3.1.0",
+    "ibis-framework",
     "polars >= 0.20.0",
 ]
 
@@ -113,7 +113,7 @@ dev = [
     "mypy == 1.10.0",
     "pip",
     "pre_commit",
-    "pyarrow",
+    "pyarrow >= 13",
     "pylint < 3.3",
     "pytz",
     "xdoctest",
