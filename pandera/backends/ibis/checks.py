@@ -13,9 +13,7 @@ from pandera.api.checks import Check
 from pandera.api.ibis.types import IbisData
 from pandera.backends.base import BaseCheckBackend
 from pandera.backends.ibis.utils import select_column
-from pandera.constants import CHECK_OUTPUT_KEY
-
-CHECK_OUTPUT_SUFFIX = f"__{CHECK_OUTPUT_KEY}__"
+from pandera.constants import CHECK_OUTPUT_KEY, CHECK_OUTPUT_SUFFIX
 
 
 class IbisCheckBackend(BaseCheckBackend):
@@ -67,9 +65,29 @@ class IbisCheckBackend(BaseCheckBackend):
                 out = check_obj.table.mutate(
                     **{f"{k}{CHECK_OUTPUT_SUFFIX}": v for k, v in out.items()}
                 )
+            elif isinstance(out, ir.Table):
+                out = out.rename(f"{{name}}{CHECK_OUTPUT_SUFFIX}")
+                try:
+                    out = check_obj.table.join(out, how="positional")
+                except Exception:  # pylint: disable=broad-exception-caught
+                    # For backends that do not support positional joins:
+                    # https://github.com/ibis-project/ibis/issues/9486
+                    index_col = "__idx__"
+                    out = (
+                        check_obj.table.mutate(
+                            **{index_col: ibis.row_number().over()}
+                        )
+                        .join(
+                            out.mutate(
+                                **{index_col: ibis.row_number().over()}
+                            ),
+                            index_col,
+                        )
+                        .drop(index_col)
+                    )
 
         if isinstance(out, ir.Table):
-            # for checks that return a boolean dataframe, make sure all columns
+            # for checks that return a boolean table, make sure all columns
             # are boolean and reduce to a single boolean column.
             acc = ibis.literal(True)
             for col in out.columns:
@@ -77,7 +95,7 @@ class IbisCheckBackend(BaseCheckBackend):
                     assert out[col].type().is_boolean(), (
                         f"column '{col[: -len(CHECK_OUTPUT_SUFFIX)]}' "
                         "is not boolean. If check function returns a "
-                        "dataframe, it must contain only boolean columns."
+                        "table, it must contain only boolean columns."
                     )
                     acc = acc & out[col]
             return out.mutate({CHECK_OUTPUT_KEY: acc})
@@ -145,7 +163,6 @@ class IbisCheckBackend(BaseCheckBackend):
             s.endswith(f"__{CHECK_OUTPUT_KEY}__")
             | select_column(CHECK_OUTPUT_KEY)
         )
-
         if check_obj.key is not None:
             failure_cases = failure_cases.select(check_obj.key)
         return CheckResult(

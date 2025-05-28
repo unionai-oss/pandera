@@ -1,13 +1,16 @@
 """Built-in checks for Ibis."""
 
 import datetime
-from typing import Any, TypeVar
+from typing import Any, Optional, TypeVar
 
 import ibis
 import ibis.expr.types as ir
+from ibis import _, selectors as s
+from ibis.common.selectors import Selector
 
 from pandera.api.extensions import register_builtin_check
 from pandera.api.ibis.types import IbisData
+from pandera.backends.ibis.utils import select_column
 
 T = TypeVar("T")
 
@@ -24,6 +27,10 @@ def _infer_interval_with_mixed_units(value: Any) -> Any:
     return value
 
 
+def _selector(key: Optional[str]) -> Selector:
+    return s.all() if key is None else select_column(key)
+
+
 @register_builtin_check(
     aliases=["eq"],
     error="equal_to({value})",
@@ -37,7 +44,7 @@ def equal_to(data: IbisData, value: Any) -> ir.Table:
         equal to this value.
     """
     value = _infer_interval_with_mixed_units(value)
-    return data.table[data.key] == value
+    return data.table.select(s.across(_selector(data.key), _ == value))
 
 
 @register_builtin_check(
@@ -52,12 +59,12 @@ def not_equal_to(data: IbisData, value: Any) -> ir.Table:
     :param value: This value must not occur in the checked data structure.
     """
     value = _infer_interval_with_mixed_units(value)
-    return data.table[data.key] != value
+    return data.table.select(s.across(_selector(data.key), _ != value))
 
 
 @register_builtin_check(
     aliases=["gt"],
-    error="greater_than({value})",
+    error="greater_than({min_value})",
 )
 def greater_than(data: IbisData, min_value: Any) -> ir.Table:
     """Ensure values of a column are strictly greater than a minimum
@@ -69,12 +76,12 @@ def greater_than(data: IbisData, min_value: Any) -> ir.Table:
         to the dtype of the :class:`ir.Column` to be validated.
     """
     value = _infer_interval_with_mixed_units(min_value)
-    return data.table[data.key] > value
+    return data.table.select(s.across(_selector(data.key), _ > value))
 
 
 @register_builtin_check(
     aliases=["ge"],
-    error="greater_than_or_equal_to({value})",
+    error="greater_than_or_equal_to({min_value})",
 )
 def greater_than_or_equal_to(data: IbisData, min_value: Any) -> ir.Table:
     """Ensure all values are greater than or equal to a minimum value.
@@ -85,7 +92,7 @@ def greater_than_or_equal_to(data: IbisData, min_value: Any) -> ir.Table:
         to the dtype of the :class:`ir.Column` to be validated.
     """
     value = _infer_interval_with_mixed_units(min_value)
-    return data.table[data.key] >= value
+    return data.table.select(s.across(_selector(data.key), _ >= value))
 
 
 @register_builtin_check(
@@ -102,7 +109,7 @@ def less_than(data: IbisData, max_value: Any) -> ir.Table:
         :class:`ir.Column` to be validated.
     """
     value = _infer_interval_with_mixed_units(max_value)
-    return data.table[data.key] < value
+    return data.table.select(s.across(_selector(data.key), _ < value))
 
 
 @register_builtin_check(
@@ -118,4 +125,4 @@ def less_than_or_equal_to(data: IbisData, max_value: Any) -> ir.Table:
         :class:`ir.Column` to be validated.
     """
     value = _infer_interval_with_mixed_units(max_value)
-    return data.table[data.key] <= value
+    return data.table.select(s.across(_selector(data.key), _ <= value))
