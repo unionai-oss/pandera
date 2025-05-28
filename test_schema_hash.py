@@ -1,4 +1,4 @@
-from collections import namedtuple
+"""Test for DataFrameSchema hashability and equality."""
 
 # Minimal Column class for demonstration
 class Column:
