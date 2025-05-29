@@ -531,7 +531,7 @@ class Check(BaseCheck):
         )
 
     @classmethod
-    def unique_values_eq(cls, values: str, **kwargs) -> "Check":
+    def unique_values_eq(cls, values: Iterable, **kwargs) -> "Check":
         """Ensure that unique values in the data object contain all values.
 
         .. note::
