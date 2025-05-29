@@ -538,7 +538,7 @@ class Check(BaseCheck):
             In contrast with :func:`isin`, this check makes sure that all the
             items in the ``values`` iterable are contained within the series.
 
-        :param values: The set of values that must be present. Maybe any iterable.
+        :param values: The set of values that must be present. May be any iterable.
         """
         try:
             values_mod = frozenset(values)
