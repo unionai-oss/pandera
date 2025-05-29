@@ -2956,7 +2956,7 @@ def test_dataframe_schema_error_branches_and_utilities():
     # Just ensure the method is called
     try:
         schema.coerce_dtype({"a": [1, 2, 3]})
-    except Exception:
+    except Exception:  # pylint: disable=broad-exception-caught
         pass
 
     # 8. _format_multiline utility (removed, not public API)
