@@ -1,0 +1,14 @@
+Contributions to the Pandera Repository (in simple terms)
+========================================================
+
+1. **Answered a question about type hints in Pandera (issue 2002):**
+   - Explained the best way to use type hints with Pandera, including when to use standard pandas types and when to use Pandera's special types.
+   - Provided clear examples and practical advice for new users.
+
+2. **Provided an example for using Decimal as a column type (issue 1675):**
+   - Wrote a detailed answer showing how to use the Decimal type for columns in Pandera, covering all supported backends (Pandas, Polars, PySpark).
+   - Included code samples and links to the official documentation to help users get started quickly.
+
+---
+
+I will keep adding to this file as I make more contributions or answer more questions for the Pandera project. 

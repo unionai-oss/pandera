@@ -1,0 +1,8 @@
+Summary of Changes: Make DataFrameSchema Hashable
+===============================================
+
+- Implemented the __hash__ method for the DataFrameSchema class in pandera/api/dataframe/container.py.
+- The hash is based on columns, checks, parsers, index, dtype, coerce, strict, name, ordered, unique, report_duplicates, unique_column_names, add_missing_columns, title, description, metadata, and drop_invalid_rows.
+- Updated the class and method docstrings to document hashability and what is included in the hash.
+- Added a test to tests/pandas/test_schemas.py to verify that DataFrameSchema is hashable, that equivalent schemas have the same hash, and that different schemas have different hashes.
+- This change addresses issue #1893 ("DataFrameSchema is not hashable"). 
