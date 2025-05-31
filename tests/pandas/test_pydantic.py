@@ -253,7 +253,7 @@ def test_typed_generic_dataframe_model_json_schema():
     """Test that typed generic DataFrame generates model json schema."""
 
     # pylint: disable-next=possibly-used-before-assignment
-    if version.parse(pydantic_core.__version__).release < (
+    if version.parse(pydantic_core.__version__).release >= (
         2,
         30,
         0,
