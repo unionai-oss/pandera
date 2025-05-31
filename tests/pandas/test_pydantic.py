@@ -224,4 +224,8 @@ def test_typed_generic_dataframe():
 
     schema = TypedDfGenericPydantic[SimpleSchema]
 
-    schema.to_schema()
+    valid_df = pd.DataFrame({"str_col": ["hello", "world"]})
+
+    schema(df=valid_df)
+
+    schema.model_json_schema()
