@@ -33,6 +33,7 @@ from pandera.typing.common import (
 from pandera.typing.formats import Formats
 from pandera.config import config_context
 
+
 try:
     from typing import _GenericAlias  # type: ignore[attr-defined]
 except ImportError:  # pragma: no cover
@@ -268,6 +269,15 @@ class DataFrame(DataFrameBase, pd.DataFrame, Generic[T]):
             # prevent validation in __setattr__ function in DataFrameBase class
             with config_context(validation_enabled=False):
                 schema_model = _source_type().__orig_class__.__args__[0]
+
+            function = functools.partial(
+                cls.pydantic_validate,
+                schema_model=schema_model,
+            )
+
+            if isinstance(schema_model, TypeVar):
+                return core_schema.no_info_plain_validator_function(function)
+
             schema = schema_model.to_schema()
             schema_json_columns = schema_model.to_json_schema()["properties"]
             type_map = {
@@ -279,10 +289,7 @@ class DataFrame(DataFrameBase, pd.DataFrame, Generic[T]):
                 "duration": core_schema.timedelta_schema(),
                 "any": core_schema.any_schema(),
             }
-            function = functools.partial(
-                cls.pydantic_validate,
-                schema_model=schema_model,
-            )
+
             json_schema_input_schema = core_schema.list_schema(
                 core_schema.typed_dict_schema(
                     {
