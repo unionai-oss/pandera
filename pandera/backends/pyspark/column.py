@@ -32,7 +32,7 @@ class ColumnSchemaBackend(PysparkSchemaBackend):
         return check_obj
 
     @validate_scope(scope=ValidationScope.SCHEMA)
-    def _core_checks(self, check_obj, schema, error_handler):
+    def _core_checks(self, check_obj, schema, error_handler: ErrorHandler) -> None:
         """This function runs the core checks"""
         # run the core checks
         for core_check in (
@@ -66,29 +66,27 @@ class ColumnSchemaBackend(PysparkSchemaBackend):
         random_state: Optional[int] = None,  # pylint: disable=unused-argument
         lazy: bool = False,
         inplace: bool = False,
-        error_handler: ErrorHandler = None,
     ):
         # pylint: disable=too-many-locals
         check_obj = self.preprocess(check_obj, inplace)
+
+        error_handler = ErrorHandler(lazy=lazy)
 
         if schema.coerce:
             try:
                 check_obj = (
                     self.coerce_dtype(  # pylint:disable=unexpected-keyword-arg
-                        check_obj, schema=schema, error_handler=error_handler
+                        check_obj, schema=schema
                     )
                 )
             except SchemaError as exc:
-                assert (
-                    error_handler is not None
-                ), "The `error_handler` argument must be provided."
                 error_handler.collect_error(
                     ErrorCategory.SCHEMA, exc.reason_code, exc
                 )
 
         self._core_checks(check_obj, schema, error_handler)
 
-        self.run_checks(check_obj, schema, error_handler, lazy)
+        self.run_checks(check_obj, schema)
 
         return check_obj
 
@@ -96,7 +94,6 @@ class ColumnSchemaBackend(PysparkSchemaBackend):
     def coerce_dtype(
         self,
         check_obj,
-        *,
         schema=None,
         # pylint: disable=unused-argument
     ):
@@ -211,8 +208,9 @@ class ColumnSchemaBackend(PysparkSchemaBackend):
 
     @validate_scope(scope=ValidationScope.DATA)
     # pylint: disable=unused-argument
-    def run_checks(self, check_obj, schema, error_handler, lazy):
+    def run_checks(self, check_obj, schema):
         check_results = []
+        error_handler = ErrorHandler()
         for check_index, check in enumerate(schema.checks):
             check_args = [schema.name]
             try:
