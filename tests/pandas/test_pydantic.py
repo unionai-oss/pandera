@@ -2,7 +2,10 @@
 
 # pylint:disable=too-few-public-methods,missing-class-docstring
 from typing import Optional
-
+from typing import (
+    Generic,
+    TypeVar,
+)
 import pandas as pd
 import pytest
 
@@ -208,3 +211,17 @@ def test_model_with_extensiondtype_column(col_type, dtype, item):
         ),
         PydanticModel,
     )
+
+
+def test_typed_generic_dataframe():
+    """Test that typed generic DataFrame is created without errors."""
+    TableT = TypeVar("TableT", bound=pa.DataFrameModel)
+
+    class TypedDfGenericPydantic(BaseModel, Generic[TableT]):
+        """Test pydantic model with typed generic dataframe."""
+
+        df: DataFrame[TableT]
+
+    schema = TypedDfGenericPydantic[SimpleSchema]
+
+    schema.to_schema()

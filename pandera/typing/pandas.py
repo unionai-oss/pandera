@@ -276,9 +276,7 @@ class DataFrame(DataFrameBase, pd.DataFrame, Generic[T]):
                 schema_model=schema_model,
             )
 
-            if version("pydantic-core") < "2.30.0" or isinstance(
-                schema_model, TypeVar
-            ):
+            if version("pydantic-core") < "2.30.0":
                 return core_schema.no_info_plain_validator_function(function)
             else:
                 schema = schema_model.to_schema()
