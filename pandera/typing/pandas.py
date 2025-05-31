@@ -15,7 +15,6 @@ from typing import (  # type: ignore[attr-defined]
     Union,
     _type_check,
 )
-from importlib.metadata import version
 
 import numpy as np
 import pandas as pd
@@ -276,35 +275,32 @@ class DataFrame(DataFrameBase, pd.DataFrame, Generic[T]):
                 schema_model=schema_model,
             )
 
-            if version("pydantic-core") < "2.30.0":
+            if isinstance(schema_model, TypeVar):
                 return core_schema.no_info_plain_validator_function(function)
-            else:
-                schema = schema_model.to_schema()
-                schema_json_columns = schema_model.to_json_schema()[
-                    "properties"
-                ]
-                type_map = {
-                    "string": core_schema.str_schema(),
-                    "integer": core_schema.int_schema(),
-                    "number": core_schema.float_schema(),
-                    "boolean": core_schema.bool_schema(),
-                    "datetime": core_schema.datetime_schema(),
-                    "duration": core_schema.timedelta_schema(),
-                    "any": core_schema.any_schema(),
-                }
 
-                json_schema_input_schema = core_schema.list_schema(
-                    core_schema.typed_dict_schema(
-                        {
-                            key: core_schema.typed_dict_field(
-                                type_map[
-                                    schema_json_columns[key]["items"]["type"]
-                                ]
-                            )
-                            for key in schema.columns.keys()
-                        },
-                    )
+            schema = schema_model.to_schema()
+            schema_json_columns = schema_model.to_json_schema()["properties"]
+            type_map = {
+                "string": core_schema.str_schema(),
+                "integer": core_schema.int_schema(),
+                "number": core_schema.float_schema(),
+                "boolean": core_schema.bool_schema(),
+                "datetime": core_schema.datetime_schema(),
+                "duration": core_schema.timedelta_schema(),
+                "any": core_schema.any_schema(),
+            }
+
+            json_schema_input_schema = core_schema.list_schema(
+                core_schema.typed_dict_schema(
+                    {
+                        key: core_schema.typed_dict_field(
+                            type_map[schema_json_columns[key]["items"]["type"]]
+                        )
+                        for key in schema.columns.keys()
+                    },
                 )
+            )
+            try:
                 # json schema input schema is only available in
                 # pydantic_core >=2.30.0
                 return core_schema.no_info_plain_validator_function(
@@ -316,6 +312,8 @@ class DataFrame(DataFrameBase, pd.DataFrame, Generic[T]):
                         return_schema=json_schema_input_schema,
                     ),
                 )
+            except TypeError:
+                return core_schema.no_info_plain_validator_function(function)
 
     else:
 
