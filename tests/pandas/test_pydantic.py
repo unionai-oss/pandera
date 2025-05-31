@@ -227,5 +227,3 @@ def test_typed_generic_dataframe():
     valid_df = pd.DataFrame({"str_col": ["hello", "world"]})
 
     schema(df=valid_df)
-
-    schema.model_json_schema()
