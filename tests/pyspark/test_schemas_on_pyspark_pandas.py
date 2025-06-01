@@ -278,8 +278,10 @@ def test_index_dtypes(
         not in {
             pandas_engine.Engine.dtype(pandas_engine.BOOL),
             pandas_engine.DateTime(tz="UTC"),  # type: ignore[call-arg]
+            pandas_engine.Engine.dtype(pa.dtypes.Timedelta),  # type: ignore[call-arg]
         }
     ],
+    ids=lambda x: str(x)
 )
 @hypothesis.given(st.data())
 def test_nullable(
