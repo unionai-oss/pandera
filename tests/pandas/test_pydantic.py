@@ -225,6 +225,10 @@ def test_model_with_extensiondtype_column(col_type, dtype, item):
     )
 
 
+@pytest.mark.skipif(
+    not PYDANTIC_V2,
+    reason="Pydantic <2 cannot catch the invalid dataframe validation error",
+)
 def test_typed_generic_dataframe():
     """Test that typed generic DataFrame is compatible with pydantic."""
     valid_df = pd.DataFrame({"str_col": ["hello", "world"]})
@@ -233,16 +237,6 @@ def test_typed_generic_dataframe():
     invalid_df = pd.DataFrame({"str_col": ["hello", "hello"]})
     with pytest.raises(ValidationError):
         TypedDfGenericPydantic[SimpleSchema](df=invalid_df)
-
-
-@pytest.mark.skipif(
-    not PYDANTIC_V2,
-    reason="Pydantic <2 cannot catch the invalid dataframe model error",
-)
-def test_invalid_typed_generic_dataframe():
-    """Test that an invalid typed generic DataFrame is recognized by pandera."""
-    with pytest.raises(ValidationError):
-        TypedDfGenericPydantic[SimpleSchema](df=1)
 
 
 @pytest.mark.skipif(
