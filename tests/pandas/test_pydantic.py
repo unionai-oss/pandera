@@ -227,6 +227,22 @@ def test_model_with_extensiondtype_column(col_type, dtype, item):
 
 @pytest.mark.skipif(
     not PYDANTIC_V2,
+    reason="Pydantic <2 does not use Pydantic-Core",
+)
+def test_typed_dataframe_model_json_schema():
+    """Test that typed generic DataFrame generates model json schema."""
+
+    # pylint: disable-next=possibly-used-before-assignment
+    if version.parse(pydantic_core.__version__).release >= (
+        2,
+        30,
+        0,
+    ):
+        assert isinstance(TypedDfPydantic.model_json_schema(), dict)
+
+
+@pytest.mark.skipif(
+    not PYDANTIC_V2,
     reason="Pydantic <2 cannot catch the invalid dataframe validation error",
 )
 def test_typed_generic_dataframe():
