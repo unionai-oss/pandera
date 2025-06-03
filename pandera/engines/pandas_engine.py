@@ -714,11 +714,39 @@ if PANDAS_1_3_0_PLUS:
 
         def __str__(self) -> str:
             return repr(self.type)
+        
+    @Engine.register_dtype(equivalents=["string[pyarrow]", pd.StringDtype(storage="pyarrow")])
+    @immutable(init=True)
+    class _STRING_PYARROW(DataType, dtypes.String):
+        """Semantic representation of a :class:`pandas.StringDtype`."""
+
+        type: pd.StringDtype = dataclasses.field(default=None, init=False)  # type: ignore[assignment]
+        storage: Optional[Literal["pyarrow"]] = "pyarrow"
+
+        def __post_init__(self):
+            if self.storage == "pyarrow" and not PYARROW_INSTALLED:
+                raise ModuleNotFoundError(
+                    "pyarrow needs to be installed when using the "
+                    "string[pyarrow] pandas data type. Please "
+                    "`pip install pyarrow` or "
+                    "`conda install -c conda-forge pyarrow` before proceeding."
+                )
+            type_ = pd.StringDtype(self.storage)
+            object.__setattr__(self, "type", type_)
+
+        @classmethod
+        def from_parametrized_dtype(cls, pd_dtype: pd.StringDtype):
+            """Convert a :class:`pandas.StringDtype` to
+            a Pandera :class:`pandera.engines.pandas_engine.STRING`."""
+            return cls(pd_dtype.storage)  # type: ignore[attr-defined]
+
+        def __str__(self) -> str:
+            return repr(self.type)
 
 else:
 
     @Engine.register_dtype(
-        equivalents=["string", pd.StringDtype, pd.StringDtype()]  # type: ignore
+        equivalents=["string", "string[pyarrow]", pd.StringDtype, pd.StringDtype()]  # type: ignore
     )  # type: ignore[no-redef] # python 3.7
     @immutable
     class STRING(DataType, dtypes.String):  # type: ignore[no-redef] # python 3.8+
@@ -1614,8 +1642,10 @@ if PYARROW_INSTALLED and PANDAS_2_0_0_PLUS:
         equivalents=[
             pyarrow.string,
             pyarrow.utf8,
-            pd.ArrowDtype(pyarrow.string()),
-            pd.ArrowDtype(pyarrow.utf8()),
+            pyarrow.string(),
+            pyarrow.utf8(),
+            # pd.ArrowDtype(pyarrow.string()),
+            # pd.ArrowDtype(pyarrow.utf8()),
         ]
     )
     @immutable
