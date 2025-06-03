@@ -6,6 +6,7 @@ from typing import Any, Dict, Optional, Type
 
 import numpy as np
 import pandas as pd
+import pyarrow
 import pytest
 
 import pandera.pandas as pa
@@ -235,6 +236,16 @@ class SchemaFieldSparseDtype(pa.DataFrameModel):
     )
 
 
+class SchemaStringDtypePyarrow(pa.DataFrameModel):
+    col: Series[pd.StringDtype] = pa.Field(dtype_kwargs={"storage": "pyarrow"})
+
+
+class SchemaArrowDtypeString(pa.DataFrameModel):
+    col: Series[pd.ArrowDtype] = pa.Field(
+        dtype_kwargs={"pyarrow_dtype": pyarrow.string()}
+    )
+
+
 @pytest.mark.parametrize(
     "model, dtype, dtype_kwargs",
     [
@@ -254,6 +265,16 @@ class SchemaFieldSparseDtype(pa.DataFrameModel):
             SchemaFieldSparseDtype,
             pd.SparseDtype,
             {"dtype": np.int32, "fill_value": 0},
+        ),
+        (
+            SchemaStringDtypePyarrow,
+            pd.StringDtype,
+            {"storage": "pyarrow"},
+        ),
+        (
+            SchemaArrowDtypeString,
+            pd.ArrowDtype,
+            {"pyarrow_dtype": pyarrow.string()},
         ),
     ],
 )

@@ -355,6 +355,8 @@ def _register_numpy_numbers(
         equivalents = {
             np_dtype,
             # e.g.: pandera.dtypes.Int64
+            f"{builtin_name}{bit_width}",
+            f"{pandera_name}{bit_width}",
             getattr(dtypes, f"{pandera_name}{bit_width}"),
             getattr(dtypes, f"{pandera_name}{bit_width}")(),
         }
@@ -687,7 +689,9 @@ class Category(DataType, dtypes.Category):
 
 if PANDAS_1_3_0_PLUS:
 
-    @Engine.register_dtype(equivalents=["string", pd.StringDtype])
+    @Engine.register_dtype(
+        equivalents=["string", pd.StringDtype, pd.StringDtype()]
+    )
     @immutable(init=True)
     class STRING(DataType, dtypes.String):
         """Semantic representation of a :class:`pandas.StringDtype`."""
@@ -1646,8 +1650,8 @@ if PYARROW_INSTALLED and PANDAS_2_0_0_PLUS:
             pyarrow.utf8,
             pyarrow.string(),
             pyarrow.utf8(),
-            # pd.ArrowDtype(pyarrow.string()),
-            # pd.ArrowDtype(pyarrow.utf8()),
+            pd.ArrowDtype(pyarrow.string()),
+            pd.ArrowDtype(pyarrow.utf8()),
         ]
     )
     @immutable

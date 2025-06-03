@@ -12,6 +12,7 @@ from typing import (
     Any,
     Callable,
     Dict,
+    Generic,
     List,
     NamedTuple,
     Optional,
@@ -70,7 +71,7 @@ KT = TypeVar("KT")
 VT = TypeVar("VT")
 
 
-class TypeAwareDict(dict[tuple[Any, Type], Any]):
+class TypeAwareDict(dict, Generic[KT, VT]):
     """A dictionary that is aware of both the key value and its type.
 
     This is needed because some pandas dtypes, e.g. pd.ArrowDtype, defines
@@ -81,12 +82,13 @@ class TypeAwareDict(dict[tuple[Any, Type], Any]):
     """
 
     def __setitem__(self, key: KT, value: VT) -> None:
-        # super().__setitem__(key, value)
         super().__setitem__((key, type(key)), value)
 
     def __getitem__(self, key: KT) -> VT:
-        # return super().__getitem__(key)
         return super().__getitem__((key, type(key)))
+
+    def get(self, key: KT, default: Any = None) -> VT:  # type: ignore
+        return super().get((key, type(key)), default)
 
 
 @dataclass
@@ -165,14 +167,9 @@ class Engine(ABCMeta):
         cls, pandera_dtype_cls: Type[DataType], *source_dtypes: Any
     ) -> None:
         pandera_dtype = pandera_dtype_cls()  # type: ignore
-        import pandas as pd
-        import pyarrow
-
         for source_dtype in source_dtypes:
             cls._check_source_dtype(source_dtype)
             cls._registry[cls].equivalents[source_dtype] = pandera_dtype
-            # if pd.ArrowDtype(pyarrow.string()) == source_dtype:
-            #     import ipdb; ipdb.set_trace()
 
     def register_dtype(
         cls: _EngineType,
@@ -236,6 +233,7 @@ class Engine(ABCMeta):
     def dtype(cls: _EngineType, data_type: Any) -> DataType:
         """Convert input into a Pandera :class:`DataType` object."""
         # pylint: disable=too-many-return-statements
+        _orig_data_type = data_type
         if isinstance(data_type, cls._base_pandera_dtypes):
             return data_type
 
@@ -298,9 +296,6 @@ class Engine(ABCMeta):
         try:
             return registry.dispatch(data_type)
         except (KeyError, ValueError):
-            import ipdb
-
-            ipdb.set_trace()
             raise TypeError(
                 f"Data type '{data_type}' not understood by {cls.__name__}."
             ) from None
