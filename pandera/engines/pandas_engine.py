@@ -714,8 +714,10 @@ if PANDAS_1_3_0_PLUS:
 
         def __str__(self) -> str:
             return repr(self.type)
-        
-    @Engine.register_dtype(equivalents=["string[pyarrow]", pd.StringDtype(storage="pyarrow")])
+
+    @Engine.register_dtype(
+        equivalents=["string[pyarrow]", pd.StringDtype(storage="pyarrow")]
+    )
     @immutable(init=True)
     class _STRING_PYARROW(DataType, dtypes.String):
         """Semantic representation of a :class:`pandas.StringDtype`."""

@@ -67,15 +67,16 @@ def _is_namedtuple(x: Type) -> bool:
 
 
 KT = TypeVar("KT")
-VT = TypeVar("VT") 
+VT = TypeVar("VT")
+
 
 class TypeAwareDict(dict[tuple[Any, Type], Any]):
     """A dictionary that is aware of both the key value and its type.
-    
+
     This is needed because some pandas dtypes, e.g. pd.ArrowDtype, defines
     __eq__ logic that returns true if the string representation of the dtype
     is equal to the string literal, for example:
-    
+
     "string[pyarrow]" == pd.ArrowDtype(pyarrow.string()).
     """
 
@@ -86,6 +87,7 @@ class TypeAwareDict(dict[tuple[Any, Type], Any]):
     def __getitem__(self, key: KT) -> VT:
         # return super().__getitem__(key)
         return super().__getitem__((key, type(key)))
+
 
 @dataclass
 class _DtypeRegistry:
@@ -117,7 +119,9 @@ class Engine(ABCMeta):
         def dtype(data_type: Any) -> DataType:
             raise ValueError(f"Data type '{data_type}' not understood")
 
-        mcs._registry[engine] = _DtypeRegistry(dispatch=dtype, equivalents=TypeAwareDict())
+        mcs._registry[engine] = _DtypeRegistry(
+            dispatch=dtype, equivalents=TypeAwareDict()
+        )
         return engine
 
     def _check_source_dtype(cls, data_type: Any) -> None:
@@ -163,6 +167,7 @@ class Engine(ABCMeta):
         pandera_dtype = pandera_dtype_cls()  # type: ignore
         import pandas as pd
         import pyarrow
+
         for source_dtype in source_dtypes:
             cls._check_source_dtype(source_dtype)
             cls._registry[cls].equivalents[source_dtype] = pandera_dtype
@@ -293,7 +298,9 @@ class Engine(ABCMeta):
         try:
             return registry.dispatch(data_type)
         except (KeyError, ValueError):
-            import ipdb; ipdb.set_trace()
+            import ipdb
+
+            ipdb.set_trace()
             raise TypeError(
                 f"Data type '{data_type}' not understood by {cls.__name__}."
             ) from None
