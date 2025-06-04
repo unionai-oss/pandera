@@ -33,7 +33,7 @@ dependencies:
   - protobuf
 
   # geopandas extra
-  - geopandas
+  - geopandas < 1.1.0
   - shapely
 
   # fastapi extra

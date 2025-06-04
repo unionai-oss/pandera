@@ -16,7 +16,7 @@ pyspark[connect] >= 3.2.0, < 4.0.0
 polars >= 0.20.0
 modin
 protobuf
-geopandas
+geopandas < 1.1.0
 shapely
 fastapi
 black >= 24.0

@@ -99,7 +99,7 @@ all = [
     "distributed",
     "pandas-stubs",
     "fastapi",
-    "geopandas",
+    "geopandas < 1.1.0",
     "shapely",
     "polars >= 0.20.0",
 ]

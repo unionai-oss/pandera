@@ -255,7 +255,7 @@ class Engine(ABCMeta):
         datatype_origin = typing_inspect.get_origin(data_type)
         if datatype_origin is not None:
             equivalent_data_type = registry.get_equivalent(datatype_origin)
-            return type(equivalent_data_type)(data_type)
+            return type(equivalent_data_type)(data_type)  # type: ignore
 
         # handle python's special declared type constructs like NamedTuple and
         # TypedDict
@@ -276,7 +276,7 @@ class Engine(ABCMeta):
                 raise TypeError(
                     f"Type '{data_type}' not understood by {cls.__name__}."
                 )
-            return type(equivalent_data_type)(data_type)
+            return type(equivalent_data_type)(data_type)  # type: ignore
 
         equivalent_data_type = registry.get_equivalent(data_type)
         if equivalent_data_type is not None:
