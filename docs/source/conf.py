@@ -254,8 +254,21 @@ class FilterTypeAnnotationWarnings(pylogging.Filter):
         )
 
 
+class FilterExternalPackageModinDocUtilsWarnings(pylogging.Filter):
+    def filter(self, record: pylogging.LogRecord) -> bool:
+        return not (
+            "modin" in record.location
+            and record.getMessage().startswith(
+                "Inline strong start-string without end-string",
+            )
+        )
+
+
 logging.getLogger("sphinx_autodoc_typehints").logger.addFilter(
     FilterTypeAnnotationWarnings()
+)
+logging.getLogger("sphinx.util.docutils").logger.addFilter(
+    FilterExternalPackageModinDocUtilsWarnings()
 )
 
 
