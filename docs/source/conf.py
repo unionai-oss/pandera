@@ -263,6 +263,7 @@ class FilterExternalPackageModinDocUtilsWarnings(pylogging.Filter):
                     "Inline strong start-string without end-string",
                     "Inline interpreted text or phrase reference start-string "
                     "without end-string",
+                    "Unexpected section title",
                 )
             )
         )
