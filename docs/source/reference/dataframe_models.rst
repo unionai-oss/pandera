@@ -90,9 +90,11 @@ Pyspark
 Modin
 *****
 
+.. use modin_class.rst because modin has some failing doctest code snippets
+
 .. autosummary::
    :toctree: generated
-   :template: class.rst
+   :template: modin_class.rst
 
    pandera.typing.modin.DataFrame
    pandera.typing.modin.Series

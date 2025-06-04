@@ -61,7 +61,7 @@ io = [
 mypy = ["pandas-stubs"]
 fastapi = ["fastapi"]
 geopandas = [
-    "geopandas",
+    "geopandas < 1.1.0",
     "shapely",
 ]
 pyspark = ["pyspark[connect] >= 3.2.0, < 4.0.0"]
@@ -99,7 +99,7 @@ all = [
     "distributed",
     "pandas-stubs",
     "fastapi",
-    "geopandas",
+    "geopandas < 1.1.0",
     "shapely",
     "polars >= 0.20.0",
 ]
@@ -107,6 +107,7 @@ all = [
 [dependency-groups]
 dev = [
     "hypothesis >= 6.92.7",
+    "ipdb",
     "isort >= 5.7.0",
     "joblib",
     "mypy == 1.10.0",
