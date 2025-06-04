@@ -259,7 +259,11 @@ class FilterExternalPackageModinDocUtilsWarnings(pylogging.Filter):
         return not (
             "modin" in record.location
             and record.getMessage().startswith(
-                "Inline strong start-string without end-string",
+                (
+                    "Inline strong start-string without end-string",
+                    "Inline interpreted text or phrase reference start-string "
+                    "without end-string",
+                )
             )
         )
 

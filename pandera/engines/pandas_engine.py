@@ -1493,7 +1493,7 @@ class PythonTypedDict(PythonGenericType):
             )
 
     def __str__(self) -> str:
-        return str(TypedDict.__name__)  # type: ignore[attr-defined]
+        return "TypedDict"
 
 
 @Engine.register_dtype(equivalents=[NamedTuple, "NamedTuple"])
