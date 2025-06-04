@@ -204,7 +204,9 @@ def _test_annotated_dtype(
 
     if isinstance(actual.type, pd.SparseDtype):
         assert actual.type.type == expected.type.type
-        assert np.isnan(actual.type.fill_value) == np.isnan(expected.type.fill_value)
+        assert np.isnan(actual.type.fill_value) == np.isnan(
+            expected.type.fill_value
+        )
     else:
         assert actual == expected
 

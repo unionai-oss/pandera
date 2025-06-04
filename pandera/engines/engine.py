@@ -72,7 +72,7 @@ class _DtypeRegistry:
     equivalents: Dict[Any, DataType]
     strict_equivalents: Dict[Any, DataType]
 
-    def get_equivalent(self, data_type: Any) -> DataType:
+    def get_equivalent(self, data_type: Any) -> Optional[DataType]:
         if (data_type, type(data_type)) in self.strict_equivalents:
             return self.strict_equivalents.get((data_type, type(data_type)))
         return self.equivalents.get(data_type)
@@ -84,6 +84,7 @@ class StrictEquivalent:
     Represents data types that are equivalent to the pandera DataType that
     are meant to be evaluated strictly, i.e. not with `data_type == "string_alias`
     """
+
     dtype: DataType
 
 

@@ -57,10 +57,10 @@ def test_pandas_data_type(data_type):
         isinstance(data_type.type, pd.ArrowDtype)
         and data_type.type == "string[pyarrow]"
     ):
-       # the `string[pyarrow]` string alias is overloaded: it can be either
-       # pd.StringDtype or pd.ArrowDtype(pyarrow.string()). Pandera handles
-       # like this pandas, where `string[pyarrow]` is interpreted as pd.StringDtype
-       pass
+        # the `string[pyarrow]` string alias is overloaded: it can be either
+        # pd.StringDtype or pd.ArrowDtype(pyarrow.string()). Pandera handles
+        # like this pandas, where `string[pyarrow]` is interpreted as pd.StringDtype
+        pass
     else:
         assert pd_dtype == pd_dtype_from_str
 
