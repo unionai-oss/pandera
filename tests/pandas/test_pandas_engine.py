@@ -19,9 +19,9 @@ from pandera.errors import ParserError, SchemaError
 
 UNSUPPORTED_DTYPE_CLS: Set[Any] = set()
 
-# `string[pyarrow]` gets parsed to type `string` by pandas
-if pandas_engine.PYARROW_INSTALLED and pandas_engine.PANDAS_2_0_0_PLUS:
-    UNSUPPORTED_DTYPE_CLS.add(pandas_engine.ArrowString)
+# # `string[pyarrow]` gets parsed to type `string` by pandas
+# if pandas_engine.PYARROW_INSTALLED and pandas_engine.PANDAS_2_0_0_PLUS:
+#     UNSUPPORTED_DTYPE_CLS.add(pandas_engine.ArrowString)
 
 
 @pytest.mark.parametrize(
@@ -50,8 +50,19 @@ def test_pandas_data_type(data_type):
         pd_dtype = pandas_engine.DataType(data_type.type)
     with pytest.warns(UserWarning):
         pd_dtype_from_str = pandas_engine.DataType(str(data_type.type))
-    assert pd_dtype == pd_dtype_from_str
+
     assert not pd_dtype.check("foo")
+
+    if (
+        isinstance(data_type.type, pd.ArrowDtype)
+        and data_type.type == "string[pyarrow]"
+    ):
+       # the `string[pyarrow]` string alias is overloaded: it can be either
+       # pd.StringDtype or pd.ArrowDtype(pyarrow.string()). Pandera handles
+       # like this pandas, where `string[pyarrow]` is interpreted as pd.StringDtype
+       pass
+    else:
+        assert pd_dtype == pd_dtype_from_str
 
 
 @pytest.mark.parametrize(
