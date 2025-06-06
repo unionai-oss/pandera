@@ -53,12 +53,12 @@ def _config_from_env_vars():
     if validation_depth is not None:
         validation_depth = ValidationDepth(validation_depth)
 
-    cache_dataframe = os.environ.get("PANDERA_CACHE_DATAFRAME", "True") in {
+    cache_dataframe = os.environ.get("PANDERA_CACHE_DATAFRAME", "False") in {
         "True",
         "1",
     }
     keep_cached_dataframe = os.environ.get(
-        "PANDERA_KEEP_CACHED_DATAFRAME", "True"
+        "PANDERA_KEEP_CACHED_DATAFRAME", "False"
     ) in {"True", "1"}
 
     return PanderaConfig(
