@@ -201,7 +201,14 @@ def _test_annotated_dtype(
 
     actual = schema.columns["col"].dtype
     expected = pa.Column(dtype(**dtype_kwargs), name="col").dtype
-    assert actual == expected
+
+    if isinstance(actual.type, pd.SparseDtype):
+        assert actual.type.type == expected.type.type
+        assert np.isnan(actual.type.fill_value) == np.isnan(
+            expected.type.fill_value
+        )
+    else:
+        assert actual == expected
 
 
 def _test_default_annotated_dtype(
@@ -235,6 +242,10 @@ class SchemaFieldSparseDtype(pa.DataFrameModel):
     )
 
 
+class SchemaFieldStringDtypeArrow(pa.DataFrameModel):
+    col: Series[pd.StringDtype] = pa.Field(dtype_kwargs={"storage": "pyarrow"})
+
+
 @pytest.mark.parametrize(
     "model, dtype, dtype_kwargs",
     [
@@ -254,6 +265,11 @@ class SchemaFieldSparseDtype(pa.DataFrameModel):
             SchemaFieldSparseDtype,
             pd.SparseDtype,
             {"dtype": np.int32, "fill_value": 0},
+        ),
+        (
+            SchemaFieldStringDtypeArrow,
+            pd.StringDtype,
+            {"storage": "pyarrow"},
         ),
     ],
 )
