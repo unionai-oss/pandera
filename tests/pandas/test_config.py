@@ -1,5 +1,6 @@
 """Tests for configuration functions."""
 
+import os
 import pytest
 
 from pandera.config import (
@@ -7,6 +8,7 @@ from pandera.config import (
     config_context,
     get_config_context,
     get_config_global,
+    _config_from_env_vars,
 )
 
 
@@ -118,3 +120,26 @@ def test_nested_config_context(setting, outer_value, inner_value):
 
         outer_config = get_config_context()
         assert getattr(outer_config, setting) == outer_value
+
+
+def test_pandera_validation_enabled_from_env_vars():
+
+    os.environ["PANDERA_VALIDATION_ENABLED"] = "False"
+    config = _config_from_env_vars()
+    assert not config.validation_enabled
+
+    os.environ["PANDERA_VALIDATION_ENABLED"] = "0"
+    config = _config_from_env_vars()
+    assert not config.validation_enabled
+
+    os.environ["PANDERA_VALIDATION_ENABLED"] = "True"
+    config = _config_from_env_vars()
+    assert config.validation_enabled
+
+    os.environ["PANDERA_VALIDATION_ENABLED"] = "1"
+    config = _config_from_env_vars()
+    assert config.validation_enabled
+
+    del os.environ["PANDERA_VALIDATION_ENABLED"]
+    config = _config_from_env_vars()
+    assert config.validation_enabled
