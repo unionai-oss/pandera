@@ -245,7 +245,7 @@ schema = pa.DataFrameSchema({"a": pa.Column(int)})
 df = (
     pl.DataFrame({"a": [1.0, 2.0, 3.0]})
     .cast({"a": pl.Int64})
-    .pipe(schema.validate) # this validates schema- and data- level properties
+    .pipe(schema.validate) # this validates schema- and data-level properties
     .with_columns(b=pl.lit("a"))
     # do more eager operations
 )
@@ -274,7 +274,7 @@ class SimpleModel(pa.DataFrameModel):
 df = (
     pl.DataFrame({"a": [1.0, 2.0, 3.0]})
     .cast({"a": pl.Int64})
-    .pipe(SimpleModel.validate) # this validates schema- and data- level properties
+    .pipe(SimpleModel.validate) # this validates schema- and data-level properties
     .with_columns(b=pl.lit("a"))
     # do more eager operations
 )
@@ -662,6 +662,8 @@ class ModelWithCustomChecks(pa.DataFrameModel):
         """Take a single value and return a boolean scalar."""
         return x > 0
 
+
+lf = pl.LazyFrame({"a": [1, 2, 3]})
 validated_df = lf.collect().pipe(ModelWithCustomChecks.validate)
 print(validated_df)
 ```
