@@ -96,7 +96,7 @@ settings. With `pandera`, you can:
 
 1. Define a schema once and use it to validate {ref}`different dataframe types <supported-dataframe-libraries>`
    including [pandas](http://pandas.pydata.org), [polars](https://docs.pola.rs/), [dask](https://dask.org/),
-   [modin](https://modin.readthedocs.io/), and
+   [modin](https://modin.readthedocs.io/), [ibis](https://ibis-project.org/), and
    [pyspark](https://spark.apache.org/docs/latest/api/python/index.html).
 2. {ref}`Check<checks>` the types and properties of columns in a
    `pd.DataFrame` or values in a `pd.Series`.
@@ -120,7 +120,7 @@ settings. With `pandera`, you can:
 
 ## Install
 
-Pandera supports [multiple dataframe libraries](https://pandera.readthedocs.io/en/stable/supported_libraries.html), including [pandas](http://pandas.pydata.org), [polars](https://docs.pola.rs/), [pyspark](https://spark.apache.org/docs/latest/api/python/index.html), and more.
+Pandera supports [multiple dataframe libraries](https://pandera.readthedocs.io/en/stable/supported_libraries.html), including [pandas](http://pandas.pydata.org), [polars](https://docs.pola.rs/), [pyspark](https://spark.apache.org/docs/latest/api/python/index.html), and [ibis](https://ibis-project.org/).
 
 Most of the documentation will use the `pandas` DataFrames, install Pandera with the `pandas` extra:
 
@@ -162,6 +162,7 @@ pip install 'pandera[modin-ray]'   # validate modin dataframes with ray
 pip install 'pandera[modin-dask]'  # validate modin dataframes with dask
 pip install 'pandera[geopandas]'   # validate geopandas geodataframes
 pip install 'pandera[polars]'      # validate polars dataframes
+pip install 'pandera[ibis]'        # validate ibis tables
 ```
 :::
 
@@ -179,6 +180,7 @@ conda install -c conda-forge pandera-modin-ray   # validate modin dataframes wit
 conda install -c conda-forge pandera-modin-dask  # validate modin dataframes with dask
 conda install -c conda-forge pandera-geopandas   # validate geopandas geodataframes
 conda install -c conda-forge pandera-polars      # validate polars dataframes
+conda install -c conda-forge pandera-ibis        # validate ibis tables
 ```
 :::
 ::::
