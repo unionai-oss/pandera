@@ -2,7 +2,7 @@
 
 from typing import Any, Optional, Type
 
-import ibis.expr.types as ir
+import ibis
 
 from pandera.api.base.types import CheckList
 from pandera.api.dataframe.components import ComponentSchema
@@ -12,7 +12,7 @@ from pandera.engines import ibis_engine
 from pandera.utils import is_regex
 
 
-class Column(ComponentSchema[ir.Table]):
+class Column(ComponentSchema[ibis.Table]):
     """Validate types and properties of table columns."""
 
     def __init__(

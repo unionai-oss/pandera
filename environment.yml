@@ -92,7 +92,7 @@ dependencies:
       - distributed
 
       # ibis extra
-      - ibis-framework
+      - ibis-framework >= 9.0.0
 
       # docs
       - furo
