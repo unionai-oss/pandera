@@ -1,6 +1,6 @@
 """Register Ibis backends."""
 
-import ibis.expr.types as ir
+import ibis
 
 
 def register_ibis_backends():
@@ -19,7 +19,7 @@ def register_ibis_backends():
     from pandera.backends.ibis.container import DataFrameSchemaBackend
     from pandera.backends.ibis.checks import IbisCheckBackend
 
-    DataFrameSchema.register_backend(ir.Table, DataFrameSchemaBackend)
-    Column.register_backend(ir.Table, ColumnBackend)
-    Check.register_backend(ir.Table, IbisCheckBackend)
-    Check.register_backend(ir.Column, IbisCheckBackend)
+    DataFrameSchema.register_backend(ibis.Table, DataFrameSchemaBackend)
+    Column.register_backend(ibis.Table, ColumnBackend)
+    Check.register_backend(ibis.Table, IbisCheckBackend)
+    Check.register_backend(ibis.Column, IbisCheckBackend)

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, List, Optional, cast
 
-import ibis.expr.types as ir
+import ibis
 
 from pandera.api.base.error_handler import ErrorHandler
 from pandera.backends.base import CoreCheckResult
@@ -23,7 +23,7 @@ class ColumnBackend(IbisSchemaBackend):
 
     def validate(
         self,
-        check_obj: ir.Table,
+        check_obj: ibis.Table,
         schema: Column,
         *,
         head: Optional[int] = None,
@@ -32,7 +32,7 @@ class ColumnBackend(IbisSchemaBackend):
         random_state: Optional[int] = None,
         lazy: bool = False,
         inplace: bool = False,
-    ) -> ir.Table:
+    ) -> ibis.Table:
         """Validation backend implementation for Ibis table columns."""
         error_handler = ErrorHandler(lazy)
 
@@ -87,7 +87,7 @@ class ColumnBackend(IbisSchemaBackend):
 
     @validate_scope(scope=ValidationScope.SCHEMA)
     def check_dtype(
-        self, check_obj: ir.Column, schema: Column
+        self, check_obj: ibis.Column, schema: Column
     ) -> CoreCheckResult:
         passed = True
         failure_cases = None

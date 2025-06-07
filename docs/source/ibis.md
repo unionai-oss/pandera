@@ -34,7 +34,7 @@ You can find the command to install the Ibis backend of your choice on the
 Then, you can start validating Ibis tables using Pandera schemas. In the example
 below, we'll use the {ref}`class-based API <dataframe-models>` to define a
 {py:class}`~pandera.api.ibis.model.DataFrameModel`, which we'll then use to
-validate an {py:class}`ibis.expr.types.Table` object.
+validate an {py:class}`ibis.Table` object.
 
 ```{code-cell} python
 import ibis
@@ -321,10 +321,10 @@ All of the built-in {py:class}`~pandera.api.checks.Check` methods are supported
 in the Ibis integration.
 
 To create custom checks, you can create functions that take a {py:class}`~pandera.api.ibis.types.IbisData`
-named tuple as input and produces a ``ibis.expr.datatypes.Table`` as output. {py:class}`~pandera.api.ibis.types.IbisData`
+named tuple as input and produces a ``ibis.Table`` as output. {py:class}`~pandera.api.ibis.types.IbisData`
 contains two attributes:
 
-- A `table` attribute, which contains the `ibis.expr.datatypes.Table` object you want
+- A `table` attribute, which contains the `ibis.Table` object you want
   to validate.
 - A `key` attribute, which contains the column name you want to validate. This
   will be `None` for table-level checks.

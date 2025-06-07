@@ -84,7 +84,7 @@ dask = [
     "dask[dataframe]",
     "distributed",
 ]
-ibis = ["ibis-framework"]
+ibis = ["ibis-framework >= 9.0.0"]
 polars = ["polars >= 0.20.0"]
 all = [
     "hypothesis >= 6.92.7",
@@ -101,7 +101,7 @@ all = [
     "fastapi",
     "geopandas < 1.1.0",
     "shapely",
-    "ibis-framework",
+    "ibis-framework >= 9.0.0",
     "polars >= 0.20.0",
 ]
 
@@ -128,7 +128,7 @@ testing = [
     "pytest-cov",
     "pytest-xdist",
     "pytest-asyncio",
-    "ibis-framework[duckdb]",
+    "ibis-framework[duckdb] >= 9.0.0",
 ]
 docs = [
     "setuptools",
