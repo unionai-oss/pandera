@@ -2,14 +2,14 @@
 
 from typing import Optional, Type
 
-import ibis.expr.types as ir
+import ibis
 
 from pandera.api.dataframe.container import DataFrameSchema as _DataFrameSchema
 from pandera.backends.ibis.register import register_ibis_backends
 from pandera.engines import ibis_engine
 
 
-class DataFrameSchema(_DataFrameSchema[ir.Table]):
+class DataFrameSchema(_DataFrameSchema[ibis.Table]):
     """A lightweight Ibis table validator."""
 
     # pylint: disable=unused-argument
@@ -19,17 +19,17 @@ class DataFrameSchema(_DataFrameSchema[ir.Table]):
 
     def validate(
         self,
-        check_obj: ir.Table,
+        check_obj: ibis.Table,
         head: Optional[int] = None,
         tail: Optional[int] = None,
         sample: Optional[int] = None,
         random_state: Optional[int] = None,
         lazy: bool = False,
         inplace: bool = False,
-    ) -> ir.Table:
+    ) -> ibis.Table:
         """Validate an Ibis table against the schema.
 
-        :param ir.Table check_obj: the table to be validated.
+        :param ibis.Table check_obj: the table to be validated.
         :param head: validate the first n rows. Rows overlapping with ``tail`` or
             ``sample`` are de-duplicated.
         :param tail: validate the last n rows. Rows overlapping with ``head`` or
@@ -42,7 +42,7 @@ class DataFrameSchema(_DataFrameSchema[ir.Table]):
             ``SchemaError`` as soon as one occurs.
         :param inplace: if True, applies coercion to the object of validation,
             otherwise creates a copy of the data.
-        :returns: validated ``ir.Table``
+        :returns: validated ``ibis.Table``
 
         :raises SchemaError: when ``check_obj`` violates built-in or custom
             checks.

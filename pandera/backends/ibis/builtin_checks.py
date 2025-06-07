@@ -5,7 +5,6 @@ import re
 from typing import Any, Iterable, Optional, TypeVar, Union
 
 import ibis
-import ibis.expr.types as ir
 from ibis import _, selectors as s
 
 from pandera.api.extensions import register_builtin_check
@@ -27,7 +26,7 @@ def _infer_interval_with_mixed_units(value: Any) -> Any:
     return value
 
 
-def _across(table: ir.Table, selection: Optional[str], func) -> ir.Table:
+def _across(table: ibis.Table, selection: Optional[str], func) -> ibis.Table:
     return table.select(
         s.across(
             s.all() if selection is None else select_column(selection), func
@@ -39,7 +38,7 @@ def _across(table: ir.Table, selection: Optional[str], func) -> ir.Table:
     aliases=["eq"],
     error="equal_to({value})",
 )
-def equal_to(data: IbisData, value: Any) -> ir.Table:
+def equal_to(data: IbisData, value: Any) -> ibis.Table:
     """Ensure all elements of a column equal a certain value.
 
     :param data: NamedTuple IbisData contains the table and column name for the check. The key
@@ -55,7 +54,7 @@ def equal_to(data: IbisData, value: Any) -> ir.Table:
     aliases=["ne"],
     error="not_equal_to({value})",
 )
-def not_equal_to(data: IbisData, value: Any) -> ir.Table:
+def not_equal_to(data: IbisData, value: Any) -> ibis.Table:
     """Ensure no element of a column equals a certain value.
 
     :param data: NamedTuple IbisData contains the table and column name for the check. The key
@@ -70,14 +69,14 @@ def not_equal_to(data: IbisData, value: Any) -> ir.Table:
     aliases=["gt"],
     error="greater_than({min_value})",
 )
-def greater_than(data: IbisData, min_value: Any) -> ir.Table:
+def greater_than(data: IbisData, min_value: Any) -> ibis.Table:
     """Ensure values of a column are strictly greater than a minimum
     value.
 
     :param data: NamedTuple IbisData contains the table and column name for the check. The key
         to access the table is "table", and the key to access the column name is "key".
     :param min_value: Lower bound to be exceeded. Must be a type comparable
-        to the dtype of the :class:`ir.Column` to be validated.
+        to the dtype of the :class:`ibis.Column` to be validated.
     """
     value = _infer_interval_with_mixed_units(min_value)
     return _across(data.table, data.key, _ > value)
@@ -87,13 +86,13 @@ def greater_than(data: IbisData, min_value: Any) -> ir.Table:
     aliases=["ge"],
     error="greater_than_or_equal_to({min_value})",
 )
-def greater_than_or_equal_to(data: IbisData, min_value: Any) -> ir.Table:
+def greater_than_or_equal_to(data: IbisData, min_value: Any) -> ibis.Table:
     """Ensure all values are greater than or equal to a minimum value.
 
     :param data: NamedTuple IbisData contains the table and column name for the check. The key
         to access the table is "table", and the key to access the column name is "key".
     :param min_value: Allowed minimum value. Must be a type comparable
-        to the dtype of the :class:`ir.Column` to be validated.
+        to the dtype of the :class:`ibis.Column` to be validated.
     """
     value = _infer_interval_with_mixed_units(min_value)
     return _across(data.table, data.key, _ >= value)
@@ -103,14 +102,14 @@ def greater_than_or_equal_to(data: IbisData, min_value: Any) -> ir.Table:
     aliases=["lt"],
     error="less_than({max_value})",
 )
-def less_than(data: IbisData, max_value: Any) -> ir.Table:
+def less_than(data: IbisData, max_value: Any) -> ibis.Table:
     """Ensure values of a column are strictly less than a maximum value.
 
     :param data: NamedTuple IbisData contains the table and column name for the check. The key
         to access the table is "table", and the key to access the column name is "key".
     :param max_value: All elements of a column must be strictly smaller
         than this. Must be a type comparable to the dtype of the
-        :class:`ir.Column` to be validated.
+        :class:`ibis.Column` to be validated.
     """
     value = _infer_interval_with_mixed_units(max_value)
     return _across(data.table, data.key, _ < value)
@@ -120,13 +119,13 @@ def less_than(data: IbisData, max_value: Any) -> ir.Table:
     aliases=["le"],
     error="less_than_or_equal_to({max_value})",
 )
-def less_than_or_equal_to(data: IbisData, max_value: Any) -> ir.Table:
+def less_than_or_equal_to(data: IbisData, max_value: Any) -> ibis.Table:
     """Ensure all values are less than or equal to a maximum value.
 
     :param data: NamedTuple IbisData contains the table and column name for the check. The key
         to access the table is "table", and the key to access the column name is "key".
     :param max_value: Upper bound not to be exceeded. Must be a type comparable to the dtype of the
-        :class:`ir.Column` to be validated.
+        :class:`ibis.Column` to be validated.
     """
     value = _infer_interval_with_mixed_units(max_value)
     return _across(data.table, data.key, _ <= value)
@@ -142,11 +141,11 @@ def in_range(
     max_value: T,
     include_min: bool = True,
     include_max: bool = True,
-) -> ir.Table:
+) -> ibis.Table:
     """Ensure all values of a column are within an interval.
 
     Both endpoints must be a type comparable to the dtype of the
-    :class:`ir.Column` to be validated.
+    :class:`ibis.Column` to be validated.
 
     :param data: NamedTuple IbisData contains the table and column name for the check. The key
         to access the table is "table", and the key to access the column name is "key".
@@ -175,10 +174,10 @@ def in_range(
 @register_builtin_check(
     error="isin({allowed_values})",
 )
-def isin(data: IbisData, allowed_values: Iterable) -> ir.Table:
+def isin(data: IbisData, allowed_values: Iterable) -> ibis.Table:
     """Ensure only allowed values occur within a column.
 
-    This checks whether all elements of a :class:`ir.Column`
+    This checks whether all elements of a :class:`ibis.Column`
     are part of the set of elements of allowed values. If allowed
     values is a string, the set of elements consists of all distinct
     characters of the string. Thus only single characters which occur
@@ -198,7 +197,7 @@ def isin(data: IbisData, allowed_values: Iterable) -> ir.Table:
 @register_builtin_check(
     error="notin({allowed_values})",
 )
-def notin(data: IbisData, forbidden_values: Iterable) -> ir.Table:
+def notin(data: IbisData, forbidden_values: Iterable) -> ibis.Table:
     """Ensure some defined values don't occur within a series.
 
     Like :meth:`Check.isin`, this check operates on single characters if
@@ -223,7 +222,7 @@ def notin(data: IbisData, forbidden_values: Iterable) -> ir.Table:
 def str_matches(
     data: IbisData,
     pattern: Union[str, re.Pattern],
-) -> ir.Table:
+) -> ibis.Table:
     """Ensure all values start with a match of a regular expression pattern.
 
     :param data: NamedTuple IbisData contains the table and column name for the check. The key
@@ -242,7 +241,7 @@ def str_matches(
 def str_contains(
     data: IbisData,
     pattern: Union[str, re.Pattern],
-) -> ir.Table:
+) -> ibis.Table:
     """Ensure that a pattern can be found within each row.
 
     :param data: NamedTuple IbisData contains the table and column name for the check. The key
@@ -256,7 +255,7 @@ def str_contains(
 @register_builtin_check(
     error="str_startswith({pattern})",
 )
-def str_startswith(data: IbisData, string: str) -> ir.Table:
+def str_startswith(data: IbisData, string: str) -> ibis.Table:
     """Ensure that all values start with a certain string.
 
     :param data: NamedTuple IbisData contains the table and column name for the check. The key
@@ -269,7 +268,7 @@ def str_startswith(data: IbisData, string: str) -> ir.Table:
 @register_builtin_check(
     error="str_endswith({pattern})",
 )
-def str_endswith(data: IbisData, string: str) -> ir.Table:
+def str_endswith(data: IbisData, string: str) -> ibis.Table:
     """Ensure that all values end with a certain string.
 
     :param data: NamedTuple IbisData contains the table and column name for the check. The key
@@ -286,7 +285,7 @@ def str_length(
     data: IbisData,
     min_value: Optional[int] = None,
     max_value: Optional[int] = None,
-) -> ir.Table:
+) -> ibis.Table:
     """Ensure that the length of strings is within a specified range.
 
     :param data: NamedTuple IbisData contains the table and column name for the check. The key
@@ -312,7 +311,7 @@ def str_length(
 @register_builtin_check(
     error="unique_values_eq({values})",
 )
-def unique_values_eq(data: IbisData, values: Iterable) -> ir.Table:
+def unique_values_eq(data: IbisData, values: Iterable) -> ibis.Table:
     """Ensure that unique values in the data object contain all values.
 
     .. note::
