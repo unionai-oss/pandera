@@ -3,8 +3,8 @@
 import inspect
 from typing import Dict, List, Tuple
 
+import ibis
 import ibis.expr.datatypes as dt
-import ibis.expr.types as ir
 
 from pandera.api.checks import Check
 from pandera.api.dataframe.model import DataFrameModel as _DataFrameModel
@@ -17,7 +17,7 @@ from pandera.errors import SchemaInitError
 from pandera.typing import AnnotationInfo
 
 
-class DataFrameModel(_DataFrameModel[ir.Table, DataFrameSchema]):
+class DataFrameModel(_DataFrameModel[ibis.Table, DataFrameSchema]):
     """Definition of a :class:`~pandera.api.ibis.container.DataFrameSchema`.
 
     *new in 0.1815.0*

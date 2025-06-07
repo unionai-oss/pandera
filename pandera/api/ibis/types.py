@@ -2,25 +2,25 @@
 
 from typing import NamedTuple, Optional, Union
 
+import ibis
 import ibis.expr.datatypes as dt
-import ibis.expr.types as ir
 
 
 class IbisData(NamedTuple):
-    table: ir.Table
+    table: ibis.Table
     key: Optional[str] = None
 
 
 class CheckResult(NamedTuple):
     """Check result for user-defined checks."""
 
-    check_output: ir.Table
-    check_passed: ir.Table
-    checked_object: ir.Table
-    failure_cases: ir.Table
+    check_output: ibis.Table
+    check_passed: ibis.Table
+    checked_object: ibis.Table
+    failure_cases: ibis.Table
 
 
-IbisCheckObjects = Union[ir.Table, ir.Column]
+IbisCheckObjects = Union[ibis.Table, ibis.Column]
 
 IbisDtypeInputTypes = Union[
     str,

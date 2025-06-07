@@ -4,7 +4,7 @@ import warnings
 from collections import defaultdict
 from typing import List
 
-import ibis.expr.types as ir
+import ibis
 
 from pandera.api.base.error_handler import ErrorHandler
 from pandera.api.ibis.types import CheckResult
@@ -28,7 +28,7 @@ class IbisSchemaBackend(BaseSchemaBackend):
 
     def run_check(
         self,
-        check_obj: ir.Table,
+        check_obj: ibis.Table,
         schema,
         check,
         check_index: int,

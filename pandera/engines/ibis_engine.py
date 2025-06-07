@@ -8,7 +8,6 @@ from typing import Any, Iterable, Literal, Optional, Type, Union
 
 import ibis
 import ibis.expr.datatypes as dt
-import ibis.expr.types as ir
 import numpy as np
 from ibis.common.temporal import IntervalUnit
 
@@ -16,7 +15,7 @@ from pandera import dtypes
 from pandera.dtypes import immutable
 from pandera.engines import engine, numpy_engine
 
-IbisObject = Union[ir.Column, ir.Table]
+IbisObject = Union[ibis.Column, ibis.Table]
 
 
 @immutable(init=True)
@@ -47,7 +46,7 @@ class DataType(dtypes.DataType):
         """Coerce data container to the data type."""
         return data_container.cast(
             self.type
-            if isinstance(data_container, ir.Column)
+            if isinstance(data_container, ibis.Column)
             else dict.fromkeys(data_container.columns, self.type)
         )
 
@@ -55,7 +54,7 @@ class DataType(dtypes.DataType):
         self,
         pandera_dtype: dtypes.DataType,
         data_container: Optional[  # pylint:disable=unused-argument
-            ir.Table
+            ibis.Table
         ] = None,
     ) -> Union[bool, Iterable[bool]]:
         try:
