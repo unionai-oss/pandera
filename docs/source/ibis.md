@@ -65,7 +65,7 @@ Schema.validate(t).execute()
 ```
 
 You can also use the {py:func}`~pandera.decorators.check_types` decorator to
-validate Ibis Table function annotations at runtime:
+validate Ibis table function annotations at runtime:
 
 ```{code-cell} python
 from pandera.typing.ibis import Table
