@@ -224,6 +224,7 @@ jobs:
         - pyspark
         - modin-dask
         - modin-ray
+        - ibis
         exclude:
         - extra: mypy
           os: windows-latest
