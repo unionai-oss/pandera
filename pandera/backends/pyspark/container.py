@@ -391,7 +391,9 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
                     )
 
         if schema.strict == "filter":
+            schema = check_obj.pandera.schema
             check_obj = check_obj.drop(*filter_out_columns)
+            check_obj.pandera.add_schema(schema)
 
         return check_obj
 
