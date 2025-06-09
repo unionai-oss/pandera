@@ -30,9 +30,10 @@ class ColumnBackend(ColumnSchemaBackend):
         random_state: Optional[int] = None,
         lazy: bool = False,
         inplace: bool = False,
-        error_handler: ErrorHandler = None,
     ) -> DataFrame:
         """Validation backend implementation for pyspark dataframe columns.."""
+
+        error_handler = ErrorHandler(lazy=lazy)
 
         if schema.name is None:
             raise SchemaError(
@@ -55,7 +56,6 @@ class ColumnBackend(ColumnSchemaBackend):
                     random_state=random_state,
                     lazy=lazy,
                     inplace=inplace,
-                    error_handler=error_handler,
                 )
 
             except SchemaError as err:
@@ -75,7 +75,6 @@ class ColumnBackend(ColumnSchemaBackend):
                     self.coerce_dtype(  # pylint:disable=unexpected-keyword-arg
                         check_obj,
                         schema=schema,
-                        error_handler=error_handler,
                     )
                 )
             validate_column(check_obj, column_name)
@@ -126,8 +125,9 @@ class ColumnBackend(ColumnSchemaBackend):
         return check_obj
 
     @validate_scope(scope=ValidationScope.DATA)
-    def run_checks(self, check_obj, schema, error_handler, lazy):
+    def run_checks(self, check_obj, schema):
         check_results = []
+        error_handler = ErrorHandler()
         for check_index, check in enumerate(schema.checks):
             check_args = [schema.name]
             try:
