@@ -176,7 +176,7 @@ PANDAS_SERIES_ERRORS_PLUGIN = [
         [
             "python_slice.py",
             "plugin_mypy.ini",
-            PYTHON_SLICE_ERRORS if sys.version_info > (3, 10) else [],
+            PYTHON_SLICE_ERRORS if sys.version_info >= (3, 11) else [],
         ],
         ["pandas_index.py", "no_plugin.ini", []],
         ["pandas_index.py", "plugin_mypy.ini", []],
