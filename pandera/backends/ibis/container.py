@@ -5,7 +5,7 @@ from __future__ import annotations
 import copy
 from typing import TYPE_CHECKING, Any, Iterable, List, Optional
 
-import ibis.expr.types as ir
+import ibis
 
 from pandera.api.base.error_handler import ErrorHandler
 from pandera.config import ValidationScope
@@ -24,7 +24,7 @@ class DataFrameSchemaBackend(IbisSchemaBackend):
 
     def validate(
         self,
-        check_obj: ir.Table,
+        check_obj: ibis.Table,
         schema: DataFrameSchema,
         *,
         head: Optional[int] = None,
@@ -104,7 +104,7 @@ class DataFrameSchemaBackend(IbisSchemaBackend):
 
     def run_schema_component_checks(
         self,
-        check_obj: ir.Table,
+        check_obj: ibis.Table,
         schema,
         schema_components: Iterable,
         lazy: bool,
@@ -118,7 +118,7 @@ class DataFrameSchemaBackend(IbisSchemaBackend):
                 result = schema_component.validate(
                     check_obj, lazy=lazy, inplace=True
                 )
-                check_passed.append(isinstance(result, ir.Table))
+                check_passed.append(isinstance(result, ibis.Table))
             except SchemaError as err:
                 check_results.append(
                     CoreCheckResult(
@@ -144,7 +144,7 @@ class DataFrameSchemaBackend(IbisSchemaBackend):
         return check_results
 
     def collect_column_info(
-        self, check_obj: ir.Table, schema: DataFrameSchema
+        self, check_obj: ibis.Table, schema: DataFrameSchema
     ) -> ColumnInfo:
         """Collect column metadata for the table."""
         column_names: List[Any] = []
@@ -185,7 +185,7 @@ class DataFrameSchemaBackend(IbisSchemaBackend):
 
     def collect_schema_components(
         self,
-        check_obj: ir.Table,
+        check_obj: ibis.Table,
         schema: DataFrameSchema,
         column_info: ColumnInfo,
     ):
@@ -228,7 +228,7 @@ class DataFrameSchemaBackend(IbisSchemaBackend):
     @validate_scope(scope=ValidationScope.SCHEMA)
     def check_column_presence(
         self,
-        check_obj: ir.Table,
+        check_obj: ibis.Table,
         schema: DataFrameSchema,
         column_info: ColumnInfo,
     ) -> List[CoreCheckResult]:

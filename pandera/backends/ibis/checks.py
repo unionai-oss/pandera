@@ -1,12 +1,10 @@
 """Check backend for Ibis."""
 
 from functools import partial
-from typing import Optional, Union
+from typing import TYPE_CHECKING, Optional, Union
 
 import ibis
-import ibis.expr.types as ir
 from ibis import _, selectors as s
-from ibis.expr.types.groupby import GroupedTable
 
 from pandera.api.base.checks import CheckResult
 from pandera.api.checks import Check
@@ -14,6 +12,10 @@ from pandera.api.ibis.types import IbisData
 from pandera.backends.base import BaseCheckBackend
 from pandera.backends.ibis.utils import select_column
 from pandera.constants import CHECK_OUTPUT_KEY, CHECK_OUTPUT_SUFFIX
+
+if TYPE_CHECKING:
+    import ibis.expr.types as ir
+    from ibis.expr.types.groupby import GroupedTable
 
 
 class IbisCheckBackend(BaseCheckBackend):
@@ -26,20 +28,20 @@ class IbisCheckBackend(BaseCheckBackend):
         self.check = check
         self.check_fn = partial(check._check_fn, **check._check_kwargs)
 
-    def groupby(self, check_obj) -> GroupedTable:
+    def groupby(self, check_obj) -> "GroupedTable":
         """Implements groupby behavior for check object."""
         raise NotImplementedError
 
-    def query(self, check_obj: ir.Table):
+    def query(self, check_obj: ibis.Table):
         """Implements querying behavior to produce subset of check object."""
         raise NotImplementedError
 
-    def aggregate(self, check_obj: ir.Table):
+    def aggregate(self, check_obj: ibis.Table):
         """Implements aggregation behavior for check object."""
         raise NotImplementedError
 
     def preprocess(
-        self, check_obj: Union[ir.Column, ir.Table], key: Optional[str]
+        self, check_obj: Union[ibis.Column, ibis.Table], key: Optional[str]
     ):
         """Preprocesses a check object before applying the check function."""
         # This handles the case of Column validation by promoting it to
@@ -65,7 +67,7 @@ class IbisCheckBackend(BaseCheckBackend):
                 out = check_obj.table.mutate(
                     **{f"{k}{CHECK_OUTPUT_SUFFIX}": v for k, v in out.items()}
                 )
-            elif isinstance(out, ir.Table):
+            elif isinstance(out, ibis.Table):
                 out = out.rename(f"{{name}}{CHECK_OUTPUT_SUFFIX}")
                 try:
                     out = check_obj.table.join(out, how="positional")
@@ -86,7 +88,7 @@ class IbisCheckBackend(BaseCheckBackend):
                         .drop(index_col)
                     )
 
-        if isinstance(out, ir.Table):
+        if isinstance(out, ibis.Table):
             # for checks that return a boolean table, make sure all columns
             # are boolean and reduce to a single boolean column.
             acc = ibis.literal(True)
@@ -110,6 +112,8 @@ class IbisCheckBackend(BaseCheckBackend):
 
     def postprocess(self, check_obj, check_output):
         """Postprocesses the result of applying the check function."""
+        import ibis.expr.types as ir
+
         if isinstance(check_output, ir.BooleanScalar):
             return self.postprocess_boolean_scalar_output(
                 check_obj, check_output
@@ -118,7 +122,7 @@ class IbisCheckBackend(BaseCheckBackend):
             return self.postprocess_boolean_column_output(
                 check_obj, check_output
             )
-        elif isinstance(check_output, ir.Table):
+        elif isinstance(check_output, ibis.Table):
             return self.postprocess_table_output(check_obj, check_output)
         raise TypeError(  # pragma: no cover
             f"output type of check_fn not recognized: {type(check_output)}"
@@ -127,7 +131,7 @@ class IbisCheckBackend(BaseCheckBackend):
     def postprocess_boolean_scalar_output(
         self,
         check_obj: IbisData,
-        check_output: ir.BooleanScalar,
+        check_output: "ir.BooleanScalar",
     ) -> CheckResult:
         """Postprocesses the result of applying the check function."""
         return CheckResult(
@@ -140,7 +144,7 @@ class IbisCheckBackend(BaseCheckBackend):
     def postprocess_boolean_column_output(
         self,
         check_obj: IbisData,
-        check_output: ir.BooleanColumn,
+        check_output: "ir.BooleanColumn",
     ) -> CheckResult:
         """Postprocesses the result of applying the check function."""
         check_output = check_output.name(CHECK_OUTPUT_KEY)
@@ -157,7 +161,7 @@ class IbisCheckBackend(BaseCheckBackend):
     def postprocess_table_output(
         self,
         check_obj: IbisData,
-        check_output: ir.Table,
+        check_output: ibis.Table,
     ) -> CheckResult:
         """Postprocesses the result of applying the check function."""
         passed = check_output[CHECK_OUTPUT_KEY].all()
@@ -176,7 +180,7 @@ class IbisCheckBackend(BaseCheckBackend):
 
     def __call__(
         self,
-        check_obj: ir.Table,
+        check_obj: ibis.Table,
         key: Optional[str] = None,
     ) -> CheckResult:
         check_obj = self.preprocess(check_obj, key)
