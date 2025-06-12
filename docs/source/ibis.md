@@ -129,10 +129,9 @@ at the schema-level, e.g. column names and data types.
 
 ### Method Chaining
 
-::::{tab-set}
+#### Using `DataFrameSchema`
 
-:::{tab-item} DataFrameSchema
-```{testcode} ibis
+```{code-cell} python
 import ibis
 import pandera.ibis as pa
 
@@ -149,17 +148,9 @@ df = (
 print(df)
 ```
 
-```{testoutput} ibis
-   a  b
-0  1  a
-1  2  a
-2  3  a
-```
-:::
+#### Using `DataFrameModel`
 
-:::{tab-item} DataFrameModel
-
-```{testcode} ibis
+```{code-cell} python
 import ibis
 import pandera.ibis as pa
 
@@ -169,7 +160,7 @@ class SimpleModel(pa.DataFrameModel):
 
 
 df = (
-    pl.LazyFrame({"a": [1.0, 2.0, 3.0]})
+    ibis.memtable({"a": [1.0, 2.0, 3.0]})
     .cast({"a": "int64"})
     .pipe(SimpleModel.validate) # this validates schema- and data-level properties
     .mutate(b=ibis.literal("a"))
@@ -178,16 +169,6 @@ df = (
 )
 print(df)
 ```
-
-```{testoutput} ibis
-   a  b
-0  1  a
-1  2  a
-2  3  a
-```
-:::
-
-::::
 
 ## Error Reporting
 
@@ -211,7 +192,8 @@ present in the data.
 
 By default, Pandera will validate both schema- and data-level properties:
 
-```{testcode} ibis
+```{code-cell} python
+:tags: ["raises-exception"]
 class ModelWithChecks(pa.DataFrameModel):
     a: int
     b: str = pa.Field(isin=[*"abc"])
@@ -223,45 +205,6 @@ invalid_t = ibis.memtable({
     "c": [0.0, 1.1, -0.1],
 })
 ModelWithChecks.validate(invalid_t, lazy=True)
-```
-
-```{testoutput} ibis
-Traceback (most recent call last):
-...
-pandera.errors.SchemaErrors: {
-    "SCHEMA": {
-        "WRONG_DATATYPE": [
-            {
-                "schema": "ModelWithChecks",
-                "column": "a",
-                "check": "dtype('int64')",
-                "error": "expected column 'a' to have type int64, got string"
-            }
-        ]
-    },
-    "DATA": {
-        "DATAFRAME_CHECK": [
-            {
-                "schema": "ModelWithChecks",
-                "column": "b",
-                "check": "isin(['a', 'b', 'c'])",
-                "error": "Column 'b' failed element-wise validator number 0: isin(['a', 'b', 'c']) failure cases: d, e, f"
-            },
-            {
-                "schema": "ModelWithChecks",
-                "column": "c",
-                "check": "greater_than_or_equal_to(0.0)",
-                "error": "Column 'c' failed element-wise validator number 0: greater_than_or_equal_to(0.0) failure cases: -0.1"
-            },
-            {
-                "schema": "ModelWithChecks",
-                "column": "c",
-                "check": "less_than_or_equal_to(1.0)",
-                "error": "Column 'c' failed element-wise validator number 1: less_than_or_equal_to(1.0) failure cases: 1.1"
-            }
-        ]
-    }
-}
 ```
 
 (supported-ibis-dtypes)=
@@ -341,21 +284,22 @@ function, which is slower than the native polars expressions API.
 
 ### Column-level Checks
 
+For column-level checks, the custom check function should return an Ibis
+table containing a single boolean column or a single boolean scalar.
+
 Here's an example of a column-level custom check:
 
-::::{tab-set}
+#### Using `DataFrameSchema`
 
-:::{tab-item} DataFrameSchema
-
-```{testcode} ibis
+```{code-cell} python
 from pandera.ibis import IbisData
 
 
-def is_positive_vector(data: IbisData) -> ir.Table:
+def is_positive_vector(data: IbisData) -> ibis.Table:
     """Return a table with a single boolean column."""
     return data.table.select(data.table[data.key] > 0)
 
-def is_positive_scalar(data: IbisData) -> ir.Table:
+def is_positive_scalar(data: IbisData) -> ibis.Table:
     """Return a table with a single boolean scalar."""
     return data.table[data.key] > 0
 
@@ -379,20 +323,9 @@ validated_t = t.pipe(schema_with_custom_checks.validate)
 print(validated_t)
 ```
 
-```{testoutput} ibis
-InMemoryTable
-  data:
-    PandasDataFrameProxy:
-         a
-      0  1
-      1  2
-      2  3
-```
-:::
+#### Using `DataFrameModel`
 
-:::{tab-item} DataFrameModel
-
-```{testcode} ibis
+```{code-cell} python
 from pandera.ibis import IbisData
 
 
@@ -400,12 +333,12 @@ class ModelWithCustomChecks(pa.DataFrameModel):
     a: int
 
     @pa.check("a")
-    def is_positive_vector(cls, data: IbisData) -> ir.Table:
+    def is_positive_vector(cls, data: IbisData) -> ibis.Table:
         """Return a table with a single boolean column."""
         return data.table.select(data.table[data.key] > 0)
 
     @pa.check("a")
-    def is_positive_scalar(cls, data: IbisData) -> ir.Table:
+    def is_positive_scalar(cls, data: IbisData) -> ibis.Table:
         """Return a table with a single boolean scalar."""
         return data.table[data.key] > 0
 
@@ -420,42 +353,23 @@ validated_t = t.pipe(ModelWithCustomChecks.validate)
 print(validated_t)
 ```
 
-```{testoutput} ibis
-InMemoryTable
-  data:
-    PandasDataFrameProxy:
-         a
-      0  1
-      1  2
-      2  3
-```
-:::
-
-::::
-
-
-For column-level checks, the custom check function should return an Ibis
-table containing a single boolean column or a single boolean scalar.
-
 ### DataFrame-level Checks
 
 If you need to validate values on an entire dataframe, you can specify a check
 at the dataframe level. The expected output is an Ibis table containing
 multiple boolean columns, a single boolean column, or a scalar boolean.
 
-::::{tab-set}
+#### Using `DataFrameSchema`
 
-:::{tab-item} DataFrameSchema
-
-```{testcode} ibis
+```{code-cell} python
 from ibis import _, selectors as s
 
 
-def col1_gt_col2(data: IbisData, col1: str, col2: str) -> ir.Table:
+def col1_gt_col2(data: IbisData, col1: str, col2: str) -> ibis.Table:
     """Return a table with a single boolean column."""
     return data.table.select(data.table[col1] > data.table[col2])
 
-def is_positive_df(data: IbisData) -> ir.Table:
+def is_positive_df(data: IbisData) -> ibis.Table:
     """Return a table with multiple boolean columns."""
     return data.table.select(s.across(s.all(), _ > 0))
 
@@ -480,56 +394,33 @@ validated_t = t.pipe(schema_with_df_checks.validate)
 print(validated_t)
 ```
 
-```{testoutput} ibis
-InMemoryTable
-  data:
-    PandasDataFrameProxy:
-         a  b
-      0  2  1
-      1  3  2
-      2  4  3
-```
-:::
+#### Using `DataFrameModel`
 
-:::{tab-item} DataFrameModel
-
-```{testcode} ibis
+```{code-cell} python
 class ModelWithDFChecks(pa.DataFrameModel):
     a: int
     b: int
 
     @pa.dataframe_check
-    def cola_gt_colb(cls, data: PolarsData) -> pl.LazyFrame:
-        """Return a LazyFrame with a single boolean column."""
-        return data.lazyframe.select(pl.col("a").gt(pl.col("b")))
+    def cola_gt_colb(cls, data: IbisData) -> ibis.Table:
+        """Return a table with a single boolean column."""
+        return data.table.select(data.table["a"] > data.table["b"])
 
     @pa.dataframe_check
-    def is_positive_df(cls, data: PolarsData) -> pl.LazyFrame:
-        """Return a LazyFrame with multiple boolean columns."""
-        return data.lazyframe.select(pl.col("*").gt(0))
+    def is_positive_df(cls, data: IbisData) -> ibis.Table:
+        """Return a table with multiple boolean columns."""
+        return data.table.select(s.across(s.all(), _ > 0))
 
     @pa.dataframe_check(element_wise=True)
     def is_positive_element_wise(cls, x: int) -> bool:
         """Take a single value and return a boolean scalar."""
         return x > 0
 
-validated_df = lf.collect().pipe(ModelWithDFChecks.validate)
-print(validated_df)
+
+t = ibis.memtable({"a": [2, 3, 4], "b": [1, 2, 3]})
+validated_t = t.pipe(ModelWithDFChecks.validate)
+print(validated_t)
 ```
-
-```{testoutput} ibis
-InMemoryTable
-  data:
-    PandasDataFrameProxy:
-         a  b
-      0  2  1
-      1  3  2
-      2  4  3
-```
-:::
-
-::::
-
 
 ## Data-level Validation with LazyFrames
 
@@ -539,6 +430,7 @@ to validate data-level properties on a `pl.LazyFrame`, the recommended way
 would be to first call `.collect()`:
 
 ```{code-cell} python
+:tags: ["raises-exception"]
 class SimpleModel(pa.DataFrameModel):
         a: int
 
@@ -566,6 +458,7 @@ export PANDERA_VALIDATION_DEPTH=SCHEMA_AND_DATA
 ```
 
 ```{code-cell} python
+:tags: ["raises-exception"]
 lf: pl.LazyFrame = (
     pl.LazyFrame({"a": [1.0, 2.0, 3.0]})
     .cast({"a": pl.Int64})
