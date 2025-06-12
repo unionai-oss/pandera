@@ -370,6 +370,7 @@ def test_dataframe_schema_strict(
             if df_out.pandera.errors:
                 raise pa.PysparkSchemaError
 
+        schema.coerce = True
         schema.strict = "filter"
         assert isinstance(schema.validate(df), DataFrame)
 
