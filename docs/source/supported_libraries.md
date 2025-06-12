@@ -32,6 +32,7 @@ Pandera supports validation of the following DataFrame libraries:
 :maxdepth: 1
 
 Polars <polars>
+Ibis <ibis>
 Pyspark SQL <pyspark_sql>
 ```
 
