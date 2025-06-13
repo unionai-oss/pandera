@@ -1,0 +1,957 @@
+2002	OPEN	Best practice type hints	question	2025-05-17T12:55:48Z
+2001	CLOSED	[Feedback/Docu BUG] Not a good "getting started" experience	docs	2025-05-15T13:49:44Z
+1999	CLOSED	pip	bug	2025-05-16T16:56:21Z
+1997	OPEN	check_io/check_input/check_output decorators failing	bug	2025-05-16T19:53:51Z
+1994	OPEN	Error loading frictionless schema	bug	2025-04-30T13:10:19Z
+1993	OPEN	not all schema check failures are reported in lazy validation	bug	2025-04-29T20:18:05Z
+1991	OPEN	Add ruff or black autoformatter configuration to the repo	enhancement	2025-04-28T10:03:57Z
+1990	CLOSED	Using regex columns in DataFrameSchema does not work for Polars backend	bug	2025-04-29T04:52:32Z
+1988	CLOSED	Allow updating checks for index column	enhancement	2025-05-06T01:01:26Z
+1968	CLOSED	Pandera 0.17.2, MultiMethod library version is unrestricted	bug	2025-05-16T16:58:13Z
+1967	OPEN	Enhance VS Code Autocompletion for DataFrameModel Columns	enhancement	2025-04-17T19:49:44Z
+1966	OPEN	PANDERA_VALIDATION_ENABLED=False no longer disables validation after 0.23.0	bug	2025-04-17T14:51:11Z
+1961	CLOSED	Bool columns do not support `pd.NA`	bug	2025-04-27T07:30:33Z
+1960	CLOSED	Inconsistent column filtering behaviour in polars DataFrameModel when add_missing_columns=True	bug	2025-04-22T01:53:26Z
+1959	OPEN	Schema validation does not fail if column with wrong dtype has all NaN values	bug	2025-04-03T14:56:13Z
+1958	CLOSED	SchemaErrors not raised when `drop_invalid_rows=True` on polars DataFrame	bug	2025-04-02T11:28:04Z
+1957	OPEN	Pyright error __getitem__ method not defined on type "DataFrameBase[MyModel]"	bug	2025-04-01T03:43:09Z
+1954	OPEN	How should we use `pa.typing.DataFrame[MySchema]` in python 3.12?	question	2025-05-02T21:30:21Z
+1946	CLOSED	drop_invalid_rows is broken	bug	2025-04-30T00:21:05Z
+1944	CLOSED	`polars.Time` not understood by Engine	bug	2025-04-22T03:05:56Z
+1942	OPEN	Check type along with to_format changes DataFrame to list of dictionaries.	bug	2025-03-13T06:33:17Z
+1941	OPEN	Add support for pyarrow-backed arrays in Pandas	enhancement	2025-03-13T02:35:29Z
+1940	CLOSED	Schema validation with coercion fails if using multithreading	bug	2025-04-24T19:08:25Z
+1939	CLOSED	Set __version__	bug	2025-03-25T16:25:59Z
+1938	CLOSED	pa.Category resolving as 'any' in Pydantic core schema, which doesn't exist as a key in type_map		2025-04-21T15:56:54Z
+1937	CLOSED	Serialization of checks does only support one check per check function	bug	2025-05-06T01:01:40Z
+1935	OPEN	Pandera DataFrameSchema Column definition with array	question	2025-03-06T14:00:22Z
+1933	CLOSED	@pa.dataframe_check doesn't actually support its check_kwargs		2025-03-05T01:24:03Z
+1932	CLOSED	Polars support breaks: Basic `pa.Column()` does not support Polars dtypes at all	bug	2025-03-04T11:39:10Z
+1930	CLOSED	In pandera v0.23 DataFrameModel with column of type Any breaks Pydantic model	bug	2025-03-05T01:19:46Z
+1928	OPEN	Serialize schema for ExtensionDtype fields does not work	bug	2025-03-03T17:43:06Z
+1927	OPEN	Using a TypeVar as a DataFrame schema	bug	2025-03-03T13:24:53Z
+1925	CLOSED	DataFrameModel does not support the `required` field	bug	2025-03-09T20:46:11Z
+1919	CLOSED	Datasets that fail DataFrameModel validation unexpectedly alter field properties	bug	2025-03-06T03:48:32Z
+1915	OPEN	serialization support for Polars and Spark	enhancement	2025-02-21T14:24:22Z
+1914	OPEN	Versions >0.20.3 incompatible with older versions of databricks-connect	bug	2025-04-22T03:09:58Z
+1912	CLOSED	BUG: Polars DataFrameModel.validate crashes with `sample` specified	bug	2025-03-27T02:04:46Z
+1910	OPEN	Support python3.13	enhancement	2025-04-28T20:50:47Z
+1908	CLOSED	Unexpected schema for polars Array type of dimensionality > 1	bug	2025-03-07T15:10:08Z
+1903	CLOSED	Column type coercion is applied before DataFrame-wide parser	bug	2025-04-24T07:13:19Z
+1900	OPEN	Type hints specified in DataFrameModel are lost in the `DataFrame[MyDataFrameModel]` type, causing type checkers to fail on all pandera code.	bug	2025-02-18T19:22:52Z
+1899	CLOSED	pandera.Field does not specify some function argument types correctly causing type checkers to throw `error: Type of "Field" is partially unknown`	bug	2025-02-10T02:11:19Z
+1896	OPEN	Add `stacklevel=2` to all warnings and add linter rule preventing regressions in future warning calls.	bug	2025-01-13T11:40:27Z
+1895	OPEN	Lazy validation doesn't save data in `SchemaError.data`	bug	2025-01-10T00:59:32Z
+1894	OPEN	Add `narwhals` engine as dataframe compatibility layer to support multiple engine at once	enhancement	2025-01-09T16:10:00Z
+1893	OPEN	DataFrameSchema is not hashable	bug	2025-01-07T14:49:25Z
+1891	CLOSED	multimethod 2.0 removes overload	bug	2025-01-06T16:23:22Z
+1887	CLOSED	KeyError in `check_input` after update to 0.22.0	bug	2024-12-26T20:43:15Z
+1886	OPEN	Add `pd.json_normalize` to input types	enhancement	2024-12-26T11:20:53Z
+1881	OPEN	Cache + Repeated conversion gives NoneType	bug	2025-05-19T10:29:02Z
+1879	CLOSED	poor performance compared to "manual" schema checking	bug	2024-12-22T21:28:32Z
+1877	OPEN	PySpark Dataframe, how to build DataFrameModel for nested objects	docs	2024-12-18T13:11:55Z
+1875	CLOSED	You should not call an overloaded function	bug	2024-12-22T13:21:38Z
+1874	OPEN	Add `PydanticModel` to `pandera.engines.polars_engine` (polars engine support for pydantic models)	enhancement	2025-01-08T16:19:23Z
+1873	CLOSED	Temporarily disable Pandera validation?	question	2025-01-16T19:17:46Z
+1866	OPEN	Empty (all-null) or missing fields with Python (non-Pandas) types fail validation despite `coerce=True` and `nullable=True`	bug	2024-11-29T18:08:41Z
+1865	CLOSED	Parser is executed after validation, not before	bug	2025-04-22T17:42:07Z
+1864	CLOSED	DataFrame validation on initiation failed to raise error	bug	2024-11-22T19:46:35Z
+1863	OPEN	basic level typechecking error in polars integration documentation/example	docs	2025-04-03T07:57:00Z
+1862	CLOSED	Pandera GeoPandas validation fails when using `gpd.array.GeometryDtype`	bug	2024-12-04T14:20:04Z
+1860	CLOSED	PySpark integration	enhancement	2025-01-22T00:40:05Z
+1859	CLOSED	Data type validation at DataFrame Models initialization seems to be broken in v0.21.0 compared to v0.20.4	bug	2024-12-04T00:29:31Z
+1856	CLOSED	Coerce seems to be broken in v0.21.0 compared to v0.20.4	bug	2024-12-04T00:44:56Z
+1854	OPEN	Calling to_yaml on pyspark dataframemodel leads to 'Column' object has no attribute 'unique'	bug	2024-11-13T10:55:21Z
+1853	OPEN	Add "example" capability to pyspark based data schemas	enhancement	2024-11-13T10:18:44Z
+1852	OPEN	Example for docs for dropping Invalid Rows does not seem obvious	bug	2024-11-12T23:19:28Z
+1851	OPEN	check_types argument inplace ignored	bug	2024-11-11T17:04:40Z
+1849	CLOSED	Index of coercion failure is not captured for pyarrow types	bug	2024-11-13T01:11:35Z
+1847	CLOSED	Decouple pandera and pandas when using it with polars	enhancement	2025-04-11T19:02:17Z
+1846	CLOSED	Can't pickle function with `@check_types` decorator	bug	2024-12-23T23:15:59Z
+1845	CLOSED	Multimethod compatibility.		2024-12-22T13:21:52Z
+1843	OPEN	Groupby field does not get serialized.	bug	2024-10-29T13:51:13Z
+1842	CLOSED	Parse function of pa.DataFrameModel is called twice	bug	2025-01-22T17:36:25Z
+1841	OPEN	Problem: JSON Serialization Issue with Polars Time Data Type in Error Reporting	bug	2025-04-12T11:12:15Z
+1840	OPEN	Allowing to pass a context parameter for DataFrameModel.validate method	enhancement	2024-10-25T21:18:47Z
+1839	OPEN	Pendulum datetime timezone bug	bug	2024-10-25T20:56:53Z
+1838	OPEN	DataFrameSchema validation with multiple index options	bug	2025-01-15T22:11:21Z
+1837	OPEN	Set/override config options when calling `.validate()`	enhancement	2024-10-25T16:17:43Z
+1836	OPEN	Support running parsers XOR checks separately	enhancement	2024-10-25T16:18:28Z
+1835	CLOSED	Different null handling behavior between Polars and Pandas validation	bug	2025-04-22T12:56:12Z
+1834	OPEN	Not able to coerce a pandas dataframe col from string to list of string	bug	2025-05-14T21:32:05Z
+1833	OPEN	`pl.Struct` cannot be the inner type for a generic `DataFrameModel`	bug	2024-10-23T21:16:54Z
+1832	CLOSED	Polars build schema not working for DateTime field	bug	2024-10-16T09:17:21Z
+1830	OPEN	pa.Column(drop_invalid_rows=True) has no effect for Pandas DataFrames	bug	2024-10-14T07:09:08Z
+1829	OPEN	How to pass the expected values to dataframemodel during runtime?	question	2024-10-25T16:33:17Z
+1828	OPEN	Type checker error when calling `validate` on a Polars `DataFrame`	bug	2024-10-11T05:09:34Z
+1827	OPEN	Implementing support for the `pyarrow.Tensor` type	enhancement	2024-10-08T18:52:03Z
+1826	OPEN	Create a Table Schema JSON (v1 frictionless.io / v2 datapackage.org) from a pandera schema		2025-04-28T14:59:22Z
+1822	OPEN	Better integration with mypy for static type checking	enhancement	2024-09-29T18:45:10Z
+1811	CLOSED	Disable pandera validation in polars does not work	bug	2025-05-09T14:25:18Z
+1810	CLOSED	Initial schema creation is very slow	bug	2024-09-24T13:31:05Z
+1808	CLOSED	Updating validation depth through `config_context` doesn't take effect properly on lazy validation	bug	2024-09-15T13:02:30Z
+1807	OPEN	Columns containing `bool` and `None` values do not validate correctly	bug	2025-05-06T17:59:49Z
+1806	OPEN	Columns converted to `str` if there is one `Category` column and `coerce = True`	bug	2024-12-07T09:38:41Z
+1805	OPEN	pydantic_extra_types	enhancement	2024-09-22T23:17:20Z
+1804	CLOSED	polars.exceptions.ColumnNotFoundError when coerce=True and Optional field is missing	bug	2024-12-22T16:39:07Z
+1802	CLOSED	Upgrade multimethod to 1.12	enhancement	2024-09-21T12:57:14Z
+1801	OPEN	Union of schemas not working with pandera.pyspark	bug	2024-09-04T14:19:23Z
+1800	OPEN	Optional doesn't flag column as nullable, when other constraints are added to Field	bug	2024-09-05T16:07:45Z
+1799	OPEN	Error when no column adheres to reg_ex with Pyspark SQL DataFrameModel: 'list' object has no attribute 'tolist'	bug	2024-09-03T15:33:31Z
+1795	CLOSED	typing module removed from root __init__	bug	2024-08-30T19:25:49Z
+1794	OPEN	`check_types` decorator does not validate dataframe(s) in returned sequence	bug	2024-09-21T01:26:45Z
+1791	OPEN	Parameterized field names	question	2024-08-28T14:03:51Z
+1790	OPEN	reset_index() not functioning properly with more than two indexes	bug	2024-08-27T17:27:38Z
+1788	OPEN	Improve `pd.Series` error message to include index / row number	enhancement	2024-08-21T14:30:36Z
+1787	OPEN	Time series integrity	enhancement	2024-08-17T20:24:23Z
+1786	OPEN	TypeError when calling _type_check on parameterized GenericModel in pydantic v1	bug	2024-09-25T19:02:26Z
+1784	CLOSED	Polars DataFrameModel `to_json_schema()` fails on pl.Datetime column	bug	2024-08-27T13:58:30Z
+1782	OPEN	pandera.errors.SchemaErrors.failure_cases returns incorrect columns when used with regex column names	bug	2024-08-19T16:31:25Z
+1781	OPEN	Failed Index Uniqueness Validation for Dask Series	bug	2024-08-12T16:34:48Z
+1780	CLOSED	Dagster polars dataframe_check	question	2024-08-09T13:48:52Z
+1777	OPEN	Installation issues when using polars-lts-cpu	bug	2024-08-13T14:31:41Z
+1776	OPEN	How to properly validate a `polars.LazyFrame`?	question	2024-08-06T16:37:57Z
+1769	OPEN	[Bug?] Ordered: True results in alphabetically ordering	bug	2024-08-01T04:18:13Z
+1768	CLOSED	Polars Enum does not work for Polars verion >=1.0.0	bug	2024-09-22T01:57:25Z
+1767	OPEN	Add support for polars.Enum	enhancement	2024-12-06T10:53:32Z
+1765	OPEN	Subclassing from `pandera.api.dataframe.model.DataFrameModel` errors on annotated but not initialized fields starting with an underscore	bug	2024-07-26T23:15:26Z
+1764	OPEN	`pandera.api.dataframe.model.DataFrameModel` has unexpected generic subclass behaviour	bug	2024-07-26T22:52:14Z
+1761	OPEN	Support Pyarrow data synthesis strategies for Pandas validation engine	enhancement	2024-07-24T20:43:53Z
+1760	OPEN	Bad type hint for argument unique for DataFrameSchema	bug	2024-09-23T15:08:32Z
+1759	OPEN	Pass additional `Check` kwargs into `register_check_method`	enhancement	2025-05-03T00:34:24Z
+1755	CLOSED	Allowing column with type list to be optional	question	2024-08-08T15:01:38Z
+1751	CLOSED	Wrong Column name in SchemaErrors using regex Columns	bug	2024-07-18T23:00:50Z
+1750	OPEN	`DataFrameModel.get_metadata` should not be typed `Optional`	bug	2024-07-18T12:58:34Z
+1748	CLOSED	Starting python with -OO fails with pandera >=20	bug	2024-07-17T16:59:47Z
+1744	CLOSED	[BUG]: use `LazyFrame.collect_schema().names()` over `LazyFrame.columns`	bug	2024-07-17T16:33:23Z
+1742	CLOSED	[BUG]: `Import Error` in `pandera.engines.polars_engine`	bug	2024-07-16T13:12:52Z
+1738	CLOSED	Error on `import pandera.polars as pa` ImportError: cannot import name 'py_type_to_dtype' from 'polars.datatypes'	bug	2024-07-12T13:23:26Z
+1737	OPEN	When mixing `drop_invalid_rows` on `DataFrameSchema` and `Column` level we get a non intuitive behavior	bug	2024-11-25T14:52:17Z
+1736	CLOSED	Pyright error for custom data type: "Expected type expression but received "_DataTypeClass[Unknown]..."	bug	2024-12-10T18:40:39Z
+1735	OPEN	Storing rules as json/yaml/database	enhancement	2024-07-08T16:10:33Z
+1734	OPEN	Implement data correction	enhancement	2024-07-08T16:10:25Z
+1733	OPEN	Add a `Check` for maximum allowed percentage of missing values	enhancement	2024-07-07T03:04:34Z
+1732	CLOSED	Lazy validation raises misleading SchemaError when columns are missing	bug	2024-07-18T18:56:02Z
+1728	CLOSED	`np.string_` removed from `numpy >= 2.0.0` and used in pandera raises an error.	bug	2024-12-05T13:11:02Z
+1727	CLOSED	Support custom column data checks in class-based API	enhancement	2024-07-04T10:01:21Z
+1726	CLOSED	Pyright does not recognize pandera.polars exports: reportPrivateImportUsage	bug	2024-08-31T20:07:42Z
+1724	CLOSED	support for polars==1.0.0	enhancement	2024-07-17T17:13:54Z
+1723	CLOSED	AttributeError: module 'pandas' has no attribute 'ArrowDtype' with release 0.20.1	question	2024-08-29T09:08:13Z
+1722	CLOSED	-OO optimization flag of python makes pandera crash	bug	2024-07-17T19:48:24Z
+1721	CLOSED	Arrow String checks not compatible ('re.Pattern' object has no attribute 'startswith')	bug	2024-07-04T19:49:08Z
+1718	OPEN	Dynamic generation of DataFrameSchema with a Check based on lambda expression	question	2025-04-15T13:39:41Z
+1716	OPEN	Add custom error message for pyspark `register_check_method` which currently defaults to `None`	bug	2024-06-27T14:19:10Z
+1715	CLOSED	[Dependency] pandera 0.20.0 now requires `pyarrow` as a mandatory dependency (under certain contexts) :disappointed:	bug	2024-06-27T20:48:52Z
+1710	CLOSED	Next Planned Release	question	2024-06-27T19:56:31Z
+1707	CLOSED	Checks with element_wise = True while using PolarsCheckBackend are called twice.	bug	2024-07-02T18:09:50Z
+1698	CLOSED	dev: black include regex	bug	2024-06-26T12:58:12Z
+1695	CLOSED	Float Nullability if Entire Column None	bug	2024-07-04T20:37:10Z
+1689	CLOSED	Decimal validation not fully supported	bug	2024-07-06T16:27:14Z
+1688	CLOSED	Validation with `dataframe_check` gets very slow for big dataframes	bug	2024-06-27T13:42:41Z
+1687	CLOSED	Auto-completion of column names of a DataFrame instance	enhancement	2024-07-02T13:17:54Z
+1685	CLOSED	Current version does not work with numpy 2.0	bug	2024-06-19T00:54:51Z
+1684	OPEN	`@pa.parser` does not work for Index fields	bug	2024-08-31T20:07:36Z
+1683	CLOSED	Deprecation warning on `with_context`	bug	2024-06-26T16:11:23Z
+1682	CLOSED	COERCION_ERRORS will not support `polars=1.0.0`	bug	2024-06-26T16:11:50Z
+1681	OPEN	Mypy type hinting error for direct column type annotations	bug	2024-06-13T07:14:40Z
+1680	CLOSED	Reusing Field objects causes unexpected failure	bug	2025-02-24T20:26:07Z
+1678	CLOSED	pyspark_sql docs run time error	docs	2024-06-30T17:36:53Z
+1677	CLOSED	Pydantic compatibility issue	bug	2025-03-07T17:22:50Z
+1676	CLOSED	Feat: Adding more pyarrow types to pandas engine	enhancement	2024-07-03T02:40:54Z
+1675	OPEN	Example on how to use Decimal as dtype for a column	question	2025-05-13T07:23:15Z
+1673	CLOSED	BackendNotFoundError on databricks/pyspark cluster	bug	2024-08-15T15:02:03Z
+1671	CLOSED	Why is pa.String returned as 'str' instead of 'string' when used with Columns?	question	2024-06-05T16:12:16Z
+1670	CLOSED	Is it possible to create a check function that accepts additional arguments?	question	2024-06-22T23:03:22Z
+1669	OPEN	Wrong JSON output from `SchemaErrors.message`	bug	2025-02-05T16:58:53Z
+1666	OPEN	`dataframe_parser`s that rename columns conflict with type coercion	bug	2024-05-31T19:14:30Z
+1663	OPEN	Pyinstaller build fails when using pydantic version 2.*	bug	2024-05-30T19:59:18Z
+1662	CLOSED	Polars checks not being evaluated correctly	bug	2024-11-29T17:21:20Z
+1661	OPEN	Support Data synthesis strategies for polars	enhancement	2024-09-13T15:53:59Z
+1660	CLOSED	Setting `coerce` on a column causes the column to be `required` when `required=False`	bug	2024-12-10T00:28:25Z
+1659	OPEN	Scalar return for check in polars-backed model fails on validation with `lazy=True`	bug	2024-05-27T12:46:49Z
+1658	CLOSED	Adding missing columns with a string default	bug	2024-11-01T13:55:46Z
+1657	CLOSED	`SchemaFieldNotFoundError` with custom check function if no alias is provided.	bug	2024-07-22T20:13:27Z
+1656	CLOSED	pandera not compatible with numpy 2.0	bug	2024-06-20T13:06:58Z
+1655	OPEN	Compatibility issues with Pandas	docs	2024-05-23T15:00:59Z
+1653	OPEN	Unexpected behavior when validating date objects. pandera=0.19.1	bug	2024-07-19T20:16:01Z
+1652	CLOSED	Custom Check Methods don't support custom error (any more)	bug	2024-07-19T16:28:55Z
+1649	OPEN	Optional import hypotheses doesn't install hypothesis	docs	2024-05-23T20:38:11Z
+1647	CLOSED	Finite values in `pl.DataFrame`	question	2024-05-15T19:03:23Z
+1645	OPEN	Missing `reason_code` when using custom checks with PySpark dataframes	bug	2024-05-30T06:54:18Z
+1644	CLOSED	Pandera is very slow to import when optional dependencies are installed	bug	2024-07-18T20:15:27Z
+1641	CLOSED	NaNs in boolean column coerced to True, nullable and default parameters are ignored	bug	2024-06-26T00:01:03Z
+1640	OPEN	Cannot call `get_metadata` on a DataFrameModel if there is a Config without a metadata attribute	bug	2025-01-14T21:22:44Z
+1637	CLOSED	Time-agnostic DateTime with pandera-native polars datatype using DataFrameModel not working	bug	2024-05-13T16:24:20Z
+1632	OPEN	Allow use of generic pa.DataFrameSchema/Model for different supported libraries	enhancement	2024-05-09T15:47:24Z
+1631	CLOSED	Annotated parametrized dtypes error on version >= 0.19.0	bug	2024-05-09T19:47:07Z
+1630	CLOSED	Validate on Initialization doesn't work in 3.11.9 and 3.12.3	bug	2024-05-10T18:03:39Z
+1629	OPEN	Try_Pandera edits to be more clear and beginner friendly	docs	2024-05-09T01:49:14Z
+1626	CLOSED	Nullability for `pl.Float64` in `pl.DataFrame` fails	bug	2024-05-08T21:05:07Z
+1625	OPEN	Improve strategies internals: accumulate check statisics instead of filtering	enhancement	2024-05-08T01:32:19Z
+1624	CLOSED	unique Field argument not yet implemented for pyspark	question	2024-05-07T13:58:00Z
+1616	CLOSED	Pandera Polars datatype 'check' method is not provided a 'data_container'	bug	2024-05-07T17:52:52Z
+1610	CLOSED	Incorrect Pandera Polars DataFrameModel Type Coercion Logic	bug	2024-05-05T02:45:26Z
+1607	CLOSED	failure_case conversion failed : polars.exceptions.ComputeError - pandera(0.19.0b3) with polars	bug	2024-05-03T08:38:18Z
+1606	CLOSED	Incorrect validation passes pandera=0.19.0b3	bug	2024-04-30T19:10:08Z
+1605	OPEN	Support Series generation with serial dependence	enhancement	2024-05-10T16:03:04Z
+1604	CLOSED	How to correctly install a release v0.19.0b3		2024-04-30T06:50:46Z
+1599	OPEN	How to load schema from pyspark struct or avro format from schema registry ?	question	2024-05-21T17:32:04Z
+1598	CLOSED	Allow check type	enhancement	2024-05-23T20:58:11Z
+1594	CLOSED	Add a polars `Series` type	enhancement	2024-04-26T03:32:53Z
+1590	CLOSED	Error Importing Pandera with Polars extra	bug	2024-04-20T00:52:44Z
+1587	CLOSED	Custom DTypes With Polars	bug	2024-04-19T02:38:12Z
+1584	CLOSED	Update branch name mentioned within bug report template	docs	2024-04-18T18:54:41Z
+1583	CLOSED	Lazy schema validation does not raise expected errors with polars dataframes	bug	2024-04-18T17:58:21Z
+1582	CLOSED	Piping pandas with pandera schema doesn't raise SchemaError ( python 3.11.9 )	bug	2024-04-17T15:52:26Z
+1580	CLOSED	Parametrized type annotations are broken for polars DataFrameModels	bug	2024-04-24T05:28:01Z
+1579	CLOSED	Hypothesis examples are all the same	bug	2024-05-08T01:32:55Z
+1578	OPEN	Is there a way to get a `DataFrameModel` from existing `pandas.DataFrame`?	question	2024-04-29T22:44:10Z
+1577	OPEN	Make `pydantic` and `typeguard` extras for pandas generic type support	enhancement	2024-04-14T20:38:48Z
+1576	OPEN	Remove dependencies on `wrapt`, `packaging`, and potentially `multimethod`	enhancement	2024-04-14T20:35:22Z
+1566	CLOSED	Custom check erroneously passes when validating `pl.LazyFrame`	bug	2024-04-12T00:18:37Z
+1565	CLOSED	Custom check fails with `pl.DataFrame`	bug	2024-04-13T16:40:33Z
+1564	OPEN	How to Avoid Pandera Doc Injection?	question	2024-05-15T20:29:56Z
+1559	CLOSED	no exception raise after pipe on 3.11.9	bug	2024-04-10T14:50:40Z
+1555	OPEN	Pandera Series generic argument does not allow the `typing.List` etc. types	bug	2024-06-04T13:21:11Z
+1554	OPEN	Pandera import fails due to DatetimeAccessor issue in Python 3.11.9	bug	2024-08-20T10:57:48Z
+1553	CLOSED	Should DataFrameModel.validate raise SchemaInitError when using pydantic v2 `model_config`?	question	2024-04-04T08:06:02Z
+1551	CLOSED	`import pandera` breaks SparkSession in AWS EMR	bug	2024-04-03T19:30:07Z
+1546	CLOSED	Concise typing.List type annotation throws error in DataFrameModel.to_schema()	bug	2024-03-31T17:32:18Z
+1543	CLOSED	Validating datetime columns regardless of timezone	enhancement	2024-04-19T15:01:01Z
+1541	CLOSED	Backend registration is not thread safe	bug	2024-04-01T18:08:36Z
+1540	OPEN	Enhanced Validation Reporting for PySpark DataFrames in Pandera	enhancement	2024-09-27T13:10:58Z
+1533	CLOSED	Pandas backend: `check_nullable` is inefficient when a column schema has `nullable=True`	bug	2024-03-22T07:01:12Z
+1529	CLOSED	[BUG]: using `typing.Optional` on a column in `DataFrameModel` with `polars`	bug	2024-03-19T01:15:30Z
+1528	CLOSED	Polars LazyFrame validation only does schema checks, DataFrame validation does full validation	enhancement	2024-03-24T02:00:05Z
+1525	CLOSED	Dask and Pandera Installation Problems via conda-forge	bug	2024-04-03T02:01:34Z
+1523	CLOSED	Index validation ignored in SeriesSchema	bug	2024-03-11T18:54:21Z
+1514	OPEN	Dynamically create a DataFrameModel	question	2024-02-24T02:26:05Z
+1513	OPEN	Passing DataFrameSchema to function that check_output is decorating?	question	2024-02-24T02:22:18Z
+1511	OPEN	Conversion from 1 pydantic dtype dataframe to another fails when strict = 'filter'	bug	2024-02-22T21:16:29Z
+1500	OPEN	TypeError("Subscripted generics cannot be used with class and instance checks")	question	2024-02-21T11:11:56Z
+1498	OPEN	Document pandera model with sphinx	question	2024-02-21T08:00:40Z
+1493	OPEN	strict=True is not very strict on the index	bug	2024-06-05T14:09:15Z
+1492	OPEN	`values` arg in `unique_values_eq` has incorrect type hint.	bug	2024-02-12T12:51:42Z
+1491	OPEN	Allow column-level `coerce` setting to override class-level `coerce`.	enhancement	2024-02-10T17:19:08Z
+1487	OPEN	Type hints are not retained	bug	2024-02-07T17:48:08Z
+1485	CLOSED	pandera 0.18.0 does not work with multimethod 1.11.0 (but with 1.10.0)	bug	2024-02-09T07:36:47Z
+1479	OPEN	`pyspark.DataFrameSchema` doesn't have data syntheis method(s) implemented	enhancement	2024-04-12T16:08:39Z
+1475	OPEN	check_types decorator doesnt validate after inplace mutation with method	bug	2024-01-31T16:31:48Z
+1474	OPEN	Index name defined in DataFrameModel is discarded when creating DataFrameSchema	bug	2024-10-22T20:16:24Z
+1473	CLOSED	[Bug] import pandera overrides the spark environment		2025-02-28T19:13:18Z
+1472	CLOSED	Add model_validate method to DataframeModel	enhancement	2024-01-27T14:12:01Z
+1471	OPEN	Datatype coercion fails to occur if DataFrame Model Config `coerce=True` defined in inherited Config class	bug	2024-01-26T13:30:40Z
+1470	OPEN	DataFrameModel validation method return type annotation incorrect	bug	2024-01-24T23:51:23Z
+1469	OPEN	Multi index dataframes with datetime level cannot drop invalid rows	bug	2024-01-25T17:14:25Z
+1466	OPEN	Add Schema name field to decorators._parse_schema_error msg	enhancement	2024-01-24T04:25:29Z
+1463	OPEN	Default value assignment: Pandas 2.2.0 FutureWarning	bug	2024-01-21T08:15:29Z
+1462	OPEN	pandas.DataFrame.attrs missing after validation	question	2024-01-19T06:16:01Z
+1460	OPEN	Partial MultiIndex check fails if only one index column is passed	bug	2024-01-12T14:34:55Z
+1456	OPEN	Improve how typed DataFrames interact with VSCode's type peeking	enhancement	2024-01-07T16:35:01Z
+1455	OPEN	When used as the bound of a TypeVar, a DataFrameModel is not recognized by MyPy as a valid type	bug	2024-01-07T03:49:30Z
+1454	OPEN	to_schema does not work when a DataFrameModel is made from a Pydantic BaseModel	bug	2024-01-07T16:31:09Z
+1453	OPEN	to_schema method breaks when using isin with iterable	bug	2024-01-11T12:28:14Z
+1449	CLOSED	Performance issue with nulls in pandas dataframe with multi-index validation	bug	2024-04-01T15:35:45Z
+1446	OPEN	Cannot create a pydantic model with a `pandera.typing.pyspark.DataFrame` type.	bug	2025-05-21T00:18:52Z
+1444	OPEN	jupyter-server and jupyter-events version conflicts when trying to do install -r dev/requirements-3.11.txt	bug	2023-12-11T08:44:18Z
+1442	OPEN	DataFrameSchema lazy check_column_values_are_unique failing if columns are not present	bug	2023-12-06T13:42:11Z
+1434	CLOSED	Support conversion from DataFrameModel to PySpark StructType	enhancement	2024-06-21T16:38:58Z
+1432	OPEN	Implement polars LazyFrame backend and core checks	enhancement	2023-11-26T15:43:42Z
+1429	CLOSED	DataFrameSchema <NA> column_ordered	question	2023-11-24T11:51:26Z
+1428	OPEN	Use DataFrameModel for validating multiindex columns	question	2023-11-21T13:46:24Z
+1424	OPEN	feature(pandas): Support string column validation for pandas 2.1.3	enhancement	2023-11-15T15:10:33Z
+1423	OPEN	Series[list[TypedDict] fails in Python 3.11 but not in Python 3.12	bug	2023-11-14T07:43:53Z
+1422	OPEN	Keeping track of Polars DataTypes for Polars schemas support		2023-11-13T11:47:41Z
+1421	CLOSED	Add built-in checks for Polars schemas support		2024-03-11T14:49:05Z
+1418	CLOSED	Date type not exported	bug	2023-11-11T20:40:06Z
+1413	OPEN	Pandera example generation seems to to much slower than building dataframes with lists	question	2024-10-28T19:30:07Z
+1411	OPEN	check-type decorators do not work in parallel	bug	2024-02-06T21:19:29Z
+1410	OPEN	Schema inference from Dask dataframe or series	question	2023-11-07T08:51:46Z
+1409	OPEN	[PySpark] Performance issues during validation	bug	2023-11-07T11:14:34Z
+1406	OPEN	str_length check raises an DispatchError exception if min_value or max_value are not set	bug	2024-04-25T16:49:36Z
+1404	CLOSED	An element_wise Check on a datetime column of an empty DataFrame fails since 0.14	bug	2024-12-19T20:03:59Z
+1402	OPEN	Joint uniqueness unsatisfiable for data synthesis	bug	2023-11-01T20:51:29Z
+1401	OPEN	Index has no name in SchemaModel when using SchemaModel.strategy	bug	2023-12-14T23:48:40Z
+1399	OPEN	Support polars LazyFrame *actual* lazy validation	enhancement	2023-10-31T03:04:11Z
+1398	OPEN	OpenAPI is wrong and Input / Output schemas are missing	bug	2024-05-08T23:33:49Z
+1395	CLOSED	FastAPI OpenAPI spec of an endpoint using Pandera not working with Pydantic v2	bug	2024-05-28T08:43:19Z
+1391	CLOSED	Is there a built in way to drop not defined columns at the Schema validation process?	enhancement	2023-10-20T01:18:53Z
+1389	CLOSED	Inconsistent support of type hints with mypy	bug	2023-10-20T08:34:57Z
+1388	OPEN	Can you use Pydantic Field Aliasing with Pandera / PydanticModel schema definitions?	bug, good first issue	2024-04-30T20:58:16Z
+1386	OPEN	typing_extensions>=4.6 requirement not checked	bug	2023-10-18T15:32:32Z
+1380	OPEN	Unescaped description gives error converting Model -> Schema -> Script	bug	2023-10-17T04:53:07Z
+1379	OPEN	Allow the `in_range` argument in `Field` to accept a tuple	enhancement	2023-10-27T15:39:52Z
+1375	OPEN	Pandas Backend check_dtype function is not compatible with numpy.bool_	bug	2023-10-13T15:13:51Z
+1374	OPEN	TypeError using Annotated with Category	bug	2023-10-11T10:42:12Z
+1371	CLOSED	Timezone-aware bug with Multi-Index	bug	2023-12-04T17:07:34Z
+1370	OPEN	`add_missing_columns` sometimes adds same missing column multiple times	bug	2024-03-06T23:47:34Z
+1369	CLOSED	Is it possible to validate geopandas GeoDataFrame geometry type?	question	2023-10-18T14:54:41Z
+1367	OPEN	Idea: Suppport the "&" operation between two DataFrameModels	enhancement	2023-10-04T07:26:32Z
+1366	OPEN	Idea: DataFrame Validation State Caching For Runtime Optimization - Only Validate What Needs To Be Validated!	enhancement	2023-10-03T16:57:38Z
+1365	CLOSED	Simplify dependency graph	enhancement	2024-04-25T19:34:48Z
+1360	OPEN	Design Data Types Library That Supports Both PySpark & Pandas	question	2025-01-11T08:20:12Z
+1359	OPEN	pydantic validation to raise ValidationError instead of ValueError	enhancement	2023-10-01T21:44:05Z
+1357	OPEN	Include drop_invalid_rows attribute in deserialization from_json()	enhancement	2024-07-16T14:09:09Z
+1353	CLOSED	None in fail list nullable validation	bug	2023-09-28T16:33:49Z
+1352	OPEN	Pandera timezone-agnostic datetime type	enhancement	2024-08-23T22:44:58Z
+1349	CLOSED	multiple items in a list fails validation	bug	2023-09-27T00:23:01Z
+1348	CLOSED	`list[str]` type broken	bug	2023-09-25T14:59:18Z
+1345	OPEN	Add support for `PANDERA_VALIDATION_ENABLED` for pandas	enhancement	2023-09-26T22:57:42Z
+1344	OPEN	Pyspark unique check doesn't return error	bug	2024-06-21T17:21:54Z
+1343	OPEN	Column Order Validation using Pyspark SQL Data Validation is not Working.	bug	2023-09-21T18:41:01Z
+1342	CLOSED	None and empty list columns error	bug	2023-09-24T05:08:13Z
+1341	OPEN	Cannot access member "to_parquet"	bug	2023-09-18T01:09:50Z
+1339	OPEN	'drop_invalid_rows' always False with from_json() and to_json()	bug	2024-07-16T14:09:27Z
+1334	OPEN	**kwargs are not unpacked on @check_types decorator	bug	2023-09-10T08:36:41Z
+1333	OPEN	Support PEP 593 Annotated	enhancement	2024-06-04T12:44:02Z
+1332	OPEN	How to name the checks when using register_check_method	question	2023-09-18T06:18:31Z
+1331	OPEN	infer_schema - TypeError: '<=' not supported between instances of 'float' and 'datetime.datetime'	bug	2023-09-06T10:34:31Z
+1330	OPEN	Getting failure cases with Pandera.PySpark	question	2023-09-05T18:53:33Z
+1329	OPEN	Regex patterns on DataFrameModel don't work	bug	2023-09-07T16:20:15Z
+1328	OPEN	MultiIndex unique columns case - pandas error instead of (expected) schema error when pandas version 2.1.0	bug	2024-01-22T21:31:19Z
+1327	OPEN	Support conversion from Pandera DataFrameSchema or DataFrameModel to PySpark StructType	enhancement	2024-04-24T19:01:46Z
+1326	OPEN	Global Config option to control single column index check_name	enhancement	2023-09-01T00:48:18Z
+1324	OPEN	Add `Column Regex Pattern Matching` support in `DataFrame Model`	enhancement	2023-08-31T09:38:44Z
+1323	OPEN	Suggest `pat` as a convention in `import pandera.typing as pat` in docs	docs	2023-08-28T23:47:31Z
+1322	OPEN	Promote `pandera.typing.DataFrame` into the main `pandera` namespace	enhancement	2023-08-29T00:22:36Z
+1318	OPEN	Pyspark module - enable other date formats to be coerced into DateType	enhancement	2023-08-15T19:15:49Z
+1317	OPEN	Add option to return dataframe with columns in order specified in DataFrameSchema.	enhancement	2024-10-08T02:05:34Z
+1316	OPEN	Pyspark module - validation where required is set to False throws error.	bug	2023-08-15T18:08:46Z
+1315	OPEN	Pyspark module - DataFrameSchema class does not support "add_missing_columns" parameter.	bug	2023-08-15T18:15:24Z
+1314	OPEN	Pyspark module - str_length check not implemented.	bug	2023-08-15T19:18:15Z
+1313	OPEN	Pyspark module - Column class does not support "unique" parameter.	bug	2024-11-18T19:52:42Z
+1311	OPEN	str_length function not working in pa.Field for PySpark	bug	2024-06-25T13:02:37Z
+1310	OPEN	Validation failure of union of strict='filter' schemas due to column deletion if inplace=True	bug	2023-08-14T14:40:06Z
+1309	OPEN	Handling columns with multiple timezones	bug	2024-11-28T15:40:00Z
+1308	OPEN	converting a pa.DataFrameModel into a pa.SeriesSchema?	enhancement	2023-08-31T09:55:51Z
+1306	OPEN	Make CI dependency management more dependable.		2023-08-11T21:34:08Z
+1305	CLOSED	Pyspark validation fails with regex columns	bug	2023-11-01T20:35:25Z
+1302	OPEN	Improve dataframe-wide checks and their error reporting (failure_cases)	enhancement	2023-11-15T20:19:46Z
+1301	OPEN	Column metadata is not serialized	bug	2023-08-09T13:44:35Z
+1297	OPEN	Raise custom PanderaValidationWarning instead of UserWarning		2023-08-07T22:41:14Z
+1294	OPEN	Broken Discord link	docs	2023-08-09T20:39:47Z
+1293	OPEN	Add ruff as a linter	enhancement	2023-08-07T16:38:41Z
+1287	CLOSED	drop_invalid_rows causes ValueError on multi index dataframe within pandas multi index	bug	2023-09-23T15:39:54Z
+1286	OPEN	Dedicated attribute/method access to list of fields of a `DataFrameModel`	enhancement	2023-08-05T13:12:40Z
+1285	OPEN	Pyspark validation doesn't validate joint uniqueness	bug	2023-10-05T11:47:20Z
+1284	CLOSED	Should `pa.check_types` always do schema validation?	question	2023-08-02T01:28:04Z
+1283	OPEN	`Check.str_length()` always requires `min_value` to not be `None` when drawing examples	bug	2023-08-01T10:22:28Z
+1282	OPEN	Custom pa.Check do not compare equal after serialization	bug	2023-07-31T20:39:30Z
+1280	OPEN	Using TypedDict on a DataFrameModel column bypasses `nullable=True`	bug	2023-10-06T07:46:00Z
+1279	CLOSED	pytest failing on fastapi and pyspark tests on master	question	2024-04-21T06:32:55Z
+1278	CLOSED	add_missing_columns issues with non-standard dtypes, non-None null default values	bug	2023-10-18T14:59:27Z
+1276	CLOSED	Improved error message for `SchemaErrors`	enhancement	2024-03-09T05:21:35Z
+1275	OPEN	Data Generation Overlap for Multiple DataFrames	question	2023-07-21T16:23:47Z
+1274	OPEN	I can't test check functions decorated with @extensions.register_check_method()	question	2024-01-30T11:40:32Z
+1272	OPEN	Pandera >=0.15.0 breaks pytest 6.2.5	bug	2023-08-25T21:38:07Z
+1270	OPEN	Support for numpy data type objects or dtypes not working	enhancement, help wanted	2023-07-18T17:09:45Z
+1269	OPEN	Getting < ImportError: cannot import name 'formatargspec' from 'inspect' > while importing Pandera on Python 3.11	bug	2023-07-24T05:56:42Z
+1267	CLOSED	Pandera 16.0 can't be imported without installing pyspark	bug	2023-07-17T18:28:27Z
+1262	CLOSED	Pandas2 / pyarrow backend support	enhancement	2024-05-11T03:13:39Z
+1261	CLOSED	Fix to_script description	docs	2023-07-17T17:47:29Z
+1257	CLOSED	Support pydantic v2	enhancement	2023-10-20T07:05:38Z
+1250	CLOSED	Pandera schemas incompatibility with pydantic v2	bug	2023-07-09T17:53:23Z
+1248	CLOSED	Validation of optional regex columns in filtered dataframes can bypass checks	bug	2023-07-06T13:10:45Z
+1246	OPEN	Pandera's handling of datetime coersion is inconsistent between series and index	bug	2023-07-04T02:16:44Z
+1245	CLOSED	Should the version of `pydantic` be pinned?	question	2023-07-09T17:53:33Z
+1242	CLOSED	Get name of the invalid schema from pa.errors.SchemaError	question	2023-07-04T16:34:11Z
+1241	CLOSED	Bug while ordering optional keys from schema in static method from_records from pandera df	bug	2023-06-30T07:17:46Z
+1237	OPEN	Single level index loses its name in to_schema() whereas multi-level index does not	bug	2023-06-24T00:29:02Z
+1235	OPEN	pa.check with groupby argument throws TypeError	bug	2024-08-12T11:21:10Z
+1231	OPEN	The behavior of the optional field.	question	2023-06-22T14:09:12Z
+1226	OPEN	VSCode type warning for DataFrameModel	bug	2023-07-31T00:28:29Z
+1225	OPEN	Return "raw" Parquet bytes from FastAPI endpoint?	question	2023-06-16T20:43:44Z
+1222	OPEN	mypy "Type application has too few types (2 expected)" piping to Series[float]	bug	2023-06-13T10:42:37Z
+1220	OPEN	Specified custom strategies for column checks don't get used when generating dataframe-level examples	bug	2023-06-14T12:58:55Z
+1217	OPEN	@pa.check gives pickle error when using along with pandarallel	bug	2023-06-09T13:51:59Z
+1215	CLOSED	Use of hypothesis type annotations forces downstream projects to install hypothesis		2023-06-07T17:30:50Z
+1214	OPEN	pyright type annotations for DataFrame[Schema] don't match those generated via mypy	enhancement	2023-06-04T19:45:19Z
+1212	CLOSED	mypy: using check_io(df1=..., df2=..., out=....)	bug	2024-02-20T21:34:39Z
+1211	CLOSED	Pandera 0.15.1 not working with Pandas 2.0.2	bug	2023-06-01T16:36:08Z
+1208	CLOSED	`@pa.check` fails on empty `GeoDataFrame`'s `"geometry"` column	bug	2023-06-01T22:12:30Z
+1206	CLOSED	Why python_requires <3.12?	question	2023-06-01T14:50:27Z
+1205	CLOSED	Static type hint error on class pandera DataFrame	bug	2023-06-28T10:55:32Z
+1204	OPEN	mypy plugin causes internal error when optional columns are present in DataFrameModel	bug	2023-10-31T00:37:59Z
+1200	CLOSED	Example for using Pandera for pyspark dataframe - Help Needed	question	2023-05-25T06:42:09Z
+1199	CLOSED	Inplace modification of ``DataFrame`` bypasses ``@check_types`` for outputs	bug	2023-06-04T14:22:12Z
+1197	OPEN	Pin minimum multimethod version	bug	2023-06-14T09:19:08Z
+1195	OPEN	Equivalent PydanticSchema in docs raises SchemaError with empty dataframe	bug	2024-06-12T19:05:46Z
+1193	OPEN	Wrong default value used when keyword used in multiple columns	bug	2024-05-14T09:00:57Z
+1192	CLOSED	Specified strategy in `register_check_method()` is ignored	bug	2023-06-01T16:54:15Z
+1188	CLOSED	Pickle breaking changes with minor releases / Column has no attribute default	bug	2024-03-04T17:16:03Z
+1184	OPEN	Int is coerced to Float when using a PydanticModel as dtype with only int and floats	bug	2023-05-12T09:37:53Z
+1183	OPEN	[Docos] @beartype officially supports pandera out-of-the-box	help wanted, docs	2023-05-11T23:34:39Z
+1182	CLOSED	Config coerce does not override default coerce parameter when using regex	bug	2024-05-06T04:24:49Z
+1176	OPEN	Dataframe validation check passing when it shouldnt	bug	2024-04-08T16:23:11Z
+1174	CLOSED	Mypy plugin crashes when @classmethod added to DataFrameModel	bug	2023-05-02T14:37:45Z
+1173	CLOSED	When `strategy` argument is passed to `Check()`, still get warning on not having defined strategy	bug	2023-06-01T11:18:51Z
+1172	CLOSED	Remove incorrect(?) warning for `register_check_method()` in docs	docs	2023-06-01T11:42:28Z
+1170	OPEN	Type checking reports error when using a subclass of the specified DataFrameModel	bug	2025-03-21T18:39:24Z
+1169	OPEN	Allow checks based on data types	enhancement	2023-06-12T16:55:50Z
+1168	CLOSED	unique_values_eq missing in pa.Field	bug	2023-06-22T18:34:29Z
+1165	OPEN	Support serialization of parameterized dtypes to work with `{from/to}_{yaml/json}`	bug, help wanted	2023-04-24T19:57:14Z
+1164	OPEN	When trowing validation errors print all errors, not just the first one	enhancement	2023-04-24T19:49:41Z
+1162	CLOSED	Data type 'uint64[pyarrow]' not understood by Engine.	bug	2023-07-16T02:33:36Z
+1161	OPEN	Nullable int not correctly recognized from pandas dataframe with NaN	bug	2023-06-29T04:27:36Z
+1159	CLOSED	Cannot deserialize custom DataType	bug	2023-04-23T05:51:08Z
+1158	OPEN	Ability to render yaml without default values.	enhancement	2023-04-18T05:28:07Z
+1157	CLOSED	Failure cases not printing with customized check	bug	2023-04-17T21:13:12Z
+1155	OPEN	Decimal dtype does not validate	bug	2024-10-11T06:59:54Z
+1153	OPEN	MultiIndex validation within a SeriesSchema not working	bug	2023-11-17T16:46:05Z
+1152	OPEN	Support for multi type (Unions) in schemas and validation	enhancement	2024-11-26T14:39:38Z
+1149	CLOSED	DeprecationWarning invalid escape sequence in pandera.engines.engine	bug	2023-06-28T14:07:23Z
+1148	OPEN	frictionless schema object has no attribute 'get'	bug	2024-02-14T12:30:07Z
+1145	OPEN	Silent Validation for decorators	enhancement	2023-03-28T19:02:58Z
+1143	OPEN	Check whether value in df1 column is in df2 column	question	2023-03-27T15:04:47Z
+1142	OPEN	Pandera 0.14+ check_types behavior change?	bug	2023-03-24T17:52:10Z
+1140	CLOSED	Title and description field of Index not exporting to YAML	bug	2023-04-10T16:18:28Z
+1138	CLOSED	Support pyspark.sql.DataFrame	enhancement	2023-07-06T04:39:37Z
+1133	OPEN	check_output/check_input/check_io support for DataFrameModel	enhancement, help wanted	2023-03-23T13:15:27Z
+1132	CLOSED	Pandas indexes are not coerced when `coerce=True` specified at schema level	bug	2023-03-24T13:22:27Z
+1131	CLOSED	Incorrectly raised SchemaError when validating multiindex DataFrame		2023-03-22T14:18:55Z
+1128	CLOSED	`mypy` breaks when using `Config`	bug	2023-03-20T17:15:02Z
+1127	OPEN	check_types decorator messes up with arbitrary atributes list	bug	2023-03-20T10:03:25Z
+1126	OPEN	Support python 3.11	enhancement	2023-06-14T09:02:08Z
+1124	CLOSED	pandera >= 0.14.0 validation fails when non-numpy type index in SchemaModel	bug	2023-03-17T20:47:18Z
+1121	CLOSED	version 0.14.x breaks mypy compatibility	bug	2023-03-16T23:19:26Z
+1120	CLOSED	pandera 0.14 fails to validate subclasses of pandas.DataFrame	bug	2023-03-17T07:32:57Z
+1118	CLOSED	Panderas 0.14 crashes on dtype coercion for pandas data frame	bug	2023-03-17T08:15:59Z
+1116	OPEN	Strategy is too slow for Hypothesis	bug	2023-07-17T15:12:27Z
+1115	CLOSED	Regression in pandera>=0.14.0 : missing columns appear to be grouped.	bug	2023-03-16T01:33:53Z
+1113	CLOSED	New release of 0.14.0 breaking pandera import	bug	2023-03-14T20:19:10Z
+1108	OPEN	GeoPandas type not compatible with FastApi	enhancement, help wanted	2023-10-21T16:09:09Z
+1105	OPEN	Support Ibis Backend	enhancement	2024-10-03T00:01:57Z
+1101	CLOSED	Not compatible with Pandas 2.0	bug	2023-05-09T15:49:12Z
+1099	CLOSED	Wrong utility function description	docs	2023-03-09T22:46:48Z
+1098	OPEN	Lazy validation crashes for dictionary columns.	bug	2023-03-09T15:33:27Z
+1097	OPEN	For pa.Check, allow ignoring rows with any NaN as well as rows that are all NaN	enhancement	2023-02-21T11:44:19Z
+1096	OPEN	Joint uniqueness of Index with Column raises an error during validation	bug	2023-02-21T11:06:43Z
+1095	OPEN	unique_column_names flag is incompatible with MultiIndex columns	bug	2023-02-21T10:03:02Z
+1094	OPEN	Can pandera be used to validate data in individual dictionary-like (e.g. JSON) structures?	question	2023-03-18T20:24:39Z
+1092	OPEN	Add support for subclassing Series in DataFrameModels	enhancement	2023-08-05T11:05:30Z
+1091	OPEN	Pandera-Schema Errors is not showing up all the occurrence of dataframe when the data set is large	question	2023-02-21T04:45:31Z
+1090	OPEN	Wide dataframe-level checks don't handle NaN as expected	bug	2023-02-21T11:44:58Z
+1089	OPEN	NaT coercion fails when entire column is NaT	bug	2023-12-11T22:40:16Z
+1087	OPEN	AttributeError: 'dict' object has no attribute 'pandera'	enhancement	2023-02-09T14:45:32Z
+1085	CLOSED	Support vaex	enhancement	2023-02-08T08:31:38Z
+1082	CLOSED	Allow fallback coercion function as column/field argument	enhancement	2023-03-14T21:16:11Z
+1081	OPEN	Disable runtime checking with configuration option (environment variable)	enhancement	2023-01-25T22:43:38Z
+1080	CLOSED	No row index provided in failure_cases["index"] after type check failure	bug	2023-11-22T13:39:53Z
+1078	OPEN	Support Dict, List generic types when using check_types for runtime validation	enhancement, help wanted	2023-03-20T17:18:44Z
+1077	CLOSED	SchemaModel in type hints	enhancement	2023-01-24T01:15:28Z
+1076	OPEN	Support for `typing.Literal` as a type in Column/Series	enhancement	2025-03-19T10:12:12Z
+1073	OPEN	error when failing to coerce Category is wrong	bug	2023-01-20T17:15:40Z
+1072	OPEN	DRY implementation for changing expected dataframe library	enhancement	2023-01-27T11:30:43Z
+1071	OPEN	`validate` is slow with when coercing several hundreds columns.	bug	2025-02-14T22:11:55Z
+1070	OPEN	Pydantic model with Dask dataframe+pandera schema	enhancement	2023-01-19T17:14:09Z
+1069	OPEN	Specify columns shown in failure cases for wide checks	enhancement	2023-01-19T14:25:05Z
+1068	OPEN	Use pydantic object for column validation	question	2023-08-08T09:08:56Z
+1066	OPEN	Pyspark UserWarning generated on DataFrameSchema().validate()	bug	2023-01-09T19:25:05Z
+1065	CLOSED	Dynamical schema using SchemaModel	question	2023-01-11T16:25:53Z
+1064	CLOSED	Support for `polars`	enhancement	2024-07-01T22:58:38Z
+1062	CLOSED	Cannot have type `List[str]`? - `TypeError: Cannot interpret 'typing.List[str]' as a data type`	bug	2023-01-03T20:40:24Z
+1061	OPEN	[CI] Create test matrix for pandera extras	continuous integration	2022-12-20T18:22:05Z
+1059	CLOSED	Getting "TypeError: type of out argument not recognized: <class 'str'>" when using class function with Pandera decorator	question	2022-12-19T19:55:28Z
+1058	CLOSED	Explain the distinction between different engines dtypes	docs	2023-05-07T20:50:26Z
+1053	OPEN	Expected series to have type str, got string	question	2022-12-20T14:35:58Z
+1051	CLOSED	Pandas nullable String dtype is not recognized as a Pandera String	bug	2022-12-14T15:28:08Z
+1049	CLOSED	MultiIndex with a str dtype schemas can produce invalid examples	bug	2024-02-19T04:11:05Z
+1048	CLOSED	Pandera not recognizing int column as pandera.Int value	question	2023-04-11T00:40:00Z
+1046	CLOSED	Coercing DateTimeIndex fails starting with Pandera v0.13.4	bug	2023-02-20T16:02:27Z
+1042	OPEN	Pandera Airflow Operator	enhancement	2022-12-08T21:25:07Z
+1038	OPEN	Deprecated call to `astype` in schema.example() for timezone-aware datetime conversions	bug	2022-11-30T21:49:22Z
+1037	OPEN	`Series[pd.Int64Dtype]` cannot coerce columns with mixed string/int values	bug	2022-11-29T02:41:15Z
+1036	OPEN	light weight schema examples	enhancement	2022-11-24T19:14:12Z
+1032	OPEN	Cannot set pa.Column.nullable after it's been set	bug	2022-11-23T14:12:12Z
+1030	OPEN	Add support for attaching arbitrary metadata to schemas	enhancement	2023-07-03T11:27:28Z
+1029	OPEN	Add support for tags	enhancement, help wanted	2023-04-17T18:05:59Z
+1028	OPEN	Extended from_format, to_format support	enhancement	2022-11-21T17:50:34Z
+1026	CLOSED	ImportError: cannot import name 'validate_arguments' from 'pydantic'	bug	2022-11-22T09:07:06Z
+1025	CLOSED	Multi-Level Column Headers	enhancement	2022-11-21T17:09:10Z
+1024	CLOSED	Inheritance of Config in SchemaModel	bug	2022-11-18T09:32:11Z
+1021	CLOSED	`pandera.check_types` causes `ValueError: no results` for functions called by `pandas.DataFrame.apply`	bug	2022-12-12T14:45:33Z
+1020	CLOSED	Check_types doesnt check Series	bug	2022-11-16T14:36:52Z
+1019	OPEN	Argument Passing to SchemaModel	enhancement	2022-11-14T21:59:19Z
+1018	OPEN	Dependency error with typing-extensions	bug	2022-11-17T16:12:26Z
+1016	CLOSED	DataFrameSchema.__init__ validate_arguments	enhancement	2022-11-16T14:39:32Z
+1013	CLOSED	Unhashable values don't get handled properly on failing checks in layz validation	bug	2022-11-10T00:56:58Z
+1009	CLOSED	Schema Models for SeriesSchema	question	2022-11-07T19:06:54Z
+1008	CLOSED	Columns of type Decimal with scale=0 don't get handled correctly	bug	2022-11-10T18:19:38Z
+1004	CLOSED	Type hints usage	question	2022-11-17T16:34:37Z
+1003	OPEN	Try to parse lambda function string to automatically name lambda Checks	enhancement	2022-11-03T18:22:07Z
+1002	OPEN	Cannot install using conda due to version conflicts	bug	2023-03-23T22:26:13Z
+997	OPEN	DataFrame level checks on columns not in dataframe raise KeyError	bug	2022-11-02T17:37:49Z
+996	CLOSED	Config option `strict = "filter"` does not work on spark dataframes	bug	2022-11-03T19:44:15Z
+993	CLOSED	Output from `schema.to_script()` no longer works as standalone script	bug	2022-11-01T19:15:31Z
+992	OPEN	Create empty dataframe from schema	enhancement	2023-08-18T20:03:39Z
+988	CLOSED	Inferred schema fails to generate example	bug	2022-11-17T02:33:15Z
+987	CLOSED	Remove columns on a SchemaModel	enhancement	2022-10-28T13:35:46Z
+986	OPEN	RFE: Add multiple inheritance to documentation	docs	2022-10-28T21:45:31Z
+984	CLOSED	Ensure statistics-arguments in extensions.register_check_method line up with with the decorated args/kwargs	enhancement	2022-10-25T18:15:07Z
+983	CLOSED	Are Configs not inherited by design?	question	2022-10-28T21:52:30Z
+981	OPEN	Create DBT plugin to support dataframe validation in DBT pipelines	enhancement	2022-10-24T14:23:10Z
+980	CLOSED	Add class name for methods in validation error message	enhancement	2022-10-26T13:24:02Z
+977	CLOSED	`pa.check_types` doesn't seem to work with Union of multiple pandera types	bug, help wanted	2022-11-11T14:55:26Z
+976	CLOSED	Unexpected behavior with `coerce=True` in DataFrameSchema	bug	2022-10-26T19:13:32Z
+974	CLOSED	Wrong calculation and kwarg in custom check docs	docs	2022-10-21T15:11:47Z
+971	CLOSED	Pandas deprecated `(timezone naive timestamp).astype(timezone aware dtype)`		2022-10-31T01:48:34Z
+970	OPEN	Look into adding support for GPU runners on CI		2022-10-19T21:34:10Z
+968	CLOSED	Unnecessary pandas-stubs pin	bug	2022-11-04T14:35:20Z
+967	OPEN	Request: A date-time type that is timezone aware, or any timezone.	enhancement	2023-02-03T16:05:17Z
+966	CLOSED	Pandera dataframe in Pydantic model .dict() and .json() compatability	question	2022-10-24T14:20:51Z
+963	OPEN	Validate schema against another schema	enhancement	2022-10-26T14:35:46Z
+959	CLOSED	mypy: pa.typing.Series does not support pd.DatetimeTZDtype as a type argument	bug	2022-10-10T12:42:56Z
+954	CLOSED	Bug: mypy complains about datetime.date / pandera.Date type	bug, help wanted	2022-10-09T00:07:11Z
+953	OPEN	Is it possible to convert a DataframeSchema to a SchemaModel for typing?	question	2022-10-09T03:08:46Z
+949	OPEN	Accept multiple strings in str_endswith and str_startswith	enhancement	2022-10-04T11:02:01Z
+947	OPEN	Pandas 1.5 support	enhancement	2022-09-21T17:53:43Z
+946	CLOSED	pandera 0.12.0 does not support Python 3.7	bug	2022-10-18T18:34:40Z
+945	OPEN	Integration: Daft Dataframes		2024-11-23T17:48:21Z
+942	CLOSED	Not require `coerce == True` for PydanticModels	bug	2022-11-10T05:43:18Z
+940	CLOSED	`DataFrameSchema.rename_columns` doesnt allow no-op mapping	bug	2022-09-27T18:40:24Z
+939	OPEN	pa.SeriesSchema with a dtype do not verify the actual values within a pd.Series are that type	bug	2023-11-13T19:54:05Z
+937	CLOSED	Schema with MultiIndex's subindex dtype declared as something other than 'object' fails to validate an empty dataframe	bug	2022-10-05T13:22:21Z
+935	OPEN	mypy incompatible return value type	question	2022-11-04T15:52:39Z
+933	OPEN	pandera import failing because of spark	bug	2022-11-18T09:33:11Z
+932	OPEN	@pa.check_types won't validate in MyPy using type hints that trigger the method	question	2022-09-01T08:32:38Z
+931	OPEN	Non-informative message in case of categorical data	bug	2022-11-17T16:18:59Z
+930	OPEN	Best way to integrate parsing logic	question	2022-08-31T02:36:04Z
+929	OPEN	Custom checks lost after to_yaml	bug	2024-08-13T16:06:53Z
+928	OPEN	AttributeError: Can't pickle local object 'Check.greater_than.<locals>._greater_than'	bug	2023-03-13T22:07:26Z
+926	CLOSED	Check schema with Decimal not working in Pandera	bug	2022-10-08T20:06:09Z
+925	CLOSED	MyPy failure with BOOL data type	bug	2022-10-31T02:09:37Z
+922	CLOSED	Failure to validate empty list	bug	2022-08-22T19:55:58Z
+921	OPEN	[Docs] Better documentation on data type overriding behavior	docs	2022-08-22T12:50:24Z
+920	CLOSED	Allow kwargs for dict from_format	enhancement	2024-03-27T01:38:10Z
+918	CLOSED	Make ``serialize_schema`` public or add ``to_json``/``from_json``	enhancement	2022-10-31T08:14:50Z
+911	OPEN	Does pandera support validating enum.Enum or subclases of it ?	enhancement	2025-05-01T14:42:58Z
+910	CLOSED	DataFrameSchema.from_yaml ignores "ordered"	bug	2022-10-31T02:10:04Z
+906	CLOSED	Apply checks to uncoercible column	enhancement	2022-10-31T02:10:19Z
+904	CLOSED	Implicit ignore_na=True behaviour causes custom dataframe checks to be ignored by default	bug	2022-08-11T01:58:45Z
+903	OPEN	DataFrame level checks on columns that are not in dataframe raise KeyError	question	2023-06-01T10:07:24Z
+902	CLOSED	`err.failure_cases` should include all values violating unique constraint	enhancement	2022-10-24T15:44:24Z
+897	CLOSED	BaseConfig.multiindex_strict type hint	bug, good first issue	2022-08-01T00:35:05Z
+896	OPEN	Dtype inconsistency when generating examples from SchemaModel	bug	2022-07-28T07:07:38Z
+893	CLOSED	Possible to add missing columns?	question	2022-07-20T14:07:18Z
+892	OPEN	Pydantic types support	enhancement	2025-05-08T13:33:49Z
+891	CLOSED	Convert `DataFrameSchema` to `SchemaModel`, and infer `SchemaModel`.	enhancement	2022-07-20T14:34:41Z
+890	OPEN	Accept NewType for @pa.check_types	enhancement	2022-07-20T14:39:30Z
+889	OPEN	Accept pythonic schema model with @pa.check_io	enhancement	2022-07-20T14:38:05Z
+888	OPEN	Check the return value with @pa.check_types	question	2022-07-18T08:19:14Z
+885	OPEN	Description of field of schema model does not make it into FastAPI openapi.json		2022-07-21T16:15:11Z
+884	OPEN	SchemaModel.validate on PySpark with pandas_api coerces string into NaN	bug	2022-07-20T15:12:38Z
+883	OPEN	Missing invalid values under failure_cases column in err.failure_cases after try-except lazy-evaluating DataFrameSchema.validate(DataFrame, lazy=True)	bug	2022-07-08T15:49:08Z
+882	CLOSED	Doesn't show all errors even though lazy = True + `coercing` twice on a column	enhancement	2022-08-11T14:16:53Z
+881	OPEN	date32 type not supported using infer_schema	enhancement	2022-08-11T16:02:03Z
+880	OPEN	Look into `returns` library for higher-kinded types		2022-11-23T00:31:27Z
+878	OPEN	WhyLogs integration: support stateful pandera schemas backed by whylogs profiles	enhancement	2022-06-21T16:35:58Z
+876	CLOSED	On coerce failure, pandera runs `coerce_value` for each element which is slow	enhancement	2022-06-24T13:56:43Z
+875	CLOSED	Allow mixed timezone and non-timezone coercion in timestamp column	enhancement	2022-06-16T13:47:07Z
+874	CLOSED	Coercing to float64 using custom data type does not work	bug	2022-06-20T19:19:54Z
+873	OPEN	Check.name not used in violaton reporting in column "Check"	bug	2022-06-16T13:37:52Z
+872	OPEN	Ability to report a single failure per row for row-level check functions returning boolean series	enhancement	2022-08-17T15:01:51Z
+871	OPEN	Dask DataFrame filter fails	bug	2022-06-01T14:35:43Z
+869	OPEN	Multiindex unique does not get passed in Schema model	bug	2022-05-31T21:17:49Z
+868	OPEN	Nullable columns in ModelSchema result in TypeError when converting to Hypothesis strategy	bug	2022-05-31T12:10:11Z
+867	CLOSED	Name of single index is None in SchemaModel	bug	2022-08-22T12:58:45Z
+866	OPEN	Dead header "Ordered columns" still present in docs. Seemingly superseded by "Validating the order of the columns"	help wanted, docs	2022-11-03T17:59:16Z
+864	OPEN	Custom messages when `SchemaError` is raised without any `Check` available	enhancement	2023-05-15T17:20:35Z
+863	CLOSED	MultiIndex dropped by reset_index with default argument	bug	2025-01-17T19:54:29Z
+851	OPEN	PyArrow as optional dependency	enhancement	2022-07-14T10:21:29Z
+850	CLOSED	missing from_record mehtod wich resturns DataFrame[Schema]	enhancement	2022-10-18T15:19:40Z
+848	OPEN	Enable poetry tooling in pyproject.toml	enhancement	2022-05-16T02:07:10Z
+842	OPEN	Built in checks for Time series dataframes	enhancement	2024-03-12T03:04:47Z
+840	OPEN	Index of type category fails on validation	bug	2022-08-06T21:00:47Z
+839	CLOSED	Make declarative and imperative schema declaration result in the same type	enhancement	2022-04-22T19:22:47Z
+838	CLOSED	hypothesis.errors.Unsatisfiable on Schema.to_schema().example() when SchemaModel has more than 38 fields	bug, help wanted	2022-11-03T18:00:04Z
+836	CLOSED	How to use pandera in conjunction with typeguard and/or as a type checker for the other arguments?	question	2022-04-21T12:55:31Z
+834	CLOSED	pa.infer_schema throws TypeError when column is null and dtype is object	bug	2022-09-21T20:06:19Z
+832	CLOSED	Question: Custom DataFrame Check Method based on NaN Verification	question	2022-04-17T06:37:39Z
+829	CLOSED	What is the best way to handle dates in a SchemaModel?	question	2022-04-19T12:21:50Z
+828	OPEN	Column metadata		2023-03-24T16:20:22Z
+826	CLOSED	Missing failure case in SchemaError when coercing integer-like strings to datetime	bug	2022-04-21T13:06:05Z
+824	OPEN	Schemas in Tuples are not typechecked	enhancement	2022-04-07T13:29:01Z
+823	CLOSED	Nested Datatypes specified in schema	question	2022-04-07T19:25:45Z
+821	CLOSED	Pandera-Schema Model-Showing incorrect results for Integer column validations	question	2022-04-17T14:19:11Z
+820	CLOSED	Check Types not working for multiple DataFrame outputs	enhancement	2022-04-07T13:29:15Z
+816	CLOSED	Spark dataframe support	enhancement	2022-04-21T13:03:23Z
+814	CLOSED	Lazy SchemaErrors should contain schema name	enhancement	2022-05-11T13:01:14Z
+812	OPEN	Remove pylint	infrastructure, testing	2022-03-31T02:53:42Z
+809	OPEN	Include DataFrameSchema and Column description attribute in serialization	enhancement	2022-06-21T01:03:43Z
+808	OPEN	Add special case to check values of `str` column	bug	2022-03-29T12:57:53Z
+806	OPEN	Expand pa.Check built-in methods	enhancement	2022-11-17T16:11:00Z
+802	OPEN	Pydantic Model <-> jsonschema <-> Pandera Schema	enhancement	2022-03-26T15:53:51Z
+800	CLOSED	🐛 `pa.Index`'s `unique` attribute is not persisted when serializing the schema	bug	2022-03-26T16:55:27Z
+797	CLOSED	Unable to install Pandera due to Cython module not found	question	2022-05-16T02:08:50Z
+796	CLOSED	Pandera Int type doesn't allow nullable values in column when coerce param is true		2022-03-21T13:07:40Z
+794	OPEN	Benchmark: PydanticModel validation vs equivalent Pandera schema	help wanted, benchmarking	2022-03-20T03:44:18Z
+791	OPEN	Checks at the DataFrameSchema-level in case lambda return Series of Booleans or boolean with element_wise=True.	bug	2022-03-16T13:14:55Z
+788	OPEN	Add support for logical data types	enhancement	2022-03-11T19:29:42Z
+786	OPEN	use mypy pre-commit instead of nox		2022-03-09T02:48:21Z
+785	OPEN	Look into pingouin for more statistical hypothesis checks		2022-03-08T16:36:15Z
+778	OPEN	Adding soft-dependency exceptions	enhancement, help wanted	2022-03-26T15:58:51Z
+775	CLOSED	multiple possible datatypes for one column	question	2022-03-05T15:01:15Z
+774	OPEN	Conditional checks	enhancement	2022-03-04T07:46:25Z
+773	CLOSED	when generating examples between 2 dates: hypothesis.errors.Unsatisfiable: Unable to satisfy assumptions of example_generating_inner_function	bug	2022-03-26T15:57:26Z
+771	CLOSED	pass date format for coerce date	enhancement, question	2022-03-05T15:02:28Z
+769	CLOSED	SchemaModel ignores coerce=True in initialiser constructor	bug	2022-03-02T00:37:28Z
+768	OPEN	Poor interaction between categorical dtype, coerce=True and nullable=True	bug	2022-03-01T01:22:41Z
+766	CLOSED	Lazy validation error if no field is found in dataframe	bug	2023-03-09T22:07:48Z
+765	CLOSED	Performance issue with strict='filter'	enhancement	2022-03-09T02:54:24Z
+764	CLOSED	Dataframe schema from Pydantic record model	enhancement, help wanted	2022-03-26T15:54:19Z
+763	CLOSED	Mypy - SchemaModel.validate does not return a DataFrame	bug	2025-02-17T17:49:39Z
+762	CLOSED	Migrate deprecated koalas api to pyspark.pandas	enhancement, help wanted	2022-03-22T12:45:40Z
+760	CLOSED	Propagate SchemaModel class name as name attribute of DataframeSchema	enhancement, question	2022-03-02T13:56:20Z
+757	CLOSED	From DataFrameSchema to SchemaModel?	question	2022-08-11T19:06:29Z
+756	CLOSED	Import error in FastAPI	question	2022-02-02T03:57:33Z
+750	CLOSED	Adding new level to MultiIndex raisese error	bug	2022-01-28T04:02:35Z
+749	CLOSED	Best way to check if one of the columns present or not	question	2022-02-26T20:40:06Z
+745	CLOSED	Fix strategies bug in pandas==1.4.0	bug	2022-01-28T04:00:30Z
+744	OPEN	Consider support the PETL library	enhancement	2022-02-01T01:40:38Z
+743	OPEN	Soft schema check decorators which log schema errors rather than raising an exception	enhancement, help wanted	2022-02-23T18:59:25Z
+742	OPEN	add "nullable" option to SchemaModel Config class	enhancement, help wanted	2024-05-20T15:57:01Z
+738	CLOSED	Regression: SchemaModel.field no longer resolves to `str` (descriptor typing needed)	bug	2022-01-28T04:01:25Z
+737	CLOSED	Tests are mistakingly included into the wheel	bug	2022-01-28T04:01:13Z
+736	OPEN	Add test matrix to README and docs	help wanted, docs	2022-01-14T03:12:02Z
+734	CLOSED	`@pa.dataframe_check` does not work correctly with pandas==1.1.5	bug	2022-02-10T13:44:49Z
+733	OPEN	write to YAML - support custom checks	enhancement, help wanted	2022-03-26T16:20:17Z
+730	CLOSED	Unexpected result of Wide Check for register_check_method	question	2022-01-11T22:53:44Z
+729	OPEN	Add option for specifying labels or indices as refferal to columns in Fields.	enhancement, help wanted	2022-03-27T13:29:14Z
+728	CLOSED	Support optional `description` (or `desc`) field on Column and Check objects	enhancement	2022-02-08T02:27:10Z
+726	OPEN	Default int type should be mapped to Int32 in Windows	bug, help wanted	2023-05-08T00:42:44Z
+725	CLOSED	pandera conda package should depend on pandera-core	bug	2022-03-08T12:54:57Z
+719	OPEN	lazy validation on dask dataframes should collect all errors	bug	2023-10-02T15:15:57Z
+718	CLOSED	Explicitly reexport in base init	bug	2021-12-23T04:31:13Z
+713	CLOSED	SchemaError breaks pickle	bug	2021-12-31T16:55:56Z
+709	CLOSED	Confusing message on coercion failure due to chained exceptions (Could not coerce <..> data_container into type ..)	question	2022-01-15T02:15:14Z
+707	CLOSED	Add config option to disallow duplicate column names	enhancement, help wanted	2022-03-27T13:30:02Z
+706	OPEN	Enable raising warning if optional column is missing	enhancement, help wanted	2021-12-14T18:50:37Z
+705	OPEN	Xarray integration	enhancement	2024-12-27T19:08:46Z
+699	OPEN	Add pre-commit hook to ensure environment.yml and requirements.txt are in sync	infrastructure	2021-12-08T01:47:18Z
+697	CLOSED	SchemaModel's index doesn't store the name	bug	2021-12-07T22:23:00Z
+695	OPEN	Support better custom error reporting	enhancement	2021-12-06T14:29:43Z
+694	CLOSED	raise_warning option in a Check is not kept when saving the Schema to yaml or script.	bug, help wanted	2024-12-03T21:15:17Z
+693	OPEN	How to properly extend pandas_engine.DataType to support geopandas	question	2021-12-07T22:35:52Z
+692	CLOSED	Modin data validation with ray backend in windows leads to CI failures	bug, help wanted	2022-04-07T03:09:07Z
+690	CLOSED	FastAPI integration	enhancement	2022-12-08T21:31:36Z
+689	OPEN	Generate pyarrow schema from pandera schema	enhancement	2024-12-22T07:49:21Z
+688	OPEN	SeriesModel -- support for defining an index on a series.	enhancement	2023-09-01T00:38:20Z
+687	OPEN	Add nullable column when missing.	enhancement	2022-07-20T14:33:29Z
+682	CLOSED	SchemaModel.validate sample, head, tail only work with hashable column types	bug	2021-11-29T19:24:28Z
+680	CLOSED	Nullable pandas BooleanDtype should be exposed as `pandera.typing.BOOL`	enhancement	2021-12-07T14:04:23Z
+679	CLOSED	`P.STRING` index not coercible with pandera[modin-ray]	bug	2021-11-16T17:43:17Z
+669	CLOSED	Data synthesis with a simple schema with datetime (equivalent to random generation of floats)	bug	2021-11-16T13:42:47Z
+666	CLOSED	Using regex for column names in SchemaModel	question	2021-11-03T09:26:43Z
+664	CLOSED	is it possible to have nullable field but also use coerce?	question	2021-11-11T04:26:26Z
+663	CLOSED	Update contributing documentation: how to add dependencies	docs	2021-12-14T20:02:56Z
+661	CLOSED	Wide check bug	bug	2021-10-20T14:03:55Z
+656	CLOSED	How can I store lists in a column and validate it with Pandera?	question	2021-10-14T18:13:53Z
+652	CLOSED	Time taken to complete schema validation is more when the number of NULL values are more in the dataset	question	2021-10-25T12:53:45Z
+646	CLOSED	Print rows with invalid data type	question	2021-10-13T12:45:06Z
+644	OPEN	Should null values be counted as duplicates: Expected behavior for nullable=True and unique=True	question	2025-05-07T10:21:49Z
+640	CLOSED	Over ten times worse `example()` performance when field is `nullable`.	bug	2021-10-04T21:48:40Z
+639	CLOSED	dateutil parser error when coercing	bug	2021-10-10T21:40:27Z
+635	CLOSED	Version 0.7.2 has not been deployed on PyPi	bug	2021-09-26T20:31:17Z
+634	CLOSED	Unsatisfiable when field is nullable and size 0.	bug	2021-09-29T12:57:36Z
+633	CLOSED	TypeError when using numpy.intc		2021-09-28T03:52:43Z
+632	CLOSED	Set Name of Index	question	2021-09-22T20:56:38Z
+625	CLOSED	pandas Dataframe with 1 row results in AssertionError during call to validate	bug	2021-09-19T12:18:31Z
+623	CLOSED	Cannot import Pandera due to missing np.float128	bug	2021-09-23T00:29:59Z
+618	CLOSED	`Check.in_range` not working properly with `Timedelta` types	bug	2021-09-14T23:51:14Z
+614	CLOSED	[Question] ModuleNotFoundError: No module named 'pandera' when inside FastAPI	question	2021-10-14T19:47:21Z
+612	CLOSED	[Question] How to truncate pa.DateTime	question	2021-10-14T19:47:34Z
+610	CLOSED	[Question] How to have field concat from two calculations	question	2021-10-14T19:47:44Z
+607	CLOSED	[Question] How to specify unique row and calculated hash?	question	2021-10-14T19:48:31Z
+606	CLOSED	zsh: no matches found: pandera[all]	question	2021-09-09T00:59:34Z
+605	OPEN	Tuple index out of range?	question	2021-09-08T13:24:31Z
+604	CLOSED	[Question] How to append to the left of original when using add_column?	question	2021-10-14T19:48:50Z
+603	CLOSED	Check from a lookup, generate fake CSV data and append additional columns?	question	2021-10-14T19:49:54Z
+601	CLOSED	add support koalas and modin	enhancement	2021-12-07T14:04:57Z
+596	CLOSED	KeyError is raised when synthesizing data with schema strategy on schema with regex column and a custom column check	bug	2021-12-06T14:23:35Z
+591	CLOSED	String length constraint not read correctly when creating pandera schema from a frictionless schema	bug	2022-04-25T20:22:52Z
+590	CLOSED	Great Expectations vs Pandera	question	2021-09-06T15:58:58Z
+589	CLOSED	ValueError raised in pandas when lazy validating DataFrame with MultiIndexed Columns	bug	2021-09-14T23:50:56Z
+587	CLOSED	Allow for composite primary keys when creating schema from frictionless schema.	enhancement	2021-09-09T00:59:09Z
+586	CLOSED	Support for JSON schema	enhancement	2021-08-15T13:22:20Z
+583	CLOSED	Serialization to YAML with custom checks (statistic has a different type than the variable itself (datetime, pandas freq))	bug	2021-08-06T01:48:49Z
+582	OPEN	unable to use error="Custom Error" in in_range function		2022-04-07T03:08:14Z
+577	OPEN	Set default Check n_failure_cases to None and add documentation for n_failure_cases behavior	bug, help wanted, good first issue	2023-09-10T06:13:21Z
+566	CLOSED	Fix regex selection examples	help wanted, good first issue, docs	2021-07-25T18:50:26Z
+565	OPEN	Create google colab and binder "try pandera" example	enhancement, good first issue, docs, scipy 2021	2023-08-07T03:52:46Z
+563	CLOSED	A setter method missing for the `ordered` attribute of `DataFrameSchema`	enhancement, help wanted, good first issue, scipy 2021	2021-07-19T02:17:05Z
+562	OPEN	Create schema from a pandas-profiling ProfileReport	enhancement, scipy 2021	2021-07-17T15:22:58Z
+561	OPEN	Pandera strategy re-write: improve base implementation and add API for custom strategies and global schema-level override strategy	enhancement, help wanted	2024-05-10T18:20:36Z
+557	CLOSED	`DataFrame`-level row-wise checks on a `DataFrame` with a `MultiIndex` fail with `TypeError` and fail to print failure cases	bug	2021-07-25T19:25:56Z
+556	OPEN	improve performance of slow strategy tests using hypothesis in python 3.7	bug, continuous integration	2021-07-13T20:50:07Z
+555	OPEN	fix CI issue with Windows python 3.7, 3.9 suspected problem with pyarrow string representation	bug, help wanted, continuous integration	2021-07-13T13:43:44Z
+549	CLOSED	[Dtype refactor] Document access to pandas native dtype	discussion needed	2021-08-06T02:08:39Z
+545	CLOSED	Is Lazy Validation in DataFrameSchema not evaluating all checks in the column intended?	question	2021-07-12T15:03:15Z
+544	CLOSED	Enable decorators on coroutines (async functions/methods)	enhancement	2021-07-12T14:11:56Z
+542	CLOSED	Pydanitc-style validators	question	2021-07-15T14:40:49Z
+539	CLOSED	add backwards compatibility measures for type engine	enhancement	2021-07-10T20:11:00Z
+538	OPEN	How to define a strategy function for a custom wide check	question	2022-09-21T15:29:46Z
+534	CLOSED	Parameterized dtype DatetimeTZDtype failing when used as a strategy?	question	2021-10-13T20:56:53Z
+533	CLOSED	coerce=True does not report row index	bug	2021-08-02T13:52:00Z
+532	CLOSED	validate function run on DataFrameSchema w/ lazy=true doesn't report all violations on non nullable column	bug	2021-07-12T14:59:11Z
+531	CLOSED	Validate function run on DataFrameSchema with lazy=True doesn't report all error schema violations (reopen)	bug	2021-07-12T13:06:50Z
+527	CLOSED	Validate function run on DataFrameSchema with lazy=True doesn't report all error schema violations	bug	2021-06-28T15:40:56Z
+525	CLOSED	DataFrameSchema with column of type pa.Float will raise SchemaError on validating DataFrame with float32 column	bug	2021-07-03T13:51:21Z
+524	CLOSED	pa.dataframe_check causes generated data to be invalid	question	2021-07-12T13:16:56Z
+523	CLOSED	check_types decorator does not work on methods	bug	2021-07-06T21:22:18Z
+522	CLOSED	SchemaModel does not support empty data type	bug	2021-09-23T20:45:08Z
+521	CLOSED	Integer as column names	enhancement, help wanted	2021-07-12T21:29:16Z
+518	CLOSED	Column with type pd.DatetimeTZDtype(tz="UTC") does not validate time zone	bug	2021-06-21T12:01:09Z
+516	CLOSED	@pa.dataframe_check fails to identify issues in rows with NAs	bug	2021-06-16T16:42:20Z
+515	OPEN	Ability to make checks with lambda functions on nullable int columns (Pandas' `Int64`)	enhancement	2021-09-01T16:35:03Z
+513	CLOSED	lazy validation for multiple checks per column	question	2021-06-27T17:51:36Z
+511	CLOSED	Improve warning message when using the same Column object multiple times in DataFrameSchema	enhancement	2022-12-16T19:41:51Z
+509	CLOSED	check_types decorator cause error with typing.Literal	bug	2021-06-26T14:19:21Z
+507	CLOSED	Support for columns with only NaN values as non-float type	enhancement	2021-06-02T01:56:30Z
+503	CLOSED	Regex not applied as expected	bug	2021-05-27T18:05:14Z
+502	CLOSED	option to specify default value upon validation coercion	enhancement, help wanted	2023-04-17T17:59:45Z
+501	CLOSED	Add documentation for type coercion behavior	help wanted, good first issue, docs, scipy 2021	2023-08-26T15:41:26Z
+493	OPEN	create automated github action for producing ASV benchmarks	help wanted, infrastructure, scipy 2021	2021-07-17T15:23:40Z
+492	CLOSED	Add documentation for importing frictionless schemas	help wanted, good first issue, docs, scipy 2021	2021-07-25T15:31:40Z
+491	CLOSED	Replace '%s' string formatting with f-strings	help wanted, good first issue	2021-07-12T01:55:17Z
+488	OPEN	Refactor groupby behavior, add agg function to Checks, support error callback option	enhancement	2023-09-25T16:51:15Z
+486	CLOSED	[accidentally opened issue]	bug	2021-05-07T23:12:14Z
+484	CLOSED	Lazy validation is missing errors	bug	2021-07-26T15:11:04Z
+483	CLOSED	Better error message when validating pandas.MultiIndex with a pandera.Index schema	bug, help wanted, good first issue	2021-07-12T14:19:17Z
+481	CLOSED	Bug on re-adding removed column check	bug	2021-05-09T17:08:44Z
+480	OPEN	Registered checks with no statistics accept positional arguments	bug	2021-05-02T14:57:10Z
+475	CLOSED	Error after upgrade to 0.6.3	bug	2021-05-03T16:53:12Z
+474	CLOSED	Indexes list includes Column type	bug	2021-05-01T02:15:00Z
+473	CLOSED	Dataframe schema coerce question	question	2021-05-16T15:17:31Z
+472	CLOSED	Return groupby object optionally	enhancement	2021-05-16T15:37:12Z
+471	CLOSED	Schema validation throws unexpected error	bug	2021-04-30T12:37:49Z
+470	OPEN	Integrate with Factory Boy? Or other solution?	enhancement	2021-05-02T21:38:56Z
+469	CLOSED	Copy Dataframe schema settings to another schema	question	2021-04-27T15:10:44Z
+467	OPEN	validate function should throw a more informative error for non-dataframe arguments	bug, help wanted	2021-04-22T13:01:18Z
+466	OPEN	Less strict numerical type	enhancement, help wanted, future	2024-03-19T16:48:11Z
+461	CLOSED	Dynamical schema	question	2021-04-20T01:44:22Z
+460	CLOSED	check_types decorator input doesn't coerce	bug	2021-04-18T13:09:03Z
+457	CLOSED	check_types decorator output doesn't coerce	bug	2021-04-14T13:09:52Z
+456	CLOSED	Allow a check to fail on specified fraction of rows	enhancement	2021-04-22T13:19:02Z
+455	OPEN	pre-commit using old pylint version	bug	2021-04-06T20:10:15Z
+453	CLOSED	Extend SchemaModel so that it's a valid type in a pydantic model	enhancement	2021-11-16T22:38:38Z
+452	CLOSED	Regex columns to synthesize >1 column	enhancement	2021-03-30T16:58:17Z
+451	CLOSED	Re-implement lazy-executable Pandas API for Pandera	enhancement	2022-03-26T18:09:04Z
+445	CLOSED	SchemaModel inheritance field alias propagation	bug	2021-03-29T12:55:05Z
+442	CLOSED	Add support for `pandas.BooleanDtype`		2021-04-21T13:21:54Z
+440	CLOSED	Add description argument to Field function for documentation purposes	enhancement	2021-03-24T11:59:04Z
+439	CLOSED	Use of CategoricalDtype in schema model does not validate that categories are correct	bug	2021-03-28T01:18:39Z
+433	CLOSED	Mixins with only dataframe_checks cause error in SchemaModel	bug	2021-03-18T12:48:41Z
+432	CLOSED	Empty data type not supported for yaml serialization	bug	2021-03-14T20:35:58Z
+430	CLOSED	DataFrameSchema.__eq__ fails when other object is not a DataFrameSchema	bug	2021-03-12T22:55:47Z
+429	CLOSED	Is there a way to generate informative error on custom checks?	question	2021-05-08T16:43:51Z
+427	CLOSED	SchemaModel with nullable Config property fails to validate correctly	bug	2021-02-26T17:17:07Z
+426	OPEN	Implement CLI for pipeline profiling and reports	enhancement	2021-02-26T02:50:16Z
+425	OPEN	Implement error report aggregator	enhancement	2025-05-18T22:07:57Z
+422	CLOSED	Coercion Converting Non-String Object to String	bug, question	2021-02-24T23:52:50Z
+421	OPEN	Import/export json-schemas and OpenAPI schemas	enhancement, help wanted	2023-11-16T13:40:14Z
+420	CLOSED	Import frictionless data table schemas and json-schemas	enhancement, help wanted	2021-05-08T15:29:30Z
+419	CLOSED	`to_yaml` silently drops global checks	bug, help wanted	2021-03-24T12:52:53Z
+418	CLOSED	schema serialization doesn't work for non PandasDtype types.	bug	2021-02-25T17:53:18Z
+414	CLOSED	improve contribution instructions and expose in the docs	docs	2021-02-15T22:29:27Z
+408	CLOSED	Lazy evaluation raises SchemaError instead of SchemaErrors	bug	2021-02-15T21:13:52Z
+407	CLOSED	Lazy evaluation fails to identify series errors	bug	2021-02-11T02:54:23Z
+406	CLOSED	Schema Versioning?	question, discussion needed	2021-05-16T16:05:19Z
+404	CLOSED	Make Hypothesis strategies more efficient with statistics resolver and reducing use of `.filter()`	enhancement	2024-02-22T23:29:47Z
+403	OPEN	Decouple MultiIndex schema component from DataFrameSchema	enhancement	2021-02-05T14:22:30Z
+399	CLOSED	Parse Hypothesis strageies for schema inference, validation, and synthesis	enhancement	2021-02-13T18:54:19Z
+398	CLOSED	DFs synthesized from regex=True do not satisfy schema	bug	2021-02-13T16:14:16Z
+397	CLOSED	drop support for pandas 0.25.3	enhancement	2021-10-20T02:15:31Z
+396	CLOSED	check_types decorator does not resolve delayed annotations.	bug	2021-04-18T13:12:11Z
+393	OPEN	Generate SchemaModels from DataFrameSchemas	enhancement, help wanted	2023-05-12T18:52:03Z
+392	OPEN	Parsing function signatures in a codebase to build a data flow graph	enhancement	2021-02-25T21:50:58Z
+390	CLOSED	Add `unique` keyword option to all schemas and schema components	enhancement	2021-12-06T14:23:57Z
+387	CLOSED	mypy complains that registered checks are not a valid Check attribute	bug	2021-01-24T22:32:47Z
+384	CLOSED	Pin packaging to >= 20	bug	2021-01-13T14:51:28Z
+383	CLOSED	Support built-in dataframe checks and dataframe-level options	enhancement, help wanted	2021-05-08T15:29:03Z
+382	CLOSED	Check dataframe size?	question	2021-01-12T22:36:05Z
+381	CLOSED	Abstract out validation logic to support non-pandas dataframes, e.g. spark, dask, etc	enhancement	2023-01-24T21:15:49Z
+378	CLOSED	Validating optional columns with a pandera type causes TypeError in SchemaModel	bug	2021-01-09T02:13:46Z
+376	CLOSED	Timezone-aware DateTimes are failing in pandera's schemas	enhancement	2021-02-04T02:23:38Z
+372	CLOSED	SchemaModel not able to use registered checks	bug	2021-01-01T22:43:59Z
+371	OPEN	Support data synthesis strategies for joint distributions	enhancement, discussion needed	2021-02-07T15:05:42Z
+370	OPEN	Implement data synthesis strategies for hypothesis checks	enhancement	2020-12-31T00:10:38Z
+369	CLOSED	Decouple pandera and pandas type systems	enhancement, discussion needed	2021-08-24T20:14:26Z
+367	CLOSED	Coerce is being used when required=False on columns that do not exist causing KeyError	bug	2021-01-05T14:38:52Z
+365	CLOSED	Column coerce not working for pandera.String type when handling Null values from pd.read_csv()	bug	2020-12-24T19:22:20Z
+364	CLOSED	For the SchemaModel, allow access to column names through class attributes	enhancement	2021-02-04T02:23:48Z
+361	CLOSED	Setting strict to false in SchemaModel does not ignore unspecifed columns in schema	bug	2020-12-17T02:58:58Z
+357	CLOSED	SchemaModels: Inheritance problem related to coercion	bug	2020-12-17T19:38:05Z
+356	CLOSED	Memory problem while using the dataframe schema validation		2020-12-17T19:40:46Z
+350	CLOSED	Write documentation for data generation strategies, custom check registration, ordered columns	docs	2020-12-19T23:35:31Z
+345	CLOSED	Duplicated column names are not supported	bug	2020-12-11T00:01:54Z
+342	CLOSED	Ordered columns	enhancement	2020-12-14T01:21:37Z
+341	CLOSED	__str__ and __repr__ of MultiIndex schema component should be unique	enhancement, good first issue	2021-02-15T20:20:45Z
+338	CLOSED	Catching and output dataframe elements that are causing the schema errors	question	2020-12-13T17:33:19Z
+335	CLOSED	io requires packaging dependency but it is not specified in setup.py	bug	2020-12-20T03:59:47Z
+332	OPEN	check_output : option to turn down checks if output is empty	enhancement, help wanted	2025-05-05T12:45:59Z
+331	OPEN	Titles, aliases, and description for SchemaModels	enhancement, help wanted	2021-05-08T15:32:58Z
+330	CLOSED	Adding update_columns for multiple column updates	enhancement	2020-12-09T20:25:59Z
+328	CLOSED	Add support for registering custom checks, statistics, strategies	enhancement	2020-12-24T19:39:06Z
+327	CLOSED	Add documentation for DataFrameSchema transformations	docs	2020-12-14T01:49:33Z
+324	CLOSED	SchemaModel support for columns which are not valid python variable names	enhancement	2020-11-25T09:11:42Z
+323	CLOSED	SchemaError on index name for single-index dataframe when using SchemaModel	bug	2020-11-22T01:00:50Z
+321	CLOSED	Add types_only kwarg to the validate method	enhancement	2020-12-19T23:50:19Z
+320	OPEN	pandas_dtype_strategy supports Category dtype	enhancement	2021-11-22T23:21:33Z
+317	CLOSED	ignore_na drops elements/rows after passing through the check function	enhancement	2020-12-17T15:09:20Z
+316	OPEN	Add section about `ignore_na` in the Checks user guide	good first issue, docs, scipy 2021	2021-07-17T15:24:13Z
+315	CLOSED	Dataframe Check: rows selected by **Pandera** to input validation function are affected by NaN values	question	2020-10-30T13:38:28Z
+313	CLOSED	Tips to define `checks` list inside a loop using the same `check_fn` with different `k_args`	question	2020-10-29T14:49:00Z
+312	CLOSED	Differentiate between PandasDtype.Str and PandasDtype.String	enhancement	2020-11-14T05:58:21Z
+311	OPEN	Replace instances of pa.PandasDtype enum with python, numpy, pandas types	good first issue, docs	2023-08-07T03:59:10Z
+302	CLOSED	Love the work you guys are doing, I am interested in using this in flytekit	question	2021-01-12T00:16:54Z
+301	CLOSED	Validation with coerce will modify the original dataframe	bug	2020-10-24T14:08:40Z
+297	CLOSED	__str__ and __repr__ method of DataFrameSchema should display all attributes	enhancement, good first issue	2021-02-16T17:19:17Z
+295	CLOSED	Add Nullable detection to infer_schema	enhancement	2020-12-24T19:23:34Z
+294	CLOSED	When validating/coercing an int column with a NaN value, the error does not indicate the failing column	bug	2020-10-21T00:50:51Z
+293	CLOSED	Improve auto-linking of auto-generated types in documentation	docs	2020-10-20T00:53:49Z
+287	CLOSED	Moving columns to multiindex		2020-11-27T00:29:19Z
+281	CLOSED	Add documentation on class-based API	docs	2020-10-20T02:38:17Z
+279	CLOSED	Add support for "str" alias in PandasDtype.from_str_alias	enhancement, good first issue	2020-10-17T22:28:59Z
+278	CLOSED	pandera.io.from_yaml does not recognize 'str' anymore	bug	2020-10-01T02:03:02Z
+277	CLOSED	scipy, pyaml and black as optional dependencies	enhancement	2020-10-14T00:01:16Z
+276	CLOSED	Add pandas==0.25.3 to CI tests	enhancement	2020-10-21T00:49:50Z
+275	CLOSED	Deprecate transformer functionality in DataFrameSchema	enhancement	2020-10-18T17:12:29Z
+274	CLOSED	Apply black code formatting to code base and add pre-commit hook	enhancement	2020-10-22T13:01:17Z
+273	CLOSED	replace '%s' string formatting for f-string formatting	enhancement, good first issue	2020-12-19T23:40:21Z
+262	CLOSED	pandas_dtype should accept numpy scalar types	enhancement	2020-10-21T00:47:49Z
+261	CLOSED	Add support for complex number data types	enhancement, good first issue	2020-10-20T13:14:53Z
+260	CLOSED	pandas_dtype should be support built-in collection types like list, dict, set	enhancement, help wanted	2023-05-01T20:25:17Z
+259	CLOSED	Add support for python 3.8	enhancement	2020-09-24T03:18:29Z
+255	CLOSED	Inheritance between schemas?	enhancement	2020-08-05T13:24:19Z
+254	CLOSED	implement `check_io` that validates an output and multiple inputs of a function	enhancement	2020-10-17T15:17:48Z
+253	CLOSED	pydantic/fastapi style validation	enhancement, discussion needed	2020-10-21T05:19:53Z
+252	OPEN	Implement parsing functionality in dataframe schemas	enhancement	2021-07-15T13:11:34Z
+250	CLOSED	Black should be a development dependency	bug	2020-07-26T13:52:09Z
+249	CLOSED	How to perform data checking without errors ?	question	2020-07-28T17:25:25Z
+246	CLOSED	io.to_script and to_yaml should ignore serializing Checks with lambda functions	bug, good first issue	2020-12-14T01:51:44Z
+245	CLOSED	Add `viewcode` extension to sphinx to view source code in docs	docs	2020-07-25T22:02:53Z
+243	CLOSED	Unsupported nullable integer string alias	bug	2020-07-22T17:53:25Z
+242	CLOSED	index serialization formatting should handle `None` correctly	bug, good first issue	2020-07-25T22:03:05Z
+239	CLOSED	Additional Column-specific Properties for io.from_yaml	enhancement	2020-07-08T16:11:07Z
+238	CLOSED	Add more concise aliases to comparison operator checks	enhancement, good first issue	2020-09-20T13:45:39Z
+237	CLOSED	docs/source/conf.py isn't being recognized as a module in conda environment.		2020-10-20T07:22:53Z
+236	CLOSED	add `select_columns` method to DataFrameSchema class	good first issue	2020-09-20T15:42:41Z
+234	OPEN	modularize handling of failure cases formatting		2020-06-25T03:11:50Z
+233	CLOSED	rename `set_check_statistics` to `register_check_statistics`	good first issue	2020-07-15T13:33:31Z
+231	CLOSED	Better error representation for dataframe wide checks		2020-06-25T08:15:47Z
+230	CLOSED	DataFrameSchema checks=... not working consistently		2020-06-23T14:43:38Z
+227	CLOSED	on failed coercion error msg not informative enough		2020-06-20T23:32:34Z
+224	CLOSED	.from_yaml() doesn't tolerate "index: null"		2020-06-17T20:35:37Z
+223	CLOSED	bug: failure_cases, check, and check_index are not propagated through in `check_{input/output}`	bug	2020-06-20T23:33:44Z
+222	CLOSED	strict='filter' should filter out columns that are not specified in schema	enhancement, good first issue	2021-02-13T16:14:27Z
+221	CLOSED	pandas_dtype should accept built-in python types and numpy types		2020-08-19T01:19:25Z
+218	CLOSED	YAML schemas don't respect strict		2020-06-15T20:01:28Z
+216	CLOSED	Unexpected behaviour with check_input decorator in lazy mode		2020-06-14T17:14:32Z
+212	CLOSED	add ignore_na key-word arg to Check base class		2020-06-04T00:52:04Z
+211	CLOSED	lazy validation of columns with nullable=False check		2020-06-04T00:52:14Z
+208	CLOSED	simplify schema inference statistics serialization format		2020-05-12T23:16:08Z
+206	CLOSED	built-in checks should be able to handle dataframe inputs		2020-12-19T23:40:39Z
+205	CLOSED	Migrate CI to github actions		2020-12-14T01:24:17Z
+204	CLOSED	Consolidate ci/deps conda yaml files		2020-12-03T01:14:29Z
+201	CLOSED	add DataFrameSchema.rename_columns method	good first issue	2020-06-18T01:27:01Z
+200	CLOSED	schemas can generate valid samples	enhancement, proposal	2020-12-19T23:39:57Z
+199	CLOSED	SeriesSchema should validate index	good first issue	2020-09-19T22:26:43Z
+198	CLOSED	Update contributor docs with local development setup		2020-12-14T01:25:09Z
+196	CLOSED	Unreliable checks on missing values		2020-08-05T03:13:46Z
+191	CLOSED	Type of a Column cannot be properly changed		2020-08-08T17:54:31Z
+190	OPEN	refactor check logic in SeriesSchemaBase.validate method		2020-04-03T02:56:26Z
+188	CLOSED	Issue with duplicated index		2020-04-03T03:49:32Z
+186	CLOSED	Validate timestamp column		2020-03-11T13:15:52Z
+183	OPEN	add `tolerance: float` argument in Check class	enhancement, proposal	2021-04-21T13:19:10Z
+179	CLOSED	create machine-learning schemas: tabular data	enhancement, proposal	2021-10-20T02:04:25Z
+178	OPEN	create tutorial examples for documentation	help wanted, good first issue, docs, scipy 2021	2021-07-17T17:58:49Z
+177	OPEN	get code coverage to 100%	test case	2020-02-22T17:20:54Z
+175	OPEN	test cases for schema_components used in decorators	test case	2020-02-22T15:16:44Z
+174	CLOSED	add change_column method to DataFrameSchema		2020-07-25T22:43:43Z
+173	CLOSED	support Column(regex=True) for applying checks to regex column pattern	enhancement	2020-03-11T02:28:22Z
+172	CLOSED	add issue template to .github	docs	2020-07-22T13:17:28Z
+171	CLOSED	add mypy to precommit checker and CI, fix mypy errors	bug	2020-02-23T15:43:11Z
+170	OPEN	groupby and element_wise checks should raise SchemaInitError	test case	2020-02-21T11:38:54Z
+169	OPEN	decorators should support all schema and schema component objects		2020-02-19T19:40:01Z
+168	OPEN	Add more comprehensive suite of Hypothesis tests	proposal	2020-01-26T19:55:34Z
+165	OPEN	Add CompareGroups subclass of Check for built-in groupby checks	proposal	2020-01-18T16:41:58Z
+163	CLOSED	Simple infer dataframe schema		2020-04-19T13:32:19Z
+162	CLOSED	support SchemaPipelines		2021-05-16T15:20:00Z
+161	CLOSED	Is the pandera on your personal conda channel intentional?		2020-01-15T14:47:37Z
+159	CLOSED	coerce object type column converts to a string	bug	2020-01-18T18:09:39Z
+157	CLOSED	Should multi-index parent from SeriesSchemaBase?		2020-01-13T15:55:45Z
+156	CLOSED	Changes for dropping Py3.6 support	proposal, future	2023-09-18T14:51:14Z
+155	CLOSED	improve documentation for Check and Column classes		2020-03-27T13:11:09Z
+154	CLOSED	add core unit tests for checks		2020-01-15T15:03:39Z
+148	OPEN	implement airspeed velocity performance tracking on core methods	proposal	2020-01-12T01:32:39Z
+145	CLOSED	bug: coerce=True doesn't work with string dtypes	bug	2020-01-12T15:58:19Z
+142	CLOSED	Changes for dropping Py3.5 support	proposal, future	2020-09-24T02:54:01Z
+139	CLOSED	Make schema and schema component method signatures consistent		2020-01-12T22:15:41Z
+133	CLOSED	Support for returning `dtype` dict used by Pandas		2020-01-04T16:25:25Z
+132	CLOSED	make a light weight column checker that can be used independent of DataFrameSchema	proposal	2020-01-15T14:56:26Z
+131	CLOSED	Improve breadth of CI tests to cover specific dependency versions instead of latest	enhancement, discussion	2020-01-08T16:27:58Z
+130	CLOSED	Switch to environment.yml or remove conda?	discussion	2020-01-08T16:27:58Z
+129	CLOSED	Remove pylint disabled exceptions		2020-01-08T16:33:51Z
+128	CLOSED	add informative docstrings to tests		2020-01-07T16:45:22Z
+126	CLOSED	Rebase master for most recent CI changes		2019-12-18T13:53:33Z
+123	CLOSED	add `warning: bool` argument to Check class definition to raise warning instead of error if True		2021-12-13T15:41:01Z
+122	CLOSED	implement lazy validation: iteratively validate dataframe and report all errors	enhancement	2020-05-08T18:47:13Z
+119	OPEN	Add first-class support for Dask		2019-12-19T13:53:40Z
+118	CLOSED	PyOpenSci Blog		2019-12-05T20:51:59Z
+113	CLOSED	Make dtype optional in Column		2019-10-03T12:38:05Z
+112	CLOSED	add example docstrings to all public functions/methods		2019-09-29T23:13:04Z
+110	CLOSED	modularize tests/test_pandera.py		2019-11-09T23:44:38Z
+109	CLOSED	add osx and windows support in CI		2019-12-17T18:41:06Z
+108	CLOSED	use pylint linter in CI and make suggested code changes		2020-01-07T17:14:06Z
+99	CLOSED	Schemas should be responsible for preparing the `check_obj` input.	wontfix	2020-01-11T15:24:56Z
+96	CLOSED	Move error formatting out of Check class		2020-01-15T14:50:07Z
+95	CLOSED	Why does SeriesSchema not accept a series with name?		2019-08-21T11:48:09Z
+93	CLOSED	Infer dataframe schema?	discussion	2020-07-21T21:12:45Z
+91	CLOSED	Schema definitions in yaml	enhancement	2020-04-21T22:22:25Z
+90	CLOSED	create conda-forge package		2019-11-23T22:06:16Z
+85	CLOSED	modularize pandera code		2019-08-31T15:21:11Z
+79	CLOSED	Wrapping a check_input causes index out of range		2019-07-11T21:40:17Z
+78	CLOSED	make coerce logic compatible with nullable columns	bug	2019-11-09T23:44:25Z
+77	CLOSED	support DataFrameSchema transformations	enhancement	2020-01-15T15:08:07Z
+76	CLOSED	PyPI docs logo not loading	bug	2019-08-13T14:12:05Z
+75	OPEN	Add CompareColumns subclass of Check for dataframe-level multi-column checks	enhancement, help wanted	2023-08-09T13:48:33Z
+74	CLOSED	Add built-in Checks for common operations	proposal	2021-12-23T13:31:58Z
+73	CLOSED	Add more comprehensive type support		2019-09-10T01:35:01Z
+72	CLOSED	add type hints to all functions/methods		2019-08-27T09:39:09Z
+66	CLOSED	for two sample hypothesis tests, standardize API		2019-06-10T02:40:08Z
+63	CLOSED	automate conda packaging with travisci		2019-11-23T22:05:35Z
+62	CLOSED	create GitHub organisation for repo?	discussion	2019-08-19T13:46:47Z
+56	CLOSED	blog post ideas?	discussion needed	2021-05-16T16:23:35Z
+52	CLOSED	discussion: should pandera get a logo?		2019-06-06T22:11:39Z
+49	CLOSED	discussion: submit pandera to pyOpenSci review process		2019-11-09T23:45:26Z
+48	CLOSED	create conda package		2019-06-08T13:13:01Z
+47	CLOSED	add flake8 linter to CI		2019-06-05T21:28:34Z
+46	CLOSED	drop python 2.7 support		2019-08-15T22:47:05Z
+45	CLOSED	create official documentation with Sphinx		2019-06-05T21:16:03Z
+44	OPEN	should DataFrameSchema support partitioning dataframe into valid/invalid parts?	discussion	2023-05-13T01:17:03Z
+41	CLOSED	update readme on release of next version		2019-06-10T12:35:47Z
+37	CLOSED	include code coverage badge		2019-06-06T04:53:28Z
+36	CLOSED	create CONTRIBUTING.md with dataframe schema style-guide		2019-05-18T21:02:56Z
+35	CLOSED	make Check element_wise=False the default		2019-06-02T18:54:32Z
+31	CLOSED	handle `self` argument when using check_input in class method when str obj_getter is supplied	bug	2019-06-08T22:13:27Z
+30	CLOSED	create a human-readable __repr__ method		2019-09-10T04:06:12Z
+28	CLOSED	add strict=True to DataFrameSchema		2019-05-18T20:47:36Z
+26	CLOSED	Dataframe null check doesn't provide df name if error occurs		2019-05-09T03:27:37Z
+20	CLOSED	add coerce option to DataFrameSchema		2018-12-29T19:29:59Z
+18	CLOSED	support subsetting the dataframe for validation		2019-05-18T20:45:12Z
+17	CLOSED	implement Hypothesis validator		2019-06-03T16:38:06Z
+16	CLOSED	add support for grouping column of interest by another column.		2019-05-24T14:26:39Z
+15	CLOSED	only print out most common failure cases when validator fails		2018-12-29T16:12:37Z
+14	CLOSED	add dataframe-level checks: a list of checks that have access to the entire dataframe	proposal	2019-08-11T05:03:15Z
+13	CLOSED	add debug mode		2020-07-25T22:54:13Z
+12	CLOSED	add `allow_duplicates` to SeriesSchema or Index class		2019-05-01T00:42:26Z
+11	CLOSED	dict-based definition of schema		2018-12-18T00:19:41Z
+10	CLOSED	create Nullable class (inherits from Assert)		2018-11-30T17:27:29Z
+9	CLOSED	replace Validator with Check class		2018-12-29T16:27:20Z
+8	CLOSED	update dataframe schema API		2018-11-30T17:26:46Z
+7	CLOSED	add support for schema merging		2018-12-11T16:12:59Z
+6	CLOSED	add support for dataframe schema transformations: add_column, remove_column		2019-05-01T00:43:36Z
+5	CLOSED	ModuleNotFoundError: No module named 'pandera'		2022-09-07T22:42:40Z
+4	CLOSED	add support for validating head/tail/random sample of dataframe/series		2019-08-08T23:05:43Z
+3	CLOSED	add support for MultiIndex index/columns		2019-08-07T02:18:37Z
+2	CLOSED	add support/tests for multi-index columns		2018-12-11T16:41:07Z

@@ -234,11 +234,21 @@ class DataFrameModel(_DataFrameModel[pd.DataFrame, DataFrameSchema]):
 
     @classmethod
     def empty(cls: Type[Self], *_args) -> DataFrame[Self]:
-        """Create an empty DataFrame with the schema of this model."""
+        """
+        Create an empty DataFrame with the schema of this model.
+
+        This method robustly constructs an empty DataFrame with the correct columns and dtypes,
+        even if coercion (via schema.coerce_dtype) returns None or an unexpected value.
+        """
         schema = copy.deepcopy(cls.to_schema())
         schema.coerce = True
-        empty_df = schema.coerce_dtype(pd.DataFrame(columns=[*schema.columns]))
-        return DataFrame[Self](empty_df)
+        empty_df = pd.DataFrame(columns=[*schema.columns])
+        coerced_df = schema.coerce_dtype(empty_df)
+        if coerced_df is None or not isinstance(coerced_df, pd.DataFrame):
+            coerced_df = pd.DataFrame(columns=[*schema.columns])
+            if schema.dtype is not None:
+                coerced_df = coerced_df.astype(schema.dtype.type)
+        return DataFrame[Self](coerced_df)
 
 
 def _build_schema_index(
