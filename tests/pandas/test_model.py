@@ -1590,7 +1590,7 @@ def test_pandera_dtype() -> None:
 
 
 def test_empty() -> None:
-    """Test to generate an empty DataFrameModel."""
+    """Test to generate an empty DataFrameModel (and verify that it is robust even if coercion returns None or an unexpected value)."""
 
     class Schema(pa.DataFrameModel):
         a: Series[pa.Float]
@@ -1600,6 +1600,12 @@ def test_empty() -> None:
 
     df = Schema.empty()
     assert df.empty
+    assert isinstance(df, pd.DataFrame)
+    assert list(df.columns) == ["a", "b", "c", "d"]
+    assert df["a"].dtype == np.float64
+    assert df["b"].dtype == np.int64
+    assert df["c"].dtype == object
+    assert df["d"].dtype == np.dtype("datetime64[ns]")
     assert Schema.validate(df).empty  # type: ignore [attr-defined]
 
 
