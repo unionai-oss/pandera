@@ -12,6 +12,7 @@ from pandera.config import PanderaConfig, ValidationDepth
 from pandera.pyspark import pyspark_sql_accessor
 
 spark = SparkSession.builder.getOrCreate()
+spark.conf.set("spark.sql.ansi.enabled", False)
 
 
 @pytest.mark.parametrize(
