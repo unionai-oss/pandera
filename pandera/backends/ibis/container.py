@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import copy
+import traceback
 from typing import TYPE_CHECKING, Any, Iterable, List, Optional
 
 import ibis
@@ -11,7 +12,12 @@ from pandera.api.base.error_handler import ErrorHandler
 from pandera.config import ValidationScope
 from pandera.backends.base import CoreCheckResult, ColumnInfo
 from pandera.backends.ibis.base import IbisSchemaBackend
-from pandera.errors import SchemaError, SchemaErrorReason, SchemaErrors
+from pandera.errors import (
+    SchemaDefinitionError,
+    SchemaError,
+    SchemaErrorReason,
+    SchemaErrors,
+)
 from pandera.utils import is_regex
 from pandera.validation_depth import validate_scope, validation_type
 
@@ -57,6 +63,7 @@ class DataFrameSchemaBackend(IbisSchemaBackend):
                 self.run_schema_component_checks,
                 (sample, schema, components, lazy),
             ),
+            (self.run_checks, (sample, schema)),
         ]
 
         # pylint: disable=no-member
@@ -101,6 +108,43 @@ class DataFrameSchemaBackend(IbisSchemaBackend):
                 )
 
         return check_obj
+
+    @validate_scope(scope=ValidationScope.DATA)
+    def run_checks(
+        self,
+        check_obj: ibis.Table,
+        schema,
+    ) -> List[CoreCheckResult]:
+        """Run a list of checks on the check object."""
+        # dataframe-level checks
+        check_results: List[CoreCheckResult] = []
+        for check_index, check in enumerate(schema.checks):
+            try:
+                check_results.append(
+                    self.run_check(check_obj, schema, check, check_index)
+                )
+            except SchemaDefinitionError:
+                raise
+            except Exception as err:  # pylint: disable=broad-except
+                # catch other exceptions that may occur when executing the check
+                err_msg = f'"{err.args[0]}"' if len(err.args) > 0 else ""
+                err_str = f"{err.__class__.__name__}({ err_msg})"
+                msg = (
+                    f"Error while executing check function: {err_str}\n"
+                    + traceback.format_exc()
+                )
+                check_results.append(
+                    CoreCheckResult(
+                        passed=False,
+                        check=check,
+                        check_index=check_index,
+                        reason_code=SchemaErrorReason.CHECK_ERROR,
+                        message=msg,
+                        failure_cases=err_str,
+                        original_exc=err,
+                    )
+                )
+        return check_results
 
     def run_schema_component_checks(
         self,
