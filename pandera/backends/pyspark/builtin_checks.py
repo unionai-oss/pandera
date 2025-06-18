@@ -1,4 +1,4 @@
-"""PySpark implementation of built-in checks"""
+"""Built-in checks for PySpark."""
 
 from typing import Any, Iterable, TypeVar
 
@@ -36,10 +36,11 @@ STRING_TYPE = pst.StringType
     )
 )
 def equal_to(data: PysparkDataframeColumnObject, value: Any) -> bool:
-    """Ensure all elements of a data container equal a certain value.
+    """Ensure all elements of a column equal a certain value.
 
-    :param data: PysparkDataframeColumnObject column object which is a contains dataframe and column name to do the check
-    :param value: values in this DataFrame data structure must be
+    :param data: NamedTuple PysparkDataframeColumnObject contains the dataframe and column name for the check. The key
+        to access the dataframe is "dataframe", and the key to access the column name is "column_name".
+    :param value: Values in this PySpark data structure must be
         equal to this value.
     """
     cond = col(data.column_name) == value
@@ -56,11 +57,11 @@ def equal_to(data: PysparkDataframeColumnObject, value: Any) -> bool:
     )
 )
 def not_equal_to(data: PysparkDataframeColumnObject, value: Any) -> bool:
-    """Ensure no elements of a data container equals a certain value.
+    """Ensure no element of a column equals a certain value.
 
-    :param data: NamedTuple PysparkDataframeColumnObject contains the dataframe and column name for the check. The keys
-                to access the dataframe is "dataframe" and column name using "column_name".
-    :param value: This value must not occur in the checked
+    :param data: NamedTuple PysparkDataframeColumnObject contains the dataframe and column name for the check. The key
+        to access the dataframe is "dataframe", and the key to access the column name is "column_name".
+    :param value: This value must not occur in the checked data structure.
     """
     cond = col(data.column_name) != value
     return data.dataframe.filter(~cond).limit(1).count() == 0
@@ -74,12 +75,13 @@ def not_equal_to(data: PysparkDataframeColumnObject, value: Any) -> bool:
     acceptable_datatypes=convert_to_list(ALL_NUMERIC_TYPE, ALL_DATE_TYPE)
 )
 def greater_than(data: PysparkDataframeColumnObject, min_value: Any) -> bool:
-    """
-    Ensure values of a data container are strictly greater than a minimum
+    """Ensure values of a column are strictly greater than a minimum
     value.
-    :param data: NamedTuple PysparkDataframeColumnObject contains the dataframe and column name for the check. The keys
-                to access the dataframe is "dataframe" and column name using "column_name".
-    :param min_value: Lower bound to be exceeded.
+
+    :param data: NamedTuple PysparkDataframeColumnObject contains the dataframe and column name for the check. The key
+        to access the dataframe is "dataframe", and the key to access the column name is "column_name".
+    :param min_value: Lower bound to be exceeded. Must be a type comparable
+        to the dtype of the :class:`pyspark.sql.Column` to be validated.
     """
     cond = col(data.column_name) > min_value
     return data.dataframe.filter(~cond).limit(1).count() == 0
@@ -95,11 +97,12 @@ def greater_than(data: PysparkDataframeColumnObject, min_value: Any) -> bool:
 def greater_than_or_equal_to(
     data: PysparkDataframeColumnObject, min_value: Any
 ) -> bool:
-    """Ensure all values are greater or equal a certain value.
-    :param data: NamedTuple PysparkDataframeColumnObject contains the dataframe and column name for the check. The keys
-                to access the dataframe is "dataframe" and column name using "column_name".
-    :param min_value: Allowed minimum value for values of a series. Must be
-        a type comparable to the dtype of the column datatype of pyspark
+    """Ensure all values are greater than or equal to a minimum value.
+
+    :param data: NamedTuple PysparkDataframeColumnObject contains the dataframe and column name for the check. The key
+        to access the dataframe is "dataframe", and the key to access the column name is "column_name".
+    :param min_value: Allowed minimum value. Must be a type comparable
+        to the dtype of the :class:`pyspark.sql.Column` to be validated.
     """
     cond = col(data.column_name) >= min_value
     return data.dataframe.filter(~cond).limit(1).count() == 0
@@ -113,12 +116,13 @@ def greater_than_or_equal_to(
     acceptable_datatypes=convert_to_list(ALL_NUMERIC_TYPE, ALL_DATE_TYPE)
 )
 def less_than(data: PysparkDataframeColumnObject, max_value: Any) -> bool:
-    """Ensure values of a series are strictly below a maximum value.
+    """Ensure values of a column are strictly less than a maximum value.
 
-    :param data: NamedTuple PysparkDataframeColumnObject contains the dataframe and column name for the check. The keys
-                to access the dataframe is "dataframe" and column name using "column_name".
-    :param max_value: All elements of a series must be strictly smaller
-        than this. Must be a type comparable to the dtype of the column datatype of pyspark
+    :param data: NamedTuple PysparkDataframeColumnObject contains the dataframe and column name for the check. The key
+        to access the dataframe is "dataframe", and the key to access the column name is "column_name".
+    :param max_value: All elements of a column must be strictly smaller
+        than this. Must be a type comparable to the dtype of the
+        :class:`pyspark.sql.Column` to be validated.
     """
     # test case exists but not detected by pytest so no cover added
     if max_value is None:  # pragma: no cover
@@ -137,12 +141,12 @@ def less_than(data: PysparkDataframeColumnObject, max_value: Any) -> bool:
 def less_than_or_equal_to(
     data: PysparkDataframeColumnObject, max_value: Any
 ) -> bool:
-    """Ensure values of a series are strictly below a maximum value.
+    """Ensure all values are less than or equal to a maximum value.
 
-    :param data: NamedTuple PysparkDataframeColumnObject contains the dataframe and column name for the check. The keys
-                to access the dataframe is "dataframe" and column name using "column_name".
-    :param max_value: Upper bound not to be exceeded. Must be
-        a type comparable to the dtype of the column datatype of pyspark
+    :param data: NamedTuple PysparkDataframeColumnObject contains the dataframe and column name for the check. The key
+        to access the dataframe is "dataframe", and the key to access the column name is "column_name".
+    :param max_value: Upper bound not to be exceeded. Must be a type comparable to the dtype of the
+        :class:`pyspark.sql.Column` to be validated.
     """
     # test case exists but not detected by pytest so no cover added
     if max_value is None:  # pragma: no cover
@@ -168,10 +172,10 @@ def in_range(
     """Ensure all values of a column are within an interval.
 
     Both endpoints must be a type comparable to the dtype of the
-    :class:`pyspark.sql.function.col` to be validated.
+    :class:`pyspark.sql.Column` to be validated.
 
-    :param data: NamedTuple PysparkDataframeColumnObject contains the dataframe and column name for the check. The keys
-                to access the dataframe is "dataframe" and column name using "column_name".
+    :param data: NamedTuple PysparkDataframeColumnObject contains the dataframe and column name for the check. The key
+        to access the dataframe is "dataframe", and the key to access the column name is "column_name".
     :param min_value: Left / lower endpoint of the interval.
     :param max_value: Right / upper endpoint of the interval. Must not be
         smaller than min_value.
@@ -182,19 +186,17 @@ def in_range(
         (the default) or whether all values must be strictly smaller than
         max_value.
     """
-    # Using functions from operator module to keep conditions out of the
-    # closure
-    cond_right = (
+    compare_min = (
         col(data.column_name) >= min_value
         if include_min
         else col(data.column_name) > min_value
     )
-    cond_left = (
+    compare_max = (
         col(data.column_name) <= max_value
         if include_max
         else col(data.column_name) < max_value
     )
-    return data.dataframe.filter(~(cond_right & cond_left)).limit(1).count() == 0  # type: ignore
+    return data.dataframe.filter(~(compare_min & compare_max)).limit(1).count() == 0  # type: ignore
 
 
 @register_builtin_check(
@@ -210,15 +212,15 @@ def isin(data: PysparkDataframeColumnObject, allowed_values: Iterable) -> bool:
 
     Remember it can be a compute intensive check on large dataset. So, use it with caution.
 
-    This checks whether all elements of a :class:`pyspark.sql.function.col`
+    This checks whether all elements of a :class:`pyspark.sql.Column`
     are part of the set of elements of allowed values. If allowed
     values is a string, the set of elements consists of all distinct
     characters of the string. Thus only single characters which occur
     in allowed_values at least once can meet this condition. If you
     want to check for substrings use :meth:`Check.str_contains`.
 
-    :param data: NamedTuple PysparkDataframeColumnObject contains the dataframe and column name for the check. The keys
-                to access the dataframe is "dataframe" and column name using "column_name".
+    :param data: NamedTuple PysparkDataframeColumnObject contains the dataframe and column name for the check. The key
+        to access the dataframe is "dataframe", and the key to access the column name is "column_name".
     :param allowed_values: The set of allowed values. May be any iterable.
     """
     return (
@@ -251,8 +253,8 @@ def notin(
     as set of prohibited characters. Any string of length > 1 can't be in it by
     design.
 
-    :param data: NamedTuple PysparkDataframeColumnObject contains the dataframe and column name for the check. The keys
-                to access the dataframe is "dataframe" and column name using "column_name".
+    :param data: NamedTuple PysparkDataframeColumnObject contains the dataframe and column name for the check. The key
+        to access the dataframe is "dataframe", and the key to access the column name is "column_name".
     :param forbidden_values: The set of values which should not occur. May
         be any iterable.
     """
@@ -275,9 +277,9 @@ def str_contains(data: PysparkDataframeColumnObject, pattern: str) -> bool:
 
     Remember it can be a compute intensive check on large dataset. So, use it with caution.
 
-    :param data: NamedTuple PysparkDataframeColumnObject contains the dataframe and column name for the check. The keys
-                to access the dataframe is "dataframe" and column name using "column_name".
-    :param pattern: Regular expression pattern to use for searching
+    :param data: NamedTuple PysparkDataframeColumnObject contains the dataframe and column name for the check. The key
+        to access the dataframe is "dataframe", and the key to access the column name is "column_name".
+    :param pattern: Regular expression pattern to use for searching.
     """
     return (
         data.dataframe.filter(~col(data.column_name).rlike(pattern))
@@ -296,9 +298,9 @@ def str_startswith(data: PysparkDataframeColumnObject, string: str) -> bool:
 
     Remember it can be a compute intensive check on large dataset. So, use it with caution.
 
-    :param data: NamedTuple PysparkDataframeColumnObject contains the dataframe and column name for the check. The keys
-                to access the dataframe is "dataframe" and column name using "column_name".
-    :param string: String all values should start with
+    :param data: NamedTuple PysparkDataframeColumnObject contains the dataframe and column name for the check. The key
+        to access the dataframe is "dataframe", and the key to access the column name is "column_name".
+    :param string: String all values should start with.
     """
     cond = col(data.column_name).startswith(string)
     return data.dataframe.filter(~cond).limit(1).count() == 0
@@ -311,9 +313,9 @@ def str_endswith(data: PysparkDataframeColumnObject, string: str) -> bool:
 
     Remember it can be a compute intensive check on large dataset. So, use it with caution.
 
-    :param data: NamedTuple PysparkDataframeColumnObject contains the dataframe and column name for the check. The keys
-                to access the dataframe is "dataframe" and column name using "column_name".
-    :param string: String all values should end with
+    :param data: NamedTuple PysparkDataframeColumnObject contains the dataframe and column name for the check. The key
+        to access the dataframe is "dataframe", and the key to access the column name is "column_name".
+    :param string: String all values should end with.
     """
     cond = col(data.column_name).endswith(string)
     return data.dataframe.filter(~cond).limit(1).count() == 0

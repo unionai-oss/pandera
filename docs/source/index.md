@@ -96,7 +96,7 @@ settings. With `pandera`, you can:
 
 1. Define a schema once and use it to validate {ref}`different dataframe types <supported-dataframe-libraries>`
    including [pandas](http://pandas.pydata.org), [polars](https://docs.pola.rs/), [dask](https://dask.org/),
-   [modin](https://modin.readthedocs.io/), and
+   [modin](https://modin.readthedocs.io/), [ibis](https://ibis-project.org/), and
    [pyspark](https://spark.apache.org/docs/latest/api/python/index.html).
 2. {ref}`Check<checks>` the types and properties of columns in a
    `pd.DataFrame` or values in a `pd.Series`.
@@ -120,7 +120,7 @@ settings. With `pandera`, you can:
 
 ## Install
 
-Pandera supports [multiple dataframe libraries](https://pandera.readthedocs.io/en/stable/supported_libraries.html), including [pandas](http://pandas.pydata.org), [polars](https://docs.pola.rs/), [pyspark](https://spark.apache.org/docs/latest/api/python/index.html), and more.
+Pandera supports [multiple dataframe libraries](https://pandera.readthedocs.io/en/stable/supported_libraries.html), including [pandas](http://pandas.pydata.org), [polars](https://docs.pola.rs/), [pyspark](https://spark.apache.org/docs/latest/api/python/index.html), and [ibis](https://ibis-project.org/).
 
 Most of the documentation will use the `pandas` DataFrames, install Pandera with the `pandas` extra:
 
@@ -162,6 +162,7 @@ pip install 'pandera[modin-ray]'   # validate modin dataframes with ray
 pip install 'pandera[modin-dask]'  # validate modin dataframes with dask
 pip install 'pandera[geopandas]'   # validate geopandas geodataframes
 pip install 'pandera[polars]'      # validate polars dataframes
+pip install 'pandera[ibis]'        # validate ibis tables
 ```
 :::
 
@@ -179,6 +180,7 @@ conda install -c conda-forge pandera-modin-ray   # validate modin dataframes wit
 conda install -c conda-forge pandera-modin-dask  # validate modin dataframes with dask
 conda install -c conda-forge pandera-geopandas   # validate geopandas geodataframes
 conda install -c conda-forge pandera-polars      # validate polars dataframes
+conda install -c conda-forge pandera-ibis        # validate ibis tables
 ```
 :::
 ::::
@@ -346,36 +348,36 @@ lists corresponding to a `SchemaError`
 
 ## Supported Features by DataFrame Backend
 
-Currently, pandera provides three validation backends: `pandas`, `pyspark`, and
-`polars`. The table below shows which of pandera's features are available for the
+Currently, pandera provides four validation backends: `pandas`, `pyspark`, `polars`,
+and `ibis`. The table below shows which of pandera's features are available for the
 {ref}`supported dataframe libraries <dataframe-libraries>`:
 
 :::{table}
 :widths: auto
 :align: left
 
-| feature | pandas | pyspark | polars |
-| :------ | ------ | ------- | ------ |
-| {ref}`DataFrameSchema validation <dataframeschemas>`                      | ✅ | ✅ | ✅ |
-| {ref}`DataFrameModel validation <dataframe-models>`                       | ✅ | ✅ | ✅ |
-| {ref}`SeriesSchema validation <seriesschemas>`                            | ✅ | 🚫 | ❌ |
-| {ref}`Index/MultiIndex validation <index-validation>`                     | ✅ | 🚫 | 🚫 |
-| {ref}`Built-in and custom Checks <checks>`                                | ✅ | ✅ | ✅ |
-| {ref}`Groupby checks <column-check-groups>`                               | ✅ | ❌ | ❌ |
-| {ref}`Custom check registration <extensions>`                             | ✅ | ✅ | ❌ |
-| {ref}`Hypothesis testing <hypothesis>`                                    | ✅ | ❌ | ❌ |
-| {ref}`Built-in <dtype-validation>` and {ref}`custom <dtypes>` `DataType`s | ✅ | ✅ | ✅ |
-| {ref}`Preprocessing with Parsers <parsers>`                               | ✅ | ❌ | ❌ |
-| {ref}`Data synthesis strategies <data-synthesis-strategies>`              | ✅ | ❌ | ❌ |
-| {ref}`Validation decorators <decorators>`                                 | ✅ | ✅ | ✅ |
-| {ref}`Lazy validation <lazy-validation>`                                  | ✅ | ✅ | ✅ |
-| {ref}`Dropping invalid rows <drop-invalid-rows>`                          | ✅ | ❌ | ✅ |
-| {ref}`Pandera configuration <configuration>`                              | ✅ | ✅ | ✅ |
-| {ref}`Schema Inference <schema-inference>`                                | ✅ | ❌ | ❌ |
-| {ref}`Schema persistence <schema-persistence>`                            | ✅ | ❌ | ❌ |
-| {ref}`Data Format Conversion <data-format-conversion>`                    | ✅ | ❌ | ❌ |
-| {ref}`Pydantic type support <pydantic-integration>`                       | ✅ | ❌ | ❌ |
-| {ref}`FastAPI support <fastapi-integration>`                              | ✅ | ❌ | ❌ |
+| feature | pandas | pyspark | polars | ibis |
+| :------ | ------ | ------- | ------ | ---- |
+| {ref}`DataFrameSchema validation <dataframeschemas>`                      | ✅ | ✅ | ✅ | ✅ |
+| {ref}`DataFrameModel validation <dataframe-models>`                       | ✅ | ✅ | ✅ | ✅ |
+| {ref}`SeriesSchema validation <seriesschemas>`                            | ✅ | 🚫 | ❌ | ❌ |
+| {ref}`Index/MultiIndex validation <index-validation>`                     | ✅ | 🚫 | 🚫 | 🚫 |
+| {ref}`Built-in and custom Checks <checks>`                                | ✅ | ✅ | ✅ | ✅ |
+| {ref}`Groupby checks <column-check-groups>`                               | ✅ | ❌ | ❌ | ❌ |
+| {ref}`Custom check registration <extensions>`                             | ✅ | ✅ | ❌ | ❌ |
+| {ref}`Hypothesis testing <hypothesis>`                                    | ✅ | ❌ | ❌ | ❌ |
+| {ref}`Built-in <dtype-validation>` and {ref}`custom <dtypes>` `DataType`s | ✅ | ✅ | ✅ | ✅ |
+| {ref}`Preprocessing with Parsers <parsers>`                               | ✅ | ❌ | ❌ | ❌ |
+| {ref}`Data synthesis strategies <data-synthesis-strategies>`              | ✅ | ❌ | ❌ | ❌ |
+| {ref}`Validation decorators <decorators>`                                 | ✅ | ✅ | ✅ | ✅ |
+| {ref}`Lazy validation <lazy-validation>`                                  | ✅ | ✅ | ✅ | ✅ |
+| {ref}`Dropping invalid rows <drop-invalid-rows>`                          | ✅ | ❌ | ✅ | ❌ |
+| {ref}`Pandera configuration <configuration>`                              | ✅ | ✅ | ✅ | ✅ |
+| {ref}`Schema Inference <schema-inference>`                                | ✅ | ❌ | ❌ | ❌ |
+| {ref}`Schema persistence <schema-persistence>`                            | ✅ | ❌ | ❌ | ❌ |
+| {ref}`Data Format Conversion <data-format-conversion>`                    | ✅ | ❌ | ❌ | ❌ |
+| {ref}`Pydantic type support <pydantic-integration>`                       | ✅ | ❌ | ❌ | ❌ |
+| {ref}`FastAPI support <fastapi-integration>`                              | ✅ | ❌ | ❌ | ❌ |
 
 :::
 

@@ -1,5 +1,5 @@
 # pylint: disable=redefined-outer-name
-"""Unit tests for polars container."""
+"""Unit tests for Polars container."""
 
 from typing import Optional
 
@@ -133,7 +133,6 @@ def test_basic_polars_lazyframe_check_error(
     ldf_schema_with_check,
 ):
     """Test basic polars lazy dataframe."""
-
     query = ldf_basic.pipe(ldf_schema_with_check.validate, lazy=True)
 
     validated_df = query.collect()

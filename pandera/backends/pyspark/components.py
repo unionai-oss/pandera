@@ -1,4 +1,4 @@
-"""Backend implementation for pyspark schema components."""
+"""Backend implementation for PySpark schema components."""
 
 import re
 import traceback
@@ -17,7 +17,7 @@ from pandera.validation_depth import ValidationScope
 
 
 class ColumnBackend(ColumnSchemaBackend):
-    """Backend implementation for pyspark dataframe columns."""
+    """Backend implementation for PySpark dataframe columns."""
 
     def validate(
         self,
@@ -32,7 +32,7 @@ class ColumnBackend(ColumnSchemaBackend):
         inplace: bool = False,
         error_handler: ErrorHandler = None,
     ) -> DataFrame:
-        """Validation backend implementation for pyspark dataframe columns.."""
+        """Validation backend implementation for PySpark dataframe columns."""
 
         if schema.name is None:
             raise SchemaError(
