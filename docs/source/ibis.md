@@ -277,9 +277,9 @@ will require a function that takes in a single element of the column/dataframe
 and returns a boolean scalar indicating whether the value passed.
 
 :::{warning}
-Under the hood, element-wise checks use the
-[map_elements](https://docs.pola.rs/py-polars/html/reference/expressions/api/polars.Expr.map_elements.html)
-function, which is slower than the native polars expressions API.
+Under the hood, element-wise checks use
+[Python UDFs](https://ibis-project.org/reference/scalar-udfs#ibis.expr.operations.udf.scalar.python),
+which are likely to be **much** slower than vectorized checks.
 :::
 
 ### Column-level Checks
