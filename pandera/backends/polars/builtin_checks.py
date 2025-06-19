@@ -1,6 +1,7 @@
 """Built-in checks for polars."""
 
 import re
+from collections.abc import Collection
 from typing import Any, Iterable, Optional, TypeVar, Union
 
 import polars as pl
@@ -140,7 +141,7 @@ def in_range(
 @register_builtin_check(
     error="isin({allowed_values})",
 )
-def isin(data: PolarsData, allowed_values: Iterable) -> pl.LazyFrame:
+def isin(data: PolarsData, allowed_values: Collection) -> pl.LazyFrame:
     """Ensure only allowed values occur within a series.
 
     This checks whether all elements of a :class:`polars.Series`
@@ -160,7 +161,7 @@ def isin(data: PolarsData, allowed_values: Iterable) -> pl.LazyFrame:
 @register_builtin_check(
     error="notin({forbidden_values})",
 )
-def notin(data: PolarsData, forbidden_values: Iterable) -> pl.LazyFrame:
+def notin(data: PolarsData, forbidden_values: Collection) -> pl.LazyFrame:
     """Ensure some defined values don't occur within a series.
 
     Like :meth:`Check.isin` this check operates on single characters if

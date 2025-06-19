@@ -59,11 +59,11 @@ def test_lazyframe_generic_transform():
 
     @pa.check_types
     def fn(lf: LazyFrame[Input]) -> LazyFrame[Output]:
-        return lf.with_columns(col3=pl.lit(3.0))
+        return lf.with_columns(col3=pl.lit(3.0))  # type: ignore
 
     @pa.check_types
     def invalid_fn(lf: LazyFrame[Input]) -> LazyFrame[Output]:
-        return lf
+        return lf  # type: ignore
 
     data = pl.LazyFrame(
         {

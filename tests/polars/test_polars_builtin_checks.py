@@ -230,7 +230,7 @@ class TestEqualToCheck(BaseClass):
         )
 
     def get_data_param(self):
-        """Generate the params which will be used to test this function. All the accpetable
+        """Generate the params which will be used to test this function. All the acceptable
         data types would be tested"""
         return {
             "test_equal_to_check": [
@@ -399,7 +399,7 @@ class TestNotEqualToCheck(BaseClass):
         )
 
     def get_data_param(self):
-        """Generate the params which will be used to test this function. All the accpetable
+        """Generate the params which will be used to test this function. All the acceptable
         data types would be tested"""
         return {
             "test_not_equal_to_check": [
@@ -518,7 +518,7 @@ class TestGreaterThanCheck(BaseClass):
         )
 
     def get_data_param(self):
-        """Generate the params which will be used to test this function. All the accpetable
+        """Generate the params which will be used to test this function. All the acceptable
         data types would be tested"""
         return {
             "test_greater_than_check": [
@@ -624,7 +624,7 @@ class TestGreaterThanEqualToCheck(BaseClass):
         )
 
     def get_data_param(self):
-        """Generate the params which will be used to test this function. All the accpetable
+        """Generate the params which will be used to test this function. All the acceptable
         data types would be tested"""
         return {
             "test_greater_than_or_equal_to_check": [
@@ -734,7 +734,7 @@ class TestLessThanCheck(BaseClass):
         )
 
     def get_data_param(self):
-        """Generate the params which will be used to test this function. All the accpetable
+        """Generate the params which will be used to test this function. All the acceptable
         data types would be tested"""
         return {
             "test_less_than_check": [
@@ -840,7 +840,7 @@ class TestLessThanEqualToCheck(BaseClass):
         )
 
     def get_data_param(self):
-        """Generate the params which will be used to test this function. All the accpetable
+        """Generate the params which will be used to test this function. All the acceptable
         data types would be tested"""
         return {
             "test_less_than_or_equal_to_check": [
@@ -962,7 +962,7 @@ class TestIsInCheck(BaseClass):
         )
 
     def get_data_param(self):
-        """Generate the params which will be used to test this function. All the accpetable
+        """Generate the params which will be used to test this function. All the acceptable
         data types would be tested"""
         return {
             "test_isin_check": [
@@ -1087,7 +1087,7 @@ class TestNotInCheck(BaseClass):
         )
 
     def get_data_param(self):
-        """Generate the params which will be used to test this function. All the accpetable
+        """Generate the params which will be used to test this function. All the acceptable
         data types would be tested"""
         return {
             "test_notin_check": [
@@ -1299,7 +1299,7 @@ class TestInRangeCheck(BaseClass):
         return min_val, max_val, add_value
 
     def get_data_param(self):
-        """Generate the params which will be used to test this function. All the accpetable
+        """Generate the params which will be used to test this function. All the acceptable
         data types would be tested"""
         param_vals = [
             {"datatype": UInt8, "data": self.sample_numeric_data},
@@ -1470,7 +1470,7 @@ class TestUniqueValuesEQCheck(BaseClass):
         )
 
     def get_data_param(self):
-        """Generate the params which will be used to test this function. All the accpetable
+        """Generate the params which will be used to test this function. All the acceptable
         data types would be tested"""
         return {
             "test_unique_values_eq_check": [

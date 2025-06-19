@@ -1,4 +1,4 @@
-""" Tests that basic Pandera functionality works for Dask objects. """
+"""Tests that basic Pandera functionality works for Dask objects."""
 
 from typing import cast
 
@@ -6,7 +6,7 @@ import dask.dataframe as dd
 import pandas as pd
 import pytest
 
-import pandera as pa
+import pandera.pandas as pa
 from pandera.typing.dask import DataFrame, Series
 
 

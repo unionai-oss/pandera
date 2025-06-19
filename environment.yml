@@ -8,22 +8,22 @@ dependencies:
 
   # pandera dependencies
   - packaging >= 20.0
+  - typing_extensions
   - hypothesis >= 6.92.7
-  - numpy >= 1.24.4
-  - pandas >= 2.1.1
-  - scipy
   - pyyaml >= 5.1
   - typing_inspect >= 0.6.0
-  - typing_extensions >= 3.7.4.3
   - frictionless <= 4.40.8  # v5.* introduces breaking changes
   - pyarrow
   - pydantic
+
+  # hypotheses extra
+  - scipy
 
   # mypy extra
   - pandas-stubs
 
   # pyspark extra
-  - pyspark[connect] >= 3.2.0
+  - pyspark[connect] >= 3.2.0, < 4.0.0
 
   # polars extra
   - polars >= 0.20.0
@@ -33,7 +33,7 @@ dependencies:
   - protobuf
 
   # geopandas extra
-  - geopandas
+  - geopandas < 1.1.0
   - shapely
 
   # fastapi extra
@@ -43,6 +43,8 @@ dependencies:
   - black >= 24.0
 
   # testing
+  - numpy >= 1.24.4
+  - pandas >= 2.1.1
   - isort >= 5.7.0
   - joblib
   - mypy = 1.10.0
@@ -54,8 +56,8 @@ dependencies:
   - pytz
   - xdoctest
   - nox
+  - uv
   - setuptools # required in noxfile and not automatically provided by python >= 3.12
-  - importlib_metadata # required if python < 3.8
 
   # fastapi testing
   - uvicorn

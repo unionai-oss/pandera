@@ -28,7 +28,7 @@ below we'll use the {ref}`class-based API <dataframe-models>` to define a
 ```{code-cell} python
 import geopandas as gpd
 import pandas as pd
-import pandera as pa
+import pandera.pandas as pa
 from shapely.geometry import Polygon
 
 geo_schema = pa.DataFrameSchema({

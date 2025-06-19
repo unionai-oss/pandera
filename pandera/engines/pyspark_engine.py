@@ -43,7 +43,7 @@ class DataType(dtypes.DataType):
 
     def __init__(self, dtype: Any):
         super().__init__()
-        # Pyspark str(<DataType>) doesnot return equivalent string using the below code to convert the datatype to class
+        # Pyspark str(<DataType>) does not return equivalent string using the below code to convert the datatype to class
         try:
             if isinstance(dtype, str):
                 # To get the name of class from string with () at the end need to replace it

@@ -3,7 +3,7 @@ from typing import Optional
 
 from pydantic import BaseModel, Field
 
-import pandera as pa
+import pandera.pandas as pa
 
 
 class Transactions(pa.DataFrameModel):

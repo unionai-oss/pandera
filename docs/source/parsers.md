@@ -25,7 +25,7 @@ This feature is only available in the pandas validation backend.
 ## Parsing versus validation
 
 Pandera distinguishes between data validation and parsing. Validation is the act
-of verifying whether data follows some set of contraints, whereas parsing transforms
+of verifying whether data follows some set of constraints, whereas parsing transforms
 raw data into some desired set of constraints.
 
 Pandera ships with a few core parsers that you may already be familiar with:
@@ -56,7 +56,7 @@ before calling `schema.validate` with the native dataframe API:
 
 ```{code-cell} python
 import pandas as pd
-import pandera as pa
+import pandera.pandas as pa
 
 schema = pa.DataFrameSchema({"a": pa.Column(int, pa.Check.ge(0))})
 data = pd.DataFrame({"a": [1, 2, -1]})

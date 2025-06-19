@@ -24,7 +24,7 @@ property-based testing library.
 Once you've defined a schema, it's easy to generate examples:
 
 ```{code-cell} python
-import pandera as pa
+import pandera.pandas as pa
 
 schema = pa.DataFrameSchema(
     {

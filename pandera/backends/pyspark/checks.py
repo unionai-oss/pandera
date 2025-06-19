@@ -3,12 +3,13 @@
 from functools import partial
 from typing import Dict, List, Optional, Union
 
-from pandera.api.base.checks import CheckResult, GroupbyObject
+from pandera.api.base.checks import CheckResult
 from pandera.api.checks import Check
 from pandera.api.pyspark.types import (
     PysparkDataframeColumnObject,
     is_bool,
     is_table,
+    GroupbyObject,
 )
 from pandera.backends.base import BaseCheckBackend
 from pandera.api.pyspark.types import DataFrameTypes

@@ -7,9 +7,9 @@ import modin.pandas as mpd
 import pandas as pd
 import pytest
 
-import pandera as pa
+import pandera.pandas as pa
 from pandera import extensions
-from pandera.engines import numpy_engine, pandas_engine, geopandas_engine
+from pandera.engines import numpy_engine, pandas_engine
 from pandera.typing.modin import DataFrame, Index, Series, modin_version
 from tests.strategies.test_strategies import NULLABLE_DTYPES
 from tests.strategies.test_strategies import (
@@ -32,17 +32,9 @@ UNSUPPORTED_STRATEGY_DTYPE_CLS.add(numpy_engine.Object)
 
 TEST_DTYPES_ON_MODIN = []
 # pylint: disable=redefined-outer-name
-for dtype_cls in pandas_engine.Engine.get_registered_dtypes():
-    if (
-        dtype_cls in UNSUPPORTED_STRATEGY_DTYPE_CLS
-        or (
-            pandas_engine.Engine.dtype(dtype_cls)
-            not in SUPPORTED_STRATEGY_DTYPES
-        )
-        or not (
-            geopandas_engine.GEOPANDAS_INSTALLED
-            and dtype_cls == geopandas_engine.Geometry
-        )
+for dtype_cls in numpy_engine.Engine.get_registered_dtypes():
+    if dtype_cls in UNSUPPORTED_STRATEGY_DTYPE_CLS or (
+        pandas_engine.Engine.dtype(dtype_cls) not in SUPPORTED_STRATEGY_DTYPES
     ):
         continue
     TEST_DTYPES_ON_MODIN.append(pandas_engine.Engine.dtype(dtype_cls))
@@ -97,10 +89,7 @@ def test_dataframe_schema_dtypes(
     """
     dtype = pandas_engine.Engine.dtype(dtype_cls)
     schema = pa.DataFrameSchema({"column": pa.Column(dtype)}, coerce=coerce)
-    with pytest.warns(
-        UserWarning, match="Distributing .+ object. This may take some time."
-    ):
-        _test_datatype_with_schema(schema, data)
+    _test_datatype_with_schema(schema, data)
 
 
 @pytest.mark.parametrize("dtype_cls", TEST_DTYPES_ON_MODIN)
@@ -166,10 +155,6 @@ def test_index_dtypes(
         for dt in TEST_DTYPES_ON_MODIN
         # pylint: disable=no-value-for-parameter
         if dt in NULLABLE_DTYPES
-        and not (
-            geopandas_engine.GEOPANDAS_INSTALLED
-            and dt == pandas_engine.Engine.dtype(geopandas_engine.Geometry)
-        )
     ],
 )
 @hypothesis.given(st.data())

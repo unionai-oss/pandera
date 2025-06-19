@@ -8,7 +8,7 @@ import pytest
 from pydantic import BaseModel, ValidationError
 from shapely.geometry import Point
 
-import pandera as pa
+import pandera.pandas as pa
 from pandera.typing.geopandas import GeoDataFrame, GeoSeries
 
 

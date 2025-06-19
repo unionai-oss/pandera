@@ -6,7 +6,6 @@ from typing import Any, Optional, Type, cast
 import pandas as pd
 
 from pandera import errors
-from pandera.import_utils import strategy_import_error
 from pandera.api.base.types import CheckList, ParserList
 from pandera.api.dataframe.components import ComponentSchema, TDataObject
 from pandera.api.pandas.types import PandasDtypeInputTypes, is_field
@@ -14,6 +13,7 @@ from pandera.config import get_config_context
 from pandera.dtypes import DataType, UniqueSettings
 from pandera.engines import pandas_engine
 from pandera.errors import BackendNotFoundError
+from pandera.import_utils import strategy_import_error
 
 
 class ArraySchema(ComponentSchema[TDataObject]):
@@ -134,8 +134,8 @@ class SeriesSchema(ArraySchema[pd.Series]):
         :param unique: Whether or not column can contain duplicate
             values.
         :param report_duplicates: how to report unique errors
-            - `exclude_first`: report all duplicates except first occurence
-            - `exclude_last`: report all duplicates except last occurence
+            - `exclude_first`: report all duplicates except first occurrence
+            - `exclude_last`: report all duplicates except last occurrence
             - `all`: (default) report all duplicates
         :param coerce: If True, when schema.validate is called the column will
             be coerced into the specified dtype. This has no effect on columns
@@ -204,7 +204,7 @@ class SeriesSchema(ArraySchema[pd.Series]):
         :example:
 
         >>> import pandas as pd
-        >>> import pandera as pa
+        >>> import pandera.pandas as pa
         >>>
         >>> series_schema = pa.SeriesSchema(
         ...     float, [

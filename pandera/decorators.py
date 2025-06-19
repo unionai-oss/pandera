@@ -20,7 +20,6 @@ from typing import (
     overload,
 )
 
-import pandas as pd
 from pydantic import validate_arguments
 
 from pandera import errors
@@ -194,7 +193,7 @@ def check_input(
     Check the input of a decorated function.
 
     >>> import pandas as pd
-    >>> import pandera as pa
+    >>> import pandera.pandas as pa
     >>>
     >>>
     >>> schema = pa.DataFrameSchema({"column": pa.Column(int)})
@@ -336,7 +335,7 @@ def check_output(
     Check the output a decorated function.
 
     >>> import pandas as pd
-    >>> import pandera as pa
+    >>> import pandera.pandas as pa
     >>>
     >>>
     >>> schema = pa.DataFrameSchema(
@@ -634,7 +633,7 @@ def check_types(
 
     def _check_arg(arg_name: str, arg_value: Any) -> Any:
         """
-        Validate function's argument if annoted with a schema, else
+        Validate function's argument if annotated with a schema, else
         pass-through.
         """
         annotation_model_pairs = annotated_schema_models.get(
@@ -718,11 +717,7 @@ def check_types(
 
             raise errors.SchemaErrors(
                 schema=schema,
-                schema_errors=(
-                    error_handler.schema_errors
-                    if isinstance(arg_value, pd.DataFrame)
-                    else error_handler.collect_errors  # type: ignore
-                ),
+                schema_errors=error_handler.schema_errors,
                 data=arg_value,
             )
 

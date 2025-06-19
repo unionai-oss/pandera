@@ -30,12 +30,10 @@ classifiers = [
     "Topic :: Scientific/Engineering",
 ]
 dependencies = [
-    "numpy >= 1.24.4",
     "packaging >= 20.0",
-    "pandas >= 2.1.1",
     "pydantic",
     "typeguard",
-    "typing_extensions >= 3.7.4.3 ; python_version<'3.8'",
+    "typing_extensions",
     "typing_inspect >= 0.6.0",
 ]
 
@@ -45,17 +43,48 @@ Documentation = "https://pandera.readthedocs.io"
 Homepage = "https://github.com/pandera-dev/pandera"
 
 [project.optional-dependencies]
-strategies = ["hypothesis >= 6.92.7"]
-hypotheses = ["scipy"]
-io = ["pyyaml >= 5.1", "black", "frictionless <= 4.40.8"]
-pyspark = ["pyspark[connect] >= 3.2.0"]
-modin = ["modin", "ray", "dask[dataframe]", "distributed"]
-modin-ray = ["modin", "ray"]
-modin-dask = ["modin", "dask[dataframe]", "distributed"]
-dask = ["dask[dataframe]", "distributed"]
+pandas = [
+    "numpy >= 1.24.4",
+    "pandas >= 2.1.1",
+]
+strategies = [
+    "hypothesis >= 6.92.7",
+]
+hypotheses = [
+    "scipy",
+]
+io = [
+    "pyyaml >= 5.1",
+    "black",
+    "frictionless <= 4.40.8",
+]
 mypy = ["pandas-stubs"]
 fastapi = ["fastapi"]
-geopandas = ["geopandas", "shapely"]
+geopandas = [
+    "geopandas < 1.1.0",
+    "shapely",
+]
+pyspark = ["pyspark[connect] >= 3.2.0, < 4.0.0"]
+modin = [
+    "modin",
+    "ray",
+    "dask[dataframe]",
+    "distributed",
+]
+modin-ray = [
+    "modin",
+    "ray",
+]
+modin-dask = [
+    "modin",
+    "dask[dataframe]",
+    "distributed",
+]
+dask = [
+    "dask[dataframe]",
+    "distributed",
+]
+
 polars = ["polars >= 0.20.0"]
 all = [
     "hypothesis >= 6.92.7",
@@ -63,19 +92,22 @@ all = [
     "pyyaml >= 5.1",
     "black",
     "frictionless <= 4.40.8",
-    "pyspark[connect] >= 3.2.0",
+    "pyspark[connect] >= 3.2.0, < 4.0.0",
     "modin",
     "ray",
     "dask[dataframe]",
     "distributed",
     "pandas-stubs",
     "fastapi",
-    "geopandas",
+    "geopandas < 1.1.0",
     "shapely",
     "polars >= 0.20.0",
 ]
+
+[dependency-groups]
 dev = [
     "hypothesis >= 6.92.7",
+    "ipdb",
     "isort >= 5.7.0",
     "joblib",
     "mypy == 1.10.0",
@@ -83,18 +115,21 @@ dev = [
     "pre_commit",
     "pyarrow",
     "pylint < 3.3",
+    "pytz",
+    "xdoctest",
+    "nox",
+    "uvicorn",
+    "python-multipart",
+    "uv",
+]
+testing = [
     "pytest",
     "pytest-cov",
     "pytest-xdist",
     "pytest-asyncio",
-    "pytz",
-    "xdoctest",
-    "nox",
-    "importlib_metadata",
-    "uvicorn",
-    "python-multipart",
 ]
 docs = [
+    "setuptools",
     "sphinx",
     "sphinx-design",
     "sphinx-autodoc-typehints <= 1.14.1",
@@ -152,3 +187,6 @@ exclude = '''
   | asv_bench
 )
 '''
+
+[tool.codespell]
+ignore-words-list = ["notin", "splitted", "fo", "strat"]

@@ -6,7 +6,7 @@ import dask.dataframe as dd
 import pandas as pd
 import pytest
 
-import pandera as pa
+import pandera.pandas as pa
 
 
 @pytest.mark.parametrize(

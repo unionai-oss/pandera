@@ -27,7 +27,7 @@ def create_item(item: Item):
 
 @app.post("/transactions/", response_model=DataFrame[TransactionsDictOut])
 def create_transactions(
-    transactions: Annotated[DataFrame[Transactions], Body()]
+    transactions: Annotated[DataFrame[Transactions], Body()],
 ):
     output = transactions.assign(name="foo")
     ...  # do other stuff, e.g. update backend database with transactions

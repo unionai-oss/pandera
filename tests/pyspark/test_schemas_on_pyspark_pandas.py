@@ -11,11 +11,11 @@ import pyspark.pandas as ps
 import pytest
 from packaging import version
 
-import pandera as pa
-from pandera.typing import pyspark as pyspark_typing
+import pandera.pandas as pa
 from pandera import dtypes, extensions, system
-from pandera.engines import numpy_engine, pandas_engine, geopandas_engine
+from pandera.engines import numpy_engine, pandas_engine
 from pandera.typing import DataFrame, Index, Series
+from pandera.typing import pyspark as pyspark_typing
 from tests.strategies.test_strategies import NULLABLE_DTYPES
 from tests.strategies.test_strategies import (
     UNSUPPORTED_DTYPE_CLS as UNSUPPORTED_STRATEGY_DTYPE_CLS,
@@ -32,14 +32,13 @@ else:
     HAS_HYPOTHESIS = True
 
 
-DTYPES = [
-    dtype_cls
-    for dtype_cls in pandas_engine.Engine.get_registered_dtypes()
-    if not (
-        geopandas_engine.GEOPANDAS_INSTALLED
-        and dtype_cls == geopandas_engine.Geometry
-    )
-]
+DTYPES = []
+for _dtype in pandas_engine.Engine.get_registered_dtypes():
+    if "geometry" in str(_dtype).lower():
+        # exclude geopandas geometry types from pyspark tests
+        continue
+    DTYPES.append(_dtype)
+
 UNSUPPORTED_STRATEGY_DTYPE_CLS = set(UNSUPPORTED_STRATEGY_DTYPE_CLS)
 UNSUPPORTED_STRATEGY_DTYPE_CLS.add(numpy_engine.Object)
 
@@ -280,10 +279,6 @@ def test_index_dtypes(
             pandas_engine.Engine.dtype(pandas_engine.BOOL),
             pandas_engine.DateTime(tz="UTC"),  # type: ignore[call-arg]
         }
-        and not (
-            geopandas_engine.GEOPANDAS_INSTALLED
-            and dt == pandas_engine.Engine.dtype(geopandas_engine.Geometry)
-        )
     ],
 )
 @hypothesis.given(st.data())
@@ -461,7 +456,7 @@ def test_dtype_coercion(from_dtype, to_dtype, data):
         assert isinstance(to_schema(sample), ps.DataFrame)
         return
 
-    # strings that can't be intepreted as numbers are converted to NA
+    # strings that can't be interpreted as numbers are converted to NA
     if from_dtype is str and to_dtype in {int, float}:
         # first check if sample contains NAs
         if sample.astype(to_dtype).isna().any().item():

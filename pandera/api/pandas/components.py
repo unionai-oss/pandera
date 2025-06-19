@@ -46,8 +46,8 @@ class Column(ArraySchema[pd.DataFrame]):
         :param nullable: Whether or not column can contain null values.
         :param unique: whether column values should be unique
         :param report_duplicates: how to report unique errors
-            - `exclude_first`: report all duplicates except first occurence
-            - `exclude_last`: report all duplicates except last occurence
+            - `exclude_first`: report all duplicates except first occurrence
+            - `exclude_last`: report all duplicates except last occurrence
             - `all`: (default) report all duplicates
         :param coerce: If True, when schema.validate is called the column will
             be coerced into the specified dtype. This has no effect on columns
@@ -67,7 +67,7 @@ class Column(ArraySchema[pd.DataFrame]):
         :example:
 
         >>> import pandas as pd
-        >>> import pandera as pa
+        >>> import pandera.pandas as pa
         >>>
         >>>
         >>> schema = pa.DataFrameSchema({
@@ -147,7 +147,7 @@ class Column(ArraySchema[pd.DataFrame]):
         """Get matching column names based on regex column name pattern.
 
         :param columns: columns to regex pattern match
-        :returns: matchin columns
+        :returns: matching columns
         """
         # pylint: disable=import-outside-toplevel
         from pandera.backends.pandas.components import ColumnBackend
@@ -184,7 +184,7 @@ class Column(ArraySchema[pd.DataFrame]):
     @strategy_import_error
     def strategy_component(self):
         """Generate column data object for use by DataFrame strategy."""
-        import pandera.strategies as st
+        import pandera.strategies.pandas_strategies as st
 
         return st.column_strategy(
             self.dtype,
@@ -243,7 +243,7 @@ class Index(ArraySchema[pd.Index]):
         :param size: number of elements to generate.
         :returns: index strategy.
         """
-        import pandera.strategies as st
+        import pandera.strategies.pandas_strategies as st
 
         return st.index_strategy(
             self.dtype,  # type: ignore
@@ -257,7 +257,7 @@ class Index(ArraySchema[pd.Index]):
     @strategy_import_error
     def strategy_component(self):
         """Generate column data object for use by MultiIndex strategy."""
-        import pandera.strategies as st
+        import pandera.strategies.pandas_strategies as st
 
         return st.column_strategy(
             self.dtype,
@@ -314,7 +314,7 @@ class MultiIndex(DataFrameSchema):
         :example:
 
         >>> import pandas as pd
-        >>> import pandera as pa
+        >>> import pandera.pandas as pa
         >>>
         >>>
         >>> schema = pa.DataFrameSchema(
@@ -432,7 +432,7 @@ class MultiIndex(DataFrameSchema):
     # https://github.com/pandera-dev/pandera/issues/403
     # pylint: disable=arguments-differ
     def strategy(self, *, size=None):  # type: ignore
-        import pandera.strategies as st
+        import pandera.strategies.pandas_strategies as st
 
         return st.multiindex_strategy(indexes=self.indexes, size=size)
 

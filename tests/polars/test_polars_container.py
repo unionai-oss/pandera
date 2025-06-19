@@ -10,7 +10,7 @@ from hypothesis import strategies as st
 from polars.testing import assert_frame_equal
 from polars.testing.parametric import column, dataframes
 
-import pandera as pa
+import pandera.polars as pa
 from pandera import Check as C
 from pandera.api.polars.types import PolarsData
 from pandera.api.polars.utils import get_lazyframe_column_names
@@ -82,8 +82,10 @@ def ldf_schema_with_regex_name():
     """Polars lazyframe schema with checks."""
     return DataFrameSchema(
         {
-            r"^string_col_\d+$": Column(pl.Utf8, C.isin([*"012"])),
-            r"^int_col_\d+$": Column(pl.Int64, C.ge(0)),
+            r"^string_col_\d+$": Column(
+                pl.Utf8, C.isin([*"012"]), required=False
+            ),
+            r"^int_col_\d+$": Column(pl.Int64, C.ge(0), required=False),
         }
     )
 
@@ -93,8 +95,12 @@ def ldf_schema_with_regex_option():
     """Polars lazyframe schema with checks."""
     return DataFrameSchema(
         {
-            r"string_col_\d+": Column(pl.Utf8, C.isin([*"012"]), regex=True),
-            r"int_col_\d+": Column(pl.Int64, C.ge(0), regex=True),
+            r"string_col_\d+": Column(
+                pl.Utf8, C.isin([*"012"]), regex=True, required=False
+            ),
+            r"int_col_\d+": Column(
+                pl.Int64, C.ge(0), regex=True, required=False
+            ),
         }
     )
 
@@ -406,7 +412,7 @@ def test_set_defaults(ldf_basic, ldf_schema_basic):
     assert validated_data.equals(expected_data.collect())
 
 
-def _failure_value(column: str, dtype: Optional[pl.DataType] = None):
+def _failure_value(column: str, dtype: Optional[pl.DataTypeClass] = None):
     if column.startswith("string"):
         return pl.lit("9", dtype=dtype or pl.Utf8)
     elif column.startswith("int"):
@@ -695,3 +701,21 @@ def test_dataframe_column_level_coerce():
 
     schema = schema.update_column("b", coerce=True)
     assert_frame_equal(schema.validate(df), df.cast({"a": int, "b": float}))
+
+
+def test_dataframe_level_check():
+    schema = DataFrameSchema(
+        {
+            "a": Column(int),
+            "b": Column(int),
+            "c": Column(int),
+        },
+        checks=[pa.Check.gt(0)],
+    )
+
+    lf = pl.LazyFrame({"a": [-1, 2, 3], "b": [4, -5, 6], "c": [7, 8, -9]})
+    try:
+        schema.validate(lf.collect(), lazy=True)
+    except pa.errors.SchemaErrors as exc:
+        # expect all rows to fail
+        assert exc.failure_cases.shape[0] == 3

@@ -1,4 +1,4 @@
-""" conftest """
+"""conftest"""
 
 # pylint:disable=redefined-outer-name
 import datetime

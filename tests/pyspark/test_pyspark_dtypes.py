@@ -130,7 +130,7 @@ class TestAllNumericTypes(BaseClass):
     }
 
     def create_schema(self, column_name, datatype):
-        """Create schmea for a column and datatype"""
+        """Create schema for a column and datatype"""
         spark_schema = T.StructType(
             [
                 T.StructField(column_name, datatype, False),

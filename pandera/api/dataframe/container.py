@@ -93,8 +93,8 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
         :param ordered: whether or not to validate the columns order.
         :param unique: a list of columns that should be jointly unique.
         :param report_duplicates: how to report unique errors
-            - `exclude_first`: report all duplicates except first occurence
-            - `exclude_last`: report all duplicates except last occurence
+            - `exclude_first`: report all duplicates except first occurrence
+            - `exclude_last`: report all duplicates except last occurrence
             - `all`: (default) report all duplicates
         :param unique_column_names: whether or not column names must be unique.
         :param add_missing_columns: add missing column names with either default
@@ -108,7 +108,7 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
 
         :examples:
 
-        >>> import pandera as pa
+        >>> import pandera.pandas as pa
         >>>
         >>> schema = pa.DataFrameSchema({
         ...     "str_column": pa.Column(str),
@@ -187,8 +187,7 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
     def _validate_attributes(self):
         if self.strict not in (False, True, "filter"):
             raise errors.SchemaInitError(
-                "strict parameter must equal either `True`, `False`, "
-                "or `'filter'`."
+                "strict parameter must equal either `True`, `False`, or `'filter'`."
             )
 
     @property
@@ -449,7 +448,7 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
         To add columns to the schema, pass a dictionary with column name and
         ``Column`` instance key-value pairs.
 
-        >>> import pandera as pa
+        >>> import pandera.pandas as pa
         >>>
         >>> example_schema = pa.DataFrameSchema(
         ...    {
@@ -506,7 +505,7 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
         To remove a column or set of columns from a schema, pass a list of
         columns to be removed:
 
-        >>> import pandera as pa
+        >>> import pandera.pandas as pa
         >>>
         >>> example_schema = pa.DataFrameSchema(
         ...     {
@@ -569,7 +568,7 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
         Calling ``schema.1`` returns the :class:`~pandera.api.dataframe.container.DataFrameSchema`
         with the updated column.
 
-        >>> import pandera as pa
+        >>> import pandera.pandas as pa
         >>>
         >>> example_schema = pa.DataFrameSchema({
         ...     "category" : pa.Column(str),
@@ -637,7 +636,7 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
         :class:`~pandera.api.dataframe.container.DataFrameSchema`
         with the updated columns.
 
-        >>> import pandera as pa
+        >>> import pandera.pandas as pa
         >>>
         >>> example_schema = pa.DataFrameSchema({
         ...     "category" : pa.Column(str),
@@ -669,7 +668,7 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
 
         """
         # pylint: disable=import-outside-toplevel,import-outside-toplevel
-        from pandera.api.pandas.components import Column
+        from pandera.api.dataframe.components import ComponentSchema
 
         new_schema = copy.deepcopy(self)
 
@@ -682,7 +681,7 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
                 f"Keys {not_in_cols} not found in schema columns!"
             )
 
-        new_columns: Dict[str, Column] = {}
+        new_columns: Dict[str, ComponentSchema] = {}
         for col in new_schema.columns:
             # check
             if update_dict.get(col):
@@ -721,7 +720,7 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
         To rename a column or set of columns, pass a dictionary of old column
         names and new column names, similar to the pandas DataFrame method.
 
-        >>> import pandera as pa
+        >>> import pandera.pandas as pa
         >>>
         >>> example_schema = pa.DataFrameSchema({
         ...     "category" : pa.Column(str),
@@ -793,6 +792,122 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
         new_schema.columns = new_columns
         return cast(Self, new_schema)
 
+    def update_index(self, index_name: str, **kwargs) -> Self:
+        """
+        Create copy of a :class:`~pandera.api.dataframe.container.DataFrameSchema`
+        with updated index properties.
+
+        :param index_name:
+        :param kwargs: key-word arguments supplied to
+            :class:`~pandera.api.pandas.components.Index`
+        :returns: a new :class:`~pandera.api.dataframe.container.DataFrameSchema` with updated index
+        :raises: :class:`~pandera.errors.SchemaInitError`: if index not in
+            schema or you try to change the name.
+
+        :example:
+
+        Calling ``schema.1`` returns the :class:`~pandera.api.dataframe.container.DataFrameSchema`
+        with the updated index.
+
+        """
+
+        schema = self
+        if "name" in kwargs:
+            raise ValueError("cannot update 'name' of the index.")
+        if schema.index is None:
+            raise errors.SchemaInitError("index not in schema")
+        if index_name not in schema.index.names:
+            raise errors.SchemaInitError(
+                f"index '{index_name}' not in {schema}"
+            )
+
+        tmp_index_cols = schema.index.names
+        schema = schema.reset_index()
+
+        schema = schema.update_column(index_name, **kwargs)
+
+        schema = schema.set_index(tmp_index_cols)
+
+        return cast(Self, schema)
+
+    def update_indexes(self, update_dict: Dict[str, Dict[str, Any]]) -> Self:
+        """
+        Create copy of a :class:`~pandera.api.dataframe.container.DataFrameSchema`
+        with updated index properties.
+
+        :param update_dict:
+        :return: a new :class:`~pandera.api.dataframe.container.DataFrameSchema` with updated index
+        :raises: :class:`~pandera.errors.SchemaInitError`: if index not in
+            schema or you try to change the name.
+
+        """
+        schema = self
+
+        if schema.index is None:
+            raise errors.SchemaInitError("index not in schema")
+
+        # ensure all specified keys are present in the index
+        not_in_cols: List[str] = [
+            x for x in update_dict.keys() if x not in schema.index.names
+        ]
+        if not_in_cols:
+            raise errors.SchemaInitError(
+                f"Keys {not_in_cols} not found in schema indexes!"
+            )
+
+        tmp_index_cols = schema.index.names
+        schema = schema.reset_index()
+
+        schema = schema.update_columns(update_dict)
+
+        schema = schema.set_index(tmp_index_cols)
+
+        return cast(Self, schema)
+
+    def rename_indexes(self, rename_dict: Dict[str, str]) -> Self:
+        """Rename indexes using a dictionary of key-value pairs.
+
+        :param rename_dict: dictionary of 'old_name': 'new_name' key-value
+            pairs.
+        :returns: :class:`~pandera.api.dataframe.container.DataFrameSchema` (copy of original)
+        :raises: :class:`~pandera.errors.SchemaInitError` if index not in the
+            schema.
+
+        :example:
+
+        To rename an index or set of indexes, pass a dictionary of old index
+        names and new index names, similar to the pandas DataFrame method.
+
+        .. seealso:: :func:`update_index`
+
+        """
+        new_schema = copy.deepcopy(self)
+
+        if new_schema.index is None:
+            raise errors.SchemaInitError("index not in schema")
+
+        # ensure all specified keys are present in the index
+        not_in_cols: List[str] = [
+            x for x in rename_dict.keys() if x not in new_schema.index.names
+        ]
+        if not_in_cols:
+            raise errors.SchemaInitError(
+                f"Keys {not_in_cols} not found in schema indexes!"
+            )
+
+        tmp_index_cols = new_schema.index.names
+        new_schema = new_schema.reset_index()
+
+        new_schema = new_schema.rename_columns(rename_dict)
+
+        new_schema = new_schema.set_index(
+            # Use the new name in the rename_dict if it exists
+            # otherwise use the original name
+            [cast(str, rename_dict.get(n, n)) for n in tmp_index_cols]
+        )
+
+        return cast(Self, new_schema)
+
     def select_columns(self, columns: List[Any]) -> Self:
         """Select subset of columns in the schema.
 
@@ -808,7 +923,7 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
 
         To subset and reorder a schema by column, and return a new schema:
 
-        >>> import pandera as pa
+        >>> import pandera.pandas as pa
         >>>
         >>> example_schema = pa.DataFrameSchema({
         ...     "category": pa.Column(str),
@@ -878,7 +993,7 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
         existing column, you can set an index within the schema from an
         existing column in the schema.
 
-        >>> import pandera as pa
+        >>> import pandera.pandas as pa
         >>>
         >>> example_schema = pa.DataFrameSchema({
         ...     "category" : pa.Column(str),
@@ -1018,7 +1133,7 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
         To remove the entire index from the schema, just call the reset_index
         method with default parameters.
 
-        >>> import pandera as pa
+        >>> import pandera.pandas as pa
         >>>
         >>> example_schema = pa.DataFrameSchema(
         ...     {"probability" : pa.Column(float)},
@@ -1083,7 +1198,7 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
         # pylint: disable=import-outside-toplevel,cyclic-import
         from pandera.api.pandas.components import Column, Index, MultiIndex
 
-        # explcit check for an empty list
+        # explicit check for an empty list
         if level == []:
             return self
 

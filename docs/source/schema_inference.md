@@ -23,7 +23,7 @@ is a simple example:
 
 ```{code-cell} python
 import pandas as pd
-import pandera as pa
+import pandera.pandas as pa
 
 df = pd.DataFrame({
     "column1": [5, 10, 20],

@@ -65,7 +65,7 @@ class DataFrameSchema(_DataFrameSchema[pd.DataFrame]):
         Calling ``schema.validate`` returns the dataframe.
 
         >>> import pandas as pd
-        >>> import pandera as pa
+        >>> import pandera.pandas as pa
         >>>
         >>> df = pd.DataFrame({
         ...     "probability": [0.1, 0.4, 0.52, 0.23, 0.8, 0.76],
@@ -184,7 +184,7 @@ class DataFrameSchema(_DataFrameSchema[pd.DataFrame]):
         :param n_regex_columns: number of regex columns to generate.
         :returns: a strategy that generates pandas DataFrame objects.
         """
-        from pandera import strategies as st
+        import pandera.strategies.pandas_strategies as st
 
         self.register_default_backends(pd.DataFrame)
 

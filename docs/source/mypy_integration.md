@@ -33,8 +33,8 @@ This functionality is experimental 🧪. Since the
 annotations don't always match the official
 [pandas effort to support type annotations](https://github.com/pandas-dev/pandas/issues/28142#issuecomment-991967009),
 installing the `pandera[mypy]` extra may yield false positives in your
-pandas code, many of which are are documented in `tests/mypy/modules`
-(see [here](https://github.com/unionai-oss/pandera/tree/main/tests/mypy/modules) ).
+pandas code, many of which are are documented in `tests/mypy/pandas_modules`
+(see [here](https://github.com/unionai-oss/pandera/tree/main/tests/mypy/pandas_modules) ).
 
 We encourage you to [file an issue](https://github.com/pandera-dev/pandera/issues/new?assignees=&labels=bug,mypy&template=bug_report.md&title=)
 if you find any false positives or negatives being reported by `mypy`.
@@ -46,14 +46,14 @@ We'll most likely have to escalate this to the official `pandas-stubs`
 In the example below, we define a few schemas to see how type-linting with
 pandera works.
 
-```{literalinclude} ../../tests/mypy/modules/pandas_dataframe.py
+```{literalinclude} ../../tests/mypy/pandas_modules/pandas_dataframe.py
 :lines: 8-27
 ```
 
 The mypy linter will complain if the output type of the function body doesn't
 match the function's return signature.
 
-```{literalinclude} ../../tests/mypy/modules/pandas_dataframe.py
+```{literalinclude} ../../tests/mypy/pandas_modules/pandas_dataframe.py
 :lines: 30-43
 ```
 
@@ -62,14 +62,14 @@ Note that we're using the {py:class}`pandera.typing.pandas.DataFrame` generic
 type to define dataframes that are validated against the
 {py:class}`~pandera.api.pandas.model.DataFrameModel` type variable on initialization.
 
-```{literalinclude} ../../tests/mypy/modules/pandas_dataframe.py
+```{literalinclude} ../../tests/mypy/pandas_modules/pandas_dataframe.py
 :lines: 47-60
 ```
 
 To make mypy happy with respect to the return type, you can either initialize
 a dataframe of the expected type:
 
-```{literalinclude} ../../tests/mypy/modules/pandas_dataframe.py
+```{literalinclude} ../../tests/mypy/pandas_modules/pandas_dataframe.py
 :lines: 63-64
 ```
 
@@ -83,7 +83,7 @@ if it's already been initialized with the
 Or use {py:func}`typing.cast` to indicate to mypy that the return value of
 the function is of the correct type.
 
-```{literalinclude} ../../tests/mypy/modules/pandas_dataframe.py
+```{literalinclude} ../../tests/mypy/pandas_modules/pandas_dataframe.py
 :lines: 67-68
 ```
 
@@ -98,7 +98,7 @@ decorator to verify that the output dataframe is valid.
 
 Consider the examples below:
 
-```{literalinclude} ../../tests/mypy/modules/pandas_dataframe.py
+```{literalinclude} ../../tests/mypy/pandas_modules/pandas_dataframe.py
 :lines: 63-80
 ```
 
@@ -108,6 +108,6 @@ the error during static type-linting but pandera will raise a
 exception at runtime, depending on whether you're doing
 {ref}`lazy validation <lazy-validation>` or not.
 
-```{literalinclude} ../../tests/mypy/modules/pandas_dataframe.py
+```{literalinclude} ../../tests/mypy/pandas_modules/pandas_dataframe.py
 :lines: 83-87
 ```

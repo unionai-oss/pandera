@@ -29,7 +29,7 @@ below we'll use the {ref}`class-based API <dataframe-models>` to define a
 ```{code-cell} python
 import pyspark.pandas as ps
 import pandas as pd
-import pandera as pa
+import pandera.pandas as pa
 
 from pandera.typing.pyspark import DataFrame, Series
 

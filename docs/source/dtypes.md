@@ -47,7 +47,7 @@ interface by:
 The classes that define this data type hierarchy are in the following modules:
 
 - {py:mod}`~pandera.dtypes`: these define senantic types, which are not
-  user-facing, and are meant to be inheritied by framework-specific engines.
+  user-facing, and are meant to be inherited by framework-specific engines.
 - {py:mod}`~pandera.engines.numpy_engine`: this module implements numpy datatypes,
   which pandas relies on.
 - {py:mod}`~pandera.engines.pandas_engine`: this module uses the `numpy_engine`
@@ -83,7 +83,7 @@ literals `"True"` and `"False"`.
 
 ```{code-cell} python
 import pandas as pd
-import pandera as pa
+import pandera.pandas as pa
 from pandera import dtypes
 from pandera.engines import pandas_engine
 
@@ -122,7 +122,7 @@ The example above performs the following steps:
 So far we did not override the default behavior:
 
 ```{code-cell} python
-import pandera as pa
+import pandera.pandas as pa
 
 try:
     pa.SeriesSchema("boolean", coerce=True).validate(data)

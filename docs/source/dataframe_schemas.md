@@ -17,21 +17,19 @@ that verifies the columns and index of a pandas `DataFrame` object.
 The {class}`~pandera.api.pandas.container.DataFrameSchema` object consists of `Column`s and an `Index` (if applicable).
 
 ```{code-cell} python
-import pandera as pa
+import pandera.pandas as pa
 
-from pandera import Column, DataFrameSchema, Check, Index
-
-schema = DataFrameSchema(
+schema = pa.DataFrameSchema(
     {
-        "column1": Column(int),
-        "column2": Column(float, Check(lambda s: s < -1.2)),
+        "column1": pa.Column(int),
+        "column2": pa.Column(float, pa.Check(lambda s: s < -1.2)),
         # you can provide a list of validators
-        "column3": Column(str, [
-            Check(lambda s: s.str.startswith("value")),
-            Check(lambda s: s.str.split("_", expand=True).shape[1] == 2)
+        "column3": pa.Column(str, [
+            pa.Check(lambda s: s.str.startswith("value")),
+            pa.Check(lambda s: s.str.split("_", expand=True).shape[1] == 2)
         ]),
     },
-    index=Index(int),
+    index=pa.Index(int),
     strict=True,
     coerce=True,
 )
@@ -88,14 +86,12 @@ nullable. In order to accept null values, you need to explicitly specify
 ```{code-cell} python
 import numpy as np
 import pandas as pd
-import pandera as pa
-
-from pandera import Check, Column, DataFrameSchema
+import pandera.pandas as pa
 
 df = pd.DataFrame({"column1": [5, 1, np.nan]})
 
-non_null_schema = DataFrameSchema({
-    "column1": Column(float, Check(lambda x: x > 0))
+non_null_schema = pa.DataFrameSchema({
+    "column1": pa.Column(float, pa.Check(lambda x: x > 0))
 })
 
 try:
@@ -107,8 +103,8 @@ except pa.errors.SchemaError as exc:
 Setting `nullable=True` allows for null values in the corresponding column.
 
 ```{code-cell} python
-null_schema = DataFrameSchema({
-    "column1": Column(float, Check(lambda x: x > 0), nullable=True)
+null_schema = pa.DataFrameSchema({
+    "column1": pa.Column(float, pa.Check(lambda x: x > 0), nullable=True)
 })
 
 null_schema.validate(df)
@@ -128,12 +124,10 @@ checks.
 
 ```{code-cell} python
 import pandas as pd
-import pandera as pa
-
-from pandera import Column, DataFrameSchema
+import pandera.pandas as pa
 
 df = pd.DataFrame({"column1": [1, 2, 3]})
-schema = DataFrameSchema({"column1": Column(str, coerce=True)})
+schema = pa.DataFrameSchema({"column1": pa.Column(str, coerce=True)})
 
 validated_df = schema.validate(df)
 assert isinstance(validated_df.column1.iloc[0], str)
@@ -147,8 +141,8 @@ and null values are allowed in the column.
 
 ```{code-cell} python
 df = pd.DataFrame({"column1": [1., 2., 3, np.nan]})
-schema = DataFrameSchema({
-    "column1": Column(int, coerce=True, nullable=True)
+schema = pa.DataFrameSchema({
+    "column1": pa.Column(int, coerce=True, nullable=True)
 })
 
 try:
@@ -161,11 +155,11 @@ The best way to handle this case is to simply specify the column as a
 `Float` or `Object`.
 
 ```{code-cell} python
-schema_object = DataFrameSchema({
-    "column1": Column(object, coerce=True, nullable=True)
+schema_object = pa.DataFrameSchema({
+    "column1": pa.Column(object, coerce=True, nullable=True)
 })
-schema_float = DataFrameSchema({
-    "column1": Column(float, coerce=True, nullable=True)
+schema_float = pa.DataFrameSchema({
+    "column1": pa.Column(float, coerce=True, nullable=True)
 })
 
 print(schema_object.validate(df).dtypes)
@@ -189,14 +183,13 @@ in the column constructor:
 
 ```{code-cell} python
 import pandas as pd
-import pandera as pa
+import pandera.pandas as pa
 
-from pandera import Column, DataFrameSchema
 
 df = pd.DataFrame({"column2": ["hello", "pandera"]})
-schema = DataFrameSchema({
-    "column1": Column(int, required=False),
-    "column2": Column(str)
+schema = pa.DataFrameSchema({
+    "column1": pa.Column(int, required=False),
+    "column2": pa.Column(str)
 })
 
 schema.validate(df)
@@ -205,9 +198,9 @@ schema.validate(df)
 Since `required=True` by default, missing columns would raise an error:
 
 ```{code-cell} python
-schema = DataFrameSchema({
-    "column1": Column(int),
-    "column2": Column(str),
+schema = pa.DataFrameSchema({
+    "column1": pa.Column(int),
+    "column2": pa.Column(str),
 })
 
 try:
@@ -225,7 +218,7 @@ objects can also be used to validate columns in a dataframe on its own:
 
 ```{code-cell} python
 import pandas as pd
-import pandera as pa
+import pandera.pandas as pa
 
 df = pd.DataFrame({
     "column1": [1, 2, 3],
@@ -262,7 +255,7 @@ a set of meaningfully grouped columns that have `str` names.
 ```{code-cell} python
 import numpy as np
 import pandas as pd
-import pandera as pa
+import pandera.pandas as pa
 
 categories = ["A", "B", "C"]
 
@@ -331,12 +324,11 @@ schema, specify `strict=True`:
 
 ```{code-cell} python
 import pandas as pd
-import pandera as pa
+import pandera.pandas as pa
 
-from pandera import Column, DataFrameSchema
 
-schema = DataFrameSchema(
-    {"column1": Column(int)},
+schema = pa.DataFrameSchema(
+    {"column1": pa.Column(int)},
     strict=True)
 
 df = pd.DataFrame({"column2": [1, 2, 3]})
@@ -353,12 +345,11 @@ you can specify `strict='filter'`.
 
 ```{code-cell} python
 import pandas as pd
-import pandera as pa
+import pandera.pandas as pa
 
-from pandera import Column, DataFrameSchema
 
 df = pd.DataFrame({"column1": ["drop", "me"],"column2": ["keep", "me"]})
-schema = DataFrameSchema({"column2": Column(str)}, strict='filter')
+schema = pa.DataFrameSchema({"column2": pa.Column(str)}, strict='filter')
 
 schema.validate(df)
 ```
@@ -380,7 +371,7 @@ To validate the order of the Dataframe columns, specify `ordered=True`:
 
 ```{code-cell} python
 import pandas as pd
-import pandera as pa
+import pandera.pandas as pa
 
 schema = pa.DataFrameSchema(
     columns={"a": pa.Column(int), "b": pa.Column(int)}, ordered=True
@@ -401,7 +392,7 @@ In some cases you might want to ensure that a group of columns are unique:
 
 ```{code-cell} python
 import pandas as pd
-import pandera as pa
+import pandera.pandas as pa
 
 schema = pa.DataFrameSchema(
     columns={col: pa.Column(int) for col in ["a", "b", "c"]},
@@ -418,13 +409,13 @@ except pa.errors.SchemaError as exc:
 ```
 
 To control how unique errors are reported, the `report_duplicates` argument accepts:
-: - `exclude_first`: (default) report all duplicates except first occurence
-  - `exclude_last`: report all duplicates except last occurence
+: - `exclude_first`: (default) report all duplicates except first occurrence
+  - `exclude_last`: report all duplicates except last occurrence
   - `all`: report all duplicates
 
 ```{code-cell} python
 import pandas as pd
-import pandera as pa
+import pandera.pandas as pa
 
 schema = pa.DataFrameSchema(
     columns={col: pa.Column(int) for col in ["a", "b", "c"]},
@@ -457,7 +448,7 @@ or to `NaN` if the column is nullable.
 
 ```{code-cell} python
 import pandas as pd
-import pandera as pa
+import pandera.pandas as pa
 
 schema = pa.DataFrameSchema(
     columns={
@@ -480,15 +471,14 @@ You can also specify an {class}`~pandera.api.pandas.components.Index` in the {cl
 
 ```{code-cell} python
 import pandas as pd
-import pandera as pa
+import pandera.pandas as pa
 
-from pandera import Column, DataFrameSchema, Index, Check
 
-schema = DataFrameSchema(
-    columns={"a": Column(int)},
-    index=Index(
+schema = pa.DataFrameSchema(
+    columns={"a": pa.Column(int)},
+    index=pa.Index(
         str,
-        Check(lambda x: x.str.startswith("index_"))))
+        pa.Check(lambda x: x.str.startswith("index_"))))
 
 df = pd.DataFrame(
     data={"a": [1, 2, 3]},
@@ -524,13 +514,12 @@ tuples for each level in the index hierarchy:
 
 ```{code-cell} python
 import pandas as pd
-import pandera as pa
+import pandera.pandas as pa
 
-from pandera import Column, DataFrameSchema, Index
 
-schema = DataFrameSchema({
-    ("foo", "bar"): Column(int),
-    ("foo", "baz"): Column(str)
+schema = pa.DataFrameSchema({
+    ("foo", "bar"): pa.Column(int),
+    ("foo", "baz"): pa.Column(str)
 })
 
 df = pd.DataFrame({
@@ -550,7 +539,7 @@ indexes by composing a list of `pandera.Index` objects.
 
 ```{code-cell} python
 import pandas as pd
-import pandera as pa
+import pandera.pandas as pa
 
 schema = pa.DataFrameSchema(
     columns={"column1": pa.Column(int)},
@@ -587,7 +576,7 @@ Some examples of where this can be provided to pandas are:
 
 ```{code-cell} python
 import pandas as pd
-import pandera as pa
+import pandera.pandas as pa
 
 schema = pa.DataFrameSchema(
     columns={
@@ -618,15 +607,16 @@ schema.validate(df)
 
 Once you've defined a schema, you can then make modifications to it, both on
 the schema level -- such as adding or removing columns and setting or resetting
-the index -- or on the column level -- such as changing the data type or checks.
+the index -- or on the column or index level -- such as changing the data type
+or checks.
 
-This is useful for re-using schema objects in a data pipeline when additional
-computation has been done on a dataframe, where the column objects may have
-changed or perhaps where additional checks may be required.
+This is useful for reusing schema objects in a data pipeline when additional
+computation has been done on a dataframe, where the column or index objects
+may have changed or perhaps where additional checks may be required.
 
 ```{code-cell} python
 import pandas as pd
-import pandera as pa
+import pandera.pandas as pa
 
 data = pd.DataFrame({"col1": range(1, 6)})
 
@@ -653,7 +643,7 @@ Similarly, if you want dropped columns to be explicitly validated in a
 data pipeline:
 
 ```{code-cell} python
-import pandera as pa
+import pandera.pandas as pa
 
 schema = pa.DataFrameSchema(
     columns={
@@ -673,27 +663,69 @@ index, you can simply update the initial input schema using the
 the pipeline output.
 
 ```{code-cell} python
-import pandera as pa
+import pandera.pandas as pa
 
-from pandera import Column, DataFrameSchema, Check, Index
 
-schema = DataFrameSchema(
+schema = pa.DataFrameSchema(
     {
-        "column1": Column(int),
-        "column2": Column(float)
+        "column1": pa.Column(int),
+        "column2": pa.Column(float)
     },
-    index=Index(int, name = "column3"),
+    index=pa.Index(int, name = "column3"),
     strict=True,
     coerce=True,
 )
 schema.set_index(["column1"], append = True)
 ```
 
+And if you want to update the checks on a column or an index, you can use the
+{func}`~pandera.api.dataframe.container.DataFrameSchema.update_column` or
+{func}`~pandera.api.dataframe.container.DataFrameSchema.update_index` method.
+
+```{code-cell} python
+import pandas as pd
+import pandera.pandas as pa
+schema = pa.DataFrameSchema(
+    {
+        "column1": pa.Column(int),
+        "column2": pa.Column(float)
+    },
+    index=pa.Index(int, name = "column3"),
+    strict=True,
+    coerce=True,
+)
+df = pd.DataFrame(
+    data={"column1": [1, 2, 3], "column2": [1.0, 2.0, 3.0]},
+    index=pd.Index([0, 1, 2], name="column3")
+)
+schema.validate(df)
+
+schema = (
+  schema
+  .update_index(
+    "column3", checks=pa.Check(lambda s: s.isin([0, 1, 2])),
+  ).update_column(
+    "column1", checks=pa.Check(lambda s: s > 0)
+  )
+)
+df = pd.DataFrame(
+    data={"column1": [1, 2, 3], "column2": [1.0, 2.0, 3.0]},
+    index=pd.Index([0, 1, 2], name="column3")
+)
+
+schema.validate(df)
+```
+
+
 The available methods for altering the schema are:
 
 - {func}`~pandera.api.dataframe.container.DataFrameSchema.add_columns`
 - {func}`~pandera.api.dataframe.container.DataFrameSchema.remove_columns`
+- {func}`~pandera.api.dataframe.container.DataFrameSchema.update_column`
 - {func}`~pandera.api.dataframe.container.DataFrameSchema.update_columns`
 - {func}`~pandera.api.dataframe.container.DataFrameSchema.rename_columns`
+- {func}`~pandera.api.dataframe.container.DataFrameSchema.update_index`
+- {func}`~pandera.api.dataframe.container.DataFrameSchema.update_indexes`
+- {func}`~pandera.api.dataframe.container.DataFrameSchema.rename_indexes`
 - {func}`~pandera.api.dataframe.container.DataFrameSchema.set_index`
 - {func}`~pandera.api.dataframe.container.DataFrameSchema.reset_index`

@@ -23,9 +23,7 @@ function.
 
 ```{code-cell} python
 import pandas as pd
-import pandera as pa
-
-from pandera import DataFrameSchema, Column, Check, check_input
+import pandera.pandas as pa
 
 
 df = pd.DataFrame({
@@ -33,15 +31,16 @@ df = pd.DataFrame({
     "column2": [-1.3, -1.4, -2.9, -10.1, -20.4],
 })
 
-in_schema = DataFrameSchema({
-    "column1": Column(int,
-                        Check(lambda x: 0 <= x <= 10, element_wise=True)),
-    "column2": Column(float, Check(lambda x: x < -1.2)),
+in_schema = pa.DataFrameSchema({
+    "column1": pa.Column(
+        int, pa.Check(lambda x: 0 <= x <= 10, element_wise=True)
+    ),
+    "column2": pa.Column(float, pa.Check(lambda x: x < -1.2)),
 })
 
 # by default, check_input assumes that the first argument is
 # dataframe/series.
-@check_input(in_schema)
+@pa.check_input(in_schema)
 def preprocessor(dataframe):
     dataframe["column3"] = dataframe["column1"] + dataframe["column2"]
     return dataframe
@@ -53,7 +52,7 @@ print(preprocessed_df)
 You can also provide the argument name as a string
 
 ```{code-cell} python
-@check_input(in_schema, "dataframe")
+@pa.check_input(in_schema, "dataframe")
 def preprocessor(dataframe):
     ...
 ```
@@ -61,7 +60,7 @@ def preprocessor(dataframe):
 Or an integer representing the index in the positional arguments.
 
 ```{code-cell} python
-@check_input(in_schema, 1)
+@pa.check_input(in_schema, 1)
 def preprocessor(foo, dataframe):
     ...
 ```
@@ -73,9 +72,7 @@ DataFrame/Series of the decorated function.
 
 ```{code-cell} python
 import pandas as pd
-import pandera as pa
-
-from pandera import DataFrameSchema, Column, Check, check_output
+import pandera.pandas as pa
 
 
 preprocessed_df = pd.DataFrame({
@@ -83,34 +80,34 @@ preprocessed_df = pd.DataFrame({
 })
 
 # assert that all elements in "column1" are zero
-out_schema = DataFrameSchema({
-    "column1": Column(int, Check(lambda x: x == 0))
+out_schema = pa.DataFrameSchema({
+    "column1": pa.Column(int, pa.Check(lambda x: x == 0))
 })
 
 
 # by default assumes that the pandas DataFrame/Schema is the only output
-@check_output(out_schema)
+@pa.check_output(out_schema)
 def zero_column_1(df):
     df["column1"] = 0
     return df
 
 
 # you can also specify in the index of the argument if the output is list-like
-@check_output(out_schema, 1)
+@pa.check_output(out_schema, 1)
 def zero_column_1_arg(df):
     df["column1"] = 0
     return "foobar", df
 
 
 # or the key containing the data structure to verify if the output is dict-like
-@check_output(out_schema, "out_df")
+@pa.check_output(out_schema, "out_df")
 def zero_column_1_dict(df):
     df["column1"] = 0
     return {"out_df": df, "out_str": "foobar"}
 
 
 # for more complex outputs, you can specify a function
-@check_output(out_schema, lambda x: x[1]["out_df"])
+@pa.check_output(out_schema, lambda x: x[1]["out_df"])
 def zero_column_1_custom(df):
     df["column1"] = 0
     return ("foobar", {"out_df": df})
@@ -129,9 +126,7 @@ decorator where you can specify input and output schemas more concisely:
 
 ```{code-cell} python
 import pandas as pd
-import pandera as pa
-
-from pandera import DataFrameSchema, Column, Check, check_input
+import pandera.pandas as pa
 
 
 df = pd.DataFrame({
@@ -139,12 +134,12 @@ df = pd.DataFrame({
     "column2": [-1.3, -1.4, -2.9, -10.1, -20.4],
 })
 
-in_schema = DataFrameSchema({
-    "column1": Column(int),
-    "column2": Column(float),
+in_schema = pa.DataFrameSchema({
+    "column1": pa.Column(int),
+    "column2": pa.Column(float),
 })
 
-out_schema = in_schema.add_columns({"column3": Column(float)})
+out_schema = in_schema.add_columns({"column3": pa.Column(float)})
 
 @pa.check_io(df1=in_schema, df2=in_schema, out=out_schema)
 def preprocessor(df1, df2):
@@ -167,7 +162,7 @@ functions/coroutines. For example, one can use the same decorators on:
 All decorators work on sync/async regular/class/static methods of metaclasses as well.
 
 ```{code-cell} python
-import pandera as pa
+import pandera.pandas as pa
 from pandera.typing import DataFrame, Series
 
 class Schema(pa.DataFrameModel):

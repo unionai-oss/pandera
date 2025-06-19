@@ -205,7 +205,10 @@ def test_check_data_container():
         def check(
             self,
             pandera_dtype: DataType,
-            data_container: Optional[polars_engine.PolarsData] = None,
+            data_container: Optional[  # type:ignore
+                # test case doesn't need to be Liskov substitutable
+                polars_engine.PolarsData
+            ] = None,
         ) -> Union[bool, Iterable[bool]]:
             if data_container:
                 ldf = data_container.lazyframe
@@ -273,6 +276,23 @@ def test_expr_as_default():
         "b": [1.0, 1.0, 1.0],
         "c": ["foo", "foo", "foo"],
         "d": [1, 2, 3],
+    }
+
+
+def test_missing_with_extra_columns():
+    schema = pa.DataFrameSchema(
+        columns={
+            "a": pa.Column(int),
+            "b": pa.Column(float, default=1),
+        },
+        add_missing_columns=True,
+        coerce=True,
+    )
+    df = pl.LazyFrame({"a": [1, 2, 3], "c": [4, 5, 6]})
+    assert schema.validate(df).collect().to_dict(as_series=False) == {
+        "a": [1, 2, 3],
+        "b": [1.0, 1.0, 1.0],
+        "c": [4, 5, 6],
     }
 
 

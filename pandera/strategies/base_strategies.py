@@ -1,7 +1,11 @@
+# pylint: disable=unused-import
 """Base module for `hypothesis`-based strategies for data synthesis."""
 
 from functools import wraps
 from typing import Callable, Dict, Generic, Tuple, Type, TypeVar, cast
+
+import pandera.backends.base.builtin_checks
+
 
 F = TypeVar("F", bound=Callable)
 

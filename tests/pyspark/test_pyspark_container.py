@@ -307,7 +307,7 @@ def test_pyspark_unique_config(spark_session, request):
 @pytest.fixture(scope="module")
 def schema_with_complex_datatypes():
     """
-    Model containing all common datatypes for PySpark namespace, suported by parquet.
+    Model containing all common datatypes for PySpark namespace, supported by parquet.
     """
     schema = DataFrameSchema(
         {

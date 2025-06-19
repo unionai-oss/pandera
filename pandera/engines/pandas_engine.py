@@ -1,6 +1,6 @@
 """Pandas engine and data types."""
 
-# pylint:disable=too-many-ancestors
+# pylint:disable=too-many-ancestors,unused-argument
 
 # docstrings are inherited
 # pylint:disable=missing-class-docstring
@@ -158,7 +158,14 @@ class DataType(dtypes.DataType):
 
     def coerce(self, data_container: PandasObject) -> PandasObject:
         """Pure coerce without catching exceptions."""
-        coerced = data_container.astype(self.type)
+        try:
+            coerced = data_container.astype(self.type)
+        except AttributeError:
+            # attempt to use underlying numpy dtype if pandas extension type
+            if is_extension_dtype(self.type):
+                coerced = data_container.astype(self.type.type)
+            else:
+                raise
         if type(data_container).__module__.startswith("modin.pandas"):
             # NOTE: this is a hack to enable catching of errors in modin
             coerced.__str__()
@@ -526,7 +533,7 @@ def _check_decimal(
         return is_decimal
 
     decimals = pandas_obj[is_decimal]
-    # fix for modin unamed series raises KeyError
+    # fix for modin unnamed series raises KeyError
     # https://github.com/modin-project/modin/issues/4317
     decimals.name = "decimals"  # type: ignore
 
@@ -1298,7 +1305,7 @@ class PythonGenericType(DataType):
 
     def _check_type(self, element: Any) -> bool:
         # if the element is None or pd.NA, this function should return True:
-        # the schema should only fail if nullable=False is specifed at the
+        # the schema should only fail if nullable=False is specified at the
         # schema/schema component level.
         if element is None or element is pd.NA:
             return True
@@ -1486,7 +1493,7 @@ class PythonTypedDict(PythonGenericType):
             )
 
     def __str__(self) -> str:
-        return str(TypedDict.__name__)  # type: ignore[attr-defined]
+        return "TypedDict"
 
 
 @Engine.register_dtype(equivalents=[NamedTuple, "NamedTuple"])
@@ -1607,8 +1614,15 @@ if PYARROW_INSTALLED and PANDAS_2_0_0_PLUS:
         equivalents=[
             pyarrow.string,
             pyarrow.utf8,
-            pd.ArrowDtype(pyarrow.string()),
-            pd.ArrowDtype(pyarrow.utf8()),
+            # the `string[pyarrow]` string alias is overloaded: it can be either
+            # pd.StringDtype or pd.ArrowDtype(pyarrow.string()). Pandera handles
+            # like this pandas, where `string[pyarrow]` is interpreted as
+            # pd.StringDtype. The StrictEquivalent object ensures that the
+            # engine registers the following two types in terms of the type's
+            # string __repr__ method ("string[pyarrow]") and its type
+            # (pd.ArrowDtype).
+            engine.StrictEquivalent(pd.ArrowDtype(pyarrow.string())),
+            engine.StrictEquivalent(pd.ArrowDtype(pyarrow.utf8())),
         ]
     )
     @immutable

@@ -5,7 +5,6 @@ from typing import Any, Iterable, TypeVar
 import pyspark.sql.types as pst
 from pyspark.sql.functions import col
 
-import pandera.strategies as st
 from pandera.api.extensions import register_builtin_check
 from pandera.api.pyspark.types import PysparkDataframeColumnObject
 from pandera.backends.pyspark.decorators import register_input_datatypes
@@ -49,7 +48,6 @@ def equal_to(data: PysparkDataframeColumnObject, value: Any) -> bool:
 
 @register_builtin_check(
     aliases=["ne"],
-    strategy=st.ne_strategy,
     error="not_equal_to({value})",
 )
 @register_input_datatypes(
@@ -89,7 +87,6 @@ def greater_than(data: PysparkDataframeColumnObject, min_value: Any) -> bool:
 
 @register_builtin_check(
     aliases=["ge"],
-    strategy=st.ge_strategy,
     error="greater_than_or_equal_to({min_value})",
 )
 @register_input_datatypes(
@@ -110,7 +107,6 @@ def greater_than_or_equal_to(
 
 @register_builtin_check(
     aliases=["lt"],
-    strategy=st.lt_strategy,
     error="less_than({max_value})",
 )
 @register_input_datatypes(
@@ -133,7 +129,6 @@ def less_than(data: PysparkDataframeColumnObject, max_value: Any) -> bool:
 
 @register_builtin_check(
     aliases=["le"],
-    strategy=st.le_strategy,
     error="less_than_or_equal_to({max_value})",
 )
 @register_input_datatypes(
@@ -158,7 +153,6 @@ def less_than_or_equal_to(
 
 @register_builtin_check(
     aliases=["between"],
-    strategy=st.in_range_strategy,
     error="in_range({min_value}, {max_value})",
 )
 @register_input_datatypes(
@@ -204,7 +198,6 @@ def in_range(
 
 
 @register_builtin_check(
-    strategy=st.isin_strategy,
     error="isin({allowed_values})",
 )
 @register_input_datatypes(
@@ -239,7 +232,6 @@ def isin(data: PysparkDataframeColumnObject, allowed_values: Iterable) -> bool:
 
 
 @register_builtin_check(
-    strategy=st.notin_strategy,
     error="notin({forbidden_values})",
 )
 @register_input_datatypes(
@@ -275,7 +267,6 @@ def notin(
 
 
 @register_builtin_check(
-    strategy=st.str_contains_strategy,
     error="str_contains('{pattern}')",
 )
 @register_input_datatypes(acceptable_datatypes=convert_to_list(STRING_TYPE))
@@ -313,9 +304,7 @@ def str_startswith(data: PysparkDataframeColumnObject, string: str) -> bool:
     return data.dataframe.filter(~cond).limit(1).count() == 0
 
 
-@register_builtin_check(
-    strategy=st.str_endswith_strategy, error="str_endswith('{string}')"
-)
+@register_builtin_check(error="str_endswith('{string}')")
 @register_input_datatypes(acceptable_datatypes=convert_to_list(STRING_TYPE))
 def str_endswith(data: PysparkDataframeColumnObject, string: str) -> bool:
     """Ensure that all values end with a certain string.

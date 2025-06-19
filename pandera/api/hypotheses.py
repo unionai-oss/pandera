@@ -103,7 +103,7 @@ class Hypothesis(Check):
         Define a two-sample hypothesis test using scipy.
 
         >>> import pandas as pd
-        >>> import pandera as pa
+        >>> import pandera.pandas as pa
         >>>
         >>> from scipy import stats
         >>>
@@ -241,7 +241,7 @@ class Hypothesis(Check):
         The the built-in class method to do a two-sample t-test.
 
         >>> import pandas as pd
-        >>> import pandera as pa
+        >>> import pandera.pandas as pa
         >>>
         >>>
         >>> schema = pa.DataFrameSchema({
@@ -338,7 +338,7 @@ class Hypothesis(Check):
         If you want to compare one sample with a pre-defined mean:
 
         >>> import pandas as pd
-        >>> import pandera as pa
+        >>> import pandera.pandas as pa
         >>>
         >>>
         >>> schema = pa.DataFrameSchema({

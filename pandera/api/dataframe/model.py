@@ -4,6 +4,7 @@ import copy
 import inspect
 import os
 import re
+import threading
 import typing
 from typing import (
     Any,
@@ -40,7 +41,7 @@ from pandera.api.parsers import Parser
 from pandera.engines import PYDANTIC_V2
 from pandera.errors import SchemaInitError
 from pandera.import_utils import strategy_import_error
-from pandera.typing import AnnotationInfo, DataFrame
+from pandera.typing import AnnotationInfo
 from pandera.typing.common import DataFrameBase
 from pandera.utils import docstring_substitution
 
@@ -59,7 +60,7 @@ TDataFrameModel = TypeVar("TDataFrameModel", bound="DataFrameModel")
 TSchema = TypeVar("TSchema", bound=BaseSchema)
 
 _CONFIG_KEY = "Config"
-MODEL_CACHE: Dict[Type["DataFrameModel"], Any] = {}
+MODEL_CACHE: Dict[Tuple[Type["DataFrameModel"], int], Any] = {}
 GENERIC_SCHEMA_CACHE: Dict[
     Tuple[Type["DataFrameModel"], Tuple[Type[Any], ...]],
     Type["DataFrameModel"],
@@ -209,8 +210,9 @@ class DataFrameModel(Generic[TDataFrame, TSchema], BaseModel):
     @classmethod
     def to_schema(cls) -> TSchema:
         """Create :class:`~pandera.DataFrameSchema` from the :class:`.DataFrameModel`."""
-        if cls in MODEL_CACHE:
-            return MODEL_CACHE[cls]
+        thread_id = threading.get_ident()
+        if (cls, thread_id) in MODEL_CACHE:
+            return MODEL_CACHE[(cls, thread_id)]
 
         cls.__fields__ = cls._collect_fields()
         for field, (annot_info, _) in cls.__fields__.items():
@@ -260,8 +262,8 @@ class DataFrameModel(Generic[TDataFrame, TSchema], BaseModel):
                 "drop_invalid_rows": cls.__config__.drop_invalid_rows,
             }
         cls.__schema__ = cls.build_schema_(**kwargs)
-        if cls not in MODEL_CACHE:
-            MODEL_CACHE[cls] = cls.__schema__  # type: ignore
+        if (cls, thread_id) not in MODEL_CACHE:
+            MODEL_CACHE[(cls, thread_id)] = cls.__schema__  # type: ignore
         return cls.__schema__  # type: ignore
 
     @classmethod
@@ -572,7 +574,7 @@ class DataFrameModel(Generic[TDataFrame, TSchema], BaseModel):
     @classmethod
     def empty(
         cls: Type[TDataFrameModel], *_args
-    ) -> DataFrame[TDataFrameModel]:
+    ) -> DataFrameBase[TDataFrameModel]:
         """Create an empty DataFrame instance."""
         raise NotImplementedError
 

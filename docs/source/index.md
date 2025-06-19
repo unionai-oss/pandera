@@ -4,7 +4,7 @@ file_format: mystnb
 
 % pandera documentation entrypoint
 
-# The Open-source Framework for Precision Data Testing
+# The Open-source Framework for Validating DataFrame-like Objects
 
 > *Data validation for scientists, engineers, and analysts seeking correctness.*
 
@@ -79,15 +79,16 @@ file_format: mystnb
 :target: https://anaconda.org/conda-forge/pandera
 ```
 
-```{image} https://img.shields.io/badge/discord-chat-purple?color=%235765F2&label=discord&logo=discord&style=for-the-badge
-:alt: Discord Community
-:target: https://discord.gg/vyanhWuaKB
+```{image} https://img.shields.io/badge/Slack-4A154B?logo=slack&logoColor=fff&style=for-the-badge
+:alt: Slack Community
+:target: https://flyte-org.slack.com/archives/C08FDTY2X3L
 ```
 
-`pandera` is a [Union.ai](https://union.ai/blog-post/pandera-joins-union-ai)
-open source project that provides a flexible and expressive API for performing data
-validation on dataframe-like objects to make data processing pipelines more readable
-and robust.
+Pandera is a [Union.ai](https://union.ai/blog-post/pandera-joins-union-ai) open
+source project that provides a flexible and expressive API for performing data
+validation on dataframe-like objects. The goal of Pandera is to make data
+processing pipelines more readable and robust with statistically typed
+dataframes.
 
 Dataframes contain information that `pandera` explicitly validates at runtime.
 This is useful in production-critical data pipelines or reproducible research
@@ -96,7 +97,7 @@ settings. With `pandera`, you can:
 1. Define a schema once and use it to validate {ref}`different dataframe types <supported-dataframe-libraries>`
    including [pandas](http://pandas.pydata.org), [polars](https://docs.pola.rs/), [dask](https://dask.org/),
    [modin](https://modin.readthedocs.io/), and
-   [pyspark.pandas](https://spark.apache.org/docs/3.2.0/api/python/user_guide/pandas_on_spark/index.html).
+   [pyspark](https://spark.apache.org/docs/latest/api/python/index.html).
 2. {ref}`Check<checks>` the types and properties of columns in a
    `pd.DataFrame` or values in a `pd.Series`.
 3. Perform more complex statistical validation like
@@ -119,16 +120,26 @@ settings. With `pandera`, you can:
 
 ## Install
 
-Install with `pip`:
+Pandera supports [multiple dataframe libraries](https://pandera.readthedocs.io/en/stable/supported_libraries.html), including [pandas](http://pandas.pydata.org), [polars](https://docs.pola.rs/), [pyspark](https://spark.apache.org/docs/latest/api/python/index.html), and more.
+
+Most of the documentation will use the `pandas` DataFrames, install Pandera with the `pandas` extra:
+
+With `pip`:
 
 ```bash
-pip install pandera
+pip install 'pandera[pandas]'
 ```
 
-Or `conda`:
+With `uv`:
+
+```
+uv pip install 'pandera[pandas]'
+```
+
+With `conda`:
 
 ```bash
-conda install -c conda-forge pandera
+conda install -c conda-forge pandera-pandas
 ```
 
 ### Extras
@@ -176,82 +187,76 @@ conda install -c conda-forge pandera-polars      # validate polars dataframes
 
 ```{code-cell} python
 import pandas as pd
-import pandera as pa
+import pandera.pandas as pa
 
 # data to validate
 df = pd.DataFrame({
-    "column1": [1, 4, 0, 10, 9],
-    "column2": [-1.3, -1.4, -2.9, -10.1, -20.4],
-    "column3": ["value_1", "value_2", "value_3", "value_2", "value_1"],
+    "column1": [1, 2, 3],
+    "column2": [1.1, 1.2, 1.3],
+    "column3": ["a", "b", "c"],
 })
 
-# define schema
 schema = pa.DataFrameSchema({
-    "column1": pa.Column(int, checks=pa.Check.le(10)),
-    "column2": pa.Column(float, checks=pa.Check.lt(-1.2)),
-    "column3": pa.Column(str, checks=[
-        pa.Check.str_startswith("value_"),
-        # define custom checks as functions that take a series as input and
-        # outputs a boolean or boolean Series
-        pa.Check(lambda s: s.str.split("_", expand=True).shape[1] == 2)
-    ]),
-})
+    "column1": pa.Column(int, pa.Check.ge(0)),
+    "column2": pa.Column(float, pa.Check.lt(10)),
+    "column3": pa.Column(
+        str,
+        [
+            pa.Check.isin([*"abc"]),
+            pa.Check(lambda series: series.str.len() == 1),
+        ]
+    ),
+}
+)
 
-validated_df = schema(df)
+validated_df = schema.validate(df)
 print(validated_df)
 ```
 
-You can pass the built-in python types that are supported by
-pandas, or strings representing the
-[legal pandas datatypes](https://pandas.pydata.org/docs/user_guide/basics.html#dtypes),
-or pandera's `DataType`:
-
-```{code-cell} python
-schema = pa.DataFrameSchema({
-    # built-in python types
-    "int_column": pa.Column(int),
-    "float_column": pa.Column(float),
-    "str_column": pa.Column(str),
-
-    # pandas dtype string aliases
-    "int_column2": pa.Column("int64"),
-    "float_column2": pa.Column("float64"),
-    # pandas > 1.0.0 support native "string" type
-    "str_column2": pa.Column("str"),
-
-    # pandera DataType
-    "int_column3": pa.Column(pa.Int),
-    "float_column3": pa.Column(pa.Float),
-    "str_column3": pa.Column(pa.String),
-})
-```
-
-For more details on data types, see {class}`~pandera.dtypes.DataType`
-
 ## Dataframe Model
 
-`pandera` also provides an alternative API for expressing schemas inspired
-by [dataclasses](https://docs.python.org/3/library/dataclasses.html) and
-[pydantic](https://pydantic-docs.helpmanual.io/). The equivalent
+`pandera` also provides a class-based API for writing schemas inspired by
+[dataclasses](https://docs.python.org/3/library/dataclasses.html) and
+[pydantic](https://docs.pydantic.dev/latest/). The equivalent
 {class}`~pandera.api.pandas.model.DataFrameModel` for the above
-{class}`~pandera.scheams.DataFrameSchema` would be:
+{class}`~pandera.pandas.DataFrameSchema` would be:
 
 ```{code-cell} python
-from pandera.typing import Series
-
+# define a schema
 class Schema(pa.DataFrameModel):
-
-    column1: int = pa.Field(le=10)
-    column2: float = pa.Field(lt=-1.2)
-    column3: str = pa.Field(str_startswith="value_")
+    column1: int = pa.Field(ge=0)
+    column2: float = pa.Field(lt=10)
+    column3: str = pa.Field(isin=[*"abc"])
 
     @pa.check("column3")
-    def column_3_check(cls, series: Series[str]) -> Series[bool]:
-        """Check that column3 values have two elements after being split with '_'"""
-        return series.str.split("_", expand=True).shape[1] == 2
+    def custom_check(cls, series: pd.Series) -> pd.Series:
+        return series.str.len() == 1
 
 Schema.validate(df)
 ```
+
+:::{warning}
+Pandera `v0.24.0` introduces the `pandera.pandas` module, which is now the
+(highly) recommended way of defining `DataFrameSchema`s and `DataFrameModel`s
+for `pandas` data structures like `DataFrame`s. Defining a dataframe schema from
+the top-level `pandera` module will produce a `FutureWarning`:
+
+```python
+import pandera as pa
+
+schema = pa.DataFrameSchema({"col": pa.Column(str)})
+```
+
+Update your import to:
+
+```python
+import pandera.pandas as pa
+```
+
+And all of the rest of your pandera code should work. Using the top-level
+`pandera` module to access `DataFrameSchema` and the other pandera classes
+or functions will be deprecated in a future version
+:::
 
 ## Informative Errors
 
@@ -266,8 +271,13 @@ In the case that a validation `Check` is violated:
 
 simple_schema = pa.DataFrameSchema({
     "column1": pa.Column(
-        int, pa.Check(lambda x: 0 <= x <= 10, element_wise=True,
-                    error="range checker [0, 10]"))
+        int,
+        pa.Check(
+            lambda x: 0 <= x <= 10,
+            element_wise=True,
+            error="range checker [0, 10]"
+        )
+    )
 })
 
 # validation rule violated
@@ -309,7 +319,12 @@ and dataframe:
 ```{code-cell} python
 :tags: [raises-exception]
 
-schema = pa.DataFrameSchema({"id": pa.Column(int, pa.Check.lt(10))}, name="MySchema", strict=True)
+schema = pa.DataFrameSchema(
+    {"id": pa.Column(int, pa.Check.lt(10))},
+    name="MySchema",
+    strict=True,
+)
+
 df = pd.DataFrame({"id": [1, None, 30], "extra_column": [1, 2, 3]})
 
 try:
@@ -399,7 +414,7 @@ Submit issues, feature requests or bugfixes on
 There are many ways of getting help with your questions. You can ask a question
 on [Github Discussions](https://github.com/pandera-dev/pandera/discussions/categories/q-a)
 page or reach out to the maintainers and pandera community on
-[Discord](https://discord.gg/vyanhWuaKB)
+[Slack](https://flyte-org.slack.com/archives/C08FDTY2X3L)
 
 ```{toctree}
 :caption: Introduction
@@ -460,7 +475,7 @@ consider citing the paper and/or software package.
 
 ### [Paper](https://conference.scipy.org/proceedings/scipy2020/niels_bantilan.html)
 
-```bash
+```
 @InProceedings{ niels_bantilan-proc-scipy-2020,
   author    = { {N}iels {B}antilan },
   title     = { pandera: {S}tatistical {D}ata {V}alidation of {P}andas {D}ataframes },
@@ -481,7 +496,7 @@ consider citing the paper and/or software package.
 
 ## License and Credits
 
-`pandera` is licensed under the [MIT license](https://github.com/pandera-dev/pandera/blob/main/LICENSE.txt).
+`pandera` is licensed under the [MIT license](https://github.com/pandera-dev/pandera/blob/main/LICENSE.txt)
 and is written and maintained by Niels Bantilan (niels@union.ai)
 
 # Indices and tables

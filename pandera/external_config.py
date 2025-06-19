@@ -21,7 +21,7 @@ def _set_pyspark_environment_variables():
             os.environ["SPARK_LOCAL_IP"] = "127.0.0.1"
         if os.getenv("PYARROW_IGNORE_TIMEZONE") is None:
             is_pyarrow_ignore_timezone_dirty = True
-            # This can be overriden by the user
+            # This can be overridden by the user
             os.environ["PYARROW_IGNORE_TIMEZONE"] = "1"
 
         import pyspark.pandas

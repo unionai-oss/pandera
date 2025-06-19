@@ -1,4 +1,4 @@
-"""Tests Engine subclassing and registring DataTypes.Test pyspark engine."""
+"""Tests Engine subclassing and registering DataTypes.Test pyspark engine."""
 
 # pylint:disable=redefined-outer-name,unused-argument
 
