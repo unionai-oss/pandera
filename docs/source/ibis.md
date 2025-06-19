@@ -342,16 +342,16 @@ class ModelWithCustomChecks(pa.DataFrameModel):
         """Return a table with a single boolean scalar."""
         return data.table[data.key] > 0
 
-    @pa.check("a", element_wise=True)
-    def is_positive_element_wise(cls, x: int) -> bool:
-        """Take a single value and return a boolean scalar."""
-        return x > 0
-
 
 t = ibis.memtable({"a": [1, 2, 3]})
 validated_t = t.pipe(ModelWithCustomChecks.validate)
 print(validated_t)
 ```
+
+:::{warning}
+Element-wise checks using ``DataFrameModel`` are not yet supported in
+the Ibis integration; use ``DataFrameSchema`` instead.
+:::
 
 ### DataFrame-level Checks
 
