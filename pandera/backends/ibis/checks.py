@@ -26,7 +26,13 @@ class IbisCheckBackend(BaseCheckBackend):
         super().__init__(check)
         assert check._check_fn is not None, "Check._check_fn must be set."
         self.check = check
-        self.check_fn = partial(check._check_fn, **check._check_kwargs)
+        self.check_fn = (
+            partial(
+                ibis.udf.scalar.python(check._check_fn), **check._check_kwargs
+            )
+            if self.check.element_wise
+            else partial(check._check_fn, **check._check_kwargs)
+        )
 
     def groupby(self, check_obj) -> "GroupedTable":
         """Implements groupby behavior for check object."""

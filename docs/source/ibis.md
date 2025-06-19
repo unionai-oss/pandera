@@ -277,9 +277,9 @@ will require a function that takes in a single element of the column/dataframe
 and returns a boolean scalar indicating whether the value passed.
 
 :::{warning}
-Under the hood, element-wise checks use the
-[map_elements](https://docs.pola.rs/py-polars/html/reference/expressions/api/polars.Expr.map_elements.html)
-function, which is slower than the native polars expressions API.
+Under the hood, element-wise checks use
+[Python UDFs](https://ibis-project.org/reference/scalar-udfs#ibis.expr.operations.udf.scalar.python),
+which are likely to be **much** slower than vectorized checks.
 :::
 
 ### Column-level Checks
@@ -342,16 +342,16 @@ class ModelWithCustomChecks(pa.DataFrameModel):
         """Return a table with a single boolean scalar."""
         return data.table[data.key] > 0
 
-    @pa.check("a", element_wise=True)
-    def is_positive_element_wise(cls, x: int) -> bool:
-        """Take a single value and return a boolean scalar."""
-        return x > 0
-
 
 t = ibis.memtable({"a": [1, 2, 3]})
 validated_t = t.pipe(ModelWithCustomChecks.validate)
 print(validated_t)
 ```
+
+:::{warning}
+Element-wise checks using ``DataFrameModel`` are not yet supported in
+the Ibis integration; use ``DataFrameSchema`` instead.
+:::
 
 ### DataFrame-level Checks
 

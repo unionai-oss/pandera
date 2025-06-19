@@ -155,9 +155,8 @@ def test_ibis_table_check(
     assert output == expected_output
 
 
-@ibis.udf.scalar.python
 def _element_wise_check_fn(x: int) -> bool:
-    return x >= 0
+    return x > 0
 
 
 def test_ibis_element_wise_column_check(column_t):
@@ -193,12 +192,11 @@ def test_ibis_element_wise_dataframe_check(t):
 
 
 def test_ibis_element_wise_dataframe_different_dtypes():
+
     # Custom check function
-    @ibis.udf.scalar.python
     def check_gt_2(v: int) -> bool:
         return v > 2
 
-    @ibis.udf.scalar.python
     def check_len_ge_2(v: str) -> bool:
         return len(v) >= 2
 
