@@ -1,7 +1,6 @@
 """Pandera type annotations for Ibis."""
 
 import functools
-import io
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Generic, TypeVar, List, Mapping
 
@@ -186,72 +185,19 @@ if IBIS_INSTALLED:
                 except ValueError as exc:
                     raise ValueError(
                         f"Unsupported format: {config.to_format}. "
-                        f"Ibis natively supports: dict, csv, json, and parquet."
+                        f"Ibis natively supports: dict."
                     ) from exc
-
-                kwargs = config.to_format_kwargs or {}
-
-                # Helper function for writing to a buffer with error handling
-                def write_to_buffer(
-                    buffer_factory, write_method, error_prefix
-                ):
-                    """
-                    Helper to write DataFrame to a buffer with standardized error handling.
-
-                    Args:
-                        buffer_factory: Function that returns a new buffer
-                        write_method: Method to call on the buffer (takes buffer and kwargs)
-                        error_prefix: Prefix for error message if writing fails
-
-                    Returns:
-                        The buffer or buffer content
-
-                    Raises:
-                        ValueError: If writing fails
-                    """
-                    try:  # pragma: no cover
-                        buffer = buffer_factory()
-                        write_method(buffer, **kwargs)
-                        buffer.seek(0)
-                        return (
-                            buffer.getvalue()
-                            if isinstance(buffer, io.StringIO)
-                            else buffer
-                        )
-                    except Exception as exc:  # pragma: no cover
-                        raise ValueError(f"{error_prefix}: {exc}") from exc
 
                 # Handle specific formats
                 if format_type == Formats.dict:
                     # Convert to dict
                     return data.to_pyarrow().to_pydict()
 
-                elif format_type == Formats.csv:
-                    # Use Ibis write_csv
-                    return write_to_buffer(  # pragma: no cover
-                        io.StringIO,
-                        data.write_csv,
-                        "Failed to write CSV with Ibis",
-                    )
-
-                elif format_type == Formats.json:
-                    # Use Ibis write_json
-                    return write_to_buffer(  # pragma: no cover
-                        io.StringIO,
-                        data.write_json,
-                        "Failed to write JSON with Ibis",
-                    )
-
-                elif format_type == Formats.parquet:
-                    # Use Ibis write_parquet
-                    return write_to_buffer(  # pragma: no cover
-                        io.BytesIO,
-                        data.write_parquet,
-                        "Failed to write Parquet with Ibis",
-                    )
-
                 elif format_type in (
+                    Formats.csv,
+                    Formats.json,
                     Formats.feather,
+                    Formats.parquet,
                     Formats.pickle,
                     Formats.json_normalize,
                 ):
