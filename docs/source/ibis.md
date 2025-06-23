@@ -422,55 +422,6 @@ validated_t = t.pipe(ModelWithDFChecks.validate)
 print(validated_t)
 ```
 
-## Data-level Validation with LazyFrames
-
-As mentioned earlier in this page, by default calling `schema.validate` on
-a `pl.LazyFrame` will only perform schema-level validation checks. If you want
-to validate data-level properties on a `pl.LazyFrame`, the recommended way
-would be to first call `.collect()`:
-
-```{code-cell} python
-:tags: ["raises-exception"]
-class SimpleModel(pa.DataFrameModel):
-        a: int
-
-lf: pl.LazyFrame = (
-    pl.LazyFrame({"a": [1.0, 2.0, 3.0]})
-    .cast({"a": pl.Int64})
-    .collect()  # convert to pl.DataFrame
-    .pipe(SimpleModel.validate)
-    .lazy()     # convert back to pl.LazyFrame
-    # do more lazy operations
-)
-```
-
-This syntax is nice because it's clear what's happening just from reading the
-code. Pandera schemas serve as a clear point in the method chain where the data
-is materialized.
-
-However, if you don't mind a little magic 🪄, you can set the
-`PANDERA_VALIDATION_DEPTH` environment variable to `SCHEMA_AND_DATA` to
-validate data-level properties on a `polars.LazyFrame`. This will be equivalent
-to the explicit code above:
-
-```bash
-export PANDERA_VALIDATION_DEPTH=SCHEMA_AND_DATA
-```
-
-```{code-cell} python
-:tags: ["raises-exception"]
-lf: pl.LazyFrame = (
-    pl.LazyFrame({"a": [1.0, 2.0, 3.0]})
-    .cast({"a": pl.Int64})
-    .pipe(SimpleModel.validate)  # this will validate schema- and data-level properties
-    # do more lazy operations
-)
-```
-
-Under the hood, the validation process will make `.collect()` calls on the
-LazyFrame in order to run data-level validation checks, and it will still
-return a `pl.LazyFrame` after validation is done.
-
 ## Supported and Unsupported Functionality
 
 Since the Pandera-Ibis integration is less mature than pandas support, some
