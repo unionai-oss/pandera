@@ -323,52 +323,6 @@ class TestTable:
         mock_writer.assert_called_once_with(t, buffer, param="value")
         assert result is buffer
 
-    def test_write_to_buffer_helper(self):
-        """Test the write_to_buffer helper function which is internal to the to_format method."""
-
-        def write_to_buffer(buffer_factory, write_method, error_prefix):
-            """Helper to write DataFrame to a buffer with standardized error handling."""
-            try:
-                buffer = buffer_factory()
-                write_method(buffer)
-                buffer.seek(0)
-                return (
-                    buffer.getvalue()
-                    if isinstance(buffer, io.StringIO)
-                    else buffer
-                )
-            except Exception as exc:
-                raise ValueError(f"{error_prefix}: {exc}") from exc
-
-        # Test with StringIO
-        string_io_factory = io.StringIO
-        mock_write_method = MagicMock()
-
-        # Normal case
-        result = write_to_buffer(
-            string_io_factory, mock_write_method, "Error prefix"
-        )
-        assert isinstance(result, str)
-        mock_write_method.assert_called_once()
-
-        # Error case
-        mock_write_method.side_effect = Exception("Test error")
-        with pytest.raises(ValueError, match="Error prefix: Test error"):
-            write_to_buffer(
-                string_io_factory, mock_write_method, "Error prefix"
-            )
-
-        # Test with BytesIO
-        bytes_io_factory = io.BytesIO
-        mock_write_method = MagicMock()
-
-        # Normal case
-        result = write_to_buffer(
-            bytes_io_factory, mock_write_method, "Error prefix"
-        )
-        assert isinstance(result, io.BytesIO)
-        mock_write_method.assert_called_once()
-
     def test_to_format_dict(self):
         """Test to_format with dict format."""
         t = ibis.memtable({"str_col": ["test"], "int_col": [1]})
@@ -383,147 +337,47 @@ class TestTable:
         assert "str_col" in result
         assert "int_col" in result
 
-    @pytest.mark.xfail(reason="can't patch or modify immutable Table object")
-    def test_to_format_csv_direct(self):
-        """Test to_format with CSV format directly."""
-        t = ibis.memtable({"str_col": ["test"], "int_col": [1]})
-
-        # Test the CSV format error case directly
-        with patch.object(
-            t, "to_csv", side_effect=Exception("Test CSV error")
-        ):
-            with pytest.raises(ValueError):
-                # Simulate the exact code that's used in the function
-                try:
-                    buffer = io.StringIO()
-                    t.to_csv(buffer)
-                    buffer.seek(0)
-                    buffer.getvalue()
-                except Exception as exc:
-                    raise ValueError(
-                        f"Failed to write CSV with Ibis: {exc}"
-                    ) from exc
-
-        # Test a successful case
-        buffer = io.StringIO()
-        t.to_csv(buffer)
-        buffer.seek(0)
-        result = buffer.getvalue()
-        assert "str_col,int_col" in result
-        assert "test,1" in result
-
-    def test_format_specific_code_paths(self):
-        """Test specific code paths for format handling."""
-        # Testing line 244: csv buffer write path
-        try:
-            # Create a class to mock the specific format logic
-            class MockFormat:
-                def __init__(self, format_name):
-                    self.format_name = format_name
-                    self.value = format_name
-
-                def __eq__(self, other):
-                    return self.format_name == other.value
-
-            mock_csv_format = MockFormat("csv")
-
-            # Make a simplified version of the write_to_buffer function
-            def mock_write(_buf_factory, _write_method, _error_prefix):
-                """Mock version of write_to_buffer that ignores its arguments."""
-                return "csv_result"
-
-            # Now test the format handler
-            if mock_csv_format == Formats.csv:
-                # This is the line we want to exercise
-                result = mock_write(io.StringIO, lambda x: None, "CSV Error")
-                assert result == "csv_result"
-
-            # Do the same for other formats
-            mock_json_format = MockFormat("json")
-            if mock_json_format == Formats.json:
-                # This is line 252
-                result = mock_write(io.StringIO, lambda x: None, "JSON Error")
-                assert result == "csv_result"
-
-            mock_parquet_format = MockFormat("parquet")
-            if mock_parquet_format == Formats.parquet:
-                # This is line 260
-                result = mock_write(
-                    io.BytesIO, lambda x: None, "Parquet Error"
-                )
-                assert result == "csv_result"
-
-        except (ValueError, TypeError) as e:
-            pytest.fail(f"Format handling test failed: {e}")
-
-    @pytest.mark.xfail(reason="can't patch or modify immutable Table object")
-    def test_to_format_json_direct(self):
-        """Test to_format with JSON format directly."""
-        t = ibis.memtable({"str_col": ["test"], "int_col": [1]})
-
-        # Test the JSON format error case directly
-        with patch.object(
-            t, "to_json", side_effect=Exception("Test JSON error")
-        ):
-            with pytest.raises(ValueError):
-                try:
-                    buffer = io.StringIO()
-                    t.to_json(buffer)
-                    buffer.seek(0)
-                    buffer.getvalue()
-                except Exception as exc:
-                    raise ValueError(
-                        f"Failed to write JSON with polars: {exc}"
-                    ) from exc
-
-        # Test a successful case
-        buffer = io.StringIO()
-        t.to_json(buffer)
-        buffer.seek(0)
-        result = buffer.getvalue()
-        assert "str_col" in result
-        assert "test" in result
-
-    @pytest.mark.xfail(reason="can't patch or modify immutable Table object")
-    def test_to_format_parquet_direct(self):
-        """Test to_format with Parquet format directly."""
-        t = ibis.memtable({"str_col": ["test"], "int_col": [1]})
-
-        # Test the Parquet format error case directly
-        with patch.object(
-            t, "to_parquet", side_effect=Exception("Test Parquet error")
-        ):
-            with pytest.raises(ValueError):
-                try:
-                    buffer = io.BytesIO()
-                    t.to_parquet(buffer)
-                    buffer.seek(0)
-                    assert isinstance(buffer, io.BytesIO)
-                except Exception as exc:
-                    raise ValueError(
-                        f"Failed to write Parquet with polars: {exc}"
-                    ) from exc
-
-        # For successful case, we can just verify the bytes object is created
-        # but we won't write actual parquet data since that's implementation-specific
-        try:
-            buffer = io.BytesIO()
-            # Just check that the method exists and doesn't raise errors
-            assert hasattr(t, "to_parquet")
-        except (IOError, ValueError, AssertionError) as e:
-            pytest.fail(f"Parquet buffer creation failed: {e}")
-
     def test_to_format_unsupported(self):
         """Test to_format with unsupported formats."""
         t = ibis.memtable({"str_col": ["test"], "int_col": [1]})
 
-        # Test with pickle format
+        # Test with csv format
+        mock_config = MagicMock()
+        mock_config.to_format = "csv"
+
+        with pytest.raises(
+            ValueError,
+            match="csv format is not natively supported by Ibis",
+        ):
+            Table.to_format(t, mock_config)
+
+        # Test with json format
+        mock_config = MagicMock()
+        mock_config.to_format = "json"
+
+        with pytest.raises(
+            ValueError,
+            match="json format is not natively supported by Ibis",
+        ):
+            Table.to_format(t, mock_config)
+
+        # Test with feather format
         mock_config = MagicMock()
         mock_config.to_format = "feather"
 
         with pytest.raises(
             ValueError,
             match="feather format is not natively supported by Ibis",
+        ):
+            Table.to_format(t, mock_config)
+
+        # Test with parquet format
+        mock_config = MagicMock()
+        mock_config.to_format = "parquet"
+
+        with pytest.raises(
+            ValueError,
+            match="parquet format is not natively supported by Ibis",
         ):
             Table.to_format(t, mock_config)
 
@@ -578,9 +432,9 @@ class TestTable:
             ):
                 return "Known format"
             else:
-                # This is the code at line 283
+                # This is the code at line 213
                 raise ValueError(
-                    f"Format {format_value} is not supported natively by polars."
+                    f"Format {format_value} is not supported natively by Ibis."
                 )
 
         # Test that an unknown format reaches the else branch
@@ -615,122 +469,6 @@ class TestTable:
             ValueError, match="Format other_format is not supported natively"
         ):
             test_else_branch("other_format")
-
-    def test_buffer_method_coverage(self):
-        """Test buffer methods directly for coverage."""
-        # These are testing the specific format methods directly,
-        # simulating what happens in each branch of the to_format method
-
-        # Test StringIO handling (covers csv and json formats)
-        string_io = io.StringIO()
-
-        # Create a simulated write function for StringIO
-        def write_to_string_io(buffer):
-            buffer.write("string data")
-
-        # Simulate buffer handling logic
-        try:
-            write_to_string_io(string_io)
-            string_io.seek(0)
-            result = string_io.getvalue()
-            assert result == "string data"
-        except (IOError, ValueError) as e:
-            pytest.fail(f"StringIO buffer test failed: {e}")
-
-        # Test BytesIO handling (covers parquet and feather formats)
-        bytes_io = io.BytesIO()
-
-        # Create a simulated write function for BytesIO
-        def write_to_bytes_io(buffer):
-            buffer.write(b"bytes data")
-
-        # Simulate buffer handling logic
-        try:
-            write_to_bytes_io(bytes_io)
-            bytes_io.seek(0)
-            result = bytes_io.read()
-            assert result == b"bytes data"
-        except (IOError, ValueError) as e:
-            pytest.fail(f"BytesIO buffer test failed: {e}")
-
-    def test_direct_write_to_buffer(self):
-        """Direct test for the write_to_buffer function logic."""
-
-        def write_to_buffer(buffer_type, write_func, error_prefix):
-            try:
-                # Create buffer (line 226)
-                buffer = buffer_type()
-                # Execute write function (line 227)
-                write_func(buffer)
-                # Reset position (line 228)
-                buffer.seek(0)
-                # Return appropriate value based on buffer type (lines 229-233)
-                if buffer_type == io.StringIO:
-                    return "string_result"
-                else:
-                    return buffer
-            except (IOError, ValueError, RuntimeError) as exc:
-                raise ValueError(f"{error_prefix}: {exc}") from exc
-
-        # Test StringIO success path
-        def string_writer(buffer):
-            buffer.write("test")
-
-        assert (
-            write_to_buffer(io.StringIO, string_writer, "Error")
-            == "string_result"
-        )
-
-        # Test BytesIO success path
-        def bytes_writer(buffer):
-            buffer.write(b"test")
-
-        result = write_to_buffer(io.BytesIO, bytes_writer, "Error")
-        assert isinstance(result, io.BytesIO)
-
-        # Test error path
-        def error_writer(buffer):
-            raise RuntimeError("Write error")
-
-        with pytest.raises(ValueError, match="Error: Write error"):
-            write_to_buffer(io.StringIO, error_writer, "Error")
-
-    def test_to_format_write_buffer_method(self):
-        """Test write_to_buffer internal function directly."""
-        # Create a real io.StringIO buffer for testing
-        string_buffer = io.StringIO()
-        string_buffer.write("test_content")
-        string_buffer.seek(0)
-
-        # Create a test function that simulates the core logic we want to test
-        def test_buffer(buffer):
-            try:
-                buffer.seek(0)
-                if isinstance(buffer, io.StringIO):
-                    return "string result"
-                else:
-                    return buffer
-            except (IOError, ValueError, RuntimeError) as exc:
-                raise ValueError("Buffer operation failed") from exc
-
-        # Test successful case with StringIO
-        assert test_buffer(string_buffer) == "string result"
-
-        # Test with BytesIO
-        bytes_buffer = io.BytesIO()
-        bytes_buffer.write(b"test_bytes")
-        bytes_buffer.seek(0)
-        assert test_buffer(bytes_buffer) == bytes_buffer
-
-        # Test error handling
-        def test_error():
-            try:
-                raise RuntimeError("Test error")
-            except (RuntimeError, ValueError, IOError) as exc:
-                raise ValueError("Error prefix: Test error") from exc
-
-        with pytest.raises(ValueError, match="Error prefix: Test error"):
-            test_error()
 
     def test_get_schema_model(self):
         """Test _get_schema_model class method."""
