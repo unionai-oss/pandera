@@ -5,8 +5,10 @@ import ibis.expr.datatypes as dt
 import ibis.expr.types as ir
 import pandas as pd
 import pytest
+from ibis import _, selectors as s
 
 import pandera as pa
+from pandera.api.ibis.types import IbisData
 from pandera.ibis import Column, DataFrameSchema
 
 
@@ -59,3 +61,24 @@ def test_required_columns():
     assert schema.validate(t).execute().equals(t.execute())
     with pytest.raises(pa.errors.SchemaError):
         schema.validate(t.rename({"c": "a"})).execute()
+
+
+def test_dataframe_level_checks():
+    def custom_check(data: IbisData):
+        return data.table.select(s.across(s.all(), _ == 0))
+
+    schema = DataFrameSchema(
+        columns={"a": Column(dt.Int64), "b": Column(dt.Int64)},
+        checks=[
+            pa.Check(custom_check),
+            pa.Check(lambda d: d.table.select(s.across(s.all(), _ == 0))),
+        ],
+    )
+    t = ibis.memtable({"a": [0, 0, 1, 1], "b": [0, 1, 0, 1]})
+    with pytest.raises(pa.errors.SchemaError):
+        t.pipe(schema.validate)
+
+    try:
+        t.pipe(schema.validate, lazy=True)
+    except pa.errors.SchemaErrors as err:
+        assert err.failure_cases.shape[0] == 12
