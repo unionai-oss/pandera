@@ -229,7 +229,7 @@ class Schema(pa.DataFrameModel):
     column3: str = pa.Field(isin=[*"abc"])
 
     @pa.check("column3")
-    def custom_check(cls, series: pd.Series) -> pd.Series:
+    def custom_check(cls, series: pd.Series) -> bool:
         return series.str.len() == 1
 
 Schema.validate(df)
