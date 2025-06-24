@@ -411,16 +411,16 @@ class ModelWithDFChecks(pa.DataFrameModel):
         """Return a table with multiple boolean columns."""
         return data.table.select(s.across(s.all(), _ > 0))
 
-    @pa.dataframe_check(element_wise=True)
-    def is_positive_element_wise(cls, x: int) -> bool:
-        """Take a single value and return a boolean scalar."""
-        return x > 0
-
 
 t = ibis.memtable({"a": [2, 3, 4], "b": [1, 2, 3]})
 validated_t = t.pipe(ModelWithDFChecks.validate)
 print(validated_t)
 ```
+
+:::{warning}
+Element-wise checks using ``DataFrameModel`` are not yet supported in
+the Ibis integration; use ``DataFrameSchema`` instead.
+:::
 
 ## Supported and Unsupported Functionality
 
