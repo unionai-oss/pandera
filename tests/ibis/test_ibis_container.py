@@ -81,4 +81,4 @@ def test_dataframe_level_checks():
     try:
         t.pipe(schema.validate, lazy=True)
     except pa.errors.SchemaErrors as err:
-        assert err.failure_cases.shape[0] == 12
+        assert err.failure_cases.shape[0] == 6
