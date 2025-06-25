@@ -57,8 +57,19 @@ class IbisSchemaBackend(BaseSchemaBackend):
                     schema, check, check_index
                 )
             else:
+                import pandas as pd
+                from pandera.api.pandas.types import is_table
+
+                check_failure_cases = check_result.failure_cases.to_pandas()
+                if is_table(check_failure_cases):
+                    check_failure_cases = (
+                        pd.Series(check_failure_cases.to_dict("records"))
+                        .rename("failure_case")
+                        .to_frame()
+                    )
+
                 failure_cases = reshape_failure_cases(
-                    check_result.failure_cases.to_pandas(), check.ignore_na
+                    check_failure_cases, check.ignore_na
                 )
                 message = format_vectorized_error_message(
                     schema, check, check_index, failure_cases
