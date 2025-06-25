@@ -113,6 +113,7 @@ dev = [
     "joblib",
     "mypy == 1.10.0",
     "pip",
+    "polars >= 0.20.0",
     "pre_commit",
     "pyarrow >= 13",
     "pylint < 3.3",
