@@ -252,3 +252,29 @@ def test_ibis_custom_check():
         {"column1": [None], "column2": [None]}
     )
     assert failure_cases.equals(expected_failure_cases)
+
+
+def test_ibis_column_check_n_failure_cases(column_t):
+    n_failure_cases = 2
+    check = pa.Check(
+        lambda data: data.table.select(s.across(s.numeric(), _ < 0)),
+        n_failure_cases=n_failure_cases,
+    )
+    schema = pa.DataFrameSchema({"col": pa.Column(checks=check)})
+    try:
+        schema.validate(column_t, lazy=True)
+    except pa.errors.SchemaErrors as exc:
+        assert exc.failure_cases.shape[0] == n_failure_cases
+
+
+def test_ibis_dataframe_check_n_failure_cases(t):
+    n_failure_cases = 2
+    check = pa.Check(
+        lambda data: data.table.select(s.across(s.numeric(), _ < 0)),
+        n_failure_cases=n_failure_cases,
+    )
+    schema = pa.DataFrameSchema(checks=check)
+    try:
+        schema.validate(t, lazy=True)
+    except pa.errors.SchemaErrors as exc:
+        assert exc.failure_cases.shape[0] == n_failure_cases
