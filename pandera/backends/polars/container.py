@@ -87,6 +87,7 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
             except SchemaErrors as exc:
                 error_handler.collect_errors(exc.schema_errors)
 
+        # collect schema components
         components = self.collect_schema_components(
             check_lf, schema, column_info
         )
@@ -175,7 +176,7 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
                 raise
             except Exception as err:  # pylint: disable=broad-except
                 # catch other exceptions that may occur when executing the check
-                err_msg = f'"{err.args[0]}"' if len(err.args) > 0 else ""
+                err_msg = f'"{err.args[0]}"' if err.args else ""
                 err_str = f"{err.__class__.__name__}({ err_msg})"
                 msg = (
                     f"Error while executing check function: {err_str}\n"
@@ -285,8 +286,7 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
 
         if not schema.columns and schema.dtype is not None:
             # set schema components to dataframe dtype if columns are not
-            # specified by the dataframe-level dtype is specified.
-
+            # specified but the dataframe-level dtype is specified.
             columns = {}
             for col_name in get_lazyframe_column_names(check_obj):
                 columns[col_name] = Column(schema.dtype, name=str(col_name))
