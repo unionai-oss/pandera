@@ -157,6 +157,10 @@ class IbisCheckBackend(BaseCheckBackend):
         failure_cases = check_obj.table.filter(~check_output)
         if check_obj.key is not None:
             failure_cases = failure_cases.select(check_obj.key)
+
+        if self.check.n_failure_cases is not None:
+            failure_cases = failure_cases.limit(self.check.n_failure_cases)
+
         return CheckResult(
             check_output=check_output,
             check_passed=check_output.all(),
@@ -177,6 +181,10 @@ class IbisCheckBackend(BaseCheckBackend):
         )
         if check_obj.key is not None:
             failure_cases = failure_cases.select(check_obj.key)
+
+        if self.check.n_failure_cases is not None:
+            failure_cases = failure_cases.limit(self.check.n_failure_cases)
+
         return CheckResult(
             check_output=check_output.select(CHECK_OUTPUT_KEY),
             check_passed=passed,
