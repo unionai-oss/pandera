@@ -2,6 +2,10 @@
 
 # pylint:disable=too-few-public-methods,missing-class-docstring
 from typing import Optional
+from typing import (
+    Generic,
+    TypeVar,
+)
 
 import pandas as pd
 import pytest
@@ -19,6 +23,8 @@ except ImportError:
 PYDANTIC_V2 = False
 if pydantic_version().release >= (2, 0, 0):
     PYDANTIC_V2 = True
+    from packaging import version
+    import pydantic_core
 
 
 class SimpleSchema(pa.DataFrameModel):
@@ -52,6 +58,15 @@ class SeriesSchemaPydantic(BaseModel):
     pa_series_schema: Optional[pa.SeriesSchema]
     pa_column: Optional[pa.Column]
     pa_index: Optional[pa.Index]
+
+
+TableT = TypeVar("TableT", bound=pa.DataFrameModel)
+
+
+class TypedDfGenericPydantic(BaseModel, Generic[TableT]):
+    """Test pydantic model with typed generic dataframe."""
+
+    df: DataFrame[TableT]
 
 
 def test_typed_dataframe():
@@ -208,3 +223,51 @@ def test_model_with_extensiondtype_column(col_type, dtype, item):
         ),
         PydanticModel,
     )
+
+
+@pytest.mark.skipif(
+    not PYDANTIC_V2,
+    reason="Pydantic <2 does not use Pydantic-Core",
+)
+def test_typed_dataframe_model_json_schema():
+    """Test that typed generic DataFrame generates model json schema."""
+
+    # pylint: disable-next=possibly-used-before-assignment
+    if version.parse(pydantic_core.__version__).release >= (
+        2,
+        30,
+        0,
+    ):
+        assert isinstance(TypedDfPydantic.model_json_schema(), dict)
+
+
+@pytest.mark.skipif(
+    not PYDANTIC_V2,
+    reason="Pydantic <2 cannot catch the invalid dataframe validation error",
+)
+def test_typed_generic_dataframe():
+    """Test that typed generic DataFrame is compatible with pydantic."""
+    valid_df = pd.DataFrame({"str_col": ["hello", "world"]})
+    TypedDfGenericPydantic[SimpleSchema](df=valid_df)
+
+    invalid_df = pd.DataFrame({"str_col": ["hello", "hello"]})
+    with pytest.raises(ValidationError):
+        TypedDfGenericPydantic[SimpleSchema](df=invalid_df)
+
+
+@pytest.mark.skipif(
+    not PYDANTIC_V2,
+    reason="Pydantic <2 does not use Pydantic-Core",
+)
+def test_typed_generic_dataframe_model_json_schema():
+    """Test that typed generic DataFrame generates model json schema."""
+
+    # pylint: disable-next=possibly-used-before-assignment
+    if version.parse(pydantic_core.__version__).release >= (
+        2,
+        30,
+        0,
+    ):
+        assert isinstance(
+            TypedDfGenericPydantic[SimpleSchema].model_json_schema(), dict
+        )
