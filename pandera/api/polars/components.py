@@ -41,7 +41,7 @@ class Column(ComponentSchema[PolarsCheckObjects]):
         """Create column validator object.
 
         :param dtype: datatype of the column. The datatype for type-checking
-            a dataframe. All `polars datatypes <https://docs.pola.rs/py-polars/html/reference/datatypes.html>`__,
+            a dataframe. All `polars datatypes <https://docs.pola.rs/py-polars/html/reference/datatypes.html>`_,
             supported built-in python types that are supported by polars,
             and the pandera polars engine :ref:`datatypes <polars-dtypes>`.
         :param checks: checks to verify validity of the column

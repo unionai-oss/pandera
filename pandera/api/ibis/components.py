@@ -35,7 +35,7 @@ class Column(ComponentSchema[ibis.Table]):
         """Create column validator object.
 
         :param dtype: datatype of the column. The datatype for type-checking
-            a dataframe. All `Ibis datatypes <TODO(deepyaman): Insert link.>`__,
+            a dataframe. All `Ibis datatypes <https://ibis-project.org/reference/datatypes>`_,
             supported built-in Python types that are supported by Ibis,
             and the pandera Ibis engine :ref:`datatypes <ibis-dtypes>`.
         :param checks: checks to verify validity of the column
