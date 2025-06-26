@@ -101,6 +101,10 @@ class PolarsCheckBackend(BaseCheckBackend):
 
         if check_obj.key != "*":
             failure_cases = failure_cases.select(check_obj.key)
+
+        if self.check.n_failure_cases is not None:
+            failure_cases = failure_cases.limit(self.check.n_failure_cases)
+
         return CheckResult(
             check_output=results,
             check_passed=passed,
