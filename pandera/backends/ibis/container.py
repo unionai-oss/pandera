@@ -269,6 +269,16 @@ class DataFrameSchemaBackend(IbisSchemaBackend):
     # Checks #
     ##########
 
+    def check_column_names_are_unique(
+        self,
+        check_obj: ibis.Table,
+        schema,
+    ) -> CoreCheckResult:
+        """Check that column names are unique."""
+        raise NotImplementedError(
+            "Ibis does not support duplicate column names"
+        )
+
     @validate_scope(scope=ValidationScope.SCHEMA)
     def check_column_presence(
         self,
