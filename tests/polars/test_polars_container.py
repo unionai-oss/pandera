@@ -152,7 +152,7 @@ def test_coerce_column_dtype_error(ldf_basic, ldf_schema_basic):
     """Test coerce dtype raises error when values cannot be coerced."""
     ldf_schema_basic._coerce = True
 
-    # change dtype of strong_col to int64, where coercion of values should fail
+    # change dtype of string_col to int64, where coercion of values should fail
     modified_ldf = ldf_basic.with_columns(string_col=pl.lit("a"))
     ldf_schema_basic.columns["string_col"].dtype = pl.Int64
     with pytest.raises(pa.errors.SchemaError):
