@@ -20,7 +20,7 @@ class DataFrameSchema(_DataFrameSchema[PolarsCheckObjects]):
         if self.unique_column_names:
             warnings.warn(
                 "unique_column_names=True will have no effect on validation "
-                "since polars DataFrames does not support duplicate column "
+                "since polars DataFrames do not support duplicate column "
                 "names."
             )
 

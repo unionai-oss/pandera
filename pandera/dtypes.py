@@ -44,18 +44,18 @@ class DataType(ABC):
 
     def coerce(self, data_container: Any):
         """Coerce data container to the data type."""
-        raise NotImplementedError()
+        raise NotImplementedError
 
     def coerce_value(self, value: Any):
         """Coerce an value to a particular type."""
-        raise NotImplementedError()
+        raise NotImplementedError
 
     def try_coerce(self, data_container: Any):
         """Coerce data container to the data type,
         raises a :class:`~pandera.errors.ParserError` if the coercion fails
         :raises: :class:`~pandera.errors.ParserError`: if coercion fails
         """
-        raise NotImplementedError()
+        raise NotImplementedError
 
     def __call__(self, data_container: Any):
         """Coerce data container to the data type."""
@@ -81,10 +81,10 @@ class DataType(ABC):
         return f"DataType({str(self)})"
 
     def __str__(self) -> str:
-        raise NotImplementedError()
+        raise NotImplementedError
 
     def __hash__(self) -> int:
-        raise NotImplementedError()
+        raise NotImplementedError
 
 
 _Dtype = TypeVar("_Dtype", bound=DataType)

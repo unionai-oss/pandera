@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, List, Optional, cast
 
 import ibis
+import ibis.selectors as s
 
 from pandera.api.base.error_handler import ErrorHandler
 from pandera.backends.base import CoreCheckResult
@@ -84,6 +85,9 @@ class ColumnBackend(IbisSchemaBackend):
             )
 
         return check_obj
+
+    def get_regex_columns(self, schema, check_obj) -> Iterable:
+        return check_obj.select(s.matches(schema.selector)).columns
 
     @validate_scope(scope=ValidationScope.SCHEMA)
     def check_dtype(
