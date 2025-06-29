@@ -220,6 +220,8 @@ class UInt64(DataType, dtypes.UInt64):
 class Float32(DataType, dtypes.Float32):
     """Semantic representation of a :class:`dt.Float32`."""
 
+    type = dt.float32
+
 
 @Engine.register_dtype(
     equivalents=[
