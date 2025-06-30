@@ -63,6 +63,22 @@ def test_required_columns():
         schema.validate(t.rename({"c": "a"})).execute()
 
 
+def test_unique_column_names():
+    """Test unique column names."""
+    with pytest.warns(
+        match="unique_column_names=True will have no effect on validation"
+    ):
+        DataFrameSchema(unique_column_names=True)
+
+
+def test_column_absent_error(t_basic, t_schema_basic):
+    """Test column presence."""
+    with pytest.raises(
+        pa.errors.SchemaError, match="column 'int_col' not in table"
+    ):
+        t_basic.drop("int_col").pipe(t_schema_basic.validate)
+
+
 def test_dataframe_level_checks():
     def custom_check(data: IbisData):
         return data.table.select(s.across(s.all(), _ == 0))
