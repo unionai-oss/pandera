@@ -1,5 +1,7 @@
 """Unit tests for Ibis container."""
 
+from typing import Optional
+
 import ibis
 import ibis.expr.datatypes as dt
 import ibis.expr.types as ir
@@ -210,47 +212,58 @@ def test_dataframe_level_checks():
         assert err.failure_cases.shape[0] == 6
 
 
+def _failure_value(column: str, dtype: Optional[ibis.DataType] = None):
+    if column.startswith("string"):
+        return ibis.literal("9", type=dtype or dt.String)
+    elif column.startswith("int"):
+        return ibis.literal(-1, type=dtype or dt.Int64)
+    raise ValueError(f"unexpected column name: {column}")
+
+
+def _failure_type(column: str):
+    if column.startswith("string"):
+        return _failure_value(column, dtype=dt.Int64)
+    elif column.startswith("int"):
+        return _failure_value(column, dtype=dt.String)
+    raise ValueError(f"unexpected column name: {column}")
+
+
 @pytest.mark.parametrize(
     "transform_fn,exception_msg",
     [
         [
-            lambda t, col: t.mutate(**{col: ibis.literal(None)}),
+            lambda t, col: t.mutate(
+                **{col: ibis.literal(None, type=t[col].type())}
+            ),
             None,
         ],
-        # [
-        #     lambda ldf, col: ldf.with_columns(**{col: _failure_value(col)}),
-        #     "Column '.+' failed validator number",
-        # ],
-        # [
-        #     lambda ldf, col: ldf.with_columns(**{col: _failure_type(col)}),
-        #     "expected column '.+' to have type",
-        # ],
+        [
+            lambda t, col: t.mutate(**{col: _failure_value(col)}),
+            "Column '.+' failed element-wise validator number",
+        ],
+        [
+            lambda t, col: t.mutate(**{col: _failure_type(col)}),
+            "expected column '.+' to have type",
+        ],
     ],
 )
 def test_regex_selector(
-    transform_fn,  # pylint: disable=unused-argument
-    exception_msg,  # pylint: disable=unused-argument
+    transform_fn,
+    exception_msg,
     t_for_regex_match: ibis.Table,
     t_schema_with_regex_name: DataFrameSchema,
-    t_schema_with_regex_option: DataFrameSchema,  # pylint: disable=unused-argument
+    t_schema_with_regex_option: DataFrameSchema,
 ):
     for schema in (
         t_schema_with_regex_name,
-        # t_schema_with_regex_option,  # TODO(deepyaman): Implement `set_regex()`.
+        t_schema_with_regex_option,
     ):
         result = t_for_regex_match.pipe(schema.validate).execute()
 
         assert result.equals(t_for_regex_match.execute())
 
-        # for column in t_for_regex_match.columns:
-        #     # this should raise an error since columns are not nullable by default
-        #     modified_data = transform_fn(t_for_regex_match, column)
-        #     with pytest.raises(pa.errors.SchemaError, match=exception_msg):
-        #         modified_data.pipe(schema.validate)
-
-        # # dropping all columns should fail
-        # modified_data = t_for_regex_match.drop(
-        #     *t_for_regex_match.columns
-        # )
-        # with pytest.raises(pa.errors.SchemaError):
-        #     modified_data.pipe(schema.validate)
+        for column in t_for_regex_match.columns:
+            # this should raise an error since columns are not nullable by default
+            modified_data = transform_fn(t_for_regex_match, column)
+            with pytest.raises(pa.errors.SchemaError, match=exception_msg):
+                modified_data.pipe(schema.validate)

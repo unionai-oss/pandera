@@ -1,5 +1,6 @@
 """Core Ibis schema component specifications."""
 
+import logging
 from typing import Any, Optional, Type
 
 import ibis
@@ -10,6 +11,8 @@ from pandera.api.ibis.types import IbisDtypeInputTypes
 from pandera.backends.ibis.register import register_ibis_backends
 from pandera.engines import ibis_engine
 from pandera.utils import is_regex
+
+logger = logging.getLogger(__name__)
 
 
 class Column(ComponentSchema[ibis.Table]):
@@ -97,7 +100,7 @@ class Column(ComponentSchema[ibis.Table]):
         self.regex = regex
         self.name = name
 
-        # self.set_regex()  # TODO(deepyaman): Implement method.
+        self.set_regex()
 
     # pylint: disable=unused-argument
     @staticmethod
@@ -118,10 +121,22 @@ class Column(ComponentSchema[ibis.Table]):
             return f"^{self.name}$"
         return self.name
 
+    def set_regex(self):
+        if self.name is None:
+            return
+
+        if is_regex(self.name) and not self.regex:
+            logger.info(
+                f"Column schema '{self.name}' is a regex expression. "
+                "Setting regex=True."
+            )
+            self.regex = True
+
     def set_name(self, name: str):
         """Set or modify the name of a column object.
 
         :param str name: the name of the column object
         """
         self.name = name
+        self.set_regex()
         return self
