@@ -258,6 +258,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
         assert all(check_passed)
         return check_results
 
+    @validate_scope(scope=ValidationScope.DATA)
     def run_checks(
         self,
         check_obj: pd.DataFrame,
