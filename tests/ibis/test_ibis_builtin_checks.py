@@ -157,6 +157,12 @@ class TestEqualToCheck(BaseClass):
         "test_expression": datetime.timedelta(100, 10, 1),
     }
 
+    sample_boolean_data = {
+        "test_pass_data": [("foo", True), ("bar", True)],
+        "test_fail_data": [("foo", False), ("bar", False)],
+        "test_expression": True,
+    }
+
     def pytest_generate_tests(self, metafunc):
         """This function passes the parameter for each function based on parameter from get_data_param function"""
         # called once per each test function
@@ -184,6 +190,12 @@ class TestEqualToCheck(BaseClass):
                 {"datatype": dt.Int32, "data": self.sample_numeric_data},
                 {"datatype": dt.Int64, "data": self.sample_numeric_data},
                 {"datatype": dt.String, "data": self.sample_string_data},
+                {
+                    "datatype": dt.Binary,
+                    "data": self.convert_data(
+                        self.sample_string_data, "binary"
+                    ),
+                },
                 {
                     "datatype": dt.Float32,
                     "data": self.convert_data(
@@ -216,6 +228,7 @@ class TestEqualToCheck(BaseClass):
                     "datatype": dt.Interval(unit="us"),
                     "data": self.sample_duration_data,
                 },
+                {"datatype": dt.Boolean, "data": self.sample_boolean_data},
             ]
         }
 
@@ -302,6 +315,12 @@ class TestNotEqualToCheck(BaseClass):
         ),
     }
 
+    sample_boolean_data = {
+        "test_pass_data": [("foo", True), ("bar", True)],
+        "test_fail_data": [("foo", False), ("bar", True)],
+        "test_expression": False,
+    }
+
     def pytest_generate_tests(self, metafunc):
         """This function passes the parameter for each function based on parameter from get_data_param function"""
         # called once per each test function
@@ -361,6 +380,7 @@ class TestNotEqualToCheck(BaseClass):
                     "datatype": dt.Interval(unit="us"),
                     "data": self.sample_duration_data,
                 },
+                {"datatype": dt.Boolean, "data": self.sample_boolean_data},
             ]
         }
 

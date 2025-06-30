@@ -65,7 +65,7 @@ def test_column_schema_regex(column_kwargs):
             invalid_data.pipe(schema.validate).collect()
 
 
-def test_get_columnd_backend():
+def test_get_column_backend():
     assert isinstance(pa.Column.get_backend(pl.LazyFrame()), ColumnBackend)
     assert isinstance(
         pa.Column.get_backend(check_type=pl.LazyFrame), ColumnBackend
