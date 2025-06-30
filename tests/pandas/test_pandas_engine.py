@@ -604,7 +604,7 @@ def test_pandas_arrow_struct_dtype(data, expected_output):
         @check("column", element_wise=True)
         @classmethod
         def check_column(cls, element):
-            return all([e["field2"] != "Test" for e in element])
+            return all(e["field2"] != "Test" for e in element)
 
     try:
         SimpleSchema.validate(data)
