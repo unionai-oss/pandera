@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import warnings
 from typing import TYPE_CHECKING, Iterable, List, Optional, cast
 
 import ibis
@@ -12,7 +13,12 @@ from pandera.backends.base import CoreCheckResult
 from pandera.backends.ibis.base import IbisSchemaBackend
 from pandera.config import ValidationScope
 from pandera.engines.ibis_engine import Engine
-from pandera.errors import SchemaError, SchemaErrorReason, SchemaErrors
+from pandera.errors import (
+    SchemaDefinitionError,
+    SchemaError,
+    SchemaErrorReason,
+    SchemaErrors,
+)
 from pandera.validation_depth import validate_scope, validation_type
 
 if TYPE_CHECKING:
@@ -37,59 +43,69 @@ class ColumnBackend(IbisSchemaBackend):
         """Validation backend implementation for Ibis table columns."""
         error_handler = ErrorHandler(lazy)
 
+        if inplace:
+            warnings.warn("setting inplace=True will have no effect.")
+
+        if schema.name is None:
+            raise SchemaDefinitionError(
+                "Column schema must have a name specified."
+            )
+
         def validate_column(check_obj, column_name):
             # make sure the schema component mutations are reverted after
             # validation
             _orig_name = schema.name
             _orig_regex = schema.regex
 
-            # set the column name and regex flag for a single column
-            schema.name = column_name
-            schema.regex = False
+            try:
+                # set the column name and regex flag for a single column
+                schema.name = column_name
+                schema.regex = False
 
-            # TODO(deepyaman): subsample the check object if head, tail, or sample are specified
-            sample = check_obj[column_name]
+                # TODO(deepyaman): subsample the check object if head, tail, or sample are specified
+                sample = check_obj[column_name]
 
-            # run the checks
-            core_checks = [
-                self.check_dtype,
-                self.run_checks,
-            ]
+                # run the checks
+                core_checks = [
+                    self.check_dtype,
+                    self.run_checks,
+                ]
 
-            args = (sample, schema)
-            for check in core_checks:
-                results = check(*args)
-                if isinstance(results, CoreCheckResult):
-                    results = [results]
+                args = (sample, schema)
+                for check in core_checks:
+                    results = check(*args)
+                    if isinstance(results, CoreCheckResult):
+                        results = [results]
 
-                for result in results:
-                    if result.passed:
-                        continue
-                    # Why cast `results` only in components.py, not in container.py?
-                    results = cast(List[CoreCheckResult], results)
-                    if result.schema_error is not None:
-                        error = result.schema_error
-                    else:
-                        error = SchemaError(
-                            schema=schema,
-                            data=check_obj,
-                            message=result.message,
-                            failure_cases=result.failure_cases,
-                            check=result.check,
-                            check_index=result.check_index,
-                            check_output=result.check_output,
-                            reason_code=result.reason_code,
-                        )
-                        error_handler.collect_error(  # Why indent (unlike in container.py)?
-                            validation_type(result.reason_code),
-                            result.reason_code,
-                            error,
-                            original_exc=result.original_exc,
-                        )
+                    for result in results:
+                        if result.passed:
+                            continue
+                        # Why cast `results` only in components.py, not in container.py?
+                        results = cast(List[CoreCheckResult], results)
+                        if result.schema_error is not None:
+                            error = result.schema_error
+                        else:
+                            error = SchemaError(
+                                schema=schema,
+                                data=check_obj,
+                                message=result.message,
+                                failure_cases=result.failure_cases,
+                                check=result.check,
+                                check_index=result.check_index,
+                                check_output=result.check_output,
+                                reason_code=result.reason_code,
+                            )
+                            error_handler.collect_error(  # Why indent (unlike in container.py)?
+                                validation_type(result.reason_code),
+                                result.reason_code,
+                                error,
+                                original_exc=result.original_exc,
+                            )
 
-            # revert the schema component mutations
-            schema.name = _orig_name
-            schema.regex = _orig_regex
+            finally:
+                # revert the schema component mutations
+                schema.name = _orig_name
+                schema.regex = _orig_regex
 
         column_keys_to_check = (
             self.get_regex_columns(schema, check_obj)
