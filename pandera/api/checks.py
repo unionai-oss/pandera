@@ -531,14 +531,14 @@ class Check(BaseCheck):
         )
 
     @classmethod
-    def unique_values_eq(cls, values: str, **kwargs) -> "Check":
+    def unique_values_eq(cls, values: Iterable, **kwargs) -> "Check":
         """Ensure that unique values in the data object contain all values.
 
         .. note::
             In contrast with :func:`isin`, this check makes sure that all the
             items in the ``values`` iterable are contained within the series.
 
-        :param values: The set of values that must be present. Maybe any iterable.
+        :param values: The set of values that must be present. May be any iterable.
         """
         try:
             values_mod = frozenset(values)

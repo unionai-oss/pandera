@@ -129,7 +129,7 @@ def is_geopandas_dtype(
 
 @immutable(init=True)
 class DataType(dtypes.DataType):
-    """Base `DataType` for boxing Pandas data types."""
+    """Base `DataType` for boxing pandas data types."""
 
     type: Any = dataclasses.field(repr=False, init=False)
     """Native pandas dtype boxed by the data type."""
@@ -503,9 +503,9 @@ if PANDAS_1_2_0_PLUS:
         bit_width: int = 32
 
 
-# ###############################################################################
-# # complex
-# ###############################################################################
+###############################################################################
+# complex
+###############################################################################
 
 _register_numpy_numbers(
     builtin_name="complex",
@@ -630,9 +630,9 @@ class Decimal(DataType, dtypes.Decimal):
         return dtypes.Decimal.__str__(self)
 
 
-# ###############################################################################
-# # nominal
-# ###############################################################################
+###############################################################################
+# nominal
+###############################################################################
 
 
 @Engine.register_dtype(
@@ -798,9 +798,9 @@ Engine.register_dtype(
     ],
 )
 
-# ###############################################################################
-# # time
-# ###############################################################################
+###############################################################################
+# temporal
+###############################################################################
 
 
 _PandasDatetime = Union[np.datetime64, pd.DatetimeTZDtype]
@@ -1493,7 +1493,7 @@ class PythonTypedDict(PythonGenericType):
             )
 
     def __str__(self) -> str:
-        return str(TypedDict.__name__)  # type: ignore[attr-defined]
+        return "TypedDict"
 
 
 @Engine.register_dtype(equivalents=[NamedTuple, "NamedTuple"])
@@ -1614,8 +1614,15 @@ if PYARROW_INSTALLED and PANDAS_2_0_0_PLUS:
         equivalents=[
             pyarrow.string,
             pyarrow.utf8,
-            pd.ArrowDtype(pyarrow.string()),
-            pd.ArrowDtype(pyarrow.utf8()),
+            # the `string[pyarrow]` string alias is overloaded: it can be either
+            # pd.StringDtype or pd.ArrowDtype(pyarrow.string()). Pandera handles
+            # like this pandas, where `string[pyarrow]` is interpreted as
+            # pd.StringDtype. The StrictEquivalent object ensures that the
+            # engine registers the following two types in terms of the type's
+            # string __repr__ method ("string[pyarrow]") and its type
+            # (pd.ArrowDtype).
+            engine.StrictEquivalent(pd.ArrowDtype(pyarrow.string())),
+            engine.StrictEquivalent(pd.ArrowDtype(pyarrow.utf8())),
         ]
     )
     @immutable
