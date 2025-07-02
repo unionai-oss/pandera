@@ -1240,11 +1240,40 @@ class PydanticModel(DataType):
     def __init__(self, model: Type[BaseModel]) -> None:
         object.__setattr__(self, "type", model)
 
+    def _check_column_names(
+        self,
+        data_container: PandasObject,
+        column_names: List[str],
+    ) -> None:
+        absent_columns = [
+            col for col in column_names if col not in data_container.columns
+        ]
+
+        if absent_columns:
+            raise errors.ParserError(
+                f"Missing columns in {type(data_container)} "
+                f"data_container: {absent_columns}",
+                failure_cases=absent_columns,
+            )
+
     def coerce(self, data_container: PandasObject) -> PandasObject:
         """Coerce pandas dataframe with pydantic record model."""
 
         # pylint: disable=import-outside-toplevel
         from pandera.backends.pandas import error_formatters
+
+        if data_container.empty:
+            warnings.warn(
+                "PydanticModel cannot validate an empty dataframe because it "
+                "requires at least one row of data to coerce. "
+                "The PydanticModel will perform no type checking on the empty "
+                "dataframe.",
+                UserWarning,
+            )
+            # pylint: disable=no-member
+            column_names: List[str] = [*self.type.model_fields]
+            self._check_column_names(data_container, column_names)
+            return data_container
 
         def _coerce_row(row):
             """
