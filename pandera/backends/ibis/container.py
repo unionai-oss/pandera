@@ -7,6 +7,8 @@ import traceback
 from typing import TYPE_CHECKING, Any, Iterable, List, Optional
 
 import ibis
+import ibis.selectors as s
+from ibis.common.exceptions import IbisError
 
 from pandera.api.base.error_handler import ErrorHandler
 from pandera.config import ValidationScope
@@ -203,7 +205,7 @@ class DataFrameSchemaBackend(IbisSchemaBackend):
             ):
                 absent_column_names.append(col_name)
 
-            if col_schema.regex:  # TODO(deepyaman): Implement functionality.
+            if col_schema.regex:
                 try:
                     column_names.extend(
                         col_schema.get_backend(check_obj).get_regex_columns(
@@ -269,6 +271,16 @@ class DataFrameSchemaBackend(IbisSchemaBackend):
     # Checks #
     ##########
 
+    def check_column_names_are_unique(
+        self,
+        check_obj: ibis.Table,
+        schema,
+    ) -> CoreCheckResult:
+        """Check that column names are unique."""
+        raise NotImplementedError(
+            "Ibis does not support duplicate column names"
+        )
+
     @validate_scope(scope=ValidationScope.SCHEMA)
     def check_column_presence(
         self,
@@ -281,7 +293,14 @@ class DataFrameSchemaBackend(IbisSchemaBackend):
         if column_info.absent_column_names and not schema.add_missing_columns:
             for colname in column_info.absent_column_names:
                 if is_regex(colname):
-                    continue  # TODO(deepyaman): Support regex colnames.
+                    try:
+                        # don't raise an error if the column schema name is a
+                        # regex pattern
+                        check_obj.select(s.matches(colname))
+                        continue
+                    except IbisError:
+                        # regex pattern didn't match any columns
+                        pass
                 results.append(
                     CoreCheckResult(
                         passed=False,

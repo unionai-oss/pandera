@@ -1,5 +1,6 @@
 """Core Ibis table container specification."""
 
+import warnings
 from typing import Optional, Type
 
 import ibis
@@ -94,6 +95,18 @@ class DataFrameSchema(_DataFrameSchema[ibis.Table]):
             lazy=lazy,
             inplace=inplace,
         )
+
+    def _validate_attributes(self):
+        super()._validate_attributes()
+
+        if self.unique_column_names:
+            warnings.warn(
+                "unique_column_names=True will have no effect on validation "
+                "since Ibis tables do not support duplicate column names."
+            )
+
+        if self.add_missing_columns:
+            raise NotImplementedError
 
     @_DataFrameSchema.dtype.setter  # type: ignore[attr-defined]
     def dtype(self, value) -> None:
