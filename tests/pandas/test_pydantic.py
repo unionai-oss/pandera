@@ -271,3 +271,50 @@ def test_typed_generic_dataframe_model_json_schema():
         assert isinstance(
             TypedDfGenericPydantic[SimpleSchema].model_json_schema(), dict
         )
+
+
+def test_pydantic_model_empty_dataframe():
+    """
+    Test that a Schema with a PydanticModel can validate an empty dataframe,
+    but warns the user that no type checking is performed.
+    """
+
+    from pandera.engines.pandas_engine import PydanticModel
+
+    class Record(BaseModel):
+        x: str
+        y: int
+        z: float
+
+    class PydanticSchema(pa.DataFrameModel):
+        """Pandera schema using the pydantic model."""
+
+        class Config:
+            """Config with dataframe-level data type."""
+
+            dtype = PydanticModel(Record)
+
+    if PYDANTIC_V2:
+        column_types = {
+            col: field_info.annotation
+            for col, field_info in Record.model_fields.items()
+        }
+    else:
+        column_types = {
+            col: field_info.annotation
+            for col, field_info in Record.__fields__.items()
+        }
+
+    columns = [*column_types]
+    empty_df = pd.DataFrame(columns=columns).astype(column_types)
+    with pytest.warns(
+        UserWarning, match="PydanticModel cannot validate an empty dataframe"
+    ):
+        PydanticSchema.validate(empty_df)
+
+    invalid_column_names = pd.DataFrame(columns=columns[:1])
+    with pytest.raises(
+        pa.errors.SchemaError,
+        match=".+Missing columns in .+data_container.+ ['y', 'z'].+",
+    ):
+        PydanticSchema.validate(invalid_column_names)
