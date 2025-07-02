@@ -294,7 +294,10 @@ def test_pydantic_model_empty_dataframe():
 
             dtype = PydanticModel(Record)
 
-    columns = list(Record.model_fields)
+    if PYDANTIC_V2:
+        columns = list(Record.model_fields)
+    else:
+        columns = list(Record.__fields__)
     empty_df = pd.DataFrame(columns=columns).astype(
         {col: dtype.annotation for col, dtype in Record.model_fields.items()}
     )
