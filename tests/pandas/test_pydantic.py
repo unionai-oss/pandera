@@ -294,7 +294,7 @@ def test_pydantic_model_empty_dataframe():
 
             dtype = PydanticModel(Record)
 
-    columns = list(Record.model_json_schema().get("properties").keys())
+    columns = list(Record.model_fields)
     empty_df = pd.DataFrame(columns=columns).astype(
         {col: dtype.annotation for col, dtype in Record.model_fields.items()}
     )
