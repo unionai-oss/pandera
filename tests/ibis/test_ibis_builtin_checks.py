@@ -1367,7 +1367,7 @@ class TestUniqueValuesEqCheck(BaseClass):
         )
 
     def get_data_param(self):
-        """Generate the params which will be used to test this function. All the accpetable
+        """Generate the params which will be used to test this function. All the acceptable
         data types would be tested"""
         return {
             "test_unique_values_eq_check": [

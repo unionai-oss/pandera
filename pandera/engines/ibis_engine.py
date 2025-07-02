@@ -25,7 +25,7 @@ class DataType(dtypes.DataType):
     type: Any = dataclasses.field(repr=False, init=False)
     """Native Ibis dtype boxed by the data type."""
 
-    def __init__(self, dtype: Any):
+    def __init__(self, dtype: Optional[Any] = None):
         super().__init__()
         object.__setattr__(self, "type", ibis.dtype(dtype))
         dtype_cls = dtype if inspect.isclass(dtype) else dtype.__class__
@@ -219,6 +219,8 @@ class UInt64(DataType, dtypes.UInt64):
 @immutable
 class Float32(DataType, dtypes.Float32):
     """Semantic representation of a :class:`dt.Float32`."""
+
+    type = dt.float32
 
 
 @Engine.register_dtype(
