@@ -88,6 +88,28 @@ class Engine(
 
 
 ###############################################################################
+# boolean
+###############################################################################
+
+
+@Engine.register_dtype(
+    equivalents=[
+        bool,
+        np.bool_,
+        dtypes.Bool,
+        dtypes.Bool(),
+        dt.Boolean,
+        dt.boolean,
+    ]
+)
+@immutable
+class Bool(DataType, dtypes.Bool):
+    """Semantic representation of a :class:`dt.Boolean`."""
+
+    type = dt.boolean
+
+
+###############################################################################
 # signed integer
 ###############################################################################
 
@@ -260,6 +282,23 @@ class String(DataType, dtypes.String):
     """Semantic representation of a :class:`dt.String`."""
 
     type = dt.string
+
+
+@Engine.register_dtype(
+    equivalents=[
+        bytes,
+        np.bytes_,
+        dtypes.Binary,
+        dtypes.Binary(),
+        dt.Binary,
+        dt.binary,
+    ]
+)
+@immutable
+class Binary(DataType, dtypes.Binary):
+    """Semantic representation of a :class:`dt.Binary`."""
+
+    type = dt.binary
 
 
 ###############################################################################

@@ -192,12 +192,6 @@ class TestEqualToCheck(BaseClass):
         "test_expression": "a",
     }
 
-    sample_boolean_data = {
-        "test_pass_data": [("foo", True), ("bar", True)],
-        "test_fail_data": [("foo", False), ("bar", False)],
-        "test_expression": True,
-    }
-
     sample_array_data = {
         "test_pass_data": [("foo", ["a"]), ("bar", ["a"])],
         "test_fail_data": [("foo", ["a"]), ("bar", ["b"])],
@@ -214,6 +208,12 @@ class TestEqualToCheck(BaseClass):
             ("bar", datetime.timedelta(100, 11, 1)),
         ],
         "test_expression": datetime.timedelta(100, 10, 1),
+    }
+
+    sample_boolean_data = {
+        "test_pass_data": [("foo", True), ("bar", True)],
+        "test_fail_data": [("foo", False), ("bar", False)],
+        "test_expression": True,
     }
 
     def pytest_generate_tests(self, metafunc):
@@ -456,7 +456,7 @@ class TestNotEqualToCheck(BaseClass):
                     "datatype": List(Utf8),
                     "data": self.sample_array_data,
                 },
-            ],
+            ]
         }
 
     @pytest.mark.parametrize("check_fn", [pa.Check.not_equal_to, pa.Check.ne])
