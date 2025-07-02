@@ -1271,7 +1271,10 @@ class PydanticModel(DataType):
                 UserWarning,
             )
             # pylint: disable=no-member
-            column_names: List[str] = [*self.type.model_fields]
+            if PYDANTIC_V2:
+                column_names = list(self.type.model_fields)
+            else:
+                column_names = list(self.type.__fields__)
             self._check_column_names(data_container, column_names)
             return data_container
 
