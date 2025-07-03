@@ -20,7 +20,9 @@ Pandera supports validation of the following DataFrame libraries:
   - Validate pandas dataframes. This is the original dataframe library supported
     by pandera.
 * - {ref}`Polars <polars>`
-  - Validate Polars dataframes, the blazingly fast dataframe library.
+  - Validate Polars dataframes. Polars is a blazingly fast dataframe library.
+* - {ref}`Ibis <ibis>`
+  - Validate Ibis tables. Ibis is the portable Python dataframe library.
 * - {ref}`Pyspark SQL <native-pyspark>`
   - A data processing library for large-scale data.
 :::
@@ -30,6 +32,7 @@ Pandera supports validation of the following DataFrame libraries:
 :maxdepth: 1
 
 Polars <polars>
+Ibis <ibis>
 Pyspark SQL <pyspark_sql>
 ```
 

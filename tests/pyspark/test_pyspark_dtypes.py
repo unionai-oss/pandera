@@ -1,4 +1,4 @@
-"""Unit tests for pyspark container."""
+"""PySpark dtype tests."""
 
 from typing import Any
 

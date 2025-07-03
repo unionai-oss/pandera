@@ -56,10 +56,10 @@ def format_vectorized_error_message(
         "pyspark.pandas"
     ):
         failure_cases = reshaped_failure_cases.failure_case.to_numpy()
+        failure_cases_string = ", ".join(failure_cases.astype(str))
     else:
         failure_cases = reshaped_failure_cases.failure_case
-
-    failure_cases_string = ", ".join(failure_cases.astype(str))
+        failure_cases_string = ", ".join(failure_cases.apply(str))
 
     return (
         f"{parent_schema.__class__.__name__} '{parent_schema.name}' failed "
