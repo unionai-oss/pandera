@@ -379,7 +379,7 @@ class MultiIndex(DataFrameSchema):
     def names(self):
         """Get index names in the MultiIndex schema component."""
         return [index.name for index in self.indexes]
-    
+
     @property
     def named_indexes(self) -> Dict[str, Any]:
         """Get named indexes."""

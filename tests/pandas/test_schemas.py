@@ -2279,20 +2279,19 @@ def test_update_index_with_properties():
     assert schema.index.title is None
     assert schema.index.description is None
     assert schema.index.metadata is None
-    
+
     schema = schema.update_index(
-        index_name='idx',
+        index_name="idx",
         unique=True,
-        title='badger',
-        description='pear',
-        metadata={'thing': 123}
+        title="badger",
+        description="pear",
+        metadata={"thing": 123},
     )
 
     assert schema.index.unique
-    assert schema.index.title == 'badger'
-    assert schema.index.description == 'pear'
-    assert schema.index.metadata == {'thing': 123}
-
+    assert schema.index.title == "badger"
+    assert schema.index.description == "pear"
+    assert schema.index.metadata == {"thing": 123}
 
 
 def test_update_multi_index():
@@ -2368,7 +2367,9 @@ def test_update_multi_indexes():
             "b": {"dtype": str},
         }
     )
-    multi_idx = pd.MultiIndex.from_arrays([["hello"], ["1.0"]], names=["a", "b"])
+    multi_idx = pd.MultiIndex.from_arrays(
+        [["hello"], ["1.0"]], names=["a", "b"]
+    )
     df = pd.DataFrame({"c": [1]}, index=multi_idx)
 
     assert isinstance(schema.validate(df), pd.DataFrame)
@@ -2395,12 +2396,20 @@ def test_update_multi_indexes_with_properties():
     )
     schema = schema.update_indexes(
         {
-            "a": {"dtype": str, "title": "badger", "description": "pear", "metadata": {"thing": 123}},
-            "b": {"dtype": str, "title": "badger", "description": "pear", "metadata": {"thing": 123}},
+            "a": {
+                "dtype": str,
+                "title": "badger",
+                "description": "pear",
+                "metadata": {"thing": 123},
+            },
+            "b": {
+                "dtype": str,
+                "title": "badger",
+                "description": "pear",
+                "metadata": {"thing": 123},
+            },
         }
     )
-    multi_idx = pd.MultiIndex.from_arrays([["hello"], ["1.0"]], names=["a", "b"])
-    df = pd.DataFrame(index=multi_idx)
 
     assert schema.index.named_indexes["a"].title == "badger"
     assert schema.index.named_indexes["a"].description == "pear"
