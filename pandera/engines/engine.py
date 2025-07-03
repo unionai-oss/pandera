@@ -70,6 +70,22 @@ def _is_namedtuple(x: Type) -> bool:
 class _DtypeRegistry:
     dispatch: Dispatch
     equivalents: Dict[Any, DataType]
+    strict_equivalents: Dict[Any, DataType]
+
+    def get_equivalent(self, data_type: Any) -> Optional[DataType]:
+        if (data_type, type(data_type)) in self.strict_equivalents:
+            return self.strict_equivalents.get((data_type, type(data_type)))
+        return self.equivalents.get(data_type)
+
+
+@dataclass
+class StrictEquivalent:
+    """
+    Represents data types that are equivalent to the pandera DataType that
+    are meant to be evaluated strictly, i.e. not with `data_type == "string_alias`
+    """
+
+    dtype: DataType
 
 
 class Engine(ABCMeta):
@@ -96,7 +112,9 @@ class Engine(ABCMeta):
         def dtype(data_type: Any) -> DataType:
             raise ValueError(f"Data type '{data_type}' not understood")
 
-        mcs._registry[engine] = _DtypeRegistry(dispatch=dtype, equivalents={})
+        mcs._registry[engine] = _DtypeRegistry(
+            dispatch=dtype, equivalents={}, strict_equivalents={}
+        )
         return engine
 
     def _check_source_dtype(cls, data_type: Any) -> None:
@@ -141,11 +159,17 @@ class Engine(ABCMeta):
     ) -> None:
         pandera_dtype = pandera_dtype_cls()  # type: ignore
         for source_dtype in source_dtypes:
-            cls._check_source_dtype(source_dtype)
-            cls._registry[cls].equivalents[source_dtype] = pandera_dtype
+            if isinstance(source_dtype, StrictEquivalent):
+                cls._check_source_dtype(source_dtype.dtype)
+                cls._registry[cls].strict_equivalents[
+                    (source_dtype.dtype, type(source_dtype.dtype))
+                ] = pandera_dtype
+            else:
+                cls._check_source_dtype(source_dtype)
+                cls._registry[cls].equivalents[source_dtype] = pandera_dtype
 
     def register_dtype(
-        cls: _EngineType,
+        cls: "Engine",
         pandera_dtype_cls: Optional[Type[_DataType]] = None,
         *,
         equivalents: Optional[List[Any]] = None,
@@ -203,7 +227,7 @@ class Engine(ABCMeta):
 
         return _wrapper
 
-    def dtype(cls: _EngineType, data_type: Any) -> DataType:
+    def dtype(cls: "Engine", data_type: Any) -> DataType:
         """Convert input into a Pandera :class:`DataType` object."""
         # pylint: disable=too-many-return-statements
         if isinstance(data_type, cls._base_pandera_dtypes):
@@ -230,8 +254,8 @@ class Engine(ABCMeta):
         # handle python generic types, e.g. typing.Dict[str, str]
         datatype_origin = typing_inspect.get_origin(data_type)
         if datatype_origin is not None:
-            equivalent_data_type = registry.equivalents.get(datatype_origin)
-            return type(equivalent_data_type)(data_type)
+            equivalent_data_type = registry.get_equivalent(datatype_origin)
+            return type(equivalent_data_type)(data_type)  # type: ignore
 
         # handle python's special declared type constructs like NamedTuple and
         # TypedDict
@@ -246,22 +270,22 @@ class Engine(ABCMeta):
         if datatype_generic_bases:
             equivalent_data_type = None
             for base in datatype_generic_bases:
-                equivalent_data_type = registry.equivalents.get(base)
+                equivalent_data_type = registry.get_equivalent(base)
                 break
             if equivalent_data_type is None:
                 raise TypeError(
                     f"Type '{data_type}' not understood by {cls.__name__}."
                 )
-            return type(equivalent_data_type)(data_type)
+            return type(equivalent_data_type)(data_type)  # type: ignore
 
-        equivalent_data_type = registry.equivalents.get(data_type)
+        equivalent_data_type = registry.get_equivalent(data_type)
         if equivalent_data_type is not None:
             return equivalent_data_type
         elif isinstance(data_type, DataType):
             # in the case where data_type is a parameterized dtypes.DataType instance that isn't
             # in the equivalents registry, use its type to get the equivalent, and feed
             # the parameters into the recognized data type class.
-            equivalent_data_type = registry.equivalents.get(type(data_type))
+            equivalent_data_type = registry.get_equivalent(type(data_type))
             if equivalent_data_type is not None:
                 return type(equivalent_data_type)(**data_type.__dict__)
 

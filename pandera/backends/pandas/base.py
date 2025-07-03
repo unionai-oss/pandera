@@ -1,4 +1,4 @@
-"""Pandas Parsing, Validation, and Error Reporting Backends."""
+"""Pandas parsing, validation, and error-reporting backends."""
 
 import warnings
 from collections import defaultdict
@@ -105,7 +105,7 @@ class PandasSchemaBackend(BaseSchemaBackend):
         """Handle check results, raising SchemaError on check failure.
 
         :param check_obj: data object to be validated.
-        :param schema: pandera schema object
+        :param schema: pandera schema object.
         :param check: Check object used to validate pandas object.
         :param check_index: index of check in the schema component check list.
         :param args: arguments to pass into check object.
@@ -120,7 +120,6 @@ class PandasSchemaBackend(BaseSchemaBackend):
 
         if not passed:
             if check_result.failure_cases is None:
-                # encode scalar False values explicitly
                 failure_cases = check_result.check_passed
                 message = format_generic_error_message(
                     schema, check, check_index

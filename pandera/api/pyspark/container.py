@@ -1,4 +1,4 @@
-"""Core pyspark dataframe container specification."""
+"""Core PySpark dataframe container specification."""
 
 from __future__ import annotations
 

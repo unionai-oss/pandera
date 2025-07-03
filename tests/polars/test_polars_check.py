@@ -232,3 +232,31 @@ def test_polars_custom_check():
 
     with pytest.raises(pa.errors.SchemaError):
         schema.validate(invalid_lf)
+
+
+def test_polars_column_check_n_failure_cases(column_lf):
+    n_failure_cases = 2
+    check = pa.Check(
+        lambda data: data.lazyframe.select(pl.col("*").lt(0)),
+        n_failure_cases=n_failure_cases,
+    )
+    schema = pa.DataFrameSchema({"col": pa.Column(checks=check)})
+
+    try:
+        schema.validate(column_lf, lazy=True)
+    except pa.errors.SchemaErrors as exc:
+        assert exc.failure_cases.shape[0] == n_failure_cases
+
+
+def test_polars_dataframe_check_n_failure_cases(lf):
+    n_failure_cases = 2
+    check = pa.Check(
+        lambda data: data.lazyframe.select(pl.col("*").lt(0)),
+        n_failure_cases=n_failure_cases,
+    )
+    schema = pa.DataFrameSchema(checks=check)
+
+    try:
+        schema.validate(lf, lazy=True)
+    except pa.errors.SchemaErrors as exc:
+        assert exc.failure_cases.shape[0] == n_failure_cases

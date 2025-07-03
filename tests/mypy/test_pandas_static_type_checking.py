@@ -173,7 +173,11 @@ PANDAS_SERIES_ERRORS_PLUGIN = [
         ["pandas_time.py", "no_plugin.ini", PANDAS_TIME_ERRORS],
         ["pandas_time.py", "plugin_mypy.ini", PANDAS_TIME_ERRORS],
         ["python_slice.py", "no_plugin.ini", PYTHON_SLICE_ERRORS],
-        ["python_slice.py", "plugin_mypy.ini", []],
+        [
+            "python_slice.py",
+            "plugin_mypy.ini",
+            PYTHON_SLICE_ERRORS if sys.version_info >= (3, 11) else [],
+        ],
         ["pandas_index.py", "no_plugin.ini", []],
         ["pandas_index.py", "plugin_mypy.ini", []],
         ["pandas_series.py", "no_plugin.ini", PANDAS_SERIES_ERRORS_NO_PLUGIN],

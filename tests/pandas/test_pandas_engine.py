@@ -13,15 +13,15 @@ import pytest
 import pytz
 from hypothesis import given
 
-from pandera.pandas import Field, DataFrameModel, errors
+from pandera.pandas import Field, DataFrameModel, errors, check
 from pandera.engines import pandas_engine
 from pandera.errors import ParserError, SchemaError
 
 UNSUPPORTED_DTYPE_CLS: Set[Any] = set()
 
-# `string[pyarrow]` gets parsed to type `string` by pandas
-if pandas_engine.PYARROW_INSTALLED and pandas_engine.PANDAS_2_0_0_PLUS:
-    UNSUPPORTED_DTYPE_CLS.add(pandas_engine.ArrowString)
+# # `string[pyarrow]` gets parsed to type `string` by pandas
+# if pandas_engine.PYARROW_INSTALLED and pandas_engine.PANDAS_2_0_0_PLUS:
+#     UNSUPPORTED_DTYPE_CLS.add(pandas_engine.ArrowString)
 
 
 @pytest.mark.parametrize(
@@ -50,8 +50,19 @@ def test_pandas_data_type(data_type):
         pd_dtype = pandas_engine.DataType(data_type.type)
     with pytest.warns(UserWarning):
         pd_dtype_from_str = pandas_engine.DataType(str(data_type.type))
-    assert pd_dtype == pd_dtype_from_str
+
     assert not pd_dtype.check("foo")
+
+    if (
+        isinstance(data_type.type, pd.ArrowDtype)
+        and data_type.type == "string[pyarrow]"
+    ):
+        # the `string[pyarrow]` string alias is overloaded: it can be either
+        # pd.StringDtype or pd.ArrowDtype(pyarrow.string()). Pandera handles
+        # like this pandas, where `string[pyarrow]` is interpreted as pd.StringDtype
+        pass
+    else:
+        assert pd_dtype == pd_dtype_from_str
 
 
 @pytest.mark.parametrize(
@@ -502,3 +513,105 @@ def test_pandas_arrow_dtype_error(data, dtype):
     ):
         coerced_data = dtype.coerce(data)
         assert coerced_data.dtype == dtype.type
+
+
+def generate_test_cases_pandas_arrow_struct() -> (
+    List[Tuple[pd.DataFrame, pd.DataFrame]]
+):
+    """
+    Generate test parameter combinations for pandas arrow struct dtype.
+
+    Returns:
+        List of tuples:
+        - DataFrame with input struct data
+        - DataFrame with expected output
+    """
+    valid_data = pd.DataFrame(
+        {
+            "column": [
+                [
+                    {"field1": 1.0, "field2": "a"},
+                    {"field1": 2.0, "field2": "b"},
+                ],
+                [{"field1": 3.0, "field2": "c"}],
+            ]
+        }
+    )
+
+    invalid_data = pd.DataFrame(
+        {
+            "column": [
+                [{"field1": 0.0, "field2": "Test"}],
+                [{"field1": 2.0, "field2": "Test"}],
+            ]
+        }
+    )
+    invalid_data_expected = pd.DataFrame(
+        {
+            "index": [0, 1],
+            "failure_case": [
+                [{"field1": 0.0, "field2": "Test"}],
+                [{"field1": 2.0, "field2": "Test"}],
+            ],
+        }
+    )
+
+    mixed_data = pd.DataFrame(
+        {
+            "column": [
+                [{"field1": 4.0, "field2": "d"}],
+                [{"field1": None, "field2": "Test"}],
+            ]
+        }
+    )
+    mixed_data_expected = pd.DataFrame(
+        {"index": [1], "failure_case": [[{"field1": None, "field2": "Test"}]]}
+    )
+
+    return [
+        (valid_data, pd.DataFrame()),
+        (invalid_data, invalid_data_expected),
+        (mixed_data, mixed_data_expected),
+    ]
+
+
+@pytest.mark.parametrize(
+    ("data", "expected_output"), generate_test_cases_pandas_arrow_struct()
+)
+def test_pandas_arrow_struct_dtype(data, expected_output):
+    """Test pyarrow struct cases."""
+    if not (
+        pandas_engine.PYARROW_INSTALLED and pandas_engine.PANDAS_2_0_0_PLUS
+    ):
+        pytest.skip("Support of pandas 2.0.0+ with pyarrow only")
+
+    class SimpleSchema(DataFrameModel):
+        # pylint: disable=unexpected-keyword-arg,no-value-for-parameter
+        column: pd.ArrowDtype = Field(
+            coerce=True,
+            dtype_kwargs={
+                "pyarrow_dtype": pyarrow.list_(
+                    pyarrow.struct(
+                        {
+                            "field1": pyarrow.float32(),
+                            "field2": pyarrow.string(),
+                        }
+                    )
+                )
+            },
+        )
+
+        @check("column", element_wise=True)
+        @classmethod
+        def check_column(cls, element):
+            return all(e["field2"] != "Test" for e in element)
+
+    try:
+        SimpleSchema.validate(data)
+    except SchemaError as exc:
+        for (_, failure_case), (_, expected_value) in zip(
+            exc.failure_cases.iterrows(), expected_output.iterrows()
+        ):
+            assert (
+                failure_case["failure_case"] == expected_value["failure_case"]
+            )

@@ -1,4 +1,4 @@
-"""Check backend for pandas."""
+"""Check backend for polars."""
 
 from functools import partial
 from typing import Optional
@@ -18,7 +18,7 @@ from pandera.constants import CHECK_OUTPUT_KEY
 
 
 class PolarsCheckBackend(BaseCheckBackend):
-    """Check backend ofr pandas."""
+    """Check backend for polars."""
 
     def __init__(self, check: Check):
         """Initializes a check backend object."""
@@ -41,8 +41,6 @@ class PolarsCheckBackend(BaseCheckBackend):
 
     def preprocess(self, check_obj: pl.LazyFrame, key: Optional[str]):
         """Preprocesses a check object before applying the check function."""
-        # This handles the case of Series validation, which has no other context except
-        # for the index to groupby on. Right now grouping by the index is not allowed.
         return check_obj
 
     def apply(self, check_obj: PolarsData):
@@ -77,9 +75,7 @@ class PolarsCheckBackend(BaseCheckBackend):
 
     def postprocess(self, check_obj, check_output):
         """Postprocesses the result of applying the check function."""
-        if isinstance(check_obj, PolarsData) and isinstance(
-            check_output, pl.LazyFrame
-        ):
+        if isinstance(check_output, pl.LazyFrame):
             return self.postprocess_lazyframe_output(check_obj, check_output)
         elif isinstance(check_output, bool):
             return self.postprocess_bool_output(check_obj, check_output)
@@ -105,6 +101,10 @@ class PolarsCheckBackend(BaseCheckBackend):
 
         if check_obj.key != "*":
             failure_cases = failure_cases.select(check_obj.key)
+
+        if self.check.n_failure_cases is not None:
+            failure_cases = failure_cases.limit(self.check.n_failure_cases)
+
         return CheckResult(
             check_output=results,
             check_passed=passed,

@@ -1,4 +1,4 @@
-"""Backend implementation for pyspark schema components."""
+"""Backend implementation for PySpark schema components."""
 
 import re
 import traceback
@@ -17,7 +17,7 @@ from pandera.validation_depth import ValidationScope
 
 
 class ColumnBackend(ColumnSchemaBackend):
-    """Backend implementation for pyspark dataframe columns."""
+    """Backend implementation for PySpark dataframe columns."""
 
     def validate(
         self,
@@ -31,7 +31,7 @@ class ColumnBackend(ColumnSchemaBackend):
         lazy: bool = False,
         inplace: bool = False,
     ) -> DataFrame:
-        """Validation backend implementation for pyspark dataframe columns.."""
+        """Validation backend implementation for PySpark dataframe columns."""
 
         error_handler = ErrorHandler(lazy=lazy)
 
@@ -146,7 +146,7 @@ class ColumnBackend(ColumnSchemaBackend):
                 raise err
             except Exception as err:  # pylint: disable=broad-except
                 # catch other exceptions that may occur when executing the Check
-                err_msg = f'"{err.args[0]}"' if len(err.args) > 0 else ""
+                err_msg = f'"{err.args[0]}"' if err.args else ""
                 err_str = f"{err.__class__.__name__}({ err_msg})"
 
                 error_handler.collect_error(

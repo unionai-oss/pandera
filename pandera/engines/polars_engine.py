@@ -72,8 +72,12 @@ def polars_object_coercible(
 ) -> pl.LazyFrame:
     """Checks whether a polars object is coercible with respect to a type."""
     key = data_container.key or "*"
+
+    # do a strict cast for list types since is_not_null() cannot correctly
+    # evaluate null values in lists.
+    strict = isinstance(type_, pl.List)
     coercible = data_container.lazyframe.cast(
-        {key: type_}, strict=False
+        {key: type_}, strict=strict
     ).select(pl.col(key).is_not_null())
     # reduce to a single boolean column
     return coercible.select(pl.all_horizontal(key).alias(CHECK_OUTPUT_KEY))
@@ -508,8 +512,8 @@ class DateTime(DataType, dtypes.DateTime):
 
     @classmethod
     def from_parametrized_dtype(cls, polars_dtype: pl.Datetime):
-        """Convert a :class:`polars.Decimal` to
-        a Pandera :class:`pandera.engines.polars_engine.Decimal`."""
+        """Convert a :class:`polars.Datetime` to
+        a Pandera :class:`pandera.engines.polars_engine.DateTime`."""
         return cls(
             time_zone=polars_dtype.time_zone, time_unit=polars_dtype.time_unit
         )

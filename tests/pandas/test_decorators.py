@@ -1,8 +1,8 @@
 """Testing the Decorators that check a functions input or output."""
 
+import asyncio
 import pickle
 import typing
-from asyncio import AbstractEventLoop
 
 import numpy as np
 import pandas as pd
@@ -1095,7 +1095,7 @@ def test_check_types_star_args_kwargs() -> None:
         pd.testing.assert_frame_equal(expected, actual)
 
 
-def test_coroutines(event_loop: AbstractEventLoop) -> None:
+def test_coroutines() -> None:
     # pylint: disable=missing-class-docstring,too-few-public-methods,missing-function-docstring
     class Schema(DataFrameModel):
         col1: Series[int]
@@ -1192,7 +1192,7 @@ def test_coroutines(event_loop: AbstractEventLoop) -> None:
             with pytest.raises(errors.SchemaError):
                 await coro(bad_df)
 
-    event_loop.run_until_complete(check_coros())
+    asyncio.get_event_loop().run_until_complete(check_coros())
 
 
 class Schema(DataFrameModel):

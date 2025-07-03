@@ -543,7 +543,7 @@ class TestDataFrame:
             buffer = io.BytesIO()
             # Just check that the method exists and doesn't raise errors
             assert hasattr(df, "write_parquet")
-        except (IOError, ValueError, AssertionError) as e:
+        except (OSError, ValueError, AssertionError) as e:
             pytest.fail(f"Parquet buffer creation failed: {e}")
 
     def test_to_format_feather_direct(self):
@@ -571,7 +571,7 @@ class TestDataFrame:
             buffer = io.BytesIO()
             # Just check that the method exists and doesn't raise errors
             assert hasattr(df, "write_ipc")
-        except (IOError, ValueError, AssertionError) as e:
+        except (OSError, ValueError, AssertionError) as e:
             pytest.fail(f"Feather buffer creation failed: {e}")
 
     def test_to_format_unsupported(self):
@@ -685,7 +685,7 @@ class TestDataFrame:
             string_io.seek(0)
             result = string_io.getvalue()
             assert result == "string data"
-        except (IOError, ValueError) as e:
+        except (OSError, ValueError) as e:
             pytest.fail(f"StringIO buffer test failed: {e}")
 
         # Test BytesIO handling (covers parquet and feather formats)
@@ -701,7 +701,7 @@ class TestDataFrame:
             bytes_io.seek(0)
             result = bytes_io.read()
             assert result == b"bytes data"
-        except (IOError, ValueError) as e:
+        except (OSError, ValueError) as e:
             pytest.fail(f"BytesIO buffer test failed: {e}")
 
     def test_direct_write_to_buffer(self):
@@ -720,7 +720,7 @@ class TestDataFrame:
                     return "string_result"
                 else:
                     return buffer
-            except (IOError, ValueError, RuntimeError) as exc:
+            except (OSError, ValueError, RuntimeError) as exc:
                 raise ValueError(f"{error_prefix}: {exc}") from exc
 
         # Test StringIO success path
@@ -761,7 +761,7 @@ class TestDataFrame:
                     return "string result"
                 else:
                     return buffer
-            except (IOError, ValueError, RuntimeError) as exc:
+            except (OSError, ValueError, RuntimeError) as exc:
                 raise ValueError("Buffer operation failed") from exc
 
         # Test successful case with StringIO
@@ -777,7 +777,7 @@ class TestDataFrame:
         def test_error():
             try:
                 raise RuntimeError("Test error")
-            except (RuntimeError, ValueError, IOError) as exc:
+            except (RuntimeError, ValueError, OSError) as exc:
                 raise ValueError("Error prefix: Test error") from exc
 
         with pytest.raises(ValueError, match="Error prefix: Test error"):
