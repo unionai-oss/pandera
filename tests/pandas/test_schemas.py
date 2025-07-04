@@ -2272,9 +2272,31 @@ def test_update_index():
         schema.update_index("does_not_exist", dtype=str)
 
 
+def test_update_index_with_properties():
+
+    schema = DataFrameSchema(index=Index(dtype=int, name="idx"))
+
+    assert schema.index.title is None
+    assert schema.index.description is None
+    assert schema.index.metadata is None
+
+    schema = schema.update_index(
+        index_name="idx",
+        unique=True,
+        title="badger",
+        description="pear",
+        metadata={"thing": 123},
+    )
+
+    assert schema.index.unique
+    assert schema.index.title == "badger"
+    assert schema.index.description == "pear"
+    assert schema.index.metadata == {"thing": 123}
+
+
 def test_update_multi_index():
     """
-    Test that schemas can correctly update a multi_index column via update_column method.
+    Test that schemas can correctly update a multi_index column via update_index method.
     """
 
     schema = DataFrameSchema(
@@ -2342,9 +2364,12 @@ def test_update_multi_indexes():
     schema = schema.update_indexes(
         {
             "a": {"dtype": str},
+            "b": {"dtype": str},
         }
     )
-    multi_idx = pd.MultiIndex.from_arrays([["hello"], [1.0]], names=["a", "b"])
+    multi_idx = pd.MultiIndex.from_arrays(
+        [["hello"], ["1.0"]], names=["a", "b"]
+    )
     df = pd.DataFrame({"c": [1]}, index=multi_idx)
 
     assert isinstance(schema.validate(df), pd.DataFrame)
@@ -2356,6 +2381,43 @@ def test_update_multi_indexes():
                 "does_not_exist": {"dtype": str},
             }
         )
+
+
+def test_update_multi_indexes_with_properties():
+    """
+    Test that schemas can correctly update a multi_index column via
+    update_indexes method with properties.
+    """
+
+    schema = DataFrameSchema(
+        index=MultiIndex(
+            [Index(dtype=int, name="a"), Index(dtype=float, name="b")]
+        ),
+    )
+    schema = schema.update_indexes(
+        {
+            "a": {
+                "dtype": str,
+                "title": "badger",
+                "description": "pear",
+                "metadata": {"thing": 123},
+            },
+            "b": {
+                "dtype": str,
+                "title": "badger",
+                "description": "pear",
+                "metadata": {"thing": 123},
+            },
+        }
+    )
+
+    assert schema.index.named_indexes["a"].title == "badger"
+    assert schema.index.named_indexes["a"].description == "pear"
+    assert schema.index.named_indexes["a"].metadata == {"thing": 123}
+
+    assert schema.index.named_indexes["b"].title == "badger"
+    assert schema.index.named_indexes["b"].description == "pear"
+    assert schema.index.named_indexes["b"].metadata == {"thing": 123}
 
 
 def test_rename_indexes():

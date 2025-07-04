@@ -381,6 +381,11 @@ class MultiIndex(DataFrameSchema):
         return [index.name for index in self.indexes]
 
     @property
+    def named_indexes(self) -> Dict[str, Any]:
+        """Get named indexes."""
+        return {index.name: index for index in self.indexes}
+
+    @property
     def coerce(self):
         """Whether or not to coerce data types."""
         return self._coerce or any(index.coerce for index in self.indexes)
