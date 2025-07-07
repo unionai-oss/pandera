@@ -4,7 +4,7 @@
 
 import traceback
 from copy import deepcopy
-from typing import Iterable, List, Optional, Union
+from typing import Iterable, List, Optional, Union, Any
 
 import numpy as np
 import pandas as pd
@@ -18,7 +18,7 @@ from pandera.api.pandas.types import (
 )
 from pandera.backends.base import CoreCheckResult
 from pandera.backends.pandas.array import ArraySchemaBackend
-from pandera.backends.pandas.container import DataFrameSchemaBackend
+from pandera.backends.pandas.base import PandasSchemaBackend
 from pandera.errors import (
     SchemaDefinitionError,
     SchemaError,
@@ -51,9 +51,7 @@ class ColumnBackend(ArraySchemaBackend):
         error_handler = ErrorHandler(lazy=lazy)
 
         if getattr(schema, "drop_invalid_rows", False) and not lazy:
-            raise SchemaDefinitionError(
-                "When drop_invalid_rows is True, lazy must be set to True."
-            )
+            raise SchemaDefinitionError("When drop_invalid_rows is True, lazy must be set to True.")
 
         if schema.name is None:
             raise SchemaError(
@@ -90,26 +88,16 @@ class ColumnBackend(ArraySchemaBackend):
             except SchemaErrors as errs:
                 for err in errs.schema_errors:
                     err.column_name = column_name
-                    error_handler.collect_error(
-                        validation_type(err.reason_code), err.reason_code, err
-                    )
+                    error_handler.collect_error(validation_type(err.reason_code), err.reason_code, err)
             except SchemaError as err:
                 err.column_name = column_name
-                error_handler.collect_error(
-                    validation_type(err.reason_code), err.reason_code, err
-                )
+                error_handler.collect_error(validation_type(err.reason_code), err.reason_code, err)
 
-        column_keys_to_check = (
-            self.get_regex_columns(schema, check_obj)
-            if schema.regex
-            else [schema.name]
-        )
+        column_keys_to_check = self.get_regex_columns(schema, check_obj) if schema.regex else [schema.name]
 
         for column_name in column_keys_to_check:
             if pd.notna(schema.default):
-                check_obj[column_name] = check_obj[column_name].fillna(
-                    schema.default
-                )
+                check_obj[column_name] = check_obj[column_name].fillna(schema.default)
             if schema.coerce:
                 try:
                     check_obj[column_name] = self.coerce_dtype(
@@ -131,9 +119,7 @@ class ColumnBackend(ArraySchemaBackend):
             else:
                 if getattr(schema, "drop_invalid_rows", False):
                     # replace the check_obj with the validated
-                    check_obj = validate_column(
-                        check_obj, column_name, return_check_obj=True
-                    )
+                    check_obj = validate_column(check_obj, column_name, return_check_obj=True)
 
                 validated_column = validate_column(
                     check_obj,
@@ -170,9 +156,7 @@ class ColumnBackend(ArraySchemaBackend):
                 )
             matches = np.ones(len(columns)).astype(bool)
             for i, name in enumerate(schema.name):
-                matched = pd.Index(
-                    columns.get_level_values(i).astype(str).str.match(name)
-                ).fillna(False)
+                matched = pd.Index(columns.get_level_values(i).astype(str).str.match(name)).fillna(False)
                 matches = matches & np.array(matched.tolist())
             column_keys_to_check = columns[matches]
         else:
@@ -185,9 +169,7 @@ class ColumnBackend(ArraySchemaBackend):
             column_keys_to_check = columns[
                 # str.match will return nan values when the index value is
                 # not a string.
-                pd.Index(columns.astype(str).str.match(schema.name))
-                .fillna(False)
-                .tolist()
+                pd.Index(columns.astype(str).str.match(schema.name)).fillna(False).tolist()
             ]
         if column_keys_to_check.shape[0] == 0:
             raise SchemaError(
@@ -233,11 +215,7 @@ class ColumnBackend(ArraySchemaBackend):
         for check_index, check in enumerate(schema.checks):
             check_args = [None] if is_field(check_obj) else [schema.name]
             try:
-                check_results.append(
-                    self.run_check(
-                        check_obj, schema, check, check_index, *check_args
-                    )
-                )
+                check_results.append(self.run_check(check_obj, schema, check, check_index, *check_args))
             except SchemaError as err:
                 check_results.append(
                     CoreCheckResult(
@@ -254,10 +232,7 @@ class ColumnBackend(ArraySchemaBackend):
                 # catch other exceptions that may occur when executing the Check
                 err_msg = f'"{err.args[0]}"' if len(err.args) > 0 else ""
                 err_str = f"{err.__class__.__name__}({ err_msg})"
-                msg = (
-                    f"Error while executing check function: {err_str}\n"
-                    + traceback.format_exc()
-                )
+                msg = f"Error while executing check function: {err_str}\n" + traceback.format_exc()
                 check_results.append(
                     CoreCheckResult(
                         passed=False,
@@ -338,8 +313,11 @@ class IndexBackend(ArraySchemaBackend):
         return check_obj
 
 
-class MultiIndexBackend(DataFrameSchemaBackend):
-    """Backend implementation for pandas multiindex."""
+class MultiIndexBackend(PandasSchemaBackend):
+    """Backend implementation for pandas multiindex without relying on the
+    dataframe-oriented validation logic. This avoids the additional memory
+    overhead of materialising a temporary dataframe that mirrors the
+    MultiIndex levels."""
 
     def coerce_dtype(  # type: ignore[override]
         self,
@@ -366,11 +344,7 @@ class MultiIndexBackend(DataFrameSchemaBackend):
             if all(x is None for x in schema.names):
                 index_levels = [i]
             else:
-                index_levels = [
-                    i
-                    for i, name in enumerate(check_obj.names)
-                    if name == index.name
-                ]
+                index_levels = [i for i, name in enumerate(check_obj.names) if name == index.name]
             for index_level in index_levels:
                 index_array = check_obj.get_level_values(index_level)
                 if index.coerce or schema._coerce:
@@ -380,9 +354,7 @@ class MultiIndexBackend(DataFrameSchemaBackend):
                         index_array = _index.coerce_dtype(index_array)
                     except SchemaError as err:
                         error_handler.collect_error(
-                            validation_type(
-                                SchemaErrorReason.DATATYPE_COERCION
-                            ),
+                            validation_type(SchemaErrorReason.DATATYPE_COERCION),
                             SchemaErrorReason.DATATYPE_COERCION,
                             err,
                         )
@@ -413,14 +385,8 @@ class MultiIndexBackend(DataFrameSchemaBackend):
                 # - For Pyspark only, use to_numpy(), with the effect of keeping the
                 #   bug open on this execution environment: At the time of writing, pyspark
                 #   v3.3.0 does not provide a working implementation of v.array
-                (
-                    v.to_numpy()
-                    if type(v).__module__.startswith("pyspark.pandas")
-                    else v.array
-                )
-                for _, v in sorted(
-                    coerced_multi_index.items(), key=lambda x: x[0]
-                )
+                (v.to_numpy() if type(v).__module__.startswith("pyspark.pandas") else v.array)
+                for _, v in sorted(coerced_multi_index.items(), key=lambda x: x[0])
             ],
             names=check_obj.names,
         )
@@ -437,124 +403,261 @@ class MultiIndexBackend(DataFrameSchemaBackend):
         lazy: bool = False,
         inplace: bool = False,
     ) -> Union[pd.DataFrame, pd.Series]:
-        """Validate DataFrame or Series MultiIndex.
+        """Validate the MultiIndex of a pandas DataFrame/Series.
 
-        :param check_obj: pandas DataFrame of Series to validate.
-        :param head: validate the first n rows. Rows overlapping with `tail` or
-            `sample` are de-duplicated.
-        :param tail: validate the last n rows. Rows overlapping with `head` or
-            `sample` are de-duplicated.
-        :param sample: validate a random sample of n rows. Rows overlapping
-            with `head` or `tail` are de-duplicated.
-        :param random_state: random seed for the ``sample`` argument.
-        :param lazy: if True, lazily evaluates dataframe against all validation
-            checks and raises a ``SchemaErrors``. Otherwise, raise
-            ``SchemaError`` as soon as one occurs.
-        :param inplace: if True, applies coercion to the object of validation,
-            otherwise creates a copy of the data.
-        :returns: validated DataFrame or Series.
+        Unlike the previous implementation, this method operates directly on
+        the ``MultiIndex`` object and therefore avoids constructing a
+        temporary helper dataframe, which could incur a large memory
+        footprint when the index is big.
         """
+
+        # Ensure we are validating against a MultiIndex
+        if not is_multiindex(check_obj.index):
+            raise SchemaError(
+                schema,
+                check_obj,
+                "Attempting to validate mismatch index",  # same message as IndexBackend
+                reason_code=SchemaErrorReason.MISMATCH_INDEX,
+            )
+
+        # Perform a copy if requested so that the original dataframe is kept
+        # intact when ``inplace`` is False.
+        if not inplace:
+            check_obj = check_obj.copy()
+
+        # Coerce dtype at the multi-index level first if required
         if schema.coerce:
             check_obj.index = self.__coerce_index(check_obj, schema, lazy)
 
-        # Prevent data type coercion when the validate method is called because
-        # it leads to some weird behavior when calling coerce_dtype within the
-        # DataFrameSchema.validate call. Need to fix this by having MultiIndex
-        # not inherit from DataFrameSchema.
-        schema_copy = deepcopy(schema)
-        schema_copy.coerce = False
-        for index in schema_copy.indexes:
-            index.coerce = False
+        error_handler = ErrorHandler(lazy)
 
-        # rename integer-based column names in case of duplicate index names,
-        # with at least one named index.
-        if (
-            not all(x is None for x in check_obj.index.names)
-            and len(set(check_obj.index.names)) != check_obj.index.nlevels
-        ):
-            index_names = []
-            for i, name in enumerate(check_obj.index.names):
-                name = i if name is None else name
-                if name not in index_names:
-                    index_names.append(name)
-
-            columns = {}
-            for name, (_, column) in zip(
-                index_names, schema_copy.columns.items()
-            ):
-                columns[name] = column.set_name(name)
-            schema_copy.columns = columns
+        # Validate the correspondence between schema index names and the actual
+        # multi-index names (order and presence checks)
         try:
-            validation_result = super().validate(
-                self.__to_dataframe(check_obj.index),
-                schema_copy,
-                head=head,
-                tail=tail,
-                sample=sample,
-                random_state=random_state,
-                lazy=lazy,
-                inplace=inplace,
-            )
-        except SchemaErrors as err:
-            # This is a hack to re-raise the SchemaErrors exception and change
-            # the schema context to MultiIndex. This should be fixed by with
-            # a more principled schema class hierarchy.
-            schema_errors = []
-            for schema_error in err.schema_errors:
-                if is_table(schema_error.failure_cases):
-                    failure_cases = schema_error.failure_cases.assign(
-                        column=schema_error.schema.name
-                    )
-                else:
-                    failure_cases = schema_error.failure_cases
-                schema_errors.append(
-                    SchemaError(
-                        schema,
-                        check_obj,
-                        schema_error.args[0],
-                        failure_cases,
-                        schema_error.check,
-                        schema_error.check_index,
-                        reason_code=schema_error.reason_code,
-                    )
-                )
+            self._validate_index_names(check_obj.index, schema)
+        except SchemaError as err:
+            if lazy:
+                error_handler.collect_error(validation_type(err.reason_code), err.reason_code, err)
+            else:
+                raise
 
+        # Map schema ``indexes`` definitions to concrete level positions in the
+        # multi-index so that we can validate each level individually.
+        level_mapping: List[tuple[int, Any]] = []
+        try:
+            level_mapping = self._map_schema_to_levels(check_obj.index, schema)
+        except SchemaError as err:
+            if lazy:
+                error_handler.collect_error(validation_type(err.reason_code), err.reason_code, err)
+            else:
+                raise
+
+        # Iterate over the mapping and validate each index level with its
+        # corresponding ``Index`` schema component.
+        for level_pos, index_schema in level_mapping:
+            level_values = check_obj.index.get_level_values(level_pos)
+            # Use an empty dataframe whose index is ``level_values`` so that
+            # the existing IndexBackend can perform the validation logic
+            stub_df = pd.DataFrame(index=level_values)
+            try:
+                index_schema.validate(
+                    stub_df,
+                    head=head,
+                    tail=tail,
+                    sample=sample,
+                    random_state=random_state,
+                    lazy=lazy,
+                    inplace=True,
+                )
+            except SchemaErrors as exc:
+                if lazy:
+                    error_handler.collect_errors(exc.schema_errors, exc)
+                else:
+                    # In non-lazy mode we raise the first error encountered.
+                    raise exc.schema_errors[0] from exc
+            except SchemaError as exc:
+                if lazy:
+                    error_handler.collect_error(validation_type(exc.reason_code), exc.reason_code, exc)
+                else:
+                    raise
+
+        # Raise aggregated errors in lazy mode
+        if lazy and error_handler.collected_errors:
             raise SchemaErrors(
                 schema=schema,
-                schema_errors=schema_errors,
+                schema_errors=error_handler.schema_errors,
                 data=check_obj,
-            ) from err
+            )
 
-        assert is_table(validation_result)
         return check_obj
 
-    def __to_dataframe(self, multiindex):
-        """
-        Emulate the behavior of pandas.MultiIndex.to_frame, but preserve
-        duplicate index names if they exist.
-        """
-        # NOTE: this is a hack to support pyspark.pandas
-        if type(multiindex).__module__.startswith("pyspark.pandas"):
-            df = multiindex.to_frame()
-        else:
-            df = pd.DataFrame(
-                {
-                    i: multiindex.get_level_values(i)
-                    for i in range(multiindex.nlevels)
-                }
-            )
-            df.columns = [
-                i if name is None else name
-                for i, name in enumerate(multiindex.names)
-            ]
-            df.index = multiindex
-        return df
+    # ---------------------------------------------------------------------
+    # Helper methods
+    # ---------------------------------------------------------------------
 
+    @staticmethod
+    def _consecutive_duplicate_violation(names: List[Optional[str]]) -> Optional[str]:
+        """Return the name that violates the consecutive-duplicate rule.
+
+        For ordered multi-index schemas, the same name must appear in
+        consecutive positions. If a previously seen name appears again after a
+        different name has been encountered, it is considered out-of-order and
+        should trigger an error.
+        """
+        seen: set[str] = set()
+        last_name: Optional[str] = None
+        for name in names:
+            if name == last_name:
+                # Consecutive duplicate – allowed.
+                continue
+            if name in seen and name is not None:
+                # Duplicate not consecutive – violation.
+                return name
+            seen.add(name)
+            last_name = name
+        return None
+
+    def _validate_index_names(self, mi: pd.MultiIndex, schema) -> None:
+        """Perform high-level validation of index names/order requirements."""
+        names = list(mi.names)
+        # Ordered validation
+        if schema.ordered:
+            violation = self._consecutive_duplicate_violation(names)
+            if violation is not None:
+                raise SchemaError(
+                    schema=schema,
+                    data=mi,
+                    message=f"column '{violation}' out-of-order",
+                    failure_cases=violation,
+                    check="column_ordered",
+                    reason_code=SchemaErrorReason.COLUMN_NOT_ORDERED,
+                )
+            # Ensure that schema-specified names appear in the expected order
+            expected = [idx.name for idx in schema.indexes]
+            # Compare up to the length of expected list
+            for pos, expected_name in enumerate(expected):
+                if pos >= len(names):
+                    # Not enough levels present.
+                    raise SchemaError(
+                        schema=schema,
+                        data=mi,
+                        message=f"MultiIndex has fewer levels than expected at position {pos}",
+                        failure_cases=str(mi.names),
+                        check="column_ordered",
+                        reason_code=SchemaErrorReason.COLUMN_NOT_ORDERED,
+                    )
+
+                actual_name = names[pos]
+
+                if expected_name is None:
+                    # Unnamed level in schema can correspond to any actual name.
+                    if actual_name is None:
+                        continue
+                    # allow duplicates of previously seen names (to support consecutive duplicates)
+                    if actual_name in names[:pos]:
+                        # treat as duplicate continuation even if previous level had name
+                        continue
+                    # otherwise, new unexpected name -> out-of-order
+                    raise SchemaError(
+                        schema=schema,
+                        data=mi,
+                        message=f"column '{actual_name}' out-of-order",
+                        failure_cases=actual_name,
+                        check="column_ordered",
+                        reason_code=SchemaErrorReason.COLUMN_NOT_ORDERED,
+                    )
+                else:
+                    # Schema expects specific name.
+                    if actual_name != expected_name:
+                        raise SchemaError(
+                            schema=schema,
+                            data=mi,
+                            message=f"column '{expected_name}' out-of-order",
+                            failure_cases=expected_name,
+                            check="column_ordered",
+                            reason_code=SchemaErrorReason.COLUMN_NOT_ORDERED,
+                        )
+        # Unordered validation – only presence matters
+        else:
+            required_names = {idx.name for idx in schema.indexes if idx.name is not None}
+            missing = required_names.difference(set(names))
+            if missing:
+                missing_name = next(iter(missing))
+                raise SchemaError(
+                    schema=schema,
+                    data=mi,
+                    message=f"column '{missing_name}' not in index",
+                    failure_cases=missing_name,
+                    check="column_in_index",
+                    reason_code=SchemaErrorReason.COLUMN_NOT_IN_DATAFRAME,
+                )
+
+    def _map_schema_to_levels(self, mi: pd.MultiIndex, schema):
+        """Map schema index definitions to concrete level positions.
+
+        Returns a list of tuples ``(level_position, index_schema)``.
+        """
+        mapping: List[tuple[int, Any]] = []
+        used_levels: set[int] = set()
+
+        if schema.ordered:
+            # Simple positional mapping when ordered.
+            if len(schema.indexes) > mi.nlevels:
+                raise SchemaError(
+                    schema=schema,
+                    data=mi,
+                    message="MultiIndex has fewer levels than specified in schema",
+                    failure_cases=str(mi.names),
+                    check="column_ordered",
+                    reason_code=SchemaErrorReason.COLUMN_NOT_ORDERED,
+                )
+            for position, idx_schema in enumerate(schema.indexes):
+                mapping.append((position, idx_schema))
+                used_levels.add(position)
+        else:
+            # Unordered – match by name first, then fallback to unused levels.
+            for idx_schema in schema.indexes:
+                if idx_schema.name is not None:
+                    # Find the first unused level with this name
+                    candidate_levels = [
+                        i for i, n in enumerate(mi.names) if n == idx_schema.name and i not in used_levels
+                    ]
+                    if not candidate_levels:
+                        raise SchemaError(
+                            schema=schema,
+                            data=mi,
+                            message=f"index level with name '{idx_schema.name}' not found",
+                            failure_cases=idx_schema.name,
+                            check="column_in_index",
+                            reason_code=SchemaErrorReason.COLUMN_NOT_IN_DATAFRAME,
+                        )
+                    level_pos = candidate_levels[0]
+                else:
+                    # Name is None – take the next unused level.
+                    remaining = [i for i in range(mi.nlevels) if i not in used_levels]
+                    if not remaining:
+                        raise SchemaError(
+                            schema=schema,
+                            data=mi,
+                            message="Ran out of index levels to map to unnamed schema component",
+                            failure_cases=str(mi.names),
+                            check="column_in_index",
+                            reason_code=SchemaErrorReason.COLUMN_NOT_IN_DATAFRAME,
+                        )
+                    level_pos = remaining[0]
+                mapping.append((level_pos, idx_schema))
+                used_levels.add(level_pos)
+        return mapping
+
+    # ------------------------------------------------------------------
+    # Internal helpers
+    # ------------------------------------------------------------------
     def __coerce_index(self, check_obj, schema, lazy):
-        """Coerce index"""
+        """Helper that wraps ``coerce_dtype`` for the full multi-index."""
         try:
             return self.coerce_dtype(
-                check_obj.index, schema=schema  # type: ignore [arg-type]
+                check_obj.index,
+                schema=schema,  # type: ignore[arg-type]
             )
         except SchemaErrors as err:
             if lazy:
