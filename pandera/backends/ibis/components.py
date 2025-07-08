@@ -95,12 +95,12 @@ class ColumnBackend(IbisSchemaBackend):
                                 check_output=result.check_output,
                                 reason_code=result.reason_code,
                             )
-                            error_handler.collect_error(  # Why indent (unlike in container.py)?
-                                validation_type(result.reason_code),
-                                result.reason_code,
-                                error,
-                                original_exc=result.original_exc,
-                            )
+                        error_handler.collect_error(
+                            validation_type(result.reason_code),
+                            result.reason_code,
+                            error,
+                            original_exc=result.original_exc,
+                        )
 
             finally:
                 # revert the schema component mutations

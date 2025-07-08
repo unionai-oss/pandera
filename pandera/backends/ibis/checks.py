@@ -18,6 +18,11 @@ if TYPE_CHECKING:
     from ibis.expr.types.groupby import GroupedTable
 
 
+# Manually maintained list derived from
+# https://github.com/ibis-project/ibis/blob/10.6.0/ibis/backends/tests/test_join.py#L370-L399
+POSITIONAL_JOIN_BACKENDS = {"duckdb", "polars"}
+
+
 class IbisCheckBackend(BaseCheckBackend):
     """Check backend for Ibis."""
 
@@ -75,9 +80,12 @@ class IbisCheckBackend(BaseCheckBackend):
                 )
             elif isinstance(out, ibis.Table):
                 out = out.rename(f"{{name}}{CHECK_OUTPUT_SUFFIX}")
-                try:
+                if (
+                    check_obj.table.get_backend().name
+                    in POSITIONAL_JOIN_BACKENDS
+                ):
                     out = check_obj.table.join(out, how="positional")
-                except Exception:  # pylint: disable=broad-exception-caught
+                else:
                     # For backends that do not support positional joins:
                     # https://github.com/ibis-project/ibis/issues/9486
                     index_col = "__idx__"

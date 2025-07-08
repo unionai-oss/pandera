@@ -1,11 +1,20 @@
 """Class-based API for Ibis models."""
 
+import sys
 import inspect
-from typing import Dict, List, Tuple
+from typing import (
+    Dict,
+    List,
+    Tuple,
+    Type,
+    Optional,
+    cast,
+)
 
 import ibis
 import ibis.expr.datatypes as dt
 
+from pandera.api.base.schema import BaseSchema
 from pandera.api.checks import Check
 from pandera.api.dataframe.model import DataFrameModel as _DataFrameModel
 from pandera.api.dataframe.model import get_dtype_kwargs
@@ -15,6 +24,15 @@ from pandera.api.ibis.container import DataFrameSchema
 from pandera.engines import ibis_engine
 from pandera.errors import SchemaInitError
 from pandera.typing import AnnotationInfo
+from pandera.typing.ibis import Table
+from pandera.utils import docstring_substitution
+
+
+# if python version is < 3.11, import Self from typing_extensions
+if sys.version_info < (3, 11):
+    from typing_extensions import Self
+else:
+    from typing import Self
 
 
 class DataFrameModel(_DataFrameModel[ibis.Table, DataFrameSchema]):
@@ -102,3 +120,21 @@ class DataFrameModel(_DataFrameModel[ibis.Table, DataFrameSchema]):
                 )
 
         return columns
+
+    @classmethod
+    @docstring_substitution(validate_doc=BaseSchema.validate.__doc__)
+    def validate(
+        cls: Type[Self],
+        check_obj: ibis.Table,
+        head: Optional[int] = None,
+        tail: Optional[int] = None,
+        sample: Optional[int] = None,
+        random_state: Optional[int] = None,
+        lazy: bool = False,
+        inplace: bool = False,
+    ) -> Table[Self]:
+        """%(validate_doc)s"""
+        result = cls.to_schema().validate(
+            check_obj, head, tail, sample, random_state, lazy, inplace
+        )
+        return cast(Table[Self], result)

@@ -129,7 +129,7 @@ testing = [
     "pytest-cov",
     "pytest-xdist",
     "pytest-asyncio",
-    "ibis-framework[duckdb] >= 9.0.0",
+    "ibis-framework[duckdb,sqlite] >= 9.0.0",
 ]
 docs = [
     "setuptools",
