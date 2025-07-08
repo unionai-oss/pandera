@@ -18,7 +18,7 @@ if TYPE_CHECKING:
     from ibis.expr.types.groupby import GroupedTable
 
 
-POSITIONAL_JOIN_BACKENDS = {"duckdb", "polars"}
+POSITIONAL_JOIN_BACKENDS = {"duckdb", "polars"}  # Manually maintained list derived from https://github.com/ibis-project/ibis/blob/10.6.0/ibis/backends/tests/test_join.py#L370-L399
 
 
 class IbisCheckBackend(BaseCheckBackend):
