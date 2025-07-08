@@ -135,7 +135,7 @@ html_theme = "furo"
 
 announcement = """
 📢 Pandera 0.25.0 introduces the <i>pandera-ibis integration!</i>
-which you can use to validate all supported ibis backends, including Snowflake, BigQuery, and more.
+which you can use to validate all supported Ibis backends, including Snowflake, BigQuery, and more.
 Learn more details <a href='./ibis.html'>here</a>
 """
 
