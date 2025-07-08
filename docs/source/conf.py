@@ -134,9 +134,9 @@ html_theme = "furo"
 # documentation.
 
 announcement = """
-📢 Pandera 0.24.0 introduces the <i>pandera.pandas</i>
-module, which is the recommended way of defining schemas for <i>pandas objects</i>.
-Learn more details <a href='https://github.com/unionai-oss/pandera/releases/tag/v0.24.0'>here</a>
+📢 Pandera 0.25.0 introduces the <i>pandera-ibis integration!</i>
+which you can use to validate all supported ibis backends, including Snowflake, BigQuery, and more.
+Learn more details <a href='./ibis.html'>here</a>
 """
 
 html_logo = "_static/pandera-banner.png"
