@@ -1,12 +1,12 @@
 """Class-based API for Ibis models."""
 
+import sys
 import inspect
 from typing import (
     Dict,
     List,
     Tuple,
     Type,
-    Self,
     Optional,
     cast,
 )
@@ -26,6 +26,13 @@ from pandera.errors import SchemaInitError
 from pandera.typing import AnnotationInfo
 from pandera.typing.ibis import Table
 from pandera.utils import docstring_substitution
+
+
+# if python version is < 3.11, import Self from typing_extensions
+if sys.version_info < (3, 11):
+    from typing_extensions import Self
+else:
+    from typing import Self
 
 
 class DataFrameModel(_DataFrameModel[ibis.Table, DataFrameSchema]):
