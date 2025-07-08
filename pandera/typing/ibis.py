@@ -219,7 +219,7 @@ if IBIS_INSTALLED:
             if not field.sub_fields:
                 raise TypeError(
                     "Expected a typed pandera.typing.ibis.Table,"
-                    " e.g. DataFrame[Schema]"
+                    " e.g. Table[Schema]"
                 )
             schema_model = field.sub_fields[0].type_
             return schema_model
