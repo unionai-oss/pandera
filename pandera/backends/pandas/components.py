@@ -460,16 +460,11 @@ class MultiIndexBackend(PandasSchemaBackend):
                 getattr(check, "element_wise", False) for check in index_schema.checks
             )
 
-            # Check if we only need uniqueness validation and can use codes
-            only_uniqueness = (
-                len(index_schema.checks) == 0 and getattr(index_schema, "unique", False)
-                # Note: nullable check is separate and doesn't affect codes-based uniqueness
-            )
-
-            if only_uniqueness:
+            # First, handle uniqueness check using codes if required
+            # This optimization works regardless of whether there are other checks
+            if getattr(index_schema, "unique", False):
                 # Use codes for uniqueness check - no value materialization needed
                 level_codes = check_obj.index.codes[level_pos]
-                # Check uniqueness using codes
                 has_duplicates = len(np.unique(level_codes)) < len(level_codes)
 
                 if has_duplicates:
@@ -484,25 +479,27 @@ class MultiIndexBackend(PandasSchemaBackend):
                         check="field_uniqueness",
                         reason_code=SchemaErrorReason.SERIES_CONTAINS_DUPLICATES,
                     )
-                # If no duplicates, validation passes - no further processing needed
-                continue
 
-            elif len(index_schema.checks) == 0:
-                # No checks - use unique values to avoid materializing full level values
-                # Core validations (dtype, nullable, unique) work the same on unique values
+            # Now handle remaining validations (dtype, nullable, custom checks)
+            # Choose the most efficient value set based on the types of checks
+            if len(index_schema.checks) == 0:
+                # No custom checks - use unique values for core validations (dtype, nullable)
+                # Core validations work the same on unique vs full values
                 unique_values = check_obj.index.unique(level=level_pos)
                 stub_df = pd.DataFrame(index=unique_values)
             elif all_elementwise:
-                # Use unique values only when all checks are element-wise
-                # This avoids materializing the full level values, saving memory and time
+                # All checks are element-wise - use unique values
+                # Element-wise checks work the same on each individual value
                 unique_values = check_obj.index.unique(level=level_pos)
                 stub_df = pd.DataFrame(index=unique_values)
             else:
-                # Use all values for non-element-wise checks or mixed checks
+                # Non-element-wise or mixed checks - use full values
                 level_values = check_obj.index.get_level_values(level_pos)
                 stub_df = pd.DataFrame(index=level_values)
 
             try:
+                # Validate using the original schema
+                # If codes check passed uniqueness, the regular uniqueness check will pass quickly
                 index_schema.validate(
                     stub_df,
                     head=head,
