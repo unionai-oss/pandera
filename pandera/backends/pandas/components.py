@@ -455,10 +455,53 @@ class MultiIndexBackend(PandasSchemaBackend):
         # Iterate over the mapping and validate each index level with its
         # corresponding ``Index`` schema component.
         for level_pos, index_schema in level_mapping:
-            level_values = check_obj.index.get_level_values(level_pos)
-            # Use an empty dataframe whose index is ``level_values`` so that
-            # the existing IndexBackend can perform the validation logic
-            stub_df = pd.DataFrame(index=level_values)
+            # Check if all checks are element-wise to enable optimization
+            all_elementwise = len(index_schema.checks) > 0 and all(
+                getattr(check, "element_wise", False) for check in index_schema.checks
+            )
+
+            # Check if we only need uniqueness validation and can use codes
+            only_uniqueness = (
+                len(index_schema.checks) == 0 and getattr(index_schema, "unique", False)
+                # Note: nullable check is separate and doesn't affect codes-based uniqueness
+            )
+
+            if only_uniqueness:
+                # Use codes for uniqueness check - no value materialization needed
+                level_codes = check_obj.index.codes[level_pos]
+                # Check uniqueness using codes
+                has_duplicates = len(np.unique(level_codes)) < len(level_codes)
+
+                if has_duplicates:
+                    # Get the actual duplicate values for error reporting
+                    level_values = check_obj.index.get_level_values(level_pos)
+                    duplicates = level_values.duplicated(keep=False)
+                    raise SchemaError(
+                        schema=index_schema,
+                        data=check_obj,
+                        message=f"index level '{index_schema.name}' contains duplicate values",
+                        failure_cases=level_values[duplicates].unique(),
+                        check="field_uniqueness",
+                        reason_code=SchemaErrorReason.SERIES_CONTAINS_DUPLICATES,
+                    )
+                # If no duplicates, validation passes - no further processing needed
+                continue
+
+            elif len(index_schema.checks) == 0:
+                # No checks - use unique values to avoid materializing full level values
+                # Core validations (dtype, nullable, unique) work the same on unique values
+                unique_values = check_obj.index.unique(level=level_pos)
+                stub_df = pd.DataFrame(index=unique_values)
+            elif all_elementwise:
+                # Use unique values only when all checks are element-wise
+                # This avoids materializing the full level values, saving memory and time
+                unique_values = check_obj.index.unique(level=level_pos)
+                stub_df = pd.DataFrame(index=unique_values)
+            else:
+                # Use all values for non-element-wise checks or mixed checks
+                level_values = check_obj.index.get_level_values(level_pos)
+                stub_df = pd.DataFrame(index=level_values)
+
             try:
                 index_schema.validate(
                     stub_df,

@@ -96,15 +96,8 @@ class Column(ArraySchema[pd.DataFrame]):
             metadata=metadata,
             drop_invalid_rows=drop_invalid_rows,
         )
-        if (
-            name is not None
-            and not isinstance(name, str)
-            and not is_valid_multiindex_key(name)
-            and regex
-        ):
-            raise ValueError(
-                "You cannot specify a non-string name when setting regex=True"
-            )
+        if name is not None and not isinstance(name, str) and not is_valid_multiindex_key(name) and regex:
+            raise ValueError("You cannot specify a non-string name when setting regex=True")
         self.required = required
         self.name = name
         self.regex = regex
@@ -152,19 +145,14 @@ class Column(ArraySchema[pd.DataFrame]):
         # pylint: disable=import-outside-toplevel
         from pandera.backends.pandas.components import ColumnBackend
 
-        return cast(
-            ColumnBackend, self.get_backend(check_type=pd.DataFrame)
-        ).get_regex_columns(self, check_obj)
+        return cast(ColumnBackend, self.get_backend(check_type=pd.DataFrame)).get_regex_columns(self, check_obj)
 
     def __eq__(self, other):
         if not isinstance(other, self.__class__):
             return NotImplemented
 
         def _compare_dict(obj):
-            return {
-                k: v if k not in ["_checks", "_parsers"] else set(v)
-                for k, v in obj.__dict__.items()
-            }
+            return {k: v if k not in ["_checks", "_parsers"] else set(v) for k, v in obj.__dict__.items()}
 
         return _compare_dict(self) == _compare_dict(other)
 
@@ -207,13 +195,7 @@ class Column(ArraySchema[pd.DataFrame]):
                 "ignore",
                 category=hypothesis.errors.NonInteractiveExampleWarning,
             )
-            return (
-                super()
-                .strategy(size=size)
-                .example()
-                .rename(self.name)
-                .to_frame()
-            )
+            return super().strategy(size=size).example().rename(self.name).to_frame()
 
 
 class Index(ArraySchema[pd.Index]):
@@ -347,8 +329,7 @@ class MultiIndex(DataFrameSchema):
         """
         if any(not isinstance(i, Index) for i in indexes):
             raise errors.SchemaInitError(
-                f"expected a list of Index objects, found {indexes} "
-                f"of type {[type(x) for x in indexes]}"
+                f"expected a list of Index objects, found {indexes} " f"of type {[type(x) for x in indexes]}"
             )
         self.indexes = indexes
         columns = {}
@@ -358,8 +339,7 @@ class MultiIndex(DataFrameSchema):
                 # determining how to get the index level without an explicit
                 # index name
                 raise errors.SchemaInitError(
-                    "You must specify index names if MultiIndex schema "
-                    "component is not ordered."
+                    "You must specify index names if MultiIndex schema " "component is not ordered."
                 )
             columns[i if index.name is None else index.name] = Column(
                 dtype=index._dtype,
