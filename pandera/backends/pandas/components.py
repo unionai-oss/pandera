@@ -457,12 +457,12 @@ class MultiIndexBackend(PandasSchemaBackend):
             # Check if all checks are element-wise to enable optimization
             all_elementwise = all(getattr(check, "element_wise", False) for check in index_schema.checks)
 
+            level_values = check_obj.index.unique(level=level_pos)
             # First, handle uniqueness check using codes if required
             # This optimization works regardless of whether there are other checks
             if getattr(index_schema, "unique", False):
                 # Use codes for uniqueness check - no value materialization needed
-                level_codes = check_obj.index.codes[level_pos]
-                has_duplicates = len(np.unique(level_codes)) < len(level_codes)
+                has_duplicates = len(level_values) < len(check_obj.index)
 
                 if has_duplicates:
                     # Get the actual duplicate values for error reporting
@@ -476,6 +476,9 @@ class MultiIndexBackend(PandasSchemaBackend):
                         check="field_uniqueness",
                         reason_code=SchemaErrorReason.SERIES_CONTAINS_DUPLICATES,
                     )
+
+            index_schema_without_unique = deepcopy(index_schema)
+            index_schema_without_unique.unique = False
 
             # Now handle remaining validations (dtype, nullable, custom checks)
             # Choose the most efficient value set based on the types of checks
@@ -492,7 +495,7 @@ class MultiIndexBackend(PandasSchemaBackend):
             try:
                 # Validate using the original schema
                 # If codes check passed uniqueness, the regular uniqueness check will pass quickly
-                index_schema.validate(
+                index_schema_without_unique.validate(
                     stub_df,
                     head=head,
                     tail=tail,
