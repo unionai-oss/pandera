@@ -322,7 +322,6 @@ class MultiIndexBackend(PandasSchemaBackend):
     def coerce_dtype(  # type: ignore[override]
         self,
         # pylint: disable=fixme
-        # TODO: make MultiIndex not inherit from DataFrameSchemaBackend
         check_obj: pd.MultiIndex,
         schema=None,
     ) -> pd.MultiIndex:
@@ -456,9 +455,7 @@ class MultiIndexBackend(PandasSchemaBackend):
         # corresponding ``Index`` schema component.
         for level_pos, index_schema in level_mapping:
             # Check if all checks are element-wise to enable optimization
-            all_elementwise = len(index_schema.checks) > 0 and all(
-                getattr(check, "element_wise", False) for check in index_schema.checks
-            )
+            all_elementwise = all(getattr(check, "element_wise", False) for check in index_schema.checks)
 
             # First, handle uniqueness check using codes if required
             # This optimization works regardless of whether there are other checks
@@ -482,12 +479,7 @@ class MultiIndexBackend(PandasSchemaBackend):
 
             # Now handle remaining validations (dtype, nullable, custom checks)
             # Choose the most efficient value set based on the types of checks
-            if len(index_schema.checks) == 0:
-                # No custom checks - use unique values for core validations (dtype, nullable)
-                # Core validations work the same on unique vs full values
-                unique_values = check_obj.index.unique(level=level_pos)
-                stub_df = pd.DataFrame(index=unique_values)
-            elif all_elementwise:
+            if all_elementwise:
                 # All checks are element-wise - use unique values
                 # Element-wise checks work the same on each individual value
                 unique_values = check_obj.index.unique(level=level_pos)
