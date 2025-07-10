@@ -393,7 +393,7 @@ class ColumnBackend(PolarsSchemaBackend):
             default_value = pl.lit(schema.default, dtype=schema.dtype.type)
         expr = pl.col(schema.selector)
         if is_float_dtype(check_obj, schema.selector):
-            expr = expr.fill_nan(default_value)
+            expr = expr.fill_nan(default_value).fill_null(default_value)
         else:
             expr = expr.fill_null(default_value)
 

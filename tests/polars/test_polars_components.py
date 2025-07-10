@@ -2,6 +2,7 @@
 
 from typing import Iterable, List, Optional, Union
 
+import numpy as np
 import polars as pl
 import pytest
 
@@ -303,6 +304,19 @@ def test_missing_with_extra_columns():
         "a": [1, 2, 3],
         "b": [1.0, 1.0, 1.0],
         "c": [4, 5, 6],
+    }
+
+
+def test_float_set_default():
+    schema = pa.DataFrameSchema(
+        columns={
+            "a": pa.Column(float, default=0.0),
+        },
+        coerce=True,
+    )
+    df = pl.LazyFrame({"a": [1.0, 2.0, None, np.nan]})
+    assert schema.validate(df).collect().to_dict(as_series=False) == {
+        "a": [1.0, 2.0, 0.0, 0.0]
     }
 
 
