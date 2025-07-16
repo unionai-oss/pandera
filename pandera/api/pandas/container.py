@@ -166,7 +166,9 @@ class DataFrameSchema(_DataFrameSchema[pd.DataFrame]):
     ###########################
 
     @strategy_import_error
-    def strategy(self, *, size: Optional[int] = None, n_regex_columns: int = 1):
+    def strategy(
+        self, *, size: Optional[int] = None, n_regex_columns: int = 1
+    ):
         """Create a ``hypothesis`` strategy for generating a DataFrame.
 
         :param size: number of elements to generate
@@ -187,7 +189,9 @@ class DataFrameSchema(_DataFrameSchema[pd.DataFrame]):
             n_regex_columns=n_regex_columns,
         )
 
-    def example(self, size: Optional[int] = None, n_regex_columns: int = 1) -> pd.DataFrame:
+    def example(
+        self, size: Optional[int] = None, n_regex_columns: int = 1
+    ) -> pd.DataFrame:
         """Generate an example of a particular size.
 
         :param size: number of elements in the generated DataFrame.
@@ -201,4 +205,6 @@ class DataFrameSchema(_DataFrameSchema[pd.DataFrame]):
                 "ignore",
                 category=hypothesis.errors.NonInteractiveExampleWarning,
             )
-            return self.strategy(size=size, n_regex_columns=n_regex_columns).example()
+            return self.strategy(
+                size=size, n_regex_columns=n_regex_columns
+            ).example()
