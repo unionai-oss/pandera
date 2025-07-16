@@ -201,12 +201,16 @@ def _test_annotated_dtype(
 
     actual = schema.columns["col"].dtype
     expected = pa.Column(dtype(**dtype_kwargs), name="col").dtype
-
-    if isinstance(actual.type, pd.SparseDtype):
+    if isinstance(expected.type, pd.SparseDtype):
+        # special handling for sparse dtypes, which have a NA fill_value, which
+        # is not equal to itself.
+        assert isinstance(actual.type, pd.SparseDtype)
+        assert actual.type == expected.type
         assert actual.type.type == expected.type.type
-        assert np.isnan(actual.type.fill_value) == np.isnan(
-            expected.type.fill_value
-        )
+        if pd.isna(expected.type.fill_value):
+            assert pd.isna(actual.type.fill_value)
+        else:
+            assert actual.type.fill_value == expected.type.fill_value
     else:
         assert actual == expected
 

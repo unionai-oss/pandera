@@ -24,6 +24,7 @@ from typing import (
 
 import pyspark.sql as ps
 from pyspark.sql.types import StructType
+from typing_extensions import get_type_hints
 
 from pandera.api.base.model import BaseModel
 from pandera.api.checks import Check
@@ -42,11 +43,6 @@ from pandera.errors import SchemaInitError
 from pandera.typing import AnnotationInfo
 from pandera.typing.common import DataFrameBase
 from pandera.typing.pyspark import DataFrame
-
-try:
-    from typing_extensions import get_type_hints
-except ImportError:  # pragma: no cover
-    from typing import get_type_hints  # type: ignore
 
 
 _CONFIG_KEY = "Config"
