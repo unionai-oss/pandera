@@ -47,18 +47,20 @@ class NarwhalsSchemaBackend(BaseSchemaBackend):
             obj_subsample.append(check_obj.tail(tail))
         if sample is not None:
             obj_subsample.append(check_obj.sample(sample, seed=random_state))
-        
+
         if obj_subsample:
             # Placeholder implementation - would need proper narwhals concatenation
             return obj_subsample[0]  # For now, just return the first subsample
-        
+
         return check_obj
 
     def run_check(
         self,
         check_obj: NarwhalsFrame,
-        check_fn,
-        check_kwargs: Dict[str, Any],
+        schema,
+        check,
+        check_index: int,
+        *args,
     ) -> CheckResult:
         """Run a check function on a narwhals DataFrame."""
         # Placeholder implementation
@@ -72,27 +74,20 @@ class NarwhalsSchemaBackend(BaseSchemaBackend):
     def run_checks(
         self,
         check_obj: NarwhalsFrame,
-        checks: List,
         schema,
-        **kwargs,
     ) -> NarwhalsFrame:
         """Run multiple checks on a narwhals DataFrame."""
         # Placeholder implementation
         return check_obj
 
     def failure_cases_metadata(
-        self,
-        check_obj: NarwhalsFrame,
-        schema,
-        check_result: CheckResult,
-        check_name: str,
-        **kwargs,
+        self, schema_name: str, schema_errors: List[SchemaError]
     ) -> FailureCaseMetadata:
         """Generate failure case metadata."""
         # Placeholder implementation
         return FailureCaseMetadata(
-            failure_cases=check_result.failure_cases,
-            message="Validation failed",
+            failure_cases=None,
+            message={"error": "Validation failed"},
             error_counts={"error": 0},
         )
 

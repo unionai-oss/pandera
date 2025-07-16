@@ -2,7 +2,17 @@
 
 import copy
 import inspect
-from typing import Dict, List, Optional, Tuple, Type, Union, cast, overload, Any
+from typing import (
+    Dict,
+    List,
+    Optional,
+    Tuple,
+    Type,
+    Union,
+    cast,
+    overload,
+    Any,
+)
 
 import narwhals as nw
 from typing_extensions import Self
@@ -14,7 +24,7 @@ from pandera.api.dataframe.model import get_dtype_kwargs
 from pandera.api.dataframe.model_components import FieldInfo
 from pandera.api.narwhals.components import Column
 from pandera.api.narwhals.container import DataFrameSchema
-from pandera.api.narwhals.model_config import BaseConfig
+from pandera.api.dataframe.model_config import BaseConfig
 from pandera.api.narwhals.types import NarwhalsFrame
 from pandera.engines import narwhals_engine as ne
 from pandera.errors import SchemaInitError
@@ -29,7 +39,7 @@ class DataFrameModel(_DataFrameModel[nw.DataFrame[Any], DataFrameSchema]):
     See the :ref:`User Guide <dataframe-models>` for more.
     """
 
-    Config: Type[BaseConfig] = BaseConfig
+    Config: Type[BaseConfig] = BaseConfig  # type: ignore
 
     @classmethod
     def build_schema_(cls, **kwargs) -> DataFrameSchema:
@@ -48,10 +58,10 @@ class DataFrameModel(_DataFrameModel[nw.DataFrame[Any], DataFrameSchema]):
         columns: Dict[str, Column] = {}
         for field_name, (annotation, field) in fields.items():
             field_checks = checks.get(field_name, [])
-            
+
             # Placeholder implementation - would need proper narwhals dtype handling
             dtype_kwargs = get_dtype_kwargs(annotation)
-            
+
             columns[field_name] = Column(
                 name=field_name,
                 dtype=dtype_kwargs.get("dtype"),
@@ -59,15 +69,15 @@ class DataFrameModel(_DataFrameModel[nw.DataFrame[Any], DataFrameSchema]):
                 nullable=field.nullable,
                 unique=field.unique,
                 coerce=field.coerce,
-                required=field.required,
+                required=getattr(field, "required", True),
                 regex=field.regex,
                 title=field.title,
                 description=field.description,
                 default=field.default,
                 metadata=field.metadata,
-                drop_invalid_rows=field.drop_invalid_rows,
+                drop_invalid_rows=getattr(field, "drop_invalid_rows", False),
             )
-        
+
         return columns
 
     @classmethod
@@ -107,18 +117,22 @@ class DataFrameModel(_DataFrameModel[nw.DataFrame[Any], DataFrameSchema]):
         """
         # Placeholder implementation
         # Would need proper narwhals DataFrame creation
-        raise NotImplementedError("Empty DataFrame creation not yet implemented")
+        raise NotImplementedError(
+            "Empty DataFrame creation not yet implemented"
+        )
 
     @classmethod
-    def example(cls, size: int = 1) -> nw.DataFrame[Any]:
+    def example(cls, **kwargs: Any) -> nw.DataFrame[Any]:
         """Create an example DataFrame conforming to the schema.
 
-        :param size: number of rows to create.
+        :param kwargs: additional keyword arguments.
         :returns: example DataFrame.
         """
         # Placeholder implementation
         # Would need proper narwhals DataFrame creation with example data
-        raise NotImplementedError("Example DataFrame creation not yet implemented")
+        raise NotImplementedError(
+            "Example DataFrame creation not yet implemented"
+        )
 
     @classmethod
     def to_json_schema(cls) -> Dict[str, Any]:

@@ -1,15 +1,15 @@
 """Register narwhals backends."""
 
 from functools import lru_cache
-from typing import Any
+from typing import Any, Optional
 
 import narwhals as nw
 
-from pandera.backends.base import BACKEND_REGISTRY
-
 
 @lru_cache(maxsize=1)
-def register_narwhals_backends():
+def register_narwhals_backends(
+    check_cls_fqn: Optional[str] = None,
+):  # pylint: disable=unused-argument
     """Register narwhals backends."""
     # pylint: disable=import-outside-toplevel
     from pandera.api.narwhals.container import DataFrameSchema
@@ -17,44 +17,16 @@ def register_narwhals_backends():
     from pandera.backends.narwhals.container import DataFrameSchemaBackend
     from pandera.backends.narwhals.components import ColumnBackend
     from pandera.backends.narwhals.checks import NarwhalsCheckBackend
+    from pandera.api.checks import Check
 
     # Register DataFrame backends
-    BACKEND_REGISTRY.register(
-        DataFrameSchema,
-        nw.DataFrame,
-        DataFrameSchemaBackend,
-    )
-    
-    BACKEND_REGISTRY.register(
-        DataFrameSchema,
-        nw.LazyFrame,
-        DataFrameSchemaBackend,
-    )
+    DataFrameSchema.register_backend(nw.DataFrame, DataFrameSchemaBackend)
+    DataFrameSchema.register_backend(nw.LazyFrame, DataFrameSchemaBackend)
 
     # Register Column backends
-    BACKEND_REGISTRY.register(
-        Column,
-        nw.DataFrame,
-        ColumnBackend,
-    )
-    
-    BACKEND_REGISTRY.register(
-        Column,
-        nw.LazyFrame,
-        ColumnBackend,
-    )
+    Column.register_backend(nw.DataFrame, ColumnBackend)
+    Column.register_backend(nw.LazyFrame, ColumnBackend)
 
     # Register Check backends
-    from pandera.api.checks import Check
-    
-    BACKEND_REGISTRY.register(
-        Check,
-        nw.DataFrame,
-        NarwhalsCheckBackend,
-    )
-    
-    BACKEND_REGISTRY.register(
-        Check,
-        nw.LazyFrame,
-        NarwhalsCheckBackend,
-    )
+    Check.register_backend(nw.DataFrame, NarwhalsCheckBackend)
+    Check.register_backend(nw.LazyFrame, NarwhalsCheckBackend)

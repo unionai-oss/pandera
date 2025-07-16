@@ -9,7 +9,10 @@ import narwhals as nw
 
 from pandera.api.base.types import CheckList
 from pandera.api.dataframe.components import ComponentSchema
-from pandera.api.narwhals.types import NarwhalsCheckObjects, NarwhalsDtypeInputTypes
+from pandera.api.narwhals.types import (
+    NarwhalsCheckObjects,
+    NarwhalsDtypeInputTypes,
+)
 from pandera.backends.narwhals.register import register_narwhals_backends
 from pandera.config import config_context, get_config_context
 from pandera.engines import narwhals_engine
@@ -65,15 +68,15 @@ class Column(ComponentSchema[NarwhalsCheckObjects]):
             nullable=nullable,
             unique=unique,
             coerce=coerce,
-            required=required,
             name=name,
-            regex=regex,
             title=title,
             description=description,
             default=default,
             metadata=metadata,
             drop_invalid_rows=drop_invalid_rows,
         )
+        self.required = required
+        self.regex = regex
         self.column_kwargs = column_kwargs
 
     def validate(

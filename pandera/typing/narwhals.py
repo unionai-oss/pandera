@@ -12,6 +12,7 @@ from pandera.typing.formats import Formats
 
 try:
     import narwhals as nw
+
     NARWHALS_INSTALLED = True
 except ImportError:
     NARWHALS_INSTALLED = False
@@ -62,12 +63,12 @@ if NARWHALS_INSTALLED:
             """
             # Placeholder implementation - would need proper format handling
             if config.from_format is None:
-                if hasattr(obj, '__dataframe__'):
+                if hasattr(obj, "__dataframe__"):
                     return nw.from_native(obj, eager_only=True)
                 else:
                     # Try to create from dict/list
                     return nw.from_native(obj, eager_only=True)
-            
+
             if callable(config.from_format):
                 reader = config.from_format
                 return reader(obj, **(config.from_format_kwargs or {}))
@@ -192,7 +193,7 @@ if NARWHALS_INSTALLED:
                             key: core_schema.typed_dict_field(
                                 type_map.get(
                                     schema_json_columns[key]["items"]["type"],
-                                    core_schema.str_schema()
+                                    core_schema.str_schema(),
                                 )
                             )
                             for key in schema.dtypes.keys()
@@ -226,7 +227,9 @@ if NARWHALS_INSTALLED:
                 yield cls._pydantic_validate
 
         @classmethod
-        def pydantic_validate(cls, obj: Any, schema_model) -> nw.DataFrame[Any]:
+        def pydantic_validate(
+            cls, obj: Any, schema_model
+        ) -> nw.DataFrame[Any]:
             """
             Verify that the input can be converted into a narwhals dataframe that
             meets all schema requirements.

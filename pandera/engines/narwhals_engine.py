@@ -29,7 +29,9 @@ from pandera.constants import CHECK_OUTPUT_KEY
 from pandera.dtypes import immutable
 from pandera.engines import engine
 
-NarwhalsDataContainer = Union[nw.DataFrame[Any], nw.LazyFrame[Any], NarwhalsData]
+NarwhalsDataContainer = Union[
+    nw.DataFrame[Any], nw.LazyFrame[Any], NarwhalsData
+]
 NarwhalsDataType = Union[nw.Dtype, str, type]
 
 COERCION_ERRORS = (
@@ -51,7 +53,7 @@ def convert_py_dtype_to_narwhals_dtype(dtype):
     # Placeholder implementation - would need proper narwhals dtype conversion
     if isinstance(dtype, nw.Dtype):
         return dtype
-    
+
     # Map common Python types to narwhals types
     type_mapping = {
         int: nw.Int64,
@@ -63,7 +65,7 @@ def convert_py_dtype_to_narwhals_dtype(dtype):
         datetime.date: nw.Date,
         datetime.time: nw.Time,
     }
-    
+
     return type_mapping.get(dtype, nw.String)
 
 
@@ -72,7 +74,7 @@ def narwhals_object_coercible(
 ) -> nw.DataFrame[Any]:
     """Checks whether a narwhals object is coercible with respect to a type."""
     key = data_container.key or "*"
-    
+
     # Placeholder implementation
     # Would need proper narwhals type coercion checking
     try:
@@ -151,12 +153,18 @@ class DataType(engine.DataType):
     def __repr__(self) -> str:
         return f"DataType({self.type})"
 
-    def coerce(self, data_container: NarwhalsDataContainer) -> NarwhalsDataContainer:
+    def coerce(
+        self, data_container: NarwhalsDataContainer
+    ) -> NarwhalsDataContainer:
         """Coerce narwhals data to this data type."""
         # Placeholder implementation
         return data_container
 
-    def check(self, data_container: NarwhalsDataContainer) -> bool:
+    def check(
+        self,
+        pandera_dtype: engine.DataType,
+        data_container: Optional[Any] = None,
+    ) -> Union[bool, Iterable[bool]]:
         """Check if narwhals data matches this data type."""
         # Placeholder implementation
         return True
@@ -171,7 +179,7 @@ class DataType(engine.DataType):
 @immutable
 class Int64(DataType):
     """64-bit integer type."""
-    
+
     def __init__(self):
         super().__init__(nw.Int64)
 
@@ -179,7 +187,7 @@ class Int64(DataType):
 @immutable
 class Float64(DataType):
     """64-bit float type."""
-    
+
     def __init__(self):
         super().__init__(nw.Float64)
 
@@ -187,7 +195,7 @@ class Float64(DataType):
 @immutable
 class String(DataType):
     """String type."""
-    
+
     def __init__(self):
         super().__init__(nw.String)
 
@@ -195,7 +203,7 @@ class String(DataType):
 @immutable
 class Boolean(DataType):
     """Boolean type."""
-    
+
     def __init__(self):
         super().__init__(nw.Boolean)
 
@@ -203,7 +211,7 @@ class Boolean(DataType):
 @immutable
 class DateTime(DataType):
     """DateTime type."""
-    
+
     def __init__(self):
         super().__init__(nw.Datetime)
 
@@ -211,7 +219,7 @@ class DateTime(DataType):
 @immutable
 class Date(DataType):
     """Date type."""
-    
+
     def __init__(self):
         super().__init__(nw.Date)
 
