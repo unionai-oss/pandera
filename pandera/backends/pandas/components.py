@@ -450,6 +450,21 @@ class MultiIndexBackend(PandasSchemaBackend):
         the ``MultiIndex`` object and therefore avoids constructing a
         temporary helper dataframe, which could incur a large memory
         footprint when the index is big.
+
+        :param head: validate the first n rows. Rows overlapping with `tail` or
+            `sample` are de-duplicated.
+        :param check_obj: pandas DataFrame of Series to validate.
+        :param tail: validate the last n rows. Rows overlapping with `head` or
+            `sample` are de-duplicated.
+        :param sample: validate a random sample of n rows. Rows overlapping
+            with `head` or `tail` are de-duplicated.
+        :param random_state: random seed for the ``sample`` argument.
+        :param lazy: if True, lazily evaluates dataframe against all validation
+            checks and raises a ``SchemaErrors``. Otherwise, raise
+            ``SchemaError`` as soon as one occurs.
+        :param inplace: if True, applies coercion to the object of validation,
+            otherwise creates a copy of the data.
+        :returns: validated DataFrame or Series.
         """
 
         # Ensure we are validating against a MultiIndex
@@ -542,8 +557,7 @@ class MultiIndexBackend(PandasSchemaBackend):
                 stub_df = pd.DataFrame(index=level_values)
 
             try:
-                # Validate using the original schema
-                # If codes check passed uniqueness, the regular uniqueness check will pass quickly
+                # Validate using the modified schema
                 index_schema_without_unique.validate(
                     stub_df,
                     head=head,
