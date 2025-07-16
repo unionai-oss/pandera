@@ -645,7 +645,7 @@ def check_types(
 
     def _check_arg(arg_name: str, arg_value: Any) -> Any:
         """
-        Validate function's argument if annoted with a schema, else
+        Validate function's argument if annotated with a schema, else
         pass-through.
         """
         annotated_schema_models = _get_annotated_schema_models(wrapped)

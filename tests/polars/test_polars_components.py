@@ -35,6 +35,16 @@ def test_column_schema_simple_dtypes(dtype, data):
     assert validated_data.equals(data.collect())
 
 
+def test_column_schema_inplace():
+    schema = pa.Column(name="column")
+    data = pl.LazyFrame({"column": [1, 2, 3]})
+    with pytest.warns(
+        UserWarning,
+        match="setting inplace=True will have no effect",
+    ):
+        schema.validate(data, inplace=True)
+
+
 def test_column_schema_name_none():
     schema = pa.Column()
     data = pl.LazyFrame({"column": [1, 2, 3]})
@@ -65,7 +75,7 @@ def test_column_schema_regex(column_kwargs):
             invalid_data.pipe(schema.validate).collect()
 
 
-def test_get_columnd_backend():
+def test_get_column_backend():
     assert isinstance(pa.Column.get_backend(pl.LazyFrame()), ColumnBackend)
     assert isinstance(
         pa.Column.get_backend(check_type=pl.LazyFrame), ColumnBackend
@@ -205,7 +215,10 @@ def test_check_data_container():
         def check(
             self,
             pandera_dtype: DataType,
-            data_container: Optional[polars_engine.PolarsData] = None,
+            data_container: Optional[  # type:ignore
+                # test case doesn't need to be Liskov substitutable
+                polars_engine.PolarsData
+            ] = None,
         ) -> Union[bool, Iterable[bool]]:
             if data_container:
                 ldf = data_container.lazyframe

@@ -57,5 +57,6 @@ disable=
     multiple-statements,
     cyclic-import,
     too-many-positional-arguments,
+    too-many-function-args,
     # Due to custom `immutable` decorator replacing `dataclasses.dataclass`
     invalid-field-call

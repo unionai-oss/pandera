@@ -1,5 +1,5 @@
 # pylint: disable=redefined-outer-name
-"""Unit tests for polars container."""
+"""Unit tests for Polars container."""
 
 from typing import Optional
 
@@ -82,8 +82,10 @@ def ldf_schema_with_regex_name():
     """Polars lazyframe schema with checks."""
     return DataFrameSchema(
         {
-            r"^string_col_\d+$": Column(pl.Utf8, C.isin([*"012"])),
-            r"^int_col_\d+$": Column(pl.Int64, C.ge(0)),
+            r"^string_col_\d+$": Column(
+                pl.Utf8, C.isin([*"012"]), required=False
+            ),
+            r"^int_col_\d+$": Column(pl.Int64, C.ge(0), required=False),
         }
     )
 
@@ -93,8 +95,12 @@ def ldf_schema_with_regex_option():
     """Polars lazyframe schema with checks."""
     return DataFrameSchema(
         {
-            r"string_col_\d+": Column(pl.Utf8, C.isin([*"012"]), regex=True),
-            r"int_col_\d+": Column(pl.Int64, C.ge(0), regex=True),
+            r"string_col_\d+": Column(
+                pl.Utf8, C.isin([*"012"]), regex=True, required=False
+            ),
+            r"int_col_\d+": Column(
+                pl.Int64, C.ge(0), regex=True, required=False
+            ),
         }
     )
 
@@ -127,7 +133,6 @@ def test_basic_polars_lazyframe_check_error(
     ldf_schema_with_check,
 ):
     """Test basic polars lazy dataframe."""
-
     query = ldf_basic.pipe(ldf_schema_with_check.validate, lazy=True)
 
     validated_df = query.collect()
@@ -147,7 +152,7 @@ def test_coerce_column_dtype_error(ldf_basic, ldf_schema_basic):
     """Test coerce dtype raises error when values cannot be coerced."""
     ldf_schema_basic._coerce = True
 
-    # change dtype of strong_col to int64, where coercion of values should fail
+    # change dtype of string_col to int64, where coercion of values should fail
     modified_ldf = ldf_basic.with_columns(string_col=pl.lit("a"))
     ldf_schema_basic.columns["string_col"].dtype = pl.Int64
     with pytest.raises(pa.errors.SchemaError):
@@ -406,7 +411,7 @@ def test_set_defaults(ldf_basic, ldf_schema_basic):
     assert validated_data.equals(expected_data.collect())
 
 
-def _failure_value(column: str, dtype: Optional[pl.DataType] = None):
+def _failure_value(column: str, dtype: Optional[pl.DataTypeClass] = None):
     if column.startswith("string"):
         return pl.lit("9", dtype=dtype or pl.Utf8)
     elif column.startswith("int"):

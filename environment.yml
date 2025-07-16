@@ -13,7 +13,7 @@ dependencies:
   - pyyaml >= 5.1
   - typing_inspect >= 0.6.0
   - frictionless <= 4.40.8  # v5.* introduces breaking changes
-  - pyarrow
+  - pyarrow >= 13 # https://github.com/apache/arrow/pull/35113
   - pydantic
 
   # hypotheses extra
@@ -23,7 +23,7 @@ dependencies:
   - pandas-stubs
 
   # pyspark extra
-  - pyspark[connect] >= 3.2.0
+  - pyspark[connect] >= 3.2.0, < 4.0.0
 
   # polars extra
   - polars >= 0.20.0
@@ -33,7 +33,7 @@ dependencies:
   - protobuf
 
   # geopandas extra
-  - geopandas
+  - geopandas < 1.1.0
   - shapely
 
   # fastapi extra
@@ -59,9 +59,15 @@ dependencies:
   - uv
   - setuptools # required in noxfile and not automatically provided by python >= 3.12
 
+  # ibis testing
+  - ibis-duckdb
+
   # fastapi testing
   - uvicorn
   - python-multipart
+
+  # ibis testing
+  - duckdb
 
   # documentation
   - sphinx
@@ -84,6 +90,9 @@ dependencies:
       # dask extra
       - dask[dataframe]
       - distributed
+
+      # ibis extra
+      - ibis-framework >= 9.0.0
 
       # docs
       - furo

@@ -62,10 +62,10 @@ io = [
 mypy = ["pandas-stubs"]
 fastapi = ["fastapi"]
 geopandas = [
-    "geopandas",
+    "geopandas < 1.1.0",
     "shapely",
 ]
-pyspark = ["pyspark[connect] >= 3.2.0"]
+pyspark = ["pyspark[connect] >= 3.2.0, < 4.0.0"]
 modin = [
     "modin",
     "ray",
@@ -85,7 +85,7 @@ dask = [
     "dask[dataframe]",
     "distributed",
 ]
-
+ibis = ["ibis-framework >= 9.0.0"]
 polars = ["polars >= 0.20.0"]
 all = [
     "hypothesis >= 6.92.7",
@@ -93,27 +93,30 @@ all = [
     "pyyaml >= 5.1",
     "black",
     "frictionless <= 4.40.8",
-    "pyspark[connect] >= 3.2.0",
+    "pyspark[connect] >= 3.2.0, < 4.0.0",
     "modin",
     "ray",
     "dask[dataframe]",
     "distributed",
     "pandas-stubs",
     "fastapi",
-    "geopandas",
+    "geopandas < 1.1.0",
     "shapely",
+    "ibis-framework >= 9.0.0",
     "polars >= 0.20.0",
 ]
 
 [dependency-groups]
 dev = [
     "hypothesis >= 6.92.7",
+    "ipdb",
     "isort >= 5.7.0",
     "joblib",
     "mypy == 1.10.0",
     "pip",
+    "polars >= 0.20.0",
     "pre_commit",
-    "pyarrow",
+    "pyarrow >= 13",
     "pylint < 3.3",
     "pytz",
     "xdoctest",
@@ -128,8 +131,10 @@ testing = [
     "pytest-xdist",
     "pytest-asyncio",
     "sphinx",
+    "ibis-framework[duckdb,sqlite] >= 9.0.0",
 ]
 docs = [
+    "setuptools",
     "sphinx",
     "sphinx-design",
     "sphinx-autodoc-typehints <= 1.14.1",
@@ -187,3 +192,6 @@ exclude = '''
   | asv_bench
 )
 '''
+
+[tool.codespell]
+ignore-words-list = ["notin", "splitted", "fo", "strat"]

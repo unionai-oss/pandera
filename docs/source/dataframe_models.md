@@ -109,7 +109,7 @@ class InputSchema(pa.DataFrameModel):
 
 ### Reusing Field objects
 
-To define reuseable `Field` definitions, you need to use `functools.partial`.
+To define reusable `Field` definitions, you need to use `functools.partial`.
 This makes sure that each field attribute is bound to a unique `Field` instance.
 
 ```{code-cell} python
@@ -778,7 +778,7 @@ There are drawbacks to manipulating schema shape in this way:
 
 - Static code analysis has no way to figure out what fields have been removed/updated from
   the class definitions and inheritance hierarchy.
-- Any children of classes which have overriden `to_schema` might experience
+- Any children of classes which have overridden `to_schema` might experience
   surprising behavior -- if a child of `Baz` tries to define a field `b` or `c` again,
   it will lose it in its `to_schema` call because `Baz`'s `to_schema` will always
   be executed after any child's class body has already been fully assembled.

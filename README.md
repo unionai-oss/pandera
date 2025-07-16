@@ -30,7 +30,7 @@
 [![Monthly Downloads](https://img.shields.io/pypi/dm/pandera?style=for-the-badge&color=blue)](https://pepy.tech/project/pandera)
 [![Total Downloads](https://img.shields.io/pepy/dt/pandera?style=for-the-badge&color=blue)](https://pepy.tech/project/pandera)
 [![Conda Downloads](https://img.shields.io/conda/dn/conda-forge/pandera?style=for-the-badge)](https://anaconda.org/conda-forge/pandera)
-[![Discord](https://img.shields.io/badge/discord-chat-purple?color=%235765F2&label=discord&logo=discord&style=for-the-badge)](https://discord.gg/vyanhWuaKB)
+[![Slack](https://img.shields.io/badge/Slack-4A154B?logo=slack&logoColor=fff&style=for-the-badge)](https://flyte-org.slack.com/archives/C08FDTY2X3L)
 
 Pandera is a [Union.ai](https://union.ai/blog-post/pandera-joins-union-ai) open
 source project that provides a flexible and expressive API for performing data
@@ -118,6 +118,30 @@ print(Schema.validate(df))
 # 1        2      1.2       b
 # 2        3      1.3       c
 ```
+
+
+> [!WARNING]
+> Pandera `v0.24.0` introduces the `pandera.pandas` module, which is now the
+> (highly) recommended way of defining `DataFrameSchema`s and `DataFrameModel`s
+> for `pandas` data structures like `DataFrame`s. Defining a dataframe schema from
+> the top-level `pandera` module will produce a `FutureWarning`:
+>
+> ```python
+> import pandera as pa
+>
+> schema = pa.DataFrameSchema({"col": pa.Column(str)})
+> ```
+>
+> Update your import to:
+>
+> ```python
+> import pandera.pandas as pa
+> ```
+>
+> And all of the rest of your pandera code should work. Using the top-level
+> `pandera` module to access `DataFrameSchema` and the other pandera classes
+> or functions will be deprecated in a future version
+
 
 ## Next steps
 

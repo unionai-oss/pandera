@@ -370,6 +370,7 @@ def test_dataframe_schema_strict(
             if df_out.pandera.errors:
                 raise pa.PysparkSchemaError
 
+        schema.coerce = True
         schema.strict = "filter"
         assert isinstance(schema.validate(df), DataFrame)
 
@@ -480,7 +481,7 @@ def test_validation_succeeds_with_missing_optional_column(
 def test_invalid_field(
     spark_session,  # pylint:disable=unused-argument
 ) -> None:
-    """Test that invalid feilds raises a schemaInitError."""
+    """Test that invalid fields raises a schemaInitError."""
 
     class Schema(DataFrameModel):  # pylint:disable=missing-class-docstring
         a: int = 0  # type: ignore[assignment]  # mypy identifies the wrong usage correctly

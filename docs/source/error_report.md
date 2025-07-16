@@ -9,7 +9,7 @@ file_format: mystnb
 *new in 0.19.0*
 
 The pandera error report is a generalised machine-readable summary of failures
-which occured during schema validation. It is available for both `pysparksql` and
+which occurred during schema validation. It is available for both `pysparksql` and
 `pandas` objects.
 
 By default, error reports are generated for both schema and data level validation,

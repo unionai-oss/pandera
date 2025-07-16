@@ -246,6 +246,10 @@ class SchemaFieldSparseDtype(pa.DataFrameModel):
     )
 
 
+class SchemaFieldStringDtypeArrow(pa.DataFrameModel):
+    col: Series[pd.StringDtype] = pa.Field(dtype_kwargs={"storage": "pyarrow"})
+
+
 @pytest.mark.parametrize(
     "model, dtype, dtype_kwargs",
     [
@@ -265,6 +269,11 @@ class SchemaFieldSparseDtype(pa.DataFrameModel):
             SchemaFieldSparseDtype,
             pd.SparseDtype,
             {"dtype": np.int32, "fill_value": 0},
+        ),
+        (
+            SchemaFieldStringDtypeArrow,
+            pd.StringDtype,
+            {"storage": "pyarrow"},
         ),
     ],
 )
@@ -299,10 +308,10 @@ class SchemaDefaultSparseDtype(pa.DataFrameModel):
     "model, dtype, has_mandatory_args",
     [
         (SchemaDefaultCategoricalDtype, pd.CategoricalDtype, False),
-        # DatetimeTZDtype: tz is implictly required
+        # DatetimeTZDtype: tz is implicitly required
         (SchemaDefaultDatetimeTZDtype, pd.DatetimeTZDtype, True),
         (SchemaDefaultIntervalDtype, pd.IntervalDtype, False),
-        # PeriodDtype: freq is implicitely required -> str(pd.PeriodDtype())
+        # PeriodDtype: freq is implicitly required -> str(pd.PeriodDtype())
         # raises AttributeError
         (SchemaDefaultPeriodDtype, pd.PeriodDtype, True),
         (SchemaDefaultSparseDtype, pd.SparseDtype, False),

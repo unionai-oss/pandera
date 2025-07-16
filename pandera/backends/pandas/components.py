@@ -25,7 +25,11 @@ from pandera.errors import (
     SchemaErrorReason,
     SchemaErrors,
 )
-from pandera.validation_depth import validation_type
+from pandera.validation_depth import (
+    ValidationScope,
+    validate_scope,
+    validation_type,
+)
 
 
 class ColumnBackend(ArraySchemaBackend):
@@ -44,11 +48,11 @@ class ColumnBackend(ArraySchemaBackend):
         inplace: bool = False,
     ) -> pd.DataFrame:
         # pylint: disable=too-many-branches
-        """Validation backend implementation for pandas dataframe columns.."""
+        """Validation backend implementation for pandas dataframe columns."""
         if not inplace:
             check_obj = check_obj.copy()
 
-        error_handler = ErrorHandler(lazy=lazy)
+        error_handler = ErrorHandler(lazy)
 
         if getattr(schema, "drop_invalid_rows", False) and not lazy:
             raise SchemaDefinitionError(
@@ -157,7 +161,7 @@ class ColumnBackend(ArraySchemaBackend):
 
         :param schema: schema specification to use
         :param columns: columns to regex pattern match
-        :returns: matchin columns
+        :returns: matching columns
         """
         columns = check_obj.columns
         if isinstance(schema.name, tuple):
@@ -228,6 +232,7 @@ class ColumnBackend(ArraySchemaBackend):
             axis="columns",
         )
 
+    @validate_scope(scope=ValidationScope.DATA)
     def run_checks(self, check_obj, schema):
         check_results: List[CoreCheckResult] = []
         for check_index, check in enumerate(schema.checks):
@@ -252,7 +257,7 @@ class ColumnBackend(ArraySchemaBackend):
                 )
             except Exception as err:  # pylint: disable=broad-except
                 # catch other exceptions that may occur when executing the Check
-                err_msg = f'"{err.args[0]}"' if len(err.args) > 0 else ""
+                err_msg = f'"{err.args[0]}"' if err.args else ""
                 err_str = f"{err.__class__.__name__}({ err_msg})"
                 msg = (
                     f"Error while executing check function: {err_str}\n"

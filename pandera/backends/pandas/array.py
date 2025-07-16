@@ -54,10 +54,7 @@ class ArraySchemaBackend(PandasSchemaBackend):
             check_obj = self.set_default(check_obj, schema)
 
         # run custom parsers
-        check_obj = self.run_parsers(
-            schema,
-            check_obj,
-        )
+        check_obj = self.run_parsers(schema, check_obj)
 
         try:
             if is_field(check_obj) and schema.coerce:
@@ -116,8 +113,8 @@ class ArraySchemaBackend(PandasSchemaBackend):
             (self.run_checks, (check_obj_subsample, schema)),
         ]
 
-        for core_check, args in core_checks:
-            results = core_check(*args)
+        for check, args in core_checks:
+            results = check(*args)
             if isinstance(results, CoreCheckResult):
                 results = [results]
             results = cast(List[CoreCheckResult], results)
@@ -334,7 +331,7 @@ class ArraySchemaBackend(PandasSchemaBackend):
                 )
             except Exception as err:  # pylint: disable=broad-except
                 # catch other exceptions that may occur when executing the Check
-                err_msg = f'"{err.args[0]}"' if len(err.args) > 0 else ""
+                err_msg = f'"{err.args[0]}"' if err.args else ""
                 msg = f"{err.__class__.__name__}({err_msg})"
                 check_results.append(
                     CoreCheckResult(

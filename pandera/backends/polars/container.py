@@ -3,7 +3,7 @@
 import copy
 import traceback
 import warnings
-from typing import Any, Callable, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import polars as pl
 
@@ -87,6 +87,7 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
             except SchemaErrors as exc:
                 error_handler.collect_errors(exc.schema_errors)
 
+        # collect schema components
         components = self.collect_schema_components(
             check_lf, schema, column_info
         )
@@ -175,7 +176,7 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
                 raise
             except Exception as err:  # pylint: disable=broad-except
                 # catch other exceptions that may occur when executing the check
-                err_msg = f'"{err.args[0]}"' if len(err.args) > 0 else ""
+                err_msg = f'"{err.args[0]}"' if err.args else ""
                 err_str = f"{err.__class__.__name__}({ err_msg})"
                 msg = (
                     f"Error while executing check function: {err_str}\n"
@@ -279,23 +280,23 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
     ):
         """Collects all schema components to use for validation."""
 
-        columns = schema.columns
+        from pandera.api.polars.components import Column
+
+        columns: Dict[str, Column] = schema.columns
 
         if not schema.columns and schema.dtype is not None:
             # set schema components to dataframe dtype if columns are not
-            # specified by the dataframe-level dtype is specified.
-            from pandera.api.polars.components import Column
-
+            # specified but the dataframe-level dtype is specified.
             columns = {}
-            for col in get_lazyframe_column_names(check_obj):
-                columns[col] = Column(schema.dtype, name=str(col))
+            for col_name in get_lazyframe_column_names(check_obj):
+                columns[col_name] = Column(schema.dtype, name=str(col_name))
 
         schema_components = []
         for col_name, col in columns.items():
             if (
                 col.required  # type: ignore
                 or col_name in check_obj
-                or col_name in column_info.regex_match_patterns
+                or col.selector in column_info.regex_match_patterns
             ) and col_name not in column_info.absent_column_names:
                 col = copy.deepcopy(col)
                 if schema.dtype is not None:

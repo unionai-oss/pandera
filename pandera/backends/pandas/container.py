@@ -1,4 +1,4 @@
-"""Pandas Parsing, Validation, and Error Reporting Backends."""
+"""Pandas parsing, validation, and error-reporting backends."""
 
 import copy
 import itertools
@@ -68,6 +68,9 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
         if hasattr(check_obj, "pandera"):
             check_obj = check_obj.pandera.add_schema(schema)
 
+        # run custom parsers
+        check_obj = self.run_parsers(schema, check_obj)
+
         # Collect status of columns against schema
         column_info = self.collect_column_info(check_obj, schema)
 
@@ -77,9 +80,6 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
             (self.set_defaults, (schema,)),
             (self.coerce_dtype, (schema,)),
         ]
-
-        # run custom parsers
-        check_obj = self.run_parsers(schema, check_obj)
 
         for parser, args in core_parsers:
             try:
@@ -116,8 +116,18 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
 
         if error_handler.collected_errors:
             if getattr(schema, "drop_invalid_rows", False):
+                # if the failure cases are a string, it means the error is
+                # a schema-level error.
+                if any(
+                    isinstance(err.failure_cases, str)
+                    for err in error_handler.schema_errors
+                ):
+                    raise SchemaErrors(
+                        schema=schema,
+                        schema_errors=error_handler.schema_errors,
+                        data=check_obj,
+                    )
                 check_obj = self.drop_invalid_rows(check_obj, error_handler)
-                return check_obj
             else:
                 raise SchemaErrors(
                     schema=schema,
@@ -129,7 +139,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
 
     def run_checks_and_handle_errors(
         self,
-        error_handler,
+        error_handler: ErrorHandler,
         schema,
         check_obj,
         column_info,
@@ -139,7 +149,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
         head,
         tail,
         random_state,
-    ):
+    ) -> ErrorHandler:
         """Run checks on schema"""
         # pylint: disable=too-many-locals
 
@@ -158,7 +168,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
             (self.run_checks, (sample, schema)),
         ]
         for check, args in core_checks:
-            results = check(*args)  # type: ignore [operator]
+            results = check(*args)
             if isinstance(results, CoreCheckResult):
                 results = [results]
 
@@ -248,6 +258,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
         assert all(check_passed)
         return check_results
 
+    @validate_scope(scope=ValidationScope.DATA)
     def run_checks(
         self,
         check_obj: pd.DataFrame,
@@ -265,7 +276,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
                 raise
             except Exception as err:  # pylint: disable=broad-except
                 # catch other exceptions that may occur when executing the check
-                err_msg = f'"{err.args[0]}"' if len(err.args) > 0 else ""
+                err_msg = f'"{err.args[0]}"' if err.args else ""
                 err_str = f"{err.__class__.__name__}({ err_msg})"
                 msg = (
                     f"Error while executing check function: {err_str}\n"
@@ -539,7 +550,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
 
         if schema.strict == "filter":
             if type(check_obj).__module__.startswith("pyspark.pandas"):
-                # NOTE: remove this when we have a seperate backend for pyspark
+                # NOTE: remove this when we have a separate backend for pyspark
                 # pandas.
                 check_obj = check_obj.drop(labels=filter_out_columns, axis=1)
             else:
@@ -726,7 +737,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
         check_obj: pd.DataFrame,
         schema,
     ) -> CoreCheckResult:
-        """Check for column name uniquness."""
+        """Check for column name uniqueness."""
 
         passed = True
         failure_cases = None
@@ -759,7 +770,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
     def check_column_presence(
         self, check_obj: pd.DataFrame, schema, column_info: ColumnInfo
     ) -> List[CoreCheckResult]:
-        """Check for presence of specified columns in the data object."""
+        """Check that all columns in the schema are present in the dataframe."""
         results = []
         if column_info.absent_column_names and not schema.add_missing_columns:
             for colname in column_info.absent_column_names:

@@ -367,7 +367,7 @@ class ColumnBackend(PolarsSchemaBackend):
                 )
             except Exception as err:  # pylint: disable=broad-except
                 # catch other exceptions that may occur when executing the Check
-                err_msg = f'"{err.args[0]}"' if len(err.args) > 0 else ""
+                err_msg = f'"{err.args[0]}"' if err.args else ""
                 msg = f"{err.__class__.__name__}({err_msg})"
                 check_results.append(
                     CoreCheckResult(

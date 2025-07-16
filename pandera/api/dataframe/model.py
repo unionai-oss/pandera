@@ -4,6 +4,7 @@ import copy
 import inspect
 import os
 import re
+import threading
 import typing
 from typing import (
     Any,
@@ -54,7 +55,7 @@ TDataFrameModel = TypeVar("TDataFrameModel", bound="DataFrameModel")
 TSchema = TypeVar("TSchema", bound=BaseSchema)
 
 _CONFIG_KEY = "Config"
-MODEL_CACHE: Dict[Type["DataFrameModel"], Any] = {}
+MODEL_CACHE: Dict[Tuple[Type["DataFrameModel"], int], Any] = {}
 GENERIC_SCHEMA_CACHE: Dict[
     Tuple[Type["DataFrameModel"], Tuple[Type[Any], ...]],
     Type["DataFrameModel"],
@@ -204,8 +205,9 @@ class DataFrameModel(Generic[TDataFrame, TSchema], BaseModel):
     @classmethod
     def to_schema(cls) -> TSchema:
         """Create :class:`~pandera.DataFrameSchema` from the :class:`.DataFrameModel`."""
-        if cls in MODEL_CACHE:
-            return MODEL_CACHE[cls]
+        thread_id = threading.get_ident()
+        if (cls, thread_id) in MODEL_CACHE:
+            return MODEL_CACHE[(cls, thread_id)]
 
         cls.__fields__ = cls._collect_fields()
         for field, (annot_info, _) in cls.__fields__.items():
@@ -255,8 +257,8 @@ class DataFrameModel(Generic[TDataFrame, TSchema], BaseModel):
                 "drop_invalid_rows": cls.__config__.drop_invalid_rows,
             }
         cls.__schema__ = cls.build_schema_(**kwargs)
-        if cls not in MODEL_CACHE:
-            MODEL_CACHE[cls] = cls.__schema__  # type: ignore
+        if (cls, thread_id) not in MODEL_CACHE:
+            MODEL_CACHE[(cls, thread_id)] = cls.__schema__  # type: ignore
         return cls.__schema__  # type: ignore
 
     @classmethod

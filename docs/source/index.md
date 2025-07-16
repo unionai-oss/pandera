@@ -79,9 +79,9 @@ file_format: mystnb
 :target: https://anaconda.org/conda-forge/pandera
 ```
 
-```{image} https://img.shields.io/badge/discord-chat-purple?color=%235765F2&label=discord&logo=discord&style=for-the-badge
-:alt: Discord Community
-:target: https://discord.gg/vyanhWuaKB
+```{image} https://img.shields.io/badge/Slack-4A154B?logo=slack&logoColor=fff&style=for-the-badge
+:alt: Slack Community
+:target: https://flyte-org.slack.com/archives/C08FDTY2X3L
 ```
 
 Pandera is a [Union.ai](https://union.ai/blog-post/pandera-joins-union-ai) open
@@ -96,7 +96,7 @@ settings. With `pandera`, you can:
 
 1. Define a schema once and use it to validate {ref}`different dataframe types <supported-dataframe-libraries>`
    including [pandas](http://pandas.pydata.org), [polars](https://docs.pola.rs/), [dask](https://dask.org/),
-   [modin](https://modin.readthedocs.io/), and
+   [modin](https://modin.readthedocs.io/), [ibis](https://ibis-project.org/), and
    [pyspark](https://spark.apache.org/docs/latest/api/python/index.html).
 2. {ref}`Check<checks>` the types and properties of columns in a
    `pd.DataFrame` or values in a `pd.Series`.
@@ -120,7 +120,7 @@ settings. With `pandera`, you can:
 
 ## Install
 
-Pandera supports [multiple dataframe libraries](https://pandera.readthedocs.io/en/stable/supported_libraries.html), including [pandas](http://pandas.pydata.org), [polars](https://docs.pola.rs/), [pyspark](https://spark.apache.org/docs/latest/api/python/index.html), and more.
+Pandera supports [multiple dataframe libraries](https://pandera.readthedocs.io/en/stable/supported_libraries.html), including [pandas](http://pandas.pydata.org), [polars](https://docs.pola.rs/), [pyspark](https://spark.apache.org/docs/latest/api/python/index.html), and [ibis](https://ibis-project.org/).
 
 Most of the documentation will use the `pandas` DataFrames, install Pandera with the `pandas` extra:
 
@@ -162,6 +162,7 @@ pip install 'pandera[modin-ray]'   # validate modin dataframes with ray
 pip install 'pandera[modin-dask]'  # validate modin dataframes with dask
 pip install 'pandera[geopandas]'   # validate geopandas geodataframes
 pip install 'pandera[polars]'      # validate polars dataframes
+pip install 'pandera[ibis]'        # validate ibis tables
 ```
 :::
 
@@ -179,6 +180,7 @@ conda install -c conda-forge pandera-modin-ray   # validate modin dataframes wit
 conda install -c conda-forge pandera-modin-dask  # validate modin dataframes with dask
 conda install -c conda-forge pandera-geopandas   # validate geopandas geodataframes
 conda install -c conda-forge pandera-polars      # validate polars dataframes
+conda install -c conda-forge pandera-ibis        # validate ibis tables
 ```
 :::
 ::::
@@ -234,6 +236,29 @@ class Schema(pa.DataFrameModel):
 
 Schema.validate(df)
 ```
+
+:::{warning}
+Pandera `v0.24.0` introduces the `pandera.pandas` module, which is now the
+(highly) recommended way of defining `DataFrameSchema`s and `DataFrameModel`s
+for `pandas` data structures like `DataFrame`s. Defining a dataframe schema from
+the top-level `pandera` module will produce a `FutureWarning`:
+
+```python
+import pandera as pa
+
+schema = pa.DataFrameSchema({"col": pa.Column(str)})
+```
+
+Update your import to:
+
+```python
+import pandera.pandas as pa
+```
+
+And all of the rest of your pandera code should work. Using the top-level
+`pandera` module to access `DataFrameSchema` and the other pandera classes
+or functions will be deprecated in a future version
+:::
 
 ## Informative Errors
 
@@ -323,36 +348,36 @@ lists corresponding to a `SchemaError`
 
 ## Supported Features by DataFrame Backend
 
-Currently, pandera provides three validation backends: `pandas`, `pyspark`, and
-`polars`. The table below shows which of pandera's features are available for the
+Currently, pandera provides four validation backends: `pandas`, `pyspark`, `polars`,
+and `ibis`. The table below shows which of pandera's features are available for the
 {ref}`supported dataframe libraries <dataframe-libraries>`:
 
 :::{table}
 :widths: auto
 :align: left
 
-| feature | pandas | pyspark | polars |
-| :------ | ------ | ------- | ------ |
-| {ref}`DataFrameSchema validation <dataframeschemas>`                      | ✅ | ✅ | ✅ |
-| {ref}`DataFrameModel validation <dataframe-models>`                       | ✅ | ✅ | ✅ |
-| {ref}`SeriesSchema validation <seriesschemas>`                            | ✅ | 🚫 | ❌ |
-| {ref}`Index/MultiIndex validation <index-validation>`                     | ✅ | 🚫 | 🚫 |
-| {ref}`Built-in and custom Checks <checks>`                                | ✅ | ✅ | ✅ |
-| {ref}`Groupby checks <column-check-groups>`                               | ✅ | ❌ | ❌ |
-| {ref}`Custom check registration <extensions>`                             | ✅ | ✅ | ❌ |
-| {ref}`Hypothesis testing <hypothesis>`                                    | ✅ | ❌ | ❌ |
-| {ref}`Built-in <dtype-validation>` and {ref}`custom <dtypes>` `DataType`s | ✅ | ✅ | ✅ |
-| {ref}`Preprocessing with Parsers <parsers>`                               | ✅ | ❌ | ❌ |
-| {ref}`Data synthesis strategies <data-synthesis-strategies>`              | ✅ | ❌ | ❌ |
-| {ref}`Validation decorators <decorators>`                                 | ✅ | ✅ | ✅ |
-| {ref}`Lazy validation <lazy-validation>`                                  | ✅ | ✅ | ✅ |
-| {ref}`Dropping invalid rows <drop-invalid-rows>`                          | ✅ | ❌ | ✅ |
-| {ref}`Pandera configuration <configuration>`                              | ✅ | ✅ | ✅ |
-| {ref}`Schema Inference <schema-inference>`                                | ✅ | ❌ | ❌ |
-| {ref}`Schema persistence <schema-persistence>`                            | ✅ | ❌ | ❌ |
-| {ref}`Data Format Conversion <data-format-conversion>`                    | ✅ | ❌ | ❌ |
-| {ref}`Pydantic type support <pydantic-integration>`                       | ✅ | ❌ | ❌ |
-| {ref}`FastAPI support <fastapi-integration>`                              | ✅ | ❌ | ❌ |
+| feature | pandas | pyspark | polars | ibis |
+| :------ | ------ | ------- | ------ | ---- |
+| {ref}`DataFrameSchema validation <dataframeschemas>`                      | ✅ | ✅ | ✅ | ✅ |
+| {ref}`DataFrameModel validation <dataframe-models>`                       | ✅ | ✅ | ✅ | ✅ |
+| {ref}`SeriesSchema validation <seriesschemas>`                            | ✅ | 🚫 | ❌ | ❌ |
+| {ref}`Index/MultiIndex validation <index-validation>`                     | ✅ | 🚫 | 🚫 | 🚫 |
+| {ref}`Built-in and custom Checks <checks>`                                | ✅ | ✅ | ✅ | ✅ |
+| {ref}`Groupby checks <column-check-groups>`                               | ✅ | ❌ | ❌ | ❌ |
+| {ref}`Custom check registration <extensions>`                             | ✅ | ✅ | ❌ | ❌ |
+| {ref}`Hypothesis testing <hypothesis>`                                    | ✅ | ❌ | ❌ | ❌ |
+| {ref}`Built-in <dtype-validation>` and {ref}`custom <dtypes>` `DataType`s | ✅ | ✅ | ✅ | ✅ |
+| {ref}`Preprocessing with Parsers <parsers>`                               | ✅ | ❌ | ❌ | ❌ |
+| {ref}`Data synthesis strategies <data-synthesis-strategies>`              | ✅ | ❌ | ❌ | ❌ |
+| {ref}`Validation decorators <decorators>`                                 | ✅ | ✅ | ✅ | ✅ |
+| {ref}`Lazy validation <lazy-validation>`                                  | ✅ | ✅ | ✅ | ✅ |
+| {ref}`Dropping invalid rows <drop-invalid-rows>`                          | ✅ | ❌ | ✅ | ❌ |
+| {ref}`Pandera configuration <configuration>`                              | ✅ | ✅ | ✅ | ✅ |
+| {ref}`Schema Inference <schema-inference>`                                | ✅ | ❌ | ❌ | ❌ |
+| {ref}`Schema persistence <schema-persistence>`                            | ✅ | ❌ | ❌ | ❌ |
+| {ref}`Data Format Conversion <data-format-conversion>`                    | ✅ | ❌ | ❌ | ❌ |
+| {ref}`Pydantic type support <pydantic-integration>`                       | ✅ | ❌ | ❌ | ❌ |
+| {ref}`FastAPI support <fastapi-integration>`                              | ✅ | ❌ | ❌ | ❌ |
 
 :::
 
@@ -391,7 +416,7 @@ Submit issues, feature requests or bugfixes on
 There are many ways of getting help with your questions. You can ask a question
 on [Github Discussions](https://github.com/pandera-dev/pandera/discussions/categories/q-a)
 page or reach out to the maintainers and pandera community on
-[Discord](https://discord.gg/vyanhWuaKB)
+[Slack](https://flyte-org.slack.com/archives/C08FDTY2X3L)
 
 ```{toctree}
 :caption: Introduction
