@@ -27,6 +27,7 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Topic :: Scientific/Engineering",
 ]
 dependencies = [
@@ -61,7 +62,7 @@ io = [
 mypy = ["pandas-stubs"]
 fastapi = ["fastapi"]
 geopandas = [
-    "geopandas",
+    "geopandas < 1.1.0",
     "shapely",
 ]
 pyspark = ["pyspark[connect] >= 3.2.0, < 4.0.0"]
@@ -84,7 +85,7 @@ dask = [
     "dask[dataframe]",
     "distributed",
 ]
-
+ibis = ["ibis-framework >= 9.0.0"]
 polars = ["polars >= 0.20.0"]
 all = [
     "hypothesis >= 6.92.7",
@@ -99,20 +100,23 @@ all = [
     "distributed",
     "pandas-stubs",
     "fastapi",
-    "geopandas",
+    "geopandas < 1.1.0",
     "shapely",
+    "ibis-framework >= 9.0.0",
     "polars >= 0.20.0",
 ]
 
 [dependency-groups]
 dev = [
     "hypothesis >= 6.92.7",
+    "ipdb",
     "isort >= 5.7.0",
     "joblib",
     "mypy == 1.10.0",
     "pip",
+    "polars >= 0.20.0",
     "pre_commit",
-    "pyarrow",
+    "pyarrow >= 13",
     "pylint < 3.3",
     "pytz",
     "xdoctest",
@@ -126,6 +130,8 @@ testing = [
     "pytest-cov",
     "pytest-xdist",
     "pytest-asyncio",
+    "sphinx",
+    "ibis-framework[duckdb,sqlite] >= 9.0.0",
 ]
 docs = [
     "setuptools",

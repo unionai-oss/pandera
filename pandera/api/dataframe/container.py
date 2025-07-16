@@ -166,7 +166,7 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
             metadata=metadata,
         )
 
-        self.columns: Dict[Any, Any] = (  # type: ignore [name-defined]
+        self.columns: Dict[Any, Any] = (  # type: ignore[name-defined]
             {} if columns is None else columns
         )
 
@@ -199,7 +199,7 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
 
     @dtype.setter
     def dtype(self, value: Any) -> None:
-        """Set the pandas dtype property."""
+        """Set the dtype property."""
         raise NotImplementedError
 
     @property
@@ -823,9 +823,7 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
 
         tmp_index_cols = schema.index.names
         schema = schema.reset_index()
-
         schema = schema.update_column(index_name, **kwargs)
-
         schema = schema.set_index(tmp_index_cols)
 
         return cast(Self, schema)
@@ -857,9 +855,7 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
 
         tmp_index_cols = schema.index.names
         schema = schema.reset_index()
-
         schema = schema.update_columns(update_dict)
-
         schema = schema.set_index(tmp_index_cols)
 
         return cast(Self, schema)
@@ -1098,6 +1094,9 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
                     nullable=new_schema.columns[col].nullable,
                     unique=new_schema.columns[col].unique,
                     coerce=new_schema.columns[col].coerce,
+                    title=new_schema.columns[col].title,
+                    description=new_schema.columns[col].description,
+                    metadata=new_schema.columns[col].metadata,
                 )
             )
 

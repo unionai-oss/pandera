@@ -2,7 +2,7 @@
 
 from collections import defaultdict
 from enum import Enum
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Optional, Union
 
 from pandera.api.checks import Check
 from pandera.config import ValidationDepth, get_config_context
@@ -40,7 +40,7 @@ class ErrorHandler:
     def collect_error(
         self,
         error_type: ErrorCategory,
-        reason_code: SchemaErrorReason,
+        reason_code: Optional[SchemaErrorReason],
         schema_error: SchemaError,
         original_exc: Union[BaseException, None] = None,
     ):

@@ -21,7 +21,7 @@ nox.options.sessions = (
     "docs",
 )
 
-PYTHON_VERSIONS = ["3.9", "3.10", "3.11", "3.12"]
+PYTHON_VERSIONS = ["3.9", "3.10", "3.11", "3.12", "3.13"]
 PANDAS_VERSIONS = ["2.1.1", "2.2.3"]
 PYDANTIC_VERSIONS = ["1.10.11", "2.10.6"]
 PACKAGE = "pandera"
@@ -152,6 +152,10 @@ def _testing_requirements(
         if req.startswith("numpy") and _numpy is not None:
             print("adding numpy constraint <2")
             req = f"{req}, {_numpy}"
+        if req == "pyarrow" or req.startswith("pyarrow "):
+            req = "pyarrow >= 13"
+        if req == "ibis-framework" or req.startswith("ibis-framework "):
+            req = "ibis-framework[duckdb,polars]"
         if req == "polars" or req.startswith("polars "):
             # TODO(deepyaman): Support latest Polars.
             if sys.platform == "darwin":
@@ -170,7 +174,7 @@ def _testing_requirements(
 
     return [
         *_updated_requirements,
-        *nox.project.dependency_groups(PYPROJECT, *["dev", "testing", "docs"]),
+        *nox.project.dependency_groups(PYPROJECT, *["dev", "testing"]),
     ]
 
 

@@ -1,4 +1,4 @@
-"""Class-based api for pandas models."""
+"""Class-based API for pandas models."""
 
 import copy
 import sys
@@ -83,6 +83,7 @@ class DataFrameModel(_DataFrameModel[pd.DataFrame, DataFrameSchema]):
 
         columns: Dict[str, Column] = {}
         indices: List[Index] = []
+
         for field_name, (annotation, field) in fields.items():
             field_checks = checks.get(field_name, [])
             field_parsers = parsers.get(field_name, [])
