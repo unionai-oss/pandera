@@ -36,8 +36,11 @@ try:
 except ImportError as err:
     import warnings
 
-    if "pandas" in str(err) or "numpy" in str(err):
+    err_msg = str(err)
+    if err_msg in {"No module named 'pandas'", "No module named 'numpy'"}:
         warnings.warn(_warning_msg, UserWarning)
+    elif err_msg.startswith("pandera requires pandas >= 2.1.1"):
+        warnings.warn(err_msg, UserWarning)
     else:
         raise  # Re-raise any other `ImportError` exceptions
 
