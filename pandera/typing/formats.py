@@ -19,7 +19,7 @@ class Formats(Enum):
     :py:class:`~pandera.api.pandas.model.DataFrameModel`.
     """
 
-    # pylint: disable=invalid-name
+    
 
     #: comma-separated values file
     csv = "csv"

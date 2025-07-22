@@ -1,6 +1,5 @@
 """Class-based API for PySpark models."""
 
-# pylint:disable=abstract-method
 import copy
 import inspect
 import os
@@ -156,7 +155,6 @@ class DataFrameModel(BaseModel):
         else:
             cls.Config = type("Config", (BaseConfig,), {"name": cls.__name__})
         super().__init_subclass__(**kwargs)
-        # pylint:disable=no-member
         subclass_annotations = cls.__dict__.get("__annotations__", {})
         for field_name in subclass_annotations.keys():
             if _is_field(field_name) and field_name not in cls.__dict__:
@@ -176,7 +174,7 @@ class DataFrameModel(BaseModel):
             raise TypeError(
                 f"{cls.__name__} must inherit from typing.Generic before being parameterized"
             )
-        # pylint: disable=no-member
+        
         __parameters__: Tuple[TypeVar, ...] = cls.__parameters__  # type: ignore
 
         if not isinstance(params, tuple):
@@ -307,7 +305,7 @@ class DataFrameModel(BaseModel):
         )
 
     @classmethod
-    def _build_columns_index(  # pylint:disable=too-many-locals
+    def _build_columns_index(
         cls,
         fields: Dict[str, Tuple[AnnotationInfo, FieldInfo]],
         checks: Dict[str, List[Check]],
@@ -372,7 +370,7 @@ class DataFrameModel(BaseModel):
     def _collect_fields(cls) -> Dict[str, Tuple[AnnotationInfo, FieldInfo]]:
         """Centralize publicly named fields and their corresponding annotations."""
 
-        annotations = get_type_hints(  # pylint:disable=unexpected-keyword-arg
+        annotations = get_type_hints(
             cls, include_extras=True  # type: ignore [call-arg]
         )
         attrs = cls._get_model_attrs()

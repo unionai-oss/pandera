@@ -1,6 +1,5 @@
 """Common typing functionality."""
 
-# pylint:disable=abstract-method,too-many-ancestors,invalid-name
 
 import copy
 import inspect
@@ -72,7 +71,6 @@ GenericDtype = TypeVar(  # type: ignore
 DataFrameModel = TypeVar("DataFrameModel", bound="DataFrameModel")  # type: ignore
 
 
-# pylint:disable=invalid-name
 if TYPE_CHECKING:
     T = TypeVar("T")  # pragma: no cover
 else:
@@ -109,7 +107,7 @@ def __patched_generic_alias_call(self, *args, **kwargs):
         raise
     # In python 3.11.9, all exceptions when setting attributes when defining
     # _GenericAlias subclasses are caught and ignored.
-    except Exception:  # pylint: disable=broad-except
+    except Exception:
         pass
     return result
 
@@ -118,7 +116,6 @@ _GenericAlias.__call__ = __patched_generic_alias_call
 
 
 class DataFrameBase(Generic[T]):
-    # pylint: disable=too-few-public-methods
     """
     Pandera Dataframe base class for validating dataframes on
     initialization.
@@ -127,7 +124,6 @@ class DataFrameBase(Generic[T]):
     default_dtype: Optional[Type] = None
 
     def __setattr__(self, name: str, value: Any) -> None:
-        # pylint: disable=no-member
         object.__setattr__(self, name, value)
         if name == "__orig_class__":
             orig_class = value
@@ -156,7 +152,6 @@ class DataFrameBase(Generic[T]):
                 pandera_accessor.add_schema(schema)
 
 
-# pylint:disable=too-few-public-methods
 class SeriesBase(Generic[GenericDtype]):
     """Pandera Series base class to use for all pandas-like APIs."""
 
@@ -168,7 +163,6 @@ class SeriesBase(Generic[GenericDtype]):
         raise AttributeError("Series should resolve to Field-s")
 
 
-# pylint:disable=too-few-public-methods
 class IndexBase(Generic[GenericDtype]):
     """Representation of pandas.Index, only used for type annotation.
 
@@ -183,7 +177,7 @@ class IndexBase(Generic[GenericDtype]):
         raise AttributeError("Indexes should resolve to pa.Index-s")
 
 
-class AnnotationInfo:  # pylint:disable=too-few-public-methods
+class AnnotationInfo:
     """Captures extra information about an annotation.
 
     Attributes:

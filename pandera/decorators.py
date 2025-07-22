@@ -160,7 +160,7 @@ def check_input(
     lazy: bool = False,
     inplace: bool = False,
 ) -> Callable[[F], F]:
-    # pylint: disable=duplicate-code
+    
     """Validate function argument when function is called.
 
     This is a decorator function that validates the schema of a dataframe
@@ -224,7 +224,7 @@ def check_input(
         @functools.wraps(wrapped)
         def _wrapper(*args, **kwargs):
             """Check pandas DataFrame or Series before calling the function."""
-            # pylint: disable=too-many-branches
+            
             args = list(args)
             validate_args = (head, tail, sample, random_state, lazy, inplace)
 
@@ -302,7 +302,7 @@ def check_output(
     lazy: bool = False,
     inplace: bool = False,
 ) -> Callable[[F], F]:
-    # pylint: disable=duplicate-code
+    
     """Validate function output.
 
     Similar to input validator, but validates the output of the decorated
@@ -366,7 +366,7 @@ def check_output(
     # make sure that callable obj_getter doesn't work when the schema has
     # any component that requires coercion, since there's no way to re-assign
     # the output to the coerced data.
-    # pylint: disable=too-many-boolean-expressions
+    
     if callable(obj_getter) and (
         schema.coerce
         or (schema.index is not None and schema.index.coerce)  # type: ignore[union-attr]
@@ -508,12 +508,12 @@ def check_io(
 
             wrapped_fn = wrapped
             for input_getter, input_schema in inputs.items():
-                # pylint: disable=no-value-for-parameter
+                
                 wrapped_fn = check_input(
                     input_schema, input_getter, *check_args  # type: ignore
                 )(wrapped_fn)
 
-            # pylint: disable=no-value-for-parameter
+            
             for out_getter, out_schema in out_schemas:  # type: ignore
                 wrapped_fn = check_output(out_schema, out_getter, *check_args)(
                     wrapped_fn
@@ -565,7 +565,7 @@ def check_types(
     lazy: bool = False,
     inplace: bool = False,
 ) -> Callable:
-    # pylint: disable=too-many-statements
+    
     """Validate function inputs and output based on type annotations.
 
     See the :ref:`User Guide <dataframe-models>` for more.
@@ -586,7 +586,7 @@ def check_types(
     :param inplace: if True, applies coercion to the object of validation,
             otherwise creates a copy of the data.
     """
-    # pylint: disable=too-many-locals
+    
     if wrapped is None:
         return functools.partial(
             check_types,
@@ -620,7 +620,7 @@ def check_types(
         ).items():
             annotation_info = AnnotationInfo(annotation)
             if not annotation_info.is_generic_df:
-                # pylint: disable=comparison-with-callable
+                
                 if annotation_info.origin == Union:
                     annotation_model_pairs = []
                     for annot in annotation_info.args:  # type: ignore[union-attr]
@@ -715,7 +715,7 @@ def check_types(
                                 errors.SchemaErrorReason.INVALID_TYPE,
                             ),
                         )
-                        continue  # pylint: disable=unreachable
+                        continue  
 
                 if data_container_type and config and config.to_format:
                     arg_value = data_container_type.to_format(

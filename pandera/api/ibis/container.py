@@ -13,7 +13,7 @@ from pandera.engines import ibis_engine
 class DataFrameSchema(_DataFrameSchema[ibis.Table]):
     """A lightweight Ibis table validator."""
 
-    # pylint: disable=unused-argument
+    
     @staticmethod
     def register_default_backends(check_obj_cls: Type):
         register_ibis_backends()

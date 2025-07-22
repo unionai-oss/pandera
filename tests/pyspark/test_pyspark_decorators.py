@@ -1,6 +1,6 @@
 """This module is to test the behaviour change based on defined config in pandera"""
 
-# pylint:disable=import-outside-toplevel,abstract-method
+
 
 import logging
 from contextlib import nullcontext as does_not_raise
@@ -78,7 +78,7 @@ class TestPanderaDecorators:
         scope="function",
     )
 
-    # pylint:disable=too-many-locals
+    
     def test_cache_dataframe_settings(
         self,
         spark_session,

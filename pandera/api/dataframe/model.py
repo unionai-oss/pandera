@@ -146,7 +146,6 @@ class DataFrameModel(Generic[TDataFrame, TSchema], BaseModel):
             cls.Config = type("Config", (cls.Config,), {"name": cls.__name__})
 
         super().__init_subclass__(**kwargs)
-        # pylint:disable=no-member
         subclass_annotations = cls.__dict__.get("__annotations__", {})
         for field_name in subclass_annotations.keys():
             if _is_field(field_name) and field_name not in cls.__dict__:
@@ -166,7 +165,7 @@ class DataFrameModel(Generic[TDataFrame, TSchema], BaseModel):
             raise TypeError(
                 f"{cls.__name__} must inherit from typing.Generic before being parameterized"
             )
-        # pylint: disable=no-member
+        
         __parameters__: Tuple[TypeVar, ...] = cls.__parameters__  # type: ignore
 
         if not isinstance(item, tuple):
@@ -331,9 +330,9 @@ class DataFrameModel(Generic[TDataFrame, TSchema], BaseModel):
     @classmethod
     def _collect_fields(cls) -> Dict[str, Tuple[AnnotationInfo, FieldInfo]]:
         """Centralize publicly named fields and their corresponding annotations."""
-        # pylint: disable=unexpected-keyword-arg
+        
         annotations = get_type_hints(cls, include_extras=True)
-        # pylint: enable=unexpected-keyword-arg
+        
         attrs = cls._get_model_attrs()
 
         missing = []

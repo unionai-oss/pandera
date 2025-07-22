@@ -111,7 +111,7 @@ NULLABLE_DTYPES = [
     "data_type",
     [
         pa.Category,
-        pandas_engine.Interval(  # type: ignore # pylint:disable=unexpected-keyword-arg,no-value-for-parameter
+        pandas_engine.Interval(  # type: ignore 
             subtype=np.int64
         ),
     ],

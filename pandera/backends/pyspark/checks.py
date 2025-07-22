@@ -89,7 +89,7 @@ class PySparkCheckBackend(BaseCheckBackend):
     ) -> CheckResult:
         check_obj = self.preprocess(check_obj, key)
 
-        check_output = self.apply(  # pylint:disable=too-many-function-args
+        check_output = self.apply(
             check_obj, key, self.check._check_kwargs
         )
 

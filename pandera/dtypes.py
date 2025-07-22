@@ -1,6 +1,5 @@
 """Pandera data types."""
 
-# pylint:disable=too-many-ancestors
 from __future__ import annotations
 
 import dataclasses
@@ -64,7 +63,7 @@ class DataType(ABC):
     def check(
         self,
         pandera_dtype: DataType,
-        data_container: Optional[Any] = None,  # pylint:disable=unused-argument
+        data_container: Optional[Any] = None,
     ) -> Union[bool, Iterable[bool]]:
         """Check that pandera :class:`~pandera.dtypes.DataType` are equivalent.
 
@@ -93,14 +92,14 @@ _DataTypeClass = Type[_Dtype]
 
 @overload
 def immutable(
-    pandera_dtype_cls: _DataTypeClass,  # pylint: disable=W0613
-    **dataclass_kwargs: Any,  # pylint: disable=W0613
+    pandera_dtype_cls: _DataTypeClass,  
+    **dataclass_kwargs: Any,  
 ) -> _DataTypeClass: ...
 
 
 @overload
 def immutable(
-    **dataclass_kwargs: Any,  # pylint: disable=W0613
+    **dataclass_kwargs: Any,  
 ) -> Callable[[_DataTypeClass], _DataTypeClass]: ...
 
 
@@ -125,7 +124,7 @@ def immutable(
         immutable_dtype = dataclasses.dataclass(**kwargs)(pandera_dtype_cls)
         if not kwargs["init"]:
 
-            def __init__(self):  # pylint:disable=unused-argument
+            def __init__(self):
                 pass
 
             # delattr(immutable_dtype, "__init__") doesn't work because
@@ -428,7 +427,7 @@ class Decimal(_Number):
     scale: int = 0  # default 0 is aligned with pyarrow and various databases.
     """The number of digits after the decimal point."""
 
-    # pylint: disable=line-too-long
+    
     rounding: Optional[str] = dataclasses.field(
         default_factory=lambda: decimal.getcontext().rounding
     )

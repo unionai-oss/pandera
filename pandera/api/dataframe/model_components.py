@@ -178,7 +178,6 @@ def Field(
     :param kwargs: Specify custom checks that have been registered with the
         :class:`~pandera.extensions.register_check_method` decorator.
     """
-    # pylint:disable=C0103,W0613,R0914
     check_kwargs = {
         "ignore_na": ignore_na,
         "raise_warning": raise_warning,
@@ -244,11 +243,11 @@ def _check_dispatch():
     }
 
 
-class CheckInfo(BaseCheckInfo):  # pylint:disable=too-few-public-methods
+class CheckInfo(BaseCheckInfo):
     """Captures extra information about a Check."""
 
 
-class FieldCheckInfo(CheckInfo):  # pylint:disable=too-few-public-methods
+class FieldCheckInfo(CheckInfo):
     """Captures extra information about a Check assigned to a field."""
 
     def __init__(
@@ -263,11 +262,11 @@ class FieldCheckInfo(CheckInfo):  # pylint:disable=too-few-public-methods
         self.regex = regex
 
 
-class ParserInfo(BaseParserInfo):  # pylint:disable=too-few-public-methods
+class ParserInfo(BaseParserInfo):
     """Captures extra information about a Parser."""
 
 
-class FieldParserInfo(ParserInfo):  # pylint:disable=too-few-public-methods
+class FieldParserInfo(ParserInfo):
     """Captures extra information about a Parser assigned to a field."""
 
     def __init__(

@@ -23,7 +23,7 @@ class PandasParserBackend(BaseParserBackend):
 
     def preprocess(
         self, parse_obj, key
-    ) -> pd.Series:  # pylint:disable=unused-argument
+    ) -> pd.Series:
         """Preprocesses a parser object before applying the parse function."""
         if is_table(parse_obj) and key is not None:
             return self.preprocess_table_with_key(parse_obj, key)

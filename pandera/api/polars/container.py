@@ -34,7 +34,7 @@ class DataFrameSchema(_DataFrameSchema[PolarsCheckObjects]):
     @staticmethod
     def register_default_backends(
         check_obj_cls: Type,
-    ):  # pylint: disable=unused-argument
+    ):  
         register_polars_backends()
 
     def validate(

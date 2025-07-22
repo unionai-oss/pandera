@@ -23,7 +23,6 @@ def numpy_pandas_coercible(series: pd.Series, type_: Any) -> pd.Series:
     NOTE: this does not account for pyspark.pandas .astype behavior, which
     defaults to converting uncastable values to NA values.
     """
-    # pylint: disable=import-outside-toplevel,cyclic-import
     from pandera.engines import pandas_engine
 
     data_type = pandas_engine.Engine.dtype(type_)
@@ -32,7 +31,7 @@ def numpy_pandas_coercible(series: pd.Series, type_: Any) -> pd.Series:
         try:
             data_type.coerce_value(x)
             return True
-        except Exception:  # pylint:disable=broad-except
+        except Exception:
             return False
 
     return series.map(_coercible)
@@ -45,7 +44,6 @@ def numpy_pandas_coerce_failure_cases(
     Get the failure cases resulting from trying to coerce a pandas/numpy object
     into particular data type.
     """
-    # pylint: disable=import-outside-toplevel,cyclic-import
     from pandera.api.checks import Check
     from pandera.api.pandas.types import is_field, is_index, is_table
     from pandera.backends.pandas import error_formatters

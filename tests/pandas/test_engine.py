@@ -1,7 +1,7 @@
 """Tests Engine subclassing and registering DataTypes."""
 
-# pylint:disable=redefined-outer-name,unused-argument
-# pylint:disable=missing-function-docstring,missing-class-docstring
+
+
 import re
 from typing import Any, Generator, List, Union
 
@@ -32,7 +32,7 @@ def equivalents() -> List[Any]:
 
 @pytest.fixture
 def engine() -> Generator[Engine, None, None]:
-    class FakeEngine(  # pylint:disable=too-few-public-methods
+    class FakeEngine(  
         metaclass=Engine, base_pandera_dtypes=BaseDataType  # type: ignore[call-arg]
     ):
         pass
@@ -100,7 +100,7 @@ def test_register_notclassmethod_from_parametrized_dtype(engine: Engine):
         class _InvalidDtype(BaseDataType):
             def from_parametrized_dtype(
                 cls, x: int
-            ):  # pylint:disable=no-self-argument
+            ):  
                 return x
 
 
@@ -155,7 +155,7 @@ def test_register_dtype_overwrite(engine: Engine):
 def test_register_base_pandera_dtypes():
     """Test that base datatype cannot be registered."""
 
-    class FakeEngine(  # pylint:disable=too-few-public-methods
+    class FakeEngine(  
         metaclass=Engine, base_pandera_dtypes=(BaseDataType, BaseDataType)
     ):
         pass

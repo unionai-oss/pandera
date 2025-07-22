@@ -13,7 +13,7 @@ from pandera.errors import BackendNotFoundError
 from pandera.import_utils import strategy_import_error
 
 
-# pylint: disable=too-many-public-methods,too-many-locals
+
 class DataFrameSchema(_DataFrameSchema[pd.DataFrame]):
     """A lightweight pandas DataFrame validator."""
 
@@ -95,7 +95,7 @@ class DataFrameSchema(_DataFrameSchema[pd.DataFrame]):
 
         if hasattr(check_obj, "dask"):
             # special case for dask dataframes
-            # pylint: disable=unused-import
+            
             from pandera.accessors import dask_accessor
 
             if inplace:
@@ -198,7 +198,7 @@ class DataFrameSchema(_DataFrameSchema[pd.DataFrame]):
         :param size: number of elements in the generated DataFrame.
         :returns: pandas DataFrame object.
         """
-        # pylint: disable=import-outside-toplevel,cyclic-import,import-error
+        
         import hypothesis
 
         with warnings.catch_warnings():

@@ -22,7 +22,6 @@ def ibis_version():
     return version.parse(ibis.__version__)
 
 
-# pylint:disable=invalid-name
 if TYPE_CHECKING:
     T = TypeVar("T")  # pragma: no cover
 else:
@@ -48,7 +47,6 @@ if IBIS_INSTALLED:
             :param obj: object representing a serialized dataframe.
             :param config: dataframe model configuration object.
             """
-            # pylint: disable=too-many-branches,too-many-return-statements
             if config.from_format is None:
                 if not isinstance(obj, ibis.Table):
                     try:
@@ -164,7 +162,6 @@ if IBIS_INSTALLED:
             :param data: convert this data to the specified format
             :param config: config object from the DataFrameModel
             """
-            # pylint: disable=too-many-return-statements
             if config.to_format is None:
                 return data
 

@@ -53,7 +53,7 @@ class DataType(dtypes.DataType):
     def check(
         self,
         pandera_dtype: dtypes.DataType,
-        data_container: Optional[  # pylint:disable=unused-argument
+        data_container: Optional[
             ibis.Table
         ] = None,
     ) -> Union[bool, Iterable[bool]]:
@@ -340,7 +340,7 @@ class DateTime(DataType, dtypes.DateTime):
 
     type: Type[dt.Timestamp]
 
-    def __init__(  # pylint: disable=super-init-not-called
+    def __init__(  
         self,
         timezone: Optional[str] = None,
         scale: Optional[Literal[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]] = None,
@@ -389,7 +389,7 @@ class Timedelta(DataType, dtypes.DateTime):
 
     def __init__(
         self, unit: IntervalUnit = "us"
-    ):  # pylint: disable=super-init-not-called
+    ):  
         object.__setattr__(self, "type", dt.Interval(unit=unit))
 
     @classmethod

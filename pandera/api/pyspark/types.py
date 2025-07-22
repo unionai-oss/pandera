@@ -12,7 +12,7 @@ import pyspark
 from pandera.api.checks import Check
 from pandera.dtypes import DataType
 
-# pylint: disable=reimported
+
 # Handles optional Spark Connect imports for pyspark>=3.4 (if available)
 if version.parse(pyspark.__version__) >= version.parse("3.4"):
     from pyspark.sql.connect.dataframe import DataFrame as psc_DataFrame
@@ -80,7 +80,7 @@ class PysparkDataframeColumnObject(NamedTuple):
 @lru_cache(maxsize=None)
 def supported_types() -> SupportedTypes:
     """Get the types supported by pandera schemas."""
-    # pylint: disable=import-outside-toplevel
+    
     table_types = [DataFrame]
 
     try:

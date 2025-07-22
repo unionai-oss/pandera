@@ -82,7 +82,7 @@ def reshape_failure_cases(
         representing how many failures of that case occurred.
 
     """
-    # pylint: disable=import-outside-toplevel,cyclic-import
+    
     from pandera.api.pandas.types import is_field, is_multiindex, is_table
 
     if not (is_table(failure_cases) or is_field(failure_cases)):
@@ -142,7 +142,7 @@ def reshape_failure_cases(
 
 
 def _multiindex_to_frame(df):
-    # pylint: disable=import-outside-toplevel,cyclic-import
+    
     from pandera.engines.utils import pandas_version
 
     if pandas_version().release >= (1, 5, 0):
@@ -237,7 +237,7 @@ def consolidate_failure_cases(schema_errors: List[SchemaError]):
         type(x).__module__.startswith("pyspark.pandas")
         for x in check_failure_cases
     ):
-        # pylint: disable=import-outside-toplevel
+        
         import pyspark.pandas as ps
 
         concat_fn = ps.concat  # type: ignore
@@ -254,7 +254,7 @@ def consolidate_failure_cases(schema_errors: List[SchemaError]):
         type(x).__module__.startswith("modin.pandas")
         for x in check_failure_cases
     ):
-        # pylint: disable=import-outside-toplevel
+        
         import modin.pandas as mpd
 
         concat_fn = mpd.concat  # type: ignore

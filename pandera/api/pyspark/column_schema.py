@@ -84,7 +84,7 @@ class ColumnSchema(BaseSchema):
         """Set the pyspark dtype"""
         self._dtype = (
             pyspark_engine.Engine.dtype(value) if value else None
-        )  # pylint:disable=no-value-for-parameter
+        )
 
     def validate(
         self,
@@ -97,7 +97,7 @@ class ColumnSchema(BaseSchema):
         inplace: bool = False,
         error_handler: ErrorHandler = None,
     ):
-        # pylint: disable=too-many-locals,too-many-branches,too-many-statements
+        
         """Validate a specific column in a dataframe.
 
         :check_obj: pyspark DataFrame to validate.

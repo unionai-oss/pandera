@@ -121,7 +121,7 @@ class BaseFieldInfo:
         raise AttributeError(f"Can't set the {self.original_name} field.")
 
 
-class BaseCheckInfo:  # pylint:disable=too-few-public-methods
+class BaseCheckInfo:
     """Captures extra information about a Check."""
 
     def __init__(self, check_fn: AnyCallable, **check_kwargs: Any):
@@ -142,7 +142,7 @@ class BaseCheckInfo:  # pylint:disable=too-few-public-methods
         return Check(_adapter, name=name, **self.check_kwargs)
 
 
-class BaseParserInfo:  # pylint:disable=too-few-public-methods
+class BaseParserInfo:
     """Captures extra information about a Parse."""
 
     def __init__(self, parser_fn: AnyCallable, **parser_kwargs: Any) -> None:
