@@ -257,7 +257,7 @@ import pandera.pandas as pa
 
 And all of the rest of your pandera code should work. Using the top-level
 `pandera` module to access `DataFrameSchema` and the other pandera classes
-or functions will be deprecated in a future version
+or functions will be deprecated in version `0.29.0`
 :::
 
 ## Informative Errors
