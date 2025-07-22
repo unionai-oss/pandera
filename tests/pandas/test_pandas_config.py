@@ -1,7 +1,5 @@
 """This module is to test the behaviour change based on defined config in pandera"""
 
-
-
 from dataclasses import asdict
 
 import pandas as pd

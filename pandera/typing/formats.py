@@ -19,8 +19,6 @@ class Formats(Enum):
     :py:class:`~pandera.api.pandas.model.DataFrameModel`.
     """
 
-    
-
     #: comma-separated values file
     csv = "csv"
 

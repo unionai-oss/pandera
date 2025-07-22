@@ -127,7 +127,6 @@ class ComponentSchema(Generic[TDataObject], BaseSchema):
         lazy: bool = False,
         inplace: bool = False,
     ):
-        
         """Validate a series or specific column in dataframe.
 
         :check_obj: data object to validate.

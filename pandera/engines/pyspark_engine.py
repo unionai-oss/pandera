@@ -1,6 +1,5 @@
 """PySpark engine and data types."""
 
-
 # docstrings are inherited
 
 # pylint doesn't know about __init__ generated with dataclass
@@ -281,7 +280,7 @@ class Decimal(DataType, dtypes.Decimal):  # type: ignore
     def check(
         self,
         pandera_dtype: dtypes.DataType,
-        data_container: Any = None,  
+        data_container: Any = None,
     ) -> Union[bool, Iterable[bool]]:
         try:
             pandera_dtype = Engine.dtype(pandera_dtype)

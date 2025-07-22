@@ -80,7 +80,7 @@ class PysparkDataframeColumnObject(NamedTuple):
 @lru_cache(maxsize=None)
 def supported_types() -> SupportedTypes:
     """Get the types supported by pandera schemas."""
-    
+
     table_types = [DataFrame]
 
     try:

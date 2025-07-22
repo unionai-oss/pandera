@@ -70,10 +70,9 @@ class MetaCheck(type):  # pragma: no cover
             cls.REGISTERED_CUSTOM_CHECKS.keys(),
         )
 
-    
     # mypy has limited metaclass support so this doesn't pass typecheck
     # see https://mypy.readthedocs.io/en/stable/metaclasses.html#gotchas-and-limitations-of-metaclass-support
-    
+
     @no_type_check
     def __contains__(cls: Type[_T], item: Union[_T, str]) -> bool:
         """Allow lookups for registered checks."""

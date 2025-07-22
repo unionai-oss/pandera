@@ -530,15 +530,13 @@ def test_check_io_unrecognized_obj_getter(out, error, msg) -> None:
 
 # required to be a global: see
 # https://pydantic-docs.helpmanual.io/usage/postponed_annotations/
-class OnlyZeroesSchema(
-    DataFrameModel
-):  
+class OnlyZeroesSchema(DataFrameModel):
     """Schema with a single column containing zeroes."""
 
     a: Series[int] = Field(eq=0)
 
 
-class OnlyOnesSchema(DataFrameModel):  
+class OnlyOnesSchema(DataFrameModel):
     """Schema with a single column containing ones."""
 
     a: Series[int] = Field(eq=1)
@@ -599,7 +597,7 @@ def test_check_types_unchanged() -> None:
 
 # required to be globals:
 # see https://pydantic-docs.helpmanual.io/usage/postponed_annotations/
-class InSchema(DataFrameModel):  
+class InSchema(DataFrameModel):
     """Test schema used as input."""
 
     a: Series[int]

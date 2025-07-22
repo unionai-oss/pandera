@@ -108,7 +108,7 @@ class Column(ComponentSchema[PolarsCheckObjects]):
     @staticmethod
     def register_default_backends(
         check_obj_cls: Type,
-    ):  
+    ):
         register_polars_backends()
 
     def validate(
@@ -252,7 +252,7 @@ class Column(ComponentSchema[PolarsCheckObjects]):
 
            This method is not implemented in the polars backend.
         """
-        
+
         raise NotImplementedError(
             "Data synthesis is not supported in with polars schemas."
         )

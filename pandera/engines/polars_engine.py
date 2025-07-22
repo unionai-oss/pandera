@@ -239,9 +239,7 @@ class DataType(dtypes.DataType):
         return f"DataType({self})"
 
 
-class Engine(
-    metaclass=engine.Engine, base_pandera_dtypes=DataType
-):
+class Engine(metaclass=engine.Engine, base_pandera_dtypes=DataType):
     """Polars data type engine."""
 
     @classmethod
@@ -798,9 +796,7 @@ class Category(DataType, dtypes.Category):
 
     type = pl.Utf8
 
-    def __init__(
-        self, categories: Optional[Iterable[Any]] = None
-    ):
+    def __init__(self, categories: Optional[Iterable[Any]] = None):
         dtypes.Category.__init__(self, categories, ordered=False)
 
     def coerce(self, data_container: PolarsDataContainer) -> pl.LazyFrame:

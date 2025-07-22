@@ -125,7 +125,7 @@ class Geometry(pandas_engine.DataType):
 
     def coerce(self, data_container: GeoPandasObject) -> GeoPandasObject:
         """Coerce data container to the specified data type."""
-        
+
         from pandera.backends.pandas import error_formatters
 
         orig_isna = data_container.isna()

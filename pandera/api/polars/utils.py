@@ -1,4 +1,3 @@
-
 """Polars validation engine utilities."""
 
 from typing import Dict, List

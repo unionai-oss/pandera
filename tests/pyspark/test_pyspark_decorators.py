@@ -1,7 +1,5 @@
 """This module is to test the behaviour change based on defined config in pandera"""
 
-
-
 import logging
 from contextlib import nullcontext as does_not_raise
 
@@ -77,8 +75,6 @@ class TestPanderaDecorators:
         ],
         scope="function",
     )
-
-    
     def test_cache_dataframe_settings(
         self,
         spark_session,

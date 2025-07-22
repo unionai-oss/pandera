@@ -45,7 +45,7 @@ class ColumnBackend(ColumnSchemaBackend):
 
         def validate_column(check_obj, column_name):
             try:
-                
+
                 super(ColumnBackend, self).validate(
                     check_obj,
                     copy(schema).set_name(column_name),
@@ -71,12 +71,10 @@ class ColumnBackend(ColumnSchemaBackend):
 
         for column_name in column_keys_to_check:
             if schema.coerce:
-                check_obj = (
-                    self.coerce_dtype(
-                        check_obj,
-                        schema=schema,
-                        error_handler=error_handler,
-                    )
+                check_obj = self.coerce_dtype(
+                    check_obj,
+                    schema=schema,
+                    error_handler=error_handler,
                 )
             validate_column(check_obj, column_name)
 
@@ -117,8 +115,7 @@ class ColumnBackend(ColumnSchemaBackend):
         schema=None,
     ) -> DataFrame:
         """Coerce dtype of a column, handling duplicate column names."""
-        
-        
+
         check_obj = check_obj.withColumn(
             schema.name, col(schema.name).cast(schema.dtype)
         )
@@ -144,7 +141,7 @@ class ColumnBackend(ColumnSchemaBackend):
                 )
             except TypeError as err:
                 raise err
-            except Exception as err:  
+            except Exception as err:
                 # catch other exceptions that may occur when executing the Check
                 err_msg = f'"{err.args[0]}"' if err.args else ""
                 err_str = f"{err.__class__.__name__}({ err_msg})"

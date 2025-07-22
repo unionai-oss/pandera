@@ -165,7 +165,7 @@ class DataFrameModel(Generic[TDataFrame, TSchema], BaseModel):
             raise TypeError(
                 f"{cls.__name__} must inherit from typing.Generic before being parameterized"
             )
-        
+
         __parameters__: Tuple[TypeVar, ...] = cls.__parameters__  # type: ignore
 
         if not isinstance(item, tuple):
@@ -330,9 +330,9 @@ class DataFrameModel(Generic[TDataFrame, TSchema], BaseModel):
     @classmethod
     def _collect_fields(cls) -> Dict[str, Tuple[AnnotationInfo, FieldInfo]]:
         """Centralize publicly named fields and their corresponding annotations."""
-        
+
         annotations = get_type_hints(cls, include_extras=True)
-        
+
         attrs = cls._get_model_attrs()
 
         missing = []

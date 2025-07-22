@@ -34,7 +34,6 @@ class ColumnBackend(PolarsSchemaBackend):
         # NOTE: is this even necessary?
         return check_obj if inplace else check_obj.clone()
 
-    
     def validate(
         self,
         check_obj: pl.LazyFrame,
@@ -114,7 +113,7 @@ class ColumnBackend(PolarsSchemaBackend):
         **subsample_kwargs,
     ):
         """Run checks on schema"""
-        
+
         check_obj_subsample = self.subsample(check_obj, **subsample_kwargs)
 
         core_checks = [
@@ -160,7 +159,6 @@ class ColumnBackend(PolarsSchemaBackend):
         self,
         check_obj: pl.LazyFrame,
         schema=None,
-        
     ) -> pl.LazyFrame:
         """Coerce type of a pd.Series by type specified in dtype.
 
@@ -350,7 +348,6 @@ class ColumnBackend(PolarsSchemaBackend):
             )
         return results
 
-    
     @validate_scope(scope=ValidationScope.DATA)
     def run_checks(self, check_obj, schema) -> List[CoreCheckResult]:
         check_results: List[CoreCheckResult] = []
@@ -365,7 +362,7 @@ class ColumnBackend(PolarsSchemaBackend):
                         schema.selector,
                     )
                 )
-            except Exception as err:  
+            except Exception as err:
                 # catch other exceptions that may occur when executing the Check
                 err_msg = f'"{err.args[0]}"' if err.args else ""
                 msg = f"{err.__class__.__name__}({err_msg})"

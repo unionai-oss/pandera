@@ -1,6 +1,5 @@
 """Common typing functionality."""
 
-
 import copy
 import inspect
 from typing import (  # type: ignore[attr-defined]

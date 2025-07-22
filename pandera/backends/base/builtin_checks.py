@@ -1,4 +1,3 @@
-
 """Built-in check functions base implementation.
 
 This module contains check function abstract definitions that correspond to

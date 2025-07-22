@@ -1,4 +1,3 @@
-
 """Base module for `hypothesis`-based strategies for data synthesis."""
 
 from functools import wraps
@@ -11,12 +10,11 @@ F = TypeVar("F", bound=Callable)
 
 
 try:
-    
+
     from hypothesis.strategies import SearchStrategy, composite
 except ImportError:  # pragma: no cover
     T = TypeVar("T")
 
-    
     class SearchStrategy(Generic[T]):  # type: ignore
         """placeholder type."""
 

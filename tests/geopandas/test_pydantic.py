@@ -1,7 +1,5 @@
 """Tests GeoPandas schema creation and validation from type annotations."""
 
-
-
 import geopandas as gpd
 import pandas as pd
 import pytest

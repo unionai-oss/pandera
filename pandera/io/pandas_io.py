@@ -152,7 +152,7 @@ def _serialize_component_stats(component_stats):
 
 def serialize_schema(dataframe_schema):
     """Serialize dataframe schema into into json/yaml-compatible format."""
-    from pandera import __version__  
+    from pandera import __version__
 
     statistics = get_dataframe_schema_statistics(dataframe_schema)
 
@@ -293,7 +293,7 @@ def deserialize_schema(serialized_schema):
     :returns:
         the schema de-serialized into :class:`~pandera.api.pandas.container.DataFrameSchema`
     """
-    
+
     from pandera.pandas import Index, MultiIndex
 
     # GH#475
@@ -856,7 +856,6 @@ class FrictionlessFieldParser:
 def from_frictionless_schema(
     schema: Union[str, Path, Dict, FrictionlessSchema],
 ) -> DataFrameSchema:
-    
     r"""Create a :class:`~pandera.api.pandas.container.DataFrameSchema` from either a
     frictionless json/yaml schema file saved on disk, or from a frictionless
     schema already loaded into memory.

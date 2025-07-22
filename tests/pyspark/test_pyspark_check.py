@@ -1,6 +1,5 @@
 """Unit tests for pyspark container."""
 
-
 import datetime
 import decimal
 from unittest import mock
@@ -220,7 +219,7 @@ class BaseClass:
         if convert_type == "decimal":
             data_dict = BaseClass.convert_value(sample_data, decimal.Decimal)
 
-        return data_dict  
+        return data_dict
 
     @staticmethod
     def convert_timestamp_to_date(sample_data):
@@ -1599,7 +1598,7 @@ class TestInRangeCheck(BaseClass):
         (
             min_val,
             max_val,
-            add_value,  
+            add_value,
         ) = self.create_min_max(data)
         self.check_function(
             spark,

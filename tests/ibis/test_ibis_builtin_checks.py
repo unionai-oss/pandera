@@ -76,7 +76,7 @@ class BaseClass:
                 sample_data, methodcaller("encode")
             )
 
-        return data_dict  
+        return data_dict
 
     @staticmethod
     def check_function(

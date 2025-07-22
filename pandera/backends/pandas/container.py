@@ -53,7 +53,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
         Parse and validate a check object, returning type-coerced and validated
         object.
         """
-        
+
         if not is_table(check_obj):
             raise TypeError(f"expected pd.DataFrame, got {type(check_obj)}")
 
@@ -151,7 +151,6 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
         random_state,
     ) -> ErrorHandler:
         """Run checks on schema"""
-        
 
         # subsample the check object if head, tail, or sample are specified
         sample = self.subsample(check_obj, head, tail, sample, random_state)
@@ -274,7 +273,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
                 )
             except SchemaDefinitionError:
                 raise
-            except Exception as err:  
+            except Exception as err:
                 # catch other exceptions that may occur when executing the check
                 err_msg = f'"{err.args[0]}"' if err.args else ""
                 err_str = f"{err.__class__.__name__}({ err_msg})"
@@ -366,7 +365,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
         ):
             # NOTE: this is hack: the dataframe-level data type check should
             # be its own check function.
-            
+
             from pandera.api.pandas.components import Column
 
             columns = {}
@@ -805,7 +804,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
             )
 
         # NOTE: fix this pylint error
-        
+
         keep_setting = convert_uniquesettings(schema.report_duplicates)
         temp_unique: List[List] = (
             [schema.unique]
@@ -823,7 +822,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
                 # series or dataframe because it comes from a different
                 # dataframe."
                 if type(duplicates).__module__.startswith("pyspark.pandas"):
-                    
+
                     import pyspark.pandas as ps
 
                     with ps.option_context("compute.ops_on_diff_frames", True):

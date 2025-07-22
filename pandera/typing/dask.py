@@ -20,6 +20,7 @@ else:
 
 
 if DASK_INSTALLED:
+
     class DataFrame(DataFrameBase, dd.DataFrame, Generic[T]):
         """
         Representation of dask.dataframe.DataFrame, only used for type

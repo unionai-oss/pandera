@@ -1,6 +1,5 @@
 """Pandas engine and data types."""
 
-
 # docstrings are inherited
 
 # pylint doesn't know about __init__ generated with dataclass
@@ -45,7 +44,7 @@ if PYDANTIC_V2:
     from pydantic import RootModel
 
 try:
-    import pyarrow  
+    import pyarrow
 
     PYARROW_INSTALLED = True
 except ImportError:
@@ -238,13 +237,13 @@ class Engine(
             return engine.Engine.dtype(cls, data_type)
         except TypeError:
             if is_geopandas_dtype(data_type):
-                
+
                 # register geopandas datatypes
                 import pandera.engines.geopandas_engine
 
                 np_or_pd_dtype = data_type
             elif is_pyarrow_dtype(data_type):
-                
+
                 # register pyarrow datatypes
                 import pandera.engines.pyarrow_engine
 
@@ -739,7 +738,7 @@ class NpString(numpy_engine.String):
             # pyspark.pandas.Index doesn't support .where method yet, use numpy
             reverter = None
             if type(obj).__module__.startswith("pyspark.pandas"):
-                
+
                 import pyspark.pandas as ps
 
                 if isinstance(obj, ps.Index):
@@ -817,12 +816,12 @@ class _BaseDateTime(DataType):
         if type(obj).__module__.startswith(
             "pyspark.pandas"
         ):  # pragma: no cover
-            
+
             import pyspark.pandas as ps
 
             to_datetime_fn = ps.to_datetime
         if type(obj).__module__.startswith("modin.pandas"):
-            
+
             import modin.pandas as mpd
 
             to_datetime_fn = mpd.to_datetime
@@ -1126,9 +1125,7 @@ class Date(_BaseDateTime, dtypes.Date):
             return True
 
         def _check_date(value: Any) -> bool:
-            return pd.isnull(value) or (
-                type(value) is datetime.date
-            )
+            return pd.isnull(value) or (type(value) is datetime.date)
 
         return data_container.apply(_check_date)
 
@@ -1254,7 +1251,6 @@ class PydanticModel(DataType):
     def coerce(self, data_container: PandasObject) -> PandasObject:
         """Coerce pandas dataframe with pydantic record model."""
 
-        
         from pandera.backends.pandas import error_formatters
 
         if data_container.empty:
@@ -1265,7 +1261,7 @@ class PydanticModel(DataType):
                 "dataframe.",
                 UserWarning,
             )
-            
+
             if PYDANTIC_V2:
                 column_names = list(self.type.model_fields)
             else:
@@ -1279,7 +1275,7 @@ class PydanticModel(DataType):
             cases.
             """
             try:
-                
+
                 if PYDANTIC_V2:
                     row = self.type.model_validate(row).model_dump()
                 else:
@@ -1350,7 +1346,6 @@ class PythonGenericType(DataType):
                 # since pydantic needs typing_extensions.TypedDict but typeguard
                 # can only type-check typing.TypedDict
 
-                
                 from typing import TypedDict as _TypedDict
 
                 _type = _TypedDict(_type.__name__, _type.__annotations__)  # type: ignore
@@ -1367,7 +1362,7 @@ class PythonGenericType(DataType):
 
     def _coerce_element(self, element: Any) -> Any:
         try:
-            
+
             if PYDANTIC_V2:
                 coerced_element = self.coercion_model(element).root
             else:
@@ -1402,7 +1397,7 @@ class PythonGenericType(DataType):
 
     def coerce(self, data_container: PandasObject) -> PandasObject:
         """Coerce data container to the specified data type."""
-        
+
         from pandera.backends.pandas import error_formatters
 
         orig_isna = data_container.isna()
@@ -1442,9 +1437,7 @@ class PythonDict(PythonGenericType):
 
     type: Type[dict] = dict
 
-    def __init__(
-        self, generic_type: Optional[Type] = None
-    ) -> None:
+    def __init__(self, generic_type: Optional[Type] = None) -> None:
         if generic_type is not None:
             object.__setattr__(self, "generic_type", generic_type)
 
@@ -1463,9 +1456,7 @@ class PythonList(PythonGenericType):
 
     type: Type[list] = list
 
-    def __init__(
-        self, generic_type: Optional[Type] = None
-    ) -> None:
+    def __init__(self, generic_type: Optional[Type] = None) -> None:
         if generic_type is not None:
             object.__setattr__(self, "generic_type", generic_type)
 
@@ -1484,9 +1475,7 @@ class PythonTuple(PythonGenericType):
 
     type: Type[list] = list
 
-    def __init__(
-        self, generic_type: Optional[Type] = None
-    ) -> None:
+    def __init__(self, generic_type: Optional[Type] = None) -> None:
         if generic_type is not None:
             object.__setattr__(self, "generic_type", generic_type)
 
@@ -1561,11 +1550,7 @@ if PYARROW_INSTALLED and PANDAS_2_0_0_PLUS:
             """Coerce a value to a particular type."""
             return pyarrow.scalar(
                 value,
-                type=(
-                    self.type.pyarrow_dtype  
-                    if self.type
-                    else None
-                ),
+                type=(self.type.pyarrow_dtype if self.type else None),
             )
 
     @Engine.register_dtype(

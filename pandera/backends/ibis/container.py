@@ -68,7 +68,6 @@ class DataFrameSchemaBackend(IbisSchemaBackend):
             (self.run_checks, (sample, schema)),
         ]
 
-        
         for check, args in core_checks:
             results = check(*args)
             if isinstance(results, CoreCheckResult):
@@ -127,7 +126,7 @@ class DataFrameSchemaBackend(IbisSchemaBackend):
                 )
             except SchemaDefinitionError:
                 raise
-            except Exception as err:  
+            except Exception as err:
                 # catch other exceptions that may occur when executing the check
                 err_msg = f'"{err.args[0]}"' if err.args else ""
                 err_str = f"{err.__class__.__name__}({ err_msg})"

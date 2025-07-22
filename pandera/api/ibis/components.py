@@ -102,7 +102,6 @@ class Column(ComponentSchema[ibis.Table]):
 
         self.set_regex()
 
-    
     @staticmethod
     def register_default_backends(check_obj_cls: Type):
         register_ibis_backends()

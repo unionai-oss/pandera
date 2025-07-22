@@ -79,9 +79,7 @@ class DataType(dtypes.DataType):
         return f"DataType({self})"
 
 
-class Engine(
-    metaclass=engine.Engine, base_pandera_dtypes=DataType
-):
+class Engine(metaclass=engine.Engine, base_pandera_dtypes=DataType):
     """Numpy data type engine."""
 
     @classmethod

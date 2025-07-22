@@ -86,7 +86,7 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
         self,
         check_obj: DataFrame,
         schema,
-        column_info: ColumnInfo,  
+        column_info: ColumnInfo,
         error_handler: ErrorHandler,
     ):
         """Run the checks related to data validation and uniqueness."""
@@ -109,8 +109,8 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
         check_obj: DataFrame,
         schema,
         *,
-        head: Optional[int] = None,  
-        tail: Optional[int] = None,  
+        head: Optional[int] = None,
+        tail: Optional[int] = None,
         sample: Optional[int] = None,
         random_state: Optional[int] = None,
         lazy: bool = False,
@@ -235,7 +235,7 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
                 )
             except SchemaDefinitionError:
                 raise
-            except Exception as err:  
+            except Exception as err:
                 # catch other exceptions that may occur when executing the check
                 err_msg = f'"{err.args[0]}"' if err.args else ""
                 err_str = f"{err.__class__.__name__}({ err_msg})"

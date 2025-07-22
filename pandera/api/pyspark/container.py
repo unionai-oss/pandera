@@ -38,7 +38,7 @@ if TYPE_CHECKING:
 N_INDENT_SPACES = 4
 
 
-class DataFrameSchema(BaseSchema):  
+class DataFrameSchema(BaseSchema):
     """A lightweight PySpark DataFrame validator."""
 
     def __init__(
@@ -260,9 +260,7 @@ class DataFrameSchema(BaseSchema):
     @dtype.setter
     def dtype(self, value: PySparkDtypeInputTypes) -> None:
         """Set the pyspark dtype property."""
-        self._dtype = (
-            pyspark_engine.Engine.dtype(value) if value else None
-        )
+        self._dtype = pyspark_engine.Engine.dtype(value) if value else None
 
     def coerce_dtype(self, check_obj: DataFrame) -> DataFrame:
         return self.get_backend(check_obj).coerce_dtype(check_obj, schema=self)
@@ -487,7 +485,7 @@ class DataFrameSchema(BaseSchema):
         :param path: str, Path to write script
         :returns: dataframe schema.
         """
-        
+
         import pandera.io
 
         return pandera.io.to_script(self, fp)
@@ -500,7 +498,7 @@ class DataFrameSchema(BaseSchema):
             string.
         :returns: dataframe schema.
         """
-        
+
         import pandera.io
 
         return pandera.io.from_yaml(yaml_schema)
@@ -511,7 +509,7 @@ class DataFrameSchema(BaseSchema):
         :param stream: file stream to write to. If None, dumps to string.
         :returns: yaml string if stream is None, otherwise returns None.
         """
-        
+
         import pandera.io
 
         return pandera.io.to_yaml(self, stream=stream)
@@ -524,7 +522,7 @@ class DataFrameSchema(BaseSchema):
             string.
         :returns: dataframe schema.
         """
-        
+
         import pandera.io
 
         return pandera.io.from_json(source)
@@ -549,7 +547,7 @@ class DataFrameSchema(BaseSchema):
         :param target: file target to write to. If None, dumps to string.
         :returns: json string if target is None, otherwise returns None.
         """
-        
+
         import pandera.io
 
         return pandera.io.to_json(self, target, **kwargs)

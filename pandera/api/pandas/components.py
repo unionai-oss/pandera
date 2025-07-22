@@ -148,7 +148,7 @@ class Column(ArraySchema[pd.DataFrame]):
         :param columns: columns to regex pattern match
         :returns: matching columns
         """
-        
+
         from pandera.backends.pandas.components import ColumnBackend
 
         return cast(
@@ -198,7 +198,7 @@ class Column(ArraySchema[pd.DataFrame]):
         :param size: number of elements in the generated Index.
         :returns: pandas DataFrame object.
         """
-        
+
         import hypothesis
 
         with warnings.catch_warnings():
@@ -271,7 +271,7 @@ class Index(ArraySchema[pd.Index]):
         :param size: number of elements in the generated Index.
         :returns: pandas Index object.
         """
-        
+
         import hypothesis
 
         with warnings.catch_warnings():
@@ -434,7 +434,7 @@ class MultiIndex(DataFrameSchema):
     @strategy_import_error
     # NOTE: remove these ignore statements as part of
     # https://github.com/pandera-dev/pandera/issues/403
-    
+
     def strategy(self, *, size=None):  # type: ignore
         import pandera.strategies.pandas_strategies as st
 
@@ -442,9 +442,9 @@ class MultiIndex(DataFrameSchema):
 
     # NOTE: remove these ignore statements as part of
     # https://github.com/pandera-dev/pandera/issues/403
-    
+
     def example(self, size=None) -> pd.MultiIndex:  # type: ignore
-        
+
         import hypothesis
 
         with warnings.catch_warnings():

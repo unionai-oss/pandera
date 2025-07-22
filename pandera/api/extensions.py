@@ -21,7 +21,6 @@ class BuiltinCheckRegistrationError(Exception):
     """
 
 
-
 def register_builtin_check(
     fn=None,
     strategy: Optional[Callable] = None,
@@ -174,7 +173,6 @@ def register_check_method(
     :return: register check function wrapper.
     """
 
-    
     from pandera.strategies.pandas_strategies import register_check_strategy
 
     # NOTE: this needs to handle different dataframe types more elegantly

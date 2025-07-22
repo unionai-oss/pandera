@@ -60,23 +60,21 @@ class ColumnSchemaBackend(PysparkSchemaBackend):
         check_obj,
         schema,
         *,
-        head: Optional[int] = None,  
-        tail: Optional[int] = None,  
-        sample: Optional[int] = None,  
-        random_state: Optional[int] = None,  
+        head: Optional[int] = None,
+        tail: Optional[int] = None,
+        sample: Optional[int] = None,
+        random_state: Optional[int] = None,
         lazy: bool = False,
         inplace: bool = False,
         error_handler: ErrorHandler = None,
     ):
-        
+
         check_obj = self.preprocess(check_obj, inplace)
 
         if schema.coerce:
             try:
-                check_obj = (
-                    self.coerce_dtype(
-                        check_obj, schema=schema, error_handler=error_handler
-                    )
+                check_obj = self.coerce_dtype(
+                    check_obj, schema=schema, error_handler=error_handler
                 )
             except SchemaError as exc:
                 assert (
@@ -98,7 +96,6 @@ class ColumnSchemaBackend(PysparkSchemaBackend):
         check_obj,
         *,
         schema=None,
-        
     ):
         """Coerce type of a pyspark.sql.function.col by type specified in dtype.
 
@@ -177,17 +174,13 @@ class ColumnSchemaBackend(PysparkSchemaBackend):
 
         if schema.dtype is not None:
             dtype_check_results = schema.dtype.check(
-                Engine.dtype(
-                    check_obj.schema[schema.name].dataType
-                ),  
+                Engine.dtype(check_obj.schema[schema.name].dataType),
             )
 
             if isinstance(dtype_check_results, bool):
                 passed = dtype_check_results
                 failure_cases = scalar_failure_case(
-                    str(
-                        Engine.dtype(check_obj.schema[schema.name].dataType)
-                    )
+                    str(Engine.dtype(check_obj.schema[schema.name].dataType))
                 )
                 msg = (
                     f"expected column '{schema.name}' to have type "
@@ -210,7 +203,6 @@ class ColumnSchemaBackend(PysparkSchemaBackend):
         )
 
     @validate_scope(scope=ValidationScope.DATA)
-    
     def run_checks(self, check_obj, schema, error_handler, lazy):
         check_results = []
         for check_index, check in enumerate(schema.checks):
@@ -231,7 +223,7 @@ class ColumnSchemaBackend(PysparkSchemaBackend):
                     SchemaErrorReason.DATAFRAME_CHECK,
                     err,
                 )
-            except Exception as err:  
+            except Exception as err:
                 # catch other exceptions that may occur when executing the Check
                 err_msg = f'"{err.args[0]}"' if err.args else ""
                 err_str = f"{err.__class__.__name__}({ err_msg})"

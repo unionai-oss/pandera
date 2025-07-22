@@ -92,14 +92,14 @@ _DataTypeClass = Type[_Dtype]
 
 @overload
 def immutable(
-    pandera_dtype_cls: _DataTypeClass,  
-    **dataclass_kwargs: Any,  
+    pandera_dtype_cls: _DataTypeClass,
+    **dataclass_kwargs: Any,
 ) -> _DataTypeClass: ...
 
 
 @overload
 def immutable(
-    **dataclass_kwargs: Any,  
+    **dataclass_kwargs: Any,
 ) -> Callable[[_DataTypeClass], _DataTypeClass]: ...
 
 
@@ -427,7 +427,6 @@ class Decimal(_Number):
     scale: int = 0  # default 0 is aligned with pyarrow and various databases.
     """The number of digits after the decimal point."""
 
-    
     rounding: Optional[str] = dataclasses.field(
         default_factory=lambda: decimal.getcontext().rounding
     )

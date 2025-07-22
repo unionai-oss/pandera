@@ -51,6 +51,7 @@ if PYSPARK_SQL_INSTALLED:
         T = DataFrameModel
 
     if PYSPARK_SQL_INSTALLED:
+
         class DataFrame(DataFrameBase, ps.DataFrame, Generic[T]):
             """
             Representation of dask.dataframe.DataFrame, only used for type

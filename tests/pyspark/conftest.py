@@ -1,6 +1,5 @@
 """conftest"""
 
-
 import datetime
 import os
 

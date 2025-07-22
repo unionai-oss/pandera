@@ -174,7 +174,7 @@ class DataFrameModel(BaseModel):
             raise TypeError(
                 f"{cls.__name__} must inherit from typing.Generic before being parameterized"
             )
-        
+
         __parameters__: Tuple[TypeVar, ...] = cls.__parameters__  # type: ignore
 
         if not isinstance(params, tuple):

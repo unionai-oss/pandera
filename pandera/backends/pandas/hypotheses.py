@@ -24,11 +24,9 @@ def less_than(stat, pvalue, alpha=DEFAULT_ALPHA) -> bool:
     return stat < 0 and pvalue / 2 < alpha
 
 
-
 def not_equal(stat, pvalue, alpha=DEFAULT_ALPHA) -> bool:
     """Evaluate statistic and pvalue for ne hypothesis test."""
     return pvalue < alpha
-
 
 
 def equal(stat, pvalue, alpha=DEFAULT_ALPHA) -> bool:

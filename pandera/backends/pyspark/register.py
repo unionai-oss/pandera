@@ -16,14 +16,13 @@ if CURRENT_PYSPARK_VERSION >= version.parse("3.4"):
 @lru_cache
 def register_pyspark_backends(
     check_cls_fqn: Optional[str] = None,
-):  
+):
     """Register pyspark backends.
 
     This function is called at schema initialization in the _register_*_backends
     method.
     """
 
-    
     from pandera._patch_numpy2 import _patch_numpy2
 
     _patch_numpy2()

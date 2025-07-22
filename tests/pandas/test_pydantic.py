@@ -1,6 +1,5 @@
 """Unit tests for pydantic compatibility."""
 
-
 from typing import Optional
 from typing import (
     Generic,

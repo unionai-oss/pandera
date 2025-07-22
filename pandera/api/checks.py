@@ -18,7 +18,6 @@ from pandera.api.base.checks import BaseCheck, CheckResult
 T = TypeVar("T")
 
 
-
 class Check(BaseCheck):
     """Check a data object for certain properties."""
 
@@ -203,7 +202,6 @@ class Check(BaseCheck):
         check_obj: Any,
         column: Optional[str] = None,
     ) -> CheckResult:
-        
         """Validate DataFrame or Series.
 
         :param check_obj: DataFrame of Series to validate.

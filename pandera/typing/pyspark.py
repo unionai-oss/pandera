@@ -25,6 +25,7 @@ else:
 
 
 if PYSPARK_INSTALLED:
+
     class DataFrame(DataFrameBase, ps.DataFrame, Generic[T]):
         """
         Representation of dask.dataframe.DataFrame, only used for type

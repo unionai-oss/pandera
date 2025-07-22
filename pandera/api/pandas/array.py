@@ -87,7 +87,7 @@ class ArraySchema(ComponentSchema[TDataObject]):
         :param size: number of elements in the generated array.
         :returns: array object.
         """
-        
+
         import hypothesis
 
         with warnings.catch_warnings():
@@ -231,7 +231,7 @@ class SeriesSchema(ArraySchema[pd.Series]):
         if hasattr(check_obj, "dask"):
             # special case for dask series
             if inplace:
-                
+
                 from pandera.accessors import dask_accessor
 
                 check_obj = check_obj.pandera.add_schema(self)
@@ -278,5 +278,5 @@ class SeriesSchema(ArraySchema[pd.Series]):
         :param size: number of elements in the generated Series.
         :returns: pandas Series object.
         """
-        
+
         return cast(pd.Series, super().example(size=size))

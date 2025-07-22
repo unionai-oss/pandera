@@ -153,7 +153,7 @@ class BaseSchemaBackend(ABC):
 class BaseCheckBackend(ABC):
     """Abstract base class for a check backend implementation."""
 
-    def __init__(self, check):  
+    def __init__(self, check):
         """Initializes a check backend object."""
 
     def __call__(self, check_obj, key=None):
@@ -195,7 +195,7 @@ class BaseCheckBackend(ABC):
 class BaseParserBackend(ABC):
     """Abstract base class for a parser backend implementation."""
 
-    def __init__(self, parser):  
+    def __init__(self, parser):
         """Initializes a parser backend object."""
 
     def __call__(self, parse_obj, key=None):

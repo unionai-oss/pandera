@@ -1,4 +1,3 @@
-
 """Pyarrow data types for the pandas type engine."""
 
 import dataclasses
@@ -21,11 +20,7 @@ class ArrowDataType(DataType):
         """Coerce a value to a particular type."""
         return pyarrow.scalar(
             value,
-            type=(
-                self.type.pyarrow_dtype  
-                if self.type
-                else None
-            ),
+            type=(self.type.pyarrow_dtype if self.type else None),
         )
 
 

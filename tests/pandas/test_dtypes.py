@@ -203,7 +203,6 @@ dtype_fixtures: List[Tuple[Dict, List]] = [
 if GEOPANDAS_INSTALLED:
     from shapely.geometry import Polygon
 
-    
     from pandera.engines.geopandas_engine import Geometry
 
     geometry_dtypes = {Geometry: "geometry"}

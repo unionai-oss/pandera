@@ -16,7 +16,6 @@ class Hypothesis(Check):
 
     RELATIONSHIPS = {"greater_than", "less_than", "not_equal", "equal"}
 
-    
     def __init__(
         self,
         test: Callable,

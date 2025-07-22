@@ -1,7 +1,5 @@
 """Unit tests for dask_accessor module."""
 
-
-
 import pyspark.sql.types as T
 import pytest
 from pyspark.sql.types import StringType
@@ -281,14 +279,14 @@ def test_pyspark_fields(spark_session, request):
 
 
 def test_pyspark__error_handler_lazy_validation(
-    spark_session,  
+    spark_session,
 ):
     """This function tests the lazy validation for the error handler class of pyspark"""
 
     errors_not_lazy = error_handler.ErrorHandler(lazy=False)
     errors_lazy = error_handler.ErrorHandler(lazy=True)
 
-    class BaseSchema(DataFrameModel):  
+    class BaseSchema(DataFrameModel):
         """test class"""
 
         id: int

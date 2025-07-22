@@ -45,7 +45,6 @@ if PYDANTIC_V2:
 N_INDENT_SPACES = 4
 
 
-
 class DataFrameSchema(Generic[TDataObject], BaseSchema):
     def __init__(
         self,
@@ -666,7 +665,7 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
         )>
 
         """
-        
+
         from pandera.api.dataframe.components import ComponentSchema
 
         new_schema = copy.deepcopy(self)
@@ -1054,7 +1053,7 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
         .. seealso:: :func:`reset_index`
 
         """
-        
+
         from pandera.api.pandas.components import Index, MultiIndex
 
         new_schema = copy.deepcopy(self)
@@ -1193,7 +1192,7 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
         .. seealso:: :func:`set_index`
 
         """
-        
+
         from pandera.api.pandas.components import Column, Index, MultiIndex
 
         # explicit check for an empty list
@@ -1299,7 +1298,7 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
         :param path: str, Path to write script
         :returns: dataframe schema.
         """
-        
+
         import pandera.io
 
         return pandera.io.to_script(self, fp)
@@ -1312,7 +1311,7 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
             string.
         :returns: dataframe schema.
         """
-        
+
         import pandera.io
 
         return pandera.io.from_yaml(yaml_schema)
@@ -1323,7 +1322,7 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
         :param stream: file stream to write to. If None, dumps to string.
         :returns: yaml string if stream is None, otherwise returns None.
         """
-        
+
         import pandera.io
 
         return pandera.io.to_yaml(self, stream=stream)
@@ -1336,7 +1335,7 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
             string.
         :returns: dataframe schema.
         """
-        
+
         import pandera.io
 
         return pandera.io.from_json(source)
@@ -1361,7 +1360,7 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
         :param target: file target to write to. If None, dumps to string.
         :returns: json string if target is None, otherwise returns None.
         """
-        
+
         import pandera.io
 
         return pandera.io.to_json(self, target, **kwargs)

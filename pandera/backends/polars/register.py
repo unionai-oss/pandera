@@ -9,14 +9,13 @@ import polars as pl
 @lru_cache
 def register_polars_backends(
     check_cls_fqn: Optional[str] = None,
-):  
+):
     """Register polars backends.
 
     This function is called at schema initialization in the _register_*_backends
     method.
     """
 
-    
     from pandera.api.checks import Check
     from pandera.api.polars.components import Column
     from pandera.api.polars.container import DataFrameSchema

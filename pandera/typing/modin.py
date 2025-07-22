@@ -28,6 +28,7 @@ else:
 
 
 if MODIN_INSTALLED:
+
     class DataFrame(DataFrameBase, mpd.DataFrame, Generic[T]):
         """
         Representation of dask.dataframe.DataFrame, only used for type

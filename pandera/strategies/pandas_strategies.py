@@ -1,4 +1,3 @@
-
 """Generate synthetic data from a schema definition.
 
 *new in 0.6.0*
@@ -10,6 +9,7 @@ to compose strategies given multiple checks specified in a schema.
 
 See the :ref:`user guide <data-synthesis-strategies>` for more details.
 """
+
 import operator
 import re
 import warnings
@@ -55,7 +55,6 @@ if HAS_HYPOTHESIS:
     from hypothesis.strategies import SearchStrategy, composite
 else:
     from pandera.strategies.base_strategies import SearchStrategy, composite
-
 
 
 StrategyFn = Callable[..., SearchStrategy]
@@ -198,7 +197,6 @@ def register_check_strategy(strategy_fn: StrategyFn):
         return _wrapper
 
     return register_check_strategy_decorator
-
 
 
 # Values taken from
@@ -367,7 +365,6 @@ def pandas_dtype_strategy(
     strategy: Optional[SearchStrategy] = None,
     **kwargs,
 ) -> SearchStrategy:
-    
     """Strategy to generate data from a :class:`pandera.dtypes.DataType`.
 
     :param pandera_dtype: :class:`pandera.dtypes.DataType` instance.
@@ -435,7 +432,7 @@ def eq_strategy(
     :returns: ``hypothesis`` strategy
     """
     # override strategy preceding this one and generate value of the same type
-    
+
     return pandas_dtype_strategy(pandera_dtype, st.just(value))
 
 
@@ -886,7 +883,6 @@ def column_strategy(
     unique: bool = False,
     name: Optional[str] = None,
 ):
-    
     """Create a data object describing a column in a DataFrame.
 
     :param pandera_dtype: :class:`pandera.dtypes.DataType` instance.
@@ -945,7 +941,7 @@ def index_strategy(
     # this is a hack to convert np.str_ data values into native python str.
     col_dtype = str(pandera_dtype)
     if col_dtype in {"object", "str"} or col_dtype.startswith("string"):
-        
+
         strategy = strategy.map(lambda index: index.map(str))
 
     if name is not None:
@@ -981,7 +977,7 @@ def dataframe_strategy(
     :param n_regex_columns: number of regex columns to generate.
     :returns: ``hypothesis`` strategy.
     """
-    
+
     if n_regex_columns < 1:
         raise ValueError(
             "`n_regex_columns` must be a positive integer, found: "
@@ -1149,7 +1145,7 @@ def dataframe_strategy(
                 string_columns.append(col_name)
 
         if string_columns:
-            
+
             strategy = strategy.map(
                 lambda df: df.assign(
                     **{
@@ -1181,7 +1177,6 @@ def dataframe_strategy(
     return _dataframe_strategy()
 
 
-
 def multiindex_strategy(
     pandera_dtype: Optional[DataType] = None,
     strategy: Optional[SearchStrategy] = None,
@@ -1199,7 +1194,7 @@ def multiindex_strategy(
     :param size: number of elements in the Series.
     :returns: ``hypothesis`` strategy.
     """
-    
+
     if strategy:
         raise BaseStrategyOnlyError(
             "The dataframe strategy is a base strategy. You cannot specify "
@@ -1224,7 +1219,7 @@ def multiindex_strategy(
     # this is a hack to convert np.str_ data values into native python str.
     for name, dtype in index_dtypes.items():
         if dtype in {"object", "str"} or dtype.startswith("string"):
-            
+
             strategy = strategy.map(
                 lambda df, name=name: df.assign(**{name: df[name].map(str)})
             )

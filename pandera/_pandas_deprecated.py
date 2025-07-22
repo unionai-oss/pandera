@@ -1,4 +1,3 @@
-
 """A flexible and expressive pandas dataframe validation library.
 
 This module is imported by the top-level pandera module and will be deprecated
@@ -245,7 +244,7 @@ __all__ = [
 
 
 if platform.system() != "Windows":
-    
+
     from pandera.dtypes import Complex256, Float128
 
     __all__.extend(["Complex256", "Float128"])

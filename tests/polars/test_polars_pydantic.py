@@ -1,6 +1,5 @@
 """Unit tests for Polars pydantic compatibility."""
 
-
 from typing import Optional
 
 import polars as pl

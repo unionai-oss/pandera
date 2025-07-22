@@ -1,7 +1,5 @@
 """Tests Engine subclassing and registering DataTypes."""
 
-
-
 import re
 from typing import Any, Generator, List, Union
 
@@ -32,7 +30,7 @@ def equivalents() -> List[Any]:
 
 @pytest.fixture
 def engine() -> Generator[Engine, None, None]:
-    class FakeEngine(  
+    class FakeEngine(
         metaclass=Engine, base_pandera_dtypes=BaseDataType  # type: ignore[call-arg]
     ):
         pass
@@ -98,9 +96,7 @@ def test_register_notclassmethod_from_parametrized_dtype(engine: Engine):
 
         @engine.register_dtype
         class _InvalidDtype(BaseDataType):
-            def from_parametrized_dtype(
-                cls, x: int
-            ):  
+            def from_parametrized_dtype(cls, x: int):
                 return x
 
 
@@ -155,7 +151,7 @@ def test_register_dtype_overwrite(engine: Engine):
 def test_register_base_pandera_dtypes():
     """Test that base datatype cannot be registered."""
 
-    class FakeEngine(  
+    class FakeEngine(
         metaclass=Engine, base_pandera_dtypes=(BaseDataType, BaseDataType)
     ):
         pass

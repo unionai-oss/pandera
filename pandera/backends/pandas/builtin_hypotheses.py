@@ -1,4 +1,3 @@
-
 """Pandas implementation of built-in hypotheses."""
 
 from typing import Tuple
@@ -16,7 +15,7 @@ def two_sample_ttest(
     equal_var: bool = True,
     nan_policy: str = "propagate",
 ) -> Tuple[float, float]:
-    from scipy import stats  
+    from scipy import stats
 
     assert (
         len(samples) == 2
@@ -38,7 +37,7 @@ def one_sample_ttest(
     popmean: float,
     nan_policy: str = "propagate",
 ) -> Tuple[float, float]:
-    from scipy import stats  
+    from scipy import stats
 
     assert (
         len(samples) == 1

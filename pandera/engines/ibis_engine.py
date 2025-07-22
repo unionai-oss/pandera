@@ -53,9 +53,7 @@ class DataType(dtypes.DataType):
     def check(
         self,
         pandera_dtype: dtypes.DataType,
-        data_container: Optional[
-            ibis.Table
-        ] = None,
+        data_container: Optional[ibis.Table] = None,
     ) -> Union[bool, Iterable[bool]]:
         try:
             return self.type == pandera_dtype.type
@@ -340,7 +338,7 @@ class DateTime(DataType, dtypes.DateTime):
 
     type: Type[dt.Timestamp]
 
-    def __init__(  
+    def __init__(
         self,
         timezone: Optional[str] = None,
         scale: Optional[Literal[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]] = None,
@@ -387,9 +385,7 @@ class Timedelta(DataType, dtypes.DateTime):
 
     type: Type[dt.Interval]
 
-    def __init__(
-        self, unit: IntervalUnit = "us"
-    ):  
+    def __init__(self, unit: IntervalUnit = "us"):
         object.__setattr__(self, "type", dt.Interval(unit=unit))
 
     @classmethod

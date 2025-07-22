@@ -37,7 +37,6 @@ FIELD_GENERICS_FULLNAMES = {
 }
 
 
-
 def plugin(version: str):
     """Mypy plugin entrypoint."""
     return PanderaPlugin
@@ -144,7 +143,6 @@ class DataFrameModelTransformer:
             type_ = def_.type
             if str(def_.type) in FIELD_GENERICS_FULLNAMES:
                 type_.args = ()  # erase generic type arg
-
 
 
 class PanderaPluginConfig:
