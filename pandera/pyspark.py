@@ -5,6 +5,8 @@ from pandera._patch_numpy2 import _patch_numpy2
 
 _patch_numpy2()
 
+import pandera.backends.base.builtin_checks
+import pandera.backends.base.builtin_hypotheses
 import pandera.backends.pyspark
 from pandera import errors, external_config
 from pandera.accessors import pyspark_sql_accessor
