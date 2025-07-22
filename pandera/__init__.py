@@ -26,7 +26,9 @@ except (ImportError, ModuleNotFoundError) as err:
     err_msg = str(err)
     if err_msg.startswith("pandera requires pandas >= 2.1.1"):
         warnings.warn(err_msg, UserWarning)
-    elif err_msg.startswith(("No module named 'pandas'", "No module named 'numpy'")):
+    elif err_msg.startswith(
+        ("No module named 'pandas'", "No module named 'numpy'")
+    ):
         # ignore this error
         pass
     else:
