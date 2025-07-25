@@ -1,12 +1,8 @@
 """PySpark engine and data types."""
 
-# pylint:disable=too-many-ancestors,no-member
-
 # docstrings are inherited
-# pylint:disable=missing-class-docstring
 
 # pylint doesn't know about __init__ generated with dataclass
-# pylint:disable=unexpected-keyword-arg,no-value-for-parameter
 
 import dataclasses
 import inspect
@@ -73,7 +69,7 @@ class DataType(dtypes.DataType):
     def check(
         self,
         pandera_dtype: dtypes.DataType,
-        data_container: Optional[Any] = None,  # pylint:disable=unused-argument
+        data_container: Optional[Any] = None,
     ) -> Union[bool, Iterable[bool]]:
         try:
             return self.type == pandera_dtype.type
@@ -94,7 +90,7 @@ class DataType(dtypes.DataType):
     def try_coerce(self, data_container: PysparkObject) -> PysparkObject:
         try:
             coerced = self.coerce(data_container)
-        except Exception as exc:  # pylint:disable=broad-except
+        except Exception as exc:
             if isinstance(exc, errors.ParserError):
                 raise
             type_alias = str(self)
@@ -107,7 +103,7 @@ class DataType(dtypes.DataType):
         return coerced
 
 
-class Engine(  # pylint:disable=too-few-public-methods
+class Engine(
     metaclass=engine.Engine,
     base_pandera_dtypes=(DataType),
 ):
@@ -124,7 +120,7 @@ class Engine(  # pylint:disable=too-few-public-methods
                 # You can manually specify the number of replacements by changing the 4th argument
                 data_type = re.sub(regex, subst, data_type, 0, re.MULTILINE)
             return engine.Engine.dtype(cls, data_type)
-        except TypeError:  # pylint:disable=try-except-raise # pragma: no cover
+        except TypeError:  # pragma: no cover
             raise
 
 
@@ -263,7 +259,7 @@ class Decimal(DataType, dtypes.Decimal):  # type: ignore
 
     type: pst.DecimalType = dataclasses.field(default=pst.DecimalType, init=False)  # type: ignore[assignment]  # noqa
 
-    def __init__(  # pylint:disable=super-init-not-called
+    def __init__(
         self,
         precision: int = DEFAULT_PYSPARK_PREC,
         scale: int = DEFAULT_PYSPARK_SCALE,
@@ -284,7 +280,7 @@ class Decimal(DataType, dtypes.Decimal):  # type: ignore
     def check(
         self,
         pandera_dtype: dtypes.DataType,
-        data_container: Any = None,  # pylint: disable=unused-argument)
+        data_container: Any = None,
     ) -> Union[bool, Iterable[bool]]:
         try:
             pandera_dtype = Engine.dtype(pandera_dtype)
@@ -385,7 +381,7 @@ class ArrayType(DataType):
 
     type: pst.ArrayType = dataclasses.field(default=pst.ArrayType, init=False)
 
-    def __init__(  # pylint:disable=super-init-not-called
+    def __init__(
         self,
         elementType: Any = pst.StringType(),
         containsNull: bool = True,
@@ -409,7 +405,7 @@ class ArrayType(DataType):
     def check(
         self,
         pandera_dtype: dtypes.DataType,
-        data_container: Any = None,  # pylint:disable=unused-argument
+        data_container: Any = None,
     ) -> Union[bool, Iterable[bool]]:
         try:
             pandera_dtype = Engine.dtype(pandera_dtype)
@@ -441,7 +437,7 @@ class MapType(DataType):
 
     type: pst.MapType = dataclasses.field(default=pst.MapType, init=False)
 
-    def __init__(  # pylint:disable=super-init-not-called
+    def __init__(
         self,
         keyType: Any = pst.StringType(),
         valueType: Any = pst.StringType(),
@@ -471,7 +467,7 @@ class MapType(DataType):
     def check(
         self,
         pandera_dtype: dtypes.DataType,
-        data_container: Any = None,  # pylint:disable=unused-argument
+        data_container: Any = None,
     ) -> Union[bool, Iterable[bool]]:
         try:
             pandera_dtype = Engine.dtype(pandera_dtype)

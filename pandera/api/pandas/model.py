@@ -66,7 +66,7 @@ class DataFrameModel(_DataFrameModel[pd.DataFrame, DataFrameSchema]):
         )
 
     @classmethod
-    def _build_columns_index(  # pylint:disable=too-many-locals,too-many-branches
+    def _build_columns_index(
         cls,
         fields: Dict[str, Tuple[AnnotationInfo, FieldInfo]],
         checks: Dict[str, List[Check]],

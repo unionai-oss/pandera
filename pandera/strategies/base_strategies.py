@@ -1,4 +1,3 @@
-# pylint: disable=unused-import
 """Base module for `hypothesis`-based strategies for data synthesis."""
 
 from functools import wraps
@@ -11,12 +10,11 @@ F = TypeVar("F", bound=Callable)
 
 
 try:
-    # pylint: disable=unused-import
+
     from hypothesis.strategies import SearchStrategy, composite
 except ImportError:  # pragma: no cover
     T = TypeVar("T")
 
-    # pylint: disable=too-few-public-methods
     class SearchStrategy(Generic[T]):  # type: ignore
         """placeholder type."""
 

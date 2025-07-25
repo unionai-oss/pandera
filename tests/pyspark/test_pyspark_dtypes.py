@@ -289,7 +289,7 @@ class TestAllDatetimeTestClass(BaseClass):
         self,
         pandera_equivalent,
         sample_date_object,
-        spark_session,  # pylint:disable=unused-argument
+        spark_session,
     ):
         """
         Test date dtype column
@@ -302,7 +302,7 @@ class TestAllDatetimeTestClass(BaseClass):
         self,
         pandera_equivalent,
         sample_date_object,
-        spark_session,  # pylint:disable=unused-argument
+        spark_session,
     ):
         """
         Test datetime dtype column
@@ -336,7 +336,7 @@ class TestBinaryStringTypes(BaseClass):
         self,
         pandera_equivalent,
         sample_string_binary_object,
-        spark_session,  # pylint:disable=unused-argument
+        spark_session,
     ):
         """
         Test binary dytpe column
@@ -349,7 +349,7 @@ class TestBinaryStringTypes(BaseClass):
         self,
         pandera_equivalent,
         sample_string_binary_object,
-        spark_session,  # pylint:disable=unused-argument
+        spark_session,
     ):
         """
         Test string dtype column
@@ -390,7 +390,7 @@ class TestComplexType(BaseClass):
         self,
         sample_complex_data,
         pandera_equivalent,
-        spark_session,  # pylint:disable=unused-argument
+        spark_session,
     ):
         """
         Test array dtype column
@@ -417,7 +417,7 @@ class TestComplexType(BaseClass):
         self,
         sample_complex_data,
         pandera_equivalent,
-        spark_session,  # pylint:disable=unused-argument
+        spark_session,
     ):
         """
         Test map dtype column

@@ -1,7 +1,5 @@
 """Backend implementation for pandas schema components."""
 
-# pylint: disable=too-many-locals
-
 import traceback
 from copy import deepcopy
 from typing import Iterable, List, Optional, Union
@@ -47,7 +45,6 @@ class ColumnBackend(ArraySchemaBackend):
         lazy: bool = False,
         inplace: bool = False,
     ) -> pd.DataFrame:
-        # pylint: disable=too-many-branches
         """Validation backend implementation for pandas dataframe columns."""
         if not inplace:
             check_obj = check_obj.copy()
@@ -71,7 +68,7 @@ class ColumnBackend(ArraySchemaBackend):
 
         def validate_column(check_obj, column_name, return_check_obj=False):
             try:
-                # pylint: disable=super-with-arguments
+
                 # make sure the schema component mutations are reverted after
                 # validation
                 _orig_name = schema.name
@@ -216,8 +213,7 @@ class ColumnBackend(ArraySchemaBackend):
         schema=None,
     ) -> Union[pd.DataFrame, pd.Series]:
         """Coerce dtype of a column, handling duplicate column names."""
-        # pylint: disable=super-with-arguments
-        # pylint: disable=fixme
+
         # TODO: use singledispatchmethod here
         if is_field(check_obj) or is_index(check_obj):
             return super().coerce_dtype(
@@ -255,7 +251,7 @@ class ColumnBackend(ArraySchemaBackend):
                         original_exc=err,
                     )
                 )
-            except Exception as err:  # pylint: disable=broad-except
+            except Exception as err:
                 # catch other exceptions that may occur when executing the Check
                 err_msg = f'"{err.args[0]}"' if err.args else ""
                 err_str = f"{err.__class__.__name__}({ err_msg})"
@@ -348,7 +344,6 @@ class MultiIndexBackend(DataFrameSchemaBackend):
 
     def coerce_dtype(  # type: ignore[override]
         self,
-        # pylint: disable=fixme
         # TODO: make MultiIndex not inherit from DataFrameSchemaBackend
         check_obj: pd.MultiIndex,
         schema=None,
@@ -403,7 +398,7 @@ class MultiIndexBackend(DataFrameSchemaBackend):
         multiindex_cls = pd.MultiIndex
         # NOTE: this is a hack to support pyspark.pandas
         if type(check_obj).__module__.startswith("pyspark.pandas"):
-            # pylint: disable=import-outside-toplevel
+
             import pyspark.pandas as ps
 
             multiindex_cls = ps.MultiIndex

@@ -12,7 +12,6 @@ from pandera.accessors.pandas_accessor import (
 )
 
 
-# pylint: disable=too-few-public-methods
 class CachedAccessor:
     """
     Custom property-like object.
@@ -75,7 +74,7 @@ def register_dataframe_accessor(name):
     :param name: name used when calling the accessor after its registered
     :returns: a class decorator callable.
     """
-    # pylint: disable=import-outside-toplevel
+
     from modin.pandas import DataFrame
 
     return _register_accessor(name, DataFrame)
@@ -88,7 +87,7 @@ def register_series_accessor(name):
     :param name: name used when calling the accessor after its registered
     :returns: a callable class decorator
     """
-    # pylint: disable=import-outside-toplevel
+
     from modin.pandas import Series
 
     return _register_accessor(name, Series)

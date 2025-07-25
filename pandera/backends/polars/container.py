@@ -40,7 +40,7 @@ def _to_frame_kind(lf: pl.LazyFrame, kind: type[PolarsFrame]) -> PolarsFrame:
 
 
 class DataFrameSchemaBackend(PolarsSchemaBackend):
-    # pylint: disable=too-many-branches
+
     def validate(
         self,
         check_obj: PolarsFrame,
@@ -119,7 +119,6 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
             if isinstance(results, CoreCheckResult):
                 results = [results]
 
-            # pylint: disable=no-member
             for result in results:
                 if result.passed:
                     continue
@@ -174,7 +173,7 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
                 )
             except SchemaDefinitionError:
                 raise
-            except Exception as err:  # pylint: disable=broad-except
+            except Exception as err:
                 # catch other exceptions that may occur when executing the check
                 err_msg = f'"{err.args[0]}"' if err.args else ""
                 err_str = f"{err.__class__.__name__}({ err_msg})"
@@ -618,7 +617,7 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
             )
 
         # NOTE: fix this pylint error
-        # pylint: disable=not-an-iterable
+
         temp_unique: List[List] = (
             [schema.unique]
             if all(isinstance(x, str) for x in schema.unique)

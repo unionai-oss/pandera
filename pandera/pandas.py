@@ -1,4 +1,3 @@
-# pylint: disable=wrong-import-position,unused-import
 """A flexible and expressive pandas dataframe validation library."""
 
 import platform
@@ -184,7 +183,7 @@ __all__ = [
 
 
 if platform.system() != "Windows":
-    # pylint: disable=ungrouped-imports
+
     from pandera.dtypes import Complex256, Float128
 
     __all__.extend(["Complex256", "Float128"])

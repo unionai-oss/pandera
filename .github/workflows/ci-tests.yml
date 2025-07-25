@@ -80,10 +80,6 @@ jobs:
         if: always()
         run: pre-commit run black --all-files
 
-      - name: Pylint
-        if: always()
-        run: pre-commit run pylint --all-files
-
       - name: Mypy Type Checking
         if: always()
         run: pre-commit run mypy --all-files

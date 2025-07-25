@@ -79,7 +79,7 @@ def _generate_pip_deps_from_conda(
 
 
 @nox.session(venv_backend="uv", python=PYTHON_VERSIONS)
-def requirements(session: Session) -> None:  # pylint:disable=unused-argument
+def requirements(session: Session) -> None:
     """Check that setup.py requirements match requirements.in"""
     session.install("pyyaml")
     try:

@@ -37,7 +37,6 @@ FIELD_GENERICS_FULLNAMES = {
 }
 
 
-# pylint: disable=unused-argument
 def plugin(version: str):
     """Mypy plugin entrypoint."""
     return PanderaPlugin
@@ -146,7 +145,6 @@ class DataFrameModelTransformer:
                 type_.args = ()  # erase generic type arg
 
 
-# pylint: disable=too-few-public-methods
 class PanderaPluginConfig:
     """Pandera mypy plugin config"""
 

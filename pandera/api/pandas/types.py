@@ -1,4 +1,3 @@
-# pylint: disable=unused-import
 """Utility functions for pandas validation."""
 
 from functools import lru_cache

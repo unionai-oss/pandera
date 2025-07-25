@@ -14,7 +14,7 @@ def strategy_import_error(fn: F) -> F:
     def _wrapper(*args, **kwargs):
 
         try:
-            # pylint: disable=unused-import
+
             import hypothesis
         except ImportError as exc:
             raise ImportError(

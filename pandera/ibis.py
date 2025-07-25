@@ -1,4 +1,3 @@
-# pylint: disable=unused-import
 """A flexible and expressive Ibis validation library."""
 
 import pandera.backends.ibis

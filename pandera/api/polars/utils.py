@@ -1,4 +1,3 @@
-# pylint: disable=cyclic-import
 """Polars validation engine utilities."""
 
 from typing import Dict, List

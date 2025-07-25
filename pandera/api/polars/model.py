@@ -40,7 +40,7 @@ class DataFrameModel(_DataFrameModel[pl.LazyFrame, DataFrameSchema]):
         )
 
     @classmethod
-    def _build_columns(  # pylint:disable=too-many-locals
+    def _build_columns(
         cls,
         fields: Dict[str, Tuple[AnnotationInfo, FieldInfo]],
         checks: Dict[str, List[Check]],

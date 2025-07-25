@@ -2,8 +2,8 @@
 coercion examples."""
 
 # pylint doesn't know about __init__ generated with dataclass
-# pylint:disable=unexpected-keyword-arg,no-value-for-parameter
-# pylint:disable=unsubscriptable-object
+
+
 import dataclasses
 import datetime
 import inspect
@@ -203,7 +203,6 @@ dtype_fixtures: List[Tuple[Dict, List]] = [
 if GEOPANDAS_INSTALLED:
     from shapely.geometry import Polygon
 
-    # pylint:disable=ungrouped-imports
     from pandera.engines.geopandas_engine import Geometry
 
     geometry_dtypes = {Geometry: "geometry"}

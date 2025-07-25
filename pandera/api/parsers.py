@@ -5,7 +5,6 @@ from typing import Any, Callable, Optional
 from pandera.api.base.parsers import BaseParser, ParserResult
 
 
-# pylint: disable=too-many-public-methods
 class Parser(BaseParser):
     """Parse a data object for certain properties."""
 
@@ -65,7 +64,6 @@ class Parser(BaseParser):
     def __call__(
         self, parse_obj: Any, column: Optional[str] = None
     ) -> ParserResult:
-        # pylint: disable=too-many-branches
         """Validate pandas DataFrame or Series.
 
         :param parse_obj: pandas DataFrame of Series to validate.

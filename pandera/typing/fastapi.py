@@ -26,7 +26,7 @@ if PYDANTIC_V2:
 
 
 if FASTAPI_INSTALLED:
-    # pylint: disable=too-few-public-methods
+
     class UploadFile(fastapi.UploadFile, Generic[T]):
         """Pandera-specific subclass of fastapi.UploadFile.
 
@@ -56,7 +56,6 @@ if FASTAPI_INSTALLED:
 
         if PYDANTIC_V2:
 
-            # pylint: disable=unused-argument
             @classmethod
             def __get_pydantic_core_schema__(
                 cls, _source_type: Any, _handler: GetCoreSchemaHandler

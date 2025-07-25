@@ -40,7 +40,7 @@ class ArraySchemaBackend(PandasSchemaBackend):
         lazy: bool = False,
         inplace: bool = False,
     ):
-        # pylint: disable=too-many-locals
+
         error_handler = ErrorHandler(lazy)
         check_obj = self.preprocess(check_obj, inplace)
 
@@ -97,7 +97,7 @@ class ArraySchemaBackend(PandasSchemaBackend):
         self, error_handler, schema, check_obj, **subsample_kwargs
     ):
         """Run checks on schema"""
-        # pylint: disable=too-many-locals
+
         field_obj_subsample = self.subsample(
             check_obj if is_field(check_obj) else check_obj[schema.name],
             **subsample_kwargs,
@@ -148,7 +148,6 @@ class ArraySchemaBackend(PandasSchemaBackend):
         self,
         check_obj,
         schema=None,
-        # pylint: disable=unused-argument
     ):
         """Coerce type of a pd.Series by type specified in dtype.
 
@@ -241,7 +240,7 @@ class ArraySchemaBackend(PandasSchemaBackend):
             failed = None
 
             if type(check_obj).__module__.startswith("pyspark.pandas"):
-                # pylint: disable=import-outside-toplevel
+
                 import pyspark.pandas as ps
 
                 duplicates = (
@@ -329,7 +328,7 @@ class ArraySchemaBackend(PandasSchemaBackend):
                         *check_args,
                     )
                 )
-            except Exception as err:  # pylint: disable=broad-except
+            except Exception as err:
                 # catch other exceptions that may occur when executing the Check
                 err_msg = f'"{err.args[0]}"' if err.args else ""
                 msg = f"{err.__class__.__name__}({err_msg})"

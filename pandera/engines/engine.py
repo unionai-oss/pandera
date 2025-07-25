@@ -1,7 +1,6 @@
 """Data types engine interface."""
 
 # https://github.com/PyCQA/pylint/issues/3268
-# pylint:disable=no-value-for-parameter
 import functools
 import inspect
 import sys
@@ -212,7 +211,6 @@ class Engine(ABCMeta):
                 )
 
             if equivalents:
-                # pylint: disable=fixme
                 # Todo - Need changes to this function to support uninitialised object
                 cls._register_equivalents(pandera_dtype_cls, *equivalents)
 
@@ -229,7 +227,6 @@ class Engine(ABCMeta):
 
     def dtype(cls: "Engine", data_type: Any) -> DataType:
         """Convert input into a Pandera :class:`DataType` object."""
-        # pylint: disable=too-many-return-statements
         if isinstance(data_type, cls._base_pandera_dtypes):
             return data_type
 
@@ -239,7 +236,6 @@ class Engine(ABCMeta):
             and issubclass(data_type, cls._base_pandera_dtypes)
         ):
             try:
-                # pylint: disable=fixme
                 # Todo  - check if we can move to validate without initialization
                 return data_type()
             except (TypeError, AttributeError) as err:
@@ -296,7 +292,7 @@ class Engine(ABCMeta):
                 f"Data type '{data_type}' not understood by {cls.__name__}."
             ) from None
 
-    def get_registered_dtypes(  # pylint:disable=W1401
+    def get_registered_dtypes(
         cls,
     ) -> List[Type[DataType]]:
         r"""Return the :class:`pandera.dtypes.DataType`\s registered

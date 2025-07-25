@@ -87,7 +87,7 @@ class ArraySchema(ComponentSchema[TDataObject]):
         :param size: number of elements in the generated array.
         :returns: array object.
         """
-        # pylint: disable=import-outside-toplevel,cyclic-import,import-error
+
         import hypothesis
 
         with warnings.catch_warnings():
@@ -231,7 +231,7 @@ class SeriesSchema(ArraySchema[pd.Series]):
         if hasattr(check_obj, "dask"):
             # special case for dask series
             if inplace:
-                # pylint: disable=unused-import
+
                 from pandera.accessors import dask_accessor
 
                 check_obj = check_obj.pandera.add_schema(self)
@@ -278,5 +278,5 @@ class SeriesSchema(ArraySchema[pd.Series]):
         :param size: number of elements in the generated Series.
         :returns: pandas Series object.
         """
-        # pylint: disable=import-outside-toplevel,cyclic-import,import-error
+
         return cast(pd.Series, super().example(size=size))

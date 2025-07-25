@@ -173,7 +173,7 @@ class ColumnBackend(IbisSchemaBackend):
                         schema.selector,
                     )
                 )
-            except Exception as err:  # pylint: disable=broad-except
+            except Exception as err:
                 # catch other exceptions that may occur when executing the Check
                 err_msg = f'"{err.args[0]}"' if err.args else ""
                 msg = f"{err.__class__.__name__}({err_msg})"

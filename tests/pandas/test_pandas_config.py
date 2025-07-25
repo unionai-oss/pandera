@@ -1,7 +1,5 @@
 """This module is to test the behaviour change based on defined config in pandera"""
 
-# pylint:disable=import-outside-toplevel,abstract-method,redefined-outer-name
-
 from dataclasses import asdict
 
 import pandas as pd

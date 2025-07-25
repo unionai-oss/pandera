@@ -21,7 +21,6 @@ class BuiltinCheckRegistrationError(Exception):
     """
 
 
-# pylint: disable=too-many-locals
 def register_builtin_check(
     fn=None,
     strategy: Optional[Callable] = None,
@@ -133,7 +132,7 @@ def register_check_statistics(statistics_args):
     return register_check_statistics_decorator
 
 
-def register_check_method(  # pylint:disable=too-many-branches
+def register_check_method(
     check_fn=None,
     *,
     statistics: Optional[List[str]] = None,
@@ -174,7 +173,6 @@ def register_check_method(  # pylint:disable=too-many-branches
     :return: register check function wrapper.
     """
 
-    # pylint: disable=import-outside-toplevel,too-many-statements
     from pandera.strategies.pandas_strategies import register_check_strategy
 
     # NOTE: this needs to handle different dataframe types more elegantly

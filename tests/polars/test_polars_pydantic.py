@@ -1,6 +1,5 @@
 """Unit tests for Polars pydantic compatibility."""
 
-# pylint:disable=too-few-public-methods,missing-class-docstring
 from typing import Optional
 
 import polars as pl

@@ -10,7 +10,6 @@ def register_ibis_backends():
     method.
     """
 
-    # pylint: disable=import-outside-toplevel,unused-import,cyclic-import
     from pandera.api.checks import Check
     from pandera.api.ibis.components import Column
     from pandera.api.ibis.container import DataFrameSchema

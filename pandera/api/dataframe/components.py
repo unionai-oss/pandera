@@ -127,7 +127,6 @@ class ComponentSchema(Generic[TDataObject], BaseSchema):
         lazy: bool = False,
         inplace: bool = False,
     ):
-        # pylint: disable=too-many-locals,too-many-branches,too-many-statements
         """Validate a series or specific column in dataframe.
 
         :check_obj: data object to validate.

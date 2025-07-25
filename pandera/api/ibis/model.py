@@ -52,7 +52,7 @@ class DataFrameModel(_DataFrameModel[ibis.Table, DataFrameSchema]):
         )
 
     @classmethod
-    def _build_columns(  # pylint:disable=too-many-locals
+    def _build_columns(
         cls,
         fields: Dict[str, Tuple[AnnotationInfo, FieldInfo]],
         checks: Dict[str, List[Check]],
