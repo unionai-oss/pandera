@@ -103,7 +103,7 @@ class Column(ComponentSchema[ibis.Table]):
         self.set_regex()
 
     @staticmethod
-    def register_default_backends(check_obj_cls: Type):
+    def register_default_backends(check_obj_cls: type):
         register_ibis_backends()
 
     @property

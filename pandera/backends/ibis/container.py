@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import copy
 import traceback
-from typing import TYPE_CHECKING, Any, Iterable, List, Optional
+from typing import TYPE_CHECKING, Any, List, Optional
+from collections.abc import Iterable
 
 import ibis
 import ibis.selectors as s
@@ -115,10 +116,10 @@ class DataFrameSchemaBackend(IbisSchemaBackend):
         self,
         check_obj: ibis.Table,
         schema,
-    ) -> List[CoreCheckResult]:
+    ) -> list[CoreCheckResult]:
         """Run a list of checks on the check object."""
         # dataframe-level checks
-        check_results: List[CoreCheckResult] = []
+        check_results: list[CoreCheckResult] = []
         for check_index, check in enumerate(schema.checks):
             try:
                 check_results.append(
@@ -153,7 +154,7 @@ class DataFrameSchemaBackend(IbisSchemaBackend):
         schema,
         schema_components: Iterable,
         lazy: bool,
-    ) -> List[CoreCheckResult]:
+    ) -> list[CoreCheckResult]:
         """Run checks for all schema components."""
         check_results = []
         check_passed = []
@@ -190,9 +191,9 @@ class DataFrameSchemaBackend(IbisSchemaBackend):
         self, check_obj: ibis.Table, schema: DataFrameSchema
     ) -> ColumnInfo:
         """Collect column metadata for the table."""
-        column_names: List[Any] = []
-        absent_column_names: List[Any] = []
-        regex_match_patterns: List[Any] = []
+        column_names: list[Any] = []
+        absent_column_names: list[Any] = []
+        regex_match_patterns: list[Any] = []
 
         for col_name, col_schema in schema.columns.items():
             if (
@@ -284,7 +285,7 @@ class DataFrameSchemaBackend(IbisSchemaBackend):
         check_obj: ibis.Table,
         schema: DataFrameSchema,
         column_info: ColumnInfo,
-    ) -> List[CoreCheckResult]:
+    ) -> list[CoreCheckResult]:
         """Check that all columns in the schema are present in the table."""
         results = []
         if column_info.absent_column_names and not schema.add_missing_columns:

@@ -2,7 +2,8 @@
 
 import traceback
 from copy import deepcopy
-from typing import Iterable, List, Optional, Union
+from typing import List, Optional, Union
+from collections.abc import Iterable
 
 import numpy as np
 import pandas as pd
@@ -230,7 +231,7 @@ class ColumnBackend(ArraySchemaBackend):
 
     @validate_scope(scope=ValidationScope.DATA)
     def run_checks(self, check_obj, schema):
-        check_results: List[CoreCheckResult] = []
+        check_results: list[CoreCheckResult] = []
         for check_index, check in enumerate(schema.checks):
             check_args = [None] if is_field(check_obj) else [schema.name]
             try:

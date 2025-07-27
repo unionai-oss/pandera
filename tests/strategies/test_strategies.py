@@ -30,7 +30,7 @@ else:
     HAS_HYPOTHESIS = True
 
 
-UNSUPPORTED_DTYPE_CLS: Set[Any] = {
+UNSUPPORTED_DTYPE_CLS: set[Any] = {
     pandas_engine.Interval,
     pandas_engine.Period,
     pandas_engine.Sparse,

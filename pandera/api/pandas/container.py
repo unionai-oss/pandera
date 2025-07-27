@@ -147,7 +147,7 @@ class DataFrameSchema(_DataFrameSchema[pd.DataFrame]):
         )
 
     @staticmethod
-    def register_default_backends(check_obj_cls: Type):
+    def register_default_backends(check_obj_cls: type):
         from pandera.backends.pandas.register import register_pandas_backends
 
         _cls = check_obj_cls

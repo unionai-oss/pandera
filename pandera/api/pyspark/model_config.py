@@ -24,7 +24,7 @@ class BaseConfig(BaseModelConfig):
     coerce: bool = False  #: coerce types of all schema components
 
     #: make sure certain column combinations are unique
-    unique: Optional[Union[str, List[str]]] = None
+    unique: Optional[Union[str, list[str]]] = None
 
     #: make sure all specified columns are in the validated dataframe -
     #: if ``"filter"``, removes columns not specified in the schema
@@ -45,7 +45,7 @@ class BaseConfig(BaseModelConfig):
     #: converts the object of type ``from_format`` to a pandera-validate-able
     #: data structure. The reader function is implemented in the pandera.typing
     #: generic types via the ``from_format`` and ``to_format`` methods.
-    from_format_kwargs: Optional[Dict[str, Any]] = None
+    from_format_kwargs: Optional[dict[str, Any]] = None
 
     #: data format to serialize into after validation. This option only applies
     #: to  schemas used in the context of the pandera type constructor
@@ -60,7 +60,7 @@ class BaseConfig(BaseModelConfig):
     #: converts the pandera-validate-able object to type ``to_format``.
     #: The writer function is implemented in the pandera.typing
     #: generic types via the ``from_format`` and ``to_format`` methods.
-    to_format_kwargs: Optional[Dict[str, Any]] = None
+    to_format_kwargs: Optional[dict[str, Any]] = None
 
     #: a dictionary object to store key-value data at schema level
     metadata: Optional[dict] = None

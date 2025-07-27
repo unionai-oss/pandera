@@ -716,7 +716,7 @@ class FrictionlessFieldParser:
         )
 
     @property
-    def checks(self) -> Optional[List[Dict[str, Any]]]:
+    def checks(self) -> Optional[list[dict[str, Any]]]:
         """Convert a set of frictionless schema field constraints into checks.
 
         This parses the standard set of frictionless constraints which can be
@@ -839,7 +839,7 @@ class FrictionlessFieldParser:
         """
         return False
 
-    def to_pandera_column(self) -> Dict:
+    def to_pandera_column(self) -> dict:
         """Export this field to a column spec dictionary."""
         return {
             "checks": self.checks,
@@ -854,7 +854,7 @@ class FrictionlessFieldParser:
 
 
 def from_frictionless_schema(
-    schema: Union[str, Path, Dict, FrictionlessSchema],
+    schema: Union[str, Path, dict, FrictionlessSchema],
 ) -> DataFrameSchema:
     r"""Create a :class:`~pandera.api.pandas.container.DataFrameSchema` from either a
     frictionless json/yaml schema file saved on disk, or from a frictionless

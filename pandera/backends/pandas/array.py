@@ -117,7 +117,7 @@ class ArraySchemaBackend(PandasSchemaBackend):
             results = check(*args)
             if isinstance(results, CoreCheckResult):
                 results = [results]
-            results = cast(List[CoreCheckResult], results)
+            results = cast(list[CoreCheckResult], results)
             for result in results:
                 if result.passed:
                     continue
@@ -175,7 +175,7 @@ class ArraySchemaBackend(PandasSchemaBackend):
             ) from exc
 
     def run_parsers(self, schema, check_obj):
-        parser_results: List[CoreParserResult] = []
+        parser_results: list[CoreParserResult] = []
         for parser_index, parser in enumerate(schema.parsers):
             parser_args = [None] if is_field(check_obj) else [schema.name]
             result = self.run_parser(
@@ -314,8 +314,8 @@ class ArraySchemaBackend(PandasSchemaBackend):
         )
 
     @validate_scope(scope=ValidationScope.DATA)
-    def run_checks(self, check_obj, schema) -> List[CoreCheckResult]:
-        check_results: List[CoreCheckResult] = []
+    def run_checks(self, check_obj, schema) -> list[CoreCheckResult]:
+        check_results: list[CoreCheckResult] = []
         for check_index, check in enumerate(schema.checks):
             check_args = [None] if is_field(check_obj) else [schema.name]
             try:
