@@ -120,7 +120,7 @@ class DataFrameBase(Generic[T]):
     initialization.
     """
 
-    default_dtype: Optional[Type] = None
+    default_dtype: Optional[type] = None
 
     def __setattr__(self, name: str, value: Any) -> None:
         object.__setattr__(self, name, value)
@@ -154,10 +154,10 @@ class DataFrameBase(Generic[T]):
 class SeriesBase(Generic[GenericDtype]):
     """Pandera Series base class to use for all pandas-like APIs."""
 
-    default_dtype: Optional[Type] = None
+    default_dtype: Optional[type] = None
 
     def __get__(
-        self, instance: object, owner: Type
+        self, instance: object, owner: type
     ) -> str:  # pragma: no cover
         raise AttributeError("Series should resolve to Field-s")
 
@@ -168,10 +168,10 @@ class IndexBase(Generic[GenericDtype]):
     *new in 0.5.0*
     """
 
-    default_dtype: Optional[Type] = None
+    default_dtype: Optional[type] = None
 
     def __get__(
-        self, instance: object, owner: Type
+        self, instance: object, owner: type
     ) -> str:  # pragma: no cover
         raise AttributeError("Indexes should resolve to pa.Index-s")
 
@@ -190,7 +190,7 @@ class AnnotationInfo:
         metadata: Extra arguments passed to :data:`typing.Annotated`.
     """
 
-    def __init__(self, raw_annotation: Type) -> None:
+    def __init__(self, raw_annotation: type) -> None:
         self._parse_annotation(raw_annotation)
 
     @property
@@ -203,7 +203,7 @@ class AnnotationInfo:
         except TypeError:
             return False
 
-    def _parse_annotation(self, raw_annotation: Type) -> None:
+    def _parse_annotation(self, raw_annotation: type) -> None:
         """Parse key information from annotation.
 
         :param annotation: A subscripted type.

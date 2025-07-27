@@ -2,7 +2,8 @@
 
 import re
 from collections.abc import Collection
-from typing import Any, Iterable, Optional, TypeVar, Union
+from typing import Any, Optional, TypeVar, Union
+from collections.abc import Iterable
 
 import polars as pl
 

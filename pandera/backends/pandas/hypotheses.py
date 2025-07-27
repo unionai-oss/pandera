@@ -108,11 +108,11 @@ class PandasHypothesisBackend(PandasCheckBackend):
         self,
         check_obj,
         key,
-    ) -> Union[pd.DataFrame, Dict[str, pd.DataFrame]]:
+    ) -> Union[pd.DataFrame, dict[str, pd.DataFrame]]:
         if self.check.groupby is None:
             return check_obj[key]
         return cast(
-            Dict[str, pd.DataFrame],
+            dict[str, pd.DataFrame],
             self._format_groupby_input(
                 self.groupby(check_obj)[key], self.check.groups
             ),
@@ -134,6 +134,6 @@ class PandasHypothesisBackend(PandasCheckBackend):
             (sample, check_obj[sample]) for sample in self.check.samples  # type: ignore[attr-defined]
         ]
         return cast(
-            Dict[str, pd.DataFrame],
+            dict[str, pd.DataFrame],
             self._format_groupby_input(check_obj, self.check.groups),
         )

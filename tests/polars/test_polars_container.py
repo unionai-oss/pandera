@@ -20,7 +20,7 @@ from pandera.polars import Column, DataFrameModel, DataFrameSchema
 try:
     from typing import Annotated  # type: ignore
 except ImportError:
-    from typing_extensions import Annotated  # type: ignore
+    from typing import Annotated  # type: ignore
 
 
 @pytest.fixture

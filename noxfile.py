@@ -50,7 +50,7 @@ PYPROJECT = nox.project.load_toml("pyproject.toml")
 OPTIONAL_DEPENDENCIES = [*PYPROJECT["project"]["optional-dependencies"]]
 
 
-def _pyproject_requirements() -> Dict[str, List[str]]:
+def _pyproject_requirements() -> dict[str, list[str]]:
     """Load requirements from setup.py."""
     return {
         "core": PYPROJECT["project"]["dependencies"],
@@ -58,7 +58,7 @@ def _pyproject_requirements() -> Dict[str, List[str]]:
     }
 
 
-def _dev_requirements() -> List[str]:
+def _dev_requirements() -> list[str]:
     """Load requirements from file."""
     with open(REQUIREMENT_PATH, encoding="utf-8") as req_file:
         reqs = []

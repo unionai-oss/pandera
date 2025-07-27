@@ -14,5 +14,5 @@ except ImportError:  # pragma: no cover
 
 
 StrictType = Union[bool, Literal["filter"]]
-CheckList = Union[Check, List[Union[Check, Hypothesis]]]
-ParserList = Union[Parser, List[Parser]]
+CheckList = Union[Check, list[Union[Check, Hypothesis]]]
+ParserList = Union[Parser, list[Parser]]

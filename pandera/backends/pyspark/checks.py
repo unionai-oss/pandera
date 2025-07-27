@@ -43,8 +43,8 @@ class PySparkCheckBackend(BaseCheckBackend):
     @staticmethod
     def _format_groupby_input(
         groupby_obj: GroupbyObject,
-        groups: Optional[List[str]],
-    ) -> Dict[str, DataFrameTypes]:  # pragma: no cover
+        groups: Optional[list[str]],
+    ) -> dict[str, DataFrameTypes]:  # pragma: no cover
         raise NotImplementedError
 
     def preprocess(

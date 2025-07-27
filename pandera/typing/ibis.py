@@ -2,7 +2,8 @@
 
 import functools
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Generic, TypeVar, List, Mapping
+from typing import TYPE_CHECKING, Any, Generic, TypeVar, List
+from collections.abc import Mapping
 
 from packaging import version
 
@@ -119,7 +120,7 @@ if IBIS_INSTALLED:
                             lambda: ibis.read_json(obj, **kwargs),
                             "Failed to read JSON with Ibis",
                         )
-                    elif isinstance(obj, (List, Mapping)):
+                    elif isinstance(obj, (list, Mapping)):
                         # If it's a Python object that's JSON-serializable
                         return ibis.memtable(obj)
                     else:

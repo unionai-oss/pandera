@@ -132,10 +132,10 @@ class PolarsSchemaBackend(BaseSchemaBackend):
     def failure_cases_metadata(
         self,
         schema_name: str,
-        schema_errors: List[SchemaError],
+        schema_errors: list[SchemaError],
     ) -> FailureCaseMetadata:
         """Create failure cases metadata required for SchemaErrors exception."""
-        error_counts: Dict[str, int] = defaultdict(int)
+        error_counts: dict[str, int] = defaultdict(int)
 
         failure_case_collection = []
 

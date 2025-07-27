@@ -223,7 +223,7 @@ def test_check_decorator_coercion() -> None:
         return {"key": df.assign(column2=10)}
 
     cases: typing.Iterable[
-        typing.Tuple[typing.Callable, typing.Union[int, str, None]]
+        tuple[typing.Callable, typing.Union[int, str, None]]
     ] = [
         (test_func_io, None),
         (test_func_out_tuple_obj_getter, 1),
@@ -1019,7 +1019,7 @@ def test_check_types_star_kwargs() -> None:
         # pylint: disable=unused-argument
         kwarg1: int = 1,
         **kwargs: int,
-    ) -> typing.List[str]:
+    ) -> list[str]:
         return list(kwargs.keys())
 
     @check_types
@@ -1027,7 +1027,7 @@ def test_check_types_star_kwargs() -> None:
         # pylint: disable=unused-argument
         kwarg1: typing.Optional[DataFrame[InSchema]] = None,
         **kwargs: DataFrame[InSchema],
-    ) -> typing.List[str]:
+    ) -> list[str]:
         return list(kwargs.keys())
 
     in_1 = pd.DataFrame({"a": [1]}, index=["1"])

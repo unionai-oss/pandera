@@ -14,7 +14,7 @@ from pandera.api.hypotheses import Hypothesis
 
 @Hypothesis.register_builtin_check_fn
 def two_sample_ttest(
-    *samples: Tuple[Any, ...],
+    *samples: tuple[Any, ...],
     equal_var: bool = True,
     nan_policy: str = "propagate",
 ):
@@ -23,7 +23,7 @@ def two_sample_ttest(
 
 @Hypothesis.register_builtin_check_fn
 def one_sample_ttest(
-    *samples: Tuple[Any, ...],
+    *samples: tuple[Any, ...],
     popmean: float,
     nan_policy: str = "propagate",
 ):

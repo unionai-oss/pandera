@@ -7,17 +7,15 @@ import inspect
 import warnings
 from typing import (
     Any,
-    Iterable,
     Literal,
-    Mapping,
     Optional,
-    Sequence,
     Tuple,
     Type,
     Union,
     TypedDict,
     overload,
 )
+from collections.abc import Iterable, Mapping, Sequence
 
 import polars as pl
 from packaging import version
@@ -99,7 +97,7 @@ def polars_failure_cases_from_coercible(
 def polars_coerce_failure_cases(
     data_container: PolarsData,
     type_: Any,
-) -> Tuple[pl.DataFrame, pl.DataFrame]:
+) -> tuple[pl.DataFrame, pl.DataFrame]:
     """
     Get the failure cases resulting from trying to coerce a polars object
     into particular data type.
@@ -135,7 +133,7 @@ def polars_coerce_failure_cases(
 class DataType(dtypes.DataType):
     """Base `DataType` for boxing Polars data types."""
 
-    type: Union[Type[pl.DataType], DataTypeClass] = dataclasses.field(
+    type: Union[type[pl.DataType], DataTypeClass] = dataclasses.field(
         repr=False, init=False
     )
 
@@ -487,7 +485,7 @@ class Date(DataType, dtypes.Date):
 class DateTime(DataType, dtypes.DateTime):
     """Polars datetime data type."""
 
-    type: Type[pl.Datetime] = pl.Datetime
+    type: type[pl.Datetime] = pl.Datetime
     time_zone_agnostic: bool = False
 
     def __init__(
@@ -610,7 +608,7 @@ class Array(DataType):
     def __init__(
         self,
         inner: PolarsDataType = ...,
-        shape: Union[int, Tuple[int, ...], None] = ...,
+        shape: Union[int, tuple[int, ...], None] = ...,
         *,
         width: Optional[int] = ...,
     ) -> None: ...
@@ -618,7 +616,7 @@ class Array(DataType):
     def __init__(
         self,
         inner: Optional[PolarsDataType] = None,
-        shape: Union[int, Tuple[int, ...], None] = None,
+        shape: Union[int, tuple[int, ...], None] = None,
         *,
         width: Optional[int] = None,
     ) -> None:
