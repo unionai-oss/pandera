@@ -813,6 +813,8 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
         )
         for lst in temp_unique:
             subset = [x for x in lst if x in check_obj]
+            if not subset:
+                continue
             duplicates = check_obj.duplicated(  # type: ignore
                 subset=subset, keep=keep_setting  # type: ignore
             )
