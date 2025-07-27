@@ -14,7 +14,6 @@ from typing import (
     Any,
     Callable,
     Dict,
-    Iterable,
     List,
     NamedTuple,
     Optional,
@@ -23,6 +22,7 @@ from typing import (
     Union,
     cast,
 )
+from collections.abc import Iterable
 
 import numpy as np
 import pandas as pd
@@ -331,7 +331,7 @@ class BOOL(DataType, dtypes.Bool):
 
 
 def _register_numpy_numbers(
-    builtin_name: str, pandera_name: str, sizes: List[int]
+    builtin_name: str, pandera_name: str, sizes: list[int]
 ) -> None:
     """Register pandera.engines.numpy_engine DataTypes
     with the pandas engine."""
@@ -803,7 +803,7 @@ _PandasDatetime = Union[np.datetime64, pd.DatetimeTZDtype]
 
 @immutable(init=True)
 class _BaseDateTime(DataType):
-    to_datetime_kwargs: Dict[str, Any] = dataclasses.field(
+    to_datetime_kwargs: dict[str, Any] = dataclasses.field(
         default_factory=dict, compare=False, repr=False
     )
 
@@ -871,12 +871,12 @@ class DateTime(_BaseDateTime, dtypes.Timestamp):
         timezone-naive datetimes, and localize them to the specified tz.
     """
 
-    to_datetime_kwargs: Dict[str, Any] = dataclasses.field(
+    to_datetime_kwargs: dict[str, Any] = dataclasses.field(
         default_factory=dict, compare=False, repr=False
     )
     "Any additional kwargs passed to :func:`pandas.to_datetime` for coercion."
 
-    tz_localize_kwargs: Dict[str, Any] = dataclasses.field(
+    tz_localize_kwargs: dict[str, Any] = dataclasses.field(
         default_factory=dict, compare=False, repr=False
     )
     "Keyword arguments passed to :func:`pandas.Series.dt.tz_localize` for coercion."
@@ -1072,7 +1072,7 @@ class Date(_BaseDateTime, dtypes.Date):
 
     type = np.dtype("object")
 
-    to_datetime_kwargs: Dict[str, Any] = dataclasses.field(
+    to_datetime_kwargs: dict[str, Any] = dataclasses.field(
         default_factory=dict, compare=False, repr=False
     )
     "Any additional kwargs passed to :func:`pandas.to_datetime` for coercion."
@@ -1080,7 +1080,7 @@ class Date(_BaseDateTime, dtypes.Date):
     # define __init__ to please mypy
     def __init__(
         self,
-        to_datetime_kwargs: Optional[Dict[str, Any]] = None,
+        to_datetime_kwargs: Optional[dict[str, Any]] = None,
     ) -> None:
         object.__setattr__(
             self, "to_datetime_kwargs", to_datetime_kwargs or {}
@@ -1226,16 +1226,16 @@ class Interval(DataType):
 class PydanticModel(DataType):
     """A pydantic model datatype applying to rows in a dataframe."""
 
-    type: Type[BaseModel] = dataclasses.field(default=None, init=False)  # type: ignore[assignment]
+    type: type[BaseModel] = dataclasses.field(default=None, init=False)  # type: ignore[assignment]
     auto_coerce = True
 
-    def __init__(self, model: Type[BaseModel]) -> None:
+    def __init__(self, model: type[BaseModel]) -> None:
         object.__setattr__(self, "type", model)
 
     def _check_column_names(
         self,
         data_container: PandasObject,
-        column_names: List[str],
+        column_names: list[str],
     ) -> None:
         absent_columns = [
             col for col in column_names if col not in data_container.columns
@@ -1321,7 +1321,7 @@ class PythonGenericType(DataType):
     type: Any = dataclasses.field(default=None, init=False)  # type: ignore
     generic_type: Any = dataclasses.field(default=None, init=False)
     special_type: Any = dataclasses.field(default=None, init=False)
-    coercion_model: Type[BaseModel] = dataclasses.field(  # type: ignore
+    coercion_model: type[BaseModel] = dataclasses.field(  # type: ignore
         default=None, init=False
     )
     _pandas_type = object
@@ -1435,9 +1435,9 @@ def _create_coercion_model(generic_type: Any):
 class PythonDict(PythonGenericType):
     """A datatype to support python generics."""
 
-    type: Type[dict] = dict
+    type: type[dict] = dict
 
-    def __init__(self, generic_type: Optional[Type] = None) -> None:
+    def __init__(self, generic_type: Optional[type] = None) -> None:
         if generic_type is not None:
             object.__setattr__(self, "generic_type", generic_type)
 
@@ -1454,9 +1454,9 @@ class PythonDict(PythonGenericType):
 class PythonList(PythonGenericType):
     """A datatype to support python generics."""
 
-    type: Type[list] = list
+    type: type[list] = list
 
-    def __init__(self, generic_type: Optional[Type] = None) -> None:
+    def __init__(self, generic_type: Optional[type] = None) -> None:
         if generic_type is not None:
             object.__setattr__(self, "generic_type", generic_type)
 
@@ -1473,9 +1473,9 @@ class PythonList(PythonGenericType):
 class PythonTuple(PythonGenericType):
     """A datatype to support python generics."""
 
-    type: Type[list] = list
+    type: type[list] = list
 
-    def __init__(self, generic_type: Optional[Type] = None) -> None:
+    def __init__(self, generic_type: Optional[type] = None) -> None:
         if generic_type is not None:
             object.__setattr__(self, "generic_type", generic_type)
 
@@ -1496,7 +1496,7 @@ class PythonTypedDict(PythonGenericType):
 
     def __init__(
         self,
-        special_type: Optional[Type] = None,
+        special_type: Optional[type] = None,
     ) -> None:
         if special_type is not None:
             object.__setattr__(self, "special_type", special_type)
@@ -1521,7 +1521,7 @@ class PythonNamedTuple(PythonGenericType):
 
     def __init__(
         self,
-        special_type: Optional[Type] = None,
+        special_type: Optional[type] = None,
     ) -> None:
         if special_type is not None:
             object.__setattr__(self, "special_type", special_type)
@@ -1871,8 +1871,8 @@ if PYARROW_INSTALLED and PANDAS_2_0_0_PLUS:
         )
         fields: Optional[
             Union[
-                Iterable[Union[pyarrow.Field, Tuple[str, pyarrow.DataType]]],
-                Dict[str, pyarrow.DataType],
+                Iterable[Union[pyarrow.Field, tuple[str, pyarrow.DataType]]],
+                dict[str, pyarrow.DataType],
             ]
         ] = tuple()
 

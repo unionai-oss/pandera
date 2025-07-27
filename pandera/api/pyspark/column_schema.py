@@ -71,7 +71,7 @@ class ColumnSchema(BaseSchema):
         self.metadata = metadata
 
     @staticmethod
-    def register_default_backends(check_obj_cls: Type):
+    def register_default_backends(check_obj_cls: type):
         register_pyspark_backends()
 
     @property
@@ -162,7 +162,7 @@ class ColumnSchema(BaseSchema):
     # Schema Transforms Methods #
     #############################
 
-    def update_checks(self, checks: List[Check]):
+    def update_checks(self, checks: list[Check]):
         """Create a new Schema with a new set of Checks
 
         :param checks: checks to set on the new schema

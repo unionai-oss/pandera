@@ -2,7 +2,8 @@
 
 import functools
 import io
-from typing import TYPE_CHECKING, Any, Generic, TypeVar, List, Mapping
+from typing import TYPE_CHECKING, Any, Generic, TypeVar, List
+from collections.abc import Mapping
 
 from packaging import version
 
@@ -133,7 +134,7 @@ if POLARS_INSTALLED:
                             lambda: pl.read_json(obj, **kwargs),
                             "Failed to read JSON with polars",
                         )
-                    elif isinstance(obj, (List, Mapping)):
+                    elif isinstance(obj, (list, Mapping)):
                         # If it's a Python object that's JSON-serializable
                         return pl.DataFrame(obj)
                     else:

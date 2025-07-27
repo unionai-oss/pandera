@@ -57,7 +57,7 @@ def _create_dataframe(
 )
 def test_infer_schema(
     pandas_obj,
-    expectation: Type[Union[pa.DataFrameSchema, pa.SeriesSchema, TypeError]],
+    expectation: type[Union[pa.DataFrameSchema, pa.SeriesSchema, TypeError]],
 ) -> None:
     """Test that convenience function correctly infers dataframe or series."""
     if expectation is TypeError:

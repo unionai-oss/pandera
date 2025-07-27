@@ -44,7 +44,7 @@ class DataFrameSchema(BaseSchema):
     def __init__(
         self,
         columns: Optional[  # type: ignore [name-defined]
-            Dict[Any, pandera.api.pyspark.components.Column]  # type: ignore [name-defined]
+            dict[Any, pandera.api.pyspark.components.Column]  # type: ignore [name-defined]
         ] = None,
         checks: Optional[CheckList] = None,
         dtype: PySparkDtypeInputTypes = None,
@@ -52,7 +52,7 @@ class DataFrameSchema(BaseSchema):
         strict: StrictType = False,
         name: Optional[str] = None,
         ordered: bool = False,
-        unique: Optional[Union[str, List[str]]] = None,
+        unique: Optional[Union[str, list[str]]] = None,
         report_duplicates: UniqueSettings = "all",
         unique_column_names: bool = False,
         title: Optional[str] = None,
@@ -142,7 +142,7 @@ class DataFrameSchema(BaseSchema):
             metadata=metadata,
         )
 
-        self.columns: Dict[Any, pandera.api.pyspark.components.Column] = (  # type: ignore [name-defined]
+        self.columns: dict[Any, pandera.api.pyspark.components.Column] = (  # type: ignore [name-defined]
             {} if columns is None else columns
         )
 
@@ -166,7 +166,7 @@ class DataFrameSchema(BaseSchema):
         self.metadata = metadata
 
     @staticmethod
-    def register_default_backends(check_obj_cls: Type):
+    def register_default_backends(check_obj_cls: type):
         register_pyspark_backends()
 
     @property
@@ -187,12 +187,12 @@ class DataFrameSchema(BaseSchema):
         return self._unique
 
     @unique.setter
-    def unique(self, value: Optional[Union[str, List[str]]]) -> None:
+    def unique(self, value: Optional[Union[str, list[str]]]) -> None:
         """Set unique attribute."""
         self._unique = [value] if isinstance(value, str) else value
 
     @property
-    def dtypes(self) -> Dict[str, DataType]:
+    def dtypes(self) -> dict[str, DataType]:
         """
         A dict where the keys are column names and values are
         :class:`~pandera.dtypes.DataType` s for the column. Excludes columns
@@ -214,7 +214,7 @@ class DataFrameSchema(BaseSchema):
 
     def get_metadata(self) -> Optional[dict]:
         """Provide metadata for columns and schema level"""
-        res: Dict[Any, Any] = {"columns": {}}
+        res: dict[Any, Any] = {"columns": {}}
         for k in self.columns.keys():
             res["columns"][k] = self.columns[k].properties["metadata"]
 
@@ -224,7 +224,7 @@ class DataFrameSchema(BaseSchema):
         meta[self.name] = res
         return meta
 
-    def get_dtypes(self, dataframe: DataFrame) -> Dict[str, DataType]:
+    def get_dtypes(self, dataframe: DataFrame) -> dict[str, DataType]:
         """
         Same as the ``dtype`` property, but expands columns where
         ``regex == True`` based on the supplied dataframe.

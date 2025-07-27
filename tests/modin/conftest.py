@@ -1,7 +1,7 @@
 """Registers fixtures for core"""
 
 import os
-from typing import Generator
+from collections.abc import Generator
 
 import pytest
 from pandera.api.checks import Check

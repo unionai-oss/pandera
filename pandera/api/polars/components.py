@@ -107,7 +107,7 @@ class Column(ComponentSchema[PolarsCheckObjects]):
 
     @staticmethod
     def register_default_backends(
-        check_obj_cls: Type,
+        check_obj_cls: type,
     ):
         register_polars_backends()
 

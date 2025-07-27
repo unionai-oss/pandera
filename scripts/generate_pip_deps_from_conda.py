@@ -24,7 +24,7 @@ from typing import Dict, List, Optional
 import yaml
 
 EXCLUDE = {"python"}
-RENAME: Dict[str, str] = {"ibis-duckdb": "ibis-framework[duckdb]"}
+RENAME: dict[str, str] = {"ibis-duckdb": "ibis-framework[duckdb]"}
 
 REPO_PATH = Path(__file__).resolve().absolute().parents[1]
 CONDA_REQUIREMENTS_FILE = REPO_PATH / "environment.yml"
@@ -90,7 +90,7 @@ def main(conda_file: Path, pip_file: Path, compare: bool = False) -> bool:
     with open(conda_file) as conda_fd:
         deps = yaml.safe_load(conda_fd)["dependencies"]
 
-    pip_deps: List[str] = []
+    pip_deps: list[str] = []
     for dep in deps:
         if isinstance(dep, str):
             conda_dep = conda_package_to_pip(dep)

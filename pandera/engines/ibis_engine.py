@@ -4,7 +4,8 @@ import dataclasses
 import datetime
 import inspect
 import warnings
-from typing import Any, Iterable, Literal, Optional, Type, Union
+from typing import Any, Literal, Optional, Type, Union
+from collections.abc import Iterable
 
 import ibis
 import ibis.expr.datatypes as dt
@@ -336,7 +337,7 @@ class Date(DataType, dtypes.Date):
 class DateTime(DataType, dtypes.DateTime):
     """Semantic representation of a :class:`dt.Timestamp`."""
 
-    type: Type[dt.Timestamp]
+    type: type[dt.Timestamp]
 
     def __init__(
         self,
@@ -383,7 +384,7 @@ class Time(DataType):
 class Timedelta(DataType, dtypes.DateTime):
     """Semantic representation of a :class:`dt.Timestamp`."""
 
-    type: Type[dt.Interval]
+    type: type[dt.Interval]
 
     def __init__(self, unit: IntervalUnit = "us"):
         object.__setattr__(self, "type", dt.Interval(unit=unit))

@@ -363,9 +363,9 @@ class DataFrame(DataFrameBase, pd.DataFrame, Generic[T]):
 
     @staticmethod
     def from_records(  # type: ignore
-        schema: Type[T],
+        schema: type[T],
         data: Union[  # type: ignore
-            np.ndarray, List[Tuple[Any, ...]], Dict[Any, Any], pd.DataFrame
+            np.ndarray, list[tuple[Any, ...]], dict[Any, Any], pd.DataFrame
         ],
         **kwargs,
     ) -> "DataFrame[T]":

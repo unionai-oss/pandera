@@ -24,9 +24,9 @@ test_module_dir = Path(os.path.dirname(__file__))
 def _get_mypy_errors(
     module_name: str,
     stdout,
-) -> typing.List[typing.Dict[str, str]]:
+) -> list[dict[str, str]]:
     """Parse line number and error message."""
-    errors: typing.List[typing.Dict[str, str]] = []
+    errors: list[dict[str, str]] = []
     # last line is summary of errors
     for error in [x for x in stdout.split("\n") if x != ""][:-1]:
         regex = (

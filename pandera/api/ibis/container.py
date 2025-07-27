@@ -14,7 +14,7 @@ class DataFrameSchema(_DataFrameSchema[ibis.Table]):
     """A lightweight Ibis table validator."""
 
     @staticmethod
-    def register_default_backends(check_obj_cls: Type):
+    def register_default_backends(check_obj_cls: type):
         register_ibis_backends()
 
     def validate(
