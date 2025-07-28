@@ -3,7 +3,7 @@
 import datetime
 import decimal
 from decimal import Decimal
-from typing import Tuple, Union
+from typing import Union
 from collections.abc import Sequence
 
 import polars as pl

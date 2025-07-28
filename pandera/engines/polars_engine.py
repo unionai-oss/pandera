@@ -10,8 +10,6 @@ from typing import (
     Any,
     Literal,
     Optional,
-    Tuple,
-    Type,
     Union,
     TypedDict,
     overload,

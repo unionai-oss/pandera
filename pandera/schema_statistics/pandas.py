@@ -1,7 +1,7 @@
 """Module for inferring the statistics of pandas objects."""
 
 import warnings
-from typing import Any, Dict, Union, List
+from typing import Any, Union
 
 import pandas as pd
 

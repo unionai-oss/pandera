@@ -7,7 +7,6 @@ from typing import (  # type: ignore[attr-defined]
     Any,
     Generic,
     Optional,
-    Type,
     TypeVar,
     Union,
     _GenericAlias,

@@ -1,7 +1,7 @@
 """Check backend for pandas."""
 
 from functools import partial
-from typing import Dict, List, Optional, Union, cast
+from typing import Optional, Union, cast
 
 import pandas as pd
 

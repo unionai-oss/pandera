@@ -10,13 +10,8 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    Dict,
-    List,
     NamedTuple,
     Optional,
-    Set,
-    Tuple,
-    Type,
     TypeVar,
 )
 

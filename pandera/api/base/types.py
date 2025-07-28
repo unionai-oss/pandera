@@ -1,6 +1,6 @@
 """Base type definitions for pandera."""
 
-from typing import List, Union
+from typing import Union
 
 from pandera.api.checks import Check
 from pandera.api.hypotheses import Hypothesis

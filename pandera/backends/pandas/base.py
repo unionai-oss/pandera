@@ -2,7 +2,7 @@
 
 import warnings
 from collections import defaultdict
-from typing import List, Optional, TypeVar, Union
+from typing import Optional, TypeVar, Union
 
 import pandas as pd
 

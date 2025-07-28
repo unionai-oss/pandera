@@ -5,7 +5,7 @@ import re
 import runpy
 from copy import deepcopy
 from enum import Enum
-from typing import Any, Generic, List, Optional, TypeVar, Type
+from typing import Any, Generic, Optional, TypeVar
 from collections.abc import Iterable
 
 import numpy as np

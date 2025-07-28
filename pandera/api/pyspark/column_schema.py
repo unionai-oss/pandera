@@ -1,7 +1,7 @@
 """Core pyspark column specification."""
 
 import copy
-from typing import Any, List, Optional, Type, TypeVar, cast
+from typing import Any, Optional, TypeVar, cast
 
 import pyspark.sql as ps
 

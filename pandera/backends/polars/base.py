@@ -2,7 +2,7 @@
 
 import warnings
 from collections import defaultdict
-from typing import Dict, List, Optional
+from typing import Optional
 
 import polars as pl
 

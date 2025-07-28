@@ -2,7 +2,7 @@
 
 import functools
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Generic, TypeVar, List
+from typing import TYPE_CHECKING, Any, Generic, TypeVar
 from collections.abc import Mapping
 
 from packaging import version

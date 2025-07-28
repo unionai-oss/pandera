@@ -7,7 +7,7 @@ dispatching specific implementations based on the data object type, e.g.
 `pandas.DataFrame`s.
 """
 
-from typing import Any, Tuple
+from typing import Any
 
 from pandera.api.hypotheses import Hypothesis
 
