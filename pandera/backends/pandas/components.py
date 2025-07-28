@@ -407,30 +407,11 @@ class MultiIndexBackend(PandasSchemaBackend):
         lazy: bool = False,
         inplace: bool = False,
     ) -> Union[pd.DataFrame, pd.Series]:
-        """Validate the MultiIndex of a pandas DataFrame/Series.
-
-        Unlike the previous implementation, this method operates directly on
-        the ``MultiIndex`` object and therefore avoids constructing a
-        temporary helper dataframe, which could incur a large memory
-        footprint when the index is big.
-
-        :param head: validate the first n rows. Rows overlapping with `tail` or
-            `sample` are de-duplicated.
-        :param check_obj: pandas DataFrame of Series to validate.
-        :param tail: validate the last n rows. Rows overlapping with `head` or
-            `sample` are de-duplicated.
-        :param sample: validate a random sample of n rows. Rows overlapping
-            with `head` or `tail` are de-duplicated.
-        :param random_state: random seed for the ``sample`` argument.
-        :param lazy: if True, lazily evaluates dataframe against all validation
-            checks and raises a ``SchemaErrors``. Otherwise, raise
-            ``SchemaError`` as soon as one occurs.
-        :param inplace: if True, applies coercion to the object of validation,
-            otherwise creates a copy of the data.
-        :returns: validated DataFrame or Series.
-        """
+        """Validate the MultiIndex of a pandas DataFrame/Series."""
 
         # Ensure we are validating against a MultiIndex
+        # We need to raise immediately here because there's not much we can do
+        # with a non-MultiIndex index.
         if not is_multiindex(check_obj.index):
             raise SchemaError(
                 schema,
@@ -459,12 +440,12 @@ class MultiIndexBackend(PandasSchemaBackend):
         # multi-index names (order and presence checks).
         self._validate_index_names(check_obj.index, schema, error_handler)
 
-        # Map schema `indexes` definitions to concrete level positions in the
+        # Map schema ``indexes`` definitions to concrete level positions in the
         # multi-index so that we can validate each level individually.
         level_mapping: List[Tuple[int, Any]] = self._map_schema_to_levels(check_obj.index, schema, error_handler)
 
         # Iterate over the expected index levels and validate each level with its
-        # corresponding `Index` schema component.
+        # corresponding ``Index`` schema component.
         for level_pos, index_schema in level_mapping:
             stub_df = pd.DataFrame(index=check_obj.index.get_level_values(level_pos))
 
@@ -518,11 +499,8 @@ class MultiIndexBackend(PandasSchemaBackend):
         error_handler: Optional[ErrorHandler],
         err: Union[SchemaError, SchemaErrors],
     ) -> None:  # noqa: D401
-        """Collect *SchemaError(s)* into ``error_handler`` when lazy, else raise.
-
-        The helper now supports both ``SchemaError`` and ``SchemaErrors`` so
-        that callers can uniformly delegate error handling regardless of the
-        single- or multi-error type.
+        """Collect SchemaError/SchemaErrors* into error_handler when lazy,
+        otherwise, raise the first error.
         """
 
         if isinstance(err, SchemaErrors):
