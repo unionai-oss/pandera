@@ -47,7 +47,7 @@ def register_builtin_check(
     name = fn.__name__
 
     # see if the check function is already registered
-    check_dispatcher = _check_cls.CHECK_FUNCTION_REGISTRY.get(name)
+    check_dispatcher = _check_cls.CHECK_FUNCTION_REGISTRY.get(name)  # type: ignore[attr-defined]
     fn_sig = signature(fn)
 
     # register the check strategy for this particular check, identified
