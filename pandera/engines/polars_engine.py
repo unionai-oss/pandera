@@ -1,5 +1,6 @@
 """Polars engine and data types."""
 
+import builtins
 import dataclasses
 import datetime
 import decimal
@@ -133,7 +134,7 @@ def polars_coerce_failure_cases(
 class DataType(dtypes.DataType):
     """Base `DataType` for boxing Polars data types."""
 
-    type: Union[type[pl.DataType], DataTypeClass] = dataclasses.field(
+    type: Union[builtins.type[pl.DataType], DataTypeClass] = dataclasses.field(
         repr=False, init=False
     )
 
@@ -485,7 +486,7 @@ class Date(DataType, dtypes.Date):
 class DateTime(DataType, dtypes.DateTime):
     """Polars datetime data type."""
 
-    type: type[pl.Datetime] = pl.Datetime
+    type: builtins.type[pl.Datetime] = pl.Datetime
     time_zone_agnostic: bool = False
 
     def __init__(

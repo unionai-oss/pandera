@@ -1226,10 +1226,10 @@ class Interval(DataType):
 class PydanticModel(DataType):
     """A pydantic model datatype applying to rows in a dataframe."""
 
-    type: type[BaseModel] = dataclasses.field(default=None, init=False)  # type: ignore[assignment]
+    type: builtins.type[BaseModel] = dataclasses.field(default=None, init=False)  # type: ignore[assignment]
     auto_coerce = True
 
-    def __init__(self, model: type[BaseModel]) -> None:
+    def __init__(self, model: builtins.type[BaseModel]) -> None:
         object.__setattr__(self, "type", model)
 
     def _check_column_names(
@@ -1321,7 +1321,7 @@ class PythonGenericType(DataType):
     type: Any = dataclasses.field(default=None, init=False)  # type: ignore
     generic_type: Any = dataclasses.field(default=None, init=False)
     special_type: Any = dataclasses.field(default=None, init=False)
-    coercion_model: type[BaseModel] = dataclasses.field(  # type: ignore
+    coercion_model: builtins.type[BaseModel] = dataclasses.field(  # type: ignore
         default=None, init=False
     )
     _pandas_type = object
@@ -1437,7 +1437,7 @@ class PythonDict(PythonGenericType):
 
     type: type[dict] = dict
 
-    def __init__(self, generic_type: Optional[type] = None) -> None:
+    def __init__(self, generic_type: Optional[builtins.type] = None) -> None:
         if generic_type is not None:
             object.__setattr__(self, "generic_type", generic_type)
 
@@ -1456,7 +1456,7 @@ class PythonList(PythonGenericType):
 
     type: type[list] = list
 
-    def __init__(self, generic_type: Optional[type] = None) -> None:
+    def __init__(self, generic_type: Optional[builtins.type] = None) -> None:
         if generic_type is not None:
             object.__setattr__(self, "generic_type", generic_type)
 
@@ -1475,7 +1475,7 @@ class PythonTuple(PythonGenericType):
 
     type: type[list] = list
 
-    def __init__(self, generic_type: Optional[type] = None) -> None:
+    def __init__(self, generic_type: Optional[builtins.type] = None) -> None:
         if generic_type is not None:
             object.__setattr__(self, "generic_type", generic_type)
 
@@ -1496,7 +1496,7 @@ class PythonTypedDict(PythonGenericType):
 
     def __init__(
         self,
-        special_type: Optional[type] = None,
+        special_type: Optional[builtins.type] = None,
     ) -> None:
         if special_type is not None:
             object.__setattr__(self, "special_type", special_type)
@@ -1521,7 +1521,7 @@ class PythonNamedTuple(PythonGenericType):
 
     def __init__(
         self,
-        special_type: Optional[type] = None,
+        special_type: Optional[builtins.type] = None,
     ) -> None:
         if special_type is not None:
             object.__setattr__(self, "special_type", special_type)
