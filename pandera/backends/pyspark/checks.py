@@ -1,7 +1,7 @@
 """Check backend for pyspark."""
 
 from functools import partial
-from typing import Dict, List, Optional, Union
+from typing import Optional, Union
 
 from pandera.api.base.checks import CheckResult
 from pandera.api.checks import Check

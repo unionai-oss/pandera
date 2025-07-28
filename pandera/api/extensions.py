@@ -5,7 +5,7 @@ import warnings
 from enum import Enum
 from functools import partial, wraps
 from inspect import signature
-from typing import Callable, List, Optional, Tuple, Type, Union
+from typing import Callable, Optional, Union
 
 import typing_inspect
 

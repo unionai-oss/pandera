@@ -1,7 +1,7 @@
 """Parser backend for pandas"""
 
 from functools import partial
-from typing import Dict, Optional, Union
+from typing import Optional, Union
 
 import pandas as pd
 

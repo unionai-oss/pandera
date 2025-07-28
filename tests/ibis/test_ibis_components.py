@@ -1,6 +1,6 @@
 """Unit tests for Ibis components."""
 
-from typing import List, Optional, Union
+from typing import Optional, Union
 from collections.abc import Iterable
 
 import ibis

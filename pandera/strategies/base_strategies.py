@@ -1,7 +1,7 @@
 """Base module for `hypothesis`-based strategies for data synthesis."""
 
 from functools import wraps
-from typing import Callable, Dict, Generic, Tuple, Type, TypeVar, cast
+from typing import Callable, Generic, TypeVar, cast
 
 import pandera.backends.base.builtin_checks
 

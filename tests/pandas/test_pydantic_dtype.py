@@ -1,7 +1,5 @@
 """Unit tests for pydantic datatype."""
 
-from typing import Type
-
 import pandas as pd
 import pytest
 from pydantic import BaseModel

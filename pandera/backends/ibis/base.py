@@ -2,7 +2,6 @@
 
 import warnings
 from collections import defaultdict
-from typing import List
 
 import ibis
 

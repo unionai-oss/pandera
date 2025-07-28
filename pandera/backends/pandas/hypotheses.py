@@ -1,7 +1,7 @@
 """Hypothesis backend for pandas."""
 
 from functools import partial
-from typing import Any, Callable, Dict, Union, cast
+from typing import Any, Callable, Union, cast
 
 import pandas as pd
 

@@ -4,7 +4,6 @@ import functools
 import logging
 import warnings
 from contextlib import contextmanager
-from typing import List, Type
 
 from pyspark.sql import DataFrame
 

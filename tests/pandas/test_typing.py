@@ -1,7 +1,7 @@
 """Test typing annotations for the model api."""
 
 import re
-from typing import Any, Dict, Optional, Type
+from typing import Any, Optional
 
 import numpy as np
 import pandas as pd

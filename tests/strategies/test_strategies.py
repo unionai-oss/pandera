@@ -3,7 +3,7 @@
 import datetime
 import operator
 import re
-from typing import Any, Callable, Optional, Set
+from typing import Any, Callable, Optional
 from unittest.mock import MagicMock
 from warnings import catch_warnings
 

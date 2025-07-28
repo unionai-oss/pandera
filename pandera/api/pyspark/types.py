@@ -1,7 +1,7 @@
 """Utility functions for pyspark validation."""
 
 from functools import lru_cache
-from typing import List, NamedTuple, Tuple, Type, Union
+from typing import NamedTuple, Union
 from numpy import bool_ as np_bool
 from packaging import version
 

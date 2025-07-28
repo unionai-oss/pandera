@@ -1,7 +1,7 @@
 """Make schema error messages human-friendly."""
 
 import re
-from typing import Any, List, Union
+from typing import Any, Union
 
 import pandas as pd
 

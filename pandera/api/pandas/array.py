@@ -1,7 +1,7 @@
 """Core pandas array specification."""
 
 import warnings
-from typing import Any, Optional, Type, cast
+from typing import Any, Optional, cast
 
 import pandas as pd
 

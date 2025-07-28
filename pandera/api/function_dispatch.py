@@ -1,7 +1,7 @@
 """Multidispatcher implementation."""
 
 from inspect import signature
-from typing import Callable, Dict, Tuple, Type, Union
+from typing import Callable, Union
 import typing_inspect
 
 

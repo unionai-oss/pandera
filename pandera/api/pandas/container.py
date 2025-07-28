@@ -1,7 +1,7 @@
 """Core pandas dataframe container specification."""
 
 import warnings
-from typing import Optional, Type
+from typing import Optional
 
 import pandas as pd
 

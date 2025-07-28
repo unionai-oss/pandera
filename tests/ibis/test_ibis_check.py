@@ -1,7 +1,5 @@
 """Unit tests for the Ibis check backend."""
 
-from typing import Dict
-
 import pytest
 
 import pandas as pd
