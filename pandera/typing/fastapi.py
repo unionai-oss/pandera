@@ -1,7 +1,7 @@
 """FastAPI-specific types."""
 
 import functools
-from typing import Any, BinaryIO, Generic, Type
+from typing import Any, BinaryIO, Generic
 
 from pandera.engines import PYDANTIC_V2
 from pandera.typing.common import T

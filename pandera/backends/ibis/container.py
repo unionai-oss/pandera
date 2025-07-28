@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import copy
 import traceback
-from typing import TYPE_CHECKING, Any, List, Optional
+from typing import TYPE_CHECKING, Any, Optional
 from collections.abc import Iterable
 
 import ibis

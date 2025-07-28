@@ -2,7 +2,7 @@
 
 from datetime import date, datetime
 from decimal import Decimal
-from typing import List, cast
+from typing import cast
 from collections.abc import Iterable
 
 import modin.pandas as mpd

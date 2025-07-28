@@ -8,7 +8,7 @@ together to implement the pandera schema specification.
 import inspect
 import os
 from abc import ABC
-from typing import Any, Dict, Optional, Tuple, Type, Union
+from typing import Any, Optional, Union
 
 from pandera.backends.base import BaseSchemaBackend
 from pandera.dtypes import DataType

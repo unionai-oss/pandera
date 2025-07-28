@@ -1,7 +1,7 @@
 """Core Ibis schema component specifications."""
 
 import logging
-from typing import Any, Optional, Type
+from typing import Any, Optional
 
 import ibis
 

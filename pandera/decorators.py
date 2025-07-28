@@ -7,11 +7,8 @@ import types
 from typing import (
     Any,
     Callable,
-    Dict,
-    List,
     NoReturn,
     Optional,
-    Tuple,
     TypeVar,
     Union,
     cast,

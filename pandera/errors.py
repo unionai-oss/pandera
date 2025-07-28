@@ -3,7 +3,7 @@
 import json
 import warnings
 from enum import Enum
-from typing import Any, Dict, List, NamedTuple, Union
+from typing import Any, NamedTuple, Union
 
 
 class BackendNotFoundError(Exception):

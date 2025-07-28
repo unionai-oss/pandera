@@ -1,7 +1,5 @@
 """Pandas implementation of built-in hypotheses."""
 
-from typing import Tuple
-
 from pandera.api.extensions import register_builtin_hypothesis
 from pandera.backends.pandas.builtin_checks import PandasData
 

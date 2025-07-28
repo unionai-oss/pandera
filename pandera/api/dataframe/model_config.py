@@ -1,6 +1,6 @@
 """Class-based dataframe model API configuration for pandas."""
 
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, Optional, Union
 
 from pandera.api.base.model_config import BaseModelConfig
 from pandera.api.base.types import StrictType

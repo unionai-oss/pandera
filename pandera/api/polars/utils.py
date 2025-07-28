@@ -1,7 +1,5 @@
 """Polars validation engine utilities."""
 
-from typing import Dict, List
-
 import polars as pl
 
 from pandera.api.polars.types import PolarsCheckObjects

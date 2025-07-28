@@ -1,7 +1,7 @@
 """Core Ibis table container specification."""
 
 import warnings
-from typing import Optional, Type
+from typing import Optional
 
 import ibis
 

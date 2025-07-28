@@ -1,7 +1,7 @@
 """Validation backend for polars components."""
 
 import warnings
-from typing import Any, Callable, List, Optional, cast
+from typing import Any, Callable, Optional, cast
 from collections.abc import Iterable
 
 import polars as pl

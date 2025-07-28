@@ -6,10 +6,9 @@
 
 # isort: skip_file
 import os
-import re
 import shutil
 import sys
-from typing import Dict, List, Optional
+from typing import Optional
 
 import nox
 from nox import Session

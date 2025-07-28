@@ -1,7 +1,7 @@
 """Core pandas schema component specifications."""
 
 import warnings
-from typing import Any, Dict, List, Optional, Tuple, Union, cast
+from typing import Any, Optional, Union, cast
 from collections.abc import Iterable
 
 import pandas as pd

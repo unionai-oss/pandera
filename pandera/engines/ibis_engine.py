@@ -4,7 +4,7 @@ import dataclasses
 import datetime
 import inspect
 import warnings
-from typing import Any, Literal, Optional, Type, Union
+from typing import Any, Literal, Optional, Union
 from collections.abc import Iterable
 
 import ibis
