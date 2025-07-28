@@ -13,6 +13,7 @@ from pandera.api.polars.utils import (
     get_lazyframe_schema,
 )
 from pandera.backends.base import BaseSchemaBackend, CoreCheckResult
+from pandera.config import get_config_context
 from pandera.constants import CHECK_OUTPUT_KEY
 from pandera.errors import (
     FailureCaseMetadata,
@@ -100,12 +101,47 @@ class PolarsSchemaBackend(BaseSchemaBackend):
                     _failure_cases = _failure_cases.drop(CHECK_OUTPUT_KEY)
 
                 failure_cases = _failure_cases.collect()
-                failure_cases_msg = failure_cases.head().rows(named=True)
-                message = (
-                    f"{schema.__class__.__name__} '{schema.name}' failed "
-                    f"validator number {check_index}: "
-                    f"{check} failure case examples: {failure_cases_msg}"
-                )
+
+                # Get max_failure_cases from config
+                config = get_config_context()
+                max_failure_cases = config.max_failure_cases
+
+                # Get failure cases for message
+                total_failures = failure_cases.height
+                if max_failure_cases != -1:
+                    if max_failure_cases == 0:
+                        message = (
+                            f"{schema.__class__.__name__} '{schema.name}' failed "
+                            f"validator number {check_index}: "
+                            f"{check} failure case examples: ... {total_failures} failure cases"
+                        )
+                    elif total_failures > max_failure_cases:
+                        failure_cases_msg = failure_cases.head(
+                            max_failure_cases
+                        ).rows(named=True)
+                        omitted_count = total_failures - max_failure_cases
+                        message = (
+                            f"{schema.__class__.__name__} '{schema.name}' failed "
+                            f"validator number {check_index}: "
+                            f"{check} failure case examples: {failure_cases_msg} "
+                            f"... and {omitted_count} more failure cases ({total_failures} total)"
+                        )
+                    else:
+                        failure_cases_msg = failure_cases.head().rows(
+                            named=True
+                        )
+                        message = (
+                            f"{schema.__class__.__name__} '{schema.name}' failed "
+                            f"validator number {check_index}: "
+                            f"{check} failure case examples: {failure_cases_msg}"
+                        )
+                else:
+                    failure_cases_msg = failure_cases.head().rows(named=True)
+                    message = (
+                        f"{schema.__class__.__name__} '{schema.name}' failed "
+                        f"validator number {check_index}: "
+                        f"{check} failure case examples: {failure_cases_msg}"
+                    )
 
             # raise a warning without exiting if the check is specified to do so
             # but make sure the check passes

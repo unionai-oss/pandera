@@ -1,10 +1,11 @@
 """Make schema error messages human-friendly."""
 
 import re
-from typing import Any, List, Union
+from typing import Any, List, Optional, Union
 
 import pandas as pd
 
+from pandera.config import get_config_context
 from pandera.errors import SchemaError
 
 
@@ -31,6 +32,7 @@ def format_vectorized_error_message(
     check,
     check_index: int,
     reshaped_failure_cases: Any,
+    max_failure_cases: Optional[int] = None,
 ) -> str:
     """Construct an error message when a validator fails.
 
@@ -39,8 +41,15 @@ def format_vectorized_error_message(
     :param check_index: The validator that failed.
     :param reshaped_failure_cases: The failure cases encountered by the
         element-wise or vectorized validator.
+    :param max_failure_cases: Maximum number of failure cases to include
+        in the error message. If None, use config value.
 
     """
+
+    # Get max_failure_cases from config if not provided
+    if max_failure_cases is None:
+        config = get_config_context()
+        max_failure_cases = config.max_failure_cases
 
     pattern = r"<Check\s+([^:>]+):\s*([^>]+)>"
     matches = re.findall(pattern, str(check))
@@ -56,10 +65,40 @@ def format_vectorized_error_message(
         "pyspark.pandas"
     ):
         failure_cases = reshaped_failure_cases.failure_case.to_numpy()
-        failure_cases_string = ", ".join(failure_cases.astype(str))
+        total_failures = len(failure_cases)
+
+        if max_failure_cases != -1:
+            if max_failure_cases == 0:
+                failure_cases_string = f"... {total_failures} failure cases"
+            elif total_failures > max_failure_cases:
+                failure_cases_limited = failure_cases[:max_failure_cases]
+                failure_cases_string = ", ".join(
+                    failure_cases_limited.astype(str)
+                )
+                omitted_count = total_failures - max_failure_cases
+                failure_cases_string += f" ... and {omitted_count} more failure cases ({total_failures} total)"
+            else:
+                failure_cases_string = ", ".join(failure_cases.astype(str))
+        else:
+            failure_cases_string = ", ".join(failure_cases.astype(str))
     else:
         failure_cases = reshaped_failure_cases.failure_case
-        failure_cases_string = ", ".join(failure_cases.apply(str))
+        total_failures = len(failure_cases)
+
+        if max_failure_cases != -1:
+            if max_failure_cases == 0:
+                failure_cases_string = f"... {total_failures} failure cases"
+            elif total_failures > max_failure_cases:
+                failure_cases_limited = failure_cases.iloc[:max_failure_cases]
+                failure_cases_string = ", ".join(
+                    failure_cases_limited.apply(str)
+                )
+                omitted_count = total_failures - max_failure_cases
+                failure_cases_string += f" ... and {omitted_count} more failure cases ({total_failures} total)"
+            else:
+                failure_cases_string = ", ".join(failure_cases.apply(str))
+        else:
+            failure_cases_string = ", ".join(failure_cases.apply(str))
 
     return (
         f"{parent_schema.__class__.__name__} '{parent_schema.name}' failed "
@@ -150,7 +189,9 @@ def _multiindex_to_frame(df):
     return df.index.to_frame().drop_duplicates()
 
 
-def consolidate_failure_cases(schema_errors: List[SchemaError]):
+def consolidate_failure_cases(
+    schema_errors: List[SchemaError], max_failure_cases: Optional[int] = None
+):
     """Consolidate schema error dicts to produce data for error message."""
     from pandera.api.pandas.types import is_table
 
@@ -158,6 +199,12 @@ def consolidate_failure_cases(schema_errors: List[SchemaError]):
         "schema_errors input cannot be empty. Check how the backend "
         "validation logic is handling/raising SchemaError(s)."
     )
+
+    # Get max_failure_cases from config if not provided
+    if max_failure_cases is None:
+        config = get_config_context()
+        max_failure_cases = config.max_failure_cases
+
     check_failure_cases = []
     scalar_check_failure_cases = []
 
