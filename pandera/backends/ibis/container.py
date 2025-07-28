@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import copy
 import traceback
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any, Callable, Optional
 from collections.abc import Iterable
 
 import ibis
@@ -16,6 +16,7 @@ from pandera.config import ValidationScope
 from pandera.backends.base import CoreCheckResult, ColumnInfo
 from pandera.backends.ibis.base import IbisSchemaBackend
 from pandera.errors import (
+    ParserError,
     SchemaDefinitionError,
     SchemaError,
     SchemaErrorReason,
@@ -50,6 +51,22 @@ class DataFrameSchemaBackend(IbisSchemaBackend):
         error_handler = ErrorHandler(lazy)
 
         column_info = self.collect_column_info(check_obj, schema)
+
+        core_parsers: list[tuple[Callable[..., Any], tuple[Any, ...]]] = [
+            (self.strict_filter_columns, (schema, column_info)),
+        ]
+
+        for parser, args in core_parsers:
+            try:
+                check_obj = parser(check_obj, *args)
+            except SchemaError as exc:
+                error_handler.collect_error(
+                    validation_type(exc.reason_code),
+                    exc.reason_code,
+                    exc,
+                )
+            except SchemaErrors as exc:
+                error_handler.collect_errors(exc.schema_errors)
 
         # collect schema components
         components = self.collect_schema_components(
@@ -264,6 +281,60 @@ class DataFrameSchemaBackend(IbisSchemaBackend):
                 schema_components.append(col)
 
         return schema_components
+
+    ###########
+    # Parsers #
+    ###########
+
+    def strict_filter_columns(
+        self,
+        check_obj: ibis.Table,
+        schema: DataFrameSchema,
+        column_info: ColumnInfo,
+    ) -> ibis.Table:
+        """Filter columns that aren't specified in the schema."""
+        # dataframe strictness check makes sure all columns in the dataframe
+        # are specified in the dataframe schema
+        if not (schema.strict or schema.ordered):
+            return check_obj
+
+        filter_out_columns = []
+        sorted_column_names = iter(column_info.sorted_column_names)
+        for column in column_info.destuttered_column_names:
+            is_schema_col = column in column_info.expanded_column_names
+            if schema.strict is True and not is_schema_col:
+                raise SchemaError(
+                    schema=schema,
+                    data=check_obj,
+                    message=(
+                        f"column '{column}' not in {schema.__class__.__name__}"
+                        f" {schema.columns}"
+                    ),
+                    failure_cases=column,
+                    check="column_in_schema",
+                    reason_code=SchemaErrorReason.COLUMN_NOT_IN_SCHEMA,
+                )
+            if schema.strict == "filter" and not is_schema_col:
+                filter_out_columns.append(column)
+            if schema.ordered and is_schema_col:
+                try:
+                    next_ordered_col = next(sorted_column_names)
+                except StopIteration:
+                    pass
+                if next_ordered_col != column:
+                    raise SchemaError(
+                        schema=schema,
+                        data=check_obj,
+                        message=f"column '{column}' out-of-order",
+                        failure_cases=column,
+                        check="column_ordered",
+                        reason_code=SchemaErrorReason.COLUMN_NOT_ORDERED,
+                    )
+
+        if schema.strict == "filter":
+            check_obj = check_obj.drop(filter_out_columns)
+
+        return check_obj
 
     ##########
     # Checks #

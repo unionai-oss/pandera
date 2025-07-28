@@ -348,7 +348,6 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
             return check_obj
 
         filter_out_columns = []
-
         sorted_column_names = iter(column_info.sorted_column_names)
         for column in column_info.destuttered_column_names:
             is_schema_col = column in column_info.expanded_column_names
