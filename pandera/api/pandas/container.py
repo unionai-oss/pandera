@@ -134,6 +134,7 @@ class DataFrameSchema(_DataFrameSchema[pd.DataFrame]):
         lazy: bool = False,
         inplace: bool = False,
     ) -> pd.DataFrame:
+
         return self.get_backend(check_obj).validate(
             check_obj,
             schema=self,
