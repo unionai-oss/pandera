@@ -486,7 +486,7 @@ class MultiIndexBackend(PandasSchemaBackend):
     @staticmethod
     def _nonconsecutive_duplicates(
         names: List[Optional[str]],
-    ) -> Optional[str]:
+    ) -> List[str]:
         """Check whether the names have any non-consecutive duplicates.
 
         If any non-consecutive duplicates are found, return the names that
