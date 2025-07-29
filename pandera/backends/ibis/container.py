@@ -14,6 +14,7 @@ from ibis.common.exceptions import IbisError
 from pandera.api.base.error_handler import ErrorHandler
 from pandera.config import ValidationScope
 from pandera.backends.base import CoreCheckResult, ColumnInfo
+from pandera.backends.utils import convert_uniquesettings
 from pandera.backends.ibis.base import IbisSchemaBackend
 from pandera.errors import (
     ParserError,
@@ -403,6 +404,7 @@ class DataFrameSchemaBackend(IbisSchemaBackend):
                 check="multiple_fields_uniqueness",
             )
 
+        keep_setting = convert_uniquesettings(schema.report_duplicates)
         temp_unique: list[list] = (
             [schema.unique]
             if all(isinstance(x, str) for x in schema.unique)
@@ -410,7 +412,14 @@ class DataFrameSchemaBackend(IbisSchemaBackend):
         )
         for lst in temp_unique:
             subset = [x for x in lst if x in check_obj]
-            duplicated = _.count().over(group_by=subset) > 1
+            if keep_setting == "first":
+                duplicated = ibis.row_number().over(group_by=subset) > 0
+            elif keep_setting == "last":
+                duplicated = (_.count() - ibis.row_number()).over(
+                    group_by=subset
+                ) > 1
+            else:
+                duplicated = _.count().over(group_by=subset) > 1
             duplicates = check_obj.select(duplicated=duplicated).duplicated
             if duplicates.any().execute():
                 failure_cases = check_obj.filter(duplicated)

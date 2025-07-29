@@ -104,13 +104,6 @@ class DataFrameSchema(_DataFrameSchema[ibis.Table]):
                 "since Ibis tables do not support duplicate column names."
             )
 
-        if self.report_duplicates != "all":
-            warnings.warn(
-                "Setting report_duplicates to 'exclude_first' or "
-                "'exclude_last' will have no effect on validation. With the "
-                "Ibis backend, all duplicate values will be reported."
-            )
-
         if self.add_missing_columns:
             raise NotImplementedError
 
