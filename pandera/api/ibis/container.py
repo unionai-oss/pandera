@@ -1,7 +1,7 @@
 """Core Ibis table container specification."""
 
 import warnings
-from typing import Optional, Type
+from typing import Optional
 
 import ibis
 
@@ -13,9 +13,8 @@ from pandera.engines import ibis_engine
 class DataFrameSchema(_DataFrameSchema[ibis.Table]):
     """A lightweight Ibis table validator."""
 
-    # pylint: disable=unused-argument
     @staticmethod
-    def register_default_backends(check_obj_cls: Type):
+    def register_default_backends(check_obj_cls: type):
         register_ibis_backends()
 
     def validate(

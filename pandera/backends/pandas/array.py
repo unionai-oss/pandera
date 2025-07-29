@@ -1,6 +1,6 @@
 """Pandera array backends."""
 
-from typing import List, Optional, cast
+from typing import Optional, cast
 
 import pandas as pd
 
@@ -40,7 +40,7 @@ class ArraySchemaBackend(PandasSchemaBackend):
         lazy: bool = False,
         inplace: bool = False,
     ):
-        # pylint: disable=too-many-locals
+
         error_handler = ErrorHandler(lazy)
         check_obj = self.preprocess(check_obj, inplace)
 
@@ -97,7 +97,7 @@ class ArraySchemaBackend(PandasSchemaBackend):
         self, error_handler, schema, check_obj, **subsample_kwargs
     ):
         """Run checks on schema"""
-        # pylint: disable=too-many-locals
+
         field_obj_subsample = self.subsample(
             check_obj if is_field(check_obj) else check_obj[schema.name],
             **subsample_kwargs,
@@ -117,7 +117,7 @@ class ArraySchemaBackend(PandasSchemaBackend):
             results = check(*args)
             if isinstance(results, CoreCheckResult):
                 results = [results]
-            results = cast(List[CoreCheckResult], results)
+            results = cast(list[CoreCheckResult], results)
             for result in results:
                 if result.passed:
                     continue
@@ -148,7 +148,6 @@ class ArraySchemaBackend(PandasSchemaBackend):
         self,
         check_obj,
         schema=None,
-        # pylint: disable=unused-argument
     ):
         """Coerce type of a pd.Series by type specified in dtype.
 
@@ -176,7 +175,7 @@ class ArraySchemaBackend(PandasSchemaBackend):
             ) from exc
 
     def run_parsers(self, schema, check_obj):
-        parser_results: List[CoreParserResult] = []
+        parser_results: list[CoreParserResult] = []
         for parser_index, parser in enumerate(schema.parsers):
             parser_args = [None] if is_field(check_obj) else [schema.name]
             result = self.run_parser(
@@ -241,7 +240,7 @@ class ArraySchemaBackend(PandasSchemaBackend):
             failed = None
 
             if type(check_obj).__module__.startswith("pyspark.pandas"):
-                # pylint: disable=import-outside-toplevel
+
                 import pyspark.pandas as ps
 
                 duplicates = (
@@ -315,8 +314,8 @@ class ArraySchemaBackend(PandasSchemaBackend):
         )
 
     @validate_scope(scope=ValidationScope.DATA)
-    def run_checks(self, check_obj, schema) -> List[CoreCheckResult]:
-        check_results: List[CoreCheckResult] = []
+    def run_checks(self, check_obj, schema) -> list[CoreCheckResult]:
+        check_results: list[CoreCheckResult] = []
         for check_index, check in enumerate(schema.checks):
             check_args = [None] if is_field(check_obj) else [schema.name]
             try:
@@ -329,7 +328,7 @@ class ArraySchemaBackend(PandasSchemaBackend):
                         *check_args,
                     )
                 )
-            except Exception as err:  # pylint: disable=broad-except
+            except Exception as err:
                 # catch other exceptions that may occur when executing the Check
                 err_msg = f'"{err.args[0]}"' if err.args else ""
                 msg = f"{err.__class__.__name__}({err_msg})"

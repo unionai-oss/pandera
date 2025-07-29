@@ -3,7 +3,7 @@
 import copy
 import traceback
 import warnings
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Callable, Optional
 
 import polars as pl
 
@@ -40,7 +40,7 @@ def _to_frame_kind(lf: pl.LazyFrame, kind: type[PolarsFrame]) -> PolarsFrame:
 
 
 class DataFrameSchemaBackend(PolarsSchemaBackend):
-    # pylint: disable=too-many-branches
+
     def validate(
         self,
         check_obj: PolarsFrame,
@@ -68,7 +68,7 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
                 "When drop_invalid_rows is True, lazy must be set to True."
             )
 
-        core_parsers: List[Tuple[Callable[..., Any], Tuple[Any, ...]]] = [
+        core_parsers: list[tuple[Callable[..., Any], tuple[Any, ...]]] = [
             (self.add_missing_columns, (schema, column_info)),
             (self.strict_filter_columns, (schema, column_info)),
             (self.coerce_dtype, (schema,)),
@@ -119,7 +119,6 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
             if isinstance(results, CoreCheckResult):
                 results = [results]
 
-            # pylint: disable=no-member
             for result in results:
                 if result.passed:
                     continue
@@ -163,10 +162,10 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
         self,
         check_obj: pl.LazyFrame,
         schema,
-    ) -> List[CoreCheckResult]:
+    ) -> list[CoreCheckResult]:
         """Run a list of checks on the check object."""
         # dataframe-level checks
-        check_results: List[CoreCheckResult] = []
+        check_results: list[CoreCheckResult] = []
         for check_index, check in enumerate(schema.checks):
             try:
                 check_results.append(
@@ -174,7 +173,7 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
                 )
             except SchemaDefinitionError:
                 raise
-            except Exception as err:  # pylint: disable=broad-except
+            except Exception as err:
                 # catch other exceptions that may occur when executing the check
                 err_msg = f'"{err.args[0]}"' if err.args else ""
                 err_str = f"{err.__class__.__name__}({ err_msg})"
@@ -199,9 +198,9 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
         self,
         check_obj: pl.LazyFrame,
         schema,
-        schema_components: List,
+        schema_components: list,
         lazy: bool,
-    ) -> List[CoreCheckResult]:
+    ) -> list[CoreCheckResult]:
         """Run checks for all schema components."""
         check_results = []
         check_passed = []
@@ -236,9 +235,9 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
 
     def collect_column_info(self, check_obj: pl.LazyFrame, schema):
         """Collect column metadata for the dataframe."""
-        column_names: List[Any] = []
-        absent_column_names: List[Any] = []
-        regex_match_patterns: List[Any] = []
+        column_names: list[Any] = []
+        absent_column_names: list[Any] = []
+        regex_match_patterns: list[Any] = []
 
         for col_name, col_schema in schema.columns.items():
             if (
@@ -282,7 +281,7 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
 
         from pandera.api.polars.components import Column
 
-        columns: Dict[str, Column] = schema.columns
+        columns: dict[str, Column] = schema.columns
 
         if not schema.columns and schema.dtype is not None:
             # set schema components to dataframe dtype if columns are not
@@ -573,7 +572,7 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
         check_obj: pl.LazyFrame,
         schema,
         column_info: Any,
-    ) -> List[CoreCheckResult]:
+    ) -> list[CoreCheckResult]:
         """Check that all columns in the schema are present in the dataframe."""
         results = []
         if column_info.absent_column_names and not schema.add_missing_columns:
@@ -618,8 +617,8 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
             )
 
         # NOTE: fix this pylint error
-        # pylint: disable=not-an-iterable
-        temp_unique: List[List] = (
+
+        temp_unique: list[list] = (
             [schema.unique]
             if all(isinstance(x, str) for x in schema.unique)
             else schema.unique

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Optional, Type
+from typing import Any, Optional
 
 import polars as pl
 
@@ -107,8 +107,8 @@ class Column(ComponentSchema[PolarsCheckObjects]):
 
     @staticmethod
     def register_default_backends(
-        check_obj_cls: Type,
-    ):  # pylint: disable=unused-argument
+        check_obj_cls: type,
+    ):
         register_polars_backends()
 
     def validate(
@@ -252,7 +252,7 @@ class Column(ComponentSchema[PolarsCheckObjects]):
 
            This method is not implemented in the polars backend.
         """
-        # pylint: disable=import-outside-toplevel,cyclic-import,import-error
+
         raise NotImplementedError(
             "Data synthesis is not supported in with polars schemas."
         )

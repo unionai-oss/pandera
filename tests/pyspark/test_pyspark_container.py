@@ -97,7 +97,7 @@ def test_pyspark_dataframeschema_with_alias_types(
 
 
 def test_pyspark_column_metadata(
-    spark_session,  # pylint:disable=unused-argument
+    spark_session,
 ):
     """
     Test creating a pyspark Column object with metadata
@@ -340,7 +340,7 @@ def schema_with_complex_datatypes():
 
 def test_schema_to_structtype(
     schema_with_complex_datatypes,
-    spark_session,  # pylint:disable=unused-argument
+    spark_session,
 ):
     """
     Test the conversion from a schema to a StructType object through `to_structtype()`.
@@ -454,7 +454,7 @@ def test_schema_to_structtype(
 
 def test_schema_to_ddl(
     schema_with_complex_datatypes,
-    spark_session,  # pylint:disable=unused-argument
+    spark_session,
 ):
     """
     Test the conversion from a schema to a DDL string through `to_ddl()`.
@@ -504,7 +504,7 @@ def test_schema_to_ddl(
 
 @pytest.fixture(scope="function")
 def schema_with_simple_datatypes(
-    spark_session,  # pylint:disable=unused-argument
+    spark_session,
 ):
     """
     Model containing all common datatypes for PySpark namespace, supported by CSV.

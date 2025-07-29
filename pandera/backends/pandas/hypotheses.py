@@ -1,7 +1,7 @@
 """Hypothesis backend for pandas."""
 
 from functools import partial
-from typing import Any, Callable, Dict, Union, cast
+from typing import Any, Callable, Union, cast
 
 import pandas as pd
 
@@ -24,13 +24,11 @@ def less_than(stat, pvalue, alpha=DEFAULT_ALPHA) -> bool:
     return stat < 0 and pvalue / 2 < alpha
 
 
-# pylint: disable=unused-argument
 def not_equal(stat, pvalue, alpha=DEFAULT_ALPHA) -> bool:
     """Evaluate statistic and pvalue for ne hypothesis test."""
     return pvalue < alpha
 
 
-# pylint: disable=unused-argument
 def equal(stat, pvalue, alpha=DEFAULT_ALPHA) -> bool:
     """Evaluate statistic and pvalue for eq hypothesis test."""
     return pvalue >= alpha
@@ -110,11 +108,11 @@ class PandasHypothesisBackend(PandasCheckBackend):
         self,
         check_obj,
         key,
-    ) -> Union[pd.DataFrame, Dict[str, pd.DataFrame]]:
+    ) -> Union[pd.DataFrame, dict[str, pd.DataFrame]]:
         if self.check.groupby is None:
             return check_obj[key]
         return cast(
-            Dict[str, pd.DataFrame],
+            dict[str, pd.DataFrame],
             self._format_groupby_input(
                 self.groupby(check_obj)[key], self.check.groups
             ),
@@ -136,6 +134,6 @@ class PandasHypothesisBackend(PandasCheckBackend):
             (sample, check_obj[sample]) for sample in self.check.samples  # type: ignore[attr-defined]
         ]
         return cast(
-            Dict[str, pd.DataFrame],
+            dict[str, pd.DataFrame],
             self._format_groupby_input(check_obj, self.check.groups),
         )

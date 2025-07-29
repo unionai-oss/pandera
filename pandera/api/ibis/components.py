@@ -1,7 +1,7 @@
 """Core Ibis schema component specifications."""
 
 import logging
-from typing import Any, Optional, Type
+from typing import Any, Optional
 
 import ibis
 
@@ -102,9 +102,8 @@ class Column(ComponentSchema[ibis.Table]):
 
         self.set_regex()
 
-    # pylint: disable=unused-argument
     @staticmethod
-    def register_default_backends(check_obj_cls: Type):
+    def register_default_backends(check_obj_cls: type):
         register_ibis_backends()
 
     @property

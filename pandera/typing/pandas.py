@@ -1,16 +1,11 @@
 """Typing definitions and helpers."""
 
-# pylint:disable=abstract-method,disable=too-many-ancestors
 import functools
 import io
 from typing import (  # type: ignore[attr-defined]
     TYPE_CHECKING,
     Any,
-    Dict,
     Generic,
-    List,
-    Tuple,
-    Type,
     TypeVar,
     Union,
     _type_check,
@@ -124,7 +119,6 @@ GenericDtype = TypeVar(  # type: ignore
 )
 
 
-# pylint:disable=too-few-public-methods
 class Index(IndexBase, pd.Index, Generic[GenericDtype]):
     """Representation of pandas.Index, only used for type annotation.
 
@@ -132,7 +126,6 @@ class Index(IndexBase, pd.Index, Generic[GenericDtype]):
     """
 
 
-# pylint:disable=too-few-public-methods
 class Series(SeriesBase, pd.Series, Generic[GenericDtype]):  # type: ignore
     """Representation of pandas.Series, only used for type annotation.
 
@@ -147,14 +140,12 @@ class Series(SeriesBase, pd.Series, Generic[GenericDtype]):  # type: ignore
         return _GenericAlias(cls, item)
 
 
-# pylint:disable=invalid-name
 if TYPE_CHECKING:
     T = TypeVar("T")  # pragma: no cover
 else:
     T = DataFrameModel
 
 
-# pylint:disable=too-few-public-methods
 class DataFrame(DataFrameBase, pd.DataFrame, Generic[T]):
     """
     A generic type for pandas.DataFrame.
@@ -368,9 +359,9 @@ class DataFrame(DataFrameBase, pd.DataFrame, Generic[T]):
 
     @staticmethod
     def from_records(  # type: ignore
-        schema: Type[T],
+        schema: type[T],
         data: Union[  # type: ignore
-            np.ndarray, List[Tuple[Any, ...]], Dict[Any, Any], pd.DataFrame
+            np.ndarray, list[tuple[Any, ...]], dict[Any, Any], pd.DataFrame
         ],
         **kwargs,
     ) -> "DataFrame[T]":

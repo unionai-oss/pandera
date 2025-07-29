@@ -3,7 +3,8 @@
 import re
 import traceback
 from copy import copy
-from typing import Iterable, Optional
+from typing import Optional
+from collections.abc import Iterable
 
 from pyspark.sql import DataFrame
 from pyspark.sql.functions import col
@@ -45,7 +46,7 @@ class ColumnBackend(ColumnSchemaBackend):
 
         def validate_column(check_obj, column_name):
             try:
-                # pylint: disable=super-with-arguments
+
                 super(ColumnBackend, self).validate(
                     check_obj,
                     copy(schema).set_name(column_name),
@@ -71,12 +72,10 @@ class ColumnBackend(ColumnSchemaBackend):
 
         for column_name in column_keys_to_check:
             if schema.coerce:
-                check_obj = (
-                    self.coerce_dtype(  # pylint:disable=unexpected-keyword-arg
-                        check_obj,
-                        schema=schema,
-                        error_handler=error_handler,
-                    )
+                check_obj = self.coerce_dtype(
+                    check_obj,
+                    schema=schema,
+                    error_handler=error_handler,
                 )
             validate_column(check_obj, column_name)
 
@@ -117,8 +116,7 @@ class ColumnBackend(ColumnSchemaBackend):
         schema=None,
     ) -> DataFrame:
         """Coerce dtype of a column, handling duplicate column names."""
-        # pylint: disable=super-with-arguments
-        # pylint: disable=fixme
+
         check_obj = check_obj.withColumn(
             schema.name, col(schema.name).cast(schema.dtype)
         )
@@ -144,7 +142,7 @@ class ColumnBackend(ColumnSchemaBackend):
                 )
             except TypeError as err:
                 raise err
-            except Exception as err:  # pylint: disable=broad-except
+            except Exception as err:
                 # catch other exceptions that may occur when executing the Check
                 err_msg = f'"{err.args[0]}"' if err.args else ""
                 err_str = f"{err.__class__.__name__}({ err_msg})"

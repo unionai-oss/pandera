@@ -1,4 +1,3 @@
-# pylint: disable=no-value-for-parameter,too-many-lines
 """Generate synthetic data from a schema definition.
 
 *new in 0.6.0*
@@ -10,6 +9,7 @@ to compose strategies given multiple checks specified in a schema.
 
 See the :ref:`user guide <data-synthesis-strategies>` for more details.
 """
+
 import operator
 import re
 import warnings
@@ -19,14 +19,12 @@ from functools import partial, wraps
 from typing import (
     Any,
     Callable,
-    Dict,
-    List,
     Optional,
-    Sequence,
     TypeVar,
     Union,
     cast,
 )
+from collections.abc import Sequence
 
 import numpy as np
 import pandas as pd
@@ -56,7 +54,6 @@ if HAS_HYPOTHESIS:
 else:
     from pandera.strategies.base_strategies import SearchStrategy, composite
 
-# pylint: disable=possibly-used-before-assignment
 
 StrategyFn = Callable[..., SearchStrategy]
 # Fix this when modules have been re-organized to avoid circular imports
@@ -65,7 +62,7 @@ F = TypeVar("F", bound=Callable)
 
 
 def _mask(
-    val: Union[pd.Series, pd.Index], null_mask: List[bool]
+    val: Union[pd.Series, pd.Index], null_mask: list[bool]
 ) -> Union[pd.Series, pd.Index]:
     if pd.api.types.is_timedelta64_dtype(val):  # type: ignore [arg-type]
         return val.mask(null_mask, pd.NaT)  # type: ignore [union-attr,arg-type]
@@ -95,7 +92,7 @@ def null_field_masks(draw, strategy: Optional[SearchStrategy]):
 def null_dataframe_masks(
     draw,
     strategy: Optional[SearchStrategy],
-    nullable_columns: Dict[str, bool],
+    nullable_columns: dict[str, bool],
 ):
     """Strategy for masking a values in a pandas DataFrame.
 
@@ -200,7 +197,6 @@ def register_check_strategy(strategy_fn: StrategyFn):
     return register_check_strategy_decorator
 
 
-# pylint: disable=line-too-long
 # Values taken from
 # https://hypothesis.readthedocs.io/en/latest/_modules/hypothesis/extra/numpy.html#from_dtype  # noqa
 # NOTE: We're reducing the range here by an order of magnitude to avoid overflows
@@ -251,7 +247,7 @@ def convert_dtype(array: Union[pd.Series, pd.Index], col_dtype: Any):
     return array.astype(col_dtype)
 
 
-def convert_dtypes(df: pd.DataFrame, col_dtypes: Dict[Union[int, str], Any]):
+def convert_dtypes(df: pd.DataFrame, col_dtypes: dict[Union[int, str], Any]):
     """Convert datatypes of a dataframe."""
     for col_name, col_dtype in col_dtypes.items():
         array: pd.Series = df[col_name]  # type: ignore[assignment]
@@ -367,7 +363,6 @@ def pandas_dtype_strategy(
     strategy: Optional[SearchStrategy] = None,
     **kwargs,
 ) -> SearchStrategy:
-    # pylint: disable=line-too-long,no-else-raise
     """Strategy to generate data from a :class:`pandera.dtypes.DataType`.
 
     :param pandera_dtype: :class:`pandera.dtypes.DataType` instance.
@@ -435,7 +430,7 @@ def eq_strategy(
     :returns: ``hypothesis`` strategy
     """
     # override strategy preceding this one and generate value of the same type
-    # pylint: disable=unused-argument
+
     return pandas_dtype_strategy(pandera_dtype, st.just(value))
 
 
@@ -886,7 +881,6 @@ def column_strategy(
     unique: bool = False,
     name: Optional[str] = None,
 ):
-    # pylint: disable=line-too-long
     """Create a data object describing a column in a DataFrame.
 
     :param pandera_dtype: :class:`pandera.dtypes.DataType` instance.
@@ -945,7 +939,7 @@ def index_strategy(
     # this is a hack to convert np.str_ data values into native python str.
     col_dtype = str(pandera_dtype)
     if col_dtype in {"object", "str"} or col_dtype.startswith("string"):
-        # pylint: disable=cell-var-from-loop,undefined-loop-variable
+
         strategy = strategy.map(lambda index: index.map(str))
 
     if name is not None:
@@ -959,9 +953,9 @@ def dataframe_strategy(
     pandera_dtype: Optional[DataType] = None,
     strategy: Optional[SearchStrategy] = None,
     *,
-    columns: Optional[Dict] = None,
+    columns: Optional[dict] = None,
     checks: Optional[Sequence] = None,
-    unique: Optional[List[str]] = None,
+    unique: Optional[list[str]] = None,
     index: Optional[IndexComponent] = None,
     size: Optional[int] = None,
     n_regex_columns: int = 1,
@@ -981,7 +975,7 @@ def dataframe_strategy(
     :param n_regex_columns: number of regex columns to generate.
     :returns: ``hypothesis`` strategy.
     """
-    # pylint: disable=too-many-locals,too-many-branches,too-many-statements
+
     if n_regex_columns < 1:
         raise ValueError(
             "`n_regex_columns` must be a positive integer, found: "
@@ -1098,7 +1092,7 @@ def dataframe_strategy(
                     )
 
         # collect all non-element-wise column checks with undefined strategies
-        undefined_strat_column_checks: Dict[str, list] = defaultdict(list)
+        undefined_strat_column_checks: dict[str, list] = defaultdict(list)
         for col_name, column in expanded_columns.items():
             undefined_strat_column_checks[col_name].extend(
                 check
@@ -1149,7 +1143,7 @@ def dataframe_strategy(
                 string_columns.append(col_name)
 
         if string_columns:
-            # pylint: disable=cell-var-from-loop,undefined-loop-variable
+
             strategy = strategy.map(
                 lambda df: df.assign(
                     **{
@@ -1181,12 +1175,11 @@ def dataframe_strategy(
     return _dataframe_strategy()
 
 
-# pylint: disable=unused-argument
 def multiindex_strategy(
     pandera_dtype: Optional[DataType] = None,
     strategy: Optional[SearchStrategy] = None,
     *,
-    indexes: Optional[List] = None,
+    indexes: Optional[list] = None,
     size: Optional[int] = None,
 ):
     """Strategy to generate a pandas MultiIndex object.
@@ -1199,7 +1192,7 @@ def multiindex_strategy(
     :param size: number of elements in the Series.
     :returns: ``hypothesis`` strategy.
     """
-    # pylint: disable=unnecessary-lambda
+
     if strategy:
         raise BaseStrategyOnlyError(
             "The dataframe strategy is a base strategy. You cannot specify "
@@ -1224,7 +1217,7 @@ def multiindex_strategy(
     # this is a hack to convert np.str_ data values into native python str.
     for name, dtype in index_dtypes.items():
         if dtype in {"object", "str"} or dtype.startswith("string"):
-            # pylint: disable=cell-var-from-loop,undefined-loop-variable
+
             strategy = strategy.map(
                 lambda df, name=name: df.assign(**{name: df[name].map(str)})
             )

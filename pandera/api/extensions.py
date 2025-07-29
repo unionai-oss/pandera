@@ -5,7 +5,7 @@ import warnings
 from enum import Enum
 from functools import partial, wraps
 from inspect import signature
-from typing import Callable, List, Optional, Tuple, Type, Union
+from typing import Callable, Optional, Union
 
 import typing_inspect
 
@@ -21,12 +21,11 @@ class BuiltinCheckRegistrationError(Exception):
     """
 
 
-# pylint: disable=too-many-locals
 def register_builtin_check(
     fn=None,
     strategy: Optional[Callable] = None,
-    _check_cls: Type = Check,
-    aliases: Optional[List[str]] = None,
+    _check_cls: type = Check,
+    aliases: Optional[list[str]] = None,
     **outer_kwargs,
 ):
     """Register a check method to the Check namespace.
@@ -48,7 +47,7 @@ def register_builtin_check(
     name = fn.__name__
 
     # see if the check function is already registered
-    check_dispatcher = _check_cls.CHECK_FUNCTION_REGISTRY.get(name)
+    check_dispatcher = _check_cls.CHECK_FUNCTION_REGISTRY.get(name)  # type: ignore[attr-defined]
     fn_sig = signature(fn)
 
     # register the check strategy for this particular check, identified
@@ -57,7 +56,7 @@ def register_builtin_check(
     # object to validate is the first argument.
     data_type = [*fn_sig.parameters.values()][0].annotation
 
-    if typing_inspect.get_origin(data_type) is Tuple:
+    if typing_inspect.get_origin(data_type) is tuple:
         data_type, *_ = typing_inspect.get_args(data_type)
 
     if typing_inspect.get_origin(data_type) is Union:
@@ -133,11 +132,11 @@ def register_check_statistics(statistics_args):
     return register_check_statistics_decorator
 
 
-def register_check_method(  # pylint:disable=too-many-branches
+def register_check_method(
     check_fn=None,
     *,
-    statistics: Optional[List[str]] = None,
-    supported_types: Optional[Union[type, Tuple, List]] = None,
+    statistics: Optional[list[str]] = None,
+    supported_types: Optional[Union[type, tuple, list]] = None,
     check_type: Union[CheckType, str] = "vectorized",
     strategy=None,
 ):
@@ -174,7 +173,6 @@ def register_check_method(  # pylint:disable=too-many-branches
     :return: register check function wrapper.
     """
 
-    # pylint: disable=import-outside-toplevel,too-many-statements
     from pandera.strategies.pandas_strategies import register_check_strategy
 
     # NOTE: this needs to handle different dataframe types more elegantly

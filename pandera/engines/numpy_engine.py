@@ -1,13 +1,13 @@
 """Numpy engine and data types."""
 
 # docstrings are inherited
-# pylint:disable=missing-class-docstring,too-many-ancestors,unused-argument
 import builtins
 import dataclasses
 import datetime
 import inspect
 import warnings
-from typing import Any, Dict, Iterable, List, Optional, Union, cast
+from typing import Any, Optional, Union, cast
+from collections.abc import Iterable
 
 import numpy as np
 from numpy.typing import DTypeLike
@@ -64,7 +64,7 @@ class DataType(dtypes.DataType):
     ) -> Union[PandasObject, np.ndarray]:
         try:
             return self.coerce(cast(PandasObject, data_container))
-        except Exception as exc:  # pylint:disable=broad-except
+        except Exception as exc:
             raise errors.ParserError(
                 f"Could not coerce {type(data_container)} data_container "
                 f"into type {self.type}",
@@ -80,9 +80,7 @@ class DataType(dtypes.DataType):
         return f"DataType({self})"
 
 
-class Engine(  # pylint:disable=too-few-public-methods
-    metaclass=engine.Engine, base_pandera_dtypes=DataType
-):
+class Engine(metaclass=engine.Engine, base_pandera_dtypes=DataType):
     """Numpy data type engine."""
 
     @classmethod
@@ -120,8 +118,8 @@ class Bool(DataType, dtypes.Bool):
 
 
 def _build_number_equivalents(
-    builtin_name: str, pandera_name: str, sizes: List[int]
-) -> Dict[int, List[Union[type, str, np.dtype, dtypes.DataType]]]:
+    builtin_name: str, pandera_name: str, sizes: list[int]
+) -> dict[int, list[Union[type, str, np.dtype, dtypes.DataType]]]:
     """Return a dict of equivalent builtin, numpy, pandera dtypes
     indexed by size in bit_width."""
     builtin_type = getattr(builtins, builtin_name, None)

@@ -1,6 +1,5 @@
 """Unit tests for pydantic compatibility."""
 
-# pylint:disable=too-few-public-methods,missing-class-docstring
 from typing import Optional
 from typing import (
     Generic,

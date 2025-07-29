@@ -8,19 +8,19 @@ together to implement the pandera schema specification.
 import inspect
 import os
 from abc import ABC
-from typing import Any, Dict, Optional, Tuple, Type, Union
+from typing import Any, Optional, Union
 
 from pandera.backends.base import BaseSchemaBackend
 from pandera.dtypes import DataType
 from pandera.errors import BackendNotFoundError
 
-DtypeInputTypes = Union[str, type, DataType, Type]
+DtypeInputTypes = Union[str, type, DataType, type]
 
 
 class BaseSchema(ABC):
     """Core schema specification."""
 
-    BACKEND_REGISTRY: Dict[Tuple[Type, Type], Type[BaseSchemaBackend]] = (
+    BACKEND_REGISTRY: dict[tuple[type, type], type[BaseSchemaBackend]] = (
         {}
     )  # noqa
 
@@ -93,7 +93,7 @@ class BaseSchema(ABC):
         raise NotImplementedError
 
     @classmethod
-    def register_backend(cls, type_: Type, backend: Type[BaseSchemaBackend]):
+    def register_backend(cls, type_: type, backend: type[BaseSchemaBackend]):
         """Register a schema backend for this class."""
         if (cls, type_) not in cls.BACKEND_REGISTRY:
             cls.BACKEND_REGISTRY[(cls, type_)] = backend
@@ -102,7 +102,7 @@ class BaseSchema(ABC):
     def get_backend(
         cls,
         check_obj: Optional[Any] = None,
-        check_type: Optional[Type] = None,
+        check_type: Optional[type] = None,
     ) -> BaseSchemaBackend:
         """Get the backend associated with the type of ``check_obj``."""
         if check_obj is not None:
@@ -127,7 +127,7 @@ class BaseSchema(ABC):
         )
 
     @staticmethod
-    def register_default_backends(check_obj_cls: Type):
+    def register_default_backends(check_obj_cls: type):
         """Register default backends.
 
         This method is invoked in the `get_backend` method so that the

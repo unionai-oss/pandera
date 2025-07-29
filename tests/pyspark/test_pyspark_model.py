@@ -1,7 +1,5 @@
 """Unit tests for DataFrameModel module."""
 
-# pylint:disable=abstract-method
-
 from contextlib import nullcontext as does_not_raise
 from typing import Optional
 
@@ -24,7 +22,7 @@ pytestmark = pytest.mark.parametrize(
 
 
 def test_schema_with_bare_types(
-    spark_session,  # pylint:disable=unused-argument
+    spark_session,
 ):
     """
     Test that DataFrameModel can be defined without generics.
@@ -52,7 +50,7 @@ def test_schema_with_bare_types(
 
 
 def test_schema_with_bare_types_and_field(
-    spark_session,  # pylint:disable=unused-argument
+    spark_session,
 ):
     """
     Test that DataFrameModel can be defined without generics.
@@ -197,7 +195,7 @@ def test_pyspark_bare_fields(spark_session, request):
 
 
 def test_pyspark_fields_metadata(
-    spark_session,  # pylint:disable=unused-argument
+    spark_session,
 ):
     """
     Test schema and metadata on field
@@ -396,7 +394,7 @@ def test_dataframe_schema_strict(
 
 
 def test_docstring_substitution(
-    spark_session,  # pylint:disable=unused-argument
+    spark_session,
 ) -> None:
     """Test the docstring substitution decorator"""
 
@@ -440,7 +438,7 @@ def test_schema():
 
 def test_optional_column(
     test_schema_optional_columns,
-    spark_session,  # pylint:disable=unused-argument
+    spark_session,
 ) -> None:
     """Test that optional columns are not required."""
 
@@ -479,11 +477,11 @@ def test_validation_succeeds_with_missing_optional_column(
 
 
 def test_invalid_field(
-    spark_session,  # pylint:disable=unused-argument
+    spark_session,
 ) -> None:
     """Test that invalid fields raises a schemaInitError."""
 
-    class Schema(DataFrameModel):  # pylint:disable=missing-class-docstring
+    class Schema(DataFrameModel):
         a: int = 0  # type: ignore[assignment]  # mypy identifies the wrong usage correctly
 
     with pytest.raises(
@@ -507,9 +505,7 @@ def test_registered_dataframemodel_checks(spark_session, request) -> None:
         # pylint: disable=unused-argument
         return True
 
-    class ExampleDFModel(
-        DataFrameModel
-    ):  # pylint:disable=missing-class-docstring
+    class ExampleDFModel(DataFrameModel):
         name: str
         age: int
 
@@ -529,7 +525,7 @@ def test_registered_dataframemodel_checks(spark_session, request) -> None:
 
 @pytest.fixture(scope="function")
 def model_with_datatypes(
-    spark_session,  # pylint:disable=unused-argument
+    spark_session,
 ):
     """
     Model containing all common datatypes for PySpark namespace.
@@ -561,7 +557,7 @@ def model_with_datatypes(
 
 @pytest.fixture(scope="function")
 def model_with_multiple_parent_classes(
-    spark_session,  # pylint:disable=unused-argument
+    spark_session,
 ):
     """
     Model inherited from multiple parent classes.
@@ -597,7 +593,7 @@ def model_with_multiple_parent_classes(
 
 def test_schema_to_structtype(
     model_with_datatypes,
-    spark_session,  # pylint:disable=unused-argument
+    spark_session,
 ):
     """
     Test the conversion from a model to a StructType object through `to_structtype()`.
@@ -658,7 +654,7 @@ def test_schema_to_structtype(
 
 def test_schema_to_ddl(
     model_with_datatypes,
-    spark_session,  # pylint:disable=unused-argument
+    spark_session,
 ):
     """
     Test the conversion from a model to a DDL string through `to_ddl()`.
@@ -688,7 +684,7 @@ def test_schema_to_ddl(
 
 def test_inherited_schema_to_structtype(
     model_with_multiple_parent_classes,
-    spark_session,  # pylint:disable=unused-argument
+    spark_session,
 ):
     """
     Test the final inheritance for a model with a longer parent class structure.

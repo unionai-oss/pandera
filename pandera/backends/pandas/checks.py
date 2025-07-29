@@ -1,7 +1,7 @@
 """Check backend for pandas."""
 
 from functools import partial
-from typing import Dict, List, Optional, Union, cast
+from typing import Optional, Union, cast
 
 import pandas as pd
 
@@ -45,8 +45,8 @@ class PandasCheckBackend(BaseCheckBackend):
     @staticmethod
     def _format_groupby_input(
         groupby_obj: GroupbyObject,
-        groups: Optional[List[str]],
-    ) -> Union[Dict[str, pd.Series], Dict[str, pd.DataFrame]]:
+        groups: Optional[list[str]],
+    ) -> Union[dict[str, pd.Series], dict[str, pd.DataFrame]]:
         """Format groupby object into dict of groups to Series or DataFrame.
 
         :param groupby_obj: a pandas groupby object.
@@ -94,13 +94,13 @@ class PandasCheckBackend(BaseCheckBackend):
     def preprocess_field(
         self,
         check_obj,
-    ) -> Union[pd.Series, Dict[str, pd.Series]]:
+    ) -> Union[pd.Series, dict[str, pd.Series]]:
         if self.check.groupby is None:
             if self.check.ignore_na and check_obj.hasnans:
                 return check_obj.dropna()
             return check_obj
         return cast(
-            Dict[str, pd.Series],
+            dict[str, pd.Series],
             self._format_groupby_input(
                 self.groupby(check_obj), self.check.groups
             ),
@@ -110,13 +110,13 @@ class PandasCheckBackend(BaseCheckBackend):
         self,
         check_obj,
         key,
-    ) -> Union[pd.DataFrame, Dict[str, pd.DataFrame]]:
+    ) -> Union[pd.DataFrame, dict[str, pd.DataFrame]]:
         if self.check.groupby is None:
             if self.check.ignore_na and check_obj[key].hasnans:
                 return check_obj[key].dropna()
             return check_obj[key]
         return cast(
-            Dict[str, pd.DataFrame],
+            dict[str, pd.DataFrame],
             self._format_groupby_input(
                 self.groupby(check_obj)[key], self.check.groups
             ),
@@ -125,11 +125,11 @@ class PandasCheckBackend(BaseCheckBackend):
     def preprocess_table(
         self,
         check_obj,
-    ) -> Union[pd.DataFrame, Dict[str, pd.DataFrame]]:
+    ) -> Union[pd.DataFrame, dict[str, pd.DataFrame]]:
         if self.check.groupby is None:
             return check_obj
         return cast(
-            Dict[str, pd.DataFrame],
+            dict[str, pd.DataFrame],
             self._format_groupby_input(
                 self.groupby(check_obj), self.check.groups
             ),
@@ -277,7 +277,7 @@ class PandasCheckBackend(BaseCheckBackend):
         # collect failure cases across all columns. False values in check_output
         # are nulls.
         select_failure_cases = check_obj[~check_output]
-        failure_cases_list: List[pd.DataFrame] = []
+        failure_cases_list: list[pd.DataFrame] = []
         for col in select_failure_cases.columns:
             cases = select_failure_cases[col].rename("failure_case").dropna()
             if len(cases) == 0:

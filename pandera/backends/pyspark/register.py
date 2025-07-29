@@ -16,14 +16,13 @@ if CURRENT_PYSPARK_VERSION >= version.parse("3.4"):
 @lru_cache
 def register_pyspark_backends(
     check_cls_fqn: Optional[str] = None,
-):  # pylint: disable=unused-argument
+):
     """Register pyspark backends.
 
     This function is called at schema initialization in the _register_*_backends
     method.
     """
 
-    # pylint: disable=import-outside-toplevel,unused-import,cyclic-import
     from pandera._patch_numpy2 import _patch_numpy2
 
     _patch_numpy2()

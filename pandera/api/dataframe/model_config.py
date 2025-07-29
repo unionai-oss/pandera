@@ -1,13 +1,13 @@
 """Class-based dataframe model API configuration for pandas."""
 
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, Optional, Union
 
 from pandera.api.base.model_config import BaseModelConfig
 from pandera.api.base.types import StrictType
 from pandera.typing.formats import Format
 
 
-class BaseConfig(BaseModelConfig):  # pylint:disable=R0903
+class BaseConfig(BaseModelConfig):
     """Define DataFrameSchema-wide options.
 
     *new in 0.5.0*
@@ -24,7 +24,7 @@ class BaseConfig(BaseModelConfig):  # pylint:disable=R0903
     drop_invalid_rows: bool = False  #: drop invalid rows on validation
 
     #: make sure certain column combinations are unique
-    unique: Optional[Union[str, List[str]]] = None
+    unique: Optional[Union[str, list[str]]] = None
 
     #: make sure all specified columns are in the validated dataframe -
     #: if ``"filter"``, removes columns not specified in the schema
@@ -61,7 +61,7 @@ class BaseConfig(BaseModelConfig):  # pylint:disable=R0903
     #: converts the object of type ``from_format`` to a pandera-validate-able
     #: data structure. The reader function is implemented in the pandera.typing
     #: generic types via the ``from_format`` and ``to_format`` methods.
-    from_format_kwargs: Optional[Dict[str, Any]] = None
+    from_format_kwargs: Optional[dict[str, Any]] = None
 
     #: data format to serialize into after validation. This option only applies
     #: to  schemas used in the context of the pandera type constructor
@@ -76,7 +76,7 @@ class BaseConfig(BaseModelConfig):  # pylint:disable=R0903
     #: converts the pandera-validate-able object to type ``to_format``.
     #: The writer function is implemented in the pandera.typing
     #: generic types via the ``from_format`` and ``to_format`` methods.
-    to_format_kwargs: Optional[Dict[str, Any]] = None
+    to_format_kwargs: Optional[dict[str, Any]] = None
 
     #: a dictionary object to store key-value data at schema level
     metadata: Optional[dict] = None

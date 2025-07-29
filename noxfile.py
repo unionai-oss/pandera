@@ -6,10 +6,9 @@
 
 # isort: skip_file
 import os
-import re
 import shutil
 import sys
-from typing import Dict, List, Optional
+from typing import Optional
 
 import nox
 from nox import Session
@@ -50,7 +49,7 @@ PYPROJECT = nox.project.load_toml("pyproject.toml")
 OPTIONAL_DEPENDENCIES = [*PYPROJECT["project"]["optional-dependencies"]]
 
 
-def _pyproject_requirements() -> Dict[str, List[str]]:
+def _pyproject_requirements() -> dict[str, list[str]]:
     """Load requirements from setup.py."""
     return {
         "core": PYPROJECT["project"]["dependencies"],
@@ -58,7 +57,7 @@ def _pyproject_requirements() -> Dict[str, List[str]]:
     }
 
 
-def _dev_requirements() -> List[str]:
+def _dev_requirements() -> list[str]:
     """Load requirements from file."""
     with open(REQUIREMENT_PATH, encoding="utf-8") as req_file:
         reqs = []
@@ -79,7 +78,7 @@ def _generate_pip_deps_from_conda(
 
 
 @nox.session(venv_backend="uv", python=PYTHON_VERSIONS)
-def requirements(session: Session) -> None:  # pylint:disable=unused-argument
+def requirements(session: Session) -> None:
     """Check that setup.py requirements match requirements.in"""
     session.install("pyyaml")
     try:

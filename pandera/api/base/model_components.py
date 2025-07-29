@@ -3,30 +3,27 @@
 from typing import (
     Any,
     Callable,
-    Dict,
-    Iterable,
-    List,
     Optional,
-    Type,
     Union,
     cast,
 )
+from collections.abc import Iterable
 
 from pandera.api.checks import Check
 from pandera.api.parsers import Parser
 
-CheckArg = Union[Check, List[Check]]
-ParserArg = Union[Parser, List[Parser]]
+CheckArg = Union[Check, list[Check]]
+ParserArg = Union[Parser, list[Parser]]
 AnyCallable = Callable[..., Any]
 
 
-def to_checklist(checks: Optional[CheckArg]) -> List[Check]:
+def to_checklist(checks: Optional[CheckArg]) -> list[Check]:
     """Convert value to list of checks."""
     checks = checks or []
     return [checks] if isinstance(checks, Check) else checks
 
 
-def to_parserlist(parsers: Optional[ParserArg]) -> List[Parser]:
+def to_parserlist(parsers: Optional[ParserArg]) -> list[Parser]:
     parsers = parsers or []
     return [parsers] if isinstance(parsers, Parser) else parsers
 
@@ -64,7 +61,7 @@ class BaseFieldInfo:
         regex: bool = False,
         alias: Any = None,
         check_name: Optional[bool] = None,
-        dtype_kwargs: Optional[Dict[str, Any]] = None,
+        dtype_kwargs: Optional[dict[str, Any]] = None,
         title: Optional[str] = None,
         description: Optional[str] = None,
         default: Optional[Any] = None,
@@ -92,10 +89,10 @@ class BaseFieldInfo:
             return self.alias
         return self.original_name
 
-    def __set_name__(self, owner: Type, name: str) -> None:
+    def __set_name__(self, owner: type, name: str) -> None:
         self.original_name = name
 
-    def __get__(self, instance: Any, owner: Type) -> str:
+    def __get__(self, instance: Any, owner: type) -> str:
         return self.name
 
     def __str__(self):
@@ -121,14 +118,14 @@ class BaseFieldInfo:
         raise AttributeError(f"Can't set the {self.original_name} field.")
 
 
-class BaseCheckInfo:  # pylint:disable=too-few-public-methods
+class BaseCheckInfo:
     """Captures extra information about a Check."""
 
     def __init__(self, check_fn: AnyCallable, **check_kwargs: Any):
         self.check_fn = check_fn
         self.check_kwargs = check_kwargs
 
-    def to_check(self, model_cls: Type) -> Check:
+    def to_check(self, model_cls: type) -> Check:
         """Create a Check from metadata."""
         name = self.check_kwargs.pop("name", None)
         if not name:
@@ -142,14 +139,14 @@ class BaseCheckInfo:  # pylint:disable=too-few-public-methods
         return Check(_adapter, name=name, **self.check_kwargs)
 
 
-class BaseParserInfo:  # pylint:disable=too-few-public-methods
+class BaseParserInfo:
     """Captures extra information about a Parse."""
 
     def __init__(self, parser_fn: AnyCallable, **parser_kwargs: Any) -> None:
         self.parser_fn = parser_fn
         self.parser_kwargs = parser_kwargs
 
-    def to_parser(self, model_cls: Type) -> Parser:
+    def to_parser(self, model_cls: type) -> Parser:
         """Create a Parser from metadata."""
         name = self.parser_kwargs.pop("name", None)
         if not name:

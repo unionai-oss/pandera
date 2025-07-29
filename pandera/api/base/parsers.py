@@ -1,7 +1,7 @@
 """Data validation base parse."""
 
 import inspect
-from typing import Any, Dict, NamedTuple, Optional, Tuple, Type
+from typing import Any, NamedTuple, Optional
 
 from pandera.backends.base import BaseParserBackend
 
@@ -16,7 +16,7 @@ class ParserResult(NamedTuple):
 class MetaParser(type):
     """Parser metaclass."""
 
-    BACKEND_REGISTRY: Dict[Tuple[Type, Type], Type[BaseParserBackend]] = {}
+    BACKEND_REGISTRY: dict[tuple[type, type], type[BaseParserBackend]] = {}
     """Registry of parser backends implemented for specific data objects."""
 
 
@@ -27,12 +27,12 @@ class BaseParser(metaclass=MetaParser):
         self.name = name
 
     @classmethod
-    def register_backend(cls, type_: Type, backend: Type[BaseParserBackend]):
+    def register_backend(cls, type_: type, backend: type[BaseParserBackend]):
         """Register a backend for the specified type."""
         cls.BACKEND_REGISTRY[(cls, type_)] = backend
 
     @classmethod
-    def get_backend(cls, parse_obj: Any) -> Type[BaseParserBackend]:
+    def get_backend(cls, parse_obj: Any) -> type[BaseParserBackend]:
         """Get the backend associated with the type of ``parse_obj`` ."""
 
         parse_obj_cls = type(parse_obj)

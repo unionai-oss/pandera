@@ -1,6 +1,6 @@
 """Data validation checks for hypothesis testing."""
 
-from typing import Any, Callable, Dict, List, Optional, TypeVar, Union
+from typing import Any, Callable, Optional, TypeVar, Union
 
 from pandera import errors
 from pandera.api.checks import Check
@@ -16,23 +16,22 @@ class Hypothesis(Check):
 
     RELATIONSHIPS = {"greater_than", "less_than", "not_equal", "equal"}
 
-    # pylint: disable=too-many-locals
     def __init__(
         self,
         test: Callable,
-        samples: Optional[Union[str, List[str]]] = None,
-        groupby: Optional[Union[str, List[str], Callable]] = None,
+        samples: Optional[Union[str, list[str]]] = None,
+        groupby: Optional[Union[str, list[str], Callable]] = None,
         relationship: Union[str, Callable] = "equal",
         alpha: Optional[float] = None,
-        test_kwargs: Optional[Dict] = None,
-        relationship_kwargs: Optional[Dict] = None,
+        test_kwargs: Optional[dict] = None,
+        relationship_kwargs: Optional[dict] = None,
         name: Optional[str] = None,
         error: Optional[str] = None,
         raise_warning: bool = False,
         n_failure_cases: Optional[int] = None,
         title: Optional[str] = None,
         description: Optional[str] = None,
-        statistics: Optional[Dict[str, Any]] = None,
+        statistics: Optional[dict[str, Any]] = None,
         strategy: Optional[Any] = None,
         **check_kwargs,
     ) -> None:
@@ -183,7 +182,7 @@ class Hypothesis(Check):
         cls,
         sample1: str,
         sample2: str,
-        groupby: Optional[Union[str, List[str], Callable]] = None,
+        groupby: Optional[Union[str, list[str], Callable]] = None,
         relationship: str = "equal",
         alpha: float = DEFAULT_ALPHA,
         equal_var: bool = True,
@@ -294,7 +293,7 @@ class Hypothesis(Check):
         cls,
         popmean: float,
         sample: Optional[str] = None,
-        groupby: Optional[Union[str, List[str], Callable]] = None,
+        groupby: Optional[Union[str, list[str], Callable]] = None,
         relationship: str = "equal",
         alpha: float = DEFAULT_ALPHA,
         nan_policy="propagate",

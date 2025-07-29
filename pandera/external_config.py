@@ -15,7 +15,7 @@ def _set_pyspark_environment_variables():
         # pandas.Series, and pyspark v1+ injects a __getitem__ method to pandas
         # Series and DataFrames to support type hinting:
         # https://spark.apache.org/docs/3.2.0/api/python/user_guide/pandas_on_spark/typehints.html#type-hinting-with-names
-        # pylint: disable=unused-import
+
         if os.getenv("SPARK_LOCAL_IP") is None:
             is_spark_local_ip_dirty = True
             os.environ["SPARK_LOCAL_IP"] = "127.0.0.1"

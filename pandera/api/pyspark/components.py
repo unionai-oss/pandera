@@ -1,6 +1,7 @@
 """Core PySpark schema component specifications."""
 
-from typing import Any, Dict, Iterable, Optional, Tuple, Union
+from typing import Any, Optional, Union
+from collections.abc import Iterable
 
 import pyspark.sql as ps
 
@@ -19,7 +20,7 @@ class Column(ColumnSchema):
         nullable: bool = False,
         coerce: bool = False,
         required: bool = True,
-        name: Union[str, Tuple[str, ...], None] = None,
+        name: Union[str, tuple[str, ...], None] = None,
         regex: bool = False,
         title: Optional[str] = None,
         description: Optional[str] = None,
@@ -92,7 +93,7 @@ class Column(ColumnSchema):
         return True
 
     @property
-    def properties(self) -> Dict[str, Any]:
+    def properties(self) -> dict[str, Any]:
         """Get column properties."""
         return {
             "dtype": self.dtype,

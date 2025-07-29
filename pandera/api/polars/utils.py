@@ -1,7 +1,4 @@
-# pylint: disable=cyclic-import
 """Polars validation engine utilities."""
-
-from typing import Dict, List
 
 import polars as pl
 
@@ -14,21 +11,21 @@ from pandera.config import (
 )
 
 
-def get_lazyframe_schema(lf: pl.LazyFrame) -> Dict[str, pl.DataType]:
+def get_lazyframe_schema(lf: pl.LazyFrame) -> dict[str, pl.DataType]:
     """Get a dict of column names and  dtypes from a polars LazyFrame."""
     if polars_version().release >= (1, 0, 0):
         return lf.collect_schema()
     return lf.schema
 
 
-def get_lazyframe_column_dtypes(lf: pl.LazyFrame) -> List[pl.DataType]:
+def get_lazyframe_column_dtypes(lf: pl.LazyFrame) -> list[pl.DataType]:
     """Get a list of column dtypes from a polars LazyFrame."""
     if polars_version().release >= (1, 0, 0):
         return lf.collect_schema().dtypes()
     return [*lf.schema.values()]
 
 
-def get_lazyframe_column_names(lf: pl.LazyFrame) -> List[str]:
+def get_lazyframe_column_names(lf: pl.LazyFrame) -> list[str]:
     """Get a list of column names from a polars LazyFrame."""
     if polars_version().release >= (1, 0, 0):
         return lf.collect_schema().names()

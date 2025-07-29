@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 import warnings
-from typing import TYPE_CHECKING, Iterable, List, Optional, cast
+from typing import TYPE_CHECKING, Optional, cast
+from collections.abc import Iterable
 
 import ibis
 import ibis.selectors as s
@@ -81,7 +82,7 @@ class ColumnBackend(IbisSchemaBackend):
                         if result.passed:
                             continue
                         # Why cast `results` only in components.py, not in container.py?
-                        results = cast(List[CoreCheckResult], results)
+                        results = cast(list[CoreCheckResult], results)
                         if result.schema_error is not None:
                             error = result.schema_error
                         else:
@@ -160,8 +161,8 @@ class ColumnBackend(IbisSchemaBackend):
         )
 
     @validate_scope(scope=ValidationScope.DATA)
-    def run_checks(self, check_obj, schema) -> List[CoreCheckResult]:
-        check_results: List[CoreCheckResult] = []
+    def run_checks(self, check_obj, schema) -> list[CoreCheckResult]:
+        check_results: list[CoreCheckResult] = []
         for check_index, check in enumerate(schema.checks):
             try:
                 check_results.append(
@@ -173,7 +174,7 @@ class ColumnBackend(IbisSchemaBackend):
                         schema.selector,
                     )
                 )
-            except Exception as err:  # pylint: disable=broad-except
+            except Exception as err:
                 # catch other exceptions that may occur when executing the Check
                 err_msg = f'"{err.args[0]}"' if err.args else ""
                 msg = f"{err.__class__.__name__}({err_msg})"

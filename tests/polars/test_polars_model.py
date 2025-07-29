@@ -7,7 +7,7 @@ from typing import Optional
 try:  # python 3.9+
     from typing import Annotated  # type: ignore
 except ImportError:
-    from typing_extensions import Annotated  # type: ignore
+    from typing import Annotated  # type: ignore
 
 import polars as pl
 import pytest

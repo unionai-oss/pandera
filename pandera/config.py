@@ -101,7 +101,7 @@ def config_context(
 
 def reset_config_context(conf: Optional[PanderaConfig] = None):
     """Reset the context configuration to the global configuration."""
-    # pylint: disable=global-statement
+
     global _CONTEXT_CONFIG
     _CONTEXT_CONFIG = copy(conf or CONFIG)
 

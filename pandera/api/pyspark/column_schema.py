@@ -1,7 +1,7 @@
 """Core pyspark column specification."""
 
 import copy
-from typing import Any, List, Optional, Type, TypeVar, cast
+from typing import Any, Optional, TypeVar, cast
 
 import pyspark.sql as ps
 
@@ -71,7 +71,7 @@ class ColumnSchema(BaseSchema):
         self.metadata = metadata
 
     @staticmethod
-    def register_default_backends(check_obj_cls: Type):
+    def register_default_backends(check_obj_cls: type):
         register_pyspark_backends()
 
     @property
@@ -82,9 +82,7 @@ class ColumnSchema(BaseSchema):
     @dtype.setter
     def dtype(self, value: Optional[PySparkDtypeInputTypes]) -> None:
         """Set the pyspark dtype"""
-        self._dtype = (
-            pyspark_engine.Engine.dtype(value) if value else None
-        )  # pylint:disable=no-value-for-parameter
+        self._dtype = pyspark_engine.Engine.dtype(value) if value else None
 
     def validate(
         self,
@@ -97,7 +95,6 @@ class ColumnSchema(BaseSchema):
         inplace: bool = False,
         error_handler: ErrorHandler = None,
     ):
-        # pylint: disable=too-many-locals,too-many-branches,too-many-statements
         """Validate a specific column in a dataframe.
 
         :check_obj: pyspark DataFrame to validate.
@@ -165,7 +162,7 @@ class ColumnSchema(BaseSchema):
     # Schema Transforms Methods #
     #############################
 
-    def update_checks(self, checks: List[Check]):
+    def update_checks(self, checks: list[Check]):
         """Create a new Schema with a new set of Checks
 
         :param checks: checks to set on the new schema

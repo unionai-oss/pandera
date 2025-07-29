@@ -2,7 +2,8 @@
 
 import functools
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Generic, TypeVar, List, Mapping
+from typing import TYPE_CHECKING, Any, Generic, TypeVar
+from collections.abc import Mapping
 
 from packaging import version
 
@@ -22,7 +23,6 @@ def ibis_version():
     return version.parse(ibis.__version__)
 
 
-# pylint:disable=invalid-name
 if TYPE_CHECKING:
     T = TypeVar("T")  # pragma: no cover
 else:
@@ -48,7 +48,6 @@ if IBIS_INSTALLED:
             :param obj: object representing a serialized dataframe.
             :param config: dataframe model configuration object.
             """
-            # pylint: disable=too-many-branches,too-many-return-statements
             if config.from_format is None:
                 if not isinstance(obj, ibis.Table):
                     try:
@@ -121,7 +120,7 @@ if IBIS_INSTALLED:
                             lambda: ibis.read_json(obj, **kwargs),
                             "Failed to read JSON with Ibis",
                         )
-                    elif isinstance(obj, (List, Mapping)):
+                    elif isinstance(obj, (list, Mapping)):
                         # If it's a Python object that's JSON-serializable
                         return ibis.memtable(obj)
                     else:
@@ -164,7 +163,6 @@ if IBIS_INSTALLED:
             :param data: convert this data to the specified format
             :param config: config object from the DataFrameModel
             """
-            # pylint: disable=too-many-return-statements
             if config.to_format is None:
                 return data
 

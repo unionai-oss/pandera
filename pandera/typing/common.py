@@ -1,7 +1,5 @@
 """Common typing functionality."""
 
-# pylint:disable=abstract-method,too-many-ancestors,invalid-name
-
 import copy
 import inspect
 from typing import (  # type: ignore[attr-defined]
@@ -9,7 +7,6 @@ from typing import (  # type: ignore[attr-defined]
     Any,
     Generic,
     Optional,
-    Type,
     TypeVar,
     Union,
     _GenericAlias,
@@ -72,7 +69,6 @@ GenericDtype = TypeVar(  # type: ignore
 DataFrameModel = TypeVar("DataFrameModel", bound="DataFrameModel")  # type: ignore
 
 
-# pylint:disable=invalid-name
 if TYPE_CHECKING:
     T = TypeVar("T")  # pragma: no cover
 else:
@@ -109,7 +105,7 @@ def __patched_generic_alias_call(self, *args, **kwargs):
         raise
     # In python 3.11.9, all exceptions when setting attributes when defining
     # _GenericAlias subclasses are caught and ignored.
-    except Exception:  # pylint: disable=broad-except
+    except Exception:
         pass
     return result
 
@@ -118,16 +114,14 @@ _GenericAlias.__call__ = __patched_generic_alias_call
 
 
 class DataFrameBase(Generic[T]):
-    # pylint: disable=too-few-public-methods
     """
     Pandera Dataframe base class for validating dataframes on
     initialization.
     """
 
-    default_dtype: Optional[Type] = None
+    default_dtype: Optional[type] = None
 
     def __setattr__(self, name: str, value: Any) -> None:
-        # pylint: disable=no-member
         object.__setattr__(self, name, value)
         if name == "__orig_class__":
             orig_class = value
@@ -156,34 +150,32 @@ class DataFrameBase(Generic[T]):
                 pandera_accessor.add_schema(schema)
 
 
-# pylint:disable=too-few-public-methods
 class SeriesBase(Generic[GenericDtype]):
     """Pandera Series base class to use for all pandas-like APIs."""
 
-    default_dtype: Optional[Type] = None
+    default_dtype: Optional[type] = None
 
     def __get__(
-        self, instance: object, owner: Type
+        self, instance: object, owner: type
     ) -> str:  # pragma: no cover
         raise AttributeError("Series should resolve to Field-s")
 
 
-# pylint:disable=too-few-public-methods
 class IndexBase(Generic[GenericDtype]):
     """Representation of pandas.Index, only used for type annotation.
 
     *new in 0.5.0*
     """
 
-    default_dtype: Optional[Type] = None
+    default_dtype: Optional[type] = None
 
     def __get__(
-        self, instance: object, owner: Type
+        self, instance: object, owner: type
     ) -> str:  # pragma: no cover
         raise AttributeError("Indexes should resolve to pa.Index-s")
 
 
-class AnnotationInfo:  # pylint:disable=too-few-public-methods
+class AnnotationInfo:
     """Captures extra information about an annotation.
 
     Attributes:
@@ -197,7 +189,7 @@ class AnnotationInfo:  # pylint:disable=too-few-public-methods
         metadata: Extra arguments passed to :data:`typing.Annotated`.
     """
 
-    def __init__(self, raw_annotation: Type) -> None:
+    def __init__(self, raw_annotation: type) -> None:
         self._parse_annotation(raw_annotation)
 
     @property
@@ -210,7 +202,7 @@ class AnnotationInfo:  # pylint:disable=too-few-public-methods
         except TypeError:
             return False
 
-    def _parse_annotation(self, raw_annotation: Type) -> None:
+    def _parse_annotation(self, raw_annotation: type) -> None:
         """Parse key information from annotation.
 
         :param annotation: A subscripted type.

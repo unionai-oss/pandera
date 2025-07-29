@@ -1,7 +1,7 @@
 """Check backend for pyspark."""
 
 from functools import partial
-from typing import Dict, List, Optional, Union
+from typing import Optional, Union
 
 from pandera.api.base.checks import CheckResult
 from pandera.api.checks import Check
@@ -43,8 +43,8 @@ class PySparkCheckBackend(BaseCheckBackend):
     @staticmethod
     def _format_groupby_input(
         groupby_obj: GroupbyObject,
-        groups: Optional[List[str]],
-    ) -> Dict[str, DataFrameTypes]:  # pragma: no cover
+        groups: Optional[list[str]],
+    ) -> dict[str, DataFrameTypes]:  # pragma: no cover
         raise NotImplementedError
 
     def preprocess(
@@ -89,8 +89,6 @@ class PySparkCheckBackend(BaseCheckBackend):
     ) -> CheckResult:
         check_obj = self.preprocess(check_obj, key)
 
-        check_output = self.apply(  # pylint:disable=too-many-function-args
-            check_obj, key, self.check._check_kwargs
-        )
+        check_output = self.apply(check_obj, key, self.check._check_kwargs)
 
         return self.postprocess(check_obj, check_output)

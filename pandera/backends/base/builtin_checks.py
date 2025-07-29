@@ -1,4 +1,3 @@
-# pylint: disable=missing-function-docstring
 """Built-in check functions base implementation.
 
 This module contains check function abstract definitions that correspond to
@@ -9,7 +8,8 @@ specific implementations based on the data object type, e.g.
 """
 
 import re
-from typing import Any, Iterable, Optional, TypeVar, Union
+from typing import Any, Optional, TypeVar, Union
+from collections.abc import Iterable
 
 from pandera.api.checks import Check
 

@@ -1,7 +1,5 @@
 """This module is to test the behaviour change based on defined config in pandera"""
 
-# pylint:disable=import-outside-toplevel,abstract-method
-
 from dataclasses import asdict
 
 import pyspark.sql.types as T
@@ -58,7 +56,6 @@ class TestPanderaConfig:
             assert pandera_schema.validate(input_df) == input_df
             assert TestSchema.validate(input_df) == input_df
 
-    # pylint:disable=too-many-locals
     def test_schema_only(self, spark_session, sample_spark_schema, request):
         """This function validates that only schema related checks are run not data level"""
         spark = request.getfixturevalue(spark_session)
@@ -146,7 +143,6 @@ class TestPanderaConfig:
             == expected_dataframemodel["SCHEMA"]
         )
 
-    # pylint:disable=too-many-locals
     def test_data_only(self, spark_session, sample_spark_schema, request):
         """This function validates that only data related checks are run not schema level"""
         spark = request.getfixturevalue(spark_session)
@@ -239,7 +235,6 @@ class TestPanderaConfig:
             == expected_dataframemodel["DATA"]
         )
 
-    # pylint:disable=too-many-locals
     def test_schema_and_data(
         self, spark_session, sample_spark_schema, request
     ):
@@ -370,12 +365,11 @@ class TestPanderaConfig:
 
     @pytest.mark.parametrize("cache_dataframe", [True, False])
     @pytest.mark.parametrize("keep_cached_dataframe", [True, False])
-    # pylint:disable=too-many-locals
     def test_cache_dataframe_settings(
         self,
         cache_dataframe,
         keep_cached_dataframe,
-        spark_session,  # pylint:disable=unused-argument
+        spark_session,
     ):
         """This function validates setters and getters for cache/keep_cache options."""
         # Set expected properties in Config object

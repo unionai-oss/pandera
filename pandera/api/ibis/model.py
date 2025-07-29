@@ -3,10 +3,6 @@
 import sys
 import inspect
 from typing import (
-    Dict,
-    List,
-    Tuple,
-    Type,
     Optional,
     cast,
 )
@@ -52,12 +48,12 @@ class DataFrameModel(_DataFrameModel[ibis.Table, DataFrameSchema]):
         )
 
     @classmethod
-    def _build_columns(  # pylint:disable=too-many-locals
+    def _build_columns(
         cls,
-        fields: Dict[str, Tuple[AnnotationInfo, FieldInfo]],
-        checks: Dict[str, List[Check]],
-    ) -> Dict[str, Column]:
-        columns: Dict[str, Column] = {}
+        fields: dict[str, tuple[AnnotationInfo, FieldInfo]],
+        checks: dict[str, list[Check]],
+    ) -> dict[str, Column]:
+        columns: dict[str, Column] = {}
         for field_name, (annotation, field) in fields.items():
             field_checks = checks.get(field_name, [])
             field_name = field.name
@@ -124,7 +120,7 @@ class DataFrameModel(_DataFrameModel[ibis.Table, DataFrameSchema]):
     @classmethod
     @docstring_substitution(validate_doc=BaseSchema.validate.__doc__)
     def validate(
-        cls: Type[Self],
+        cls: type[Self],
         check_obj: ibis.Table,
         head: Optional[int] = None,
         tail: Optional[int] = None,

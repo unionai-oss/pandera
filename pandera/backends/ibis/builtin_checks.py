@@ -2,7 +2,8 @@
 
 import datetime
 import re
-from typing import Any, Iterable, Optional, TypeVar, Union
+from typing import Any, Optional, TypeVar, Union
+from collections.abc import Iterable
 
 import ibis
 from ibis import _, selectors as s

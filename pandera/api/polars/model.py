@@ -2,7 +2,7 @@
 
 import copy
 import inspect
-from typing import Dict, List, Optional, Tuple, Type, Union, cast, overload
+from typing import Optional, Union, cast, overload
 
 import polars as pl
 from typing_extensions import Self
@@ -29,7 +29,7 @@ class DataFrameModel(_DataFrameModel[pl.LazyFrame, DataFrameSchema]):
     See the :ref:`User Guide <dataframe-models>` for more.
     """
 
-    Config: Type[BaseConfig] = BaseConfig
+    Config: type[BaseConfig] = BaseConfig
 
     @classmethod
     def build_schema_(cls, **kwargs) -> DataFrameSchema:
@@ -40,12 +40,12 @@ class DataFrameModel(_DataFrameModel[pl.LazyFrame, DataFrameSchema]):
         )
 
     @classmethod
-    def _build_columns(  # pylint:disable=too-many-locals
+    def _build_columns(
         cls,
-        fields: Dict[str, Tuple[AnnotationInfo, FieldInfo]],
-        checks: Dict[str, List[Check]],
-    ) -> Dict[str, Column]:
-        columns: Dict[str, Column] = {}
+        fields: dict[str, tuple[AnnotationInfo, FieldInfo]],
+        checks: dict[str, list[Check]],
+    ) -> dict[str, Column]:
+        columns: dict[str, Column] = {}
         for field_name, (annotation, field) in fields.items():
             field_checks = checks.get(field_name, [])
             field_name = field.name
@@ -114,7 +114,7 @@ class DataFrameModel(_DataFrameModel[pl.LazyFrame, DataFrameSchema]):
     @classmethod
     @overload
     def validate(
-        cls: Type[Self],
+        cls: type[Self],
         check_obj: pl.DataFrame,
         head: Optional[int] = None,
         tail: Optional[int] = None,
@@ -127,7 +127,7 @@ class DataFrameModel(_DataFrameModel[pl.LazyFrame, DataFrameSchema]):
     @classmethod
     @overload
     def validate(
-        cls: Type[Self],
+        cls: type[Self],
         check_obj: pl.LazyFrame,
         head: Optional[int] = None,
         tail: Optional[int] = None,
@@ -140,7 +140,7 @@ class DataFrameModel(_DataFrameModel[pl.LazyFrame, DataFrameSchema]):
     @classmethod
     @docstring_substitution(validate_doc=BaseSchema.validate.__doc__)
     def validate(
-        cls: Type[Self],
+        cls: type[Self],
         check_obj: PolarsFrame,
         head: Optional[int] = None,
         tail: Optional[int] = None,
@@ -241,7 +241,7 @@ class DataFrameModel(_DataFrameModel[pl.LazyFrame, DataFrameSchema]):
         }
 
     @classmethod
-    def empty(cls: Type[Self], *_args) -> DataFrame[Self]:
+    def empty(cls: type[Self], *_args) -> DataFrame[Self]:
         """Create an empty DataFrame with the schema of this model."""
         schema = copy.deepcopy(cls.to_schema())
         schema.coerce = True

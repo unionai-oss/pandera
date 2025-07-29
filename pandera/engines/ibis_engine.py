@@ -4,7 +4,8 @@ import dataclasses
 import datetime
 import inspect
 import warnings
-from typing import Any, Iterable, Literal, Optional, Type, Union
+from typing import Any, Literal, Optional, Union
+from collections.abc import Iterable
 
 import ibis
 import ibis.expr.datatypes as dt
@@ -53,9 +54,7 @@ class DataType(dtypes.DataType):
     def check(
         self,
         pandera_dtype: dtypes.DataType,
-        data_container: Optional[  # pylint:disable=unused-argument
-            ibis.Table
-        ] = None,
+        data_container: Optional[ibis.Table] = None,
     ) -> Union[bool, Iterable[bool]]:
         try:
             return self.type == pandera_dtype.type
@@ -338,9 +337,9 @@ class Date(DataType, dtypes.Date):
 class DateTime(DataType, dtypes.DateTime):
     """Semantic representation of a :class:`dt.Timestamp`."""
 
-    type: Type[dt.Timestamp]
+    type: type[dt.Timestamp]
 
-    def __init__(  # pylint: disable=super-init-not-called
+    def __init__(
         self,
         timezone: Optional[str] = None,
         scale: Optional[Literal[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]] = None,
@@ -385,11 +384,9 @@ class Time(DataType):
 class Timedelta(DataType, dtypes.DateTime):
     """Semantic representation of a :class:`dt.Timestamp`."""
 
-    type: Type[dt.Interval]
+    type: type[dt.Interval]
 
-    def __init__(
-        self, unit: IntervalUnit = "us"
-    ):  # pylint: disable=super-init-not-called
+    def __init__(self, unit: IntervalUnit = "us"):
         object.__setattr__(self, "type", dt.Interval(unit=unit))
 
     @classmethod

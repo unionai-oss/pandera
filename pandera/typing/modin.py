@@ -21,7 +21,6 @@ def modin_version():
     return version.parse(modin.__version__)
 
 
-# pylint:disable=invalid-name
 if TYPE_CHECKING:
     T = TypeVar("T")  # pragma: no cover
 else:
@@ -29,7 +28,7 @@ else:
 
 
 if MODIN_INSTALLED:
-    # pylint: disable=too-few-public-methods
+
     class DataFrame(DataFrameBase, mpd.DataFrame, Generic[T]):
         """
         Representation of dask.dataframe.DataFrame, only used for type
@@ -38,14 +37,12 @@ if MODIN_INSTALLED:
         *new in 0.8.0*
         """
 
-    # pylint:disable=too-few-public-methods,abstract-method
     class Series(SeriesBase, mpd.Series, Generic[GenericDtype]):
         """Representation of pandas.Series, only used for type annotation.
 
         *new in 0.8.0*
         """
 
-    # pylint:disable=too-few-public-methods,abstract-method
     class Index(IndexBase, mpd.Index, Generic[GenericDtype]):
         """Representation of pandas.Index, only used for type annotation.
 

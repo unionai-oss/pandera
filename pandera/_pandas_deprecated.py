@@ -1,4 +1,3 @@
-# pylint: disable=wrong-import-position,unused-import,global-statement,unused-wildcard-import
 """A flexible and expressive pandas dataframe validation library.
 
 This module is imported by the top-level pandera module and will be deprecated
@@ -22,13 +21,17 @@ _min_numpy_version = parse("1.24.4")
 if parse(pd.__version__) < _min_pandas_version:
     raise ImportError(
         "pandera requires pandas >= 2.1.1, but you have pandas "
-        f"{pd.__version__}. Please upgrade pandas to the minimum supported version."
+        f"{pd.__version__}. Using the pandera.pandas module may not work as "
+        "expected. It's highly recommended to upgrade pandas to the minimum "
+        "supported version."
     )
 
 if parse(np.__version__) < _min_numpy_version:
     raise ImportError(
         "pandera requires numpy >= 1.24.4, but you have numpy "
-        f"{np.__version__}. Please upgrade numpy to the minimum supported version."
+        f"{np.__version__}. Using the pandera.pandas module may not work as "
+        "expected. It's highly recommended to upgrade numpy to the minimum "
+        "supported version."
     )
 
 from pandera._patch_numpy2 import _patch_numpy2
@@ -245,7 +248,7 @@ __all__ = [
 
 
 if platform.system() != "Windows":
-    # pylint: disable=ungrouped-imports
+
     from pandera.dtypes import Complex256, Float128
 
     __all__.extend(["Complex256", "Float128"])

@@ -1,7 +1,8 @@
 """Core pandas schema component specifications."""
 
 import warnings
-from typing import Any, Dict, Iterable, List, Optional, Tuple, Union, cast
+from typing import Any, Optional, Union, cast
+from collections.abc import Iterable
 
 import pandas as pd
 
@@ -27,7 +28,7 @@ class Column(ArraySchema[pd.DataFrame]):
         report_duplicates: UniqueSettings = "all",
         coerce: bool = False,
         required: bool = True,
-        name: Union[str, Tuple[str, ...], None] = None,
+        name: Union[str, tuple[str, ...], None] = None,
         regex: bool = False,
         title: Optional[str] = None,
         description: Optional[str] = None,
@@ -115,7 +116,7 @@ class Column(ArraySchema[pd.DataFrame]):
         return True
 
     @property
-    def properties(self) -> Dict[str, Any]:
+    def properties(self) -> dict[str, Any]:
         """Get column properties."""
         return {
             "dtype": self.dtype,
@@ -148,7 +149,7 @@ class Column(ArraySchema[pd.DataFrame]):
         :param columns: columns to regex pattern match
         :returns: matching columns
         """
-        # pylint: disable=import-outside-toplevel
+
         from pandera.backends.pandas.components import ColumnBackend
 
         return cast(
@@ -198,7 +199,7 @@ class Column(ArraySchema[pd.DataFrame]):
         :param size: number of elements in the generated Index.
         :returns: pandas DataFrame object.
         """
-        # pylint: disable=import-outside-toplevel,cyclic-import,import-error
+
         import hypothesis
 
         with warnings.catch_warnings():
@@ -271,7 +272,7 @@ class Index(ArraySchema[pd.Index]):
         :param size: number of elements in the generated Index.
         :returns: pandas Index object.
         """
-        # pylint: disable=import-outside-toplevel,cyclic-import,import-error
+
         import hypothesis
 
         with warnings.catch_warnings():
@@ -291,12 +292,12 @@ class MultiIndex(DataFrameSchema):
 
     def __init__(
         self,
-        indexes: List[Index],
+        indexes: list[Index],
         coerce: bool = False,
         strict: bool = False,
         name: Optional[str] = None,
         ordered: bool = True,
-        unique: Optional[Union[str, List[str]]] = None,
+        unique: Optional[Union[str, list[str]]] = None,
     ) -> None:
         """Create MultiIndex validator.
 
@@ -381,7 +382,7 @@ class MultiIndex(DataFrameSchema):
         return [index.name for index in self.indexes]
 
     @property
-    def named_indexes(self) -> Dict[str, Any]:
+    def named_indexes(self) -> dict[str, Any]:
         """Get named indexes."""
         return {index.name: index for index in self.indexes}
 
@@ -434,7 +435,7 @@ class MultiIndex(DataFrameSchema):
     @strategy_import_error
     # NOTE: remove these ignore statements as part of
     # https://github.com/pandera-dev/pandera/issues/403
-    # pylint: disable=arguments-differ
+
     def strategy(self, *, size=None):  # type: ignore
         import pandera.strategies.pandas_strategies as st
 
@@ -442,9 +443,9 @@ class MultiIndex(DataFrameSchema):
 
     # NOTE: remove these ignore statements as part of
     # https://github.com/pandera-dev/pandera/issues/403
-    # pylint: disable=arguments-differ
+
     def example(self, size=None) -> pd.MultiIndex:  # type: ignore
-        # pylint: disable=import-outside-toplevel,cyclic-import,import-error
+
         import hypothesis
 
         with warnings.catch_warnings():
@@ -455,6 +456,6 @@ class MultiIndex(DataFrameSchema):
             return self.strategy(size=size).example()
 
 
-def is_valid_multiindex_key(x: Tuple[Any, ...]) -> bool:
+def is_valid_multiindex_key(x: tuple[Any, ...]) -> bool:
     """Check that a multi-index tuple key has all string elements"""
     return isinstance(x, tuple) and all(isinstance(i, str) for i in x)

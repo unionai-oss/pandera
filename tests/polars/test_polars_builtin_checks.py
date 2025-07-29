@@ -1,6 +1,5 @@
 """Unit tests for polars checks."""
 
-# pylint:disable=abstract-method
 import datetime
 import decimal
 import re
@@ -121,7 +120,7 @@ class BaseClass:
                 sample_data, methodcaller("encode")
             )
 
-        return data_dict  # pylint:disable=possibly-used-before-assignment
+        return data_dict
 
     @staticmethod
     def check_function(

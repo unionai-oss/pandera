@@ -3,14 +3,11 @@
 from typing import (
     Any,
     Callable,
-    Dict,
-    Iterable,
     Optional,
-    Set,
-    Tuple,
     Union,
     cast,
 )
+from collections.abc import Iterable
 
 from pandera.api.base.model_components import (
     BaseCheckInfo,
@@ -44,7 +41,7 @@ class FieldInfo(BaseFieldInfo):
         checks: Optional[CheckArg] = None,
         parsers: Optional[ParserArg] = None,
         **kwargs: Any,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         if self.dtype_kwargs:
             dtype = dtype(**self.dtype_kwargs)  # type: ignore
         return {
@@ -61,7 +58,7 @@ class FieldInfo(BaseFieldInfo):
         parsers: Optional[ParserArg] = None,
         required: bool = True,
         name: Optional[str] = None,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Create a schema_components.Column from a field."""
         return self._get_schema_properties(
             dtype,
@@ -84,7 +81,7 @@ class FieldInfo(BaseFieldInfo):
         dtype: Any,
         checks: Optional[CheckArg] = None,
         name: Optional[str] = None,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Create a schema_components.Index from a field."""
         return self._get_schema_properties(
             dtype,
@@ -99,7 +96,7 @@ class FieldInfo(BaseFieldInfo):
         )
 
     @property
-    def properties(self) -> Dict[str, Any]:
+    def properties(self) -> dict[str, Any]:
         """Get column properties."""
         return {
             "dtype": self.dtype_kwargs,
@@ -123,12 +120,12 @@ def Field(
     ge: Optional[Any] = None,
     lt: Optional[Any] = None,
     le: Optional[Any] = None,
-    in_range: Optional[Dict[str, Any]] = None,
+    in_range: Optional[dict[str, Any]] = None,
     isin: Optional[Iterable[Any]] = None,
     notin: Optional[Iterable[Any]] = None,
     str_contains: Optional[str] = None,
     str_endswith: Optional[str] = None,
-    str_length: Optional[Dict[str, Any]] = None,
+    str_length: Optional[dict[str, Any]] = None,
     str_matches: Optional[str] = None,
     str_startswith: Optional[str] = None,
     nullable: bool = False,
@@ -140,11 +137,11 @@ def Field(
     n_failure_cases: Optional[int] = None,
     alias: Optional[Any] = None,
     check_name: Optional[bool] = None,
-    dtype_kwargs: Optional[Dict[str, Any]] = None,
+    dtype_kwargs: Optional[dict[str, Any]] = None,
     title: Optional[str] = None,
     description: Optional[str] = None,
     default: Optional[Any] = None,
-    metadata: Optional[Dict[str, Any]] = None,
+    metadata: Optional[dict[str, Any]] = None,
     **kwargs: Any,
 ) -> Any:
     """Column or index field specification of a DataFrameModel.
@@ -178,7 +175,6 @@ def Field(
     :param kwargs: Specify custom checks that have been registered with the
         :class:`~pandera.extensions.register_check_method` decorator.
     """
-    # pylint:disable=C0103,W0613,R0914
     check_kwargs = {
         "ignore_na": ignore_na,
         "raise_warning": raise_warning,
@@ -244,16 +240,16 @@ def _check_dispatch():
     }
 
 
-class CheckInfo(BaseCheckInfo):  # pylint:disable=too-few-public-methods
+class CheckInfo(BaseCheckInfo):
     """Captures extra information about a Check."""
 
 
-class FieldCheckInfo(CheckInfo):  # pylint:disable=too-few-public-methods
+class FieldCheckInfo(CheckInfo):
     """Captures extra information about a Check assigned to a field."""
 
     def __init__(
         self,
-        fields: Set[Union[str, FieldInfo]],
+        fields: set[Union[str, FieldInfo]],
         check_fn: AnyCallable,
         regex: bool = False,
         **check_kwargs: Any,
@@ -263,16 +259,16 @@ class FieldCheckInfo(CheckInfo):  # pylint:disable=too-few-public-methods
         self.regex = regex
 
 
-class ParserInfo(BaseParserInfo):  # pylint:disable=too-few-public-methods
+class ParserInfo(BaseParserInfo):
     """Captures extra information about a Parser."""
 
 
-class FieldParserInfo(ParserInfo):  # pylint:disable=too-few-public-methods
+class FieldParserInfo(ParserInfo):
     """Captures extra information about a Parser assigned to a field."""
 
     def __init__(
         self,
-        fields: Set[Union[str, FieldInfo]],
+        fields: set[Union[str, FieldInfo]],
         parser_fn: AnyCallable,
         regex: bool = False,
         **parser_kwargs: Any,
@@ -284,7 +280,7 @@ class FieldParserInfo(ParserInfo):  # pylint:disable=too-few-public-methods
 
 def _to_function_and_classmethod(
     fn: Union[AnyCallable, classmethod],
-) -> Tuple[AnyCallable, classmethod]:
+) -> tuple[AnyCallable, classmethod]:
     if isinstance(fn, classmethod):
         fn, method = fn.__func__, cast(classmethod, fn)
     else:

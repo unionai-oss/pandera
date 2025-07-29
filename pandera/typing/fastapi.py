@@ -1,7 +1,7 @@
 """FastAPI-specific types."""
 
 import functools
-from typing import Any, BinaryIO, Generic, Type
+from typing import Any, BinaryIO, Generic
 
 from pandera.engines import PYDANTIC_V2
 from pandera.typing.common import T
@@ -26,7 +26,7 @@ if PYDANTIC_V2:
 
 
 if FASTAPI_INSTALLED:
-    # pylint: disable=too-few-public-methods
+
     class UploadFile(fastapi.UploadFile, Generic[T]):
         """Pandera-specific subclass of fastapi.UploadFile.
 
@@ -56,7 +56,6 @@ if FASTAPI_INSTALLED:
 
         if PYDANTIC_V2:
 
-            # pylint: disable=unused-argument
             @classmethod
             def __get_pydantic_core_schema__(
                 cls, _source_type: Any, _handler: GetCoreSchemaHandler
@@ -71,7 +70,7 @@ if FASTAPI_INSTALLED:
 
             @classmethod
             def pydantic_validate_v2(
-                cls: Type["UploadFile"], obj: Any, dataframe_type
+                cls: type["UploadFile"], obj: Any, dataframe_type
             ) -> Any:
                 """
                 Pydantic validation method for validating dataframes in the context
@@ -98,7 +97,7 @@ if FASTAPI_INSTALLED:
 
             @classmethod
             def pydantic_validate_v1(
-                cls: Type["UploadFile"], obj: Any, field: ModelField
+                cls: type["UploadFile"], obj: Any, field: ModelField
             ) -> Any:
                 """
                 Pydantic validation method for validating dataframes in the context

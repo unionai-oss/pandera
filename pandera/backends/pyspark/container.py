@@ -3,7 +3,7 @@
 import copy
 import traceback
 import warnings
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from pyspark.sql import DataFrame
 from pyspark.sql.functions import col, count
@@ -86,7 +86,7 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
         self,
         check_obj: DataFrame,
         schema,
-        column_info: ColumnInfo,  # pylint: disable=unused-argument
+        column_info: ColumnInfo,
         error_handler: ErrorHandler,
     ):
         """Run the checks related to data validation and uniqueness."""
@@ -109,8 +109,8 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
         check_obj: DataFrame,
         schema,
         *,
-        head: Optional[int] = None,  # pylint: disable=unused-argument
-        tail: Optional[int] = None,  # pylint: disable=unused-argument
+        head: Optional[int] = None,
+        tail: Optional[int] = None,
         sample: Optional[int] = None,
         random_state: Optional[int] = None,
         lazy: bool = False,
@@ -190,7 +190,7 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
         self,
         check_obj: DataFrame,
         schema,
-        schema_components: List,
+        schema_components: list,
         lazy: bool,
         error_handler: Optional[ErrorHandler],
     ):
@@ -235,7 +235,7 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
                 )
             except SchemaDefinitionError:
                 raise
-            except Exception as err:  # pylint: disable=broad-except
+            except Exception as err:
                 # catch other exceptions that may occur when executing the check
                 err_msg = f'"{err.args[0]}"' if err.args else ""
                 err_str = f"{err.__class__.__name__}({ err_msg})"
@@ -265,9 +265,9 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
         lazy: bool,
     ) -> ColumnInfo:
         """Collect column metadata."""
-        column_names: List[Any] = []
-        absent_column_names: List[Any] = []
-        lazy_exclude_column_names: List[Any] = []
+        column_names: list[Any] = []
+        absent_column_names: list[Any] = []
+        lazy_exclude_column_names: list[Any] = []
 
         for col_name, col_schema in schema.columns.items():
             if (
@@ -568,7 +568,7 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
         """Check for column name uniqueness."""
         if not schema.unique_column_names:
             return
-        column_count_dict: Dict[Any, Any] = {}
+        column_count_dict: dict[Any, Any] = {}
         failed = []
         for column_name in check_obj.columns:
             if column_count_dict.get(column_name):

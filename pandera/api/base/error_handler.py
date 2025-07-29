@@ -2,7 +2,7 @@
 
 from collections import defaultdict
 from enum import Enum
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Optional, Union
 
 from pandera.api.checks import Check
 from pandera.config import ValidationDepth, get_config_context
@@ -28,8 +28,8 @@ class ErrorHandler:
         Defaults to True.
         """
         self._lazy = lazy
-        self._collected_errors: List[Dict[str, Any]] = []
-        self._schema_errors: List[SchemaError] = []
+        self._collected_errors: list[dict[str, Any]] = []
+        self._schema_errors: list[SchemaError] = []
         self._summarized_errors = defaultdict(lambda: defaultdict(list))  # type: ignore
 
     @property
@@ -86,7 +86,7 @@ class ErrorHandler:
 
     def collect_errors(
         self,
-        schema_errors: List[SchemaError],
+        schema_errors: list[SchemaError],
         original_exc: Union[BaseException, None] = None,
     ):
         """Collect schema errors from a SchemaErrors exception.
@@ -104,19 +104,19 @@ class ErrorHandler:
             )
 
     @property
-    def collected_errors(self) -> List[Dict[str, Any]]:
+    def collected_errors(self) -> list[dict[str, Any]]:
         """Retrieve error objects collected during lazy validation."""
         return self._collected_errors
 
     @collected_errors.setter
-    def collected_errors(self, value: List[Dict[str, Any]]):
+    def collected_errors(self, value: list[dict[str, Any]]):
         """Set the list of collected errors."""
         if not isinstance(value, list):
             raise ValueError("collected_errors must be a list")
         self._collected_errors = value
 
     @property
-    def schema_errors(self) -> List[SchemaError]:
+    def schema_errors(self) -> list[SchemaError]:
         """Retrieve SchemaError objects collected during lazy validation."""
         return self._schema_errors
 

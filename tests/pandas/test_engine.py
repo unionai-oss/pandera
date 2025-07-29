@@ -1,9 +1,8 @@
 """Tests Engine subclassing and registering DataTypes."""
 
-# pylint:disable=redefined-outer-name,unused-argument
-# pylint:disable=missing-function-docstring,missing-class-docstring
 import re
-from typing import Any, Generator, List, Union
+from typing import Any, Union
+from collections.abc import Generator
 
 import pytest
 
@@ -26,13 +25,13 @@ class SimpleDtype(BaseDataType):
 
 
 @pytest.fixture
-def equivalents() -> List[Any]:
+def equivalents() -> list[Any]:
     return [int, "int", 1]
 
 
 @pytest.fixture
 def engine() -> Generator[Engine, None, None]:
-    class FakeEngine(  # pylint:disable=too-few-public-methods
+    class FakeEngine(
         metaclass=Engine, base_pandera_dtypes=BaseDataType  # type: ignore[call-arg]
     ):
         pass
@@ -42,7 +41,7 @@ def engine() -> Generator[Engine, None, None]:
     del FakeEngine
 
 
-def test_register_equivalents(engine: Engine, equivalents: List[Any]):
+def test_register_equivalents(engine: Engine, equivalents: list[Any]):
     """Test that a dtype with equivalents can be registered."""
     engine.register_dtype(SimpleDtype, equivalents=equivalents)
 
@@ -98,13 +97,11 @@ def test_register_notclassmethod_from_parametrized_dtype(engine: Engine):
 
         @engine.register_dtype
         class _InvalidDtype(BaseDataType):
-            def from_parametrized_dtype(
-                cls, x: int
-            ):  # pylint:disable=no-self-argument
+            def from_parametrized_dtype(cls, x: int):
                 return x
 
 
-def test_register_dtype_complete(engine: Engine, equivalents: List[Any]):
+def test_register_dtype_complete(engine: Engine, equivalents: list[Any]):
     """Test that a dtype with equivalents and from_parametrized_dtype
     can be registered.
     """
@@ -155,7 +152,7 @@ def test_register_dtype_overwrite(engine: Engine):
 def test_register_base_pandera_dtypes():
     """Test that base datatype cannot be registered."""
 
-    class FakeEngine(  # pylint:disable=too-few-public-methods
+    class FakeEngine(
         metaclass=Engine, base_pandera_dtypes=(BaseDataType, BaseDataType)
     ):
         pass
