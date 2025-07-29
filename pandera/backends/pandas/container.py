@@ -814,8 +814,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
         for lst in temp_unique:
             subset = [x for x in lst if x in check_obj]
             duplicates = check_obj.duplicated(  # type: ignore
-                subset=subset,
-                keep=keep_setting,  # type: ignore
+                subset=subset, keep=keep_setting  # type: ignore
             )
             if duplicates.any():
                 # NOTE: this is a hack to support pyspark.pandas, need to
