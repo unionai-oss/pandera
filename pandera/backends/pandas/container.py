@@ -799,7 +799,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
         if not schema.unique:
             return CoreCheckResult(
                 passed=passed,
-                check="dataframe_column_labels_unique",
+                check="multiple_fields_uniqueness",
             )
 
         keep_setting = convert_uniquesettings(schema.report_duplicates)
