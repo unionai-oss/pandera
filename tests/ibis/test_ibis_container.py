@@ -198,7 +198,6 @@ def test_column_absent_error(t_basic, t_schema_basic):
         t_basic.drop("int_col").pipe(t_schema_basic.validate)
 
 
-@pytest.mark.xfail(reason="`unique` not yet implemented for Ibis backend")
 def test_column_values_are_unique(t_basic, t_schema_basic):
     """Test column values are unique."""
     t_schema_basic.unique = ["string_col", "int_col"]

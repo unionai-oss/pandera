@@ -616,14 +616,11 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
                 check="dataframe_column_labels_unique",
             )
 
-        # NOTE: fix this pylint error
-
         temp_unique: list[list] = (
             [schema.unique]
             if all(isinstance(x, str) for x in schema.unique)
             else schema.unique
         )
-
         for lst in temp_unique:
             subset = [
                 x for x in lst if x in get_lazyframe_column_names(check_obj)
