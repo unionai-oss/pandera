@@ -27,12 +27,6 @@ from pandera.pandas import (
 from pandera.engines.pandas_engine import Engine
 from pandera.typing import DataFrame, Index, Series
 
-try:
-    # python 3.8+
-    from typing import Literal  # type: ignore[attr-defined]
-except ImportError:  # pragma: no cover
-    from typing_extensions import Literal  # type: ignore[assignment]
-
 
 def test_check_function_decorators() -> None:
     """
@@ -794,7 +788,7 @@ def test_check_types_with_literal_type(arg_examples):
     """Test that using typing module types works with check_types"""
 
     for example in arg_examples:
-        arg_type = Literal[example]  # type: ignore
+        arg_type = typing.Literal[example]  # type: ignore
 
         @check_types
         def transform_with_literal(

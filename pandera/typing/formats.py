@@ -1,13 +1,7 @@
 """Serialization formats for dataframes."""
 
 from enum import Enum
-from typing import Union
-
-try:
-    # python 3.8+
-    from typing import Literal  # type: ignore[attr-defined]
-except ImportError:  # pragma: no cover
-    from typing_extensions import Literal  # type: ignore[assignment]
+from typing import Literal, Union
 
 
 class Formats(Enum):

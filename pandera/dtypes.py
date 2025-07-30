@@ -9,6 +9,7 @@ from abc import ABC
 from typing import (
     Any,
     Callable,
+    Literal,
     Optional,
     TypeVar,
     Union,
@@ -16,12 +17,6 @@ from typing import (
 from collections.abc import Iterable
 
 from typing_extensions import overload
-
-try:
-    # python 3.8+
-    from typing import Literal  # type: ignore[attr-defined]
-except ImportError:  # pragma: no cover
-    from typing_extensions import Literal  # type: ignore[assignment]
 
 
 class DataType(ABC):
