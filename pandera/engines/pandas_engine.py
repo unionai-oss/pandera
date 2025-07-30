@@ -13,6 +13,7 @@ import warnings
 from typing import (
     Any,
     Callable,
+    Literal,
     NamedTuple,
     Optional,
     Union,
@@ -76,13 +77,6 @@ if sys.version_info >= (3, 12):
     from typing import TypedDict
 else:
     from typing_extensions import TypedDict  # noqa
-
-
-try:
-    # python 3.8+
-    from typing import Literal  # type: ignore[attr-defined]
-except ImportError:  # pragma: no cover
-    from typing_extensions import Literal  # type: ignore[assignment]
 
 
 def is_extension_dtype(
