@@ -473,23 +473,20 @@ class MultiIndexBackend(PandasSchemaBackend):
 
         if not is_multiindex(check_obj.index):
             if len(schema.indexes) == 1 and is_index(check_obj.index):
-                # Delegate to the Index backend
-                index_backend = IndexBackend()
-                stub_df = pd.DataFrame(index=check_obj.index)
+                # Validate the single-level index directly using the Index schema.
+                # This works for both pandas and pyspark.pandas objects and avoids
+                # constructing a pandas DataFrame with a non-pandas Index.
 
-                validated_df = index_backend.validate(
-                    stub_df,
-                    schema.indexes[0],
+                schema.indexes[0].validate(
+                    check_obj,
                     head=head,
                     tail=tail,
                     sample=sample,
                     random_state=random_state,
                     lazy=lazy,
-                    inplace=True,
+                    inplace=True,  # mutate index in place if coercion occurs
                 )
 
-                # Replace index in the original object if coercion happened
-                check_obj.index = validated_df.index
                 return check_obj
 
             raise SchemaError(
