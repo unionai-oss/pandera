@@ -444,15 +444,15 @@ class MultiIndexBackend(PandasSchemaBackend):
             try:
                 check_obj.index = self.__coerce_index(check_obj, schema, lazy)
             except (SchemaError, SchemaErrors) as exc:
-                self._collect_or_raise(error_handler, exc)
-
-        # Validate the correspondence between schema index names and the actual
-        # multi-index names (order and presence checks).
-        self._validate_index_names(check_obj.index, schema, error_handler)
+                self._collect_or_raise(error_handler, exc, schema)
 
         # Map schema ``indexes`` definitions to concrete level positions in the
         # multi-index so that we can validate each level individually.
         level_mapping: List[Tuple[int, Any]] = self._map_schema_to_levels(check_obj.index, schema, error_handler)
+
+        # Validate the correspondence between schema index names and the actual
+        # multi-index names (order and presence checks).
+        self._validate_index_names(check_obj.index, schema, level_mapping, error_handler)
 
         # Iterate over the expected index levels and validate each level with its
         # corresponding ``Index`` schema component.
@@ -471,7 +471,7 @@ class MultiIndexBackend(PandasSchemaBackend):
                     inplace=True,
                 )
             except (SchemaError, SchemaErrors) as exc:
-                self._collect_or_raise(error_handler, exc)
+                self._collect_or_raise(error_handler, exc, schema)
 
         # Raise aggregated errors in lazy mode
         if lazy and error_handler.collected_errors:
@@ -510,19 +510,49 @@ class MultiIndexBackend(PandasSchemaBackend):
     def _collect_or_raise(
         error_handler: Optional[ErrorHandler],
         err: Union[SchemaError, SchemaErrors],
+        schema,
     ) -> None:  # noqa: D401
-        """Collect SchemaError/SchemaErrors* into error_handler when lazy,
-        otherwise, raise the first error.
+        """Collect errors (respecting lazy), adjusting schema context and
+        failure cases appropriately.
         """
 
+        def _update_schema_error(schema_error: SchemaError):
+            """Add `column` info to tabular failure cases."""
+
+            try:
+                failure_cases = schema_error.failure_cases  # may not exist
+            except AttributeError:
+                return
+
+            # Replace the schema context with the top-level MultiIndex schema so
+            # that downstream error reporting groups these failures under the
+            # "MultiIndex" key.
+            try:
+                schema_error.schema = schema  # type: ignore[assignment]
+            except Exception:  # noqa: BLE001
+                # In case the attribute is frozen / read-only, skip.
+                pass
+
+            if is_table(failure_cases):
+                # Attach the originating component name so that it can be
+                # displayed alongside the failure row.
+                component_name = getattr(schema, "name", None)
+                # if component_name is not None and "column" not in failure_cases.columns:
+                schema_error.failure_cases = failure_cases.assign(column=component_name)
+
+        # First, normalise failure_cases in the incoming error(s)
         if isinstance(err, SchemaErrors):
-            # Multi-error container
+            for se in err.schema_errors:
+                _update_schema_error(se)
+
             if error_handler is not None and error_handler.lazy:
                 error_handler.collect_errors(err.schema_errors, err)
             else:
                 # Fail fast with the first individual error for consistency
                 raise err.schema_errors[0] from err
         else:  # Single SchemaError
+            _update_schema_error(err)
+
             if error_handler is not None and error_handler.lazy:
                 error_handler.collect_error(validation_type(err.reason_code), err.reason_code, err)
             else:
@@ -532,6 +562,7 @@ class MultiIndexBackend(PandasSchemaBackend):
         self,
         mi: pd.MultiIndex,
         schema,
+        level_mapping: List[Tuple[int, Any]],
         error_handler: Optional[ErrorHandler] = None,
     ) -> None:
         """Perform high-level validation of index names/order requirements.
@@ -558,13 +589,16 @@ class MultiIndexBackend(PandasSchemaBackend):
                         check="column_ordered",
                         reason_code=SchemaErrorReason.COLUMN_NOT_ORDERED,
                     ),
+                    schema,
                 )
+
+            mapped_names = [names[level_pos] for level_pos, _ in level_mapping]
 
             # Ensure that schema-specified names appear in the expected order
             expected = [idx.name for idx in schema.indexes]
 
             for pos, expected_name in enumerate(expected):
-                if pos >= len(names):
+                if pos >= len(mapped_names):
                     self._collect_or_raise(
                         error_handler,
                         SchemaError(
@@ -575,15 +609,16 @@ class MultiIndexBackend(PandasSchemaBackend):
                             check="column_ordered",
                             reason_code=SchemaErrorReason.COLUMN_NOT_ORDERED,
                         ),
+                        schema,
                     )
                     continue
 
-                actual_name = names[pos]
+                actual_name = mapped_names[pos]
 
                 if expected_name is None:
                     if actual_name is None:
                         continue
-                    if actual_name in names[:pos]:
+                    if actual_name in mapped_names[:pos]:
                         # treat as duplicate continuation even if previous level had name
                         # Note that because of the nonconsecutive duplicates check,
                         # this is only possible if actual_name matches the previous non-None name
@@ -598,6 +633,7 @@ class MultiIndexBackend(PandasSchemaBackend):
                             check="column_ordered",
                             reason_code=SchemaErrorReason.COLUMN_NOT_ORDERED,
                         ),
+                        schema,
                     )
                 else:
                     if actual_name != expected_name:
@@ -611,6 +647,7 @@ class MultiIndexBackend(PandasSchemaBackend):
                                 check="column_ordered",
                                 reason_code=SchemaErrorReason.COLUMN_NOT_ORDERED,
                             ),
+                            schema,
                         )
         # Unordered validation – just check that all required names are present
         else:
@@ -627,7 +664,116 @@ class MultiIndexBackend(PandasSchemaBackend):
                         check="column_in_index",
                         reason_code=SchemaErrorReason.COLUMN_NOT_IN_DATAFRAME,
                     ),
+                    schema,
                 )
+
+    def _map_ordered_levels(  # helper for ordered=True
+        self,
+        mi: pd.MultiIndex,
+        schema,
+        error_handler: Optional[ErrorHandler] = None,
+    ) -> list[tuple[int, Any]]:
+        """
+        Return a list of ``(level_position, index_schema)`` mappings for an
+        ordered MultiIndex schema, correctly handling duplicate names and
+        unnamed (None) schema levels.
+
+        Rules
+        -----
+        1. Named schema level -> first *unused* dataframe level with the same name
+           that appears **after** the previously matched level.
+        2. Unnamed schema level -> the very next *unused* dataframe level,
+           regardless of its name.
+        3. Duplicate schema names must map to *consecutive* dataframe levels
+           with that same name.  If we encounter any different name in-between
+           -> out-of-order error.
+        4. If the dataframe runs out of levels before the schema list is
+           exhausted -> “fewer levels than expected” error.
+        """
+        mapping: list[tuple[int, Any]] = []
+        mi_names = list(mi.names)
+        n_levels = mi.nlevels
+        cur_df_pos: int = 0  # pointer into dataframe levels
+        last_mapped_name: Optional[str] = None
+
+        for idx_schema in schema.indexes:
+            target_name: Optional[str] = idx_schema.name
+
+            if cur_df_pos >= n_levels:
+                # dataframe too short
+                self._collect_or_raise(
+                    error_handler,
+                    SchemaError(
+                        schema=schema,
+                        data=mi,
+                        message="MultiIndex has fewer levels than specified in schema",
+                        failure_cases=str(mi_names),
+                        check="column_ordered",
+                        reason_code=SchemaErrorReason.COLUMN_NOT_ORDERED,
+                    ),
+                    schema,
+                )
+                break
+
+            if target_name is None:
+                # Wild-card level – accept next dataframe level as-is
+                mapping.append((cur_df_pos, idx_schema))
+                last_mapped_name = mi_names[cur_df_pos]
+                cur_df_pos += 1
+                continue
+
+            # ---------- named schema level ----------
+            # Skip over duplicates of the *previous* name *only* if the schema
+            # is expecting a *different* name next. If the schema expects the
+            # same name again (duplicate schema components), we should stay on
+            # the current duplicate level so it can be mapped.
+            while (
+                cur_df_pos < n_levels
+                and last_mapped_name is not None
+                and mi_names[cur_df_pos] == last_mapped_name
+                and target_name != last_mapped_name
+            ):
+                cur_df_pos += 1
+
+            # Now walk forward until we find the target name
+            while cur_df_pos < n_levels and mi_names[cur_df_pos] != target_name:
+                # Any *other* name before we meet `target_name` => out-of-order
+                self._collect_or_raise(
+                    error_handler,
+                    SchemaError(
+                        schema=schema,
+                        data=mi,
+                        message=f"column '{target_name}' out-of-order",
+                        failure_cases=target_name,
+                        check="column_ordered",
+                        reason_code=SchemaErrorReason.COLUMN_NOT_ORDERED,
+                    ),
+                    schema,
+                )
+                cur_df_pos += 1
+
+            if cur_df_pos >= n_levels:
+                # ran off the end without finding target
+                self._collect_or_raise(
+                    error_handler,
+                    SchemaError(
+                        schema=schema,
+                        data=mi,
+                        message=f"index level with name '{target_name}' not found",
+                        failure_cases=target_name,
+                        check="column_ordered",
+                        reason_code=SchemaErrorReason.COLUMN_NOT_ORDERED,
+                    ),
+                    schema,
+                )
+                break
+
+            # Found the matching level
+            mapping.append((cur_df_pos, idx_schema))
+            last_mapped_name = target_name
+            cur_df_pos += 1
+
+        return mapping
 
     def _map_schema_to_levels(
         self,
@@ -645,25 +791,7 @@ class MultiIndexBackend(PandasSchemaBackend):
         used_levels: set[int] = set()
 
         if schema.ordered:
-            # Simple positional mapping when ordered.
-            if len(schema.indexes) > mi.nlevels:
-                self._collect_or_raise(
-                    error_handler,
-                    SchemaError(
-                        schema=schema,
-                        data=mi,
-                        message="MultiIndex has fewer levels than specified in schema",
-                        failure_cases=str(mi.names),
-                        check="column_ordered",
-                        reason_code=SchemaErrorReason.COLUMN_NOT_ORDERED,
-                    ),
-                )
-            # Map up to the minimum of schema-defined indexes and actual levels
-            end_len = min(len(schema.indexes), mi.nlevels)
-            for position in range(end_len):
-                idx_schema = schema.indexes[position]
-                mapping.append((position, idx_schema))
-                used_levels.add(position)
+            return self._map_ordered_levels(mi, schema, error_handler)
         else:
             # Unordered – match by name first, then fallback to unused levels.
             for idx_schema in schema.indexes:
@@ -682,6 +810,7 @@ class MultiIndexBackend(PandasSchemaBackend):
                                 check="column_in_index",
                                 reason_code=SchemaErrorReason.COLUMN_NOT_IN_DATAFRAME,
                             ),
+                            schema,
                         )
                         # Cannot map, continue to next idx_schema
                         continue
