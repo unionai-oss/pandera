@@ -656,13 +656,24 @@ class MultiIndexBackend(PandasSchemaBackend):
                 actual_name = mapped_names[pos]
 
                 if expected_name is None:
+                    # 1. Always accept an unnamed dataframe level.
                     if actual_name is None:
                         continue
+
+                    # 2. Allow continuation of a duplicate run that started earlier
+                    #    (e.g. schema [None] matching data ['a','a']).
                     if actual_name in mapped_names[:pos]:
-                        # treat as duplicate continuation even if previous level had name
-                        # Note that because of the nonconsecutive duplicates check,
-                        # this is only possible if actual_name matches the previous non-None name
                         continue
+
+                    # Accept any new name if the schema contains *any* named index
+                    # component (mirrors the behaviour of the previous implementation backend, which
+                    # renamed unnamed/duplicate dataframe levels to integers whenever at
+                    # least one explicit name is present in the schema).
+
+                    if any(n is not None for n in expected):
+                        continue
+
+                    # Otherwise (schema entirely unnamed) any unexpected name is out-of-order.
                     self._collect_or_raise(
                         error_handler,
                         SchemaError(
@@ -675,7 +686,9 @@ class MultiIndexBackend(PandasSchemaBackend):
                         ),
                         schema,
                     )
+                    continue
                 else:
+                    # Named level
                     if actual_name != expected_name:
                         self._collect_or_raise(
                             error_handler,
