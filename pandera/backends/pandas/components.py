@@ -459,24 +459,45 @@ class MultiIndexBackend(PandasSchemaBackend):
             otherwise creates a copy of the data.
         :returns: validated DataFrame or Series.
         """
-
-        # Ensure we are validating against a MultiIndex
-        # We need to raise immediately here because there's not much we can do
-        # with a non-MultiIndex index.
-        if not is_multiindex(check_obj.index):
-            raise SchemaError(
-                schema,
-                check_obj,
-                "Attempting to validate mismatch index",  # same message as IndexBackend
-                reason_code=SchemaErrorReason.MISMATCH_INDEX,
-            )
-
         # Perform a copy if requested so that the original dataframe is kept
         # intact when ``inplace`` is False.
         if not inplace:
             check_obj = check_obj.copy()
 
         error_handler = ErrorHandler(lazy)
+
+        # Ensure the object has a MultiIndex. If the data has a *single-level* Index
+        # but the schema also describes exactly one level, treat this as a regular
+        # Index validation to maintain backwards-compatibility (e.g. pyspark.pandas
+        # often materialises a single-level MultiIndex as a plain Index).
+
+        if not is_multiindex(check_obj.index):
+            if len(schema.indexes) == 1 and is_index(check_obj.index):
+                # Delegate to the Index backend
+                index_backend = IndexBackend()
+                stub_df = pd.DataFrame(index=check_obj.index)
+
+                validated_df = index_backend.validate(
+                    stub_df,
+                    schema.indexes[0],
+                    head=head,
+                    tail=tail,
+                    sample=sample,
+                    random_state=random_state,
+                    lazy=lazy,
+                    inplace=True,
+                )
+
+                # Replace index in the original object if coercion happened
+                check_obj.index = validated_df.index
+                return check_obj
+
+            raise SchemaError(
+                schema,
+                check_obj,
+                "Attempting to validate mismatch index",  # same message as IndexBackend
+                reason_code=SchemaErrorReason.MISMATCH_INDEX,
+            )
 
         # Coerce dtype at the multi-index level first if required. In lazy
         # mode we collect coercion errors so that validation can proceed and
