@@ -69,6 +69,7 @@ class ColumnBackend(ArraySchemaBackend):
 
         def validate_column(check_obj, column_name, return_check_obj=False):
             try:
+
                 # make sure the schema component mutations are reverted after
                 # validation
                 _orig_name = schema.name
