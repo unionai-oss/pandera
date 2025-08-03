@@ -472,7 +472,16 @@ class MultiIndexBackend(PandasSchemaBackend):
         # often materialises a single-level MultiIndex as a plain Index).
 
         if not is_multiindex(check_obj.index):
-            if len(schema.indexes) == 1 and is_index(check_obj.index):
+            # Check if this is a pyspark.pandas index that should be treated as a regular index
+            is_pyspark_index = (
+                type(check_obj).__module__.startswith("pyspark.pandas")
+                and hasattr(check_obj.index, "__module__")
+                and check_obj.index.__module__.startswith("pyspark.pandas")
+            )
+
+            if len(schema.indexes) == 1 and (
+                is_index(check_obj.index) or is_pyspark_index
+            ):
                 # Validate the single-level index directly using the Index schema.
                 # This works for both pandas and pyspark.pandas objects and avoids
                 # constructing a pandas DataFrame with a non-pandas Index.
