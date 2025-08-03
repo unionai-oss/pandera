@@ -155,7 +155,15 @@ def _testing_requirements(
             req = "pyarrow >= 13"
         if req == "ibis-framework" or req.startswith("ibis-framework "):
             req = "ibis-framework[duckdb,polars]"
-        if req == "polars" or req.startswith("polars "):
+        if (
+            req == "polars"
+            or req.startswith("polars ")
+            or req.startswith("polars>")
+            or req.startswith("polars<")
+            or req.startswith("polars==")
+            or req.startswith("polars!=")
+            or req.startswith("polars~=")
+        ):
             # TODO(deepyaman): Support latest Polars.
             req = "polars < 1.30.0"
             if sys.platform == "darwin":
