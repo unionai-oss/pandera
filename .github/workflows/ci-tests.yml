@@ -58,7 +58,7 @@ jobs:
             types-requests \
             types-setuptools \
             setuptools \
-            polars < 1.30.0
+            polars
       - name: Install pandera
         run: python -m pip install -e .
       - name: Pip info
