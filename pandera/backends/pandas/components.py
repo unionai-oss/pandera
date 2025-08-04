@@ -454,13 +454,6 @@ class MultiIndexBackend(PandasSchemaBackend):
             otherwise creates a copy of the data.
         :returns: validated DataFrame or Series.
         """
-        # Perform a copy if requested so that the original dataframe is kept
-        # intact when ``inplace`` is False.
-        if not inplace:
-            check_obj = check_obj.copy()
-
-        error_handler = ErrorHandler(lazy)
-
         # Ensure the object has a MultiIndex
         if not is_multiindex(check_obj.index):
             # Allow an exception for a *single-level* Index when the schema also
@@ -486,7 +479,7 @@ class MultiIndexBackend(PandasSchemaBackend):
                     sample=sample,
                     random_state=random_state,
                     lazy=lazy,
-                    inplace=True,
+                    inplace=inplace,
                 )
 
                 return check_obj
@@ -497,6 +490,12 @@ class MultiIndexBackend(PandasSchemaBackend):
                 "Attempting to validate mismatch index",  # same message as IndexBackend
                 reason_code=SchemaErrorReason.MISMATCH_INDEX,
             )
+
+        # Make a copy if we're coercing and not modifying inplace
+        if schema.coerce and not inplace:
+            check_obj = check_obj.copy()
+
+        error_handler = ErrorHandler(lazy)
 
         # Coerce dtype at the multi-index level first if required. In lazy
         # mode we collect coercion errors so that validation can proceed and
@@ -525,6 +524,9 @@ class MultiIndexBackend(PandasSchemaBackend):
             stub_df = pd.DataFrame(
                 index=check_obj.index.get_level_values(level_pos)
             )
+            # We've already taken care of coercion, so we can disable it now.
+            index_schema = deepcopy(index_schema)
+            index_schema.coerce = False
 
             try:
                 # Validate using the schema for this level
