@@ -454,11 +454,6 @@ class MultiIndexBackend(PandasSchemaBackend):
             otherwise creates a copy of the data.
         :returns: validated DataFrame or Series.
         """
-        # Perform a copy if requested so that the original dataframe is kept
-        # intact when ``inplace`` is False.
-        if not inplace:
-            check_obj = check_obj.copy()
-
         error_handler = ErrorHandler(lazy)
 
         # Ensure the object has a MultiIndex
@@ -486,7 +481,7 @@ class MultiIndexBackend(PandasSchemaBackend):
                     sample=sample,
                     random_state=random_state,
                     lazy=lazy,
-                    inplace=True,
+                    inplace=inplace,
                 )
 
                 return check_obj
@@ -503,7 +498,9 @@ class MultiIndexBackend(PandasSchemaBackend):
         # aggregate all issues for the user.
         if schema.coerce:
             try:
-                check_obj.index = self.__coerce_index(check_obj, schema, lazy)
+                coerced_index = self.__coerce_index(check_obj, schema, lazy)
+                if inplace:
+                    check_obj.index = coerced_index
             except (SchemaError, SchemaErrors) as exc:
                 self._collect_or_raise(error_handler, exc, schema)
 
@@ -527,7 +524,8 @@ class MultiIndexBackend(PandasSchemaBackend):
             )
 
             try:
-                # Validate using the schema for this level
+                # Validate using the schema for this level, using inplace=True
+                # because the stub_df will not be returned
                 index_schema.validate(
                     stub_df,
                     head=head,
