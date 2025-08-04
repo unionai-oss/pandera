@@ -398,6 +398,7 @@ class MultiIndexBackend(PandasSchemaBackend):
         multiindex_cls = pd.MultiIndex
         # NOTE: this is a hack to support pyspark.pandas
         if type(check_obj).__module__.startswith("pyspark.pandas"):
+
             import pyspark.pandas as ps
 
             multiindex_cls = ps.MultiIndex
@@ -436,7 +437,7 @@ class MultiIndexBackend(PandasSchemaBackend):
         lazy: bool = False,
         inplace: bool = False,
     ) -> Union[pd.DataFrame, pd.Series]:
-        """Validate the MultiIndex of a pandas DataFrame/Series.
+        """Validate DataFrame or Series MultiIndex.
 
         :param check_obj: pandas DataFrame or Series to validate.
         :param head: validate the first n rows. Rows overlapping with `tail` or
@@ -460,13 +461,11 @@ class MultiIndexBackend(PandasSchemaBackend):
 
         error_handler = ErrorHandler(lazy)
 
-        # Ensure the object has a MultiIndex. If the data has a *single-level* Index
-        # but the schema also describes exactly one level, treat this as a regular
-        # Index validation to maintain backwards-compatibility (e.g. pyspark.pandas
-        # often materialises a single-level MultiIndex as a plain Index).
-
+        # Ensure the object has a MultiIndex
         if not is_multiindex(check_obj.index):
-            # Check if this is a pyspark.pandas index that should be treated as a regular index
+            # Allow an exception for a *single-level* Index when the schema also
+            # describes exactly one level to maintain compatibility (e.g. pyspark.pandas
+            # often materializes a single-level MultiIndex as a plain Index).
             is_pyspark_index = (
                 type(check_obj).__module__.startswith("pyspark.pandas")
                 and hasattr(check_obj.index, "__module__")
@@ -487,7 +486,7 @@ class MultiIndexBackend(PandasSchemaBackend):
                     sample=sample,
                     random_state=random_state,
                     lazy=lazy,
-                    inplace=True,  # mutate index in place if coercion occurs
+                    inplace=True,
                 )
 
                 return check_obj
@@ -596,8 +595,8 @@ class MultiIndexBackend(PandasSchemaBackend):
             # that downstream error reporting groups these failures under the
             # "MultiIndex" key.
             try:
-                schema_error.schema = schema  # type: ignore[assignment]
-            except Exception:  # noqa: BLE001
+                schema_error.schema = schema
+            except Exception:
                 # In case the attribute is frozen / read-only, skip.
                 pass
 
@@ -610,7 +609,7 @@ class MultiIndexBackend(PandasSchemaBackend):
                     column=component_name
                 )
 
-        # First, normalise failure_cases in the incoming error(s)
+        # First, normalize failure_cases in the incoming error(s)
         if isinstance(err, SchemaErrors):
             for se in err.schema_errors:
                 _update_schema_error(se)
@@ -668,6 +667,7 @@ class MultiIndexBackend(PandasSchemaBackend):
 
             # Ensure that schema-specified names appear in the expected order
             expected = [idx.name for idx in schema.indexes]
+            no_explicit_names = not any(n is not None for n in expected)
 
             for pos, expected_name in enumerate(expected):
                 if pos >= len(mapped_names):
@@ -677,39 +677,28 @@ class MultiIndexBackend(PandasSchemaBackend):
                 actual_name = mapped_names[pos]
 
                 if expected_name is None:
-                    # 1. Always accept an unnamed dataframe level.
-                    if actual_name is None:
-                        continue
-
-                    # 2. Allow continuation of a duplicate run that started earlier
-                    #    (e.g. schema [None] matching data ['a','a']).
-                    if actual_name in mapped_names[:pos]:
-                        continue
-
-                    # Accept any new name if the schema contains *any* named index
-                    # component (mirrors the behaviour of the previous implementation backend, which
-                    # renamed unnamed/duplicate dataframe levels to integers whenever at
-                    # least one explicit name is present in the schema).
-
-                    if any(n is not None for n in expected):
-                        continue
-
-                    # Otherwise (schema entirely unnamed) any unexpected name is out-of-order.
-                    self._collect_or_raise(
-                        error_handler,
-                        SchemaError(
-                            schema=schema,
-                            data=mi,
-                            message=f"column '{actual_name}' out-of-order",
-                            failure_cases=actual_name,
-                            check="column_ordered",
-                            reason_code=SchemaErrorReason.COLUMN_NOT_ORDERED,
-                        ),
-                        schema,
-                    )
-                    continue
+                    # Reject only if:
+                    # - schema is entirely unnamed (no named components)
+                    # - AND this is a new name (not None and not a continuation)
+                    if (
+                        no_explicit_names  # schema entirely unnamed
+                        and actual_name is not None  # new name
+                        and actual_name not in mapped_names[:pos]
+                    ):  # not a continuation
+                        self._collect_or_raise(
+                            error_handler,
+                            SchemaError(
+                                schema=schema,
+                                data=mi,
+                                message=f"column '{actual_name}' out-of-order",
+                                failure_cases=actual_name,
+                                check="column_ordered",
+                                reason_code=SchemaErrorReason.COLUMN_NOT_ORDERED,
+                            ),
+                            schema,
+                        )
                 else:
-                    # Named level
+                    # For a named index, just check that the actual name matches the expected name.
                     if actual_name != expected_name:
                         self._collect_or_raise(
                             error_handler,
@@ -752,7 +741,7 @@ class MultiIndexBackend(PandasSchemaBackend):
         """
         Return a list of ``(level_position, index_schema)`` mappings for an
         ordered MultiIndex schema, correctly handling duplicate names and
-        unnamed (None) schema levels.
+        unnamed (name=None) schema levels.
 
         Rules
         -----
@@ -769,52 +758,35 @@ class MultiIndexBackend(PandasSchemaBackend):
         mapping: list[tuple[int, Any]] = []
         mi_names = list(mi.names)
         n_levels = mi.nlevels
-        current_level: int = 0
+        current_level_pos: int = 0
         last_mapped_name: Optional[str] = None
 
         for idx_schema in schema.indexes:
             idx_name: Optional[str] = idx_schema.name
 
-            if current_level >= n_levels:
-                # ran off the end of the multi-index without finding the index
-                self._collect_or_raise(
-                    error_handler,
-                    SchemaError(
-                        schema=schema,
-                        data=mi,
-                        message="MultiIndex has fewer levels than specified in schema",
-                        failure_cases=str(mi_names),
-                        check="column_ordered",
-                        reason_code=SchemaErrorReason.COLUMN_NOT_ORDERED,
-                    ),
-                    schema,
-                )
-                break
-
             if idx_name is None:
-                # Wild-card level – accept next dataframe level as-is
-                mapping.append((current_level, idx_schema))
-                last_mapped_name = mi_names[current_level]
-                current_level += 1
+                # Unnamed schema index – accept next dataframe level as-is
+                mapping.append((current_level_pos, idx_schema))
+                last_mapped_name = mi_names[current_level_pos]
+                current_level_pos += 1
                 continue
 
-            # ---------- named schema level ----------
             # Skip over duplicates of the *previous* name *only* if the schema
             # is expecting a *different* name next. If the schema expects the
             # same name again (duplicate schema components), we should stay on
             # the current duplicate level so it can be mapped.
             while (
-                current_level < n_levels
+                current_level_pos < n_levels
                 and last_mapped_name is not None
-                and mi_names[current_level] == last_mapped_name
+                and mi_names[current_level_pos] == last_mapped_name
                 and idx_name != last_mapped_name
             ):
-                current_level += 1
+                current_level_pos += 1
 
             # Now walk forward until we find the index name
             while (
-                current_level < n_levels
-                and mi_names[current_level] != idx_name
+                current_level_pos < n_levels
+                and mi_names[current_level_pos] != idx_name
             ):
                 # Any *other* name before we meet `idx_name` => out-of-order
                 self._collect_or_raise(
@@ -829,10 +801,10 @@ class MultiIndexBackend(PandasSchemaBackend):
                     ),
                     schema,
                 )
-                current_level += 1
+                current_level_pos += 1
 
-            if current_level >= n_levels:
-                # ran off the end without finding target
+            if current_level_pos >= n_levels:
+                # ran off the end without finding target index level
                 self._collect_or_raise(
                     error_handler,
                     SchemaError(
@@ -848,9 +820,9 @@ class MultiIndexBackend(PandasSchemaBackend):
                 break
 
             # Found the matching level
-            mapping.append((current_level, idx_schema))
+            mapping.append((current_level_pos, idx_schema))
             last_mapped_name = idx_name
-            current_level += 1
+            current_level_pos += 1
 
         return mapping
 
