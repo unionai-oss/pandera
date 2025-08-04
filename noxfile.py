@@ -157,10 +157,11 @@ def _testing_requirements(
             req = "ibis-framework[duckdb,polars]"
         if req == "polars" or req.startswith("polars "):
             # TODO(deepyaman): Support latest Polars.
+            req = "polars < 1.30.0"
             if sys.platform == "darwin":
-                req = "polars-lts-cpu < 1.30.0"
-            else:
-                req = "polars < 1.30.0"
+                # On macOS, add polars-lts-cpu in addition to polars (which tends to get pulled in as a transitive dependency)
+                _updated_requirements.append("polars-lts-cpu < 1.30.0")
+
         # for some reason uv will try to install an old version of dask,
         # have to specifically pin dask[dataframe] to a higher version
         if (
