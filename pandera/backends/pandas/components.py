@@ -844,9 +844,10 @@ class MultiIndexBackend(PandasSchemaBackend):
         if schema.ordered:
             return self._map_ordered_levels(mi, schema, error_handler)
         else:
-            # Unordered – match by name first, then fallback to unused levels.
+            # Unordered
             for idx_schema in schema.indexes:
                 if idx_schema.name is not None:
+                    # Get the first unused level with matching name
                     candidate_levels = [
                         i
                         for i, n in enumerate(mi.names)
@@ -869,6 +870,7 @@ class MultiIndexBackend(PandasSchemaBackend):
                         continue
                     level_pos = candidate_levels[0]
                 else:
+                    # Unnamed schema index - get the first unmatched level
                     remaining = [
                         i for i in range(mi.nlevels) if i not in used_levels
                     ]
