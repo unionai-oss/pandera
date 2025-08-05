@@ -141,13 +141,48 @@ class DataFrameModel(Generic[TDataFrame, TSchema], BaseModel):
             cls.Config = type("Config", (cls.Config,), {"name": cls.__name__})
 
         super().__init_subclass__(**kwargs)
-        subclass_annotations = cls.__dict__.get("__annotations__", {})
-        for field_name in subclass_annotations.keys():
-            if _is_field(field_name) and field_name not in cls.__dict__:
-                # Field omitted
-                field = Field()
-                field.__set_name__(cls, field_name)
-                setattr(cls, field_name, field)
+
+        # Use get_type_hints with include_extras=True instead of raw annotations  
+        annotations = get_type_hints(cls, include_extras=True)  
+        
+        for field_name, annotation in annotations.items():  
+            if _is_field(field_name):  
+                existing_field = None  
+                
+                annotation_info =  AnnotationInfo(annotation)
+                print(f"annotation.arg: {annotation_info.arg}")  
+                print(f"annotation.metadata: {annotation_info.metadata}")  
+                print(f"annotation.origin: {annotation_info.origin}")
+
+                if annotation_info.metadata:  
+                    print(f"Found dtype for {field_name}: {annotation_info.default_dtype}")
+                    print(f"Found description for {field_name}: {annotation_info.metadata}")  
+                    field_info_list = [  
+                        metadata for metadata in annotation_info.metadata  
+                        if isinstance(metadata, FieldInfo)  
+                    ]  
+                    print(f"FieldInfo instances found: {len(field_info_list)}")  
+                    if field_info_list:  
+                        existing_field = field_info_list[0]  
+                else:  
+                    print(f"No metadata found for {field_name}. Creating new FieldInfo.")
+
+                if existing_field and field_name not in cls.__dict__:  
+                    existing_field.__set_name__(cls, field_name)  
+                    setattr(cls, field_name, existing_field)  
+                    print(f"Existing field description: {existing_field.description}")  
+                elif field_name not in cls.__dict__:  
+                    field = Field()  
+                    field.__set_name__(cls, field_name)  
+                    setattr(cls, field_name, field)  
+                    print(f"New field description: {field.description}")
+
+                final_field = cls.__dict__.get(field_name, None)
+                if isinstance(final_field, FieldInfo):  
+                    print(f"Field after processing: {final_field}")  
+                    print(f"Field description: {final_field.description}")  
+                else:  
+                    print(f"No FieldInfo set for {field_name}")
 
         cls.__config__, cls.__extras__ = cls._collect_config_and_extras()
 
