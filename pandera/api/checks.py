@@ -39,16 +39,16 @@ class Check(BaseCheck):
         """Apply a validation function to a data object.
 
         :param check_fn: A function to check data object. For Column
-            or SeriesSchema checks, if element_wise is True, this function
+            or SeriesSchema checks, if element_wise is False, this function
             should have the signature: ``Callable[[pd.Series],
             Union[pd.Series, bool]]``, where the output series is a boolean
             vector.
 
-            If element_wise is False, this function should have the signature:
+            If element_wise is True, this function should have the signature:
             ``Callable[[Any], bool]``, where ``Any`` is an element in the
             column.
 
-            For DataFrameSchema checks, if element_wise=True, fn
+            For DataFrameSchema checks, if element_wise=False, fn
             should have the signature: ``Callable[[pd.DataFrame],
             Union[pd.DataFrame, pd.Series, bool]]``, where the output dataframe
             or series contains booleans.
