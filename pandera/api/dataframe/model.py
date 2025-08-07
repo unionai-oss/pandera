@@ -13,6 +13,7 @@ from typing import (
     TypeVar,
     Union,
     cast,
+    get_origin, get_args # Get rid of this import later
 )
 from collections.abc import Iterable
 from typing import get_type_hints
@@ -58,14 +59,24 @@ GENERIC_SCHEMA_CACHE: dict[
 
 
 def get_dtype_kwargs(annotation: AnnotationInfo) -> dict[str, Any]:
+
+    if annotation.arg in (str, int, float, bool, type(None)) or \
+                hasattr(annotation.arg, '__module__') and annotation.arg.__module__ == 'builtins':
+            return {}
+
     sig = inspect.signature(annotation.arg)  # type: ignore
     dtype_arg_names = list(sig.parameters.keys())
-    if len(annotation.metadata) != len(dtype_arg_names):  # type: ignore
+
+    dtype_params = [
+        item for item in annotation.metadata
+        if not isinstance(item, FieldInfo)
+    ]
+    if len(dtype_params) != len(dtype_arg_names):  # type: ignore
         raise TypeError(
             f"Annotation '{annotation.arg.__name__}' requires "  # type: ignore
             + f"all positional arguments {dtype_arg_names}."
         )
-    return dict(zip(dtype_arg_names, annotation.metadata))  # type: ignore
+    return dict(zip(dtype_arg_names, dtype_params))
 
 
 def _is_field(name: str) -> bool:
@@ -142,47 +153,59 @@ class DataFrameModel(Generic[TDataFrame, TSchema], BaseModel):
 
         super().__init_subclass__(**kwargs)
 
+        # Initialize the annotation cache  
+        cls.__annotation_infos__ = {}  
+
         # Use get_type_hints with include_extras=True instead of raw annotations  
         annotations = get_type_hints(cls, include_extras=True)  
         
         for field_name, annotation in annotations.items():  
             if _is_field(field_name):  
                 existing_field = None  
-                
-                annotation_info =  AnnotationInfo(annotation)
-                print(f"annotation.arg: {annotation_info.arg}")  
-                print(f"annotation.metadata: {annotation_info.metadata}")  
-                print(f"annotation.origin: {annotation_info.origin}")
+                print(f"Direct inspection of {field_name}:")  
+                print(f"  annotation: {annotation}")  
+                print(f"  origin: {get_origin(annotation)}")  
+                print(f"  args: {get_args(annotation)}") 
 
-                if annotation_info.metadata:  
-                    print(f"Found dtype for {field_name}: {annotation_info.default_dtype}")
-                    print(f"Found description for {field_name}: {annotation_info.metadata}")  
-                    field_info_list = [  
-                        metadata for metadata in annotation_info.metadata  
-                        if isinstance(metadata, FieldInfo)  
-                    ]  
-                    print(f"FieldInfo instances found: {len(field_info_list)}")  
+                if hasattr(annotation, "__metadata__"):
+                    metadata = annotation.__metadata__
+                    print(f"  metadata: {metadata}")
+
+                    field_info_list = [
+                        item for item in metadata
+                        if isinstance(item, FieldInfo)
+                    ]
+
                     if field_info_list:  
                         existing_field = field_info_list[0]  
-                else:  
+                        print(f"Found FieldInfo with description: {existing_field.description}")
+                
+                # # Create and cache AnnotationInfo boject
+                # annotation_info = AnnotationInfo(annotation)
+                # cls.__annotation_infos__[field_name] = annotation_info
+
+                # if annotation_info.metadata is not None: 
+                #     print(f"Found metadata for {field_name}: {annotation_info.metadata}")
+                #     field_info_list = [
+                #         metadata for metadata in annotation_info.metadata
+                #         if isinstance(metadata, FieldInfo)
+                #     ]  
+
+                #     if field_info_list:  
+                #         existing_field = field_info_list[0]  
+                #         print(f"Found FieldInfo with description: {existing_field.description}")
+
+                else:
                     print(f"No metadata found for {field_name}. Creating new FieldInfo.")
 
                 if existing_field and field_name not in cls.__dict__:  
                     existing_field.__set_name__(cls, field_name)  
                     setattr(cls, field_name, existing_field)  
-                    print(f"Existing field description: {existing_field.description}")  
+
                 elif field_name not in cls.__dict__:  
                     field = Field()  
                     field.__set_name__(cls, field_name)  
                     setattr(cls, field_name, field)  
-                    print(f"New field description: {field.description}")
-
-                final_field = cls.__dict__.get(field_name, None)
-                if isinstance(final_field, FieldInfo):  
-                    print(f"Field after processing: {final_field}")  
-                    print(f"Field description: {final_field.description}")  
-                else:  
-                    print(f"No FieldInfo set for {field_name}")
 
         cls.__config__, cls.__extras__ = cls._collect_config_and_extras()
 
@@ -381,13 +404,21 @@ class DataFrameModel(Generic[TDataFrame, TSchema], BaseModel):
         for field_name, annotation in annotations.items():
             if not _is_field(field_name):
                 continue
+
             field = attrs[field_name]  # __init_subclass__ guarantees existence
             if not isinstance(field, FieldInfo):
                 raise SchemaInitError(
                     f"'{field_name}' can only be assigned a 'Field', "
                     + f"not a '{type(field)}.'"
                 )
-            fields[field.name] = (AnnotationInfo(annotation), field)
+            
+            if hasattr(cls, '__annotation_infos__') and field_name in cls.__annotation_infos__:  
+                annotation_info = cls.__annotation_infos__[field_name]  
+            else:
+                # Fallback to creating new AnnotationInfo if cache doesn't exist
+                annotation_info = AnnotationInfo(annotation)
+
+            fields[field.name] = (annotation_info, field)
         return fields
 
     @classmethod

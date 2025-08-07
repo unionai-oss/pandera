@@ -20,6 +20,7 @@ from pandera.api.base.model_components import (
 )
 from pandera.api.checks import Check
 from pandera.errors import SchemaInitError
+from pandera.utils import F
 
 AnyCallable = Callable[..., Any]
 
@@ -34,6 +35,9 @@ class FieldInfo(BaseFieldInfo):
 
     *new in 0.5.0*
     """
+
+    print("In Field Info")
+    print("*" * 50)
 
     def _get_schema_properties(
         self,
@@ -59,7 +63,8 @@ class FieldInfo(BaseFieldInfo):
         required: bool = True,
         name: Optional[str] = None,
     ) -> dict[str, Any]:
-        """Create a schema_components.Column from a field."""
+    
+        print("In column_properties", str(self.description))
         return self._get_schema_properties(
             dtype,
             nullable=self.nullable,
