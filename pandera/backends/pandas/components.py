@@ -454,6 +454,11 @@ class MultiIndexBackend(PandasSchemaBackend):
             otherwise creates a copy of the data.
         :returns: validated DataFrame or Series.
         """
+
+        # Make a copy if we're not modifying inplace
+        if not inplace:
+            check_obj = check_obj.copy()
+
         # Ensure the object has a MultiIndex
         if not is_multiindex(check_obj.index):
             # Allow an exception for a *single-level* Index when the schema also
@@ -479,7 +484,7 @@ class MultiIndexBackend(PandasSchemaBackend):
                     sample=sample,
                     random_state=random_state,
                     lazy=lazy,
-                    inplace=inplace,
+                    inplace=True,
                 )
 
                 return check_obj
@@ -490,10 +495,6 @@ class MultiIndexBackend(PandasSchemaBackend):
                 "Attempting to validate mismatch index",  # same message as IndexBackend
                 reason_code=SchemaErrorReason.MISMATCH_INDEX,
             )
-
-        # Make a copy if we're coercing and not modifying inplace
-        if schema.coerce and not inplace:
-            check_obj = check_obj.copy()
 
         error_handler = ErrorHandler(lazy)
 
@@ -580,7 +581,7 @@ class MultiIndexBackend(PandasSchemaBackend):
         error_handler: Optional[ErrorHandler],
         err: Union[SchemaError, SchemaErrors],
         schema,
-    ) -> None:  # noqa: D401
+    ) -> None:
         """Collect errors (respecting lazy), adjusting schema context and
         failure cases appropriately.
         """
@@ -611,7 +612,7 @@ class MultiIndexBackend(PandasSchemaBackend):
                     column=component_name
                 )
 
-        # First, normalize failure_cases in the incoming error(s)
+        # First, update failure_cases in the incoming error(s) with the component name
         if isinstance(err, SchemaErrors):
             for se in err.schema_errors:
                 _update_schema_error(se)
@@ -685,8 +686,9 @@ class MultiIndexBackend(PandasSchemaBackend):
                     if (
                         no_explicit_names  # schema entirely unnamed
                         and actual_name is not None  # new name
-                        and actual_name not in mapped_names[:pos]
-                    ):  # not a continuation
+                        and actual_name
+                        not in mapped_names[:pos]  # not a continuation
+                    ):
                         self._collect_or_raise(
                             error_handler,
                             SchemaError(
