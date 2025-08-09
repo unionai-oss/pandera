@@ -2,7 +2,8 @@
 
 from datetime import date, datetime
 from decimal import Decimal
-from typing import Any, Iterable, List, cast
+from typing import Any, cast
+from collections.abc import Iterable
 
 import numpy as np
 import pandas as pd
@@ -58,7 +59,7 @@ class SimpleDtype(pa.DataType):
 def test_logical_datatype_check(
     data,
     expected_datatype: pandas_engine.DataType,
-    expected_results: List[bool],
+    expected_results: list[bool],
 ):
     """Test decimal check."""
     data = pd.Series(data, dtype="object")  # type:ignore
@@ -113,7 +114,7 @@ def test_logical_datatype_check(
 def test_logical_datatype_coerce(
     data,
     expected_datatype: pandas_engine.DataType,
-    failure_cases: List[bool],
+    failure_cases: list[bool],
 ):
     """Test decimal coerce."""
     data = pd.Series(data)  # type:ignore

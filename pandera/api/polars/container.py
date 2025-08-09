@@ -1,7 +1,7 @@
 """DataFrame Schema for Polars."""
 
 import warnings
-from typing import Optional, Type
+from typing import Optional
 
 from pandera.api.dataframe.container import DataFrameSchema as _DataFrameSchema
 from pandera.api.polars.types import PolarsCheckObjects, PolarsFrame
@@ -33,7 +33,7 @@ class DataFrameSchema(_DataFrameSchema[PolarsCheckObjects]):
 
     @staticmethod
     def register_default_backends(
-        check_obj_cls: Type,
+        check_obj_cls: type,
     ):
         register_polars_backends()
 

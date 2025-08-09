@@ -3,7 +3,8 @@
 import sys
 import operator
 import re
-from typing import Any, Iterable, Optional, TypeVar, Union, cast
+from typing import Any, Optional, TypeVar, Union, cast
+from collections.abc import Iterable
 
 import pandas as pd
 

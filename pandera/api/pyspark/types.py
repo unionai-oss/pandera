@@ -1,7 +1,7 @@
 """Utility functions for pyspark validation."""
 
 from functools import lru_cache
-from typing import List, NamedTuple, Tuple, Type, Union
+from typing import NamedTuple, Union
 from numpy import bool_ as np_bool
 from packaging import version
 
@@ -26,7 +26,7 @@ else:
 DataFrameTypes = Union[DataFrame, psc_DataFrame]
 GroupbyObject = GroupedData
 
-CheckList = Union[Check, List[Check]]
+CheckList = Union[Check, list[Check]]
 
 PysparkDefaultTypes = Union[
     pst.BooleanType,
@@ -50,7 +50,7 @@ PySparkDtypeInputTypes = Union[
     bool,
     type,
     DataType,
-    Type,
+    type,
     pst.BooleanType,
     pst.StringType,
     pst.IntegerType,
@@ -67,7 +67,7 @@ PySparkDtypeInputTypes = Union[
 
 
 class SupportedTypes(NamedTuple):
-    table_types: Tuple[type, ...]
+    table_types: tuple[type, ...]
 
 
 class PysparkDataframeColumnObject(NamedTuple):

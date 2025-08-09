@@ -1,7 +1,8 @@
 """Pandera array backends."""
 
 import traceback
-from typing import Iterable, NamedTuple, Optional, cast
+from typing import NamedTuple, Optional, cast
+from collections.abc import Iterable
 
 from pyspark.sql import DataFrame
 from pyspark.sql.functions import col

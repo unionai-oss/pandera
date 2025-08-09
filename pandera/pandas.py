@@ -1,7 +1,6 @@
 """A flexible and expressive pandas dataframe validation library."""
 
 import platform
-import warnings
 
 from packaging.version import parse
 

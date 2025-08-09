@@ -13,7 +13,7 @@ from pandera.typing.geopandas import GeoDataFrame, GeoSeries
 try:  # python 3.9+
     from typing import Annotated  # type: ignore
 except ImportError:
-    from typing_extensions import Annotated  # type: ignore
+    from typing import Annotated  # type: ignore
 
 
 def test_dataframe_schema():

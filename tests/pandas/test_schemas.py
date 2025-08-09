@@ -5,7 +5,7 @@
 import copy
 from datetime import datetime, timedelta
 from functools import partial
-from typing import Any, Callable, Dict, List, Tuple, Type, Union
+from typing import Any, Callable, Union
 
 import numpy as np
 import pandas as pd
@@ -327,7 +327,7 @@ def test_dataframe_reuse_column() -> None:
     ],
 )
 def test_ordered_dataframe(
-    columns: Dict[str, Column], index: MultiIndex
+    columns: dict[str, Column], index: MultiIndex
 ) -> None:
     """Test that columns are ordered."""
     schema = DataFrameSchema(columns=columns, index=index, ordered=True)
@@ -1117,7 +1117,7 @@ def test_schema_get_dtypes():
 
 def _boolean_update_column_case(
     bool_kwarg: str,
-) -> List[Any]:
+) -> list[Any]:
     def _assert_bool_case(old_schema, new_schema):
         assert not getattr(old_schema.columns["col"], bool_kwarg)
         assert getattr(new_schema.columns["col"], bool_kwarg)
@@ -1169,7 +1169,7 @@ def _boolean_update_column_case(
 def test_dataframe_schema_update_column(
     column: Column,
     column_to_update: str,
-    update: Dict[str, Any],
+    update: dict[str, Any],
     assertion_fn: Callable[[DataFrameSchema, DataFrameSchema], None],
 ) -> None:
     """Test that DataFrameSchema columns create updated copies."""
@@ -1265,9 +1265,9 @@ def test_rename_columns() -> None:
     ],
 )
 def test_select_columns(
-    select_columns: List[Union[str, Tuple[str, str]]],
+    select_columns: list[Union[str, tuple[str, str]]],
     schema: DataFrameSchema,
-    expected_order: List[Union[str, Tuple[str, str]]],
+    expected_order: list[Union[str, tuple[str, str]]],
 ) -> None:
     """Check that select_columns method correctly creates new subset schema."""
     original_columns = list(schema.columns)
@@ -1538,7 +1538,7 @@ def test_lazy_dataframe_validation_nullable_with_checks() -> None:
     ],
 )
 def test_lazy_dataframe_scalar_false_check(
-    schema_cls: Type[Union[DataFrameSchema, SeriesSchema, Column, Index]],
+    schema_cls: type[Union[DataFrameSchema, SeriesSchema, Column, Index]],
     data: Union[pd.DataFrame, pd.Series, pd.Index],
 ) -> None:
     """Lazy validation handles checks returning scalar False values."""
@@ -1783,7 +1783,7 @@ def test_capture_check_errors() -> None:
     ],
 )
 def test_schema_coerce_inplace_validation(
-    inplace: bool, from_dtype: Type, to_dtype: Type
+    inplace: bool, from_dtype: type, to_dtype: type
 ) -> None:
     """Test coercion logic for validation when inplace is True and False"""
     from_dtype = (
@@ -1813,7 +1813,7 @@ def test_schema_coerce_inplace_validation(
         ("exclude_last", [0, 1, 2, 4]),
     ],
 )
-def test_different_unique_settings(unique: UniqueSettings, answers: List[int]):
+def test_different_unique_settings(unique: UniqueSettings, answers: list[int]):
     """Test that different unique settings work as expected"""
     df: pd.DataFrame = pd.DataFrame({"a": [1, 2, 3, 4, 1, 1, 2, 3]})
     schemas = [
@@ -2113,7 +2113,7 @@ def test_dataframe_duplicated_columns(data, error, schema) -> None:
         [SeriesSchema(int, name="series_schema"), ["type", "name"]],
     ],
 )
-def test_schema_str_repr(schema, fields: List[str]) -> None:
+def test_schema_str_repr(schema, fields: list[str]) -> None:
     """Test the __str__ and __repr__ methods for schemas."""
     for x in [
         schema.__str__(),

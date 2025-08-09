@@ -1,7 +1,5 @@
 """Unit tests for pydantic datatype."""
 
-from typing import Type
-
 import pandas as pd
 import pytest
 from pydantic import BaseModel
@@ -75,7 +73,7 @@ def test_pydantic_model():
 
 
 @pytest.mark.parametrize("series_type", [pa.SeriesSchema, pa.Column, pa.Index])
-def test_pydantic_model_init_errors(series_type: Type[ArraySchema]):
+def test_pydantic_model_init_errors(series_type: type[ArraySchema]):
     """
     Should raise SchemaInitError with PydanticModel as `SeriesSchemaBase.dtype`
     """

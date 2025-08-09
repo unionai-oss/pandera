@@ -2,7 +2,8 @@
 
 from datetime import date, datetime
 from decimal import Decimal
-from typing import Iterable, List, cast
+from typing import cast
+from collections.abc import Iterable
 
 import modin.pandas as mpd
 import numpy as np
@@ -59,7 +60,7 @@ class SimpleDtype(pa.DataType):
 def test_logical_datatype_check(
     data,
     expected_datatype: pandas_engine.DataType,
-    expected_results: List[bool],
+    expected_results: list[bool],
 ):
     """Test decimal check."""
     data = mpd.Series(data, dtype="object")  # type:ignore
@@ -114,7 +115,7 @@ def test_logical_datatype_check(
 def test_logical_datatype_coerce(
     data,
     expected_datatype: pandas_engine.DataType,
-    failure_cases: List[bool],
+    failure_cases: list[bool],
 ):
     """Test decimal coerce."""
     if isinstance(expected_datatype, pandas_engine.Decimal):

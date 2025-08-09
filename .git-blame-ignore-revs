@@ -1,0 +1,2 @@
+36e944f0a009745af319fec94ac884c60a772b27 # Upgrade `pyupgrade` hook and target Python version
+035e4c0b85fe4f03ad948c8c0f31eb804a5bb22e # Remove unused imports, using ruff with manual help

@@ -2,7 +2,7 @@
 
 import warnings
 from collections import defaultdict
-from typing import List, Optional, TypeVar, Union
+from typing import Optional, TypeVar, Union
 
 import pandas as pd
 
@@ -158,7 +158,7 @@ class PandasSchemaBackend(BaseSchemaBackend):
     def failure_cases_metadata(
         self,
         schema_name: str,
-        schema_errors: List[SchemaError],
+        schema_errors: list[SchemaError],
     ) -> FailureCaseMetadata:
         """Create failure cases metadata required for SchemaErrors exception."""
         failure_cases = consolidate_failure_cases(schema_errors)

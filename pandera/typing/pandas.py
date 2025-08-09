@@ -5,11 +5,7 @@ import io
 from typing import (  # type: ignore[attr-defined]
     TYPE_CHECKING,
     Any,
-    Dict,
     Generic,
-    List,
-    Tuple,
-    Type,
     TypeVar,
     Union,
     _type_check,
@@ -363,9 +359,9 @@ class DataFrame(DataFrameBase, pd.DataFrame, Generic[T]):
 
     @staticmethod
     def from_records(  # type: ignore
-        schema: Type[T],
+        schema: type[T],
         data: Union[  # type: ignore
-            np.ndarray, List[Tuple[Any, ...]], Dict[Any, Any], pd.DataFrame
+            np.ndarray, list[tuple[Any, ...]], dict[Any, Any], pd.DataFrame
         ],
         **kwargs,
     ) -> "DataFrame[T]":

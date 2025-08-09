@@ -27,12 +27,6 @@ from pandera.pandas import (
 from pandera.engines.pandas_engine import Engine
 from pandera.typing import DataFrame, Index, Series
 
-try:
-    # python 3.8+
-    from typing import Literal  # type: ignore[attr-defined]
-except ImportError:  # pragma: no cover
-    from typing_extensions import Literal  # type: ignore[assignment]
-
 
 def test_check_function_decorators() -> None:
     """
@@ -223,7 +217,7 @@ def test_check_decorator_coercion() -> None:
         return {"key": df.assign(column2=10)}
 
     cases: typing.Iterable[
-        typing.Tuple[typing.Callable, typing.Union[int, str, None]]
+        tuple[typing.Callable, typing.Union[int, str, None]]
     ] = [
         (test_func_io, None),
         (test_func_out_tuple_obj_getter, 1),
@@ -794,7 +788,7 @@ def test_check_types_with_literal_type(arg_examples):
     """Test that using typing module types works with check_types"""
 
     for example in arg_examples:
-        arg_type = Literal[example]  # type: ignore
+        arg_type = typing.Literal[example]  # type: ignore
 
         @check_types
         def transform_with_literal(
@@ -1019,7 +1013,7 @@ def test_check_types_star_kwargs() -> None:
         # pylint: disable=unused-argument
         kwarg1: int = 1,
         **kwargs: int,
-    ) -> typing.List[str]:
+    ) -> list[str]:
         return list(kwargs.keys())
 
     @check_types
@@ -1027,7 +1021,7 @@ def test_check_types_star_kwargs() -> None:
         # pylint: disable=unused-argument
         kwarg1: typing.Optional[DataFrame[InSchema]] = None,
         **kwargs: DataFrame[InSchema],
-    ) -> typing.List[str]:
+    ) -> list[str]:
         return list(kwargs.keys())
 
     in_1 = pd.DataFrame({"a": [1]}, index=["1"])

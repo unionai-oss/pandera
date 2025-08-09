@@ -1,7 +1,5 @@
 """Unit tests for the Ibis check backend."""
 
-from typing import Dict
-
 import pytest
 
 import pandas as pd
@@ -71,7 +69,7 @@ def _df_check_fn_table_out(data: pa.IbisData) -> ir.Table:
     return data.table.select(s.across(s.numeric(), _ >= 0))
 
 
-def _df_check_fn_dict_out(data: pa.IbisData) -> Dict[str, ir.BooleanColumn]:
+def _df_check_fn_dict_out(data: pa.IbisData) -> dict[str, ir.BooleanColumn]:
     return {col: data.table[col] >= 0 for col in data.table.columns}
 
 

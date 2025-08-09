@@ -6,10 +6,9 @@
 
 # isort: skip_file
 import os
-import re
 import shutil
 import sys
-from typing import Dict, List, Optional
+from typing import Optional
 
 import nox
 from nox import Session
@@ -50,7 +49,7 @@ PYPROJECT = nox.project.load_toml("pyproject.toml")
 OPTIONAL_DEPENDENCIES = [*PYPROJECT["project"]["optional-dependencies"]]
 
 
-def _pyproject_requirements() -> Dict[str, List[str]]:
+def _pyproject_requirements() -> dict[str, list[str]]:
     """Load requirements from setup.py."""
     return {
         "core": PYPROJECT["project"]["dependencies"],
@@ -58,7 +57,7 @@ def _pyproject_requirements() -> Dict[str, List[str]]:
     }
 
 
-def _dev_requirements() -> List[str]:
+def _dev_requirements() -> list[str]:
     """Load requirements from file."""
     with open(REQUIREMENT_PATH, encoding="utf-8") as req_file:
         reqs = []
@@ -158,10 +157,11 @@ def _testing_requirements(
             req = "ibis-framework[duckdb,polars]"
         if req == "polars" or req.startswith("polars "):
             # TODO(deepyaman): Support latest Polars.
+            req = "polars < 1.30.0"
             if sys.platform == "darwin":
-                req = "polars-lts-cpu < 1.30.0"
-            else:
-                req = "polars < 1.30.0"
+                # On macOS, add polars-lts-cpu in addition to polars (which tends to get pulled in as a transitive dependency)
+                _updated_requirements.append("polars-lts-cpu < 1.30.0")
+
         # for some reason uv will try to install an old version of dask,
         # have to specifically pin dask[dataframe] to a higher version
         if (
