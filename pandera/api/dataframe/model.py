@@ -162,14 +162,9 @@ class DataFrameModel(Generic[TDataFrame, TSchema], BaseModel):
         for field_name, annotation in annotations.items():  
             if _is_field(field_name):  
                 existing_field = None  
-                print(f"Direct inspection of {field_name}:")  
-                print(f"  annotation: {annotation}")  
-                print(f"  origin: {get_origin(annotation)}")  
-                print(f"  args: {get_args(annotation)}") 
 
                 if hasattr(annotation, "__metadata__"):
                     metadata = annotation.__metadata__
-                    print(f"  metadata: {metadata}")
 
                     field_info_list = [
                         item for item in metadata
@@ -178,25 +173,6 @@ class DataFrameModel(Generic[TDataFrame, TSchema], BaseModel):
 
                     if field_info_list:  
                         existing_field = field_info_list[0]  
-                        print(f"Found FieldInfo with description: {existing_field.description}")
-                
-                # # Create and cache AnnotationInfo boject
-                # annotation_info = AnnotationInfo(annotation)
-                # cls.__annotation_infos__[field_name] = annotation_info
-
-                # if annotation_info.metadata is not None: 
-                #     print(f"Found metadata for {field_name}: {annotation_info.metadata}")
-                #     field_info_list = [
-                #         metadata for metadata in annotation_info.metadata
-                #         if isinstance(metadata, FieldInfo)
-                #     ]  
-
-                #     if field_info_list:  
-                #         existing_field = field_info_list[0]  
-                #         print(f"Found FieldInfo with description: {existing_field.description}")
-
-                else:
-                    print(f"No metadata found for {field_name}. Creating new FieldInfo.")
 
                 if existing_field and field_name not in cls.__dict__:  
                     existing_field.__set_name__(cls, field_name)  

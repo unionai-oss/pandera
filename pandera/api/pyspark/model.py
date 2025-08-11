@@ -524,15 +524,7 @@ def _regex_filter(seq: Iterable, regexps: Iterable[str]) -> set[str]:
 
 
 def _get_dtype_kwargs(annotation: AnnotationInfo) -> dict[str, Any]:
-    # sig = inspect.signature(annotation.arg)  # type: ignore
-    # dtype_arg_names = list(sig.parameters.keys())
-    # if len(annotation.metadata) != len(dtype_arg_names):  # type: ignore
-    #     raise TypeError(
-    #         f"Annotation '{annotation.arg.__name__}' requires "  # type: ignore
-    #         + f"all positional arguments {dtype_arg_names}."
-    #     )
-    # return dict(zip(dtype_arg_names, annotation.metadata))  # type: ignore
-
+    """Extract dtype keyword arguments from a Pandera annotation."""
     # Check if this is a built-in type that doesn't support parameterization
     if annotation.arg in (str, int, float, bool, type(None)) or \
             hasattr(annotation.arg, '__module__') and annotation.arg.__module__ == 'builtins':
