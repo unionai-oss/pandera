@@ -35,10 +35,7 @@ class FieldInfo(BaseFieldInfo):
 
     *new in 0.5.0*
     """
-
-    print("In Field Info")
-    print("*" * 50)
-
+    
     def _get_schema_properties(
         self,
         dtype: Any,
@@ -63,8 +60,7 @@ class FieldInfo(BaseFieldInfo):
         required: bool = True,
         name: Optional[str] = None,
     ) -> dict[str, Any]:
-    
-        print("In column_properties", str(self.description))
+        
         return self._get_schema_properties(
             dtype,
             nullable=self.nullable,
