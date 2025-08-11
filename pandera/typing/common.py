@@ -223,7 +223,6 @@ class AnnotationInfo:
             self.raw_annotation = raw_annotation
 
         self.origin = typing_inspect.get_origin(raw_annotation)
-        print(f"raw_annotation before args: {raw_annotation}")
         # Replace empty tuple returned from get_args by None
         args = typing_inspect.get_args(raw_annotation) or None
         self.args = args
@@ -231,13 +230,6 @@ class AnnotationInfo:
 
 
         metadata = getattr(raw_annotation, "__metadata__", None)
-
-        # print("In AnnotationInfo")
-        # print("-" * 50)
-        # print(f"self.args: {self.args}")
-        # print(f"raw_annotation: {raw_annotation}")
-        # print(f"metadata: {metadata}")
-        # print(f"self.arg: {self.arg}")
 
         if metadata:
             self.is_annotated_type = True
