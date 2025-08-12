@@ -150,7 +150,12 @@ jobs:
           pip list
           printenv | sort
       - name: Unit Tests - pandas
-        run: nox -v -db uv --non-interactive --session "tests-${{ matrix.python-version }}(extra='pandas', pandas='${{ matrix.pandas-version }}', pydantic='${{ matrix.pydantic-version }}')"
+        run: nox -v -db uv --non-interactive \
+          --session "tests-${{ matrix.python-version }}(\
+            extra='pandas', \
+            pandas='${{ matrix.pandas-version }}', \
+            pydantic='${{ matrix.pydantic-version }}' \
+            polars=None)"
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
 
@@ -194,14 +199,19 @@ jobs:
           pip list
           printenv | sort
       - name: Unit Tests - ${{ matrix.extra }}
-        run: nox -v -db uv --non-interactive --session "tests-${{ matrix.python-version }}(extra='${{ matrix.extra }}', pandas='${{ matrix.pandas-version }}', pydantic='${{ matrix.pydantic-version }}')"
+        run: nox -v -db uv --non-interactive \
+          --session "tests-${{ matrix.python-version }}(\
+            extra='${{ matrix.extra }}', \
+            pandas='${{ matrix.pandas-version }}', \
+            pydantic='${{ matrix.pydantic-version }}', \
+            polars=None)"
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
 
   # test extras for popular dataframe libraries
   unit-tests-dataframe-extras:
     name: >
-      Unit Tests DataFrame Extras: python-${{ matrix.python-version }} ${{ matrix.os }} (extra-${{ matrix.extra }}, pandas-${{ matrix.pandas-version }}, pydantic-${{ matrix.pydantic-version }})
+      Unit Tests DataFrame Extras: python-${{ matrix.python-version }} ${{ matrix.os }} (extra-${{ matrix.extra }})
     runs-on: ${{ matrix.os }}
     defaults:
       run:
@@ -215,8 +225,6 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
         python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
-        pandas-version: ["2.2.3"]
-        pydantic-version: ["2.10.6"]
         extra:
         - dask
         - polars
@@ -224,10 +232,12 @@ jobs:
         - modin-dask
         - modin-ray
         - ibis
+        include:
+        - extra: polars
+          polars-version: "0.20.0"
+        - extra: polars
+          polars-version: "1.32.2"
         exclude:
-        # mypy tests hang on windows
-        - extra: mypy
-          os: windows-latest
         - extra: modin-ray
           os: windows-latest
         # pyspark serialization issue on windows: "pandas" module not found
@@ -264,7 +274,22 @@ jobs:
           printenv | sort
 
       - name: Unit Tests - ${{ matrix.extra }}
-        run: nox -v -db uv --non-interactive --session "tests-${{ matrix.python-version }}(extra='${{ matrix.extra }}', pandas='${{ matrix.pandas-version }}', pydantic='${{ matrix.pydantic-version }}')"
+        if: matrix.extra == 'polars'
+        run: nox -v -db uv --non-interactive \
+          --session "tests-${{ matrix.python-version }}(\
+            extra='${{ matrix.extra }}', \
+            pandas=None, \
+            pydantic=None, \
+            polars='${{ matrix.polars-version }}')"
+
+      - name: Unit Tests - ${{ matrix.extra }}
+        if: matrix.extra != 'polars'
+        run: nox -v -db uv --non-interactive \
+          --session "tests-${{ matrix.python-version }}(\
+            extra='${{ matrix.extra }}', \
+            pandas=None, \
+            pydantic=None, \
+            polars=None)"
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4

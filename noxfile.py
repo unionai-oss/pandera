@@ -23,6 +23,7 @@ nox.options.sessions = (
 PYTHON_VERSIONS = ["3.9", "3.10", "3.11", "3.12", "3.13"]
 PANDAS_VERSIONS = ["2.1.1", "2.2.3"]
 PYDANTIC_VERSIONS = ["1.10.11", "2.10.6"]
+POLARS_VERSIONS = ["0.20.0", "1.32.2"]
 PACKAGE = "pandera"
 SOURCE_PATHS = PACKAGE, "tests", "noxfile.py"
 REQUIREMENT_PATH = "requirements.txt"
@@ -117,10 +118,12 @@ def _testing_requirements(
     extra: Optional[str] = None,
     pandas: Optional[str] = None,
     pydantic: Optional[str] = None,
+    polars: Optional[str] = None,
 ) -> list[str]:
 
     pandas = pandas or PANDAS_VERSIONS[-1]
     pydantic = pydantic or PYDANTIC_VERSIONS[-1]
+    polars = polars or POLARS_VERSIONS[-1]
 
     _requirements = PYPROJECT["project"]["dependencies"]
     if extra is not None:
@@ -155,12 +158,8 @@ def _testing_requirements(
             req = "pyarrow >= 13"
         if req == "ibis-framework" or req.startswith("ibis-framework "):
             req = "ibis-framework[duckdb,polars]"
-        if req == "polars" or req.startswith("polars "):
-            # TODO(deepyaman): Support latest Polars.
-            req = "polars < 1.30.0"
-            if sys.platform == "darwin":
-                # On macOS, add polars-lts-cpu in addition to polars (which tends to get pulled in as a transitive dependency)
-                _updated_requirements.append("polars-lts-cpu < 1.30.0")
+        if req == "polars":
+            req = f"polars=={polars}"
 
         # for some reason uv will try to install an old version of dask,
         # have to specifically pin dask[dataframe] to a higher version
@@ -179,7 +178,8 @@ def _testing_requirements(
 
 
 # the base module with no extras
-EXTRA_PYTHON_PYDANTIC = [(None, None, None)]
+EXTRA_PYTHON_PYDANTIC = [(None, None, None, None)]
+DATAFRAME_EXTRAS = {"pyspark", "modin-dask", "modin-ray", "polars", "dask", "ibis"}
 for extra in OPTIONAL_DEPENDENCIES:
     if extra == "pandas":
         # Only test upper and lower bounds of pandas and pydantic with the
@@ -189,28 +189,38 @@ for extra in OPTIONAL_DEPENDENCIES:
         # pydantic integration.
         EXTRA_PYTHON_PYDANTIC.extend(
             [
-                (extra, pandas, pydantic)
+                (extra, pandas, pydantic, None)
                 for pandas in PANDAS_VERSIONS
                 for pydantic in PYDANTIC_VERSIONS
             ]
         )
+    elif extra == "polars":
+        EXTRA_PYTHON_PYDANTIC.extend(
+            [
+                (extra, PANDAS_VERSIONS[-1], PYDANTIC_VERSIONS[-1], polars)
+                for polars in POLARS_VERSIONS
+            ]
+        )
+    elif extra in DATAFRAME_EXTRAS:
+        EXTRA_PYTHON_PYDANTIC.append((extra, None, None, None))
     else:
         EXTRA_PYTHON_PYDANTIC.append(
-            (extra, PANDAS_VERSIONS[-1], PYDANTIC_VERSIONS[-1])
+            (extra, PANDAS_VERSIONS[-1], PYDANTIC_VERSIONS[-1], None)
         )
 
 
 @nox.session(venv_backend="uv", python=PYTHON_VERSIONS)
-@nox.parametrize("extra, pandas, pydantic", EXTRA_PYTHON_PYDANTIC)
+@nox.parametrize("extra, pandas, pydantic, polars", EXTRA_PYTHON_PYDANTIC)
 def tests(
     session: Session,
     extra: Optional[str] = None,
     pandas: Optional[str] = None,
     pydantic: Optional[str] = None,
+    polars: Optional[str] = None,
 ) -> None:
     """Run the test suite."""
 
-    requirements = _testing_requirements(session, extra, pandas, pydantic)
+    requirements = _testing_requirements(session, extra, pandas, pydantic, polars)
     session.install(*requirements)
     session.install("-e", ".", "--config-settings", "editable_mode=compat")
     session.run("uv", "pip", "list")
