@@ -780,6 +780,39 @@ def test_check_types_optional_in_out() -> None:
     assert transform(None) is None
 
 
+@pytest.mark.parametrize(
+    "callable_annotation",
+    [
+        pytest.param(typing.Callable[[None], None], id="no args, no return"),
+        pytest.param(typing.Callable[[None], int], id="no args, returns int"),
+        pytest.param(
+            typing.Callable[..., int], id="no info on args, returns int"
+        ),
+        pytest.param(
+            typing.Callable[..., list[int]],
+            id="no info on args, returns list of int",
+        ),
+        pytest.param(
+            typing.Callable[[typing.Any], int],
+            id="includes info on callable args",
+        ),
+    ],
+)
+def test_check_types_callables(callable_annotation: typing.Callable) -> None:
+    """
+    Ensures `check_types` validates a dataframe, while passing in an additional callable argument
+    """
+
+    class MySchema1(DataFrameModel):
+        a: int
+
+    @check_types
+    def some_transformation(df: MySchema1, f: callable_annotation):  # type: ignore[valid-type]
+        print("nothing happens")
+
+    _ = some_transformation(pd.DataFrame({"a": [1, 2]}), lambda x: 1)
+
+
 def test_check_types_coerce() -> None:
     """Test that check_types return the result of validate."""
 
