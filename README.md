@@ -27,7 +27,6 @@
 [![PyPI pyversions](https://img.shields.io/pypi/pyversions/pandera.svg?style=for-the-badge)](https://pypi.python.org/pypi/pandera/)
 [![DOI](https://img.shields.io/badge/DOI-10.5281/zenodo.3385265-blue?style=for-the-badge)](https://doi.org/10.5281/zenodo.3385265)
 [![asv](http://img.shields.io/badge/benchmarked%20by-asv-green.svg?style=for-the-badge)](https://pandera-dev.github.io/pandera-asv-logs/)
-[![Monthly Downloads](https://img.shields.io/pypi/dm/pandera?style=for-the-badge&color=blue)](https://pepy.tech/project/pandera)
 [![Total Downloads](https://img.shields.io/pepy/dt/pandera?style=for-the-badge&color=blue)](https://pepy.tech/project/pandera)
 [![Conda Downloads](https://img.shields.io/conda/dn/conda-forge/pandera?style=for-the-badge)](https://anaconda.org/conda-forge/pandera)
 [![Slack](https://img.shields.io/badge/Slack-4A154B?logo=slack&logoColor=fff&style=for-the-badge)](https://flyte-org.slack.com/archives/C08FDTY2X3L)
