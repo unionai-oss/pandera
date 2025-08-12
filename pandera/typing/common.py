@@ -2,6 +2,7 @@
 
 import copy
 import inspect
+import typing
 from typing import (  # type: ignore[attr-defined]
     TYPE_CHECKING,
     Any,
@@ -238,7 +239,8 @@ class AnnotationInfo:
             self.arg = typing_inspect.get_args(self.arg)[0]
 
         self.metadata = metadata
-        self.literal = typing_inspect.is_literal_type(self.arg)
+
+        self.literal = typing_inspect.get_origin(self.arg) is typing.Literal
 
         if self.literal:
             self.arg = typing_inspect.get_args(self.arg)[0]
