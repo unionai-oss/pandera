@@ -150,8 +150,7 @@ jobs:
           pip list
           printenv | sort
       - name: Unit Tests - pandas
-        run: nox -v -db uv --non-interactive \
-          --session "tests-${{ matrix.python-version }}(extra='pandas', pandas='${{ matrix.pandas-version }}', pydantic='${{ matrix.pydantic-version }}', polars=None)"
+        run: nox -v -db uv --non-interactive --session "tests-${{ matrix.python-version }}(extra='pandas', pandas='${{ matrix.pandas-version }}', pydantic='${{ matrix.pydantic-version }}', polars=None)"
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
 
@@ -195,8 +194,7 @@ jobs:
           pip list
           printenv | sort
       - name: Unit Tests - ${{ matrix.extra }}
-        run: nox -v -db uv --non-interactive \
-          --session "tests-${{ matrix.python-version }}(extra='${{ matrix.extra }}', pandas='${{ matrix.pandas-version }}', pydantic='${{ matrix.pydantic-version }}', polars=None)"
+        run: nox -v -db uv --non-interactive --session "tests-${{ matrix.python-version }}(extra='${{ matrix.extra }}', pandas='${{ matrix.pandas-version }}', pydantic='${{ matrix.pydantic-version }}', polars=None)"
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
 
