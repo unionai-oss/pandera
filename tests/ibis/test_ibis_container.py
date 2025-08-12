@@ -125,7 +125,25 @@ def test_coerce_column_dtype(t_basic, t_schema_basic):
     modified_data = t_basic.cast({"int_col": dt.String})
     query = modified_data.pipe(t_schema_basic.validate)
     coerced_df = query.execute()
-    assert coerced_df.equals(t_basic.collect())
+    assert coerced_df.equals(t_basic.execute())
+
+
+def test_strict_filter(t_basic, t_schema_basic):
+    """Test strictness and filtering schema logic."""
+    # by default, strict is False, so by default it should pass
+    modified_data = t_basic.mutate(extra_col=1)
+    validated_data = modified_data.pipe(t_schema_basic.validate)
+    assert validated_data.execute().equals(modified_data.execute())
+
+    # setting strict to True should raise an error
+    t_schema_basic.strict = True
+    with pytest.raises(pa.errors.SchemaError):
+        modified_data.pipe(t_schema_basic.validate)
+
+    # setting strict to "filter" should remove the extra column
+    t_schema_basic.strict = "filter"
+    filtered_data = modified_data.pipe(t_schema_basic.validate)
+    filtered_data.execute().equals(t_basic.execute())
 
 
 def test_required_columns():
