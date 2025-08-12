@@ -8,12 +8,13 @@ from typing import TYPE_CHECKING, Any, Callable, Optional
 from collections.abc import Iterable
 
 import ibis
-import ibis.selectors as s
+from ibis import _, selectors as s
 from ibis.common.exceptions import IbisError
 
 from pandera.api.base.error_handler import ErrorHandler
 from pandera.config import ValidationScope
 from pandera.backends.base import CoreCheckResult, ColumnInfo
+from pandera.backends.utils import convert_uniquesettings
 from pandera.backends.ibis.base import IbisSchemaBackend
 from pandera.errors import (
     ParserError,
@@ -79,6 +80,7 @@ class DataFrameSchemaBackend(IbisSchemaBackend):
         # run the checks
         core_checks = [
             (self.check_column_presence, (check_obj, schema, column_info)),
+            (self.check_column_values_are_unique, (check_obj, schema)),
             (
                 self.run_schema_component_checks,
                 (sample, schema, components, lazy),
@@ -230,7 +232,7 @@ class DataFrameSchemaBackend(IbisSchemaBackend):
                     regex_match_patterns.append(col_schema.name)
                 except SchemaError:
                     pass
-            elif col_name in check_obj.columns:
+            elif col_name in check_obj:
                 column_names.append(col_name)
 
         # Ibis tables cannot have duplicated column names
@@ -383,3 +385,51 @@ class DataFrameSchemaBackend(IbisSchemaBackend):
                     )
                 )
         return results
+
+    @validate_scope(scope=ValidationScope.DATA)
+    def check_column_values_are_unique(
+        self,
+        check_obj: ibis.Table,
+        schema: DataFrameSchema,
+    ) -> CoreCheckResult:
+        """Check that column values are unique."""
+
+        passed = True
+        message = None
+        failure_cases = None
+
+        if not schema.unique:
+            return CoreCheckResult(
+                passed=passed,
+                check="multiple_fields_uniqueness",
+            )
+
+        keep_setting = convert_uniquesettings(schema.report_duplicates)
+        temp_unique: list[list] = (
+            [schema.unique]
+            if all(isinstance(x, str) for x in schema.unique)
+            else schema.unique
+        )
+        for lst in temp_unique:
+            subset = [x for x in lst if x in check_obj]
+            if keep_setting == "first":
+                duplicated = ibis.row_number().over(group_by=subset) > 0
+            elif keep_setting == "last":
+                duplicated = (_.count() - ibis.row_number()).over(
+                    group_by=subset
+                ) > 1
+            else:
+                duplicated = _.count().over(group_by=subset) > 1
+            duplicates = check_obj.select(duplicated=duplicated).duplicated
+            if duplicates.any().execute():
+                failure_cases = check_obj.filter(duplicated)
+                passed = False
+                message = f"columns '{*subset,}' not unique:\n{failure_cases}"
+                break
+        return CoreCheckResult(
+            passed=passed,
+            check="multiple_fields_uniqueness",
+            reason_code=SchemaErrorReason.DUPLICATES,
+            message=message,
+            failure_cases=failure_cases,
+        )

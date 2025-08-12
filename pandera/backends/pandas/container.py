@@ -322,7 +322,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
                     regex_match_patterns.append(col_schema.name)
                 except SchemaError:
                     pass
-            elif col_name in check_obj.columns:
+            elif col_name in check_obj:
                 column_names.append(col_name)
 
         # drop adjacent duplicated column names
@@ -799,10 +799,8 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
         if not schema.unique:
             return CoreCheckResult(
                 passed=passed,
-                check="dataframe_column_labels_unique",
+                check="multiple_fields_uniqueness",
             )
-
-        # NOTE: fix this pylint error
 
         keep_setting = convert_uniquesettings(schema.report_duplicates)
         temp_unique: list[list] = (
