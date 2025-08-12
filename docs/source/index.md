@@ -64,11 +64,6 @@ file_format: mystnb
 :target: https://pandera-dev.github.io/pandera-asv-logs/
 ```
 
-```{image} https://img.shields.io/pypi/dm/pandera?style=for-the-badge&color=blue
-:alt: Monthly Downloads
-:target: https://pepy.tech/project/pandera
-```
-
 ```{image} https://img.shields.io/pepy/dt/pandera?style=for-the-badge&color=blue
 :alt: Total Downloads
 :target: https://pepy.tech/badge/pandera
