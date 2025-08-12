@@ -46,7 +46,7 @@ deps-from-environment.yml:
 	python scripts/generate_pip_deps_from_conda.py
 
 unit-tests:
-	pytest tests/core
+	pytest tests/core tests/pandas
 
 nox-tests:
 	nox -db uv -s tests ${NOX_FLAGS}
