@@ -808,7 +808,7 @@ def test_check_types_callables(callable_annotation: typing.Callable) -> None:
 
     @check_types
     def some_transformation(df: MySchema1, f: callable_annotation):  # type: ignore[valid-type]
-        print("nothing happens")
+        pass
 
     _ = some_transformation(pd.DataFrame({"a": [1, 2]}), lambda x: 1)
 
