@@ -268,7 +268,7 @@ jobs:
 
       - name: Unit Tests - ${{ matrix.extra }}
         if: matrix.extra == 'polars'
-        run: nox -v -db uv --non-interactive --session "tests-${{ matrix.python-version }}(extra='${{ matrix.extra }}', pandas=${{ matrix.pandas-version }}, pydantic=${{ matrix.pydantic-version }}, polars='${{ matrix.polars-version }}')"
+        run: nox -v -db uv --non-interactive --session "tests-${{ matrix.python-version }}(extra='${{ matrix.extra }}', pandas='${{ matrix.pandas-version }}', pydantic='${{ matrix.pydantic-version }}', polars='${{ matrix.polars-version }}')"
 
       - name: Unit Tests - ${{ matrix.extra }}
         if: matrix.extra != 'polars'
