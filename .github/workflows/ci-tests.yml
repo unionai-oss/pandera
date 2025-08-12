@@ -151,11 +151,7 @@ jobs:
           printenv | sort
       - name: Unit Tests - pandas
         run: nox -v -db uv --non-interactive \
-          --session "tests-${{ matrix.python-version }}(\
-            extra='pandas', \
-            pandas='${{ matrix.pandas-version }}', \
-            pydantic='${{ matrix.pydantic-version }}' \
-            polars=None)"
+          --session "tests-${{ matrix.python-version }}(extra='pandas', pandas='${{ matrix.pandas-version }}', pydantic='${{ matrix.pydantic-version }}', polars=None)"
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
 
@@ -200,11 +196,7 @@ jobs:
           printenv | sort
       - name: Unit Tests - ${{ matrix.extra }}
         run: nox -v -db uv --non-interactive \
-          --session "tests-${{ matrix.python-version }}(\
-            extra='${{ matrix.extra }}', \
-            pandas='${{ matrix.pandas-version }}', \
-            pydantic='${{ matrix.pydantic-version }}', \
-            polars=None)"
+          --session "tests-${{ matrix.python-version }}(extra='${{ matrix.extra }}', pandas='${{ matrix.pandas-version }}', pydantic='${{ matrix.pydantic-version }}', polars=None)"
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
 
@@ -276,20 +268,12 @@ jobs:
       - name: Unit Tests - ${{ matrix.extra }}
         if: matrix.extra == 'polars'
         run: nox -v -db uv --non-interactive \
-          --session "tests-${{ matrix.python-version }}(\
-            extra='${{ matrix.extra }}', \
-            pandas=None, \
-            pydantic=None, \
-            polars='${{ matrix.polars-version }}')"
+          --session "tests-${{ matrix.python-version }}(extra='${{ matrix.extra }}', pandas=None, pydantic=None, polars='${{ matrix.polars-version }}')"
 
       - name: Unit Tests - ${{ matrix.extra }}
         if: matrix.extra != 'polars'
         run: nox -v -db uv --non-interactive \
-          --session "tests-${{ matrix.python-version }}(\
-            extra='${{ matrix.extra }}', \
-            pandas=None, \
-            pydantic=None, \
-            polars=None)"
+          --session "tests-${{ matrix.python-version }}(extra='${{ matrix.extra }}', pandas=None, pydantic=None, polars=None)"
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
