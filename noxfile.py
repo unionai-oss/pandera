@@ -179,7 +179,14 @@ def _testing_requirements(
 
 # the base module with no extras
 EXTRA_PYTHON_PYDANTIC = [(None, None, None, None)]
-DATAFRAME_EXTRAS = {"pyspark", "modin-dask", "modin-ray", "polars", "dask", "ibis"}
+DATAFRAME_EXTRAS = {
+    "pyspark",
+    "modin-dask",
+    "modin-ray",
+    "polars",
+    "dask",
+    "ibis",
+}
 for extra in OPTIONAL_DEPENDENCIES:
     if extra == "pandas":
         # Only test upper and lower bounds of pandas and pydantic with the
@@ -220,7 +227,9 @@ def tests(
 ) -> None:
     """Run the test suite."""
 
-    requirements = _testing_requirements(session, extra, pandas, pydantic, polars)
+    requirements = _testing_requirements(
+        session, extra, pandas, pydantic, polars
+    )
     session.install(*requirements)
     session.install("-e", ".", "--config-settings", "editable_mode=compat")
     session.run("uv", "pip", "list")

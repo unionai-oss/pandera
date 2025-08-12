@@ -87,7 +87,7 @@ jobs:
   # test base functionality
   unit-tests-base:
     name: >
-      Unit Tests Base: python-${{ matrix.python-version }} ${{ matrix.os }} (pydantic-${{ matrix.pydantic-version }})
+      Unit Tests Base: python-${{ matrix.python-version }} ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     defaults:
       run:
@@ -113,7 +113,7 @@ jobs:
           pip list
           printenv | sort
       - name: Unit Tests Base
-        run: nox -v -db uv --non-interactive --session "tests-${{ matrix.python-version }}(extra=None, pandas=None, pydantic=None)"
+        run: nox -v -db uv --non-interactive --session "tests-${{ matrix.python-version }}(extra=None, pandas=None, pydantic=None, polars=None)"
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
 
