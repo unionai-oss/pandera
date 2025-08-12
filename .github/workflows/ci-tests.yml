@@ -227,6 +227,9 @@ jobs:
           polars-version: "0.20.0"
         - extra: polars
           polars-version: "1.32.2"
+        - extra: polars
+          pandas-version: "2.2.3"
+          pydantic-version: "2.10.6"
         exclude:
         - extra: modin-ray
           os: windows-latest
@@ -265,7 +268,7 @@ jobs:
 
       - name: Unit Tests - ${{ matrix.extra }}
         if: matrix.extra == 'polars'
-        run: nox -v -db uv --non-interactive --session "tests-${{ matrix.python-version }}(extra='${{ matrix.extra }}', pandas=None, pydantic=None, polars='${{ matrix.polars-version }}')"
+        run: nox -v -db uv --non-interactive --session "tests-${{ matrix.python-version }}(extra='${{ matrix.extra }}', pandas=${{ matrix.pandas-version }}, pydantic=${{ matrix.pydantic-version }}, polars='${{ matrix.polars-version }}')"
 
       - name: Unit Tests - ${{ matrix.extra }}
         if: matrix.extra != 'polars'
