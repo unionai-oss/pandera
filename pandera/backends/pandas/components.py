@@ -29,6 +29,7 @@ from pandera.validation_depth import (
     validate_scope,
     validation_type,
 )
+from pandera.backends.pandas.error_formatters import reshape_failure_cases
 
 
 class ColumnBackend(ArraySchemaBackend):
@@ -536,10 +537,14 @@ class MultiIndexBackend(PandasSchemaBackend):
                 )
 
                 failure_info = {
-                    "extra_level_positions": sorted(unmapped_level_positions),
-                    "extra_level_names": unmapped_level_names,
-                    "expected_levels": [idx.name for idx in schema.indexes],
-                    "actual_levels": list(check_obj.index.names),
+                    "extra_level_positions": str(
+                        sorted(unmapped_level_positions)
+                    ),
+                    "extra_level_names": str(unmapped_level_names),
+                    "expected_levels": str(
+                        [idx.name for idx in schema.indexes]
+                    ),
+                    "actual_levels": str(list(check_obj.index.names)),
                 }
 
                 self._collect_or_raise(
@@ -584,6 +589,122 @@ class MultiIndexBackend(PandasSchemaBackend):
                 )
             except (SchemaError, SchemaErrors) as exc:
                 self._collect_or_raise(error_handler, exc, schema)
+
+        # Validate multiindex_unique: ensure no duplicate index combinations
+        if schema.unique:
+            # Handle different possible types of schema.unique
+            if isinstance(schema.unique, str):
+                # Single level name
+                unique_levels = [schema.unique]
+            elif isinstance(schema.unique, list):
+                # List of level names
+                unique_levels = schema.unique
+            else:
+                # schema.unique is True, check entire index
+                unique_levels = None
+
+            # For checking entire index, use fast is_unique first
+            if unique_levels is None:
+                # Fast check for entire index uniqueness
+                if not check_obj.index.is_unique:
+                    # Extract duplicate index values for failure_cases
+                    duplicated_mask = check_obj.index.duplicated(keep="first")
+                    duplicate_indices = check_obj.index[duplicated_mask]
+
+                    # Create a DataFrame with duplicate index values
+                    failure_cases_df = pd.DataFrame(index=duplicate_indices)
+                    failure_cases = reshape_failure_cases(failure_cases_df)
+
+                    message = f"MultiIndex not unique:\n{failure_cases_df}"
+
+                    self._collect_or_raise(
+                        error_handler,
+                        SchemaError(
+                            schema=schema,
+                            data=check_obj.index,
+                            message=message,
+                            failure_cases=failure_cases,
+                            check="multiindex_unique",
+                            reason_code=SchemaErrorReason.SCHEMA_COMPONENT_CHECK,
+                        ),
+                        schema,
+                    )
+            else:
+                # Check uniqueness of specific level combinations
+                # Map level names to positions (silently filter invalid ones for consistency with DataFrame backend)
+                level_positions = []
+                for level_name in unique_levels:
+                    if isinstance(level_name, str):
+                        # String level name
+                        if level_name in check_obj.index.names:
+                            level_positions.append(
+                                check_obj.index.names.index(level_name)
+                            )
+                    elif isinstance(level_name, int):
+                        # Numeric level position
+                        if 0 <= level_name < check_obj.index.nlevels:
+                            level_positions.append(level_name)
+                    # Silently ignore invalid level references for consistency with DataFrame column uniqueness
+
+                if level_positions:
+                    # Extract the specified levels and create a sub-index
+                    level_values = [
+                        check_obj.index.get_level_values(pos)
+                        for pos in level_positions
+                    ]
+                    if len(level_values) == 1:
+                        # Single level - use is_unique for performance
+                        sub_index = level_values[0]
+                        if not sub_index.is_unique:
+                            duplicated_mask = sub_index.duplicated(
+                                keep="first"
+                            )
+                        else:
+                            duplicated_mask = None
+                    else:
+                        # Multiple levels - need to use duplicated() approach
+                        sub_index = pd.MultiIndex.from_arrays(level_values)
+                        duplicated_mask = sub_index.duplicated(keep="first")
+                        if not duplicated_mask.any():
+                            duplicated_mask = None
+
+                    # Report errors if duplicates were found
+                    if duplicated_mask is not None and duplicated_mask.any():
+                        # Extract the duplicate values for the specific levels that were checked
+                        duplicate_level_values = {}
+                        valid_level_names = []
+                        for pos in level_positions:
+                            level_name = (
+                                check_obj.index.names[pos]
+                                if check_obj.index.names[pos] is not None
+                                else pos
+                            )
+                            valid_level_names.append(level_name)
+                            duplicate_level_values[level_name] = (
+                                check_obj.index.get_level_values(pos)[
+                                    duplicated_mask
+                                ]
+                            )
+
+                        # Create DataFrame with duplicate level values
+                        failure_cases_df = pd.DataFrame(duplicate_level_values)
+                        failure_cases = reshape_failure_cases(failure_cases_df)
+
+                        message = f"levels '{*valid_level_names,}' not unique:\n{failure_cases_df}"
+
+                        self._collect_or_raise(
+                            error_handler,
+                            SchemaError(
+                                schema=schema,
+                                data=check_obj.index,
+                                message=message,
+                                failure_cases=failure_cases,
+                                check="multiindex_unique",
+                                reason_code=SchemaErrorReason.SCHEMA_COMPONENT_CHECK,
+                            ),
+                            schema,
+                        )
+                # If no valid levels found, skip uniqueness check entirely (like DataFrame backend)
 
         # Raise aggregated errors in lazy mode
         if lazy and error_handler.collected_errors:
