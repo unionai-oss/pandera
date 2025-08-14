@@ -530,7 +530,7 @@ class MultiIndexBackend(PandasSchemaBackend):
                 ]
 
                 message = (
-                    f"MultiIndex has extra levels at positions: {sorted(unmapped_level_positions)}"
+                    f"MultiIndex has extra levels at positions {sorted(unmapped_level_positions)}"
                     f" with names {unmapped_level_names}. "
                     f"Expected {len(schema.indexes)} levels, found {check_obj.index.nlevels} level(s). "
                 )
