@@ -206,8 +206,8 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
         lazy: bool,
     ) -> list[CoreCheckResult]:
         """Run checks for all schema components."""
-        check_results = []
-        check_passed = []
+        check_results: list[CoreCheckResult] = []
+        check_passed: list[bool] = []
         # schema-component-level checks
         for schema_component in schema_components:
             # make sure the schema component mutations are reverted after

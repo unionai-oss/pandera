@@ -83,7 +83,6 @@ class ColumnSchemaBackend(PysparkSchemaBackend):
         self._core_checks(check_obj, schema, error_handler)
 
         self.run_checks(check_obj, schema)
-
         return check_obj
 
     @validate_scope(scope=ValidationScope.SCHEMA)

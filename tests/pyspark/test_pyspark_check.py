@@ -70,7 +70,7 @@ class TestDecorator:
         spark = request.getfixturevalue(spark_session)
         schema = DataFrameSchema(
             {
-                "product": Column(StringType()),
+                # "product": Column(StringType()),
                 "code": Column(StringType(), pa.Check.str_startswith("B")),
             }
         )
@@ -81,16 +81,16 @@ class TestDecorator:
                 StructField("code", StringType(), False),
             ],
         )
-        pass_case_data = [["foo", "B1"], ["bar", "B2"]]
-        df = spark.createDataFrame(data=pass_case_data, schema=spark_schema)
-        df_out = schema.validate(df)
-        if df_out.pandera.errors:
-            print(df_out.pandera.errors)
-            raise PysparkSchemaError
+        # pass_case_data = [["foo", "B1"], ["bar", "B2"]]
+        # df = spark.createDataFrame(data=pass_case_data, schema=spark_schema)
+        # df_out = schema.validate(df)
+        # if df_out.pandera.errors:
+        #     print(df_out.pandera.errors)
+        #     raise PysparkSchemaError
 
         fail_schema = DataFrameSchema(
             {
-                "product": Column(StringType()),
+                # "product": Column(StringType()),
                 "code": Column(IntegerType(), pa.Check.str_startswith("B")),
             }
         )

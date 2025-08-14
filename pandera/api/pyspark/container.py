@@ -16,6 +16,7 @@ from pandera.backends.pyspark.register import register_pyspark_backends
 from pandera.config import get_config_context
 from pandera.dtypes import DataType
 from pandera.engines import pyspark_engine
+from pandera.utils import docstring_substitution
 
 from .types import (
     PySparkDtypeInputTypes,
@@ -55,7 +56,7 @@ class DataFrameSchema(_DataFrameSchema[PySparkDataFrameTypes]):
         tail: Optional[int] = None,
         sample: Optional[int] = None,
         random_state: Optional[int] = None,
-        lazy: bool = False,
+        lazy: bool = True,
         inplace: bool = False,
     ) -> PySparkFrame:
         """Check if all columns in a dataframe have a column in the Schema.
@@ -113,26 +114,6 @@ class DataFrameSchema(_DataFrameSchema[PySparkDataFrameTypes]):
         if not get_config_context().validation_enabled:
             return check_obj
 
-        return self._validate(
-            check_obj=check_obj,
-            head=head,
-            tail=tail,
-            sample=sample,
-            random_state=random_state,
-            lazy=lazy,
-            inplace=inplace,
-        )
-
-    def _validate(
-        self,
-        check_obj: PySparkFrame,
-        head: Optional[int] = None,
-        tail: Optional[int] = None,
-        sample: Optional[int] = None,
-        random_state: Optional[int] = None,
-        lazy: bool = False,
-        inplace: bool = False,
-    ) -> PySparkFrame:
         return self.get_backend(check_obj).validate(
             check_obj=check_obj,
             schema=self,
@@ -142,6 +123,22 @@ class DataFrameSchema(_DataFrameSchema[PySparkDataFrameTypes]):
             random_state=random_state,
             lazy=lazy,
             inplace=inplace,
+        )
+
+    @docstring_substitution(validate_doc=_DataFrameSchema.__call__.__doc__)
+    def __call__(
+        self,
+        dataframe: PySparkFrame,
+        head: Optional[int] = None,
+        tail: Optional[int] = None,
+        sample: Optional[int] = None,
+        random_state: Optional[int] = None,
+        lazy: bool = True,
+        inplace: bool = False,
+    ) -> PySparkFrame:
+        """%(validate_doc)s"""
+        return self.validate(
+            dataframe, head, tail, sample, random_state, lazy, inplace
         )
 
     def __eq__(self, other: object) -> bool:
