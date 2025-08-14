@@ -69,6 +69,7 @@ class ColumnBackend(ArraySchemaBackend):
 
         def validate_column(check_obj, column_name, return_check_obj=False):
             try:
+
                 # make sure the schema component mutations are reverted after
                 # validation
                 _orig_name = schema.name
@@ -254,7 +255,7 @@ class ColumnBackend(ArraySchemaBackend):
             except Exception as err:
                 # catch other exceptions that may occur when executing the Check
                 err_msg = f'"{err.args[0]}"' if err.args else ""
-                err_str = f"{err.__class__.__name__}({err_msg})"
+                err_str = f"{err.__class__.__name__}({ err_msg})"
                 msg = (
                     f"Error while executing check function: {err_str}\n"
                     + traceback.format_exc()
@@ -397,6 +398,7 @@ class MultiIndexBackend(PandasSchemaBackend):
         multiindex_cls = pd.MultiIndex
         # NOTE: this is a hack to support pyspark.pandas
         if type(check_obj).__module__.startswith("pyspark.pandas"):
+
             import pyspark.pandas as ps
 
             multiindex_cls = ps.MultiIndex
