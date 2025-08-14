@@ -588,12 +588,7 @@ class MultiIndexBackend(PandasSchemaBackend):
                 f"Expected {len(schema.indexes)} levels, found {check_obj.nlevels} level(s). "
             )
 
-            failure_info = {
-                "extra_level_positions": str(sorted(unmapped_level_positions)),
-                "extra_level_names": str(unmapped_level_names),
-                "expected_levels": str([idx.name for idx in schema.indexes]),
-                "actual_levels": str(list(check_obj.names)),
-            }
+            failure_cases = str(unmapped_level_names)
 
             self._collect_or_raise(
                 error_handler,
@@ -601,7 +596,7 @@ class MultiIndexBackend(PandasSchemaBackend):
                     schema=schema,
                     data=check_obj,
                     message=message,
-                    failure_cases=str(failure_info),
+                    failure_cases=failure_cases,
                     check="multiindex_strict",
                     reason_code=SchemaErrorReason.COLUMN_NOT_IN_SCHEMA,
                 ),
