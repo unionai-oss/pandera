@@ -69,7 +69,6 @@ class ColumnBackend(ArraySchemaBackend):
 
         def validate_column(check_obj, column_name, return_check_obj=False):
             try:
-
                 # make sure the schema component mutations are reverted after
                 # validation
                 _orig_name = schema.name
@@ -255,7 +254,7 @@ class ColumnBackend(ArraySchemaBackend):
             except Exception as err:
                 # catch other exceptions that may occur when executing the Check
                 err_msg = f'"{err.args[0]}"' if err.args else ""
-                err_str = f"{err.__class__.__name__}({ err_msg})"
+                err_str = f"{err.__class__.__name__}({err_msg})"
                 msg = (
                     f"Error while executing check function: {err_str}\n"
                     + traceback.format_exc()
@@ -398,7 +397,6 @@ class MultiIndexBackend(PandasSchemaBackend):
         multiindex_cls = pd.MultiIndex
         # NOTE: this is a hack to support pyspark.pandas
         if type(check_obj).__module__.startswith("pyspark.pandas"):
-
             import pyspark.pandas as ps
 
             multiindex_cls = ps.MultiIndex
@@ -512,6 +510,48 @@ class MultiIndexBackend(PandasSchemaBackend):
         level_mapping: list[tuple[int, Any]] = self._map_schema_to_levels(
             check_obj.index, schema, error_handler
         )
+
+        # Validate multiindex_strict: ensure no extra levels
+        if schema.strict:
+            mapped_level_positions = {
+                level_pos for level_pos, _ in level_mapping
+            }
+            all_level_positions = set(range(check_obj.index.nlevels))
+            unmapped_level_positions = (
+                all_level_positions - mapped_level_positions
+            )
+
+            if unmapped_level_positions:
+                unmapped_level_names = [
+                    check_obj.index.names[pos]
+                    for pos in sorted(unmapped_level_positions)
+                ]
+
+                message = (
+                    f"MultiIndex has extra levels at positions: {sorted(unmapped_level_positions)}"
+                    f" with names {unmapped_level_names}. "
+                    f"Expected {len(schema.indexes)} levels, found {check_obj.index.nlevels} level(s). "
+                )
+
+                failure_info = {
+                    "extra_level_positions": sorted(unmapped_level_positions),
+                    "extra_level_names": unmapped_level_names,
+                    "expected_levels": [idx.name for idx in schema.indexes],
+                    "actual_levels": list(check_obj.index.names),
+                }
+
+                self._collect_or_raise(
+                    error_handler,
+                    SchemaError(
+                        schema=schema,
+                        data=check_obj.index,
+                        message=message,
+                        failure_cases=str(failure_info),
+                        check="multiindex_strict",
+                        reason_code=SchemaErrorReason.COLUMN_NOT_IN_SCHEMA,
+                    ),
+                    schema,
+                )
 
         # Validate the correspondence between schema index names and the actual
         # multi-index names (order and presence checks).

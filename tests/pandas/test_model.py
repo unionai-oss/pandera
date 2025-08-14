@@ -311,7 +311,6 @@ def test_check_validate_method() -> None:
 
         @pa.check("a")
         def int_column_lt_100(cls, series: pd.Series) -> Iterable[bool]:
-
             assert cls is Schema
             return series < 100
 
@@ -328,13 +327,11 @@ def test_check_validate_method_field() -> None:
 
         @pa.check(a)
         def int_column_lt_200(cls, series: pd.Series) -> Iterable[bool]:
-
             assert cls is Schema
             return series < 200
 
         @pa.check(a, "b")
         def int_column_lt_100(cls, series: pd.Series) -> Iterable[bool]:
-
             assert cls is Schema
             return series < 100
 
@@ -350,7 +347,6 @@ def test_check_validate_method_aliased_field() -> None:
 
         @pa.check(a)
         def int_column_lt_100(cls, series: pd.Series) -> Iterable[bool]:
-
             assert cls is Schema
             return series < 100
 
@@ -367,7 +363,6 @@ def test_check_single_column() -> None:
 
         @pa.check("a")
         def int_column_lt_100(cls, series: pd.Series) -> Iterable[bool]:
-
             assert cls is Schema
             return series < 100
 
@@ -386,7 +381,6 @@ def test_check_single_index() -> None:
 
         @pa.check("a")
         def not_dog(cls, idx: pd.Index) -> Iterable[bool]:
-
             assert cls is Schema
             return ~idx.str.contains("dog")
 
@@ -846,6 +840,111 @@ def test_multiindex_unique() -> None:
     )
 
     assert expected == Base.to_schema()
+
+
+def test_multiindex_strict_valid_schema() -> None:
+    """Test that multiindex_strict=True passes validation with correct levels."""
+
+    class StrictMultiIndexSchema(pa.DataFrameModel):
+        level_a: Index[str]
+        level_b: Index[int]
+        value: Series[float]
+
+        class Config:
+            multiindex_strict = True
+
+    correct_index = pd.MultiIndex.from_tuples(
+        [("A", 1), ("B", 2)], names=["level_a", "level_b"]
+    )
+    correct_df = pd.DataFrame({"value": [1.0, 2.0]}, index=correct_index)
+
+    result = StrictMultiIndexSchema.validate(correct_df)
+    assert isinstance(result, pd.DataFrame)
+
+
+def test_multiindex_strict_fails_with_extra_levels() -> None:
+    """Test that multiindex_strict=True fails when the multiindex has extra levels."""
+
+    class StrictMultiIndexSchema(pa.DataFrameModel):
+        level_a: Index[str]
+        level_b: Index[int]
+        value: Series[float]
+
+        class Config:
+            multiindex_strict = True
+
+    extra_level_index = pd.MultiIndex.from_tuples(
+        [("A", 1, "extra"), ("B", 2, "extra2")],
+        names=["level_a", "level_b", "level_c"],  # level_c is extra
+    )
+    extra_level_df = pd.DataFrame(
+        {"value": [1.0, 2.0]}, index=extra_level_index
+    )
+
+    with pytest.raises(
+        pa.errors.SchemaError,
+        match="MultiIndex has extra levels at positions: \\[2\\]",
+    ):
+        StrictMultiIndexSchema.validate(extra_level_df)
+
+
+def test_multiindex_strict_fails_with_multiple_extra_levels() -> None:
+    """Test that multiindex_strict=True correctly identifies multiple extra levels."""
+
+    class StrictMultiIndexSchema(pa.DataFrameModel):
+        level_a: Index[str]
+        level_b: Index[int]
+        value: Series[float]
+
+        class Config:
+            multiindex_strict = True
+
+    # DataFrame with multiple extra levels should fail
+    multiple_extra_index = pd.MultiIndex.from_tuples(
+        [("A", 1, "extra1", "extra2"), ("B", 2, "extra3", "extra4")],
+        names=[
+            "level_a",
+            "level_b",
+            "level_c",
+            "level_d",
+        ],  # level_c and level_d are extra
+    )
+    multiple_extra_df = pd.DataFrame(
+        {"value": [1.0, 2.0]}, index=multiple_extra_index
+    )
+
+    with pytest.raises(
+        pa.errors.SchemaError,
+        match="MultiIndex has extra levels at positions: \\[2, 3\\]",
+    ):
+        StrictMultiIndexSchema.validate(multiple_extra_df)
+
+
+def test_multiindex_strict_false_allows_extra_levels() -> None:
+    """Test that multiindex_strict=False allows extra levels."""
+
+    class NonStrictMultiIndexSchema(pa.DataFrameModel):
+        level_a: Index[str]
+        level_b: Index[int]
+        value: Series[float]
+
+        class Config:
+            multiindex_strict = False
+
+    extra_level_index = pd.MultiIndex.from_tuples(
+        [("A", 1, "extra"), ("B", 2, "extra2")],
+        names=[
+            "level_a",
+            "level_b",
+            "level_c",
+        ],  # level_c is extra but should be allowed
+    )
+    extra_level_df = pd.DataFrame(
+        {"value": [1.0, 2.0]}, index=extra_level_index
+    )
+
+    result = NonStrictMultiIndexSchema.validate(extra_level_df)
+    assert isinstance(result, pd.DataFrame)
 
 
 def test_config_docstrings() -> None:
@@ -1483,7 +1582,6 @@ def test_parse_single_column():
         # parsers at the column level
         @pa.parser("col1")
         def sqrt(cls, series):
-
             return series.transform("sqrt")
 
     assert Schema.validate(
@@ -1503,7 +1601,6 @@ def test_parse_dataframe():
         # parsers at the dataframe level
         @pa.dataframe_parser
         def dataframe_sqrt(cls, df):
-
             return df.transform("sqrt")
 
     assert Schema.validate(
@@ -1523,13 +1620,11 @@ def test_parse_both_dataframe_and_column():
         # parsers at the column level
         @pa.parser("col1")
         def sqrt(cls, series):
-
             return series.transform("sqrt")
 
         # parsers at the dataframe level
         @pa.dataframe_parser
         def dataframe_sqrt(cls, df):
-
             return df.transform("sqrt")
 
     assert Schema.validate(
@@ -1549,7 +1644,6 @@ def test_parse_non_existing() -> None:
         # parsers at the column level
         @pa.parser("nope")
         def sqrt(cls, series):
-
             return series.transform("sqrt")
 
     err_msg = "Parser sqrt is assigned to a non-existing field 'nope'"
@@ -1568,7 +1662,6 @@ def test_parse_regex() -> None:
         @pa.parser("^a", regex=True)
         @classmethod
         def sqrt(cls, series):
-
             return series.transform("sqrt")
 
     df = pd.DataFrame({"a": [121.0], "abc": [1.0], "cba": [200.0]})
@@ -1613,7 +1706,6 @@ def test_model_with_pydantic_base_model_with_df_init():
 
     # pylint: disable=unused-variable
     class PydanticModel(BaseModel):
-
         class PanderaDataFrameModel(pa.DataFrameModel):
             """The DF we use to represent code/label/description associations."""
 
