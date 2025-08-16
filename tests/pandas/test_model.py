@@ -303,6 +303,31 @@ def test_multiindex_check_name() -> None:
     assert isinstance(NotCheckNameSchema.validate(df), pd.DataFrame)
 
 
+def test_multiindex_check_has_context() -> None:
+    """Test that checks on MultiIndex levels can access the level by name."""
+
+    class MultiIndexSchema(pa.DataFrameModel):
+        level_a: Index[str]
+        level_b: Index[int]
+
+        @pa.check("level_b")
+        def check_groupby_access(cls, level_b_values: Series) -> bool:
+            grouped = level_b_values.groupby("level_b").size()
+            return len(grouped) > 0
+
+    # Create test data with MultiIndex
+    df = pd.DataFrame(
+        index=pd.MultiIndex.from_arrays(
+            [["foo", "bar", "baz"], [1, 2, 3]], names=["level_a", "level_b"]
+        )
+    )
+
+    # This should pass without raising KeyError("level_b")
+    validated_df = MultiIndexSchema.validate(df)
+    assert isinstance(validated_df, pd.DataFrame)
+    assert len(validated_df) == 3
+
+
 def test_check_validate_method() -> None:
     """Test validate method on valid data."""
 

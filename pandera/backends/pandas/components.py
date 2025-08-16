@@ -311,7 +311,7 @@ class IndexBackend(ArraySchemaBackend):
 
         try:
             _validated_obj = super().validate(
-                check_obj.index.to_series().reset_index(drop=True),
+                check_obj.index.to_series(),  # Don't drop the index name
                 schema,
                 head=head,
                 tail=tail,
