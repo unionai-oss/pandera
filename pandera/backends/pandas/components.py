@@ -529,24 +529,38 @@ class MultiIndexBackend(PandasSchemaBackend):
         # Iterate over the expected index levels and validate each level with its
         # corresponding ``Index`` schema component.
         for level_pos, index_schema in level_mapping:
-            stub_df = pd.DataFrame(
-                index=check_obj.index.get_level_values(level_pos)
-            )
             # We've already taken care of coercion, so we can disable it now.
             index_schema = deepcopy(index_schema)
             index_schema.coerce = False
 
+            # Check if we can optimize validation for this level
+            can_optimize = self._can_optimize_level(index_schema)
+
             try:
-                # Validate using the schema for this level
-                index_schema.validate(
-                    stub_df,
-                    head=head,
-                    tail=tail,
-                    sample=sample,
-                    random_state=random_state,
-                    lazy=lazy,
-                    inplace=True,
-                )
+                if can_optimize:
+                    # Use optimized validation with unique values only
+                    self._validate_level_optimized(
+                        check_obj.index,
+                        level_pos,
+                        index_schema,
+                        head=head,
+                        tail=tail,
+                        sample=sample,
+                        random_state=random_state,
+                        lazy=lazy,
+                    )
+                else:
+                    # Fall back to traditional validation with full materialization
+                    self._validate_level_with_full_materialization(
+                        check_obj.index,
+                        level_pos,
+                        index_schema,
+                        head=head,
+                        tail=tail,
+                        sample=sample,
+                        random_state=random_state,
+                        lazy=lazy,
+                    )
             except (SchemaError, SchemaErrors) as exc:
                 self._collect_or_raise(error_handler, exc, schema)
 
@@ -563,6 +577,119 @@ class MultiIndexBackend(PandasSchemaBackend):
             )
 
         return check_obj
+
+    def _can_optimize_level(self, index_schema) -> bool:
+        """Check if we can optimize validation for this level.
+
+        :param index_schema: The schema for this level
+        :returns: True if optimization can be applied to this level
+        """
+        # Check if all checks support unique optimization
+        # Note that if there are no checks all([]) returns True
+        return all(
+            self._check_supports_unique_optimization(check)
+            for check in index_schema.checks
+        )
+
+    def _check_supports_unique_optimization(self, check) -> bool:
+        """Determine if a check can operate on unique values only.
+
+        :param check: The check to analyze
+        :returns: True if the check supports unique value optimization
+        """
+        # Check if the check has explicit support for optimization
+        # All built-in checks that support optimization have this property set in Phase 1
+        if hasattr(check, "supports_unique_optimization"):
+            return check.supports_unique_optimization
+
+        # Conservative default for checks without the property (shouldn't happen for modern checks)
+        return False
+
+    def _validate_level_optimized(
+        self,
+        multiindex: pd.MultiIndex,
+        level_pos: int,
+        index_schema,
+        head: Optional[int] = None,
+        tail: Optional[int] = None,
+        sample: Optional[int] = None,
+        random_state: Optional[int] = None,
+        lazy: bool = False,
+    ) -> None:
+        """Validate a level using unique values optimization.
+
+        :param multiindex: The MultiIndex being validated
+        :param level_pos: Position of this level in the MultiIndex
+        :param index_schema: The schema for this level
+        :param head: validate the first n rows
+        :param tail: validate the last n rows
+        :param sample: validate a random sample of n rows
+        :param random_state: random seed for sampling
+        :param lazy: if True, collect errors instead of raising immediately
+        """
+        try:
+            # Use unique values directly from MultiIndex levels
+            unique_values = multiindex.unique(level=level_pos)
+            unique_stub_df = pd.DataFrame(index=unique_values)
+
+            # Run validation on unique values only
+            index_schema.validate(
+                unique_stub_df,
+                head=head,
+                tail=tail,
+                sample=sample,
+                random_state=random_state,
+                lazy=lazy,
+                inplace=True,
+            )
+            # If we get here, all unique values passed validation
+
+        except (SchemaError, SchemaErrors):
+            # Validation failed on unique values, need to materialize full values
+            # for proper error reporting with correct indices
+            self._validate_level_with_full_materialization(
+                multiindex,
+                level_pos,
+                index_schema,
+                head=head,
+                tail=tail,
+                sample=sample,
+                random_state=random_state,
+                lazy=lazy,
+            )
+
+    def _validate_level_with_full_materialization(
+        self,
+        multiindex: pd.MultiIndex,
+        level_pos: int,
+        index_schema,
+        head: Optional[int] = None,
+        tail: Optional[int] = None,
+        sample: Optional[int] = None,
+        random_state: Optional[int] = None,
+        lazy: bool = False,
+    ) -> None:
+        """Validate a level using full materialization.
+
+        This materializes all values (including duplicates) for validation.
+        Used both as a fallback when optimization isn't possible and when
+        errors are identified in optimized validation
+        in order to provide proper error reporting with correct indices.
+        """
+        # Materialize the full level values
+        full_values = multiindex.get_level_values(level_pos)
+        full_stub_df = pd.DataFrame(index=full_values)
+
+        # Run validation on full materialized values
+        index_schema.validate(
+            full_stub_df,
+            head=head,
+            tail=tail,
+            sample=sample,
+            random_state=random_state,
+            lazy=lazy,
+            inplace=True,
+        )
 
     def _check_strict(
         self,
