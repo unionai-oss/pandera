@@ -584,23 +584,23 @@ class MultiIndexBackend(PandasSchemaBackend):
         :param index_schema: The schema for this level
         :returns: True if optimization can be applied to this level
         """
-        # Check if all checks support unique optimization
+        # Check whether all checks are determined by unique values
         # Note that if there are no checks all([]) returns True
         return all(
-            self._check_supports_unique_optimization(check)
+            self._check_determined_by_unique(check)
             for check in index_schema.checks
         )
 
-    def _check_supports_unique_optimization(self, check) -> bool:
-        """Determine if a check can operate on unique values only.
+    def _check_determined_by_unique(self, check) -> bool:
+        """Determine if a check is determined by unique values only.
 
         :param check: The check to analyze
-        :returns: True if the check supports unique value optimization
+        :returns: True if the check result is determined by unique values
         """
-        # Check if the check has explicit support for optimization
-        # All built-in checks that support optimization have this property set in Phase 1
-        if hasattr(check, "supports_unique_optimization"):
-            return check.supports_unique_optimization
+        # Check if the check result is determined by unique values
+        # All built-in checks that are determined by unique values have this property set
+        if hasattr(check, "determined_by_unique"):
+            return check.determined_by_unique
 
         # Conservative default for checks without the property (shouldn't happen for modern checks)
         return False

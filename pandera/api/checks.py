@@ -34,7 +34,7 @@ class Check(BaseCheck):
         description: Optional[str] = None,
         statistics: Optional[dict[str, Any]] = None,
         strategy: Optional[Any] = None,
-        supports_unique_optimization: bool = False,
+        determined_by_unique: bool = False,
         **check_kwargs,
     ) -> None:
         """Apply a validation function to a data object.
@@ -99,13 +99,12 @@ class Check(BaseCheck):
         :param strategy: A hypothesis strategy, used for implementing data
             synthesis strategies for this check. See the
             :ref:`User Guide <custom-strategies>` for more details.
-        :param supports_unique_optimization: If True, indicates that this check
-            can be safely executed on unique values only, rather than the full
-            dataset. This enables significant performance optimizations for
-            MultiIndex validation when dealing with large datasets containing
-            duplicate values. The check function must be idempotent and produce
-            the same result whether applied to unique values or full values.
-            *New in version 0.21.0*
+        :param determined_by_unique: If True, indicates that this check's
+            result is fully determined by the unique values in the data, meaning
+            duplicate values don't affect the outcome. This enables significant
+            performance optimizations for MultiIndex validation when dealing with
+            large datasets. If True, the check function must produce the same result
+            whether applied to unique values or full values.
         :param check_kwargs: key-word arguments to pass into ``check_fn``
 
         :example:
@@ -185,7 +184,7 @@ class Check(BaseCheck):
         self.n_failure_cases = n_failure_cases
         self.title = title
         self.description = description
-        self.supports_unique_optimization = supports_unique_optimization
+        self.determined_by_unique = determined_by_unique
 
         if groupby is None and groups is not None:
             raise ValueError(
@@ -245,9 +244,9 @@ class Check(BaseCheck):
         :param value: values in this data object must be
             equal to this value.
         """
-        # Set supports_unique_optimization=True by default since this check
-        # is safe to run on unique values only
-        kwargs.setdefault("supports_unique_optimization", True)
+        # Set determined_by_unique=True by default since this check
+        # is determined by unique values only
+        kwargs.setdefault("determined_by_unique", True)
         return cls.from_builtin_check_name(
             "equal_to",
             kwargs,
@@ -261,9 +260,9 @@ class Check(BaseCheck):
 
         :param value: This value must not occur in the data object.
         """
-        # Set supports_unique_optimization=True by default since this check
-        # is safe to run on unique values only
-        kwargs.setdefault("supports_unique_optimization", True)
+        # Set determined_by_unique=True by default since this check
+        # is determined by unique values only
+        kwargs.setdefault("determined_by_unique", True)
         return cls.from_builtin_check_name(
             "not_equal_to",
             kwargs,
@@ -283,9 +282,9 @@ class Check(BaseCheck):
         """
         if min_value is None:
             raise ValueError("min_value must not be None")
-        # Set supports_unique_optimization=True by default since this check
+        # Set determined_by_unique=True by default since this check
         # is safe to run on unique values only
-        kwargs.setdefault("supports_unique_optimization", True)
+        kwargs.setdefault("determined_by_unique", True)
         return cls.from_builtin_check_name(
             "greater_than",
             kwargs,
@@ -303,9 +302,9 @@ class Check(BaseCheck):
         """
         if min_value is None:
             raise ValueError("min_value must not be None")
-        # Set supports_unique_optimization=True by default since this check
+        # Set determined_by_unique=True by default since this check
         # is safe to run on unique values only
-        kwargs.setdefault("supports_unique_optimization", True)
+        kwargs.setdefault("determined_by_unique", True)
         return cls.from_builtin_check_name(
             "greater_than_or_equal_to",
             kwargs,
@@ -323,9 +322,9 @@ class Check(BaseCheck):
         """
         if max_value is None:
             raise ValueError("max_value must not be None")
-        # Set supports_unique_optimization=True by default since this check
+        # Set determined_by_unique=True by default since this check
         # is safe to run on unique values only
-        kwargs.setdefault("supports_unique_optimization", True)
+        kwargs.setdefault("determined_by_unique", True)
         return cls.from_builtin_check_name(
             "less_than",
             kwargs,
@@ -343,9 +342,9 @@ class Check(BaseCheck):
         """
         if max_value is None:
             raise ValueError("max_value must not be None")
-        # Set supports_unique_optimization=True by default since this check
+        # Set determined_by_unique=True by default since this check
         # is safe to run on unique values only
-        kwargs.setdefault("supports_unique_optimization", True)
+        kwargs.setdefault("determined_by_unique", True)
         return cls.from_builtin_check_name(
             "less_than_or_equal_to",
             kwargs,
@@ -388,9 +387,9 @@ class Check(BaseCheck):
                 f"The combination of min_value = {min_value} and "
                 f"max_value = {max_value} defines an empty interval!"
             )
-        # Set supports_unique_optimization=True by default since this check
+        # Set determined_by_unique=True by default since this check
         # is safe to run on unique values only
-        kwargs.setdefault("supports_unique_optimization", True)
+        kwargs.setdefault("determined_by_unique", True)
         return cls.from_builtin_check_name(
             "in_range",
             kwargs,
@@ -421,9 +420,9 @@ class Check(BaseCheck):
             raise ValueError(
                 f"Argument allowed_values must be iterable. Got {allowed_values}"
             ) from exc
-        # Set supports_unique_optimization=True by default since this check
+        # Set determined_by_unique=True by default since this check
         # is safe to run on unique values only
-        kwargs.setdefault("supports_unique_optimization", True)
+        kwargs.setdefault("determined_by_unique", True)
         return cls.from_builtin_check_name(
             "isin",
             kwargs,
@@ -453,9 +452,9 @@ class Check(BaseCheck):
                 "Argument forbidden_values must be iterable. "
                 f"Got {forbidden_values}"
             ) from exc
-        # Set supports_unique_optimization=True by default since this check
+        # Set determined_by_unique=True by default since this check
         # is safe to run on unique values only
-        kwargs.setdefault("supports_unique_optimization", True)
+        kwargs.setdefault("determined_by_unique", True)
         return cls.from_builtin_check_name(
             "notin",
             kwargs,
@@ -477,9 +476,9 @@ class Check(BaseCheck):
             raise ValueError(
                 f'pattern="{pattern}" cannot be compiled as regular expression'
             ) from exc
-        # Set supports_unique_optimization=True by default since this check
+        # Set determined_by_unique=True by default since this check
         # is safe to run on unique values only
-        kwargs.setdefault("supports_unique_optimization", True)
+        kwargs.setdefault("determined_by_unique", True)
         return cls.from_builtin_check_name(
             "str_matches",
             kwargs,
@@ -503,9 +502,9 @@ class Check(BaseCheck):
             raise ValueError(
                 f'pattern="{pattern}" cannot be compiled as regular expression'
             ) from exc
-        # Set supports_unique_optimization=True by default since this check
+        # Set determined_by_unique=True by default since this check
         # is safe to run on unique values only
-        kwargs.setdefault("supports_unique_optimization", True)
+        kwargs.setdefault("determined_by_unique", True)
         return cls.from_builtin_check_name(
             "str_contains",
             kwargs,
@@ -521,9 +520,9 @@ class Check(BaseCheck):
         :param string: String all values should start with
         :param kwargs: key-word arguments passed into the `Check` initializer.
         """
-        # Set supports_unique_optimization=True by default since this check
+        # Set determined_by_unique=True by default since this check
         # is safe to run on unique values only
-        kwargs.setdefault("supports_unique_optimization", True)
+        kwargs.setdefault("determined_by_unique", True)
         return cls.from_builtin_check_name(
             "str_startswith",
             kwargs,
@@ -538,9 +537,9 @@ class Check(BaseCheck):
         :param string: String all values should end with
         :param kwargs: key-word arguments passed into the `Check` initializer.
         """
-        # Set supports_unique_optimization=True by default since this check
+        # Set determined_by_unique=True by default since this check
         # is safe to run on unique values only
-        kwargs.setdefault("supports_unique_optimization", True)
+        kwargs.setdefault("determined_by_unique", True)
         return cls.from_builtin_check_name(
             "str_endswith",
             kwargs,
@@ -565,9 +564,9 @@ class Check(BaseCheck):
                 "At least a minimum or a maximum need to be specified. Got "
                 "None."
             )
-        # Set supports_unique_optimization=True by default since this check
+        # Set determined_by_unique=True by default since this check
         # is safe to run on unique values only
-        kwargs.setdefault("supports_unique_optimization", True)
+        kwargs.setdefault("determined_by_unique", True)
         return cls.from_builtin_check_name(
             "str_length",
             kwargs,
@@ -592,9 +591,9 @@ class Check(BaseCheck):
             raise ValueError(
                 f"Argument values must be iterable. Got {values}"
             ) from exc
-        # Set supports_unique_optimization=True by default since this check
+        # Set determined_by_unique=True by default since this check
         # is safe to run on unique values only
-        kwargs.setdefault("supports_unique_optimization", True)
+        kwargs.setdefault("determined_by_unique", True)
         return cls.from_builtin_check_name(
             "unique_values_eq",
             kwargs,

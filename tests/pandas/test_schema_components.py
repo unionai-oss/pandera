@@ -1011,7 +1011,7 @@ def test_multiindex_optimization_with_sub_index() -> None:
                                 ),  # Optimizable
                                 Check(
                                     lambda s: len(s) > 50,
-                                    supports_unique_optimization=False,
+                                    determined_by_unique=False,
                                 ),  # NOT optimizable
                             ],
                             name="animal",
@@ -1098,9 +1098,7 @@ def test_multiindex_optimization_path_selection(
         (
             [
                 Check.str_matches(r"^test$"),
-                Check(
-                    lambda s: len(s) > 100, supports_unique_optimization=False
-                ),
+                Check(lambda s: len(s) > 100, determined_by_unique=False),
             ],
             False,
         ),
@@ -1111,7 +1109,7 @@ def test_multiindex_optimization_path_selection(
             [
                 Check(
                     lambda s: s.nunique() > 10,
-                    supports_unique_optimization=False,
+                    determined_by_unique=False,
                 )
             ],
             False,
@@ -1138,16 +1136,12 @@ def test_multiindex_can_optimize_level(
         (Check.greater_than(5), True),
         # Explicitly non-optimizable check
         (
-            Check(
-                lambda s: s.nunique() > 10, supports_unique_optimization=False
-            ),
+            Check(lambda s: s.nunique() > 10, determined_by_unique=False),
             False,
         ),
         # Custom check marked as optimizable
         (
-            Check(
-                lambda s: s.str.len() > 2, supports_unique_optimization=True
-            ),
+            Check(lambda s: s.str.len() > 2, determined_by_unique=True),
             True,
         ),
         # Built-in optimizable check - isin
@@ -1156,14 +1150,14 @@ def test_multiindex_can_optimize_level(
         (Check.str_matches(r"^test$"), True),
     ],
 )
-def test_check_supports_unique_optimization(
+def test_check_determined_by_unique(
     check, expected_supports_optimization: bool
 ) -> None:
     """Test individual check support detection for unique optimization."""
     from pandera.backends.pandas.components import MultiIndexBackend
 
     backend = MultiIndexBackend()
-    result = backend._check_supports_unique_optimization(check)
+    result = backend._check_determined_by_unique(check)
     assert result is expected_supports_optimization
 
 
