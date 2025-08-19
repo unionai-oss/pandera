@@ -244,13 +244,11 @@ class Check(BaseCheck):
         :param value: values in this data object must be
             equal to this value.
         """
-        # Set determined_by_unique=True by default since this check
-        # is determined by unique values only
-        kwargs.setdefault("determined_by_unique", True)
         return cls.from_builtin_check_name(
             "equal_to",
             kwargs,
             error=f"equal_to({value})",
+            defaults={"determined_by_unique": True},
             value=value,
         )
 
@@ -260,13 +258,11 @@ class Check(BaseCheck):
 
         :param value: This value must not occur in the data object.
         """
-        # Set determined_by_unique=True by default since this check
-        # is determined by unique values only
-        kwargs.setdefault("determined_by_unique", True)
         return cls.from_builtin_check_name(
             "not_equal_to",
             kwargs,
             error=f"not_equal_to({value})",
+            defaults={"determined_by_unique": True},
             value=value,
         )
 
@@ -282,13 +278,11 @@ class Check(BaseCheck):
         """
         if min_value is None:
             raise ValueError("min_value must not be None")
-        # Set determined_by_unique=True by default since this check
-        # is safe to run on unique values only
-        kwargs.setdefault("determined_by_unique", True)
         return cls.from_builtin_check_name(
             "greater_than",
             kwargs,
             error=f"greater_than({min_value})",
+            defaults={"determined_by_unique": True},
             min_value=min_value,
         )
 
@@ -302,13 +296,11 @@ class Check(BaseCheck):
         """
         if min_value is None:
             raise ValueError("min_value must not be None")
-        # Set determined_by_unique=True by default since this check
-        # is safe to run on unique values only
-        kwargs.setdefault("determined_by_unique", True)
         return cls.from_builtin_check_name(
             "greater_than_or_equal_to",
             kwargs,
             error=f"greater_than_or_equal_to({min_value})",
+            defaults={"determined_by_unique": True},
             min_value=min_value,
         )
 
@@ -322,13 +314,11 @@ class Check(BaseCheck):
         """
         if max_value is None:
             raise ValueError("max_value must not be None")
-        # Set determined_by_unique=True by default since this check
-        # is safe to run on unique values only
-        kwargs.setdefault("determined_by_unique", True)
         return cls.from_builtin_check_name(
             "less_than",
             kwargs,
             error=f"less_than({max_value})",
+            defaults={"determined_by_unique": True},
             max_value=max_value,
         )
 
@@ -342,13 +332,11 @@ class Check(BaseCheck):
         """
         if max_value is None:
             raise ValueError("max_value must not be None")
-        # Set determined_by_unique=True by default since this check
-        # is safe to run on unique values only
-        kwargs.setdefault("determined_by_unique", True)
         return cls.from_builtin_check_name(
             "less_than_or_equal_to",
             kwargs,
             error=f"less_than_or_equal_to({max_value})",
+            defaults={"determined_by_unique": True},
             max_value=max_value,
         )
 
@@ -387,13 +375,11 @@ class Check(BaseCheck):
                 f"The combination of min_value = {min_value} and "
                 f"max_value = {max_value} defines an empty interval!"
             )
-        # Set determined_by_unique=True by default since this check
-        # is safe to run on unique values only
-        kwargs.setdefault("determined_by_unique", True)
         return cls.from_builtin_check_name(
             "in_range",
             kwargs,
             error=f"in_range({min_value}, {max_value})",
+            defaults={"determined_by_unique": True},
             min_value=min_value,
             max_value=max_value,
             include_min=include_min,
@@ -420,13 +406,11 @@ class Check(BaseCheck):
             raise ValueError(
                 f"Argument allowed_values must be iterable. Got {allowed_values}"
             ) from exc
-        # Set determined_by_unique=True by default since this check
-        # is safe to run on unique values only
-        kwargs.setdefault("determined_by_unique", True)
         return cls.from_builtin_check_name(
             "isin",
             kwargs,
             error=f"isin({allowed_values})",
+            defaults={"determined_by_unique": True},
             statistics={"allowed_values": allowed_values},
             allowed_values=allowed_values_mod,
         )
@@ -452,13 +436,11 @@ class Check(BaseCheck):
                 "Argument forbidden_values must be iterable. "
                 f"Got {forbidden_values}"
             ) from exc
-        # Set determined_by_unique=True by default since this check
-        # is safe to run on unique values only
-        kwargs.setdefault("determined_by_unique", True)
         return cls.from_builtin_check_name(
             "notin",
             kwargs,
             error=f"notin({forbidden_values})",
+            defaults={"determined_by_unique": True},
             statistics={"forbidden_values": forbidden_values},
             forbidden_values=forbidden_values_mod,
         )
@@ -476,13 +458,11 @@ class Check(BaseCheck):
             raise ValueError(
                 f'pattern="{pattern}" cannot be compiled as regular expression'
             ) from exc
-        # Set determined_by_unique=True by default since this check
-        # is safe to run on unique values only
-        kwargs.setdefault("determined_by_unique", True)
         return cls.from_builtin_check_name(
             "str_matches",
             kwargs,
             error=f"str_matches('{pattern}')",
+            defaults={"determined_by_unique": True},
             statistics={"pattern": pattern},
             pattern=pattern,
         )
@@ -502,13 +482,11 @@ class Check(BaseCheck):
             raise ValueError(
                 f'pattern="{pattern}" cannot be compiled as regular expression'
             ) from exc
-        # Set determined_by_unique=True by default since this check
-        # is safe to run on unique values only
-        kwargs.setdefault("determined_by_unique", True)
         return cls.from_builtin_check_name(
             "str_contains",
             kwargs,
             error=f"str_contains('{pattern}')",
+            defaults={"determined_by_unique": True},
             statistics={"pattern": pattern},
             pattern=pattern,
         )
@@ -520,13 +498,11 @@ class Check(BaseCheck):
         :param string: String all values should start with
         :param kwargs: key-word arguments passed into the `Check` initializer.
         """
-        # Set determined_by_unique=True by default since this check
-        # is safe to run on unique values only
-        kwargs.setdefault("determined_by_unique", True)
         return cls.from_builtin_check_name(
             "str_startswith",
             kwargs,
             error=f"str_startswith('{string}')",
+            defaults={"determined_by_unique": True},
             string=string,
         )
 
@@ -537,13 +513,11 @@ class Check(BaseCheck):
         :param string: String all values should end with
         :param kwargs: key-word arguments passed into the `Check` initializer.
         """
-        # Set determined_by_unique=True by default since this check
-        # is safe to run on unique values only
-        kwargs.setdefault("determined_by_unique", True)
         return cls.from_builtin_check_name(
             "str_endswith",
             kwargs,
             error=f"str_endswith('{string}')",
+            defaults={"determined_by_unique": True},
             string=string,
         )
 
@@ -564,13 +538,11 @@ class Check(BaseCheck):
                 "At least a minimum or a maximum need to be specified. Got "
                 "None."
             )
-        # Set determined_by_unique=True by default since this check
-        # is safe to run on unique values only
-        kwargs.setdefault("determined_by_unique", True)
         return cls.from_builtin_check_name(
             "str_length",
             kwargs,
             error=f"str_length({min_value}, {max_value})",
+            defaults={"determined_by_unique": True},
             min_value=min_value,
             max_value=max_value,
         )
@@ -591,13 +563,11 @@ class Check(BaseCheck):
             raise ValueError(
                 f"Argument values must be iterable. Got {values}"
             ) from exc
-        # Set determined_by_unique=True by default since this check
-        # is safe to run on unique values only
-        kwargs.setdefault("determined_by_unique", True)
         return cls.from_builtin_check_name(
             "unique_values_eq",
             kwargs,
             error=f"unique_values_eq({values})",
+            defaults={"determined_by_unique": True},
             statistics={"values": values_mod},
             values=values_mod,
         )
