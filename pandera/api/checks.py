@@ -245,6 +245,9 @@ class Check(BaseCheck):
         :param value: values in this data object must be
             equal to this value.
         """
+        # Set supports_unique_optimization=True by default since this check
+        # is safe to run on unique values only
+        kwargs.setdefault("supports_unique_optimization", True)
         return cls.from_builtin_check_name(
             "equal_to",
             kwargs,
@@ -258,6 +261,9 @@ class Check(BaseCheck):
 
         :param value: This value must not occur in the data object.
         """
+        # Set supports_unique_optimization=True by default since this check
+        # is safe to run on unique values only
+        kwargs.setdefault("supports_unique_optimization", True)
         return cls.from_builtin_check_name(
             "not_equal_to",
             kwargs,
@@ -497,6 +503,9 @@ class Check(BaseCheck):
             raise ValueError(
                 f'pattern="{pattern}" cannot be compiled as regular expression'
             ) from exc
+        # Set supports_unique_optimization=True by default since this check
+        # is safe to run on unique values only
+        kwargs.setdefault("supports_unique_optimization", True)
         return cls.from_builtin_check_name(
             "str_contains",
             kwargs,
@@ -512,7 +521,9 @@ class Check(BaseCheck):
         :param string: String all values should start with
         :param kwargs: key-word arguments passed into the `Check` initializer.
         """
-
+        # Set supports_unique_optimization=True by default since this check
+        # is safe to run on unique values only
+        kwargs.setdefault("supports_unique_optimization", True)
         return cls.from_builtin_check_name(
             "str_startswith",
             kwargs,
@@ -527,6 +538,9 @@ class Check(BaseCheck):
         :param string: String all values should end with
         :param kwargs: key-word arguments passed into the `Check` initializer.
         """
+        # Set supports_unique_optimization=True by default since this check
+        # is safe to run on unique values only
+        kwargs.setdefault("supports_unique_optimization", True)
         return cls.from_builtin_check_name(
             "str_endswith",
             kwargs,
@@ -551,6 +565,9 @@ class Check(BaseCheck):
                 "At least a minimum or a maximum need to be specified. Got "
                 "None."
             )
+        # Set supports_unique_optimization=True by default since this check
+        # is safe to run on unique values only
+        kwargs.setdefault("supports_unique_optimization", True)
         return cls.from_builtin_check_name(
             "str_length",
             kwargs,
@@ -575,6 +592,9 @@ class Check(BaseCheck):
             raise ValueError(
                 f"Argument values must be iterable. Got {values}"
             ) from exc
+        # Set supports_unique_optimization=True by default since this check
+        # is safe to run on unique values only
+        kwargs.setdefault("supports_unique_optimization", True)
         return cls.from_builtin_check_name(
             "unique_values_eq",
             kwargs,
