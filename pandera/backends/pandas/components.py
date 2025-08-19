@@ -628,13 +628,14 @@ class MultiIndexBackend(PandasSchemaBackend):
         :param lazy: if True, collect errors instead of raising immediately
         """
         try:
-            # Use unique values directly from MultiIndex levels
+            # Use unique values. Note that we use the MultiIndex.unique() method
+            # to get the unique values, rather than multiindex.levels[level_pos]
+            # which can have extra values that don't appear in the full data.
             unique_values = multiindex.unique(level=level_pos)
             unique_stub_df = pd.DataFrame(index=unique_values)
 
             # Run validation on unique values only, using lazy=False to cut to
             # full validation as soon as we hit a failure
-
             index_schema.validate(
                 unique_stub_df,
                 head=head,
