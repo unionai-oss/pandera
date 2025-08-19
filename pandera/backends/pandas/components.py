@@ -460,6 +460,8 @@ class MultiIndexBackend(PandasSchemaBackend):
         if not inplace:
             check_obj = check_obj.copy()
 
+        validate_full_df = not (head or tail or sample)
+
         # Ensure the object has a MultiIndex
         if not is_multiindex(check_obj.index):
             # Allow an exception for a *single-level* Index when the schema also
@@ -533,8 +535,14 @@ class MultiIndexBackend(PandasSchemaBackend):
             index_schema = deepcopy(index_schema)
             index_schema.coerce = False
 
-            # Check if we can optimize validation for this level
-            can_optimize = self._can_optimize_level(index_schema)
+            # Check if we can optimize validation for this level. We skip optimization
+            # if we're validating only a subset of the data because subsetting the data
+            # doesn't commute with taking unique values, which can lead to inconsistent
+            # results. For instance, the check may fail on the first n unique values but
+            # pass on the first n values.
+            can_optimize = validate_full_df and self._can_optimize_level(
+                index_schema
+            )
 
             try:
                 if can_optimize:
@@ -543,14 +551,10 @@ class MultiIndexBackend(PandasSchemaBackend):
                         check_obj.index,
                         level_pos,
                         index_schema,
-                        head=head,
-                        tail=tail,
-                        sample=sample,
-                        random_state=random_state,
                         lazy=lazy,
                     )
                 else:
-                    # Fall back to traditional validation with full materialization
+                    # Fall back to validating all of the values.
                     self._validate_level_with_full_materialization(
                         check_obj.index,
                         level_pos,
@@ -599,21 +603,13 @@ class MultiIndexBackend(PandasSchemaBackend):
         """
         # Check if the check result is determined by unique values
         # All built-in checks that are determined by unique values have this property set
-        if hasattr(check, "determined_by_unique"):
-            return check.determined_by_unique
-
-        # Conservative default for checks without the property (shouldn't happen for modern checks)
-        return False
+        return getattr(check, "determined_by_unique", False)
 
     def _validate_level_optimized(
         self,
         multiindex: pd.MultiIndex,
         level_pos: int,
         index_schema,
-        head: Optional[int] = None,
-        tail: Optional[int] = None,
-        sample: Optional[int] = None,
-        random_state: Optional[int] = None,
         lazy: bool = False,
     ) -> None:
         """Validate a level using unique values optimization.
@@ -621,18 +617,14 @@ class MultiIndexBackend(PandasSchemaBackend):
         :param multiindex: The MultiIndex being validated
         :param level_pos: Position of this level in the MultiIndex
         :param index_schema: The schema for this level
-        :param head: validate the first n rows
-        :param tail: validate the last n rows
-        :param sample: validate a random sample of n rows
-        :param random_state: random seed for sampling
         :param lazy: if True, collect errors instead of raising immediately
         """
         try:
-            # Use unique values. Note that we use the MultiIndex.unique method
-            # to get the unique values, rather than multiindex.levels[level_pos]
-            # which can have extra values that don't appear in the full data.
-            # Additionally, multiindex.unique will include nan if present,
-            # whereas multiindex.levels[level_pos] will not.
+            # Use unique values. Use the MultiIndex.unique method rather than
+            # multiindex.levels[level_pos] which can have extra values that
+            # don't appear in the full data. Additionally, multiindex.unique
+            # will include nan if present, whereas multiindex.levels[level_pos]
+            # will not.
             unique_values = multiindex.unique(level=level_pos)
             unique_stub_df = pd.DataFrame(index=unique_values)
 
@@ -640,10 +632,6 @@ class MultiIndexBackend(PandasSchemaBackend):
             # full validation as soon as we hit a failure
             index_schema.validate(
                 unique_stub_df,
-                head=head,
-                tail=tail,
-                sample=sample,
-                random_state=random_state,
                 lazy=False,
                 inplace=True,
             )
@@ -654,10 +642,6 @@ class MultiIndexBackend(PandasSchemaBackend):
                 multiindex,
                 level_pos,
                 index_schema,
-                head=head,
-                tail=tail,
-                sample=sample,
-                random_state=random_state,
                 lazy=lazy,
             )
 

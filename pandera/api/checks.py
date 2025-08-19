@@ -498,6 +498,7 @@ class Check(BaseCheck):
         :param string: String all values should start with
         :param kwargs: key-word arguments passed into the `Check` initializer.
         """
+
         return cls.from_builtin_check_name(
             "str_startswith",
             kwargs,
