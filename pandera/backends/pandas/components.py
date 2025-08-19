@@ -632,18 +632,18 @@ class MultiIndexBackend(PandasSchemaBackend):
             unique_values = multiindex.unique(level=level_pos)
             unique_stub_df = pd.DataFrame(index=unique_values)
 
-            # Run validation on unique values only
+            # Run validation on unique values only, using lazy=False to cut to
+            # full validation as soon as we hit a failure
+
             index_schema.validate(
                 unique_stub_df,
                 head=head,
                 tail=tail,
                 sample=sample,
                 random_state=random_state,
-                lazy=lazy,
+                lazy=False,
                 inplace=True,
             )
-            # If we get here, all unique values passed validation
-
         except (SchemaError, SchemaErrors):
             # Validation failed on unique values, need to materialize full values
             # for proper error reporting with correct indices
