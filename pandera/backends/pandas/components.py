@@ -628,9 +628,11 @@ class MultiIndexBackend(PandasSchemaBackend):
         :param lazy: if True, collect errors instead of raising immediately
         """
         try:
-            # Use unique values. Note that we use the MultiIndex.unique() method
+            # Use unique values. Note that we use the MultiIndex.unique method
             # to get the unique values, rather than multiindex.levels[level_pos]
             # which can have extra values that don't appear in the full data.
+            # Additionally, multiindex.unique will include nan if present,
+            # whereas multiindex.levels[level_pos] will not.
             unique_values = multiindex.unique(level=level_pos)
             unique_stub_df = pd.DataFrame(index=unique_values)
 
