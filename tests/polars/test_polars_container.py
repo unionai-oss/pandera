@@ -564,6 +564,19 @@ def test_dataframe_validation_errors_unique():
         assert exc.failure_cases.shape[0] == 4
 
 
+def test_dataframe_validation_errors_unique_key():
+    schema = DataFrameSchema(
+        {"a": Column(str), "b": Column(str)}, unique=["a", "b"]
+    )
+    invalid_df = pl.DataFrame(
+        {"a": ["1", "1", "1", "1"], "b": ["1", "1", "2", "3"]}
+    )
+    try:
+        schema.validate(invalid_df, lazy=True)
+    except pa.errors.SchemaErrors as exc:
+        assert exc.failure_cases.shape[0] == 2
+
+
 @pytest.fixture
 def lf_with_nested_types():
     return pl.LazyFrame(
