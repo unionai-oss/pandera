@@ -462,16 +462,16 @@ class MultiIndexBackend(PandasSchemaBackend):
 
         validate_full_df = not (head or tail or sample)
 
+        is_pyspark_index = (
+            type(check_obj).__module__.startswith("pyspark.pandas")
+            and hasattr(check_obj.index, "__module__")
+            and check_obj.index.__module__.startswith("pyspark.pandas")
+        )
         # Ensure the object has a MultiIndex
         if not is_multiindex(check_obj.index):
             # Allow an exception for a *single-level* Index when the schema also
             # describes exactly one level to maintain compatibility (e.g. pyspark.pandas
             # often materializes a single-level MultiIndex as a plain Index).
-            is_pyspark_index = (
-                type(check_obj).__module__.startswith("pyspark.pandas")
-                and hasattr(check_obj.index, "__module__")
-                and check_obj.index.__module__.startswith("pyspark.pandas")
-            )
 
             if len(schema.indexes) == 1 and (
                 is_index(check_obj.index) or is_pyspark_index
@@ -540,8 +540,10 @@ class MultiIndexBackend(PandasSchemaBackend):
             # doesn't commute with taking unique values, which can lead to inconsistent
             # results. For instance, the check may fail on the first n unique values but
             # pass on the first n values.
-            can_optimize = validate_full_df and self._can_optimize_level(
-                index_schema
+            can_optimize = (
+                validate_full_df
+                and not is_pyspark_index
+                and self._can_optimize_level(index_schema)
             )
 
             try:
