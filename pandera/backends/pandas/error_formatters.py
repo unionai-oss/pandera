@@ -67,38 +67,42 @@ def format_vectorized_error_message(
         failure_cases = reshaped_failure_cases.failure_case.to_numpy()
         total_failures = len(failure_cases)
 
-        if max_reported_failures != -1:
-            if max_reported_failures == 0:
-                failure_cases_string = f"... {total_failures} failure cases"
-            elif total_failures > max_reported_failures:
-                failure_cases_limited = failure_cases[:max_reported_failures]
-                failure_cases_string = ", ".join(
-                    failure_cases_limited.astype(str)
-                )
-                omitted_count = total_failures - max_reported_failures
-                failure_cases_string += f" ... and {omitted_count} more failure cases ({total_failures} total)"
-            else:
-                failure_cases_string = ", ".join(failure_cases.astype(str))
-        else:
+        # Handle unlimited case first (early return)
+        if max_reported_failures == -1:
             failure_cases_string = ", ".join(failure_cases.astype(str))
+        # Handle zero case (summary only)
+        elif max_reported_failures == 0:
+            failure_cases_string = f"... {total_failures} failure cases"
+        # Default case: slice and check if we truncated
+        else:
+            # Python slicing handles out-of-bounds gracefully
+            failure_cases_limited = failure_cases[:max_reported_failures]
+            failure_cases_string = ", ".join(failure_cases_limited.astype(str))
+            
+            # Add omitted message only if we actually truncated
+            if len(failure_cases_limited) < total_failures:
+                omitted_count = total_failures - len(failure_cases_limited)
+                failure_cases_string += f" ... and {omitted_count} more failure cases ({total_failures} total)"
     else:
         failure_cases = reshaped_failure_cases.failure_case
         total_failures = len(failure_cases)
 
-        if max_reported_failures != -1:
-            if max_reported_failures == 0:
-                failure_cases_string = f"... {total_failures} failure cases"
-            elif total_failures > max_reported_failures:
-                failure_cases_limited = failure_cases.iloc[:max_reported_failures]
-                failure_cases_string = ", ".join(
-                    failure_cases_limited.apply(str)
-                )
-                omitted_count = total_failures - max_reported_failures
-                failure_cases_string += f" ... and {omitted_count} more failure cases ({total_failures} total)"
-            else:
-                failure_cases_string = ", ".join(failure_cases.apply(str))
-        else:
+        # Handle unlimited case first (early return)
+        if max_reported_failures == -1:
             failure_cases_string = ", ".join(failure_cases.apply(str))
+        # Handle zero case (summary only)
+        elif max_reported_failures == 0:
+            failure_cases_string = f"... {total_failures} failure cases"
+        # Default case: slice and check if we truncated
+        else:
+            # pandas iloc slicing handles out-of-bounds gracefully
+            failure_cases_limited = failure_cases.iloc[:max_reported_failures]
+            failure_cases_string = ", ".join(failure_cases_limited.apply(str))
+            
+            # Add omitted message only if we actually truncated
+            if len(failure_cases_limited) < total_failures:
+                omitted_count = total_failures - len(failure_cases_limited)
+                failure_cases_string += f" ... and {omitted_count} more failure cases ({total_failures} total)"
 
     return (
         f"{parent_schema.__class__.__name__} '{parent_schema.name}' failed "
