@@ -5,7 +5,9 @@ from typing import Any, Optional, Union
 
 import pandas as pd
 
-from pandera.backends.error_formatters import format_failure_cases_with_truncation
+from pandera.backends.error_formatters import (
+    format_failure_cases_with_truncation,
+)
 from pandera.config import get_config_context
 from pandera.errors import SchemaError
 
@@ -29,16 +31,16 @@ def format_generic_error_message(
 
 
 def _format_failure_cases_string(
-    failure_cases, 
-    total_failures: int, 
+    failure_cases,
+    total_failures: int,
     max_reported_failures: int,
-    is_pyspark: bool = False
+    is_pyspark: bool = False,
 ) -> str:
     """Format failure cases into a string with appropriate truncation."""
-    
+
     def format_all(cases):
         return ", ".join(cases.astype(str) if is_pyspark else cases.apply(str))
-    
+
     def format_limited(cases, limit):
         if is_pyspark:
             limited = cases[:limit]
@@ -47,13 +49,13 @@ def _format_failure_cases_string(
             limited = cases.iloc[:limit]
             formatted = ", ".join(limited.apply(str))
         return formatted, len(limited)
-    
+
     return format_failure_cases_with_truncation(
         failure_cases,
         total_failures,
         max_reported_failures,
         format_all,
-        format_limited
+        format_limited,
     )
 
 
@@ -89,13 +91,15 @@ def format_vectorized_error_message(
     else:
         check_str = str(check)
 
-    is_pyspark = type(reshaped_failure_cases.failure_case).__module__.startswith("pyspark.pandas")
-    
+    is_pyspark = type(
+        reshaped_failure_cases.failure_case
+    ).__module__.startswith("pyspark.pandas")
+
     if is_pyspark:
         failure_cases = reshaped_failure_cases.failure_case.to_numpy()
     else:
         failure_cases = reshaped_failure_cases.failure_case
-    
+
     total_failures = len(failure_cases)
     failure_cases_string = _format_failure_cases_string(
         failure_cases, total_failures, max_reported_failures, is_pyspark
@@ -191,7 +195,8 @@ def _multiindex_to_frame(df):
 
 
 def consolidate_failure_cases(
-    schema_errors: list[SchemaError], max_reported_failures: Optional[int] = None
+    schema_errors: list[SchemaError],
+    max_reported_failures: Optional[int] = None,
 ):
     """Consolidate schema error dicts to produce data for error message."""
     from pandera.api.pandas.types import is_table

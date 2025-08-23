@@ -4,7 +4,9 @@ from typing import Any, Optional
 
 import pandas as pd
 
-from pandera.backends.error_formatters import format_failure_cases_with_truncation
+from pandera.backends.error_formatters import (
+    format_failure_cases_with_truncation,
+)
 from pandera.backends.pandas.error_formatters import (
     format_generic_error_message,
     reshape_failure_cases,
@@ -34,6 +36,7 @@ def format_vectorized_error_message(
         max_reported_failures = config.max_reported_failures
 
     import re
+
     pattern = r"<Check\s+([^:>]+):\s*([^>]+)>"
     matches = re.findall(pattern, str(check))
 
@@ -46,21 +49,21 @@ def format_vectorized_error_message(
 
     failure_cases = reshaped_failure_cases.failure_case
     total_failures = len(failure_cases)
-    
+
     def format_all(cases):
         return ", ".join(cases.apply(str))
-    
+
     def format_limited(cases, limit):
         limited = cases.iloc[:limit]
         formatted = ", ".join(limited.apply(str))
         return formatted, len(limited)
-    
+
     failure_cases_string = format_failure_cases_with_truncation(
         failure_cases,
         total_failures,
         max_reported_failures,
         format_all,
-        format_limited
+        format_limited,
     )
 
     return (
