@@ -102,50 +102,28 @@ class PolarsSchemaBackend(BaseSchemaBackend):
 
                 failure_cases = _failure_cases.collect()
 
-                # Get max_reported_failures from config
                 config = get_config_context()
                 max_reported_failures = config.max_reported_failures
-
-                # Get failure cases for message
                 total_failures = failure_cases.height
                 
-                # Handle unlimited case first
                 if max_reported_failures == -1:
                     failure_cases_msg = failure_cases.rows(named=True)
-                    message = (
-                        f"{schema.__class__.__name__} '{schema.name}' failed "
-                        f"validator number {check_index}: "
-                        f"{check} failure case examples: {failure_cases_msg}"
-                    )
-                # Handle zero case (summary only)
                 elif max_reported_failures == 0:
-                    message = (
-                        f"{schema.__class__.__name__} '{schema.name}' failed "
-                        f"validator number {check_index}: "
-                        f"{check} failure case examples: ... {total_failures} failure cases"
-                    )
-                # Default case: head() handles limit, check if we truncated
+                    failure_cases_msg = f"... {total_failures} failure cases"
                 else:
-                    # polars head() handles out-of-bounds gracefully
                     failure_cases_limited = failure_cases.head(max_reported_failures)
                     failure_cases_msg = failure_cases_limited.rows(named=True)
                     
-                    # Check if we actually truncated
                     shown_count = failure_cases_limited.height
                     if shown_count < total_failures:
                         omitted_count = total_failures - shown_count
-                        message = (
-                            f"{schema.__class__.__name__} '{schema.name}' failed "
-                            f"validator number {check_index}: "
-                            f"{check} failure case examples: {failure_cases_msg} "
-                            f"... and {omitted_count} more failure cases ({total_failures} total)"
-                        )
-                    else:
-                        message = (
-                            f"{schema.__class__.__name__} '{schema.name}' failed "
-                            f"validator number {check_index}: "
-                            f"{check} failure case examples: {failure_cases_msg}"
-                        )
+                        failure_cases_msg = f"{failure_cases_msg} ... and {omitted_count} more failure cases ({total_failures} total)"
+                
+                message = (
+                    f"{schema.__class__.__name__} '{schema.name}' failed "
+                    f"validator number {check_index}: "
+                    f"{check} failure case examples: {failure_cases_msg}"
+                )
 
             # raise a warning without exiting if the check is specified to do so
             # but make sure the check passes

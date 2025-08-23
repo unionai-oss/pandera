@@ -27,6 +27,33 @@ def format_generic_error_message(
     )
 
 
+def _format_failure_cases_string(
+    failure_cases, 
+    total_failures: int, 
+    max_reported_failures: int,
+    is_pyspark: bool = False
+) -> str:
+    """Format failure cases into a string with appropriate truncation."""
+    if max_reported_failures == -1:
+        return ", ".join(failure_cases.astype(str) if is_pyspark else failure_cases.apply(str))
+    
+    if max_reported_failures == 0:
+        return f"... {total_failures} failure cases"
+    
+    if is_pyspark:
+        failure_cases_limited = failure_cases[:max_reported_failures]
+        failure_cases_str = ", ".join(failure_cases_limited.astype(str))
+    else:
+        failure_cases_limited = failure_cases.iloc[:max_reported_failures]
+        failure_cases_str = ", ".join(failure_cases_limited.apply(str))
+    
+    if len(failure_cases_limited) < total_failures:
+        omitted_count = total_failures - len(failure_cases_limited)
+        failure_cases_str += f" ... and {omitted_count} more failure cases ({total_failures} total)"
+    
+    return failure_cases_str
+
+
 def format_vectorized_error_message(
     parent_schema,
     check,
@@ -45,8 +72,6 @@ def format_vectorized_error_message(
         in the error message. If None, use config value.
 
     """
-
-    # Get max_reported_failures from config if not provided
     if max_reported_failures is None:
         config = get_config_context()
         max_reported_failures = config.max_reported_failures
@@ -61,48 +86,17 @@ def format_vectorized_error_message(
     else:
         check_str = str(check)
 
-    if type(reshaped_failure_cases.failure_case).__module__.startswith(
-        "pyspark.pandas"
-    ):
+    is_pyspark = type(reshaped_failure_cases.failure_case).__module__.startswith("pyspark.pandas")
+    
+    if is_pyspark:
         failure_cases = reshaped_failure_cases.failure_case.to_numpy()
-        total_failures = len(failure_cases)
-
-        # Handle unlimited case first (early return)
-        if max_reported_failures == -1:
-            failure_cases_string = ", ".join(failure_cases.astype(str))
-        # Handle zero case (summary only)
-        elif max_reported_failures == 0:
-            failure_cases_string = f"... {total_failures} failure cases"
-        # Default case: slice and check if we truncated
-        else:
-            # Python slicing handles out-of-bounds gracefully
-            failure_cases_limited = failure_cases[:max_reported_failures]
-            failure_cases_string = ", ".join(failure_cases_limited.astype(str))
-            
-            # Add omitted message only if we actually truncated
-            if len(failure_cases_limited) < total_failures:
-                omitted_count = total_failures - len(failure_cases_limited)
-                failure_cases_string += f" ... and {omitted_count} more failure cases ({total_failures} total)"
     else:
         failure_cases = reshaped_failure_cases.failure_case
-        total_failures = len(failure_cases)
-
-        # Handle unlimited case first (early return)
-        if max_reported_failures == -1:
-            failure_cases_string = ", ".join(failure_cases.apply(str))
-        # Handle zero case (summary only)
-        elif max_reported_failures == 0:
-            failure_cases_string = f"... {total_failures} failure cases"
-        # Default case: slice and check if we truncated
-        else:
-            # pandas iloc slicing handles out-of-bounds gracefully
-            failure_cases_limited = failure_cases.iloc[:max_reported_failures]
-            failure_cases_string = ", ".join(failure_cases_limited.apply(str))
-            
-            # Add omitted message only if we actually truncated
-            if len(failure_cases_limited) < total_failures:
-                omitted_count = total_failures - len(failure_cases_limited)
-                failure_cases_string += f" ... and {omitted_count} more failure cases ({total_failures} total)"
+    
+    total_failures = len(failure_cases)
+    failure_cases_string = _format_failure_cases_string(
+        failure_cases, total_failures, max_reported_failures, is_pyspark
+    )
 
     return (
         f"{parent_schema.__class__.__name__} '{parent_schema.name}' failed "
