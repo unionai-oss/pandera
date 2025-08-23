@@ -7,8 +7,9 @@ import pandera.polars as pa
 from pandera.config import config_context
 
 
-def test_polars_default_shows_all_when_under_100():
-    """Test that polars shows all failure cases when under default limit."""
+def test_default_behavior():
+    """Test default max_reported_failures behavior for polars."""
+    # Test with under 100 failures - should show all
     df = pl.DataFrame({"col1": range(50)})
     schema = pa.DataFrameSchema({
         "col1": pa.Column(int, pa.Check.greater_than(100))
@@ -22,72 +23,56 @@ def test_polars_default_shows_all_when_under_100():
     assert "more failure cases" not in error_message
 
 
-def test_polars_limits_to_5_failures():
-    """Test that setting max_reported_failures to 5 limits polars output."""
+@pytest.mark.parametrize("limit,expected_values,expected_truncation", [
+    (1, [0], "99 more failure cases (100 total)"),
+    (5, [0, 4], "95 more failure cases (100 total)"),
+])
+def test_custom_limits(limit, expected_values, expected_truncation):
+    """Test various custom max_reported_failures limits for polars."""
     df = pl.DataFrame({"col1": range(100)})
     schema = pa.DataFrameSchema({
         "col1": pa.Column(int, pa.Check.greater_than(100))
     })
     
-    with config_context(max_reported_failures=5):
+    with config_context(max_reported_failures=limit):
         with pytest.raises(pa.errors.SchemaErrors) as exc_info:
             schema.validate(df, lazy=True)
         
         error_message = str(exc_info.value)
-        # Check that we have exactly 5 entries in the failure case examples
-        assert "{'col1': 0}" in error_message
-        assert "{'col1': 4}" in error_message
+        for val in expected_values:
+            assert f"{{'col1': {val}}}" in error_message
+        assert expected_truncation in error_message
 
 
-def test_polars_shows_omission_count():
-    """Test that polars shows correct omission count when truncating."""
-    df = pl.DataFrame({"col1": range(100)})
-    schema = pa.DataFrameSchema({
-        "col1": pa.Column(int, pa.Check.greater_than(100))
-    })
-    
-    with config_context(max_reported_failures=5):
-        with pytest.raises(pa.errors.SchemaErrors) as exc_info:
-            schema.validate(df, lazy=True)
-        
-        error_message = str(exc_info.value)
-        assert "95 more failure cases (100 total)" in error_message
-
-
-def test_polars_limits_to_1_failure():
-    """Test that setting max_reported_failures to 1 shows only one failure."""
-    df = pl.DataFrame({"col1": range(100)})
-    schema = pa.DataFrameSchema({
-        "col1": pa.Column(int, pa.Check.greater_than(100))
-    })
-    
-    with config_context(max_reported_failures=1):
-        with pytest.raises(pa.errors.SchemaErrors) as exc_info:
-            schema.validate(df, lazy=True)
-        
-        error_message = str(exc_info.value)
-        assert "{'col1': 0}" in error_message
-        assert "99 more failure cases (100 total)" in error_message
-
-
-def test_polars_zero_shows_summary_only():
-    """Test that max_reported_failures=0 shows only summary for polars."""
+@pytest.mark.parametrize("limit,test_case", [
+    (0, "summary_only"),
+    (-1, "unlimited"),
+])
+def test_special_limit_values(limit, test_case):
+    """Test special max_reported_failures values for polars."""
     df = pl.DataFrame({"col1": [1, 2, 3]})
     schema = pa.DataFrameSchema({
         "col1": pa.Column(int, pa.Check.greater_than(10))
     })
     
-    with config_context(max_reported_failures=0):
+    with config_context(max_reported_failures=limit):
         with pytest.raises(pa.errors.SchemaErrors) as exc_info:
             schema.validate(df, lazy=True)
         
         error_message = str(exc_info.value)
-        assert "... 3 failure cases" in error_message
-        assert "{'col1': 1}" not in error_message
+        
+        if test_case == "summary_only":
+            assert "... 3 failure cases" in error_message
+            assert "{'col1': 1}" not in error_message
+        else:  # unlimited
+            assert "{'col1': 1}" in error_message
+            assert "{'col1': 2}" in error_message
+            assert "{'col1': 3}" in error_message
+            assert "more failure cases" not in error_message
 
 
-def test_polars_exceeding_actual_shows_all():
-    """Test that requesting more failures than exist shows all for polars."""
+def test_no_truncation_when_under_limit():
+    """Test that no truncation occurs when failures are under the limit for polars."""
     df = pl.DataFrame({"col1": [1, 2, 3]})
     schema = pa.DataFrameSchema({
         "col1": pa.Column(int, pa.Check.greater_than(10))
@@ -104,25 +89,7 @@ def test_polars_exceeding_actual_shows_all():
         assert "more failure cases" not in error_message
 
 
-def test_polars_unlimited_shows_all():
-    """Test that max_reported_failures=-1 shows all failures for polars."""
-    df = pl.DataFrame({"col1": [1, 2, 3]})
-    schema = pa.DataFrameSchema({
-        "col1": pa.Column(int, pa.Check.greater_than(10))
-    })
-    
-    with config_context(max_reported_failures=-1):
-        with pytest.raises(pa.errors.SchemaErrors) as exc_info:
-            schema.validate(df, lazy=True)
-        
-        error_message = str(exc_info.value)
-        assert "{'col1': 1}" in error_message
-        assert "{'col1': 2}" in error_message
-        assert "{'col1': 3}" in error_message
-        assert "more failure cases" not in error_message
-
-
-def test_polars_multiple_columns_respect_limit():
+def test_multiple_columns_respect_limit():
     """Test that multiple columns each respect the limit in polars."""
     df = pl.DataFrame({
         "col1": range(50),
