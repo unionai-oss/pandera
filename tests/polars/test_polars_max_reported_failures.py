@@ -106,5 +106,5 @@ def test_multiple_columns_respect_limit():
             schema.validate(df, lazy=True)
         
         error_message = str(exc_info.value)
-        # Both columns should show truncation
         assert "47 more failure cases (50 total)" in error_message
+
