@@ -91,11 +91,7 @@ def config_context(
     keep_cached_dataframe: Optional[bool] = None,
     max_reported_failures: Optional[int] = None,
 ):
-    """Temporarily set pandera config options to custom settings.
-
-    :param max_reported_failures: Maximum number of failures to report in error messages.
-        Default is 100. Use -1 to show all failures, 0 to show none.
-    """
+    """Temporarily set pandera config options to custom settings."""
     _outer_config_ctx = get_config_context(validation_depth_default=None)
 
     try:
