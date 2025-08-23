@@ -5,6 +5,7 @@ from typing import Any, Optional, Union
 
 import pandas as pd
 
+from pandera.backends.error_formatters import format_failure_cases_with_truncation
 from pandera.config import get_config_context
 from pandera.errors import SchemaError
 
@@ -34,24 +35,26 @@ def _format_failure_cases_string(
     is_pyspark: bool = False
 ) -> str:
     """Format failure cases into a string with appropriate truncation."""
-    if max_reported_failures == -1:
-        return ", ".join(failure_cases.astype(str) if is_pyspark else failure_cases.apply(str))
     
-    if max_reported_failures == 0:
-        return f"... {total_failures} failure cases"
+    def format_all(cases):
+        return ", ".join(cases.astype(str) if is_pyspark else cases.apply(str))
     
-    if is_pyspark:
-        failure_cases_limited = failure_cases[:max_reported_failures]
-        failure_cases_str = ", ".join(failure_cases_limited.astype(str))
-    else:
-        failure_cases_limited = failure_cases.iloc[:max_reported_failures]
-        failure_cases_str = ", ".join(failure_cases_limited.apply(str))
+    def format_limited(cases, limit):
+        if is_pyspark:
+            limited = cases[:limit]
+            formatted = ", ".join(limited.astype(str))
+        else:
+            limited = cases.iloc[:limit]
+            formatted = ", ".join(limited.apply(str))
+        return formatted, len(limited)
     
-    if len(failure_cases_limited) < total_failures:
-        omitted_count = total_failures - len(failure_cases_limited)
-        failure_cases_str += f" ... and {omitted_count} more failure cases ({total_failures} total)"
-    
-    return failure_cases_str
+    return format_failure_cases_with_truncation(
+        failure_cases,
+        total_failures,
+        max_reported_failures,
+        format_all,
+        format_limited
+    )
 
 
 def format_vectorized_error_message(

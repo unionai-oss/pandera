@@ -13,7 +13,7 @@ from pandera.api.polars.utils import (
     get_lazyframe_schema,
 )
 from pandera.backends.base import BaseSchemaBackend, CoreCheckResult
-from pandera.config import get_config_context
+from pandera.backends.polars.error_formatters import format_failure_cases_message
 from pandera.constants import CHECK_OUTPUT_KEY
 from pandera.errors import (
     FailureCaseMetadata,
@@ -101,23 +101,7 @@ class PolarsSchemaBackend(BaseSchemaBackend):
                     _failure_cases = _failure_cases.drop(CHECK_OUTPUT_KEY)
 
                 failure_cases = _failure_cases.collect()
-
-                config = get_config_context()
-                max_reported_failures = config.max_reported_failures
-                total_failures = failure_cases.height
-                
-                if max_reported_failures == -1:
-                    failure_cases_msg = failure_cases.rows(named=True)
-                elif max_reported_failures == 0:
-                    failure_cases_msg = f"... {total_failures} failure cases"
-                else:
-                    failure_cases_limited = failure_cases.head(max_reported_failures)
-                    failure_cases_msg = failure_cases_limited.rows(named=True)
-                    
-                    shown_count = failure_cases_limited.height
-                    if shown_count < total_failures:
-                        omitted_count = total_failures - shown_count
-                        failure_cases_msg = f"{failure_cases_msg} ... and {omitted_count} more failure cases ({total_failures} total)"
+                failure_cases_msg = format_failure_cases_message(failure_cases)
                 
                 message = (
                     f"{schema.__class__.__name__} '{schema.name}' failed "
