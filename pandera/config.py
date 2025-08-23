@@ -32,7 +32,7 @@ class PanderaConfig:
     export PANDERA_VALIDATION_DEPTH=DATA_ONLY
     export PANDERA_CACHE_DATAFRAME=True
     export PANDERA_KEEP_CACHED_DATAFRAME=True
-    export PANDERA_MAX_FAILURE_CASES=100  # Default; use -1 for unlimited
+    export PANDERA_MAX_REPORTED_FAILURES=100
     """
 
     validation_enabled: bool = True
@@ -43,7 +43,7 @@ class PanderaConfig:
     validation_depth: Optional[ValidationDepth] = None
     cache_dataframe: bool = False
     keep_cached_dataframe: bool = False
-    max_failure_cases: int = 100  # Default to showing first 100 failure cases
+    max_reported_failures: int = 100  # Default to showing first 100 reported failures
 
 
 def _config_from_env_vars():
@@ -63,18 +63,18 @@ def _config_from_env_vars():
         "PANDERA_KEEP_CACHED_DATAFRAME", "False"
     ) in {"True", "1"}
 
-    max_failure_cases_str = os.environ.get("PANDERA_MAX_FAILURE_CASES", "100")
+    max_reported_failures_str = os.environ.get("PANDERA_MAX_REPORTED_FAILURES", "100")
     try:
-        max_failure_cases = int(max_failure_cases_str)
+        max_reported_failures = int(max_reported_failures_str)
     except ValueError:
-        max_failure_cases = 100  # Default to 100 on invalid input
+        max_reported_failures = 100  # Default to 100 on invalid input
 
     return PanderaConfig(
         validation_enabled=validation_enabled,
         validation_depth=validation_depth,
         cache_dataframe=cache_dataframe,
         keep_cached_dataframe=keep_cached_dataframe,
-        max_failure_cases=max_failure_cases,
+        max_reported_failures=max_reported_failures,
     )
 
 
@@ -89,12 +89,12 @@ def config_context(
     validation_depth: Optional[ValidationDepth] = None,
     cache_dataframe: Optional[bool] = None,
     keep_cached_dataframe: Optional[bool] = None,
-    max_failure_cases: Optional[int] = None,
+    max_reported_failures: Optional[int] = None,
 ):
     """Temporarily set pandera config options to custom settings.
 
-    :param max_failure_cases: Maximum number of failure cases to show in error messages.
-        Default is 100. Use -1 to show all failure cases, 0 to show none.
+    :param max_reported_failures: Maximum number of failures to report in error messages.
+        Default is 100. Use -1 to show all failures, 0 to show none.
     """
     _outer_config_ctx = get_config_context(validation_depth_default=None)
 
@@ -107,8 +107,8 @@ def config_context(
             _CONTEXT_CONFIG.cache_dataframe = cache_dataframe
         if keep_cached_dataframe is not None:
             _CONTEXT_CONFIG.keep_cached_dataframe = keep_cached_dataframe
-        if max_failure_cases is not None:
-            _CONTEXT_CONFIG.max_failure_cases = max_failure_cases
+        if max_reported_failures is not None:
+            _CONTEXT_CONFIG.max_reported_failures = max_reported_failures
 
         yield
     finally:

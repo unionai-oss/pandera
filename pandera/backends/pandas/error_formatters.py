@@ -32,7 +32,7 @@ def format_vectorized_error_message(
     check,
     check_index: int,
     reshaped_failure_cases: Any,
-    max_failure_cases: Optional[int] = None,
+    max_reported_failures: Optional[int] = None,
 ) -> str:
     """Construct an error message when a validator fails.
 
@@ -41,15 +41,15 @@ def format_vectorized_error_message(
     :param check_index: The validator that failed.
     :param reshaped_failure_cases: The failure cases encountered by the
         element-wise or vectorized validator.
-    :param max_failure_cases: Maximum number of failure cases to include
+    :param max_reported_failures: Maximum number of failures to report
         in the error message. If None, use config value.
 
     """
 
-    # Get max_failure_cases from config if not provided
-    if max_failure_cases is None:
+    # Get max_reported_failures from config if not provided
+    if max_reported_failures is None:
         config = get_config_context()
-        max_failure_cases = config.max_failure_cases
+        max_reported_failures = config.max_reported_failures
 
     pattern = r"<Check\s+([^:>]+):\s*([^>]+)>"
     matches = re.findall(pattern, str(check))
@@ -67,15 +67,15 @@ def format_vectorized_error_message(
         failure_cases = reshaped_failure_cases.failure_case.to_numpy()
         total_failures = len(failure_cases)
 
-        if max_failure_cases != -1:
-            if max_failure_cases == 0:
+        if max_reported_failures != -1:
+            if max_reported_failures == 0:
                 failure_cases_string = f"... {total_failures} failure cases"
-            elif total_failures > max_failure_cases:
-                failure_cases_limited = failure_cases[:max_failure_cases]
+            elif total_failures > max_reported_failures:
+                failure_cases_limited = failure_cases[:max_reported_failures]
                 failure_cases_string = ", ".join(
                     failure_cases_limited.astype(str)
                 )
-                omitted_count = total_failures - max_failure_cases
+                omitted_count = total_failures - max_reported_failures
                 failure_cases_string += f" ... and {omitted_count} more failure cases ({total_failures} total)"
             else:
                 failure_cases_string = ", ".join(failure_cases.astype(str))
@@ -85,15 +85,15 @@ def format_vectorized_error_message(
         failure_cases = reshaped_failure_cases.failure_case
         total_failures = len(failure_cases)
 
-        if max_failure_cases != -1:
-            if max_failure_cases == 0:
+        if max_reported_failures != -1:
+            if max_reported_failures == 0:
                 failure_cases_string = f"... {total_failures} failure cases"
-            elif total_failures > max_failure_cases:
-                failure_cases_limited = failure_cases.iloc[:max_failure_cases]
+            elif total_failures > max_reported_failures:
+                failure_cases_limited = failure_cases.iloc[:max_reported_failures]
                 failure_cases_string = ", ".join(
                     failure_cases_limited.apply(str)
                 )
-                omitted_count = total_failures - max_failure_cases
+                omitted_count = total_failures - max_reported_failures
                 failure_cases_string += f" ... and {omitted_count} more failure cases ({total_failures} total)"
             else:
                 failure_cases_string = ", ".join(failure_cases.apply(str))
@@ -190,7 +190,7 @@ def _multiindex_to_frame(df):
 
 
 def consolidate_failure_cases(
-    schema_errors: list[SchemaError], max_failure_cases: Optional[int] = None
+    schema_errors: list[SchemaError], max_reported_failures: Optional[int] = None
 ):
     """Consolidate schema error dicts to produce data for error message."""
     from pandera.api.pandas.types import is_table
@@ -200,10 +200,10 @@ def consolidate_failure_cases(
         "validation logic is handling/raising SchemaError(s)."
     )
 
-    # Get max_failure_cases from config if not provided
-    if max_failure_cases is None:
+    # Get max_reported_failures from config if not provided
+    if max_reported_failures is None:
         config = get_config_context()
-        max_failure_cases = config.max_failure_cases
+        max_reported_failures = config.max_reported_failures
 
     check_failure_cases = []
     scalar_check_failure_cases = []
