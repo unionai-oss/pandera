@@ -1,4 +1,4 @@
-"""Tests for max_failure_cases error message formatting."""
+"""Tests for max_reported_failures error message formatting."""
 
 import pandas as pd
 import pytest
@@ -8,8 +8,8 @@ from pandera import Check, Column, DataFrameSchema
 from pandera.config import config_context
 
 
-def test_default_max_failure_cases():
-    """Test that default max_failure_cases is 100."""
+def test_default_max_reported_failures():
+    """Test that default max_reported_failures is 100."""
     
     # Create a DataFrame with 150 failing values
     df = pd.DataFrame({
@@ -32,8 +32,8 @@ def test_default_max_failure_cases():
     assert "149" not in error_message  # Should NOT show the last value
 
 
-def test_max_failure_cases_pandas():
-    """Test that max_failure_cases limits error message length for pandas."""
+def test_max_reported_failures_pandas():
+    """Test that max_reported_failures limits error message length for pandas."""
     
     # Create a DataFrame with many failing values
     df = pd.DataFrame({
@@ -53,8 +53,8 @@ def test_max_failure_cases_pandas():
     assert "0, 1, 2, 3, 4, 5, 6, 7, 8, 9" in error_message
     assert "99" in error_message
     
-    # Test with max_failure_cases = 5
-    with config_context(max_failure_cases=5):
+    # Test with max_reported_failures = 5
+    with config_context(max_reported_failures=5):
         with pytest.raises(pa.errors.SchemaErrors) as exc_info:
             schema.validate(df, lazy=True)
         
@@ -66,8 +66,8 @@ def test_max_failure_cases_pandas():
         # Should NOT contain later values
         assert "99" not in error_message
     
-    # Test with max_failure_cases = 1
-    with config_context(max_failure_cases=1):
+    # Test with max_reported_failures = 1
+    with config_context(max_reported_failures=1):
         with pytest.raises(pa.errors.SchemaErrors) as exc_info:
             schema.validate(df, lazy=True)
         
@@ -78,8 +78,8 @@ def test_max_failure_cases_pandas():
         assert "99 more failure cases (100 total)" in error_message
 
 
-def test_max_failure_cases_multiple_checks():
-    """Test max_failure_cases with multiple failing checks."""
+def test_max_reported_failures_multiple_checks():
+    """Test max_reported_failures with multiple failing checks."""
     
     df = pd.DataFrame({
         "col1": range(50),
@@ -94,7 +94,7 @@ def test_max_failure_cases_multiple_checks():
         "col2": Column(int, Check.greater_than(200))  # All 50 values fail
     })
     
-    with config_context(max_failure_cases=3):
+    with config_context(max_reported_failures=3):
         with pytest.raises(pa.errors.SchemaErrors) as exc_info:
             schema.validate(df, lazy=True)
         
@@ -105,8 +105,8 @@ def test_max_failure_cases_multiple_checks():
         assert "50, 51, 52 ... and 47 more failure cases (50 total)" in error_message
 
 
-def test_max_failure_cases_edge_cases():
-    """Test edge cases for max_failure_cases."""
+def test_max_reported_failures_edge_cases():
+    """Test edge cases for max_reported_failures."""
     
     df = pd.DataFrame({
         "col1": [1, 2, 3],
@@ -116,8 +116,8 @@ def test_max_failure_cases_edge_cases():
         "col1": Column(int, Check.greater_than(10))
     })
     
-    # Test with max_failure_cases = 0 (should show no failure cases)
-    with config_context(max_failure_cases=0):
+    # Test with max_reported_failures = 0 (should show no failure cases)
+    with config_context(max_reported_failures=0):
         with pytest.raises(pa.errors.SchemaErrors) as exc_info:
             schema.validate(df, lazy=True)
         
@@ -125,8 +125,8 @@ def test_max_failure_cases_edge_cases():
         # Should show summary only
         assert "... 3 failure cases" in error_message
     
-    # Test with max_failure_cases greater than actual failures
-    with config_context(max_failure_cases=10):
+    # Test with max_reported_failures greater than actual failures
+    with config_context(max_reported_failures=10):
         with pytest.raises(pa.errors.SchemaErrors) as exc_info:
             schema.validate(df, lazy=True)
         
@@ -136,8 +136,8 @@ def test_max_failure_cases_edge_cases():
         # Should NOT show summary since all cases are shown
         assert "more failure cases" not in error_message
     
-    # Test with max_failure_cases = -1 (default, no limit)
-    with config_context(max_failure_cases=-1):
+    # Test with max_reported_failures = -1 (default, no limit)
+    with config_context(max_reported_failures=-1):
         with pytest.raises(pa.errors.SchemaErrors) as exc_info:
             schema.validate(df, lazy=True)
         
@@ -147,8 +147,8 @@ def test_max_failure_cases_edge_cases():
         assert "more failure cases" not in error_message
 
 
-def test_max_failure_cases_env_var(monkeypatch):
-    """Test that max_failure_cases can be set via environment variable."""
+def test_max_reported_failures_env_var(monkeypatch):
+    """Test that max_reported_failures can be set via environment variable."""
     
     df = pd.DataFrame({
         "col1": range(20),
@@ -159,7 +159,7 @@ def test_max_failure_cases_env_var(monkeypatch):
     })
     
     # Set environment variable
-    monkeypatch.setenv("PANDERA_MAX_FAILURE_CASES", "7")
+    monkeypatch.setenv("PANDERA_MAX_REPORTED_FAILURES", "7")
     
     # Need to reload config to pick up env var
     from pandera import config
@@ -176,6 +176,6 @@ def test_max_failure_cases_env_var(monkeypatch):
     assert "13 more failure cases (20 total)" in error_message
     
     # Reset config
-    monkeypatch.delenv("PANDERA_MAX_FAILURE_CASES", raising=False)
+    monkeypatch.delenv("PANDERA_MAX_REPORTED_FAILURES", raising=False)
     config.CONFIG = config._config_from_env_vars()
     config._CONTEXT_CONFIG = config.copy(config.CONFIG)

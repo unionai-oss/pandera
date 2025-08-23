@@ -102,24 +102,24 @@ class PolarsSchemaBackend(BaseSchemaBackend):
 
                 failure_cases = _failure_cases.collect()
 
-                # Get max_failure_cases from config
+                # Get max_reported_failures from config
                 config = get_config_context()
-                max_failure_cases = config.max_failure_cases
+                max_reported_failures = config.max_reported_failures
 
                 # Get failure cases for message
                 total_failures = failure_cases.height
-                if max_failure_cases != -1:
-                    if max_failure_cases == 0:
+                if max_reported_failures != -1:
+                    if max_reported_failures == 0:
                         message = (
                             f"{schema.__class__.__name__} '{schema.name}' failed "
                             f"validator number {check_index}: "
                             f"{check} failure case examples: ... {total_failures} failure cases"
                         )
-                    elif total_failures > max_failure_cases:
+                    elif total_failures > max_reported_failures:
                         failure_cases_msg = failure_cases.head(
-                            max_failure_cases
+                            max_reported_failures
                         ).rows(named=True)
-                        omitted_count = total_failures - max_failure_cases
+                        omitted_count = total_failures - max_reported_failures
                         message = (
                             f"{schema.__class__.__name__} '{schema.name}' failed "
                             f"validator number {check_index}: "

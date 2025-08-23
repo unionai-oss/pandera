@@ -152,21 +152,21 @@ def test_pandera_validation_enabled_from_env_vars():
     assert config.validation_enabled
 
 
-def test_pandera_max_failure_cases_from_env_vars():
-    """Test that max_failure_cases can be set from environment variables."""
+def test_pandera_max_reported_failures_from_env_vars():
+    """Test that max_reported_failures can be set from environment variables."""
 
-    os.environ["PANDERA_MAX_FAILURE_CASES"] = "10"
+    os.environ["PANDERA_MAX_REPORTED_FAILURES"] = "10"
     config = _config_from_env_vars()
-    assert config.max_failure_cases == 10
+    assert config.max_reported_failures == 10
 
-    os.environ["PANDERA_MAX_FAILURE_CASES"] = "0"
+    os.environ["PANDERA_MAX_REPORTED_FAILURES"] = "0"
     config = _config_from_env_vars()
-    assert config.max_failure_cases == 0
+    assert config.max_reported_failures == 0
 
-    os.environ["PANDERA_MAX_FAILURE_CASES"] = "invalid"
+    os.environ["PANDERA_MAX_REPORTED_FAILURES"] = "invalid"
     config = _config_from_env_vars()
-    assert config.max_failure_cases == 100
+    assert config.max_reported_failures == 100
 
-    del os.environ["PANDERA_MAX_FAILURE_CASES"]
+    del os.environ["PANDERA_MAX_REPORTED_FAILURES"]
     config = _config_from_env_vars()
-    assert config.max_failure_cases == 100
+    assert config.max_reported_failures == 100
