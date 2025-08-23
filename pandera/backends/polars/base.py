@@ -108,18 +108,32 @@ class PolarsSchemaBackend(BaseSchemaBackend):
 
                 # Get failure cases for message
                 total_failures = failure_cases.height
-                if max_reported_failures != -1:
-                    if max_reported_failures == 0:
-                        message = (
-                            f"{schema.__class__.__name__} '{schema.name}' failed "
-                            f"validator number {check_index}: "
-                            f"{check} failure case examples: ... {total_failures} failure cases"
-                        )
-                    elif total_failures > max_reported_failures:
-                        failure_cases_msg = failure_cases.head(
-                            max_reported_failures
-                        ).rows(named=True)
-                        omitted_count = total_failures - max_reported_failures
+                
+                # Handle unlimited case first
+                if max_reported_failures == -1:
+                    failure_cases_msg = failure_cases.rows(named=True)
+                    message = (
+                        f"{schema.__class__.__name__} '{schema.name}' failed "
+                        f"validator number {check_index}: "
+                        f"{check} failure case examples: {failure_cases_msg}"
+                    )
+                # Handle zero case (summary only)
+                elif max_reported_failures == 0:
+                    message = (
+                        f"{schema.__class__.__name__} '{schema.name}' failed "
+                        f"validator number {check_index}: "
+                        f"{check} failure case examples: ... {total_failures} failure cases"
+                    )
+                # Default case: head() handles limit, check if we truncated
+                else:
+                    # polars head() handles out-of-bounds gracefully
+                    failure_cases_limited = failure_cases.head(max_reported_failures)
+                    failure_cases_msg = failure_cases_limited.rows(named=True)
+                    
+                    # Check if we actually truncated
+                    shown_count = failure_cases_limited.height
+                    if shown_count < total_failures:
+                        omitted_count = total_failures - shown_count
                         message = (
                             f"{schema.__class__.__name__} '{schema.name}' failed "
                             f"validator number {check_index}: "
@@ -127,21 +141,11 @@ class PolarsSchemaBackend(BaseSchemaBackend):
                             f"... and {omitted_count} more failure cases ({total_failures} total)"
                         )
                     else:
-                        failure_cases_msg = failure_cases.head().rows(
-                            named=True
-                        )
                         message = (
                             f"{schema.__class__.__name__} '{schema.name}' failed "
                             f"validator number {check_index}: "
                             f"{check} failure case examples: {failure_cases_msg}"
                         )
-                else:
-                    failure_cases_msg = failure_cases.head().rows(named=True)
-                    message = (
-                        f"{schema.__class__.__name__} '{schema.name}' failed "
-                        f"validator number {check_index}: "
-                        f"{check} failure case examples: {failure_cases_msg}"
-                    )
 
             # raise a warning without exiting if the check is specified to do so
             # but make sure the check passes
