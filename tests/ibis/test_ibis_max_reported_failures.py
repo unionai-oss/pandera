@@ -1,5 +1,6 @@
 """Tests for max_reported_failures error message formatting in Ibis."""
 
+import ibis
 import pandas as pd
 import pytest
 
@@ -18,7 +19,6 @@ pytestmark = pytest.mark.skipif(
 def test_default_behavior():
     """Test default max_reported_failures behavior for ibis."""
     # Create an ibis table with 50 failures
-    import ibis
     df = pd.DataFrame({"col1": range(50)})
     table = ibis.memtable(df)
     
@@ -41,7 +41,6 @@ def test_default_behavior():
 ])
 def test_custom_limits(limit, expected_in_message, expected_truncation):
     """Test various custom max_reported_failures limits for ibis."""
-    import ibis
     df = pd.DataFrame({"col1": range(100)})
     table = ibis.memtable(df)
     
@@ -65,7 +64,6 @@ def test_custom_limits(limit, expected_in_message, expected_truncation):
 ])
 def test_special_limit_values(limit, test_case):
     """Test special max_reported_failures values for ibis."""
-    import ibis
     df = pd.DataFrame({"col1": [1, 2, 3]})
     table = ibis.memtable(df)
     
@@ -89,7 +87,6 @@ def test_special_limit_values(limit, test_case):
 
 def test_no_truncation_when_under_limit():
     """Test that no truncation occurs when failures are under the limit for ibis."""
-    import ibis
     df = pd.DataFrame({"col1": [1, 2, 3]})
     table = ibis.memtable(df)
     
@@ -108,7 +105,6 @@ def test_no_truncation_when_under_limit():
 
 def test_multiple_columns_respect_limit():
     """Test that each column independently respects the max_reported_failures limit for ibis."""
-    import ibis
     df = pd.DataFrame({
         "col1": range(50),
         "col2": range(50, 100),
