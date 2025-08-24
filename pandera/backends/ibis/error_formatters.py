@@ -1,5 +1,6 @@
 """Make schema error messages human-friendly for Ibis."""
 
+import re
 from typing import Any, Optional
 
 import pandas as pd
@@ -34,8 +35,6 @@ def format_vectorized_error_message(
     if max_reported_failures is None:
         config = get_config_context()
         max_reported_failures = config.max_reported_failures
-
-    import re
 
     pattern = r"<Check\s+([^:>]+):\s*([^>]+)>"
     matches = re.findall(pattern, str(check))
