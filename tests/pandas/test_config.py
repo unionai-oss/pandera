@@ -52,9 +52,9 @@ from pandera.config import (
         ("cache_dataframe", False, False, False, False),
         ("keep_cached_dataframe", True, True, False, False),
         ("keep_cached_dataframe", False, False, False, False),
-        ("max_failure_cases", 10, 10, 100, 100),
-        ("max_failure_cases", 5, 5, 100, 100),
-        ("max_failure_cases", -1, -1, 100, 100),
+        ("max_reported_failures", 10, 10, 100, 100),
+        ("max_reported_failures", 5, 5, 100, 100),
+        ("max_reported_failures", -1, -1, 100, 100),
     ],
 )
 def test_config_context(
@@ -109,10 +109,10 @@ def test_config_context(
         ("cache_dataframe", True, False),
         ("keep_cached_dataframe", False, True),
         ("keep_cached_dataframe", True, False),
-        ("max_failure_cases", 10, 20),
-        ("max_failure_cases", 5, 15),
-        ("max_failure_cases", -1, 10),
-        ("max_failure_cases", 10, -1),
+        ("max_reported_failures", 10, 20),
+        ("max_reported_failures", 5, 15),
+        ("max_reported_failures", -1, 10),
+        ("max_reported_failures", 10, -1),
     ],
 )
 def test_nested_config_context(setting, outer_value, inner_value):
