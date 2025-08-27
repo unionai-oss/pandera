@@ -583,6 +583,26 @@ def test_dataframe_validation_errors_unique_key():
         schema.validate(invalid_df, lazy=True)
         assert False, "Expected SchemaErrors"
     except pa.errors.SchemaErrors as exc:
+        assert len(exc.schema_errors) == 1
+        schema_error = exc.schema_errors[0]
+
+        # Check type of 'schema_error.failure_cases' dataframe
+        assert isinstance(schema_error.failure_cases, pl.DataFrame)
+
+        # Check that the 'schema_error.check_output' is set correctly
+        check_output_df = schema_error.check_output
+        assert isinstance(check_output_df, pl.DataFrame)
+        assert_frame_equal(
+            check_output_df,
+            pl.DataFrame(
+                {
+                    "key_part_a": ["1", "1", "1", "1"],
+                    "key_part_b": ["a", "b", "c", "c"],
+                    "check_output": [True, True, False, False],
+                }
+            ),
+        )
+
         # We expect two failure cases for the unique key constraint
         # for the 2 rows where key_part_a="1" and key_part_b="c"
         assert exc.failure_cases.shape[0] == 2
