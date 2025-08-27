@@ -565,16 +565,35 @@ def test_dataframe_validation_errors_unique():
 
 
 def test_dataframe_validation_errors_unique_key():
+    """
+    Test unique key constraint validation.
+    i.e. multiple fields must be unique together.
+    """
     schema = DataFrameSchema(
-        {"a": Column(str), "b": Column(str)}, unique=["a", "b"]
+        {"key_part_a": Column(str), "key_part_b": Column(str)},
+        unique=["key_part_a", "key_part_b"],
     )
     invalid_df = pl.DataFrame(
-        {"a": ["1", "1", "1", "1"], "b": ["1", "1", "2", "3"]}
+        {
+            "key_part_a": ["1", "1", "1", "1"],
+            "key_part_b": ["a", "b", "c", "c"],
+        }
     )
     try:
         schema.validate(invalid_df, lazy=True)
+        assert False, "Expected SchemaErrors"
     except pa.errors.SchemaErrors as exc:
+        # We expect two failure cases for the unique key constraint
+        # for the 2 rows where key_part_a="1" and key_part_b="c"
         assert exc.failure_cases.shape[0] == 2
+        assert all(
+            check == "multiple_fields_uniqueness"
+            for check in exc.failure_cases["check"]
+        )
+        assert all(
+            failure_case == '{"key_part_a":"1","key_part_b":"c"}'
+            for failure_case in exc.failure_cases["failure_case"]
+        )
 
 
 @pytest.fixture
