@@ -586,10 +586,13 @@ def test_dataframe_validation_errors_unique_key():
         assert len(exc.schema_errors) == 1
         schema_error = exc.schema_errors[0]
 
-        # Check type of 'schema_error.failure_cases' dataframe
+        # Ensure type of 'schema_error.failure_cases' is a Dataframe, since
+        # handling of LazyFrame is not currently supported further downstream
         assert isinstance(schema_error.failure_cases, pl.DataFrame)
 
-        # Check that the 'schema_error.check_output' is set correctly
+        # Ensure check_output property exists and is set correctly, since
+        # it is required for assigning row numbers to the resulting failure_cases
+        # further downstream
         check_output_df = schema_error.check_output
         assert isinstance(check_output_df, pl.DataFrame)
         assert_frame_equal(
