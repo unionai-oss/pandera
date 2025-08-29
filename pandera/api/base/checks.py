@@ -123,9 +123,15 @@ class BaseCheck(metaclass=MetaCheck):
         init_kwargs,
         error: Union[str, Callable],
         statistics: Optional[dict[str, Any]] = None,
+        defaults: Optional[dict[str, Any]] = None,
         **check_kwargs,
     ):
         """Create a Check object from a built-in check's name."""
+        # Apply defaults to init_kwargs if provided
+        if defaults:
+            for key, value in defaults.items():
+                init_kwargs.setdefault(key, value)
+
         kws = {**init_kwargs, **check_kwargs}
         if "error" not in kws:
             kws["error"] = error
