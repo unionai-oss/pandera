@@ -210,6 +210,8 @@ check = pa.Check(lambda x: x.between(0, 100))
 You can then define a strategy for this check with:
 
 ```{code-cell} python
+import pandera.strategies.pandas_strategies as st
+
 def in_range_strategy(pandera_dtype, strategy=None):
     if strategy is None:
         # handle base strategy case
