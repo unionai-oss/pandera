@@ -3,8 +3,7 @@
 import copy
 import itertools
 import traceback
-from collections.abc import Callable
-from typing import Any, Optional
+from typing import Any, Callable, TypeVar
 
 import pandas as pd
 from pydantic import BaseModel
@@ -27,6 +26,9 @@ from pandera.errors import (
     SchemaErrors,
 )
 from pandera.validation_depth import validate_scope, validation_type
+
+
+T = TypeVar("T")
 
 
 class DataFrameSchemaBackend(PandasSchemaBackend):
@@ -713,7 +715,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
 
         return obj
 
-    def run_parsers(self, schema, check_obj):
+    def run_parsers(self, schema, check_obj: T) -> T:
         """Run parsers"""
         parser_results: list[CoreParserResult] = []
         for parser_index, parser in enumerate(schema.parsers):

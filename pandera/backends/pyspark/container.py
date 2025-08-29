@@ -57,8 +57,8 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
             for schema_error in exc.schema_errors:
                 error_handler.collect_error(
                     error_type=ErrorCategory.SCHEMA,
-                    reason_code=schema_error["reason_code"],
-                    schema_error=schema_error["error"],
+                    reason_code=schema_error.reason_code,
+                    schema_error=schema_error,
                 )
 
         # strictness check and filter
@@ -78,28 +78,6 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
             check_obj,
             schema=schema,
         )
-
-        return check_obj
-
-    @validate_scope(scope=ValidationScope.DATA)
-    def _data_checks(
-        self,
-        check_obj: DataFrame,
-        schema,
-        column_info: ColumnInfo,
-        error_handler: ErrorHandler,
-    ):
-        """Run the checks related to data validation and uniqueness."""
-
-        # uniqueness of values
-        try:
-            check_obj = self.unique(
-                check_obj, schema=schema
-            )
-        except SchemaError as err:
-            error_handler.collect_error(
-                ErrorCategory.DATA, err.reason_code, err
-            )
 
         return check_obj
 
@@ -387,6 +365,12 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
             absent_column_names=absent_column_names,
             lazy_exclude_column_names=lazy_exclude_column_names,
         )
+
+        sorted_column_names: Iterable
+        expanded_column_names: frozenset
+        destuttered_column_names: list
+        absent_column_names: list
+        regex_match_patterns: list
 
     def collect_schema_components(
         self,

@@ -1,29 +1,19 @@
 """Pandera array backends."""
 
 import traceback
-from collections.abc import Iterable
-from typing import NamedTuple, Optional, cast
+from typing import cast
 
 from pyspark.sql import DataFrame
 from pyspark.sql.functions import col
 
 from pandera.api.base.error_handler import ErrorCategory, ErrorHandler
+from pandera.backends.base import CoreCheckResult
 from pandera.backends.pyspark.base import PysparkSchemaBackend
 from pandera.backends.pyspark.decorators import validate_scope
 from pandera.backends.pyspark.error_formatters import scalar_failure_case
 from pandera.engines.pyspark_engine import Engine
 from pandera.errors import ParserError, SchemaError, SchemaErrorReason
 from pandera.validation_depth import ValidationScope
-
-
-class CoreCheckResult(NamedTuple):
-    """Namedtuple for holding results of core checks."""
-
-    check: str
-    reason_code: SchemaErrorReason
-    passed: bool
-    message: str | None = None
-    failure_cases: Iterable | None = None
 
 
 class ColumnSchemaBackend(PysparkSchemaBackend):
@@ -165,6 +155,7 @@ class ColumnSchemaBackend(PysparkSchemaBackend):
         passed = True
         failure_cases = None
         msg = None
+        reason_code = None
 
         if schema.dtype is not None:
             dtype_check_results = schema.dtype.check(

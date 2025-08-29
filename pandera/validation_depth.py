@@ -33,7 +33,7 @@ VALIDATION_DEPTH_ERROR_CODE_MAP = {
 }
 
 
-def validation_type(schema_error_reason):
+def validation_type(schema_error_reason: SchemaErrorReason) -> ValidationScope:
     """Map a reason_code to a ValidationScope depth type
 
     :param SchemaErrorReason: schema error reason enum
