@@ -613,24 +613,27 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
         if not schema.unique:
             return CoreCheckResult(
                 passed=passed,
-                check="dataframe_column_labels_unique",
+                check="multiple_fields_uniqueness",
             )
-
-        # NOTE: fix this pylint error
 
         temp_unique: list[list] = (
             [schema.unique]
             if all(isinstance(x, str) for x in schema.unique)
             else schema.unique
         )
-
+        check_output = None
         for lst in temp_unique:
             subset = [
                 x for x in lst if x in get_lazyframe_column_names(check_obj)
             ]
             duplicates = check_obj.select(subset).collect().is_duplicated()
+
+            check_output = check_obj.with_columns(
+                duplicates.not_().alias("check_output")
+            ).collect()
+
             if duplicates.any():
-                failure_cases = check_obj.filter(duplicates)
+                failure_cases = check_obj.filter(duplicates).collect()
 
                 passed = False
                 message = f"columns '{*subset,}' not unique:\n{failure_cases}"
@@ -641,4 +644,5 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
             reason_code=SchemaErrorReason.DUPLICATES,
             message=message,
             failure_cases=failure_cases,
+            check_output=check_output,
         )

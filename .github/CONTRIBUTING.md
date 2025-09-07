@@ -53,7 +53,7 @@ uv pip install polars-lts-cpu
 #### Run Tests
 
 ```bash
-pytest tests/core
+pytest tests/core tests/pandas
 ```
 
 #### Build Documentation Locally
@@ -142,9 +142,9 @@ You should see an output like this:
 
 ```bash
 ...
-* tests(extra='core', pydantic='1.10.11', python='3.9', pandas='2.1.1') -> Run the test suite.
-* tests(extra='strategies', pydantic='1.10.11', python='3.9', pandas='2.1.1') -> Run the test suite.
-* tests(extra='hypotheses', pydantic='1.10.11', python='3.9', pandas='2.1.1') -> Run the test suite.
+* tests-3.9(extra='pandas', pandas='2.1.1', pydantic='1.10.11') -> Run the test suite.
+* tests-3.9(extra='strategies', pandas='2.2.3', pydantic='2.10.6') -> Run the test suite.
+* tests-3.9(extra='hypotheses', pandas='2.2.3', pydantic='2.10.6') -> Run the test suite.
 ...
 ```
 

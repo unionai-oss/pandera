@@ -732,10 +732,14 @@ class Categorical(DataType):
 
     def __init__(
         self,
-        ordering: Optional[Literal["physical", "lexical"]] = "physical",
+        ordering: Optional[Literal["physical", "lexical"]] = "lexical",
     ) -> None:
         object.__setattr__(self, "ordering", ordering)
-        object.__setattr__(self, "type", pl.Categorical(ordering=ordering))
+        object.__setattr__(self, "type", pl.Categorical())
+
+    def __deepcopy__(self, memo):
+        """Custom deepcopy to avoid pickling issues with pl.Categorical()."""
+        return self.__class__(ordering=self.ordering)
 
     @classmethod
     def from_parametrized_dtype(cls, polars_dtype: pl.Categorical):

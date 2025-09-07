@@ -13,7 +13,9 @@ from pandera.api.polars.utils import (
     get_lazyframe_schema,
 )
 from pandera.backends.base import BaseSchemaBackend, CoreCheckResult
-from pandera.backends.polars.error_formatters import format_failure_cases_message
+from pandera.backends.polars.error_formatters import (
+    format_failure_cases_message,
+)
 from pandera.constants import CHECK_OUTPUT_KEY
 from pandera.errors import (
     FailureCaseMetadata,
@@ -102,7 +104,7 @@ class PolarsSchemaBackend(BaseSchemaBackend):
 
                 failure_cases = _failure_cases.collect()
                 failure_cases_msg = format_failure_cases_message(failure_cases)
-                
+
                 message = (
                     f"{schema.__class__.__name__} '{schema.name}' failed "
                     f"validator number {check_index}: "

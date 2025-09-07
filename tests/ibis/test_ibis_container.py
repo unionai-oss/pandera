@@ -5,11 +5,13 @@ from typing import Optional
 import ibis
 import ibis.expr.datatypes as dt
 import ibis.expr.types as ir
+import pandas as pd
 import pytest
 from ibis import _, selectors as s
 
 import pandera as pa
 from pandera.api.ibis.types import IbisData
+from pandera.dtypes import UniqueSettings
 from pandera.ibis import Column, DataFrameSchema
 
 
@@ -125,7 +127,25 @@ def test_coerce_column_dtype(t_basic, t_schema_basic):
     modified_data = t_basic.cast({"int_col": dt.String})
     query = modified_data.pipe(t_schema_basic.validate)
     coerced_df = query.execute()
-    assert coerced_df.equals(t_basic.collect())
+    assert coerced_df.equals(t_basic.execute())
+
+
+def test_strict_filter(t_basic, t_schema_basic):
+    """Test strictness and filtering schema logic."""
+    # by default, strict is False, so by default it should pass
+    modified_data = t_basic.mutate(extra_col=1)
+    validated_data = modified_data.pipe(t_schema_basic.validate)
+    assert validated_data.execute().equals(modified_data.execute())
+
+    # setting strict to True should raise an error
+    t_schema_basic.strict = True
+    with pytest.raises(pa.errors.SchemaError):
+        modified_data.pipe(t_schema_basic.validate)
+
+    # setting strict to "filter" should remove the extra column
+    t_schema_basic.strict = "filter"
+    filtered_data = modified_data.pipe(t_schema_basic.validate)
+    filtered_data.execute().equals(t_basic.execute())
 
 
 def test_required_columns():
@@ -180,7 +200,6 @@ def test_column_absent_error(t_basic, t_schema_basic):
         t_basic.drop("int_col").pipe(t_schema_basic.validate)
 
 
-@pytest.mark.xfail(reason="`unique` not yet implemented for Ibis backend")
 def test_column_values_are_unique(t_basic, t_schema_basic):
     """Test column values are unique."""
     t_schema_basic.unique = ["string_col", "int_col"]
@@ -189,6 +208,60 @@ def test_column_values_are_unique(t_basic, t_schema_basic):
     )
     with pytest.raises(pa.errors.SchemaError):
         modified_data.pipe(t_schema_basic.validate)
+
+
+@pytest.mark.parametrize(
+    "unique,answers",
+    [
+        # unique is True -- default is to report all unique violations except the first
+        ("exclude_first", [4, 5, 6, 7]),
+        ("all", [0, 1, 2, 4, 5, 6, 7]),
+        ("exclude_first", [4, 5, 6, 7]),
+        ("exclude_last", [0, 1, 2, 4]),
+    ],
+)
+def test_different_unique_settings(unique: UniqueSettings, answers: list[int]):
+    """Test that different unique settings work as expected"""
+    df: pd.DataFrame = pd.DataFrame({"a": [1, 2, 3, 4, 1, 1, 2, 3]})
+    t = ibis.memtable(df.reset_index())
+    schemas = [
+        DataFrameSchema(
+            {"a": Column(int)}, unique="a", report_duplicates=unique
+        ),
+        # TODO(deepyaman): Implement `ColumnBackend.check_unique` check.
+        # DataFrameSchema(
+        #     {"a": Column(int, unique=True, report_duplicates=unique)}
+        # ),
+    ]
+
+    for schema in schemas:
+        with pytest.raises(pa.errors.SchemaError) as err:
+            schema.validate(t)
+
+        assert sorted(err.value.failure_cases["index"].to_list()) == answers
+
+
+@pytest.mark.parametrize(
+    "report_duplicates", ["all", "exclude_first", "exclude_last", "invalid"]
+)
+def test_valid_unique_settings(report_duplicates):
+    """Test that valid unique settings work and invalid ones will raise a ValueError"""
+    schema = DataFrameSchema(
+        {"a": Column(str)}, unique="a", report_duplicates=report_duplicates
+    )
+    t = ibis.memtable({"a": ["A", "BC", "C", "C", "BC"]})
+
+    # If we're given an invalid value for report_duplicates, then it should raise a ValueError
+    if report_duplicates == "invalid":
+        with pytest.raises(ValueError):
+            schema.validate(t)
+    else:
+        with pytest.raises(pa.errors.SchemaError) as err:
+            schema.validate(t)
+
+        # There are unique errors--assert that pandera reports them properly
+        # Actual content of the unique errors is tested in test_different_unique_settings
+        assert err.value.failure_cases.count().execute()
 
 
 def test_dataframe_level_checks():

@@ -43,7 +43,9 @@ class PanderaConfig:
     validation_depth: Optional[ValidationDepth] = None
     cache_dataframe: bool = False
     keep_cached_dataframe: bool = False
-    max_reported_failures: int = 100  # Default to showing first 100 reported failures
+    max_reported_failures: int = (
+        100  # Default to showing first 100 reported failures
+    )
 
 
 def _config_from_env_vars():
@@ -63,7 +65,9 @@ def _config_from_env_vars():
         "PANDERA_KEEP_CACHED_DATAFRAME", "False"
     ) in {"True", "1"}
 
-    max_reported_failures_str = os.environ.get("PANDERA_MAX_REPORTED_FAILURES", "100")
+    max_reported_failures_str = os.environ.get(
+        "PANDERA_MAX_REPORTED_FAILURES", "100"
+    )
     try:
         max_reported_failures = int(max_reported_failures_str)
     except ValueError:
