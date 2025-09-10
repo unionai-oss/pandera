@@ -3,6 +3,7 @@
 import os
 from typing import (
     Any,
+    ClassVar,
     Optional,
     TypeVar,
     Union,
@@ -32,13 +33,15 @@ class BaseModel(metaclass=MetaModel):
 
     Config: type[BaseModelConfig] = BaseModelConfig
     __extras__: Optional[dict[str, Any]] = None
-    __schema__: Optional[Any] = None
+    __schema__: ClassVar[Optional[Any]] = None
     __config__: Optional[type[BaseModelConfig]] = None
 
     #: Key according to `FieldInfo.name`
-    __fields__: Mapping[str, tuple[AnnotationInfo, BaseFieldInfo]] = {}
-    __checks__: dict[str, list[Check]] = {}
-    __root_checks__: list[Check] = []
+    __fields__: ClassVar[
+        Mapping[str, tuple[AnnotationInfo, BaseFieldInfo]]
+    ] = {}
+    __checks__: ClassVar[dict[str, list[Check]]] = {}
+    __root_checks__: ClassVar[list[Check]] = []
 
     # This is syntantic sugar that delegates to the validate method
     def __new__(cls, *args, **kwargs) -> Any:
