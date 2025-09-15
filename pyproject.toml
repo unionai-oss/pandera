@@ -89,7 +89,7 @@ dask = [
     "distributed",
 ]
 ibis = ["ibis-framework >= 9.0.0"]
-polars = ["polars >= 0.20.0"]
+polars = ["polars >= 1.0"]
 all = [
     "hypothesis >= 6.92.7",
     "scipy",
@@ -107,7 +107,7 @@ all = [
     "geopandas < 1.1.0",
     "shapely",
     "ibis-framework >= 9.0.0",
-    "polars >= 0.20.0",
+    "polars >= 1.0",
 ]
 
 [dependency-groups]
@@ -118,7 +118,7 @@ dev = [
     "joblib",
     "mypy == 1.10.0",
     "pip",
-    "polars >= 0.20.0",
+    "polars >= 1.0",
     "pre_commit",
     "pyarrow >= 13",
     "pytz",

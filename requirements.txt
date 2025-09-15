@@ -14,7 +14,7 @@ scipy
 pandas-stubs
 scipy-stubs
 pyspark[connect] >= 3.2.0, < 4.0.0
-polars >= 0.20.0
+polars >= 1.0
 modin
 protobuf
 geopandas < 1.1.0

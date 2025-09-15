@@ -224,7 +224,7 @@ jobs:
         - ibis
         include:
         - extra: polars
-          polars-version: "0.20.0"
+          polars-version: "1.0"
         - extra: polars
           polars-version: "1.32.2"
         - extra: polars

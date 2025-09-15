@@ -103,7 +103,7 @@ def polars_coerce_failure_cases(
     """
     try:
         is_coercible = polars_object_coercible(data_container, type_)
-    except (TypeError, pl.InvalidOperationError):
+    except (TypeError, pl.exceptions.InvalidOperationError):
         is_coercible = data_container.lazyframe.with_columns(
             **{CHECK_OUTPUT_KEY: pl.lit(False)}
         ).select(CHECK_OUTPUT_KEY)
