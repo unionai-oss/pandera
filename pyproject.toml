@@ -112,6 +112,7 @@ all = [
 
 [dependency-groups]
 dev = [
+    "duckdb < 1.4.0", # https://github.com/ibis-project/ibis/issues/11621
     "hypothesis >= 6.92.7",
     "ipdb",
     "isort >= 5.7.0",
