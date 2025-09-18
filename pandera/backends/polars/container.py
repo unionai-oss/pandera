@@ -514,7 +514,7 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
                     check_output=exc.parser_output,
                 ),
             )
-        except pl.ComputeError as exc:
+        except pl.exceptions.ComputeError as exc:
             error_handler.collect_error(
                 validation_type(SchemaErrorReason.DATATYPE_COERCION),
                 SchemaErrorReason.DATATYPE_COERCION,
