@@ -23,9 +23,8 @@ try:
 except ImportError:
     from typing import Annotated  # type: ignore
 
-
 if typing.TYPE_CHECKING:
-    from polars.datatypes import DataTypeClass
+    from polars.type_aliases import PolarsDataType
 
 
 @pytest.fixture
@@ -416,7 +415,7 @@ def test_set_defaults(ldf_basic, ldf_schema_basic):
     assert validated_data.equals(expected_data.collect())
 
 
-def _failure_value(column: str, dtype: Optional[DataTypeClass] = None):
+def _failure_value(column: str, dtype: Optional[PolarsDataType] = None):
     if column.startswith("string"):
         return pl.lit("9", dtype=dtype or pl.Utf8)
     elif column.startswith("int"):
