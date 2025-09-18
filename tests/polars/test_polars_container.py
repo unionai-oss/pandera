@@ -24,7 +24,10 @@ except ImportError:
     from typing import Annotated  # type: ignore
 
 if typing.TYPE_CHECKING:
-    from polars.type_aliases import PolarsDataType
+    try:
+        from polars._typing import PolarsDataType  # type: ignore
+    except NameError:
+        from polars.type_aliases import PolarsDataType  # type: ignore
 
 
 @pytest.fixture
