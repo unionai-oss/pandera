@@ -25,7 +25,7 @@ concurrency:
 jobs:
 
   lint:
-    name: Linters (${{ matrix.python-version }})
+    name: Linters (python=${{ matrix.python-version }} polars=${{ matrix.polars-version }} )
     runs-on: ubuntu-latest
     strategy:
       fail-fast: true
@@ -196,7 +196,7 @@ jobs:
   # test extras for popular dataframe libraries
   unit-tests-dataframe-extras:
     name: >
-      Unit Tests DataFrame Extras: python-${{ matrix.python-version }} ${{ matrix.os }} (extra-${{ matrix.extra }})
+      Unit Tests DataFrame Extras: python-${{ matrix.python-version }} ${{ matrix.os }} (extra-${{ matrix.extra }} polars=${{ matrix.polars-version }})
     runs-on: ${{ matrix.os }}
     defaults:
       run:
