@@ -1,7 +1,7 @@
 # pylint: disable=redefined-outer-name
 """Unit tests for Polars container."""
 
-from typing import Optional
+from typing import Annotated, Optional
 
 import polars as pl
 import pytest
@@ -18,9 +18,9 @@ from pandera.engines import polars_engine as pe
 from pandera.polars import Column, DataFrameModel, DataFrameSchema
 
 try:
-    from typing import Annotated  # type: ignore
-except ImportError:
-    from typing import Annotated  # type: ignore
+    from polars._typing import PolarsDataType  # type: ignore
+except NameError:
+    from polars.type_aliases import PolarsDataType  # type: ignore
 
 
 @pytest.fixture
@@ -411,7 +411,7 @@ def test_set_defaults(ldf_basic, ldf_schema_basic):
     assert validated_data.equals(expected_data.collect())
 
 
-def _failure_value(column: str, dtype: Optional[pl.DataTypeClass] = None):
+def _failure_value(column: str, dtype: Optional[PolarsDataType] = None):
     if column.startswith("string"):
         return pl.lit("9", dtype=dtype or pl.Utf8)
     elif column.startswith("int"):
