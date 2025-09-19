@@ -16,7 +16,9 @@ from typing import (
 from typing_extensions import Self
 from pyspark.sql.types import StructType
 
+from pandera.api.base.schema import BaseSchema
 from pandera.api.checks import Check
+from pandera.api.dataframe.model_components import Field, FieldInfo
 from pandera.errors import SchemaInitError
 from pandera.typing import AnnotationInfo
 from pandera.typing.common import DataFrameBase
@@ -26,10 +28,6 @@ from pandera.api.dataframe.model import DataFrameModel as _DataFrameModel
 
 from .components import Column
 from .container import DataFrameSchema
-from .model_components import (
-    Field,
-    FieldInfo,
-)
 from .model_config import BaseConfig
 from .types import PySparkFrame
 
@@ -126,6 +124,26 @@ class DataFrameModel(_DataFrameModel[PySparkFrame, DataFrameSchema]):
     __fields__: Mapping[str, tuple[AnnotationInfo, FieldInfo]] = {}
     __checks__: dict[str, list[Check]] = {}
     __root_checks__: list[Check] = []
+
+    @classmethod
+    @docstring_substitution(validate_doc=BaseSchema.validate.__doc__)
+    def validate(
+        cls: type[Self],
+        check_obj: DataFrame,
+        head: Optional[int] = None,
+        tail: Optional[int] = None,
+        sample: Optional[int] = None,
+        random_state: Optional[int] = None,
+        lazy: bool = True,
+        inplace: bool = False,
+    ) -> DataFrameBase[Self]:
+        """%(validate_doc)s"""
+        return cast(
+            DataFrameBase[Self],
+            cls.to_schema().validate(
+                check_obj, head, tail, sample, random_state, lazy, inplace  # type: ignore
+            ),
+        )
 
     @docstring_substitution(validate_doc=DataFrameSchema.validate.__doc__)
     def __new__(cls, *args, **kwargs) -> DataFrameBase[Self]:  # type: ignore [misc]
@@ -247,19 +265,24 @@ class DataFrameModel(_DataFrameModel[PySparkFrame, DataFrameSchema]):
             dtype = None if dtype is Any else dtype
 
             if annotation.origin is None:
-                col_constructor = field.to_column if field else Column
-
+                column_kwargs = (
+                    field.column_properties(
+                        dtype,
+                        required=not annotation.optional,
+                        checks=field_checks,
+                        name=field_name,
+                    )
+                    if field
+                    else {}
+                )
                 if check_name is False:
                     raise SchemaInitError(
                         f"'check_name' is not supported for {field_name}."
                     )
-
-                columns[field_name] = col_constructor(  # type: ignore
-                    dtype,
-                    required=not annotation.optional,
-                    checks=field_checks,
-                    name=field_name,
-                )
+                # remove unsupported kwargs
+                for key in ["parsers", "unique", "default"]:
+                    column_kwargs.pop(key, None)
+                columns[field_name] = Column(**column_kwargs)
             else:
                 raise SchemaInitError(
                     f"Invalid annotation '{field_name}: "

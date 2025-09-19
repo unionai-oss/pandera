@@ -18,6 +18,38 @@ class ErrorCategory(Enum):
     DTYPE_COERCION = "dtype-coercion-failures"
 
 
+ERROR_CATEGORY_MAP = {
+    SchemaErrorReason.INVALID_TYPE: ErrorCategory.DATA,
+    SchemaErrorReason.DATATYPE_COERCION: ErrorCategory.DATA,
+    SchemaErrorReason.COLUMN_NOT_IN_SCHEMA: ErrorCategory.SCHEMA,
+    SchemaErrorReason.COLUMN_NOT_ORDERED: ErrorCategory.SCHEMA,
+    SchemaErrorReason.DUPLICATE_COLUMN_LABELS: ErrorCategory.SCHEMA,
+    SchemaErrorReason.COLUMN_NOT_IN_DATAFRAME: ErrorCategory.SCHEMA,
+    SchemaErrorReason.SCHEMA_COMPONENT_CHECK: ErrorCategory.SCHEMA,
+    SchemaErrorReason.DATAFRAME_CHECK: ErrorCategory.DATA,
+    SchemaErrorReason.CHECK_ERROR: ErrorCategory.DATA,
+    SchemaErrorReason.DUPLICATES: ErrorCategory.DATA,
+    SchemaErrorReason.WRONG_FIELD_NAME: ErrorCategory.SCHEMA,
+    SchemaErrorReason.SERIES_CONTAINS_NULLS: ErrorCategory.SCHEMA,
+    SchemaErrorReason.SERIES_CONTAINS_DUPLICATES: ErrorCategory.DATA,
+    SchemaErrorReason.WRONG_DATATYPE: ErrorCategory.SCHEMA,
+    SchemaErrorReason.NO_ERROR: ErrorCategory.SCHEMA,
+    SchemaErrorReason.ADD_MISSING_COLUMN_NO_DEFAULT: ErrorCategory.DATA,
+    SchemaErrorReason.INVALID_COLUMN_NAME: ErrorCategory.SCHEMA,
+    SchemaErrorReason.MISMATCH_INDEX: ErrorCategory.DATA,
+    SchemaErrorReason.PARSER_ERROR: ErrorCategory.DATA,
+}
+
+
+def get_error_category(reason_code) -> ErrorCategory:
+    """Get the error category for a reason code.
+
+    :param reason_code: schema error reason enum
+    :returns ErrorCategory: error category enum
+    """
+    return ERROR_CATEGORY_MAP[reason_code]
+
+
 class ErrorHandler:
     """Handler for schema- and data-level errors during validation."""
 

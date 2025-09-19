@@ -5,84 +5,14 @@ from typing import (
     Any,
     Optional,
     TypeVar,
-    Union,
-    cast,
 )
 
-from pandera.api.base.model_components import (
-    BaseCheckInfo,
-    BaseFieldInfo,
-    CheckArg,
-    to_checklist,
-)
-from pandera.api.checks import Check
+from pandera.api.dataframe.model_components import Field as _Field
 from pandera.api.dataframe.components import ComponentSchema
-from pandera.api.pyspark.components import Column
-from pandera.api.pyspark.types import PySparkDtypeInputTypes
 from pandera.errors import SchemaInitError
 
 AnyCallable = Callable[..., Any]
 SchemaComponent = TypeVar("SchemaComponent", bound=ComponentSchema)
-
-CHECK_KEY = "__check_config__"
-DATAFRAME_CHECK_KEY = "__dataframe_check_config__"
-
-
-class FieldInfo(BaseFieldInfo):
-    """Captures extra information about a field.
-
-    *new in 0.5.0*
-    """
-
-    def _to_schema_component(
-        self,
-        dtype: PySparkDtypeInputTypes,
-        component: type[SchemaComponent],
-        checks: CheckArg = None,
-        **kwargs: Any,
-    ) -> SchemaComponent:
-        if self.dtype_kwargs:
-            dtype = dtype(**self.dtype_kwargs)  # type: ignore
-        checks = self.checks + to_checklist(checks)
-        return component(dtype, checks=checks, **kwargs)  # type: ignore
-
-    def to_column(
-        self,
-        dtype: PySparkDtypeInputTypes,
-        checks: CheckArg = None,
-        required: bool = True,
-        name: str = None,
-    ) -> Column:
-        """Create a schema_components.Column from a field."""
-        return self._to_schema_component(
-            dtype,
-            Column,
-            nullable=self.nullable,
-            coerce=self.coerce,
-            regex=self.regex,
-            required=required,
-            name=name,
-            checks=checks,
-            title=self.title,
-            description=self.description,
-            metadata=self.metadata,
-        )
-
-    @property
-    def properties(self) -> dict[str, Any]:
-        """Get column properties."""
-
-        return {
-            "dtype": self.dtype_kwargs,
-            "checks": self.checks,
-            "nullable": self.nullable,
-            "coerce": self.coerce,
-            "name": self.name,
-            "regex": self.regex,
-            "title": self.title,
-            "description": self.description,
-            "metadata": self.metadata,
-        }
 
 
 def Field(
@@ -107,7 +37,7 @@ def Field(
     regex: bool = False,
     ignore_na: bool = True,
     raise_warning: bool = False,
-    n_failure_cases: int = None,
+    n_failure_cases: int | None = None,
     alias: Any = None,
     check_name: bool | None = None,
     dtype_kwargs: dict[str, Any] | None = None,
@@ -146,157 +76,38 @@ def Field(
     :param kwargs: Specify custom checks that have been registered with the
         :class:`~pandera.extensions.register_check_method` decorator.
     """
-    check_kwargs = {
-        "ignore_na": ignore_na,
-        "raise_warning": raise_warning,
-        "n_failure_cases": n_failure_cases,
-    }
-    args = locals()
-    checks = []
-
-    check_dispatch = _check_dispatch()
-    for key in kwargs:
-        if key not in check_dispatch:
-            raise SchemaInitError(
-                f"custom check '{key}' is not available. Make sure you use "
-                "pandera.extensions.register_check_method decorator to "
-                "register your custom check method."
-            )
-
-    for arg_name, check_constructor in check_dispatch.items():
-        arg_value = args.get(arg_name, kwargs.get(arg_name))
-        if arg_value is None:
-            continue
-        if isinstance(arg_value, dict):
-            check_ = check_constructor(**arg_value, **check_kwargs)
-        else:
-            check_ = check_constructor(arg_value, **check_kwargs)
-        checks.append(check_)
     if unique:
         raise SchemaInitError(
             "unique Field argument not yet implemented for pyspark"
         )
 
-    return FieldInfo(
-        checks=checks or None,
+    return _Field(
+        eq=eq,
+        ne=ne,
+        gt=gt,
+        ge=ge,
+        lt=lt,
+        le=le,
+        in_range=in_range,
+        isin=isin,
+        notin=notin,
+        str_contains=str_contains,
+        str_endswith=str_endswith,
+        str_length=str_length,
+        str_matches=str_matches,
+        str_startswith=str_startswith,
         nullable=nullable,
         unique=unique,
         coerce=coerce,
         regex=regex,
-        check_name=check_name,
+        ignore_na=ignore_na,
+        raise_warning=raise_warning,
+        n_failure_cases=n_failure_cases,
         alias=alias,
+        check_name=check_name,
+        dtype_kwargs=dtype_kwargs,
         title=title,
         description=description,
-        dtype_kwargs=dtype_kwargs,
         metadata=metadata,
+        **kwargs,
     )
-
-
-def _check_dispatch():
-    return {
-        "eq": Check.equal_to,
-        "ne": Check.not_equal_to,
-        "gt": Check.greater_than,
-        "ge": Check.greater_than_or_equal_to,
-        "lt": Check.less_than,
-        "le": Check.less_than_or_equal_to,
-        "in_range": Check.in_range,
-        "isin": Check.isin,
-        "notin": Check.notin,
-        "str_contains": Check.str_contains,
-        "str_endswith": Check.str_endswith,
-        "str_matches": Check.str_matches,
-        "str_length": Check.str_length,
-        "str_startswith": Check.str_startswith,
-        **Check.REGISTERED_CUSTOM_CHECKS,
-    }
-
-
-class CheckInfo(BaseCheckInfo):
-    """Captures extra information about a Check."""
-
-    ...
-
-
-class FieldCheckInfo(CheckInfo):
-    """Captures extra information about a Check assigned to a field."""
-
-    def __init__(
-        self,
-        fields: set[Union[str, FieldInfo]],
-        check_fn: AnyCallable,
-        regex: bool = False,
-        **check_kwargs: Any,
-    ) -> None:
-        super().__init__(check_fn, **check_kwargs)
-        self.fields = fields
-        self.regex = regex
-
-
-def _to_function_and_classmethod(
-    fn: Union[AnyCallable, classmethod],
-) -> tuple[AnyCallable, classmethod]:
-    if isinstance(fn, classmethod):
-        fn, method = fn.__func__, cast(classmethod, fn)
-    else:
-        method = classmethod(fn)
-    return fn, method
-
-
-ClassCheck = Callable[[Union[classmethod, AnyCallable]], classmethod]
-
-
-def check(*fields, regex: bool = False, **check_kwargs) -> ClassCheck:
-    """Decorator to make DataFrameModel method a column check function.
-
-    *new in 0.16.0*
-
-    This indicates that the decorated method should be used to validate a field
-    (column). The method will be converted to a classmethod. Therefore
-    its signature must start with `cls` followed by regular check arguments.
-    See the :ref:`User Guide <schema-model-custom-check>` for more.
-
-    :param _fn: Method to decorate.
-    :param check_kwargs: Keywords arguments forwarded to Check.
-    """
-
-    def _wrapper(fn: Union[classmethod, AnyCallable]) -> classmethod:
-        check_fn, check_method = _to_function_and_classmethod(fn)
-        check_kwargs.setdefault("description", fn.__doc__)
-        setattr(
-            check_method,
-            CHECK_KEY,
-            FieldCheckInfo(set(fields), check_fn, regex, **check_kwargs),
-        )
-        return check_method
-
-    return _wrapper
-
-
-def dataframe_check(_fn=None, **check_kwargs) -> ClassCheck:
-    """Decorator to make DataFrameModel method a dataframe-wide check function.
-
-    *new in 0.16.0*
-
-    Decorate a method on the DataFrameModel indicating that it should be used to
-    validate the DataFrame. The method will be converted to a classmethod.
-    Therefore its signature must start with `cls` followed by regular check
-    arguments. See the :ref:`User Guide <schema-model-dataframe-check>` for
-    more.
-
-    :param check_kwargs: Keywords arguments forwarded to Check.
-    """
-
-    def _wrapper(fn: Union[classmethod, AnyCallable]) -> classmethod:
-        check_fn, check_method = _to_function_and_classmethod(fn)
-        check_kwargs.setdefault("description", fn.__doc__)
-        setattr(
-            check_method,
-            DATAFRAME_CHECK_KEY,
-            CheckInfo(check_fn, **check_kwargs),
-        )
-        return check_method
-
-    if _fn:
-        return _wrapper(_fn)  # type: ignore
-    return _wrapper

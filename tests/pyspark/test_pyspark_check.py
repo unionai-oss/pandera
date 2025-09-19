@@ -106,15 +106,15 @@ class TestDecorator:
         df_out = schema.validate(df)
         expected = {
             "DATA": {
-                "DATAFRAME_CHECK": [
+                "CHECK_ERROR": [
                     {
-                        "check": None,
-                        "column": None,
-                        "error": 'The check with name "str_startswith" '
-                        "was expected to be run for string but got integer "
-                        "instead from the input. This error is usually caused "
-                        "by schema mismatch the value is different from schema "
-                        "defined in pandera schema and one in the dataframe",
+                        "check": "str_startswith('B')",
+                        "column": 'code',
+                        "error": 'SchemaError("The check with name "str_startswith" '
+                        'was expected to be run for string but got integer '
+                        'instead from the input. This error is usually caused '
+                        'by schema mismatch the value is different from schema '
+                        'defined in pandera schema and one in the dataframe")',
                         "schema": None,
                     }
                 ]
@@ -1684,7 +1684,7 @@ class TestCustomCheck(BaseClass):
             IntegerType(),
         )
 
-    def test_extension_pydantic(
+    def test_extension_dataframe_model(
         self, spark_session, extra_registered_checks, request
     ):  # pylint: disable=unused-argument
         """Test custom extension with DataFrameModel way of defining schema"""

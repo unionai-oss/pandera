@@ -34,7 +34,8 @@ class ColumnInfo(NamedTuple):
     expanded_column_names: frozenset
     destuttered_column_names: list
     absent_column_names: list
-    regex_match_patterns: list
+    regex_match_patterns: list | None = None
+    lazy_exclude_column_names: list | None = None
 
 
 class CoreParserResult(NamedTuple):

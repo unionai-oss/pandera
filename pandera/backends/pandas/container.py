@@ -609,8 +609,6 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
             )
 
         if error_handler.collected_errors:
-            # raise SchemaErrors if this method is called without an
-            # error_handler
             raise SchemaErrors(
                 schema=schema,
                 schema_errors=error_handler.schema_errors,

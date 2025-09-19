@@ -11,9 +11,10 @@ from pandera import errors, external_config
 from pandera._version import __version__
 from pandera.accessors import pyspark_sql_accessor
 from pandera.api.checks import Check
+from pandera.api.dataframe.model_components import check, dataframe_check
 from pandera.api.pyspark import Column, DataFrameSchema
 from pandera.api.pyspark.model import DataFrameModel
-from pandera.api.pyspark.model_components import Field, check, dataframe_check
+from pandera.api.pyspark.model_components import Field
 from pandera.decorators import check_input, check_io, check_output, check_types
 from pandera.dtypes import (
     Bool,

@@ -4,7 +4,7 @@ from collections.abc import Iterable
 from typing import Any, Optional, Union
 
 
-from pandera.api.base.types import CheckList
+from pandera.api.base.types import CheckList, ParserList
 from pandera.api.dataframe.components import ComponentSchema
 from pandera.backends.pyspark.register import register_pyspark_backends
 from pandera.dtypes import DataType
