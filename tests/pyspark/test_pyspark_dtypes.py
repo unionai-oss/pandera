@@ -7,10 +7,9 @@ import pyspark.sql.types as T
 import pytest
 from pyspark.sql import DataFrame
 
-from pandera.backends.pyspark.decorators import validate_scope
 from pandera.config import PanderaConfig
 from pandera.pyspark import Column, DataFrameSchema
-from pandera.validation_depth import ValidationScope
+from pandera.validation_depth import ValidationScope, validate_scope
 from tests.pyspark.conftest import spark_df
 
 pytestmark = pytest.mark.parametrize(
