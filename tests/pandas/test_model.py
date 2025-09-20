@@ -2125,6 +2125,35 @@ def test_empty() -> None:
     assert Schema.validate(df).empty  # type: ignore [attr-defined]
 
 
+def test_empty_with_multi_index() -> None:
+    """Test to generate an empty DataFrameModel with a named multi index"""
+
+    class Schema(pa.DataFrameModel):
+        idx1: Index[str]
+        idx2: Index[int]
+        value: Series[float]
+
+    df = Schema.empty()
+    assert df.empty
+    assert isinstance(df.index, pd.MultiIndex)
+    assert df.index.names == ["idx1", "idx2"]
+    dtype_level_0 = df.index.get_level_values(0)
+    dtype_level_1 = df.index.get_level_values(1)
+    assert pd.api.types.is_object_dtype(dtype_level_0)
+    assert pd.api.types.is_integer_dtype(dtype_level_1)
+
+
+def test_empty_with_index() -> None:
+    class Schema(pa.DataFrameModel):
+        idx: Index[int] = pa.Field(check_name=True)
+        value: Series[float]
+
+    df = Schema.empty()
+    assert df.empty
+    assert df.index.name == "idx"
+    assert pd.api.types.is_integer_dtype(df.index.dtype)
+
+
 def test_model_with_pydantic_base_model_with_df_init():
     """
     Test that a dataframe can be initialized within a pydantic base model that
