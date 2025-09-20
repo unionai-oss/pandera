@@ -19,6 +19,50 @@ from pandera.errors import SchemaError, SchemaInitError
 from pandera.typing import DataFrame, Index, Series, String
 
 
+def test_idempotent_magics() -> None:
+    """
+    Test that various dunderscore descriptors do not require additional
+    initialization
+    """
+
+    class Model(pa.DataFrameModel):
+        a: Series[int]
+        b: Series[str]
+        c: Series[Any]
+        idx: Index[str]
+
+        # parsers at the column level
+        @pa.parser("a")
+        def sqrt(cls, series):
+            return series.transform("sqrt")
+
+        @pa.check("a")
+        def int_column_lt_100(cls, series: pd.Series) -> Iterable[bool]:
+            assert cls is Model
+            return series < 100
+
+        # DataFrame-level check, used to populate __root_checks__
+        @pa.dataframe_check
+        def root_check_test(cls, df: pd.DataFrame) -> Iterable[bool]:
+            return df["a"] >= 0
+
+        # DataFrame-level parser, used to populate __root_parsers__
+        @pa.dataframe_parser
+        def root_parser_test(cls, df: pd.DataFrame) -> pd.DataFrame:
+            df = df.copy()
+            df["a"] = df["a"].abs()
+            return df
+
+    # NEW: __fields__ is populated without the need to run .to_schema()
+    assert Model.__fields__.keys() == {"a", "b", "c", "idx"}
+    assert Model.__schema__.name == "Model"
+    assert Model.__checks__["a"]
+    assert Model.__parsers__["a"]
+
+    assert Model.__root_checks__[0].name is "root_check_test"
+    assert Model.__root_parsers__[0].name is "root_parser_test"
+
+
 def test_to_schema_and_validate() -> None:
     """
     Test that DataFrameModel.to_schema() can produce the correct schema and
