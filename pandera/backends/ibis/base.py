@@ -5,7 +5,7 @@ from collections import defaultdict
 
 import ibis
 
-from pandera.api.base.error_handler import ErrorHandler
+from pandera.api.ibis.error_handler import ErrorHandler
 from pandera.api.ibis.types import CheckResult
 from pandera.backends.base import BaseSchemaBackend, CoreCheckResult
 from pandera.backends.pandas.error_formatters import (

@@ -11,7 +11,7 @@ import ibis
 from ibis import _, selectors as s
 from ibis.common.exceptions import IbisError
 
-from pandera.api.base.error_handler import ErrorHandler
+from pandera.api.ibis.error_handler import ErrorHandler
 from pandera.config import ValidationScope
 from pandera.backends.base import CoreCheckResult, ColumnInfo
 from pandera.backends.utils import convert_uniquesettings

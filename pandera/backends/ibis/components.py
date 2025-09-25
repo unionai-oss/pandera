@@ -9,7 +9,7 @@ from collections.abc import Iterable
 import ibis
 import ibis.selectors as s
 
-from pandera.api.base.error_handler import ErrorHandler
+from pandera.api.ibis.error_handler import ErrorHandler
 from pandera.backends.base import CoreCheckResult
 from pandera.backends.ibis.base import IbisSchemaBackend
 from pandera.config import ValidationScope
