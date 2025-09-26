@@ -382,12 +382,9 @@ class DateTime(DataType, dtypes.DateTime):
         self,
         timezone: Optional[str] = None,
         scale: Optional[Literal[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]] = None,
-        nullable: Optional[bool] = True,
     ):
         object.__setattr__(
-            self,
-            "type",
-            dt.Timestamp(timezone=timezone, scale=scale, nullable=nullable),
+            self, "type", dt.Timestamp(timezone=timezone, scale=scale)
         )
 
     @classmethod
@@ -397,7 +394,6 @@ class DateTime(DataType, dtypes.DateTime):
         return cls(
             timezone=ibis_dtype.timezone,
             scale=ibis_dtype.scale,
-            nullable=ibis_dtype.nullable,
         )
 
 
@@ -433,15 +429,11 @@ class Timedelta(DataType, dtypes.DateTime):
 
     type: type[dt.Interval]
 
-    def __init__(
-        self, unit: IntervalUnit = "us", nullable: Optional[bool] = True
-    ):
-        object.__setattr__(
-            self, "type", dt.Interval(unit=unit, nullable=nullable)
-        )
+    def __init__(self, unit: IntervalUnit = "us"):
+        object.__setattr__(self, "type", dt.Interval(unit=unit))
 
     @classmethod
     def from_parametrized_dtype(cls, ibis_dtype: dt.Interval):
         """Convert a :class:`dt.Interval` to a Pandera
         :class:`~pandera.engines.ibis_engine.Timedelta`."""
-        return cls(unit=ibis_dtype.unit, nullable=ibis_dtype.nullable)
+        return cls(unit=ibis_dtype.unit)
