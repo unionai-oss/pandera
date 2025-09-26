@@ -88,3 +88,29 @@ def test_check_equivalent(dtype):
     actual_dtype = ie.Engine.dtype(dtype)
     expected_dtype = ie.Engine.dtype(dtype)
     assert actual_dtype.check(expected_dtype)
+
+
+@pytest.mark.parametrize(
+    "first_dtype, second_dtype, equivalent",
+    [
+        (ie.Int8, ie.Int16, False),
+        (ie.DateTime(), ie.Date, False),
+        (
+            ie.DateTime(timezone=None, scale=1),
+            ie.DateTime(timezone=None, scale=2),
+            False,
+        ),
+        (
+            ie.DateTime(timezone=None, scale=1),
+            ie.DateTime(timezone=None, scale=1),
+            True,
+        ),
+        (ie.Timedelta(unit="us"), ie.Timedelta(unit="ns"), False),
+        (ie.Timedelta(unit="us"), ie.Timedelta(unit="us"), True),
+    ],
+)
+def test_check_equivalent_custom(first_dtype, second_dtype, equivalent):
+    """Test that check() rejects non-equivalent dtypes."""
+    first_engine_dtype = ie.Engine.dtype(first_dtype)
+    second_engine_dtype = ie.Engine.dtype(second_dtype)
+    assert first_engine_dtype.check(second_engine_dtype) is equivalent
