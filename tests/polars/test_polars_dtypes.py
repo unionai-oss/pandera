@@ -259,7 +259,7 @@ def test_check_not_equivalent(dtype):
     else:
         actual_dtype = pe.Engine.dtype(object)
     expected_dtype = pe.Engine.dtype(dtype)
-    assert actual_dtype.check(expected_dtype) is False
+    assert not actual_dtype.check(expected_dtype)
 
 
 @pytest.mark.parametrize("dtype", all_types + special_types)
@@ -267,7 +267,7 @@ def test_check_equivalent(dtype):
     """Test that check() accepts equivalent dtypes."""
     actual_dtype = pe.Engine.dtype(dtype)
     expected_dtype = pe.Engine.dtype(dtype)
-    assert actual_dtype.check(expected_dtype) is True
+    assert actual_dtype.check(expected_dtype)
 
 
 @pytest.mark.parametrize(

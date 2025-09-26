@@ -69,3 +69,22 @@ def test_coerce_cast(from_dtype, to_dtype, strategy, data):
     coerced = to_dtype.coerce(data_container=s)
     for dtype in coerced.schema().values():
         assert dtype == to_dtype.type
+
+
+@pytest.mark.parametrize("dtype", ALL_TYPES)
+def test_check_not_equivalent(dtype):
+    """Test that check() rejects non-equivalent dtypes."""
+    if str(ie.Engine.dtype(dtype)) == "string":
+        actual_dtype = ie.Engine.dtype(int)
+    else:
+        actual_dtype = ie.Engine.dtype(str)
+    expected_dtype = ie.Engine.dtype(dtype)
+    assert not actual_dtype.check(expected_dtype)
+
+
+@pytest.mark.parametrize("dtype", ALL_TYPES)
+def test_check_equivalent(dtype):
+    """Test that check() accepts equivalent dtypes."""
+    actual_dtype = ie.Engine.dtype(dtype)
+    expected_dtype = ie.Engine.dtype(dtype)
+    assert actual_dtype.check(expected_dtype)
