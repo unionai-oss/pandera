@@ -340,3 +340,27 @@ def test_regex_selector(
             modified_data = transform_fn(t_for_regex_match, column)
             with pytest.raises(pa.errors.SchemaError, match=exception_msg):
                 modified_data.pipe(schema.validate)
+
+
+def test_lazy_validation_errors():
+
+    schema = DataFrameSchema(
+        {
+            "a": Column(int),
+            "b": Column(str, pa.Check.isin([*"abc"])),
+            "c": Column(float, [pa.Check.ge(0.0), pa.Check.le(1.0)]),
+        }
+    )
+
+    invalid_t = ibis.memtable(
+        {
+            "a": ["1", "2", "3"],  # 1 dtype error
+            "b": ["d", "e", "f"],  # 3 value errors
+            "c": [0.0, 1.1, -0.1],  # 2 value errors
+        }
+    )
+
+    try:
+        schema.validate(invalid_t, lazy=True)
+    except pa.errors.SchemaErrors as exc:
+        assert exc.failure_cases.shape[0] == 6
