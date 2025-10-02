@@ -99,6 +99,7 @@ class Engine(
         dtypes.Bool(),
         dt.Boolean,
         dt.boolean,
+        dt.Boolean(nullable=False),
     ]
 )
 @immutable
@@ -114,7 +115,14 @@ class Bool(DataType, dtypes.Bool):
 
 
 @Engine.register_dtype(
-    equivalents=[np.int8, dtypes.Int8, dtypes.Int8(), dt.Int8, dt.int8]
+    equivalents=[
+        np.int8,
+        dtypes.Int8,
+        dtypes.Int8(),
+        dt.Int8,
+        dt.int8,
+        dt.Int8(nullable=False),
+    ]
 )
 @immutable
 class Int8(DataType, dtypes.Int8):
@@ -124,7 +132,14 @@ class Int8(DataType, dtypes.Int8):
 
 
 @Engine.register_dtype(
-    equivalents=[np.int16, dtypes.Int16, dtypes.Int16(), dt.Int16, dt.int16]
+    equivalents=[
+        np.int16,
+        dtypes.Int16,
+        dtypes.Int16(),
+        dt.Int16,
+        dt.int16,
+        dt.Int16(nullable=False),
+    ]
 )
 @immutable
 class Int16(DataType, dtypes.Int16):
@@ -134,7 +149,14 @@ class Int16(DataType, dtypes.Int16):
 
 
 @Engine.register_dtype(
-    equivalents=[np.int32, dtypes.Int32, dtypes.Int32(), dt.Int32, dt.int32]
+    equivalents=[
+        np.int32,
+        dtypes.Int32,
+        dtypes.Int32(),
+        dt.Int32,
+        dt.int32,
+        dt.Int32(nullable=False),
+    ]
 )
 @immutable
 class Int32(DataType, dtypes.Int32):
@@ -151,6 +173,7 @@ class Int32(DataType, dtypes.Int32):
         dtypes.Int64(),
         dt.Int64,
         dt.int64,
+        dt.Int64(nullable=False),
     ]
 )
 @immutable
@@ -166,7 +189,14 @@ class Int64(DataType, dtypes.Int64):
 
 
 @Engine.register_dtype(
-    equivalents=[np.uint8, dtypes.UInt8, dtypes.UInt8(), dt.UInt8, dt.uint8]
+    equivalents=[
+        np.uint8,
+        dtypes.UInt8,
+        dtypes.UInt8(),
+        dt.UInt8,
+        dt.uint8,
+        dt.UInt8(nullable=False),
+    ]
 )
 @immutable
 class UInt8(DataType, dtypes.UInt8):
@@ -182,6 +212,7 @@ class UInt8(DataType, dtypes.UInt8):
         dtypes.UInt16(),
         dt.UInt16,
         dt.uint16,
+        dt.UInt16(nullable=False),
     ]
 )
 @immutable
@@ -198,6 +229,7 @@ class UInt16(DataType, dtypes.UInt16):
         dtypes.UInt32(),
         dt.UInt32,
         dt.uint32,
+        dt.UInt32(nullable=False),
     ]
 )
 @immutable
@@ -214,6 +246,7 @@ class UInt32(DataType, dtypes.UInt32):
         dtypes.UInt64(),
         dt.UInt64,
         dt.uint64,
+        dt.UInt64(nullable=False),
     ]
 )
 @immutable
@@ -235,6 +268,7 @@ class UInt64(DataType, dtypes.UInt64):
         dtypes.Float32(),
         dt.Float32,
         dt.float32,
+        dt.Float32(nullable=False),
     ]
 )
 @immutable
@@ -252,6 +286,7 @@ class Float32(DataType, dtypes.Float32):
         dtypes.Float64(),
         dt.Float64,
         dt.float64,
+        dt.Float64(nullable=False),
     ]
 )
 @immutable
@@ -274,6 +309,7 @@ class Float64(DataType, dtypes.Float64):
         dtypes.String(),
         dt.String,
         dt.string,
+        dt.String(nullable=False),
     ]
 )
 @immutable
@@ -291,6 +327,7 @@ class String(DataType, dtypes.String):
         dtypes.Binary(),
         dt.Binary,
         dt.binary,
+        dt.Binary(nullable=False),
     ]
 )
 @immutable
@@ -313,6 +350,7 @@ class Binary(DataType, dtypes.Binary):
         dtypes.Date(),
         dt.Date,
         dt.date,
+        dt.Date(nullable=False),
     ]
 )
 @immutable
@@ -331,6 +369,7 @@ class Date(DataType, dtypes.Date):
         dtypes.DateTime(),
         dt.Timestamp,
         dt.timestamp,
+        dt.Timestamp(nullable=False),
     ]
 )
 @immutable(init=True)
@@ -352,7 +391,10 @@ class DateTime(DataType, dtypes.DateTime):
     def from_parametrized_dtype(cls, ibis_dtype: dt.Timestamp):
         """Convert a :class:`dt.Timestamp` to a Pandera
         :class:`~pandera.engines.ibis_engine.DateTime`."""
-        return cls(timezone=ibis_dtype.timezone, scale=ibis_dtype.scale)
+        return cls(
+            timezone=ibis_dtype.timezone,
+            scale=ibis_dtype.scale,
+        )
 
 
 @Engine.register_dtype(
@@ -361,6 +403,7 @@ class DateTime(DataType, dtypes.DateTime):
         datetime.time,
         dt.Time,
         dt.time,
+        dt.Time(nullable=False),
     ]
 )
 @immutable
