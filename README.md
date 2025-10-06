@@ -34,7 +34,7 @@
 Pandera is a [Union.ai](https://union.ai/blog-post/pandera-joins-union-ai) open
 source project that provides a flexible and expressive API for performing data
 validation on dataframe-like objects. The goal of Pandera is to make data
-processing pipelines more readable and robust with statistically typed
+processing pipelines more readable and robust with statically typed
 dataframes.
 
 ## Install
