@@ -13,6 +13,7 @@ from pandera.api.ibis.error_handler import ErrorHandler
 from pandera.backends.base import CoreCheckResult
 from pandera.backends.ibis.base import IbisSchemaBackend
 from pandera.config import ValidationScope
+from pandera.constants import CHECK_OUTPUT_KEY
 from pandera.engines.ibis_engine import Engine
 from pandera.errors import (
     SchemaDefinitionError,
@@ -68,6 +69,7 @@ class ColumnBackend(IbisSchemaBackend):
 
                 # run the checks
                 core_checks = [
+                    self.check_nullable,
                     self.check_dtype,
                     self.run_checks,
                 ]
@@ -128,6 +130,37 @@ class ColumnBackend(IbisSchemaBackend):
 
     def get_regex_columns(self, schema, check_obj) -> Iterable:
         return check_obj.select(s.matches(schema.selector)).columns
+
+    @validate_scope(scope=ValidationScope.DATA)
+    def check_nullable(
+        self, check_obj: ibis.Column, schema: Column
+    ) -> CoreCheckResult:
+        """Check if a column is nullable.
+
+        This check considers nulls and nan values as effectively equivalent.
+        """
+        if schema.nullable:
+            return CoreCheckResult(
+                passed=True,
+                check="not_nullable",
+                reason_code=SchemaErrorReason.SERIES_CONTAINS_NULLS,
+            )
+
+        isna = check_obj.isnull()
+        if check_obj.type().is_floating():
+            isna |= check_obj.isnan()
+
+        passed = (~isna).all().to_pyarrow().as_py()
+        check_output = isna.name(CHECK_OUTPUT_KEY)
+        failure_cases = check_obj.as_table().filter(check_output)
+        return CoreCheckResult(
+            passed=passed,
+            check_output=check_output,
+            check="not_nullable",
+            reason_code=SchemaErrorReason.SERIES_CONTAINS_NULLS,
+            message=f"non-nullable column '{schema.name}' contains null values",
+            failure_cases=failure_cases,
+        )
 
     @validate_scope(scope=ValidationScope.SCHEMA)
     def check_dtype(
