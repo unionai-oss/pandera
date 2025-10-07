@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Optional, cast
 from collections.abc import Iterable
 
 import ibis
+import ibis.expr.operations as ops
 import ibis.selectors as s
 
 from pandera.api.ibis.error_handler import ErrorHandler
@@ -147,7 +148,9 @@ class ColumnBackend(IbisSchemaBackend):
             )
 
         isna = check_obj.isnull()
-        if check_obj.type().is_floating():
+        if check_obj.type().is_floating() and check_obj._find_backend(
+            use_default=True
+        ).has_operation(ops.IsNan):
             isna |= check_obj.isnan()
 
         passed = (~isna).all().to_pyarrow().as_py()
