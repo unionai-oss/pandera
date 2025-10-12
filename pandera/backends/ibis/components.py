@@ -148,8 +148,8 @@ class ColumnBackend(IbisSchemaBackend):
             )
 
         isna = check_obj.isnull()
-        if check_obj.type().is_floating() and check_obj._find_backend(
-            use_default=True
+        if check_obj.type().is_floating() and ibis.get_backend(
+            check_obj
         ).has_operation(ops.IsNan):
             isna |= check_obj.isnan()
 
