@@ -4,6 +4,7 @@ import warnings
 from collections import defaultdict
 
 import ibis
+import ibis.selectors as s
 
 from pandera.api.ibis.error_handler import ErrorHandler
 from pandera.api.ibis.types import CheckResult
@@ -14,6 +15,7 @@ from pandera.backends.pandas.error_formatters import (
     format_vectorized_error_message,
     reshape_failure_cases,
 )
+from pandera.constants import CHECK_OUTPUT_KEY, CHECK_OUTPUT_SUFFIX
 from pandera.errors import (
     FailureCaseMetadata,
     SchemaError,
@@ -127,3 +129,31 @@ class IbisSchemaBackend(BaseSchemaBackend):
             message=error_dicts,
             error_counts=error_counts,
         )
+
+    def drop_invalid_rows(
+        self, check_obj: ibis.Table, error_handler: ErrorHandler
+    ) -> ibis.Table:
+        """Remove invalid elements in a check obj according to failures caught by the error handler."""
+        import ibis.expr.types as ir
+
+        out = check_obj
+        for i, error in enumerate(error_handler.schema_errors):
+            check_output = error.check_output
+            if isinstance(check_output, ir.BooleanColumn):
+                check_output = (
+                    (~check_output).name(CHECK_OUTPUT_KEY).as_table()
+                )
+
+            out = out.join(
+                check_output.rename(
+                    {f"{i}{CHECK_OUTPUT_SUFFIX}": CHECK_OUTPUT_KEY}
+                ),
+                how="positional",
+            )
+
+        acc = ibis.literal(True)
+        for col in out.columns:
+            if col.endswith(CHECK_OUTPUT_SUFFIX):
+                acc = acc & out[col]
+
+        return out.filter(acc).drop(s.endswith(CHECK_OUTPUT_SUFFIX))

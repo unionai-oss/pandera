@@ -285,6 +285,51 @@ def test_dataframe_level_checks():
         assert err.failure_cases.shape[0] == 6
 
 
+@pytest.mark.parametrize(
+    "column_mod,filter_expr",
+    [
+        ({"int_col": [-1, 1, 1]}, _.int_col >= 0),
+        ({"string_col": [*"013"]}, _.string_col != "3"),
+        (
+            {
+                "int_col": [-1, 1, 1],
+                "string_col": [*"013"],
+            },
+            (_.int_col >= 0) & (_.string_col != "3"),
+        ),
+        ({"int_col": -1}, _.int_col >= 0),
+        ({"string_col": "d"}, _.string_col != "d"),
+        (
+            {"int_col": [None, 1, 1]},
+            _.int_col.notnull(),
+        ),
+    ],
+)
+def test_drop_invalid_rows(
+    column_mod,
+    filter_expr,
+    t_schema_with_check,
+):
+    t_schema_with_check.drop_invalid_rows = True
+    data = {
+        "string_col": ["0", "1", "2"],
+        "int_col": [0, 1, 2],
+    }
+    modified_data = ibis.memtable(
+        data | column_mod,
+        schema=ibis.schema([("string_col", "string"), ("int_col", "int64")]),
+        name="t",
+    )
+    validated_data = modified_data.pipe(
+        t_schema_with_check.validate,
+        lazy=True,
+    )
+    expected_valid_data = modified_data.filter(filter_expr)
+    got = validated_data.execute()
+    expected = expected_valid_data.execute()
+    assert validated_data.execute().equals(expected_valid_data.execute())
+
+
 def _failure_value(column: str, dtype: Optional[ibis.DataType] = None):
     if column.startswith("string"):
         return ibis.literal("9", type=dtype or dt.String)

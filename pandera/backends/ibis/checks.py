@@ -184,8 +184,7 @@ class IbisCheckBackend(BaseCheckBackend):
         """Postprocesses the result of applying the check function."""
         passed = check_output[CHECK_OUTPUT_KEY].all()
         failure_cases = check_output.filter(~_[CHECK_OUTPUT_KEY]).drop(
-            s.endswith(f"__{CHECK_OUTPUT_KEY}__")
-            | select_column(CHECK_OUTPUT_KEY)
+            s.endswith(CHECK_OUTPUT_SUFFIX) | select_column(CHECK_OUTPUT_KEY)
         )
         if check_obj.key is not None:
             failure_cases = failure_cases.select(check_obj.key)
