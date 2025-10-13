@@ -2,6 +2,7 @@
 
 from typing import Optional, Union
 from collections.abc import Iterable
+from contextlib import nullcontext
 
 import ibis
 import ibis.expr.datatypes as dt
@@ -13,7 +14,7 @@ from pandera.backends.base import CoreCheckResult
 from pandera.backends.ibis.components import ColumnBackend
 from pandera.dtypes import DataType
 from pandera.engines import ibis_engine
-from pandera.errors import SchemaDefinitionError, SchemaError
+from pandera.errors import SchemaDefinitionError, SchemaError, SchemaErrors
 
 DTYPES_AND_DATA = [
     # python types
@@ -150,38 +151,55 @@ def test_coerce_dtype(data, from_dtype, to_dtype, exception_cls):
 NULLABLE_DTYPES_AND_DATA = [
     [dt.Int64, [1, 2, 3, None]],
     [dt.String, ["foo", "bar", "baz", None]],
-    [dt.Float64, [1.0, 2.0, 3.0, float("nan"), None]],
+    [dt.Float64, ["1.0", "2.0", "3.0", "nan", None]],
     [dt.Boolean, [True, False, True, None]],
 ]
 
 
-@pytest.mark.xfail(raises=NotImplementedError)
 @pytest.mark.parametrize("dtype, data", NULLABLE_DTYPES_AND_DATA)
 @pytest.mark.parametrize("nullable", [True, False])
 def test_check_nullable(dtype, data, nullable):
-    data = ibis.memtable({"column": data}, schema={"column": dtype})
+    if dtype == dt.Float64:
+        data = ibis.memtable({"column": data})
+        data = data.mutate(column=ibis._.column.cast(float))
+    else:
+        data = ibis.memtable({"column": data}, schema={"column": dtype})
+
     column_schema = pa.Column(dtype, nullable=nullable, name="column")
     backend = ColumnBackend()
-    check_results: list[CoreCheckResult] = backend.check_nullable(
-        data, column_schema
+    result: CoreCheckResult = backend.check_nullable(
+        data["column"], column_schema
     )
-    for result in check_results:
-        assert result.passed if nullable else not result.passed
+    assert result.passed if nullable else not result.passed
 
 
-@pytest.mark.xfail(raises=NotImplementedError)
 @pytest.mark.parametrize("dtype, data", NULLABLE_DTYPES_AND_DATA)
-@pytest.mark.parametrize("nullable", [True, False])
-def test_check_nullable_regex(dtype, data, nullable):
-    data = ibis.memtable(
-        {f"column_{i}": data for i in range(3)},
-        schema={f"column_{i}": dtype for i in range(3)},
-    )
+@pytest.mark.parametrize(
+    "nullable, expectation",
+    [(True, nullcontext()), (False, pytest.raises(SchemaErrors))],
+)
+def test_check_nullable_regex(dtype, data, nullable, expectation):
+    if dtype == dt.Float64:
+        data = ibis.memtable({f"column_{i}": data for i in range(3)})
+        data = data.mutate(
+            **{
+                f"column_{i}": ibis._[f"column_{i}"].cast(float)
+                for i in range(3)
+            }
+        )
+    else:
+        data = ibis.memtable(
+            {f"column_{i}": data for i in range(3)},
+            schema={f"column_{i}": dtype for i in range(3)},
+        )
+
     column_schema = pa.Column(dtype, nullable=nullable, name=r"^column_\d+$")
     backend = ColumnBackend()
-    check_results = backend.check_nullable(data, column_schema)
-    for result in check_results:
-        assert result.passed if nullable else not result.passed
+    with expectation as exc:
+        backend.validate(data, column_schema, lazy=True)
+
+    if not nullable:
+        assert exc.value.failure_cases.shape[0] == 3
 
 
 @pytest.mark.xfail(raises=NotImplementedError)
