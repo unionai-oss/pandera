@@ -238,7 +238,19 @@ class DataFrameModel(_DataFrameModel[pd.DataFrame, DataFrameSchema]):
         """Create an empty DataFrame with the schema of this model."""
         schema = copy.deepcopy(cls.to_schema())
         schema.coerce = True
-        empty_df = schema.coerce_dtype(pd.DataFrame(columns=[*schema.columns]))
+
+        if isinstance(schema.index, MultiIndex):
+            index = pd.MultiIndex.from_arrays(
+                [pd.Index([], name=idx.name) for idx in schema.index.indexes]
+            )
+        elif isinstance(schema.index, Index):
+            index = pd.Index([], name=schema.index.name)
+        else:
+            index = None
+
+        empty_df = schema.coerce_dtype(
+            pd.DataFrame(columns=[*schema.columns], index=index)
+        )
         return DataFrame[Self](empty_df)
 
 
