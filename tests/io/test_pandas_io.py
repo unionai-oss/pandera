@@ -1643,8 +1643,7 @@ fields:
       required: true
     name: float_col
     type: number
-  - constraints:
-    name: float_col_2
+  - name: float_col_2
     type: number
   - constraints:
       minimum: "20201231"
