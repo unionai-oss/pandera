@@ -57,7 +57,7 @@ hypotheses = [
 io = [
     "pyyaml >= 5.1",
     "black",
-    "frictionless <= 5.18.1",
+    "frictionless >= 5.18.1",
 ]
 mypy = [
     "pandas-stubs",
