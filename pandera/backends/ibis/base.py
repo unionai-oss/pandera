@@ -10,9 +10,11 @@ from pandera.api.ibis.types import CheckResult
 from pandera.backends.base import BaseSchemaBackend, CoreCheckResult
 from pandera.backends.pandas.error_formatters import (
     consolidate_failure_cases,
+    reshape_failure_cases,
+)
+from pandera.backends.ibis.error_formatters import (
     format_generic_error_message,
     format_vectorized_error_message,
-    reshape_failure_cases,
 )
 from pandera.errors import (
     FailureCaseMetadata,
