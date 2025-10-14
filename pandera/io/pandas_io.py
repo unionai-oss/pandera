@@ -6,6 +6,7 @@ from collections.abc import Mapping
 from functools import partial
 from pathlib import Path
 from typing import Optional, Union, Any
+from frictionless.fields import AnyField
 
 import pandas as pd
 
@@ -677,11 +678,13 @@ class FrictionlessFieldParser:
         duplicates, no missing values etc.
     """
 
-    def __init__(self, field, primary_keys) -> None:
+    def __init__(self, field: AnyField, primary_keys: list[str]) -> None:
         self.constraints = field.constraints or {}
         self.primary_keys = primary_keys
+        self.description = field.description
+        self.title = field.title
         self.name = field.name
-        self.type = field.get("type", "string")
+        self.type = field.type
 
     @property
     def dtype(self) -> str:
@@ -850,6 +853,8 @@ class FrictionlessFieldParser:
             "required": self.required,
             "name": self.name,
             "regex": self.regex,
+            "description": self.description,
+            "title": self.title,
         }
 
 
