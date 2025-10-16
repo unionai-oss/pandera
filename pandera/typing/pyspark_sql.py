@@ -45,14 +45,13 @@ if PYSPARK_SQL_INSTALLED:
     )
     from typing import TYPE_CHECKING, Generic
 
-    # pylint:disable=invalid-name
     if TYPE_CHECKING:
         T = TypeVar("T")  # pragma: no cover
     else:
         T = DataFrameModel
 
     if PYSPARK_SQL_INSTALLED:
-        # pylint: disable=too-few-public-methods,arguments-renamed
+
         class DataFrame(DataFrameBase, ps.DataFrame, Generic[T]):
             """
             Representation of dask.dataframe.DataFrame, only used for type

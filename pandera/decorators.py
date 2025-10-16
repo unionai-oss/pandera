@@ -4,23 +4,20 @@ import functools
 import inspect
 import sys
 import types
-import typing
 from typing import (
     Any,
     Callable,
-    Dict,
-    Iterable,
-    List,
     NoReturn,
     Optional,
-    Tuple,
     TypeVar,
     Union,
     cast,
     overload,
 )
+from collections.abc import Iterable
 
 from pydantic import validate_arguments
+from typing import get_type_hints
 
 from pandera import errors
 from pandera.api.base.error_handler import ErrorHandler
@@ -46,7 +43,7 @@ def _unwrap_fn(fn: Callable) -> Callable:
     return fn
 
 
-def _get_fn_argnames(fn: Callable) -> List[str]:
+def _get_fn_argnames(fn: Callable) -> list[str]:
     """Get argument names of a function.
 
     :param fn: get argument names for this function.
@@ -160,7 +157,6 @@ def check_input(
     lazy: bool = False,
     inplace: bool = False,
 ) -> Callable[[F], F]:
-    # pylint: disable=duplicate-code
     """Validate function argument when function is called.
 
     This is a decorator function that validates the schema of a dataframe
@@ -224,7 +220,7 @@ def check_input(
         @functools.wraps(wrapped)
         def _wrapper(*args, **kwargs):
             """Check pandas DataFrame or Series before calling the function."""
-            # pylint: disable=too-many-branches
+
             args = list(args)
             validate_args = (head, tail, sample, random_state, lazy, inplace)
 
@@ -302,7 +298,6 @@ def check_output(
     lazy: bool = False,
     inplace: bool = False,
 ) -> Callable[[F], F]:
-    # pylint: disable=duplicate-code
     """Validate function output.
 
     Similar to input validator, but validates the output of the decorated
@@ -366,7 +361,7 @@ def check_output(
     # make sure that callable obj_getter doesn't work when the schema has
     # any component that requires coercion, since there's no way to re-assign
     # the output to the coerced data.
-    # pylint: disable=too-many-boolean-expressions
+
     if callable(obj_getter) and (
         schema.coerce
         or (schema.index is not None and schema.index.coerce)  # type: ignore[union-attr]
@@ -441,8 +436,8 @@ def check_io(
     inplace: bool = False,
     out: Union[
         Schemas,
-        Tuple[OutputGetter, Schemas],
-        List[Tuple[OutputGetter, Schemas]],
+        tuple[OutputGetter, Schemas],
+        list[tuple[OutputGetter, Schemas]],
         None,
     ] = None,
     **inputs: Schemas,
@@ -508,12 +503,11 @@ def check_io(
 
             wrapped_fn = wrapped
             for input_getter, input_schema in inputs.items():
-                # pylint: disable=no-value-for-parameter
+
                 wrapped_fn = check_input(
                     input_schema, input_getter, *check_args  # type: ignore
                 )(wrapped_fn)
 
-            # pylint: disable=no-value-for-parameter
             for out_getter, out_schema in out_schemas:  # type: ignore
                 wrapped_fn = check_output(out_schema, out_getter, *check_args)(
                     wrapped_fn
@@ -565,7 +559,6 @@ def check_types(
     lazy: bool = False,
     inplace: bool = False,
 ) -> Callable:
-    # pylint: disable=too-many-statements
     """Validate function inputs and output based on type annotations.
 
     See the :ref:`User Guide <dataframe-models>` for more.
@@ -586,7 +579,7 @@ def check_types(
     :param inplace: if True, applies coercion to the object of validation,
             otherwise creates a copy of the data.
     """
-    # pylint: disable=too-many-locals
+
     if wrapped is None:
         return functools.partial(
             check_types,
@@ -600,42 +593,55 @@ def check_types(
         )
 
     # Front-load annotation parsing
-    annotated_schema_models: Dict[
+    # @functools.lru_cache
+    def _get_annotated_schema_models(
+        wrapped: Callable,
+    ) -> dict[
         str,
         Iterable[
-            Tuple[Union[DataFrameModel, None], Union[AnnotationInfo, None]]
+            tuple[Union[DataFrameModel, None], Union[AnnotationInfo, None]]
         ],
-    ] = {}
-    for arg_name_, annotation in typing.get_type_hints(wrapped).items():
-        annotation_info = AnnotationInfo(annotation)
-        if not annotation_info.is_generic_df:
-            # pylint: disable=comparison-with-callable
-            if annotation_info.origin == Union:
-                annotation_model_pairs = []
-                for annot in annotation_info.args:  # type: ignore[union-attr]
-                    sub_annotation_info = AnnotationInfo(annot)
-                    if not sub_annotation_info.is_generic_df:
-                        continue
+    ]:
+        annotated_schema_models: dict[
+            str,
+            Iterable[
+                tuple[Union[DataFrameModel, None], Union[AnnotationInfo, None]]
+            ],
+        ] = {}
+        for arg_name_, annotation in get_type_hints(
+            wrapped, include_extras=True
+        ).items():
+            annotation_info = AnnotationInfo(annotation)
+            if not annotation_info.is_generic_df:
 
-                    schema_model = cast(
-                        DataFrameModel, sub_annotation_info.arg
-                    )
-                    annotation_model_pairs.append(
-                        (schema_model, sub_annotation_info)
-                    )
+                if annotation_info.origin == Union:
+                    annotation_model_pairs = []
+                    for annot in annotation_info.args:  # type: ignore[union-attr]
+                        sub_annotation_info = AnnotationInfo(annot)
+                        if not sub_annotation_info.is_generic_df:
+                            continue
+
+                        schema_model = cast(
+                            DataFrameModel, sub_annotation_info.arg
+                        )
+                        annotation_model_pairs.append(
+                            (schema_model, sub_annotation_info)
+                        )
+                else:
+                    continue
             else:
-                continue
-        else:
-            schema_model = cast(DataFrameModel, annotation_info.arg)
-            annotation_model_pairs = [(schema_model, annotation_info)]
+                schema_model = cast(DataFrameModel, annotation_info.arg)
+                annotation_model_pairs = [(schema_model, annotation_info)]
 
-        annotated_schema_models[arg_name_] = annotation_model_pairs
+            annotated_schema_models[arg_name_] = annotation_model_pairs
+        return annotated_schema_models
 
     def _check_arg(arg_name: str, arg_value: Any) -> Any:
         """
         Validate function's argument if annotated with a schema, else
         pass-through.
         """
+        annotated_schema_models = _get_annotated_schema_models(wrapped)
         annotation_model_pairs = annotated_schema_models.get(
             arg_name, [(None, None)]
         )
@@ -702,7 +708,7 @@ def check_types(
                                 errors.SchemaErrorReason.INVALID_TYPE,
                             ),
                         )
-                        continue  # pylint: disable=unreachable
+                        continue
 
                 if data_container_type and config and config.to_format:
                     arg_value = data_container_type.to_format(
@@ -724,8 +730,8 @@ def check_types(
     sig = inspect.signature(wrapped)
 
     def validate_args(
-        named_arguments: Dict[str, Any], arguments: Tuple[Any, ...]
-    ) -> List[Any]:
+        named_arguments: dict[str, Any], arguments: tuple[Any, ...]
+    ) -> list[Any]:
         """
         Validates schemas of both explicit and *args-like function arguments.
 
@@ -763,8 +769,8 @@ def check_types(
             )
 
     def validate_kwargs(
-        named_kwargs: Dict[str, Any], kwargs: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        named_kwargs: dict[str, Any], kwargs: dict[str, Any]
+    ) -> dict[str, Any]:
         """
         Validates schemas of both explicit and **kwargs-like function arguments.
 
@@ -803,9 +809,9 @@ def check_types(
             }
 
     def validate_inputs(
-        args: Tuple[Any, ...],
-        kwargs: Dict[str, Any],
-    ) -> Tuple[List[Any], Dict[str, Any]]:
+        args: tuple[Any, ...],
+        kwargs: dict[str, Any],
+    ) -> tuple[list[Any], dict[str, Any]]:
         validated_pos = validate_args(sig.bind_partial(*args).arguments, args)
         validated_kwd = validate_kwargs(
             sig.bind_partial(**kwargs).arguments, kwargs

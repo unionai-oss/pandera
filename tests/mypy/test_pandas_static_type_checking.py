@@ -10,7 +10,6 @@ import os
 import re
 import subprocess
 import sys
-import typing
 from pathlib import Path
 
 import pytest
@@ -24,9 +23,9 @@ test_module_dir = Path(os.path.dirname(__file__))
 def _get_mypy_errors(
     module_name: str,
     stdout,
-) -> typing.List[typing.Dict[str, str]]:
+) -> list[dict[str, str]]:
     """Parse line number and error message."""
-    errors: typing.List[typing.Dict[str, str]] = []
+    errors: list[dict[str, str]] = []
     # last line is summary of errors
     for error in [x for x in stdout.split("\n") if x != ""][:-1]:
         regex = (
@@ -173,7 +172,11 @@ PANDAS_SERIES_ERRORS_PLUGIN = [
         ["pandas_time.py", "no_plugin.ini", PANDAS_TIME_ERRORS],
         ["pandas_time.py", "plugin_mypy.ini", PANDAS_TIME_ERRORS],
         ["python_slice.py", "no_plugin.ini", PYTHON_SLICE_ERRORS],
-        ["python_slice.py", "plugin_mypy.ini", []],
+        [
+            "python_slice.py",
+            "plugin_mypy.ini",
+            PYTHON_SLICE_ERRORS if sys.version_info >= (3, 11) else [],
+        ],
         ["pandas_index.py", "no_plugin.ini", []],
         ["pandas_index.py", "plugin_mypy.ini", []],
         ["pandas_series.py", "no_plugin.ini", PANDAS_SERIES_ERRORS_NO_PLUGIN],

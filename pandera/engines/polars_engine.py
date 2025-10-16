@@ -1,6 +1,6 @@
-# pylint:disable=unused-argument
 """Polars engine and data types."""
 
+import builtins
 import dataclasses
 import datetime
 import decimal
@@ -8,17 +8,13 @@ import inspect
 import warnings
 from typing import (
     Any,
-    Iterable,
     Literal,
-    Mapping,
     Optional,
-    Sequence,
-    Tuple,
-    Type,
     Union,
     TypedDict,
     overload,
 )
+from collections.abc import Iterable, Mapping, Sequence
 
 import polars as pl
 from packaging import version
@@ -72,8 +68,12 @@ def polars_object_coercible(
 ) -> pl.LazyFrame:
     """Checks whether a polars object is coercible with respect to a type."""
     key = data_container.key or "*"
+
+    # do a strict cast for list types since is_not_null() cannot correctly
+    # evaluate null values in lists.
+    strict = isinstance(type_, pl.List)
     coercible = data_container.lazyframe.cast(
-        {key: type_}, strict=False
+        {key: type_}, strict=strict
     ).select(pl.col(key).is_not_null())
     # reduce to a single boolean column
     return coercible.select(pl.all_horizontal(key).alias(CHECK_OUTPUT_KEY))
@@ -96,14 +96,14 @@ def polars_failure_cases_from_coercible(
 def polars_coerce_failure_cases(
     data_container: PolarsData,
     type_: Any,
-) -> Tuple[pl.DataFrame, pl.DataFrame]:
+) -> tuple[pl.DataFrame, pl.DataFrame]:
     """
     Get the failure cases resulting from trying to coerce a polars object
     into particular data type.
     """
     try:
         is_coercible = polars_object_coercible(data_container, type_)
-    except (TypeError, pl.InvalidOperationError):
+    except (TypeError, pl.exceptions.InvalidOperationError):
         is_coercible = data_container.lazyframe.with_columns(
             **{CHECK_OUTPUT_KEY: pl.lit(False)}
         ).select(CHECK_OUTPUT_KEY)
@@ -132,7 +132,7 @@ def polars_coerce_failure_cases(
 class DataType(dtypes.DataType):
     """Base `DataType` for boxing Polars data types."""
 
-    type: Union[Type[pl.DataType], DataTypeClass] = dataclasses.field(
+    type: Union[builtins.type[pl.DataType], DataTypeClass] = dataclasses.field(
         repr=False, init=False
     )
 
@@ -198,7 +198,7 @@ class DataType(dtypes.DataType):
             lf = self.coerce(data_container)
             lf.collect()
             return lf
-        except COERCION_ERRORS as exc:  # pylint:disable=broad-except
+        except COERCION_ERRORS as exc:
             _key = (
                 ""
                 if data_container.key == "*"
@@ -236,9 +236,7 @@ class DataType(dtypes.DataType):
         return f"DataType({self})"
 
 
-class Engine(  # pylint:disable=too-few-public-methods
-    metaclass=engine.Engine, base_pandera_dtypes=DataType
-):
+class Engine(metaclass=engine.Engine, base_pandera_dtypes=DataType):
     """Polars data type engine."""
 
     @classmethod
@@ -391,7 +389,7 @@ class Decimal(DataType, dtypes.Decimal):
 
     _default_precision: int = dtypes.DEFAULT_PYTHON_PREC
 
-    def __init__(  # pylint:disable=super-init-not-called
+    def __init__(
         self,
         precision: int = _default_precision,
         scale: int = 0,
@@ -486,10 +484,10 @@ class Date(DataType, dtypes.Date):
 class DateTime(DataType, dtypes.DateTime):
     """Polars datetime data type."""
 
-    type: Type[pl.Datetime] = pl.Datetime
+    type: builtins.type[pl.Datetime] = pl.Datetime
     time_zone_agnostic: bool = False
 
-    def __init__(  # pylint:disable=super-init-not-called
+    def __init__(
         self,
         time_zone_agnostic: bool = False,
         time_zone: Optional[str] = None,
@@ -508,8 +506,8 @@ class DateTime(DataType, dtypes.DateTime):
 
     @classmethod
     def from_parametrized_dtype(cls, polars_dtype: pl.Datetime):
-        """Convert a :class:`polars.Decimal` to
-        a Pandera :class:`pandera.engines.polars_engine.Decimal`."""
+        """Convert a :class:`polars.Datetime` to
+        a Pandera :class:`pandera.engines.polars_engine.DateTime`."""
         return cls(
             time_zone=polars_dtype.time_zone, time_unit=polars_dtype.time_unit
         )
@@ -562,7 +560,7 @@ class Timedelta(DataType, dtypes.Timedelta):
 
     type = pl.Duration
 
-    def __init__(  # pylint:disable=super-init-not-called
+    def __init__(
         self,
         time_unit: Literal["ns", "us", "ms"] = "us",
     ) -> None:
@@ -609,15 +607,15 @@ class Array(DataType):
     def __init__(
         self,
         inner: PolarsDataType = ...,
-        shape: Union[int, Tuple[int, ...], None] = ...,
+        shape: Union[int, tuple[int, ...], None] = ...,
         *,
         width: Optional[int] = ...,
     ) -> None: ...
 
-    def __init__(  # pylint:disable=super-init-not-called
+    def __init__(
         self,
         inner: Optional[PolarsDataType] = None,
-        shape: Union[int, Tuple[int, ...], None] = None,
+        shape: Union[int, tuple[int, ...], None] = None,
         *,
         width: Optional[int] = None,
     ) -> None:
@@ -657,7 +655,7 @@ class List(DataType):
 
     type = pl.List
 
-    def __init__(  # pylint:disable=super-init-not-called
+    def __init__(
         self,
         inner: Optional[PolarsDataType] = None,
     ) -> None:
@@ -676,7 +674,7 @@ class Struct(DataType):
 
     type = pl.Struct
 
-    def __init__(  # pylint:disable=super-init-not-called
+    def __init__(
         self,
         fields: Optional[Union[Sequence[pl.Field], SchemaDict]] = None,
     ) -> None:
@@ -732,12 +730,16 @@ class Categorical(DataType):
 
     ordering = None
 
-    def __init__(  # pylint:disable=super-init-not-called
+    def __init__(
         self,
-        ordering: Optional[Literal["physical", "lexical"]] = "physical",
+        ordering: Optional[Literal["physical", "lexical"]] = "lexical",
     ) -> None:
         object.__setattr__(self, "ordering", ordering)
-        object.__setattr__(self, "type", pl.Categorical(ordering=ordering))
+        object.__setattr__(self, "type", pl.Categorical())
+
+    def __deepcopy__(self, memo):
+        """Custom deepcopy to avoid pickling issues with pl.Categorical()."""
+        return self.__class__(ordering=self.ordering)
 
     @classmethod
     def from_parametrized_dtype(cls, polars_dtype: pl.Categorical):
@@ -755,7 +757,7 @@ class Enum(DataType):
 
     categories: pl.Series
 
-    def __init__(  # pylint:disable=super-init-not-called
+    def __init__(
         self,
         categories: Union[pl.Series, Iterable[str], None] = None,
     ) -> None:
@@ -795,9 +797,7 @@ class Category(DataType, dtypes.Category):
 
     type = pl.Utf8
 
-    def __init__(  # pylint:disable=super-init-not-called
-        self, categories: Optional[Iterable[Any]] = None
-    ):
+    def __init__(self, categories: Optional[Iterable[Any]] = None):
         dtypes.Category.__init__(self, categories, ordered=False)
 
     def coerce(self, data_container: PolarsDataContainer) -> pl.LazyFrame:
@@ -834,7 +834,7 @@ class Category(DataType, dtypes.Category):
 
         try:
             return self.coerce(data_container)
-        except Exception as exc:  # pylint:disable=broad-except
+        except Exception as exc:
             coercible = polars_object_coercible(data_container, self.type)
             match_categories = self.__belongs_to_categories(
                 data_container.lazyframe, key=data_container.key

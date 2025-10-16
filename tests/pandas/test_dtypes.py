@@ -2,15 +2,15 @@
 coercion examples."""
 
 # pylint doesn't know about __init__ generated with dataclass
-# pylint:disable=unexpected-keyword-arg,no-value-for-parameter
-# pylint:disable=unsubscriptable-object
+
+
 import dataclasses
 import datetime
 import inspect
 import re
 import sys
 from decimal import Decimal
-from typing import Any, Dict, List, NamedTuple, Tuple
+from typing import Any, NamedTuple
 
 import hypothesis
 import numpy as np
@@ -167,7 +167,7 @@ sparse_dtypes = {
 }
 interval_dtypes = {pd.IntervalDtype(subtype=np.int64): "interval[int64]"}
 
-dtype_fixtures: List[Tuple[Dict, List]] = [
+dtype_fixtures: list[tuple[dict, list]] = [
     (int_dtypes, [-1]),
     (nullable_int_dtypes, [-1, None]),
     (uint_dtypes, [1]),
@@ -203,7 +203,6 @@ dtype_fixtures: List[Tuple[Dict, List]] = [
 if GEOPANDAS_INSTALLED:
     from shapely.geometry import Polygon
 
-    # pylint:disable=ungrouped-imports
     from pandera.engines.geopandas_engine import Geometry
 
     geometry_dtypes = {Geometry: "geometry"}
@@ -280,7 +279,7 @@ def test_datatype_call():
     class CustomDataType(pa.dtypes.DataType):
         """Custom data type."""
 
-        def coerce(self, data_container: List[int]) -> List[str]:
+        def coerce(self, data_container: list[int]) -> list[str]:
             """Convert list of ints into a list of strings."""
             return [str(x) for x in data_container]
 
@@ -332,7 +331,7 @@ def test_check_not_equivalent(dtype: Any):
     assert actual_dtype.check(expected_dtype) is False
 
 
-def test_coerce_no_cast(dtype: Any, pd_dtype: Any, data: List[Any]):
+def test_coerce_no_cast(dtype: Any, pd_dtype: Any, data: list[Any]):
     """Test that dtypes can be coerced without casting."""
     expected_dtype = pandas_engine.Engine.dtype(dtype)
 
@@ -749,18 +748,18 @@ def test_python_typing_dtypes():
 
     schema = pa.DataFrameSchema(
         {
-            "Dict_column": pa.Column(Dict[str, int]),
-            "List_column": pa.Column(List[float]),
-            "Tuple_column": pa.Column(Tuple[int, str, float]),
+            "Dict_column": pa.Column(dict[str, int]),
+            "List_column": pa.Column(list[float]),
+            "Tuple_column": pa.Column(tuple[int, str, float]),
             "typeddict_column": pa.Column(PointDict),
             "namedtuple_column": pa.Column(PointTuple),
         },
     )
 
     class Model(pa.DataFrameModel):
-        Dict_column: Dict[str, int]
-        List_column: List[float]
-        Tuple_column: Tuple[int, str, float]
+        Dict_column: dict[str, int]
+        List_column: list[float]
+        Tuple_column: tuple[int, str, float]
         typeddict_column: PointDict
         namedtuple_column: PointTuple
 
@@ -829,15 +828,15 @@ def test_python_typing_handle_empty_list_dict_and_none(nullable, data_dict):
 
     schema = pa.DataFrameSchema(
         {
-            "dict_column": pa.Column(Dict[str, int], nullable=nullable),
-            "list_column": pa.Column(List[float], nullable=nullable),
+            "dict_column": pa.Column(dict[str, int], nullable=nullable),
+            "list_column": pa.Column(list[float], nullable=nullable),
         },
         coerce=True,
     )
 
     class Model(pa.DataFrameModel):
-        dict_column: Dict[str, int] = pa.Field(nullable=nullable)
-        list_column: List[float] = pa.Field(nullable=nullable)
+        dict_column: dict[str, int] = pa.Field(nullable=nullable)
+        list_column: list[float] = pa.Field(nullable=nullable)
 
         class Config:
             coerce = True
@@ -923,14 +922,14 @@ def test_python_std_list_dict_error():
     """Test that non-standard dict/list invalid values raise Schema Error."""
     schema = pa.DataFrameSchema(
         {
-            "dict_column": pa.Column(Dict[str, int]),
-            "list_column": pa.Column(List[float]),
+            "dict_column": pa.Column(dict[str, int]),
+            "list_column": pa.Column(list[float]),
         },
     )
 
     class Model(pa.DataFrameModel):
-        dict_column: Dict[str, int]
-        list_column: List[float]
+        dict_column: dict[str, int]
+        list_column: list[float]
 
     data = pd.DataFrame(
         {

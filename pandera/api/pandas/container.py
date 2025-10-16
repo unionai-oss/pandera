@@ -1,33 +1,24 @@
 """Core pandas dataframe container specification."""
 
 import warnings
-from typing import Optional, Type
+from typing import Optional
 
 import pandas as pd
 
 from pandera.api.dataframe.container import DataFrameSchema as _DataFrameSchema
 from pandera.api.pandas.types import PandasDtypeInputTypes
 from pandera.config import get_config_context
-from pandera.dtypes import DataType
 from pandera.engines import pandas_engine
 from pandera.errors import BackendNotFoundError
 from pandera.import_utils import strategy_import_error
 
 
-# pylint: disable=too-many-public-methods,too-many-locals
 class DataFrameSchema(_DataFrameSchema[pd.DataFrame]):
-    """A light-weight pandas DataFrame validator."""
+    """A lightweight pandas DataFrame validator."""
 
-    @property
-    def dtype(
-        self,
-    ) -> DataType:
-        """Get the dtype property."""
-        return self._dtype  # type: ignore
-
-    @dtype.setter
+    @_DataFrameSchema.dtype.setter  # type: ignore[attr-defined]
     def dtype(self, value: PandasDtypeInputTypes) -> None:
-        """Set the pandas dtype property."""
+        """Set the dtype property."""
         self._dtype = pandas_engine.Engine.dtype(value) if value else None
 
     def validate(
@@ -103,7 +94,7 @@ class DataFrameSchema(_DataFrameSchema[pd.DataFrame]):
 
         if hasattr(check_obj, "dask"):
             # special case for dask dataframes
-            # pylint: disable=unused-import
+
             from pandera.accessors import dask_accessor
 
             if inplace:
@@ -156,7 +147,7 @@ class DataFrameSchema(_DataFrameSchema[pd.DataFrame]):
         )
 
     @staticmethod
-    def register_default_backends(check_obj_cls: Type):
+    def register_default_backends(check_obj_cls: type):
         from pandera.backends.pandas.register import register_pandas_backends
 
         _cls = check_obj_cls
@@ -206,7 +197,7 @@ class DataFrameSchema(_DataFrameSchema[pd.DataFrame]):
         :param size: number of elements in the generated DataFrame.
         :returns: pandas DataFrame object.
         """
-        # pylint: disable=import-outside-toplevel,cyclic-import,import-error
+
         import hypothesis
 
         with warnings.catch_warnings():

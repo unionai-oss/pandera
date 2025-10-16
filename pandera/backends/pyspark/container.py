@@ -1,9 +1,9 @@
-"""Pyspark Parsing, Validation, and Error Reporting Backends."""
+"""PySpark parsing, validation, and error-reporting backends."""
 
 import copy
 import traceback
 import warnings
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from pyspark.sql import DataFrame
 from pyspark.sql.functions import col, count
@@ -24,7 +24,7 @@ from pandera.validation_depth import ValidationScope
 
 
 class DataFrameSchemaBackend(PysparkSchemaBackend):
-    """Backend for pyspark DataFrameSchema."""
+    """Backend for PySpark DataFrameSchema."""
 
     def preprocess(self, check_obj: DataFrame, inplace: bool = False):
         """Preprocesses a check object before applying check functions."""
@@ -86,7 +86,7 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
         self,
         check_obj: DataFrame,
         schema,
-        column_info: ColumnInfo,  # pylint: disable=unused-argument
+        column_info: ColumnInfo,
         error_handler: ErrorHandler,
     ):
         """Run the checks related to data validation and uniqueness."""
@@ -109,8 +109,8 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
         check_obj: DataFrame,
         schema,
         *,
-        head: Optional[int] = None,  # pylint: disable=unused-argument
-        tail: Optional[int] = None,  # pylint: disable=unused-argument
+        head: Optional[int] = None,
+        tail: Optional[int] = None,
         sample: Optional[int] = None,
         random_state: Optional[int] = None,
         lazy: bool = False,
@@ -149,20 +149,19 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
             check_obj, schema, column_info, error_handler
         )
 
-        # collect schema components and prepare check object to be validated
+        # collect schema components
         schema_components = self.collect_schema_components(
             check_obj, schema, column_info
         )
-        check_obj_subsample = self.subsample(
+
+        # subsample the check object if sample is specified
+        sample = self.subsample(
             check_obj, sample=sample, random_state=random_state
         )
+
         try:
             self.run_schema_component_checks(
-                check_obj_subsample,
-                schema,
-                schema_components,
-                lazy,
-                error_handler,
+                sample, schema, schema_components, lazy, error_handler
             )
         except SchemaError as exc:
             error_handler.collect_error(
@@ -171,7 +170,7 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
                 schema_error=exc,
             )
         try:
-            self.run_checks(check_obj_subsample, schema, error_handler)
+            self.run_checks(sample, schema, error_handler)
         except SchemaError as exc:
             error_handler.collect_error(
                 error_type=ErrorCategory.DATA,
@@ -191,7 +190,7 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
         self,
         check_obj: DataFrame,
         schema,
-        schema_components: List,
+        schema_components: list,
         lazy: bool,
         error_handler: Optional[ErrorHandler],
     ):
@@ -236,9 +235,9 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
                 )
             except SchemaDefinitionError:
                 raise
-            except Exception as err:  # pylint: disable=broad-except
+            except Exception as err:
                 # catch other exceptions that may occur when executing the check
-                err_msg = f'"{err.args[0]}"' if len(err.args) > 0 else ""
+                err_msg = f'"{err.args[0]}"' if err.args else ""
                 err_str = f"{err.__class__.__name__}({ err_msg})"
                 msg = (
                     f"Error while executing check function: {err_str}\n"
@@ -266,9 +265,9 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
         lazy: bool,
     ) -> ColumnInfo:
         """Collect column metadata."""
-        column_names: List[Any] = []
-        absent_column_names: List[Any] = []
-        lazy_exclude_column_names: List[Any] = []
+        column_names: list[Any] = []
+        absent_column_names: list[Any] = []
+        lazy_exclude_column_names: list[Any] = []
 
         for col_name, col_schema in schema.columns.items():
             if (
@@ -349,7 +348,6 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
             return check_obj
 
         filter_out_columns = []
-
         sorted_column_names = iter(column_info.sorted_column_names)
         for column in column_info.destuttered_column_names:
             is_schema_col = column in column_info.expanded_column_names
@@ -391,7 +389,9 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
                     )
 
         if schema.strict == "filter":
+            schema = check_obj.pandera.schema
             check_obj = check_obj.drop(*filter_out_columns)
+            check_obj.pandera.add_schema(schema)
 
         return check_obj
 
@@ -567,7 +567,7 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
         """Check for column name uniqueness."""
         if not schema.unique_column_names:
             return
-        column_count_dict: Dict[Any, Any] = {}
+        column_count_dict: dict[Any, Any] = {}
         failed = []
         for column_name in check_obj.columns:
             if column_count_dict.get(column_name):
@@ -595,7 +595,7 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
     def check_column_presence(
         self, check_obj: DataFrame, schema, column_info: ColumnInfo
     ):
-        """Check for presence of specified columns in the data object."""
+        """Check that all columns in the schema are present in the dataframe."""
         if column_info.absent_column_names:
             reason_code = SchemaErrorReason.COLUMN_NOT_IN_DATAFRAME
             raise SchemaErrors(

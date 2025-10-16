@@ -5,7 +5,7 @@ import warnings
 from collections.abc import Mapping
 from functools import partial
 from pathlib import Path
-from typing import Dict, Optional, Union, List, Any
+from typing import Optional, Union, Any
 
 import pandas as pd
 
@@ -152,7 +152,7 @@ def _serialize_component_stats(component_stats):
 
 def serialize_schema(dataframe_schema):
     """Serialize dataframe schema into into json/yaml-compatible format."""
-    from pandera import __version__  # pylint: disable=import-outside-toplevel
+    from pandera import __version__
 
     statistics = get_dataframe_schema_statistics(dataframe_schema)
 
@@ -293,7 +293,7 @@ def deserialize_schema(serialized_schema):
     :returns:
         the schema de-serialized into :class:`~pandera.api.pandas.container.DataFrameSchema`
     """
-    # pylint: disable=import-outside-toplevel
+
     from pandera.pandas import Index, MultiIndex
 
     # GH#475
@@ -716,7 +716,7 @@ class FrictionlessFieldParser:
         )
 
     @property
-    def checks(self) -> Optional[List[Dict[str, Any]]]:
+    def checks(self) -> Optional[list[dict[str, Any]]]:
         """Convert a set of frictionless schema field constraints into checks.
 
         This parses the standard set of frictionless constraints which can be
@@ -839,7 +839,7 @@ class FrictionlessFieldParser:
         """
         return False
 
-    def to_pandera_column(self) -> Dict:
+    def to_pandera_column(self) -> dict:
         """Export this field to a column spec dictionary."""
         return {
             "checks": self.checks,
@@ -854,9 +854,8 @@ class FrictionlessFieldParser:
 
 
 def from_frictionless_schema(
-    schema: Union[str, Path, Dict, FrictionlessSchema],
+    schema: Union[str, Path, dict, FrictionlessSchema],
 ) -> DataFrameSchema:
-    # pylint: disable=line-too-long,anomalous-backslash-in-string
     r"""Create a :class:`~pandera.api.pandas.container.DataFrameSchema` from either a
     frictionless json/yaml schema file saved on disk, or from a frictionless
     schema already loaded into memory.

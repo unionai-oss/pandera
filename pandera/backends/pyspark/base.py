@@ -1,17 +1,14 @@
-"""pyspark Parsing, Validation, and Error Reporting Backends."""
+"""PySpark parsing, validation, and error-reporting backends."""
 
 import warnings
 from typing import (
     Any,
-    Dict,
-    FrozenSet,
-    Iterable,
-    List,
     NamedTuple,
     Optional,
     TypeVar,
     Union,
 )
+from collections.abc import Iterable
 
 from pyspark.sql import DataFrame
 from pyspark.sql.functions import col
@@ -29,10 +26,10 @@ class ColumnInfo(NamedTuple):
     """Column metadata used during validation."""
 
     sorted_column_names: Iterable
-    expanded_column_names: FrozenSet
-    destuttered_column_names: List
-    absent_column_names: List
-    lazy_exclude_column_names: List
+    expanded_column_names: frozenset
+    destuttered_column_names: list
+    absent_column_names: list
+    lazy_exclude_column_names: list
 
 
 FieldCheckObj = Union[col, DataFrameTypes]
@@ -47,7 +44,7 @@ T = TypeVar(
 
 
 class PysparkSchemaBackend(BaseSchemaBackend):
-    """Base backend for pyspark schemas."""
+    """Base backend for PySpark schemas."""
 
     def subsample(
         self,
@@ -77,8 +74,7 @@ class PysparkSchemaBackend(BaseSchemaBackend):
         :param schema: schema information of the column in the dataframe that needs to be validated
         :param check: Check object used to validate pyspark object.
         :param check_index: index of check in the schema component check list.
-        :param check: Check object used to validate pyspark object.
-        :param check_args: arguments to pass into check object.
+        :param args: arguments to pass into check object.
         :returns: True if check results pass or check.raise_warning=True, otherwise
             False.
         """
@@ -111,7 +107,7 @@ class PysparkSchemaBackend(BaseSchemaBackend):
     def failure_cases_metadata(
         self,
         schema_name: str,
-        schema_errors: List[Dict[str, Any]],
+        schema_errors: list[dict[str, Any]],
     ) -> FailureCaseMetadata:
         """Create failure cases metadata required for SchemaErrors exception."""
 

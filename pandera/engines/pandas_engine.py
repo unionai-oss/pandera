@@ -1,12 +1,8 @@
 """Pandas engine and data types."""
 
-# pylint:disable=too-many-ancestors,unused-argument
-
 # docstrings are inherited
-# pylint:disable=missing-class-docstring
 
 # pylint doesn't know about __init__ generated with dataclass
-# pylint:disable=unexpected-keyword-arg,no-value-for-parameter
 import builtins
 import dataclasses
 import datetime
@@ -17,16 +13,13 @@ import warnings
 from typing import (
     Any,
     Callable,
-    Dict,
-    Iterable,
-    List,
+    Literal,
     NamedTuple,
     Optional,
-    Tuple,
-    Type,
     Union,
     cast,
 )
+from collections.abc import Iterable
 
 import numpy as np
 import pandas as pd
@@ -48,7 +41,7 @@ if PYDANTIC_V2:
     from pydantic import RootModel
 
 try:
-    import pyarrow  # pylint: disable=unused-import
+    import pyarrow
 
     PYARROW_INSTALLED = True
 except ImportError:
@@ -84,13 +77,6 @@ if sys.version_info >= (3, 12):
     from typing import TypedDict
 else:
     from typing_extensions import TypedDict  # noqa
-
-
-try:
-    # python 3.8+
-    from typing import Literal  # type: ignore[attr-defined]
-except ImportError:  # pragma: no cover
-    from typing_extensions import Literal  # type: ignore[assignment]
 
 
 def is_extension_dtype(
@@ -129,7 +115,7 @@ def is_geopandas_dtype(
 
 @immutable(init=True)
 class DataType(dtypes.DataType):
-    """Base `DataType` for boxing Pandas data types."""
+    """Base `DataType` for boxing pandas data types."""
 
     type: Any = dataclasses.field(repr=False, init=False)
     """Native pandas dtype boxed by the data type."""
@@ -183,7 +169,7 @@ class DataType(dtypes.DataType):
             if type(data_container).__module__.startswith("modin.pandas"):
                 # NOTE: this is a hack to enable catching of errors in modin
                 coerced.__str__()
-        except Exception as exc:  # pylint:disable=broad-except
+        except Exception as exc:
             if isinstance(exc, errors.ParserError):
                 raise
             if self.type != np.dtype("object") and self != numpy_engine.Object:
@@ -227,7 +213,7 @@ class DataType(dtypes.DataType):
         return f"DataType({self})"
 
 
-class Engine(  # pylint:disable=too-few-public-methods
+class Engine(
     metaclass=engine.Engine,
     base_pandera_dtypes=(DataType, numpy_engine.DataType),
 ):
@@ -241,13 +227,13 @@ class Engine(  # pylint:disable=too-few-public-methods
             return engine.Engine.dtype(cls, data_type)
         except TypeError:
             if is_geopandas_dtype(data_type):
-                # pylint: disable=cyclic-import,unused-import
+
                 # register geopandas datatypes
                 import pandera.engines.geopandas_engine
 
                 np_or_pd_dtype = data_type
             elif is_pyarrow_dtype(data_type):
-                # pylint: disable=cyclic-import
+
                 # register pyarrow datatypes
                 import pandera.engines.pyarrow_engine
 
@@ -335,7 +321,7 @@ class BOOL(DataType, dtypes.Bool):
 
 
 def _register_numpy_numbers(
-    builtin_name: str, pandera_name: str, sizes: List[int]
+    builtin_name: str, pandera_name: str, sizes: list[int]
 ) -> None:
     """Register pandera.engines.numpy_engine DataTypes
     with the pandas engine."""
@@ -503,9 +489,9 @@ if PANDAS_1_2_0_PLUS:
         bit_width: int = 32
 
 
-# ###############################################################################
-# # complex
-# ###############################################################################
+###############################################################################
+# complex
+###############################################################################
 
 _register_numpy_numbers(
     builtin_name="complex",
@@ -564,7 +550,6 @@ def _check_decimal(
 )
 @immutable(init=True)
 class Decimal(DataType, dtypes.Decimal):
-    # pylint:disable=line-too-long
     """Semantic representation of a :class:`decimal.Decimal`.
 
 
@@ -586,7 +571,7 @@ class Decimal(DataType, dtypes.Decimal):
     _exp: decimal.Decimal = dataclasses.field(init=False)
     _ctx: decimal.Context = dataclasses.field(init=False)
 
-    def __init__(  # pylint:disable=super-init-not-called
+    def __init__(
         self,
         precision: int = dtypes.DEFAULT_PYTHON_PREC,
         scale: int = 0,
@@ -630,9 +615,9 @@ class Decimal(DataType, dtypes.Decimal):
         return dtypes.Decimal.__str__(self)
 
 
-# ###############################################################################
-# # nominal
-# ###############################################################################
+###############################################################################
+# nominal
+###############################################################################
 
 
 @Engine.register_dtype(
@@ -649,7 +634,7 @@ class Category(DataType, dtypes.Category):
 
     type: pd.CategoricalDtype = dataclasses.field(default=None, init=False)  # type: ignore[assignment]  # noqa
 
-    def __init__(  # pylint:disable=super-init-not-called
+    def __init__(
         self, categories: Optional[Iterable[Any]] = None, ordered: bool = False
     ) -> None:
         dtypes.Category.__init__(self, categories, ordered)
@@ -743,7 +728,7 @@ class NpString(numpy_engine.String):
             # pyspark.pandas.Index doesn't support .where method yet, use numpy
             reverter = None
             if type(obj).__module__.startswith("pyspark.pandas"):
-                # pylint: disable=import-outside-toplevel
+
                 import pyspark.pandas as ps
 
                 if isinstance(obj, ps.Index):
@@ -798,9 +783,9 @@ Engine.register_dtype(
     ],
 )
 
-# ###############################################################################
-# # time
-# ###############################################################################
+###############################################################################
+# temporal
+###############################################################################
 
 
 _PandasDatetime = Union[np.datetime64, pd.DatetimeTZDtype]
@@ -808,7 +793,7 @@ _PandasDatetime = Union[np.datetime64, pd.DatetimeTZDtype]
 
 @immutable(init=True)
 class _BaseDateTime(DataType):
-    to_datetime_kwargs: Dict[str, Any] = dataclasses.field(
+    to_datetime_kwargs: dict[str, Any] = dataclasses.field(
         default_factory=dict, compare=False, repr=False
     )
 
@@ -821,12 +806,12 @@ class _BaseDateTime(DataType):
         if type(obj).__module__.startswith(
             "pyspark.pandas"
         ):  # pragma: no cover
-            # pylint: disable=import-outside-toplevel
+
             import pyspark.pandas as ps
 
             to_datetime_fn = ps.to_datetime
         if type(obj).__module__.startswith("modin.pandas"):
-            # pylint: disable=import-outside-toplevel
+
             import modin.pandas as mpd
 
             to_datetime_fn = mpd.to_datetime
@@ -876,12 +861,12 @@ class DateTime(_BaseDateTime, dtypes.Timestamp):
         timezone-naive datetimes, and localize them to the specified tz.
     """
 
-    to_datetime_kwargs: Dict[str, Any] = dataclasses.field(
+    to_datetime_kwargs: dict[str, Any] = dataclasses.field(
         default_factory=dict, compare=False, repr=False
     )
     "Any additional kwargs passed to :func:`pandas.to_datetime` for coercion."
 
-    tz_localize_kwargs: Dict[str, Any] = dataclasses.field(
+    tz_localize_kwargs: dict[str, Any] = dataclasses.field(
         default_factory=dict, compare=False, repr=False
     )
     "Keyword arguments passed to :func:`pandas.Series.dt.tz_localize` for coercion."
@@ -1077,15 +1062,15 @@ class Date(_BaseDateTime, dtypes.Date):
 
     type = np.dtype("object")
 
-    to_datetime_kwargs: Dict[str, Any] = dataclasses.field(
+    to_datetime_kwargs: dict[str, Any] = dataclasses.field(
         default_factory=dict, compare=False, repr=False
     )
     "Any additional kwargs passed to :func:`pandas.to_datetime` for coercion."
 
     # define __init__ to please mypy
-    def __init__(  # pylint:disable=super-init-not-called
+    def __init__(
         self,
-        to_datetime_kwargs: Optional[Dict[str, Any]] = None,
+        to_datetime_kwargs: Optional[dict[str, Any]] = None,
     ) -> None:
         object.__setattr__(
             self, "to_datetime_kwargs", to_datetime_kwargs or {}
@@ -1130,9 +1115,7 @@ class Date(_BaseDateTime, dtypes.Date):
             return True
 
         def _check_date(value: Any) -> bool:
-            return pd.isnull(value) or (
-                type(value) is datetime.date  # pylint:disable=C0123
-            )
+            return pd.isnull(value) or (type(value) is datetime.date)
 
         return data_container.apply(_check_date)
 
@@ -1233,18 +1216,48 @@ class Interval(DataType):
 class PydanticModel(DataType):
     """A pydantic model datatype applying to rows in a dataframe."""
 
-    type: Type[BaseModel] = dataclasses.field(default=None, init=False)  # type: ignore[assignment]
+    type: builtins.type[BaseModel] = dataclasses.field(default=None, init=False)  # type: ignore[assignment]
     auto_coerce = True
 
-    # pylint:disable=super-init-not-called
-    def __init__(self, model: Type[BaseModel]) -> None:
+    def __init__(self, model: builtins.type[BaseModel]) -> None:
         object.__setattr__(self, "type", model)
+
+    def _check_column_names(
+        self,
+        data_container: PandasObject,
+        column_names: list[str],
+    ) -> None:
+        absent_columns = [
+            col for col in column_names if col not in data_container.columns
+        ]
+
+        if absent_columns:
+            raise errors.ParserError(
+                f"Missing columns in {type(data_container)} "
+                f"data_container: {absent_columns}",
+                failure_cases=absent_columns,
+            )
 
     def coerce(self, data_container: PandasObject) -> PandasObject:
         """Coerce pandas dataframe with pydantic record model."""
 
-        # pylint: disable=import-outside-toplevel
         from pandera.backends.pandas import error_formatters
+
+        if data_container.empty:
+            warnings.warn(
+                "PydanticModel cannot validate an empty dataframe because it "
+                "requires at least one row of data to coerce. "
+                "The PydanticModel will perform no type checking on the empty "
+                "dataframe.",
+                UserWarning,
+            )
+
+            if PYDANTIC_V2:
+                column_names = list(self.type.model_fields)
+            else:
+                column_names = list(self.type.__fields__)
+            self._check_column_names(data_container, column_names)
+            return data_container
 
         def _coerce_row(row):
             """
@@ -1252,7 +1265,7 @@ class PydanticModel(DataType):
             cases.
             """
             try:
-                # pylint: disable=no-member
+
                 if PYDANTIC_V2:
                     row = self.type.model_validate(row).model_dump()
                 else:
@@ -1298,7 +1311,7 @@ class PythonGenericType(DataType):
     type: Any = dataclasses.field(default=None, init=False)  # type: ignore
     generic_type: Any = dataclasses.field(default=None, init=False)
     special_type: Any = dataclasses.field(default=None, init=False)
-    coercion_model: Type[BaseModel] = dataclasses.field(  # type: ignore
+    coercion_model: builtins.type[BaseModel] = dataclasses.field(  # type: ignore
         default=None, init=False
     )
     _pandas_type = object
@@ -1323,7 +1336,6 @@ class PythonGenericType(DataType):
                 # since pydantic needs typing_extensions.TypedDict but typeguard
                 # can only type-check typing.TypedDict
 
-                # pylint: disable=import-outside-toplevel,no-member
                 from typing import TypedDict as _TypedDict
 
                 _type = _TypedDict(_type.__name__, _type.__annotations__)  # type: ignore
@@ -1340,7 +1352,7 @@ class PythonGenericType(DataType):
 
     def _coerce_element(self, element: Any) -> Any:
         try:
-            # pylint: disable=not-callable
+
             if PYDANTIC_V2:
                 coerced_element = self.coercion_model(element).root
             else:
@@ -1375,7 +1387,7 @@ class PythonGenericType(DataType):
 
     def coerce(self, data_container: PandasObject) -> PandasObject:
         """Coerce data container to the specified data type."""
-        # pylint: disable=import-outside-toplevel
+
         from pandera.backends.pandas import error_formatters
 
         orig_isna = data_container.isna()
@@ -1413,11 +1425,9 @@ def _create_coercion_model(generic_type: Any):
 class PythonDict(PythonGenericType):
     """A datatype to support python generics."""
 
-    type: Type[dict] = dict
+    type: type[dict] = dict
 
-    def __init__(  # pylint:disable=super-init-not-called
-        self, generic_type: Optional[Type] = None
-    ) -> None:
+    def __init__(self, generic_type: Optional[builtins.type] = None) -> None:
         if generic_type is not None:
             object.__setattr__(self, "generic_type", generic_type)
 
@@ -1434,11 +1444,9 @@ class PythonDict(PythonGenericType):
 class PythonList(PythonGenericType):
     """A datatype to support python generics."""
 
-    type: Type[list] = list
+    type: type[list] = list
 
-    def __init__(  # pylint:disable=super-init-not-called
-        self, generic_type: Optional[Type] = None
-    ) -> None:
+    def __init__(self, generic_type: Optional[builtins.type] = None) -> None:
         if generic_type is not None:
             object.__setattr__(self, "generic_type", generic_type)
 
@@ -1455,11 +1463,9 @@ class PythonList(PythonGenericType):
 class PythonTuple(PythonGenericType):
     """A datatype to support python generics."""
 
-    type: Type[list] = list
+    type: type[list] = list
 
-    def __init__(  # pylint:disable=super-init-not-called
-        self, generic_type: Optional[Type] = None
-    ) -> None:
+    def __init__(self, generic_type: Optional[builtins.type] = None) -> None:
         if generic_type is not None:
             object.__setattr__(self, "generic_type", generic_type)
 
@@ -1478,9 +1484,9 @@ class PythonTypedDict(PythonGenericType):
 
     type = TypedDict  # type: ignore[assignment]
 
-    def __init__(  # pylint:disable=super-init-not-called
+    def __init__(
         self,
-        special_type: Optional[Type] = None,
+        special_type: Optional[builtins.type] = None,
     ) -> None:
         if special_type is not None:
             object.__setattr__(self, "special_type", special_type)
@@ -1493,7 +1499,7 @@ class PythonTypedDict(PythonGenericType):
             )
 
     def __str__(self) -> str:
-        return str(TypedDict.__name__)  # type: ignore[attr-defined]
+        return "TypedDict"
 
 
 @Engine.register_dtype(equivalents=[NamedTuple, "NamedTuple"])
@@ -1503,9 +1509,9 @@ class PythonNamedTuple(PythonGenericType):
 
     type = NamedTuple
 
-    def __init__(  # pylint:disable=super-init-not-called
+    def __init__(
         self,
-        special_type: Optional[Type] = None,
+        special_type: Optional[builtins.type] = None,
     ) -> None:
         if special_type is not None:
             object.__setattr__(self, "special_type", special_type)
@@ -1534,11 +1540,7 @@ if PYARROW_INSTALLED and PANDAS_2_0_0_PLUS:
             """Coerce a value to a particular type."""
             return pyarrow.scalar(
                 value,
-                type=(
-                    self.type.pyarrow_dtype  # pylint: disable=E1101
-                    if self.type
-                    else None
-                ),
+                type=(self.type.pyarrow_dtype if self.type else None),
             )
 
     @Engine.register_dtype(
@@ -1614,8 +1616,15 @@ if PYARROW_INSTALLED and PANDAS_2_0_0_PLUS:
         equivalents=[
             pyarrow.string,
             pyarrow.utf8,
-            pd.ArrowDtype(pyarrow.string()),
-            pd.ArrowDtype(pyarrow.utf8()),
+            # the `string[pyarrow]` string alias is overloaded: it can be either
+            # pd.StringDtype or pd.ArrowDtype(pyarrow.string()). Pandera handles
+            # like this pandas, where `string[pyarrow]` is interpreted as
+            # pd.StringDtype. The StrictEquivalent object ensures that the
+            # engine registers the following two types in terms of the type's
+            # string __repr__ method ("string[pyarrow]") and its type
+            # (pd.ArrowDtype).
+            engine.StrictEquivalent(pd.ArrowDtype(pyarrow.string())),
+            engine.StrictEquivalent(pd.ArrowDtype(pyarrow.utf8())),
         ]
     )
     @immutable
@@ -1852,8 +1861,8 @@ if PYARROW_INSTALLED and PANDAS_2_0_0_PLUS:
         )
         fields: Optional[
             Union[
-                Iterable[Union[pyarrow.Field, Tuple[str, pyarrow.DataType]]],
-                Dict[str, pyarrow.DataType],
+                Iterable[Union[pyarrow.Field, tuple[str, pyarrow.DataType]]],
+                dict[str, pyarrow.DataType],
             ]
         ] = tuple()
 

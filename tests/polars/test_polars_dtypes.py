@@ -3,7 +3,8 @@
 import datetime
 import decimal
 from decimal import Decimal
-from typing import Sequence, Tuple, Union
+from typing import Union
+from collections.abc import Sequence
 
 import polars as pl
 import pytest
@@ -21,7 +22,7 @@ from pandera.engines.polars_engine import polars_object_coercible
 
 
 def convert_object_to_decimal(
-    number: Union[Decimal, float, str, Tuple[int, Sequence[int], int]],
+    number: Union[Decimal, float, str, tuple[int, Sequence[int], int]],
     precision: int,
     scale: int,
 ) -> decimal.Decimal:
@@ -258,7 +259,7 @@ def test_check_not_equivalent(dtype):
     else:
         actual_dtype = pe.Engine.dtype(object)
     expected_dtype = pe.Engine.dtype(dtype)
-    assert actual_dtype.check(expected_dtype) is False
+    assert not actual_dtype.check(expected_dtype)
 
 
 @pytest.mark.parametrize("dtype", all_types + special_types)
@@ -266,7 +267,7 @@ def test_check_equivalent(dtype):
     """Test that check() accepts equivalent dtypes."""
     actual_dtype = pe.Engine.dtype(dtype)
     expected_dtype = pe.Engine.dtype(dtype)
-    assert actual_dtype.check(expected_dtype) is True
+    assert actual_dtype.check(expected_dtype)
 
 
 @pytest.mark.parametrize(

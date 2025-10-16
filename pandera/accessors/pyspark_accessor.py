@@ -1,4 +1,3 @@
-# pylint: skip-file
 # NOTE: skip file since py=3.10 yields these errors:
 # https://github.com/pandera-dev/pandera/runs/4998710717?check_suite_focus=true
 """Register pyspark accessor for pandera schema metadata."""

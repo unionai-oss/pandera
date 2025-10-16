@@ -45,20 +45,21 @@ class PanderaConfig:
 
 
 def _config_from_env_vars():
-    validation_enabled = (
-        os.environ.get("PANDERA_VALIDATION_ENABLED", None) == "True" or True
-    )
+    validation_enabled = os.environ.get(
+        "PANDERA_VALIDATION_ENABLED", "True"
+    ) in {"True", "1"}
+
     validation_depth = os.environ.get("PANDERA_VALIDATION_DEPTH", None)
     if validation_depth is not None:
         validation_depth = ValidationDepth(validation_depth)
 
-    cache_dataframe = (
-        os.environ.get("PANDERA_CACHE_DATAFRAME", None) == "True" or False
-    )
-    keep_cached_dataframe = (
-        os.environ.get("PANDERA_KEEP_CACHED_DATAFRAME", None) == "True"
-        or False
-    )
+    cache_dataframe = os.environ.get("PANDERA_CACHE_DATAFRAME", "False") in {
+        "True",
+        "1",
+    }
+    keep_cached_dataframe = os.environ.get(
+        "PANDERA_KEEP_CACHED_DATAFRAME", "False"
+    ) in {"True", "1"}
 
     return PanderaConfig(
         validation_enabled=validation_enabled,
@@ -100,7 +101,7 @@ def config_context(
 
 def reset_config_context(conf: Optional[PanderaConfig] = None):
     """Reset the context configuration to the global configuration."""
-    # pylint: disable=global-statement
+
     global _CONTEXT_CONFIG
     _CONTEXT_CONFIG = copy(conf or CONFIG)
 

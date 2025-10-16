@@ -2,7 +2,8 @@
 
 import functools
 import io
-from typing import TYPE_CHECKING, Any, Generic, TypeVar, List, Mapping
+from typing import TYPE_CHECKING, Any, Generic, TypeVar
+from collections.abc import Mapping
 
 from packaging import version
 
@@ -30,7 +31,6 @@ def polars_version():
     return version.parse(pl.__version__)
 
 
-# pylint:disable=invalid-name
 if TYPE_CHECKING:
     T = TypeVar("T")  # pragma: no cover
 else:
@@ -38,7 +38,7 @@ else:
 
 
 if POLARS_INSTALLED:
-    # pylint: disable=too-few-public-methods
+
     class LazyFrame(DataFrameBase, pl.LazyFrame, Generic[T]):
         """
         Pandera generic for pl.LazyFrame, only used for type annotation.
@@ -63,7 +63,7 @@ if POLARS_INSTALLED:
             :param obj: object representing a serialized dataframe.
             :param config: dataframe model configuration object.
             """
-            # pylint: disable=too-many-branches,too-many-return-statements
+
             if config.from_format is None:
                 if not isinstance(obj, pl.DataFrame):
                     try:
@@ -134,7 +134,7 @@ if POLARS_INSTALLED:
                             lambda: pl.read_json(obj, **kwargs),
                             "Failed to read JSON with polars",
                         )
-                    elif isinstance(obj, (List, Mapping)):
+                    elif isinstance(obj, (list, Mapping)):
                         # If it's a Python object that's JSON-serializable
                         return pl.DataFrame(obj)
                     else:
@@ -180,7 +180,7 @@ if POLARS_INSTALLED:
             :param data: convert this data to the specified format
             :param config: config object from the DataFrameModel
             """
-            # pylint: disable=too-many-return-statements
+
             if config.to_format is None:
                 return data
 
@@ -422,7 +422,6 @@ if POLARS_INSTALLED:
             schema_model = cls._get_schema_model(field)
             return cls.pydantic_validate(obj, schema_model)
 
-    # pylint: disable=too-few-public-methods
     class Series(SeriesBase, pl.Series, Generic[T]):
         """
         Pandera generic for pl.Series, only used for type annotation.

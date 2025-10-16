@@ -1,8 +1,7 @@
-# pylint: disable=unused-import
 """Base module for `hypothesis`-based strategies for data synthesis."""
 
 from functools import wraps
-from typing import Callable, Dict, Generic, Tuple, Type, TypeVar, cast
+from typing import Callable, Generic, TypeVar, cast
 
 import pandera.backends.base.builtin_checks
 
@@ -11,12 +10,11 @@ F = TypeVar("F", bound=Callable)
 
 
 try:
-    # pylint: disable=unused-import
+
     from hypothesis.strategies import SearchStrategy, composite
 except ImportError:  # pragma: no cover
     T = TypeVar("T")
 
-    # pylint: disable=too-few-public-methods
     class SearchStrategy(Generic[T]):  # type: ignore
         """placeholder type."""
 
@@ -31,7 +29,7 @@ else:
 
 # This strategy registry maps (check_name, data_type) -> strategy_function
 # For example: ("greater_than", pd.DataFrame) -> (<function gt_strategy>)
-STRATEGY_DISPATCHER: Dict[Tuple[str, Type], Callable] = {}
+STRATEGY_DISPATCHER: dict[tuple[str, type], Callable] = {}
 
 
 def strategy_import_error(fn: F) -> F:

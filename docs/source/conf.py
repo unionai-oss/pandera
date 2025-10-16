@@ -134,9 +134,9 @@ html_theme = "furo"
 # documentation.
 
 announcement = """
-📢 Pandera 0.24.0 introduces the <i>pandera.pandas</i>
-module, which is the recommended way of defining schemas for <i>pandas objects</i>.
-Learn more details <a href='https://github.com/unionai-oss/pandera/releases/tag/v0.24.0'>here</a>
+📢 Pandera 0.25.0 introduces the <i>🦩 pandera-ibis integration </i>!
+Validate all supported Ibis backends, including Snowflake, BigQuery, and more.
+Learn more details <a href='./ibis.html'>here</a>
 """
 
 html_logo = "_static/pandera-banner.png"
@@ -254,8 +254,26 @@ class FilterTypeAnnotationWarnings(pylogging.Filter):
         )
 
 
+class FilterExternalPackageModinDocUtilsWarnings(pylogging.Filter):
+    def filter(self, record: pylogging.LogRecord) -> bool:
+        return not (
+            "modin" in record.location
+            and record.getMessage().startswith(
+                (
+                    "Inline strong start-string without end-string",
+                    "Inline interpreted text or phrase reference start-string "
+                    "without end-string",
+                    "Unexpected section title",
+                )
+            )
+        )
+
+
 logging.getLogger("sphinx_autodoc_typehints").logger.addFilter(
     FilterTypeAnnotationWarnings()
+)
+logging.getLogger("sphinx.util.docutils").logger.addFilter(
+    FilterExternalPackageModinDocUtilsWarnings()
 )
 
 

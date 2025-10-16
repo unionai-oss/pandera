@@ -1,20 +1,6 @@
-# pylint: disable=wrong-import-position
 """A flexible and expressive dataframe validation library."""
 
 from pandera._version import __version__
-
-
-_warning_msg = """Pandas and numpy have been removed from the base pandera
-dependencies. Please install pandas as part of your environment's
-dependencies or install the pandas extra with:
-
-```bash
-pip install pandas pandera
-
-# or
-pip install 'pandera[pandas]'
-```
-"""
 
 
 try:
@@ -33,11 +19,17 @@ try:
         *_pandas_deprecated_all,
     ]
 
-except ImportError as err:
+except (ImportError, ModuleNotFoundError) as err:
     import warnings
 
-    if "pandas" in str(err) or "numpy" in str(err):
-        warnings.warn(_warning_msg, UserWarning)
+    err_msg = str(err)
+    if err_msg.startswith("pandera requires pandas >= 2.1.1"):
+        warnings.warn(err_msg, UserWarning)
+    elif err_msg.startswith(
+        ("No module named 'pandas'", "No module named 'numpy'")
+    ):
+        # ignore this error
+        pass
     else:
         raise  # Re-raise any other `ImportError` exceptions
 

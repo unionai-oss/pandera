@@ -1,16 +1,11 @@
 """Typing definitions and helpers."""
 
-# pylint:disable=abstract-method,disable=too-many-ancestors
 import functools
 import io
 from typing import (  # type: ignore[attr-defined]
     TYPE_CHECKING,
     Any,
-    Dict,
     Generic,
-    List,
-    Tuple,
-    Type,
     TypeVar,
     Union,
     _type_check,
@@ -33,6 +28,7 @@ from pandera.typing.common import (
 from pandera.typing.formats import Formats
 from pandera.config import config_context
 
+
 try:
     from typing import _GenericAlias  # type: ignore[attr-defined]
 except ImportError:  # pragma: no cover
@@ -42,6 +38,8 @@ except ImportError:  # pragma: no cover
 if PYDANTIC_V2:
     from pydantic import GetCoreSchemaHandler
     from pydantic_core import core_schema
+    from packaging import version
+    import pydantic_core
 
 
 Bool = dtypes.Bool  #: ``"bool"`` numpy dtype
@@ -121,7 +119,6 @@ GenericDtype = TypeVar(  # type: ignore
 )
 
 
-# pylint:disable=too-few-public-methods
 class Index(IndexBase, pd.Index, Generic[GenericDtype]):
     """Representation of pandas.Index, only used for type annotation.
 
@@ -129,7 +126,6 @@ class Index(IndexBase, pd.Index, Generic[GenericDtype]):
     """
 
 
-# pylint:disable=too-few-public-methods
 class Series(SeriesBase, pd.Series, Generic[GenericDtype]):  # type: ignore
     """Representation of pandas.Series, only used for type annotation.
 
@@ -144,14 +140,12 @@ class Series(SeriesBase, pd.Series, Generic[GenericDtype]):  # type: ignore
         return _GenericAlias(cls, item)
 
 
-# pylint:disable=invalid-name
 if TYPE_CHECKING:
     T = TypeVar("T")  # pragma: no cover
 else:
     T = DataFrameModel
 
 
-# pylint:disable=too-few-public-methods
 class DataFrame(DataFrameBase, pd.DataFrame, Generic[T]):
     """
     A generic type for pandas.DataFrame.
@@ -268,32 +262,45 @@ class DataFrame(DataFrameBase, pd.DataFrame, Generic[T]):
             # prevent validation in __setattr__ function in DataFrameBase class
             with config_context(validation_enabled=False):
                 schema_model = _source_type().__orig_class__.__args__[0]
-            schema = schema_model.to_schema()
-            schema_json_columns = schema_model.to_json_schema()["properties"]
-            type_map = {
-                "string": core_schema.str_schema(),
-                "integer": core_schema.int_schema(),
-                "number": core_schema.float_schema(),
-                "boolean": core_schema.bool_schema(),
-                "datetime": core_schema.datetime_schema(),
-                "duration": core_schema.timedelta_schema(),
-                "any": core_schema.any_schema(),
-            }
+
             function = functools.partial(
                 cls.pydantic_validate,
                 schema_model=schema_model,
             )
-            json_schema_input_schema = core_schema.list_schema(
-                core_schema.typed_dict_schema(
-                    {
-                        key: core_schema.typed_dict_field(
-                            type_map[schema_json_columns[key]["items"]["type"]]
-                        )
-                        for key in schema.columns.keys()
-                    },
+
+            if version.parse(pydantic_core.__version__).release < (
+                2,
+                30,
+                0,
+            ) or isinstance(schema_model, TypeVar):
+                return core_schema.no_info_plain_validator_function(function)
+            else:
+                schema = schema_model.to_schema()
+                schema_json_columns = schema_model.to_json_schema()[
+                    "properties"
+                ]
+                type_map = {
+                    "string": core_schema.str_schema(),
+                    "integer": core_schema.int_schema(),
+                    "number": core_schema.float_schema(),
+                    "boolean": core_schema.bool_schema(),
+                    "datetime": core_schema.datetime_schema(),
+                    "duration": core_schema.timedelta_schema(),
+                    "any": core_schema.any_schema(),
+                }
+
+                json_schema_input_schema = core_schema.list_schema(
+                    core_schema.typed_dict_schema(
+                        {
+                            key: core_schema.typed_dict_field(
+                                type_map[
+                                    schema_json_columns[key]["items"]["type"]
+                                ]
+                            )
+                            for key in schema.columns.keys()
+                        },
+                    )
                 )
-            )
-            try:
                 # json schema input schema is only available in
                 # pydantic_core >=2.30.0
                 return core_schema.no_info_plain_validator_function(
@@ -305,8 +312,6 @@ class DataFrame(DataFrameBase, pd.DataFrame, Generic[T]):
                         return_schema=json_schema_input_schema,
                     ),
                 )
-            except TypeError:
-                return core_schema.no_info_plain_validator_function(function)
 
     else:
 
@@ -354,9 +359,9 @@ class DataFrame(DataFrameBase, pd.DataFrame, Generic[T]):
 
     @staticmethod
     def from_records(  # type: ignore
-        schema: Type[T],
+        schema: type[T],
         data: Union[  # type: ignore
-            np.ndarray, List[Tuple[Any, ...]], Dict[Any, Any], pd.DataFrame
+            np.ndarray, list[tuple[Any, ...]], dict[Any, Any], pd.DataFrame
         ],
         **kwargs,
     ) -> "DataFrame[T]":

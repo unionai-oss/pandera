@@ -1,9 +1,9 @@
-# pylint: disable=cyclic-import,unexpected-keyword-arg,no-value-for-parameter
 """Pyarrow data types for the pandas type engine."""
 
 import dataclasses
 import datetime
-from typing import Any, Dict, Iterable, Optional, Tuple, Union
+from typing import Any, Optional, Union
+from collections.abc import Iterable
 
 import pandas as pd
 import pyarrow
@@ -21,11 +21,7 @@ class ArrowDataType(DataType):
         """Coerce a value to a particular type."""
         return pyarrow.scalar(
             value,
-            type=(
-                self.type.pyarrow_dtype  # pylint: disable=E1101
-                if self.type
-                else None
-            ),
+            type=(self.type.pyarrow_dtype if self.type else None),
         )
 
 
@@ -339,8 +335,8 @@ class ArrowStruct(ArrowDataType):
     type: Optional[pd.ArrowDtype] = dataclasses.field(default=None, init=False)
     fields: Optional[
         Union[
-            Iterable[Union[pyarrow.Field, Tuple[str, pyarrow.DataType]]],
-            Dict[str, pyarrow.DataType],
+            Iterable[Union[pyarrow.Field, tuple[str, pyarrow.DataType]]],
+            dict[str, pyarrow.DataType],
         ]
     ] = tuple()
 

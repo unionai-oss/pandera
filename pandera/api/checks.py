@@ -4,13 +4,11 @@ import re
 from typing import (
     Any,
     Callable,
-    Dict,
-    Iterable,
-    List,
     Optional,
     TypeVar,
     Union,
 )
+from collections.abc import Iterable
 
 from pandera import errors
 from pandera.api.base.checks import BaseCheck, CheckResult
@@ -18,15 +16,14 @@ from pandera.api.base.checks import BaseCheck, CheckResult
 T = TypeVar("T")
 
 
-# pylint: disable=too-many-public-methods
 class Check(BaseCheck):
     """Check a data object for certain properties."""
 
     def __init__(
         self,
         check_fn: Callable,
-        groups: Optional[Union[str, List[str]]] = None,
-        groupby: Optional[Union[str, List[str], Callable]] = None,
+        groups: Optional[Union[str, list[str]]] = None,
+        groupby: Optional[Union[str, list[str], Callable]] = None,
         ignore_na: bool = True,
         element_wise: bool = False,
         name: Optional[str] = None,
@@ -35,23 +32,23 @@ class Check(BaseCheck):
         n_failure_cases: Optional[int] = None,
         title: Optional[str] = None,
         description: Optional[str] = None,
-        statistics: Optional[Dict[str, Any]] = None,
+        statistics: Optional[dict[str, Any]] = None,
         strategy: Optional[Any] = None,
         **check_kwargs,
     ) -> None:
         """Apply a validation function to a data object.
 
         :param check_fn: A function to check data object. For Column
-            or SeriesSchema checks, if element_wise is True, this function
+            or SeriesSchema checks, if element_wise is False, this function
             should have the signature: ``Callable[[pd.Series],
             Union[pd.Series, bool]]``, where the output series is a boolean
             vector.
 
-            If element_wise is False, this function should have the signature:
+            If element_wise is True, this function should have the signature:
             ``Callable[[Any], bool]``, where ``Any`` is an element in the
             column.
 
-            For DataFrameSchema checks, if element_wise=True, fn
+            For DataFrameSchema checks, if element_wise=False, fn
             should have the signature: ``Callable[[pd.DataFrame],
             Union[pd.DataFrame, pd.Series, bool]]``, where the output dataframe
             or series contains booleans.
@@ -192,7 +189,7 @@ class Check(BaseCheck):
         self.groupby = groupby
         if isinstance(groups, str):
             groups = [groups]
-        self.groups: Optional[List[str]] = groups
+        self.groups: Optional[list[str]] = groups
 
         self.statistics = statistics or check_kwargs or {}
         self.statistics_args = [*self.statistics.keys()]
@@ -203,7 +200,6 @@ class Check(BaseCheck):
         check_obj: Any,
         column: Optional[str] = None,
     ) -> CheckResult:
-        # pylint: disable=too-many-branches
         """Validate DataFrame or Series.
 
         :param check_obj: DataFrame of Series to validate.
@@ -531,14 +527,14 @@ class Check(BaseCheck):
         )
 
     @classmethod
-    def unique_values_eq(cls, values: str, **kwargs) -> "Check":
+    def unique_values_eq(cls, values: Iterable, **kwargs) -> "Check":
         """Ensure that unique values in the data object contain all values.
 
         .. note::
             In contrast with :func:`isin`, this check makes sure that all the
             items in the ``values`` iterable are contained within the series.
 
-        :param values: The set of values that must be present. Maybe any iterable.
+        :param values: The set of values that must be present. May be any iterable.
         """
         try:
             values_mod = frozenset(values)

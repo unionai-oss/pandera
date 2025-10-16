@@ -3,7 +3,7 @@
 from typing import Any, Optional
 
 
-class BaseModelConfig:  # pylint:disable=R0903
+class BaseModelConfig:
     """Model configuration base class."""
 
     #: datatype of the data container. This overrides the data types specified

@@ -1,8 +1,7 @@
 """Test typing annotations for the model api."""
 
-# pylint:disable=missing-class-docstring,too-few-public-methods
 import re
-from typing import Any, Dict, Optional, Type
+from typing import Any, Optional
 
 import numpy as np
 import pandas as pd
@@ -15,7 +14,7 @@ from pandera.typing import DataFrame, Index, Series
 try:  # python 3.9+
     from typing import Annotated  # type: ignore
 except ImportError:
-    from typing_extensions import Annotated  # type: ignore
+    from typing import Annotated  # type: ignore
 
 
 class SchemaBool(pa.DataFrameModel):
@@ -127,7 +126,7 @@ class SchemaUINT64(pa.DataFrameModel):
 
 
 def _test_literal_pandas_dtype(
-    model: Type[pa.DataFrameModel], pandas_dtype: DataType
+    model: type[pa.DataFrameModel], pandas_dtype: DataType
 ):
     schema = model.to_schema()
     expected = pa.Column(pandas_dtype, name="col").dtype
@@ -159,7 +158,7 @@ def _test_literal_pandas_dtype(
     ],
 )
 def test_literal_legacy_pandas_dtype(
-    model: Type[pa.DataFrameModel], pandas_dtype: DataType
+    model: type[pa.DataFrameModel], pandas_dtype: DataType
 ):
     """Test literal annotations with the legacy pandas dtypes."""
     _test_literal_pandas_dtype(model, pandas_dtype)
@@ -179,7 +178,7 @@ def test_literal_legacy_pandas_dtype(
     ],
 )
 def test_literal_new_pandas_dtype(
-    model: Type[pa.DataFrameModel], pandas_dtype: DataType
+    model: type[pa.DataFrameModel], pandas_dtype: DataType
 ):
     """Test literal annotations with the new nullable pandas dtypes."""
     _test_literal_pandas_dtype(model, pandas_dtype)
@@ -192,20 +191,31 @@ class SchemaFieldCategoricalDtype(pa.DataFrameModel):
 
 
 def _test_annotated_dtype(
-    model: Type[pa.DataFrameModel],
-    dtype: Type,
-    dtype_kwargs: Optional[Dict[str, Any]] = None,
+    model: type[pa.DataFrameModel],
+    dtype: type,
+    dtype_kwargs: Optional[dict[str, Any]] = None,
 ):
     dtype_kwargs = dtype_kwargs or {}
     schema = model.to_schema()
 
     actual = schema.columns["col"].dtype
     expected = pa.Column(dtype(**dtype_kwargs), name="col").dtype
-    assert actual == expected
+    if isinstance(expected.type, pd.SparseDtype):
+        # special handling for sparse dtypes, which have a NA fill_value, which
+        # is not equal to itself.
+        assert isinstance(actual.type, pd.SparseDtype)
+        assert actual.type == expected.type
+        assert actual.type.type == expected.type.type
+        if pd.isna(expected.type.fill_value):
+            assert pd.isna(actual.type.fill_value)
+        else:
+            assert actual.type.fill_value == expected.type.fill_value
+    else:
+        assert actual == expected
 
 
 def _test_default_annotated_dtype(
-    model: Type[pa.DataFrameModel], dtype: Any, has_mandatory_args: bool
+    model: type[pa.DataFrameModel], dtype: Any, has_mandatory_args: bool
 ):
     if has_mandatory_args:
         err_msg = "cannot be instantiated"
@@ -235,6 +245,10 @@ class SchemaFieldSparseDtype(pa.DataFrameModel):
     )
 
 
+class SchemaFieldStringDtypeArrow(pa.DataFrameModel):
+    col: Series[pd.StringDtype] = pa.Field(dtype_kwargs={"storage": "pyarrow"})
+
+
 @pytest.mark.parametrize(
     "model, dtype, dtype_kwargs",
     [
@@ -255,10 +269,15 @@ class SchemaFieldSparseDtype(pa.DataFrameModel):
             pd.SparseDtype,
             {"dtype": np.int32, "fill_value": 0},
         ),
+        (
+            SchemaFieldStringDtypeArrow,
+            pd.StringDtype,
+            {"storage": "pyarrow"},
+        ),
     ],
 )
 def test_parametrized_pandas_extension_dtype_field(
-    model: Type[pa.DataFrameModel], dtype: Type, dtype_kwargs: Dict[str, Any]
+    model: type[pa.DataFrameModel], dtype: type, dtype_kwargs: dict[str, Any]
 ):
     """Test type annotations for parametrized pandas extension dtypes."""
     _test_annotated_dtype(model, dtype, dtype_kwargs)
@@ -362,9 +381,9 @@ class SchemaAnnotatedSparseDtype(pa.DataFrameModel):
     ],
 )
 def test_annotated_dtype(
-    model: Type[pa.DataFrameModel],
-    dtype: Type,
-    dtype_kwargs: Dict[str, Any],
+    model: type[pa.DataFrameModel],
+    dtype: type,
+    dtype_kwargs: dict[str, Any],
 ):
     """Test type annotations for parametrized pandas extension dtypes."""
     _test_annotated_dtype(model, dtype, dtype_kwargs)

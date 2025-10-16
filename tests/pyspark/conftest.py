@@ -1,6 +1,5 @@
 """conftest"""
 
-# pylint:disable=redefined-outer-name
 import datetime
 import os
 
@@ -11,12 +10,20 @@ from pyspark.sql import SparkSession
 from pandera.config import PanderaConfig
 
 
+@pytest.fixture(autouse=True)
+def spark_env_vars():
+    """Sets environment variables for pyspark."""
+    os.environ["SPARK_LOCAL_IP"] = "127.0.0.1"
+    os.environ["PYARROW_IGNORE_TIMEZONE"] = "1"
+
+
 @pytest.fixture(scope="session")
 def spark() -> SparkSession:
     """
     creates spark session
     """
     spark: SparkSession = SparkSession.builder.getOrCreate()
+    spark.conf.set("spark.sql.ansi.enabled", False)
     yield spark
     spark.stop()
 
@@ -29,6 +36,7 @@ def spark_connect() -> SparkSession:
     # Set location of localhost Spark Connect server
     os.environ["SPARK_LOCAL_REMOTE"] = "sc://localhost"
     spark: SparkSession = SparkSession.builder.getOrCreate()
+    spark.conf.set("spark.sql.ansi.enabled", False)
     yield spark
     spark.stop()
 

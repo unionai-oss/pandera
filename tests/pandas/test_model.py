@@ -1,21 +1,66 @@
 """Tests schema creation and validation from type annotations."""
 
-# pylint:disable=missing-class-docstring,missing-function-docstring,too-few-public-methods
 import os
 import re
 import runpy
 from copy import deepcopy
 from enum import Enum
-from typing import Any, Generic, Iterable, List, Optional, TypeVar, Type
+from typing import Any, Generic, Optional, TypeVar
+from collections.abc import Iterable
 
 import numpy as np
 import pandas as pd
 import pytest
+from pandas._testing import assert_frame_equal
 
 import pandera.pandas as pa
 import pandera.api.extensions as pax
 from pandera.errors import SchemaError, SchemaInitError
 from pandera.typing import DataFrame, Index, Series, String
+
+
+def test_idempotent_magics() -> None:
+    """
+    Test that various dunderscore descriptors do not require additional
+    initialization
+    """
+
+    class Model(pa.DataFrameModel):
+        a: Series[int]
+        b: Series[str]
+        c: Series[Any]
+        idx: Index[str]
+
+        # parsers at the column level
+        @pa.parser("a")
+        def sqrt(cls, series):
+            return series.transform("sqrt")
+
+        @pa.check("a")
+        def int_column_lt_100(cls, series: pd.Series) -> Iterable[bool]:
+            assert cls is Model
+            return series < 100
+
+        # DataFrame-level check, used to populate __root_checks__
+        @pa.dataframe_check
+        def root_check_test(cls, df: pd.DataFrame) -> Iterable[bool]:
+            return df["a"] >= 0
+
+        # DataFrame-level parser, used to populate __root_parsers__
+        @pa.dataframe_parser
+        def root_parser_test(cls, df: pd.DataFrame) -> pd.DataFrame:
+            df = df.copy()
+            df["a"] = df["a"].abs()
+            return df
+
+    # NEW: __fields__ is populated without the need to run .to_schema()
+    assert Model.__fields__.keys() == {"a", "b", "c", "idx"}
+    assert Model.__schema__.name == "Model"
+    assert Model.__checks__["a"]
+    assert Model.__parsers__["a"]
+
+    assert Model.__root_checks__[0].name is "root_check_test"
+    assert Model.__root_parsers__[0].name is "root_parser_test"
 
 
 def test_to_schema_and_validate() -> None:
@@ -145,7 +190,7 @@ def test_optional_column() -> None:
         a: Optional[Series[str]]
         b: Optional[Series[str]] = pa.Field(eq="b")
         c: Optional[Series[String]]  # test pandera.typing alias
-        d: Optional[Series[List[int]]]
+        d: Optional[Series[list[int]]]
 
     schema = Schema.to_schema()
     assert not schema.columns["a"].required
@@ -302,6 +347,31 @@ def test_multiindex_check_name() -> None:
     assert isinstance(NotCheckNameSchema.validate(df), pd.DataFrame)
 
 
+def test_multiindex_check_has_context() -> None:
+    """Test that checks on MultiIndex levels can access the level by name."""
+
+    class MultiIndexSchema(pa.DataFrameModel):
+        level_a: Index[str]
+        level_b: Index[int]
+
+        @pa.check("level_b")
+        def check_groupby_access(cls, level_b_values: Series) -> bool:
+            grouped = level_b_values.groupby("level_b").size()
+            return len(grouped) > 0
+
+    # Create test data with MultiIndex
+    df = pd.DataFrame(
+        index=pd.MultiIndex.from_arrays(
+            [["foo", "bar", "baz"], [1, 2, 3]], names=["level_a", "level_b"]
+        )
+    )
+
+    # This should pass without raising KeyError("level_b")
+    validated_df = MultiIndexSchema.validate(df)
+    assert isinstance(validated_df, pd.DataFrame)
+    assert len(validated_df) == 3
+
+
 def test_check_validate_method() -> None:
     """Test validate method on valid data."""
 
@@ -310,7 +380,7 @@ def test_check_validate_method() -> None:
 
         @pa.check("a")
         def int_column_lt_100(cls, series: pd.Series) -> Iterable[bool]:
-            # pylint:disable=no-self-argument
+
             assert cls is Schema
             return series < 100
 
@@ -327,13 +397,13 @@ def test_check_validate_method_field() -> None:
 
         @pa.check(a)
         def int_column_lt_200(cls, series: pd.Series) -> Iterable[bool]:
-            # pylint:disable=no-self-argument
+
             assert cls is Schema
             return series < 200
 
         @pa.check(a, "b")
         def int_column_lt_100(cls, series: pd.Series) -> Iterable[bool]:
-            # pylint:disable=no-self-argument
+
             assert cls is Schema
             return series < 100
 
@@ -349,7 +419,7 @@ def test_check_validate_method_aliased_field() -> None:
 
         @pa.check(a)
         def int_column_lt_100(cls, series: pd.Series) -> Iterable[bool]:
-            # pylint:disable=no-self-argument
+
             assert cls is Schema
             return series < 100
 
@@ -366,7 +436,7 @@ def test_check_single_column() -> None:
 
         @pa.check("a")
         def int_column_lt_100(cls, series: pd.Series) -> Iterable[bool]:
-            # pylint:disable=no-self-argument
+
             assert cls is Schema
             return series < 100
 
@@ -385,7 +455,7 @@ def test_check_single_index() -> None:
 
         @pa.check("a")
         def not_dog(cls, idx: pd.Index) -> Iterable[bool]:
-            # pylint:disable=no-self-argument
+
             assert cls is Schema
             return ~idx.str.contains("dog")
 
@@ -661,20 +731,20 @@ def test_dataframe_check_passthrough_kwargs() -> None:
         @pa.dataframe_check(column="a", enum=MockTypesOne)
         @classmethod
         def type_id_valid(
-            cls, df: pd.DataFrame, column: str, enum: Type[Enum]
+            cls, df: pd.DataFrame, column: str, enum: type[Enum]
         ) -> Iterable[bool]:
             return cls._field_in_enum(df, column, enum)  # type: ignore
 
         @pa.dataframe_check(column="b", enum=MockTypesTwo)
         @classmethod
         def calc_type_valid(
-            cls, df: pd.DataFrame, column: str, enum: Type[Enum]
+            cls, df: pd.DataFrame, column: str, enum: type[Enum]
         ) -> Iterable[bool]:
             return cls._field_in_enum(df, column, enum)  # type: ignore
 
         @classmethod
         def _field_in_enum(
-            cls, df: pd.DataFrame, column: str, enum: Type[Enum]
+            cls, df: pd.DataFrame, column: str, enum: type[Enum]
         ) -> Iterable[bool]:
             return df[column].isin([member.value for member in enum])  # type: ignore
 
@@ -845,6 +915,458 @@ def test_multiindex_unique() -> None:
     )
 
     assert expected == Base.to_schema()
+
+
+def test_multiindex_strict_valid_schema() -> None:
+    """Test that multiindex_strict=True passes validation with correct levels."""
+
+    class StrictMultiIndexSchema(pa.DataFrameModel):
+        level_a: Index[str]
+        level_b: Index[int]
+        value: Series[float]
+
+        class Config:
+            multiindex_strict = True
+
+    correct_index = pd.MultiIndex.from_tuples(
+        [("A", 1), ("B", 2)], names=["level_a", "level_b"]
+    )
+    correct_df = pd.DataFrame({"value": [1.0, 2.0]}, index=correct_index)
+
+    result = StrictMultiIndexSchema.validate(correct_df)
+    assert isinstance(result, pd.DataFrame)
+
+
+def test_multiindex_strict_fails_with_extra_levels() -> None:
+    """Test that multiindex_strict=True fails when the multiindex has extra levels."""
+
+    class StrictMultiIndexSchema(pa.DataFrameModel):
+        level_a: Index[str]
+        level_b: Index[int]
+        value: Series[float]
+
+        class Config:
+            multiindex_strict = True
+
+    extra_level_index = pd.MultiIndex.from_tuples(
+        [("A", 1, "extra"), ("B", 2, "extra2")],
+        names=["level_a", "level_b", "level_c"],  # level_c is extra
+    )
+    extra_level_df = pd.DataFrame(
+        {"value": [1.0, 2.0]}, index=extra_level_index
+    )
+
+    with pytest.raises(
+        pa.errors.SchemaError,
+        match="MultiIndex has extra levels at positions \\[2\\]",
+    ):
+        StrictMultiIndexSchema.validate(extra_level_df)
+
+
+def test_multiindex_strict_fails_with_multiple_extra_levels() -> None:
+    """Test that multiindex_strict=True correctly identifies multiple extra levels."""
+
+    class StrictMultiIndexSchema(pa.DataFrameModel):
+        level_a: Index[str]
+        level_b: Index[int]
+        value: Series[float]
+
+        class Config:
+            multiindex_strict = True
+
+    # DataFrame with multiple extra levels should fail
+    multiple_extra_index = pd.MultiIndex.from_tuples(
+        [("A", 1, "extra1", "extra2"), ("B", 2, "extra3", "extra4")],
+        names=[
+            "level_a",
+            "level_b",
+            "level_c",
+            "level_d",
+        ],  # level_c and level_d are extra
+    )
+    multiple_extra_df = pd.DataFrame(
+        {"value": [1.0, 2.0]}, index=multiple_extra_index
+    )
+
+    with pytest.raises(
+        pa.errors.SchemaError,
+        match="MultiIndex has extra levels at positions \\[2, 3\\]",
+    ):
+        StrictMultiIndexSchema.validate(multiple_extra_df)
+
+
+def test_multiindex_strict_false_allows_extra_levels() -> None:
+    """Test that multiindex_strict=False allows extra levels."""
+
+    class NonStrictMultiIndexSchema(pa.DataFrameModel):
+        level_a: Index[str]
+        level_b: Index[int]
+        value: Series[float]
+
+        class Config:
+            multiindex_strict = False
+
+    extra_level_index = pd.MultiIndex.from_tuples(
+        [("A", 1, "extra"), ("B", 2, "extra2")],
+        names=[
+            "level_a",
+            "level_b",
+            "level_c",
+        ],  # level_c is extra but should be allowed
+    )
+    extra_level_df = pd.DataFrame(
+        {"value": [1.0, 2.0]}, index=extra_level_index
+    )
+
+    result = NonStrictMultiIndexSchema.validate(extra_level_df)
+    assert isinstance(result, pd.DataFrame)
+
+
+def test_multiindex_unique_validation_passes() -> None:
+    """Test that multiindex_unique validation passes with unique index combinations."""
+
+    class UniqueMultiIndexSchema(pa.DataFrameModel):
+        level_a: Index[str]
+        level_b: Index[int]
+        value: Series[float]
+
+        class Config:
+            multiindex_unique = ["level_a", "level_b"]
+
+    unique_index = pd.MultiIndex.from_tuples(
+        [("A", 1), ("B", 2), ("C", 3)],  # All unique combinations
+        names=["level_a", "level_b"],
+    )
+    unique_df = pd.DataFrame({"value": [1.0, 2.0, 3.0]}, index=unique_index)
+
+    result = UniqueMultiIndexSchema.validate(unique_df)
+    assert isinstance(result, pd.DataFrame)
+
+
+def test_multiindex_unique_subset_levels_passes() -> None:
+    """Test that multiindex_unique passes when specified levels are unique."""
+
+    class SubsetUniqueSchema(pa.DataFrameModel):
+        level_a: Index[str]
+        level_b: Index[int]
+        level_c: Index[str]
+        value: Series[float]
+
+        class Config:
+            multiindex_unique = [
+                "level_a",
+                "level_b",
+            ]  # Only check these two levels
+
+    # level_a+level_b combinations are unique, even though level_c might repeat
+    unique_subset_index = pd.MultiIndex.from_tuples(
+        [
+            ("A", 1, "X"),
+            ("B", 2, "X"),
+            ("C", 3, "X"),
+        ],  # level_c repeats but level_a+level_b is unique
+        names=["level_a", "level_b", "level_c"],
+    )
+    unique_subset_df = pd.DataFrame(
+        {"value": [1.0, 2.0, 3.0]}, index=unique_subset_index
+    )
+
+    result = SubsetUniqueSchema.validate(unique_subset_df)
+    assert isinstance(result, pd.DataFrame)
+
+
+def test_multiindex_unique_validation_fails_with_duplicates() -> None:
+    """Test that multiindex_unique validation fails with duplicate index combinations."""
+
+    class UniqueMultiIndexSchema(pa.DataFrameModel):
+        level_a: Index[str]
+        level_b: Index[int]
+        value: Series[float]
+
+        class Config:
+            multiindex_unique = ["level_a", "level_b"]
+
+    duplicate_index = pd.MultiIndex.from_tuples(
+        [("A", 1), ("B", 2), ("A", 1)],  # ("A", 1) appears twice
+        names=["level_a", "level_b"],
+    )
+    duplicate_df = pd.DataFrame(
+        {"value": [1.0, 2.0, 3.0]}, index=duplicate_index
+    )
+
+    with pytest.raises(
+        pa.errors.SchemaError,
+        match="levels '\\('level_a', 'level_b'\\)' not unique:",
+    ):
+        UniqueMultiIndexSchema.validate(duplicate_df)
+
+
+def test_multiindex_unique_single_level_string() -> None:
+    """Test that multiindex_unique works with a single level name as string."""
+
+    class SingleLevelUniqueSchema(pa.DataFrameModel):
+        level_a: Index[str]
+        level_b: Index[int]
+        value: Series[float]
+
+        class Config:
+            multiindex_unique = "level_a"  # Single level as string
+
+    # level_a has duplicates
+    duplicate_single_index = pd.MultiIndex.from_tuples(
+        [("A", 1), ("B", 2), ("A", 3)],  # "A" appears twice in level_a
+        names=["level_a", "level_b"],
+    )
+    duplicate_single_df = pd.DataFrame(
+        {"value": [1.0, 2.0, 3.0]}, index=duplicate_single_index
+    )
+
+    with pytest.raises(
+        pa.errors.SchemaError,
+        match="levels '\\('level_a',\\)' not unique:",
+    ):
+        SingleLevelUniqueSchema.validate(duplicate_single_df)
+
+
+def test_multiindex_unique_numeric_positions() -> None:
+    """Test that multiindex_unique works with numeric level positions."""
+
+    class NumericUniqueSchema(pa.DataFrameModel):
+        level_a: Index[str]
+        level_b: Index[int]
+        value: Series[float]
+
+        class Config:
+            multiindex_unique = [0, 1]  # Check positions 0 and 1
+
+    duplicate_index = pd.MultiIndex.from_tuples(
+        [("A", 1), ("B", 2), ("A", 1)],  # ("A",1) combination repeats
+        names=["level_a", "level_b"],
+    )
+    duplicate_df = pd.DataFrame(
+        {"value": [1.0, 2.0, 3.0]}, index=duplicate_index
+    )
+
+    with pytest.raises(
+        pa.errors.SchemaError,
+        match="levels '\\('level_a', 'level_b'\\)' not unique:",
+    ):
+        NumericUniqueSchema.validate(duplicate_df)
+
+
+def test_multiindex_unique_true_checks_entire_index() -> None:
+    """Test that multiindex_unique=True checks the entire index for uniqueness."""
+
+    class FullUniqueSchema(pa.DataFrameModel):
+        level_a: Index[str]
+        level_b: Index[int]
+        value: Series[float]
+
+        class Config:
+            multiindex_unique = True  # Check entire index
+
+    duplicate_index = pd.MultiIndex.from_tuples(
+        [("A", 1), ("B", 2), ("A", 1)],  # Full index has duplicates
+        names=["level_a", "level_b"],
+    )
+    duplicate_df = pd.DataFrame(
+        {"value": [1.0, 2.0, 3.0]}, index=duplicate_index
+    )
+
+    with pytest.raises(
+        pa.errors.SchemaError,
+        match="MultiIndex not unique:",
+    ):
+        FullUniqueSchema.validate(duplicate_df)
+
+
+def test_multiindex_unique_mixed_names_and_positions() -> None:
+    """Test that multiindex_unique handles mixed level names and positions."""
+
+    class MixedRefsSchema(pa.DataFrameModel):
+        level_a: Index[str]
+        level_b: Index[int]
+        level_c: Index[str]
+        value: Series[float]
+
+        class Config:
+            multiindex_unique = ["level_a", 2]  # Mix name and position
+
+    # level_a (pos 0) + level_c (pos 2) should be unique
+    duplicate_mixed_index = pd.MultiIndex.from_tuples(
+        [
+            ("A", 1, "X"),
+            ("B", 2, "Y"),
+            ("A", 3, "X"),
+        ],  # ("A", "X") appears twice
+        names=["level_a", "level_b", "level_c"],
+    )
+    duplicate_mixed_df = pd.DataFrame(
+        {"value": [1.0, 2.0, 3.0]}, index=duplicate_mixed_index
+    )
+
+    with pytest.raises(
+        pa.errors.SchemaError,
+        match="levels '\\('level_a', 'level_c'\\)' not unique:",
+    ):
+        MixedRefsSchema.validate(duplicate_mixed_df)
+
+
+def test_multiindex_unique_subset_levels_fails() -> None:
+    """Test that multiindex_unique fails when only specified levels have duplicates."""
+
+    class SubsetUniqueSchema(pa.DataFrameModel):
+        level_a: Index[str]
+        level_b: Index[int]
+        level_c: Index[str]
+        value: Series[float]
+
+        class Config:
+            multiindex_unique = [
+                "level_a",
+                "level_b",
+            ]  # Only check these two levels
+
+    # Full index is unique, but level_a+level_b combinations are not
+    duplicate_subset_index = pd.MultiIndex.from_tuples(
+        [
+            ("A", 1, "X"),
+            ("B", 2, "Y"),
+            ("A", 1, "Z"),
+        ],  # ("A", 1) appears twice
+        names=["level_a", "level_b", "level_c"],
+    )
+    duplicate_subset_df = pd.DataFrame(
+        {"value": [1.0, 2.0, 3.0]}, index=duplicate_subset_index
+    )
+
+    with pytest.raises(
+        pa.errors.SchemaError,
+        match="levels '\\('level_a', 'level_b'\\)' not unique:",
+    ):
+        SubsetUniqueSchema.validate(duplicate_subset_df)
+
+
+@pytest.mark.parametrize(
+    "multiindex_unique_value,description",
+    [
+        (None, "None explicitly allows duplicates"),
+        (False, "False explicitly allows duplicates"),
+        ([], "Empty list allows duplicates"),
+    ],
+)
+def test_multiindex_unique_allows_duplicates(
+    multiindex_unique_value, description
+) -> None:
+    """Test that various multiindex_unique values allow duplicate index combinations."""
+
+    class NonUniqueMultiIndexSchema(pa.DataFrameModel):
+        level_a: Index[str]
+        level_b: Index[int]
+        value: Series[float]
+
+        class Config:
+            multiindex_unique = multiindex_unique_value
+
+    duplicate_index = pd.MultiIndex.from_tuples(
+        [("A", 1), ("B", 2), ("A", 1)],  # ("A", 1) appears twice
+        names=["level_a", "level_b"],
+    )
+    duplicate_df = pd.DataFrame(
+        {"value": [1.0, 2.0, 3.0]}, index=duplicate_index
+    )
+
+    result = NonUniqueMultiIndexSchema.validate(duplicate_df)
+    assert isinstance(result, pd.DataFrame)
+
+
+def test_multiindex_unique_with_invalid_level_names() -> None:
+    """Test that multiindex_unique silently ignores invalid level names (consistent with DataFrame behavior)."""
+
+    class InvalidLevelSchema(pa.DataFrameModel):
+        level_a: Index[str]
+        level_b: Index[int]
+        value: Series[float]
+
+        class Config:
+            multiindex_unique = [
+                "level_a",
+                "nonexistent_level",
+            ]  # One valid, one invalid
+
+    # Should still check level_a for duplicates and fail
+    duplicate_index = pd.MultiIndex.from_tuples(
+        [("A", 1), ("B", 2), ("A", 3)],  # level_a has duplicates
+        names=["level_a", "level_b"],
+    )
+    duplicate_df = pd.DataFrame(
+        {"value": [1.0, 2.0, 3.0]}, index=duplicate_index
+    )
+
+    with pytest.raises(
+        pa.errors.SchemaError,
+        match="levels '\\('level_a',\\)' not unique:",
+    ):
+        InvalidLevelSchema.validate(duplicate_df)
+
+
+def test_multiindex_unique_with_all_invalid_level_names() -> None:
+    """Test that multiindex_unique allows duplicates when all specified levels are invalid."""
+
+    class AllInvalidLevelSchema(pa.DataFrameModel):
+        level_a: Index[str]
+        level_b: Index[int]
+        value: Series[float]
+
+        class Config:
+            multiindex_unique = [
+                "nonexistent_level",
+                "another_invalid",
+            ]  # All invalid
+
+    # Should pass validation since no valid levels are specified for uniqueness checking
+    duplicate_index = pd.MultiIndex.from_tuples(
+        [("A", 1), ("B", 2), ("A", 1)],  # Has duplicates but should be ignored
+        names=["level_a", "level_b"],
+    )
+    duplicate_df = pd.DataFrame(
+        {"value": [1.0, 2.0, 3.0]}, index=duplicate_index
+    )
+
+    result = AllInvalidLevelSchema.validate(duplicate_df)
+    assert isinstance(result, pd.DataFrame)
+
+
+def test_multiindex_unique_with_actual_unnamed_levels() -> None:
+    """Test that multiindex_unique works when schema has unnamed levels (check_name=False)."""
+
+    class UnnamedLevelSchema(pa.DataFrameModel):
+        # Use check_name=False to avoid name checking for unnamed levels
+        level_0: Index[str] = pa.Field(check_name=False)
+        level_1: Index[int] = pa.Field(check_name=False)
+        value: Series[float]
+
+        class Config:
+            multiindex_unique = [0, 1]  # Use numeric positions
+
+    # Create index with None names (unnamed levels)
+    duplicate_index = pd.MultiIndex.from_tuples(
+        [
+            ("A", 1),
+            ("B", 2),
+            ("A", 1),
+        ],  # Duplicate combination at positions 0,1
+        names=[None, None],  # Unnamed levels
+    )
+    duplicate_df = pd.DataFrame(
+        {"value": [1.0, 2.0, 3.0]}, index=duplicate_index
+    )
+
+    with pytest.raises(
+        pa.errors.SchemaError,
+        match="levels '\\(0, 1\\)' not unique:",
+    ):
+        UnnamedLevelSchema.validate(duplicate_df)
 
 
 def test_config_docstrings() -> None:
@@ -1053,7 +1575,7 @@ def test_field_name_access_inherit() -> None:
 
     assert expected_base == Base.to_schema()
     assert expected_child == Child.to_schema()
-    assert Child.a == "a"  # pylint:disable=no-member
+    assert Child.a == "a"
     assert Child.b == "_b"
     assert Child.c == "c"
     assert Child.d == "d"
@@ -1118,7 +1640,7 @@ def test_validate_coerce_on_init():
     }
     pandera_validated_df = DataFrame[Schema](raw_data)
     pandas_df = pd.DataFrame(raw_data)
-    assert pandera_validated_df.equals(Schema.validate(pandas_df))
+    assert_frame_equal(pandera_validated_df, Schema.validate(pandas_df))
     assert isinstance(pandera_validated_df, DataFrame)
     assert isinstance(pandas_df, pd.DataFrame)
 
@@ -1482,7 +2004,7 @@ def test_parse_single_column():
         # parsers at the column level
         @pa.parser("col1")
         def sqrt(cls, series):
-            # pylint:disable=no-self-argument
+
             return series.transform("sqrt")
 
     assert Schema.validate(
@@ -1502,7 +2024,7 @@ def test_parse_dataframe():
         # parsers at the dataframe level
         @pa.dataframe_parser
         def dataframe_sqrt(cls, df):
-            # pylint:disable=no-self-argument
+
             return df.transform("sqrt")
 
     assert Schema.validate(
@@ -1522,13 +2044,13 @@ def test_parse_both_dataframe_and_column():
         # parsers at the column level
         @pa.parser("col1")
         def sqrt(cls, series):
-            # pylint:disable=no-self-argument
+
             return series.transform("sqrt")
 
         # parsers at the dataframe level
         @pa.dataframe_parser
         def dataframe_sqrt(cls, df):
-            # pylint:disable=no-self-argument
+
             return df.transform("sqrt")
 
     assert Schema.validate(
@@ -1548,7 +2070,7 @@ def test_parse_non_existing() -> None:
         # parsers at the column level
         @pa.parser("nope")
         def sqrt(cls, series):
-            # pylint:disable=no-self-argument
+
             return series.transform("sqrt")
 
     err_msg = "Parser sqrt is assigned to a non-existing field 'nope'"
@@ -1567,7 +2089,7 @@ def test_parse_regex() -> None:
         @pa.parser("^a", regex=True)
         @classmethod
         def sqrt(cls, series):
-            # pylint:disable=no-self-argument
+
             return series.transform("sqrt")
 
     df = pd.DataFrame({"a": [121.0], "abc": [1.0], "cba": [200.0]})
@@ -1601,6 +2123,35 @@ def test_empty() -> None:
     df = Schema.empty()
     assert df.empty
     assert Schema.validate(df).empty  # type: ignore [attr-defined]
+
+
+def test_empty_with_multi_index() -> None:
+    """Test to generate an empty DataFrameModel with a named multi index"""
+
+    class Schema(pa.DataFrameModel):
+        idx1: Index[str]
+        idx2: Index[int]
+        value: Series[float]
+
+    df = Schema.empty()
+    assert df.empty
+    assert isinstance(df.index, pd.MultiIndex)
+    assert df.index.names == ["idx1", "idx2"]
+    dtype_level_0 = df.index.get_level_values(0)
+    dtype_level_1 = df.index.get_level_values(1)
+    assert pd.api.types.is_object_dtype(dtype_level_0)
+    assert pd.api.types.is_integer_dtype(dtype_level_1)
+
+
+def test_empty_with_index() -> None:
+    class Schema(pa.DataFrameModel):
+        idx: Index[int] = pa.Field(check_name=True)
+        value: Series[float]
+
+    df = Schema.empty()
+    assert df.empty
+    assert df.index.name == "idx"
+    assert pd.api.types.is_integer_dtype(df.index.dtype)
 
 
 def test_model_with_pydantic_base_model_with_df_init():

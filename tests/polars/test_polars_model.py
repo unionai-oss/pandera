@@ -1,4 +1,4 @@
-"""Unit tests for polars dataframe model."""
+"""Unit tests for Polars dataframe model."""
 
 from datetime import datetime
 import sys
@@ -7,7 +7,7 @@ from typing import Optional
 try:  # python 3.9+
     from typing import Annotated  # type: ignore
 except ImportError:
-    from typing_extensions import Annotated  # type: ignore
+    from typing import Annotated  # type: ignore
 
 import polars as pl
 import pytest
@@ -43,7 +43,7 @@ def ldf_schema_basic():
         {
             "string_col": Column(pl.Utf8),
             "int_col": Column(pl.Int64),
-        },
+        }
     )
 
 

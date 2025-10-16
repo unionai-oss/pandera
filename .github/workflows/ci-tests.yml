@@ -25,12 +25,13 @@ concurrency:
 jobs:
 
   lint:
-    name: Linters (${{ matrix.python-version }})
+    name: Linters (python=${{ matrix.python-version }} polars=${{ matrix.polars-version }} )
     runs-on: ubuntu-latest
     strategy:
       fail-fast: true
       matrix:
-        python-version: ["3.9", "3.10", "3.11", "3.12"]
+        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
+        polars-version: ["0.20.0", "1.33.1"]
     defaults:
       run:
         shell: bash -l {0}
@@ -58,17 +59,11 @@ jobs:
             types-requests \
             types-setuptools \
             setuptools \
-            polars
+            polars==${{ matrix.polars-version }}
       - name: Install pandera
         run: python -m pip install -e .
       - name: Pip info
         run: python -m pip list
-
-      - name: Testing
-        run: which uv
-
-      - name: Testing 2
-        run: which nox
 
       - name: Check requirements
         run: nox -db uv -r --non-interactive --python ${{ matrix.python-version }} --session requirements-${{ matrix.python-version }}
@@ -80,10 +75,6 @@ jobs:
         if: always()
         run: pre-commit run black --all-files
 
-      - name: Pylint
-        if: always()
-        run: pre-commit run pylint --all-files
-
       - name: Mypy Type Checking
         if: always()
         run: pre-commit run mypy --all-files
@@ -91,7 +82,7 @@ jobs:
   # test base functionality
   unit-tests-base:
     name: >
-      Unit Tests Base: python-${{ matrix.python-version }} ${{ matrix.os }} (pydantic-${{ matrix.pydantic-version }})
+      Unit Tests Base: python-${{ matrix.python-version }} ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     defaults:
       run:
@@ -102,7 +93,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        python-version: ["3.9", "3.10", "3.11", "3.12"]
+        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
         pydantic-version: ["2.10.6"]
     steps:
       - uses: actions/checkout@v4
@@ -117,7 +108,7 @@ jobs:
           pip list
           printenv | sort
       - name: Unit Tests Base
-        run: nox -v -db uv --non-interactive --session "tests-${{ matrix.python-version }}(extra=None, pandas=None, pydantic=None)"
+        run: nox -v -db uv --non-interactive --session "tests-${{ matrix.python-version }}(extra=None, pandas=None, pydantic=None, polars=None)"
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
 
@@ -135,9 +126,12 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        python-version: ["3.9", "3.10", "3.11", "3.12"]
+        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
         pandas-version: ["2.1.1", "2.2.3"]
         pydantic-version: ["1.10.11", "2.10.6"]
+        exclude:
+          - pandas-version: "2.1.1"
+            python-version: "3.13"
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python ${{ matrix.python-version }}
@@ -151,7 +145,7 @@ jobs:
           pip list
           printenv | sort
       - name: Unit Tests - pandas
-        run: nox -v -db uv --non-interactive --session "tests-${{ matrix.python-version }}(extra='pandas', pandas='${{ matrix.pandas-version }}', pydantic='${{ matrix.pydantic-version }}')"
+        run: nox -v -db uv --non-interactive --session "tests-${{ matrix.python-version }}(extra='pandas', pandas='${{ matrix.pandas-version }}', pydantic='${{ matrix.pydantic-version }}', polars=None)"
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
 
@@ -169,7 +163,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        python-version: ["3.9", "3.10", "3.11", "3.12"]
+        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
         pandas-version: ["2.2.3"]
         pydantic-version: ["2.10.6"]
         extra:
@@ -195,14 +189,14 @@ jobs:
           pip list
           printenv | sort
       - name: Unit Tests - ${{ matrix.extra }}
-        run: nox -v -db uv --non-interactive --session "tests-${{ matrix.python-version }}(extra='${{ matrix.extra }}', pandas='${{ matrix.pandas-version }}', pydantic='${{ matrix.pydantic-version }}')"
+        run: nox -v -db uv --non-interactive --session "tests-${{ matrix.python-version }}(extra='${{ matrix.extra }}', pandas='${{ matrix.pandas-version }}', pydantic='${{ matrix.pydantic-version }}', polars=None)"
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
 
   # test extras for popular dataframe libraries
   unit-tests-dataframe-extras:
     name: >
-      Unit Tests DataFrame Extras: python-${{ matrix.python-version }} ${{ matrix.os }} (extra-${{ matrix.extra }}, pandas-${{ matrix.pandas-version }}, pydantic-${{ matrix.pydantic-version }})
+      Unit Tests DataFrame Extras: python-${{ matrix.python-version }} ${{ matrix.os }} (extra-${{ matrix.extra }} polars=${{ matrix.polars-version }})
     runs-on: ${{ matrix.os }}
     defaults:
       run:
@@ -215,25 +209,36 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        python-version: ["3.9", "3.10", "3.11", "3.12"]
-        pandas-version: ["2.2.3"]
-        pydantic-version: ["2.10.6"]
+        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
         extra:
         - dask
         - polars
         - pyspark
         - modin-dask
         - modin-ray
+        - ibis
+        include:
+        - extra: polars
+          polars-version: "0.20.0"
+        - extra: polars
+          polars-version: "1.33.1"
+        - extra: polars
+          pandas-version: "2.2.3"
+          pydantic-version: "2.10.6"
         exclude:
-        - extra: mypy
-          os: windows-latest
         - extra: modin-ray
           os: windows-latest
         # pyspark serialization issue on windows: "pandas" module not found
         - extra: pyspark
           os: windows-latest
         - extra: pyspark
-          python-version: 3.12
+          python-version: "3.12"
+        - extra: pyspark
+          python-version: "3.13"
+        - extra: modin-dask
+          python-version: "3.13"
+        - extra: modin-ray
+          python-version: "3.13"
 
     steps:
       - uses: actions/checkout@v4
@@ -257,7 +262,12 @@ jobs:
           printenv | sort
 
       - name: Unit Tests - ${{ matrix.extra }}
-        run: nox -v -db uv --non-interactive --session "tests-${{ matrix.python-version }}(extra='${{ matrix.extra }}', pandas='${{ matrix.pandas-version }}', pydantic='${{ matrix.pydantic-version }}')"
+        if: matrix.extra == 'polars'
+        run: nox -v -db uv --non-interactive --session "tests-${{ matrix.python-version }}(extra='${{ matrix.extra }}', pandas='${{ matrix.pandas-version }}', pydantic='${{ matrix.pydantic-version }}', polars='${{ matrix.polars-version }}')"
+
+      - name: Unit Tests - ${{ matrix.extra }}
+        if: matrix.extra != 'polars'
+        run: nox -v -db uv --non-interactive --session "tests-${{ matrix.python-version }}(extra='${{ matrix.extra }}', pandas=None, pydantic=None, polars=None)"
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4

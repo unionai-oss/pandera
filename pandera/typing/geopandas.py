@@ -38,16 +38,13 @@ except ImportError:  # pragma: no cover
 
 
 if GEOPANDAS_INSTALLED:
-    # pylint: disable=import-outside-toplevel,ungrouped-imports
     from pandera.engines.geopandas_engine import Geometry
 
-    # pylint:disable=invalid-name
     if TYPE_CHECKING:
         T = TypeVar("T")  # pragma: no cover
     else:
         T = DataFrameModel
 
-    # pylint:disable=too-few-public-methods
     class GeoSeries(SeriesBase, gpd.GeoSeries, Generic[T]):
         """
         Representation of geopandas.GeoSeries, only used for type annotation.

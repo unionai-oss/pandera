@@ -3,7 +3,7 @@
 import datetime
 import operator
 import re
-from typing import Any, Callable, Optional, Set
+from typing import Any, Callable, Optional
 from unittest.mock import MagicMock
 from warnings import catch_warnings
 
@@ -30,7 +30,7 @@ else:
     HAS_HYPOTHESIS = True
 
 
-UNSUPPORTED_DTYPE_CLS: Set[Any] = {
+UNSUPPORTED_DTYPE_CLS: set[Any] = {
     pandas_engine.Interval,
     pandas_engine.Period,
     pandas_engine.Sparse,
@@ -111,9 +111,7 @@ NULLABLE_DTYPES = [
     "data_type",
     [
         pa.Category,
-        pandas_engine.Interval(  # type: ignore # pylint:disable=unexpected-keyword-arg,no-value-for-parameter
-            subtype=np.int64
-        ),
+        pandas_engine.Interval(subtype=np.int64),  # type: ignore
     ],
 )
 def test_unsupported_pandas_dtype_strategy(data_type):

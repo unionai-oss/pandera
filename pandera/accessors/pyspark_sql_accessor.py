@@ -110,7 +110,7 @@ def register_dataframe_accessor(name):
     :param name: name used when calling the accessor after its registered
     :returns: a class decorator callable.
     """
-    # pylint: disable=import-outside-toplevel
+
     from pyspark.sql import DataFrame
 
     return _register_accessor(name, DataFrame)
@@ -123,7 +123,7 @@ def register_connect_dataframe_accessor(name):
     :param name: name used when calling the accessor after its registered
     :returns: a class decorator callable.
     """
-    # pylint: disable=import-outside-toplevel
+
     from pyspark.sql.connect.dataframe import DataFrame as psc_DataFrame
 
     return _register_accessor(name, psc_DataFrame)

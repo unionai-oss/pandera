@@ -1,15 +1,13 @@
 """Common typing functionality."""
 
-# pylint:disable=abstract-method,too-many-ancestors,invalid-name
-
 import copy
 import inspect
+import typing
 from typing import (  # type: ignore[attr-defined]
     TYPE_CHECKING,
     Any,
     Generic,
     Optional,
-    Type,
     TypeVar,
     Union,
     _GenericAlias,
@@ -72,7 +70,6 @@ GenericDtype = TypeVar(  # type: ignore
 DataFrameModel = TypeVar("DataFrameModel", bound="DataFrameModel")  # type: ignore
 
 
-# pylint:disable=invalid-name
 if TYPE_CHECKING:
     T = TypeVar("T")  # pragma: no cover
 else:
@@ -109,7 +106,7 @@ def __patched_generic_alias_call(self, *args, **kwargs):
         raise
     # In python 3.11.9, all exceptions when setting attributes when defining
     # _GenericAlias subclasses are caught and ignored.
-    except Exception:  # pylint: disable=broad-except
+    except Exception:
         pass
     return result
 
@@ -118,25 +115,24 @@ _GenericAlias.__call__ = __patched_generic_alias_call
 
 
 class DataFrameBase(Generic[T]):
-    # pylint: disable=too-few-public-methods
     """
     Pandera Dataframe base class for validating dataframes on
     initialization.
     """
 
-    default_dtype: Optional[Type] = None
+    default_dtype: Optional[type] = None
 
     def __setattr__(self, name: str, value: Any) -> None:
-        # pylint: disable=no-member
         object.__setattr__(self, name, value)
         if name == "__orig_class__":
-            orig_class = getattr(self, "__orig_class__")
+            orig_class = value
             class_args = getattr(orig_class, "__args__", None)
             if class_args is not None and any(
                 x.__name__ == "DataFrameModel"
                 for x in inspect.getmro(class_args[0])
             ):
                 schema_model = value.__args__[0]
+                schema = schema_model.to_schema()
             else:
                 raise TypeError("Could not find DataFrameModel in class args")
 
@@ -147,42 +143,40 @@ class DataFrameBase(Generic[T]):
             if (
                 pandera_accessor is None
                 or pandera_accessor.schema is None
-                or pandera_accessor.schema != schema_model.to_schema()
+                or pandera_accessor.schema != schema
             ):
-                self.__dict__ = schema_model.validate(self).__dict__
+                self.__dict__.update(schema.validate(self).__dict__)
                 if pandera_accessor is None:
                     pandera_accessor = getattr(self, "pandera")
-                pandera_accessor.add_schema(schema_model.to_schema())
+                pandera_accessor.add_schema(schema)
 
 
-# pylint:disable=too-few-public-methods
 class SeriesBase(Generic[GenericDtype]):
     """Pandera Series base class to use for all pandas-like APIs."""
 
-    default_dtype: Optional[Type] = None
+    default_dtype: Optional[type] = None
 
     def __get__(
-        self, instance: object, owner: Type
+        self, instance: object, owner: type
     ) -> str:  # pragma: no cover
         raise AttributeError("Series should resolve to Field-s")
 
 
-# pylint:disable=too-few-public-methods
 class IndexBase(Generic[GenericDtype]):
     """Representation of pandas.Index, only used for type annotation.
 
     *new in 0.5.0*
     """
 
-    default_dtype: Optional[Type] = None
+    default_dtype: Optional[type] = None
 
     def __get__(
-        self, instance: object, owner: Type
+        self, instance: object, owner: type
     ) -> str:  # pragma: no cover
         raise AttributeError("Indexes should resolve to pa.Index-s")
 
 
-class AnnotationInfo:  # pylint:disable=too-few-public-methods
+class AnnotationInfo:
     """Captures extra information about an annotation.
 
     Attributes:
@@ -196,7 +190,7 @@ class AnnotationInfo:  # pylint:disable=too-few-public-methods
         metadata: Extra arguments passed to :data:`typing.Annotated`.
     """
 
-    def __init__(self, raw_annotation: Type) -> None:
+    def __init__(self, raw_annotation: type) -> None:
         self._parse_annotation(raw_annotation)
 
     @property
@@ -209,7 +203,7 @@ class AnnotationInfo:  # pylint:disable=too-few-public-methods
         except TypeError:
             return False
 
-    def _parse_annotation(self, raw_annotation: Type) -> None:
+    def _parse_annotation(self, raw_annotation: type) -> None:
         """Parse key information from annotation.
 
         :param annotation: A subscripted type.
@@ -233,13 +227,20 @@ class AnnotationInfo:  # pylint:disable=too-few-public-methods
         self.arg = args[0] if args else args
 
         metadata = getattr(raw_annotation, "__metadata__", None)
+
         if metadata:
             self.is_annotated_type = True
+            try:
+                inspect.signature(self.arg)
+            except ValueError:
+                metadata = None
+
         elif metadata := getattr(self.arg, "__metadata__", None):
             self.arg = typing_inspect.get_args(self.arg)[0]
 
         self.metadata = metadata
-        self.literal = typing_inspect.is_literal_type(self.arg)
+
+        self.literal = typing_inspect.get_origin(self.arg) is typing.Literal
 
         if self.literal:
             self.arg = typing_inspect.get_args(self.arg)[0]

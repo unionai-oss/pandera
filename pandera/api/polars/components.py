@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Optional, Type
+from typing import Any, Optional
 
 import polars as pl
 
@@ -41,7 +41,7 @@ class Column(ComponentSchema[PolarsCheckObjects]):
         """Create column validator object.
 
         :param dtype: datatype of the column. The datatype for type-checking
-            a dataframe. All `polars datatypes <https://docs.pola.rs/py-polars/html/reference/datatypes.html>`__,
+            a dataframe. All `polars datatypes <https://docs.pola.rs/py-polars/html/reference/datatypes.html>`_,
             supported built-in python types that are supported by polars,
             and the pandera polars engine :ref:`datatypes <polars-dtypes>`.
         :param checks: checks to verify validity of the column
@@ -107,8 +107,8 @@ class Column(ComponentSchema[PolarsCheckObjects]):
 
     @staticmethod
     def register_default_backends(
-        check_obj_cls: Type,
-    ):  # pylint: disable=unused-argument
+        check_obj_cls: type,
+    ):
         register_polars_backends()
 
     def validate(
@@ -252,7 +252,7 @@ class Column(ComponentSchema[PolarsCheckObjects]):
 
            This method is not implemented in the polars backend.
         """
-        # pylint: disable=import-outside-toplevel,cyclic-import,import-error
+
         raise NotImplementedError(
             "Data synthesis is not supported in with polars schemas."
         )

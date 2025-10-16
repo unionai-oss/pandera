@@ -1,9 +1,9 @@
-"""Pandas Parsing, Validation, and Error Reporting Backends."""
+"""Pandas parsing, validation, and error-reporting backends."""
 
 import copy
 import itertools
 import traceback
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Callable, Optional
 
 import pandas as pd
 from pydantic import BaseModel
@@ -53,7 +53,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
         Parse and validate a check object, returning type-coerced and validated
         object.
         """
-        # pylint: disable=too-many-locals
+
         if not is_table(check_obj):
             raise TypeError(f"expected pd.DataFrame, got {type(check_obj)}")
 
@@ -74,7 +74,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
         # Collect status of columns against schema
         column_info = self.collect_column_info(check_obj, schema)
 
-        core_parsers: List[Tuple[Callable[..., Any], Tuple[Any, ...]]] = [
+        core_parsers: list[tuple[Callable[..., Any], tuple[Any, ...]]] = [
             (self.add_missing_columns, (schema, column_info)),
             (self.strict_filter_columns, (schema, column_info)),
             (self.set_defaults, (schema,)),
@@ -151,7 +151,6 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
         random_state,
     ) -> ErrorHandler:
         """Run checks on schema"""
-        # pylint: disable=too-many-locals
 
         # subsample the check object if head, tail, or sample are specified
         sample = self.subsample(check_obj, head, tail, sample, random_state)
@@ -168,7 +167,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
             (self.run_checks, (sample, schema)),
         ]
         for check, args in core_checks:
-            results = check(*args)  # type: ignore [operator]
+            results = check(*args)
             if isinstance(results, CoreCheckResult):
                 results = [results]
 
@@ -202,9 +201,9 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
         self,
         check_obj: pd.DataFrame,
         schema,
-        schema_components: List,
+        schema_components: list,
         lazy: bool,
-    ) -> List[CoreCheckResult]:
+    ) -> list[CoreCheckResult]:
         """Run checks for all schema components."""
         check_results = []
         check_passed = []
@@ -258,14 +257,15 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
         assert all(check_passed)
         return check_results
 
+    @validate_scope(scope=ValidationScope.DATA)
     def run_checks(
         self,
         check_obj: pd.DataFrame,
         schema,
-    ) -> List[CoreCheckResult]:
+    ) -> list[CoreCheckResult]:
         """Run a list of checks on the check object."""
         # dataframe-level checks
-        check_results: List[CoreCheckResult] = []
+        check_results: list[CoreCheckResult] = []
         for check_index, check in enumerate(schema.checks):
             try:
                 check_results.append(
@@ -273,9 +273,9 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
                 )
             except SchemaDefinitionError:
                 raise
-            except Exception as err:  # pylint: disable=broad-except
+            except Exception as err:
                 # catch other exceptions that may occur when executing the check
-                err_msg = f'"{err.args[0]}"' if len(err.args) > 0 else ""
+                err_msg = f'"{err.args[0]}"' if err.args else ""
                 err_str = f"{err.__class__.__name__}({ err_msg})"
                 msg = (
                     f"Error while executing check function: {err_str}\n"
@@ -300,9 +300,9 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
         schema,
     ) -> ColumnInfo:
         """Collect column metadata."""
-        column_names: List[Any] = []
-        absent_column_names: List[Any] = []
-        regex_match_patterns: List[Any] = []
+        column_names: list[Any] = []
+        absent_column_names: list[Any] = []
+        regex_match_patterns: list[Any] = []
 
         for col_name, col_schema in schema.columns.items():
             if (
@@ -322,7 +322,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
                     regex_match_patterns.append(col_schema.name)
                 except SchemaError:
                     pass
-            elif col_name in check_obj.columns:
+            elif col_name in check_obj:
                 column_names.append(col_name)
 
         # drop adjacent duplicated column names
@@ -365,7 +365,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
         ):
             # NOTE: this is hack: the dataframe-level data type check should
             # be its own check function.
-            # pylint: disable=import-outside-toplevel,cyclic-import
+
             from pandera.api.pandas.components import Column
 
             columns = {}
@@ -425,7 +425,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
         # dataframe. Be careful not to modify order of existing dataframe
         # columns to avoid ripple effects in downstream validation
         # (e.g., ordered schema).
-        schema_cols_dict: Dict[Any, None] = {}
+        schema_cols_dict: dict[Any, None] = {}
         for col_name, col_schema in schema.columns.items():
             if col_name in check_obj.columns or col_schema.required:
                 schema_cols_dict[col_name] = None
@@ -480,7 +480,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
     def _construct_missing_df(
         self,
         obj: pd.DataFrame,
-        missing_cols_schema: Dict[str, Any],
+        missing_cols_schema: dict[str, Any],
     ) -> pd.DataFrame:
         """Construct dataframe of missing columns with their default values.
 
@@ -514,7 +514,6 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
             return check_obj
 
         filter_out_columns = []
-
         sorted_column_names = iter(column_info.sorted_column_names)
         for column in column_info.destuttered_column_names:
             is_schema_col = column in column_info.expanded_column_names
@@ -715,7 +714,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
 
     def run_parsers(self, schema, check_obj):
         """Run parsers"""
-        parser_results: List[CoreParserResult] = []
+        parser_results: list[CoreParserResult] = []
         for parser_index, parser in enumerate(schema.parsers):
             result = self.run_parser(
                 check_obj,
@@ -768,8 +767,8 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
     @validate_scope(scope=ValidationScope.SCHEMA)
     def check_column_presence(
         self, check_obj: pd.DataFrame, schema, column_info: ColumnInfo
-    ) -> List[CoreCheckResult]:
-        """Check for presence of specified columns in the data object."""
+    ) -> list[CoreCheckResult]:
+        """Check that all columns in the schema are present in the dataframe."""
         results = []
         if column_info.absent_column_names and not schema.add_missing_columns:
             for colname in column_info.absent_column_names:
@@ -800,19 +799,19 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
         if not schema.unique:
             return CoreCheckResult(
                 passed=passed,
-                check="dataframe_column_labels_unique",
+                check="multiple_fields_uniqueness",
             )
 
-        # NOTE: fix this pylint error
-        # pylint: disable=not-an-iterable
         keep_setting = convert_uniquesettings(schema.report_duplicates)
-        temp_unique: List[List] = (
+        temp_unique: list[list] = (
             [schema.unique]
             if all(isinstance(x, str) for x in schema.unique)
             else schema.unique
         )
         for lst in temp_unique:
             subset = [x for x in lst if x in check_obj]
+            if not subset:
+                continue
             duplicates = check_obj.duplicated(  # type: ignore
                 subset=subset, keep=keep_setting  # type: ignore
             )
@@ -822,7 +821,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
                 # series or dataframe because it comes from a different
                 # dataframe."
                 if type(duplicates).__module__.startswith("pyspark.pandas"):
-                    # pylint: disable=import-outside-toplevel
+
                     import pyspark.pandas as ps
 
                     with ps.option_context("compute.ops_on_diff_frames", True):

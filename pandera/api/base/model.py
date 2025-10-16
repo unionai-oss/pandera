@@ -1,17 +1,14 @@
-"""Base classes for model api."""
+"""Base classes for model API."""
 
 import os
 from typing import (
     Any,
-    Dict,
-    List,
-    Mapping,
+    ClassVar,
     Optional,
-    Tuple,
-    Type,
     TypeVar,
     Union,
 )
+from collections.abc import Mapping
 
 from pandera.api.base.model_components import BaseFieldInfo
 from pandera.api.base.model_config import BaseModelConfig
@@ -34,24 +31,26 @@ class MetaModel(type):
 class BaseModel(metaclass=MetaModel):
     """Base class for a Data Object Model."""
 
-    Config: Type[BaseModelConfig] = BaseModelConfig
-    __extras__: Optional[Dict[str, Any]] = None
-    __schema__: Optional[Any] = None
-    __config__: Optional[Type[BaseModelConfig]] = None
+    Config: type[BaseModelConfig] = BaseModelConfig
+    __extras__: Optional[dict[str, Any]] = None
+    __schema__: ClassVar[Optional[Any]] = None
+    __config__: Optional[type[BaseModelConfig]] = None
 
     #: Key according to `FieldInfo.name`
-    __fields__: Mapping[str, Tuple[AnnotationInfo, BaseFieldInfo]] = {}
-    __checks__: Dict[str, List[Check]] = {}
-    __root_checks__: List[Check] = []
+    __fields__: ClassVar[
+        Mapping[str, tuple[AnnotationInfo, BaseFieldInfo]]
+    ] = {}
+    __checks__: ClassVar[dict[str, list[Check]]] = {}
+    __root_checks__: ClassVar[list[Check]] = []
 
     # This is syntantic sugar that delegates to the validate method
     def __new__(cls, *args, **kwargs) -> Any:
         raise NotImplementedError
 
     def __class_getitem__(
-        cls: Type[TBaseModel],
-        params: Union[Type[Any], Tuple[Type[Any], ...]],
-    ) -> Type[TBaseModel]:
+        cls: type[TBaseModel],
+        params: Union[type[Any], tuple[type[Any], ...]],
+    ) -> type[TBaseModel]:
         """
         Parameterize the class's generic arguments with the specified types.
 
@@ -71,7 +70,7 @@ class BaseModel(metaclass=MetaModel):
 
     @classmethod
     def validate(
-        cls: Type[TBaseModel],
+        cls: type[TBaseModel],
         check_obj: Any,
         head: Optional[int] = None,
         tail: Optional[int] = None,
@@ -84,12 +83,12 @@ class BaseModel(metaclass=MetaModel):
         raise NotImplementedError
 
     @classmethod
-    def strategy(cls: Type[TBaseModel], *, size: Optional[int] = None):
+    def strategy(cls: type[TBaseModel], *, size: Optional[int] = None):
         """Create a data synthesis strategy."""
         raise NotImplementedError
 
     @classmethod
-    def example(cls: Type[TBaseModel], *, size: Optional[int] = None) -> Any:
+    def example(cls: type[TBaseModel], *, size: Optional[int] = None) -> Any:
         """Generate an example of this data model specification."""
         raise NotImplementedError
 

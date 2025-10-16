@@ -1,7 +1,7 @@
-# pylint: disable=cyclic-import
 """Geopandas data types for the pandas type engine."""
 
-from typing import Any, Iterable, Optional, Union
+from typing import Any, Optional, Union
+from collections.abc import Iterable
 
 try:
     import geopandas as gpd
@@ -53,7 +53,7 @@ class Geometry(pandas_engine.DataType):
     """
 
     # define __init__ to please mypy
-    def __init__(  # pylint:disable=super-init-not-called
+    def __init__(
         self,
         crs: Optional[Any] = None,
     ) -> None:
@@ -126,7 +126,7 @@ class Geometry(pandas_engine.DataType):
 
     def coerce(self, data_container: GeoPandasObject) -> GeoPandasObject:
         """Coerce data container to the specified data type."""
-        # pylint: disable=import-outside-toplevel
+
         from pandera.backends.pandas import error_formatters
 
         orig_isna = data_container.isna()

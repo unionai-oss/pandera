@@ -1,4 +1,3 @@
-# pylint: disable=unused-import
 """A flexible and expressive polars validation library for Python."""
 
 from pandera import errors
