@@ -57,7 +57,7 @@ hypotheses = [
 io = [
     "pyyaml >= 5.1",
     "black",
-    "frictionless <= 5.1",
+    "frictionless <= 4.40.8",
 ]
 mypy = [
     "pandas-stubs",
@@ -96,7 +96,7 @@ all = [
     "scipy-stubs; python_version>='3.10'",
     "pyyaml >= 5.1",
     "black",
-    "frictionless <= 5.1",
+    "frictionless <= 4.40.8",
     "pyspark[connect] >= 3.2.0, < 4.0.0",
     "modin",
     "ray",
@@ -154,7 +154,6 @@ docs = [
     "types-pyyaml",
     "types-requests",
     "types-setuptools",
-    "frictionless[github]<=5.1",
 ]
 
 [tool.setuptools]
