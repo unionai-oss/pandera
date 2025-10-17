@@ -154,8 +154,6 @@ docs = [
     "types-pyyaml",
     "types-requests",
     "types-setuptools",
-    "pygithub>=2.8.1",
-    "pyjwt<=2.6.0",
 ]
 
 [tool.setuptools]
