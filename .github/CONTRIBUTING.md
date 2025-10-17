@@ -53,7 +53,7 @@ uv pip install polars-lts-cpu
 #### Run Tests
 
 ```bash
-pytest tests/core tests/pandas
+pytest tests/base tests/pandas
 ```
 
 #### Build Documentation Locally
