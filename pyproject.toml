@@ -154,6 +154,7 @@ docs = [
     "types-pyyaml",
     "types-requests",
     "types-setuptools",
+    "frictionless[github]>=5.18.1",
 ]
 
 [tool.setuptools]
