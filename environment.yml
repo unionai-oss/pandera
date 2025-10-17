@@ -12,7 +12,7 @@ dependencies:
   - hypothesis >= 6.92.7
   - pyyaml >= 5.1
   - typing_inspect >= 0.6.0
-  - frictionless <= 5.1  # v5.* introduces breaking changes
+  - frictionless <= 4.40.8  # v5.* introduces breaking changes
   - pyarrow >= 13 # https://github.com/apache/arrow/pull/35113
   - pydantic
 
