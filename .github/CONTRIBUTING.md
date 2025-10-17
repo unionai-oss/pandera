@@ -53,7 +53,7 @@ uv pip install polars-lts-cpu
 #### Run Tests
 
 ```bash
-pytest tests/core
+pytest tests/base
 ```
 
 #### Build Documentation Locally
