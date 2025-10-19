@@ -6,7 +6,6 @@ from collections.abc import Mapping
 from functools import partial
 from pathlib import Path
 from typing import Optional, Union, Any
-from frictionless.fields import AnyField
 
 import pandas as pd
 
@@ -670,7 +669,7 @@ class FrictionlessFieldParser:
 
     For this implementation, we are using field names, constraints and types
     but leaving other frictionless parameters out (e.g. foreign keys, type
-    formats, titles, descriptions).
+    formats).
 
     :param field: a field object from a frictionless schema.
     :param primary_keys: the primary keys from a frictionless schema. These
@@ -678,11 +677,13 @@ class FrictionlessFieldParser:
         duplicates, no missing values etc.
     """
 
-    def __init__(self, field: AnyField, primary_keys: list[str]) -> None:
+    def __init__(self, field, primary_keys) -> None:
         self.constraints = field.constraints or {}
         self.primary_keys = primary_keys
-        self.description = field.description
-        self.title = field.title
+        self.description = (
+            None if field.description == "" else field.description
+        )
+        self.title = None if field.title == "" else field.title
         self.name = field.name
         self.type = field.type
 
