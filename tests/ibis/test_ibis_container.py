@@ -23,7 +23,6 @@ def t_basic():
             "string_col": ["0", "1", "2"],
             "int_col": [0, 1, 2],
         },
-        name="t",
     )
 
 
@@ -61,7 +60,6 @@ def t_for_regex_match():
             "int_col_1": [0, 1, 2],
             "int_col_2": [0, 1, 2],
         },
-        name="t",
     )
 
 
