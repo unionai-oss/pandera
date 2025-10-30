@@ -6,7 +6,17 @@ import inspect
 import sys
 from abc import ABCMeta
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Callable, NamedTuple, Optional, TypeVar, get_args, get_origin, get_type_hints
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    NamedTuple,
+    Optional,
+    TypeVar,
+    get_args,
+    get_origin,
+    get_type_hints,
+)
 
 import typing_inspect
 
