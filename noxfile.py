@@ -22,7 +22,7 @@ nox.options.sessions = (
 
 PYTHON_VERSIONS = ["3.9", "3.10", "3.11", "3.12", "3.13", "3.14"]
 PANDAS_VERSIONS = ["2.1.1", "2.2.3"]
-PYDANTIC_VERSIONS = ["1.10.11", "2.10.6"]
+PYDANTIC_VERSIONS = ["1.10.11", "2.12.3"]
 POLARS_VERSIONS = ["0.20.0", "1.33.1"]
 PACKAGE = "pandera"
 SOURCE_PATHS = PACKAGE, "tests", "noxfile.py"
