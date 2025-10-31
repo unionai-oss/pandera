@@ -5,9 +5,7 @@ import warnings
 from enum import Enum
 from functools import partial, wraps
 from inspect import signature
-from typing import Callable, Optional, Union
-
-import typing_inspect
+from typing import Callable, Optional, Union, get_args, get_origin
 
 from pandera.api.checks import Check
 from pandera.api.hypotheses import Hypothesis
@@ -56,11 +54,11 @@ def register_builtin_check(
     # object to validate is the first argument.
     data_type = [*fn_sig.parameters.values()][0].annotation
 
-    if typing_inspect.get_origin(data_type) is tuple:
-        data_type, *_ = typing_inspect.get_args(data_type)
+    if get_origin(data_type) is tuple:
+        data_type, *_ = get_args(data_type)
 
-    if typing_inspect.get_origin(data_type) is Union:
-        data_types = typing_inspect.get_args(data_type)
+    if get_origin(data_type) is Union:
+        data_types = get_args(data_type)
     else:
         data_types = (data_type,)
 
