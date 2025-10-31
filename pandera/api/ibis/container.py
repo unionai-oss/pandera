@@ -59,7 +59,7 @@ class DataFrameSchema(_DataFrameSchema[ibis.Table]):
         ...     "probability": [0.1, 0.4, 0.52, 0.23, 0.8, 0.76],
         ...     "category": ["dog", "dog", "cat", "duck", "dog", "dog"],
         ... })
-        >>> t = ibis.memtable(df, name="t")
+        >>> t = ibis.memtable(df)
         >>>
         >>> schema_withchecks = pa.DataFrameSchema({
         ...     "probability": pa.Column(
