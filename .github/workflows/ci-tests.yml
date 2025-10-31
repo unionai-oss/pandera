@@ -94,7 +94,7 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
         python-version: ["3.9", "3.10", "3.11", "3.12", "3.13", "3.14"]
-        pydantic-version: ["2.10.6"]
+        pydantic-version: ["2.12.3"]
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python ${{ matrix.python-version }}
@@ -128,7 +128,7 @@ jobs:
         os: [ubuntu-latest, windows-latest, macos-latest]
         python-version: ["3.9", "3.10", "3.11", "3.12", "3.13", "3.14"]
         pandas-version: ["2.1.1", "2.2.3"]
-        pydantic-version: ["1.10.11", "2.10.6"]
+        pydantic-version: ["1.10.11", "2.12.3"]
         exclude:
           - pandas-version: "2.1.1"
             python-version: "3.13"
@@ -165,7 +165,7 @@ jobs:
         os: [ubuntu-latest, windows-latest, macos-latest]
         python-version: ["3.9", "3.10", "3.11", "3.12", "3.13", "3.14"]
         pandas-version: ["2.2.3"]
-        pydantic-version: ["2.10.6"]
+        pydantic-version: ["2.12.3"]
         extra:
         - hypotheses
         - io
@@ -224,7 +224,7 @@ jobs:
           polars-version: "1.33.1"
         - extra: polars
           pandas-version: "2.2.3"
-          pydantic-version: "2.10.6"
+          pydantic-version: "2.12.3"
         exclude:
         - extra: modin-ray
           os: windows-latest
