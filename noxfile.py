@@ -21,7 +21,7 @@ nox.options.sessions = (
 )
 
 PYTHON_VERSIONS = ["3.9", "3.10", "3.11", "3.12", "3.13", "3.14"]
-PANDAS_VERSIONS = ["2.1.1", "2.2.3"]
+PANDAS_VERSIONS = ["2.1.1", "2.3.3"]
 PYDANTIC_VERSIONS = ["1.10.11", "2.12.3"]
 POLARS_VERSIONS = ["0.20.0", "1.33.1"]
 PACKAGE = "pandera"
@@ -138,7 +138,7 @@ def _testing_requirements(
     _requirements = list(set(_requirements))
 
     _numpy: Optional[str] = None
-    if pandas != "2.2.3" or (
+    if pandas != "2.3.3" or (
         extra == "pyspark" and session.python in ("3.9", "3.10")
     ):
         # constrain numpy < 2 for older versions of pandas and pyspark on py3.9 and py3.10
