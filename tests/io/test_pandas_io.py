@@ -1625,6 +1625,7 @@ fields:
       maxLength: 80
       minLength: 3
     name: string_col
+    type: string
   - constraints:
       pattern: \\d{3}[A-Z]
     name: string_col_2
@@ -1642,12 +1643,12 @@ fields:
       required: true
     name: float_col
     type: number
-  - constraints:
-    name: float_col_2
+  - name: float_col_2
     type: number
   - constraints:
       minimum: "20201231"
     name: date_col
+    type: date
 primaryKey: integer_col
 """
 )
@@ -1991,3 +1992,44 @@ def test_frictionless_schema_primary_key(frictionless_schema):
         assert schema.unique == frictionless_schema["primaryKey"]
         for key in frictionless_schema["primaryKey"]:
             assert not schema.columns[key].unique
+
+
+@pytest.mark.parametrize(
+    "frictionless_schema",
+    [
+        {
+            "fields": [
+                {
+                    "name": "street_id",
+                    "type": "string",
+                    "description": "Id of the street",
+                    "title": "street identifier",
+                    "example": "45566_4455_4",  # example does not exists in pandera so no need to check it
+                },
+                {
+                    "name": "street_type",
+                    "type": "string",
+                    "constraints": {
+                        "enum": ["highway", "motorway", "secondary"]
+                    },
+                },
+                {
+                    "name": "timestamp",
+                    "type": "datetime",
+                    "format": "%Y-%m-%d_%H:%M",
+                },
+                {
+                    "name": "count",
+                    "type": "integer",
+                },
+            ],
+            "primaryKey": ["street_id", "timestamp"],
+        }
+    ],
+)
+def test_frictionless_schema_with_description_and_title(
+    frictionless_schema: dict[str, str],
+):
+    schema = pandera.io.from_frictionless_schema(frictionless_schema)
+    assert schema.columns["street_id"].description == "Id of the street"
+    assert schema.columns["street_id"].title == "street identifier"

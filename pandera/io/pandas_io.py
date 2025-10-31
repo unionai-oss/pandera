@@ -669,7 +669,7 @@ class FrictionlessFieldParser:
 
     For this implementation, we are using field names, constraints and types
     but leaving other frictionless parameters out (e.g. foreign keys, type
-    formats, titles, descriptions).
+    formats).
 
     :param field: a field object from a frictionless schema.
     :param primary_keys: the primary keys from a frictionless schema. These
@@ -680,8 +680,12 @@ class FrictionlessFieldParser:
     def __init__(self, field, primary_keys) -> None:
         self.constraints = field.constraints or {}
         self.primary_keys = primary_keys
+        self.description = (
+            None if field.description == "" else field.description
+        )
+        self.title = None if field.title == "" else field.title
         self.name = field.name
-        self.type = field.get("type", "string")
+        self.type = field.type
 
     @property
     def dtype(self) -> str:
@@ -850,6 +854,8 @@ class FrictionlessFieldParser:
             "required": self.required,
             "name": self.name,
             "regex": self.regex,
+            "description": self.description,
+            "title": self.title,
         }
 
 
