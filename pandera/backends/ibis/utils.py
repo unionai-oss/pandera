@@ -1,6 +1,6 @@
 """Utility functions for the Ibis backend."""
 
-from ibis import selectors as s
+import ibis.selectors as s
 
 
 def select_column(*names):

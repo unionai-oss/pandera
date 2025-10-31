@@ -254,7 +254,7 @@ class PolarsSchemaBackend(BaseSchemaBackend):
         check_obj: PolarsFrame,
         error_handler: ErrorHandler,
     ) -> PolarsFrame:
-        """Remove invalid elements in a check obj according to failures in caught by the error handler."""
+        """Remove invalid elements in a check obj according to failures caught by the error handler."""
         errors = error_handler.schema_errors
         check_outputs = pl.DataFrame(
             {str(i): err.check_output for i, err in enumerate(errors)}
