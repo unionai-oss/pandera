@@ -288,7 +288,9 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13", "3.14"]
+        # TODO(deepyaman): Add Python version 3.14, pending Ray support;
+        #   see https://github.com/ray-project/ray/issues/57642
+        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
     defaults:
       run:
         shell: bash -l {0}
