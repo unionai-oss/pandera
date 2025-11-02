@@ -134,6 +134,8 @@ jobs:
             python-version: "3.13"
           - pandas-version: "2.1.1"
             python-version: "3.14"
+          - pydantic-version: "1.10.11"
+            python-version: "3.14"
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python ${{ matrix.python-version }}
