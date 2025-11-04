@@ -1,5 +1,6 @@
 """Module for reading and writing schema objects."""
 
+import enum
 import json
 import warnings
 from collections.abc import Mapping
@@ -55,6 +56,10 @@ def _serialize_check_stats(check_stats, dtype=None):
     """Serialize check statistics into json/yaml-compatible format."""
 
     def handle_stat_dtype(stat):
+        # Handle enum types by converting them to a list of values
+        if isinstance(stat, type) and issubclass(stat, enum.Enum):
+            return [e.value for e in stat]
+
         if pandas_engine.Engine.dtype(dtypes.DateTime).check(
             dtype
         ) and hasattr(stat, "strftime"):
