@@ -9,6 +9,7 @@ import ibis.selectors as s
 from pandera.api.ibis.error_handler import ErrorHandler
 from pandera.api.ibis.types import CheckResult
 from pandera.backends.base import BaseSchemaBackend, CoreCheckResult
+from pandera.backends.ibis.constants import POSITIONAL_JOIN_BACKENDS
 from pandera.backends.pandas.error_formatters import (
     consolidate_failure_cases,
     format_generic_error_message,
@@ -136,7 +137,24 @@ class IbisSchemaBackend(BaseSchemaBackend):
         """Remove invalid elements in a check obj according to failures caught by the error handler."""
         import ibis.expr.types as ir
 
-        out = check_obj
+        if (
+            positional_join := check_obj.get_backend().name
+            in POSITIONAL_JOIN_BACKENDS
+        ):
+            out = check_obj
+            join = lambda left, right: left.join(right, how="positional")
+        else:
+            # For backends that do not support positional joins:
+            # https://github.com/ibis-project/ibis/issues/9486
+            index_col = "__idx__"
+            out = check_obj.mutate(**{index_col: ibis.row_number().over()})
+
+            def join(left, right):
+                return left.join(
+                    right.mutate(**{index_col: ibis.row_number().over()}),
+                    index_col,
+                )
+
         for i, error in enumerate(error_handler.schema_errors):
             check_output = error.check_output
             if isinstance(check_output, ir.BooleanColumn):
@@ -144,12 +162,15 @@ class IbisSchemaBackend(BaseSchemaBackend):
                     (~check_output).name(CHECK_OUTPUT_KEY).as_table()
                 )
 
-            out = out.join(
+            out = join(
+                out,
                 check_output.rename(
                     {f"{i}{CHECK_OUTPUT_SUFFIX}": CHECK_OUTPUT_KEY}
                 ),
-                how="positional",
             )
+
+        if not positional_join:
+            out = out.drop(index_col)
 
         acc = ibis.literal(True)
         for col in out.columns:
