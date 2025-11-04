@@ -305,11 +305,17 @@ def test_dataframe_level_checks():
         ),
     ],
 )
+@pytest.mark.parametrize("backend", ["duckdb", "sqlite"])
 def test_drop_invalid_rows(
     column_mod,
     filter_expr,
     t_schema_with_check,
+    monkeypatch,
+    backend,
 ):
+    monkeypatch.setattr(ibis.options, "default_backend", None)
+    ibis.set_backend(backend)
+
     t_schema_with_check.drop_invalid_rows = True
     data = {
         "string_col": ["0", "1", "2"],
@@ -318,7 +324,6 @@ def test_drop_invalid_rows(
     modified_data = ibis.memtable(
         data | column_mod,
         schema=ibis.schema([("string_col", "string"), ("int_col", "int64")]),
-        name="t",
     )
     validated_data = modified_data.pipe(
         t_schema_with_check.validate,
