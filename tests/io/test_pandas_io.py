@@ -2033,3 +2033,125 @@ def test_frictionless_schema_with_description_and_title(
     schema = pandera.io.from_frictionless_schema(frictionless_schema)
     assert schema.columns["street_id"].description == "Id of the street"
     assert schema.columns["street_id"].title == "street identifier"
+
+
+def test_enum_isin_json_serialization():
+    """Test that StrEnum and Enum can be used with isin and serialized to JSON."""
+    import sys
+    import json
+
+    # StrEnum was introduced in Python 3.11
+    if sys.version_info >= (3, 11):
+        from enum import StrEnum
+
+        class Status(StrEnum):
+            ACTIVE = "active"
+            INACTIVE = "inactive"
+            PENDING = "pending"
+
+        # Test with StrEnum
+        schema = pandera.DataFrameSchema(
+            {"status": pandera.Column(str, checks=pandera.Check.isin(Status))}
+        )
+
+        # Should not raise TypeError
+        json_output = schema.to_json()
+
+        # Verify the enum values are properly serialized
+        schema_dict = json.loads(json_output)
+        assert "columns" in schema_dict
+        assert "status" in schema_dict["columns"]
+        status_checks = schema_dict["columns"]["status"]["checks"]
+        assert len(status_checks) > 0
+
+        # Find the isin check
+        isin_check = None
+        for check in status_checks:
+            if isinstance(check, dict) and "options" in check:
+                if check["options"]["check_name"] == "isin":
+                    isin_check = check
+                    break
+
+        assert isin_check is not None
+        # The enum should be serialized as a list of values
+        assert "value" in isin_check
+        assert set(isin_check["value"]) == {"active", "inactive", "pending"}
+
+    # Test with regular Enum (available in all Python versions)
+    from enum import Enum
+
+    class Priority(Enum):
+        HIGH = "high"
+        MEDIUM = "medium"
+        LOW = "low"
+
+    schema = pandera.DataFrameSchema(
+        {"priority": pandera.Column(str, checks=pandera.Check.isin(Priority))}
+    )
+
+    # Should not raise TypeError
+    json_output = schema.to_json()
+
+    # Verify the enum values are properly serialized
+    schema_dict = json.loads(json_output)
+    assert "columns" in schema_dict
+    assert "priority" in schema_dict["columns"]
+    priority_checks = schema_dict["columns"]["priority"]["checks"]
+    assert len(priority_checks) > 0
+
+    # Find the isin check
+    isin_check = None
+    for check in priority_checks:
+        if isinstance(check, dict) and "options" in check:
+            if check["options"]["check_name"] == "isin":
+                isin_check = check
+                break
+
+    assert isin_check is not None
+    # The enum should be serialized as a list of values
+    assert "value" in isin_check
+    assert set(isin_check["value"]) == {"high", "medium", "low"}
+
+
+def test_enum_isin_dataframe_model_json_serialization():
+    """Test that StrEnum can be used in DataFrameModel with isin and serialized to JSON."""
+    import sys
+    import json
+
+    # StrEnum was introduced in Python 3.11
+    if sys.version_info >= (3, 11):
+        from enum import StrEnum
+        from pandera.typing import Series
+
+        class Color(StrEnum):
+            RED = "red"
+            GREEN = "green"
+            BLUE = "blue"
+
+        # Create a schema using the StrEnum in isin parameter
+        class ColorTable(pandera.DataFrameModel):
+            color: Series[str] = pandera.Field(isin=Color)
+
+        # Attempt to generate JSON schema
+        schema = ColorTable.to_schema()
+        json_output = schema.to_json()  # Should not raise TypeError
+
+        # Verify the enum values are in the JSON
+        schema_dict = json.loads(json_output)
+        assert "columns" in schema_dict
+        assert "color" in schema_dict["columns"]
+        color_checks = schema_dict["columns"]["color"]["checks"]
+        assert len(color_checks) > 0
+
+        # Find the isin check
+        isin_check = None
+        for check in color_checks:
+            if isinstance(check, dict) and "options" in check:
+                if check["options"]["check_name"] == "isin":
+                    isin_check = check
+                    break
+
+        assert isin_check is not None
+        # The enum should be serialized as a list of values
+        assert "value" in isin_check
+        assert set(isin_check["value"]) == {"red", "green", "blue"}
