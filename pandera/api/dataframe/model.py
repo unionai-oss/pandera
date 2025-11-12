@@ -62,14 +62,24 @@ GENERIC_SCHEMA_CACHE: dict[
 
 
 def get_dtype_kwargs(annotation: AnnotationInfo) -> dict[str, Any]:
+
+    if annotation.arg in (str, int, float, bool, type(None)) or \
+                hasattr(annotation.arg, '__module__') and annotation.arg.__module__ == 'builtins':
+            return {}
+
     sig = inspect.signature(annotation.arg)  # type: ignore
     dtype_arg_names = list(sig.parameters.keys())
-    if len(annotation.metadata) != len(dtype_arg_names):  # type: ignore
+
+    dtype_params = [
+        item for item in annotation.metadata
+        if not isinstance(item, FieldInfo)
+    ]
+    if len(dtype_params) != len(dtype_arg_names):  # type: ignore
         raise TypeError(
             f"Annotation '{annotation.arg.__name__}' requires "  # type: ignore
             + f"all positional arguments {dtype_arg_names}."
         )
-    return dict(zip(dtype_arg_names, annotation.metadata))  # type: ignore
+    return dict(zip(dtype_arg_names, dtype_params))
 
 
 def _is_field(name: str) -> bool:
@@ -246,13 +256,36 @@ class DataFrameModel(Generic[TDataFrame, TSchema], BaseModel):
             cls.Config = type("Config", (cls.Config,), {"name": cls.__name__})
 
         super().__init_subclass__(**kwargs)
-        subclass_annotations = cls.__dict__.get("__annotations__", {})
-        for field_name in subclass_annotations.keys():
-            if _is_field(field_name) and field_name not in cls.__dict__:
-                # Field omitted
-                field = Field()
-                field.__set_name__(cls, field_name)
-                setattr(cls, field_name, field)
+
+        # Initialize the annotation cache  
+        cls.__annotation_infos__ = {}  
+
+        # Use get_type_hints with include_extras=True instead of raw annotations  
+        annotations = get_type_hints(cls, include_extras=True)  
+        
+        for field_name, annotation in annotations.items():  
+            if _is_field(field_name):  
+                existing_field = None  
+
+                if hasattr(annotation, "__metadata__"):
+                    metadata = annotation.__metadata__
+
+                    field_info_list = [
+                        item for item in metadata
+                        if isinstance(item, FieldInfo)
+                    ]
+
+                    if field_info_list:  
+                        existing_field = field_info_list[0]  
+
+                if existing_field and field_name not in cls.__dict__:  
+                    existing_field.__set_name__(cls, field_name)  
+                    setattr(cls, field_name, existing_field)  
+
+                elif field_name not in cls.__dict__:  
+                    field = Field()  
+                    field.__set_name__(cls, field_name)  
+                    setattr(cls, field_name, field)  
 
         cls.__config__, cls.__extras__ = cls._collect_config_and_extras()
 
@@ -397,13 +430,21 @@ class DataFrameModel(Generic[TDataFrame, TSchema], BaseModel):
         for field_name, annotation in annotations.items():
             if not _is_field(field_name):
                 continue
+
             field = attrs[field_name]  # __init_subclass__ guarantees existence
             if not isinstance(field, FieldInfo):
                 raise SchemaInitError(
                     f"'{field_name}' can only be assigned a 'Field', "
                     + f"not a '{type(field)}.'"
                 )
-            fields[field.name] = (AnnotationInfo(annotation), field)
+            
+            if hasattr(cls, '__annotation_infos__') and field_name in cls.__annotation_infos__:  
+                annotation_info = cls.__annotation_infos__[field_name]  
+            else:
+                # Fallback to creating new AnnotationInfo if cache doesn't exist
+                annotation_info = AnnotationInfo(annotation)
+
+            fields[field.name] = (annotation_info, field)
         return fields
 
     @classmethod

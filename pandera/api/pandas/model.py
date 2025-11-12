@@ -98,8 +98,23 @@ class DataFrameModel(_DataFrameModel[pd.DataFrame, DataFrameSchema]):
                         + f"for {annotation.raw_annotation}."
                         + "\n Usage Tip: Drop 'typing.Annotated'."
                     )
-                dtype_kwargs = get_dtype_kwargs(annotation)
-                dtype = annotation.arg(**dtype_kwargs)  # type: ignore
+                if field.dtype_kwargs:
+                    raise TypeError(
+                        "Cannot specify redundant 'dtype_kwargs' "
+                        + f"for {annotation.raw_annotation}."
+                        + "\n Usage Tip: Drop 'typing.Annotated'."
+                    )
+                # Add check for built-in types before attempting signature inspection  
+                if annotation.arg in (str, int, float, bool) or (  
+                    hasattr(annotation.arg, '__module__') and   
+                    annotation.arg.__module__ == 'builtins'  
+                ):  
+                    # For built-in types, use the type directly without kwargs <-- str
+                    dtype = annotation.arg  
+                else:  
+                    # For parameterized types, extract kwargs and instantiate  
+                    dtype_kwargs = get_dtype_kwargs(annotation)  
+                    dtype = annotation.arg(**dtype_kwargs)  # type: ignore
             elif annotation.default_dtype:
                 dtype = annotation.default_dtype
             else:
