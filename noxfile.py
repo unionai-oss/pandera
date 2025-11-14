@@ -8,7 +8,7 @@
 import os
 import shutil
 import sys
-from typing import Optional
+from typing import Optional, Tuple, List
 
 import nox
 from nox import Session
@@ -178,7 +178,7 @@ def _testing_requirements(
 
 
 # the base module with no extras
-EXTRA_PYTHON_PYDANTIC: list[tuple[str | None, ...]] = [(None, None, None, None)]
+EXTRA_PYTHON_PYDANTIC: List[Tuple[Optional[str], ...]] = [(None, None, None, None)]
 DATAFRAME_EXTRAS = {
     "pyspark",
     "modin-dask",
