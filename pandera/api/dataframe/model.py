@@ -247,7 +247,14 @@ class DataFrameModel(Generic[TDataFrame, TSchema], BaseModel):
 
         super().__init_subclass__(**kwargs)
         subclass_annotations = getattr(
-            cls, "__annotations__", getattr(cls, "__annotations_cache__", {})
+            cls,
+            "__annotations__",
+            getattr(
+                cls,
+                "__annotations_cache__",
+                # for py < 3.14
+                cls.__dict__.get("__annotations__", {}),
+            ),
         )
         for field_name in subclass_annotations.keys():
             if _is_field(field_name) and field_name not in cls.__dict__:
