@@ -178,7 +178,9 @@ def _testing_requirements(
 
 
 # the base module with no extras
-EXTRA_PYTHON_PYDANTIC: List[Tuple[Optional[str], ...]] = [(None, None, None, None)]
+EXTRA_PYTHON_PYDANTIC: list[tuple[Optional[str], ...]] = [
+    (None, None, None, None)
+]
 DATAFRAME_EXTRAS = {
     "pyspark",
     "modin-dask",
