@@ -14,7 +14,7 @@ authors = [
 description = "A light-weight and flexible data validation and testing tool for statistical data objects."
 readme = "README.md"
 license = {file = "LICENSE.txt"}
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 keywords = ["pandas", "validation", "data-structures"]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
@@ -113,7 +113,7 @@ all = [
 
 [dependency-groups]
 dev = [
-    "duckdb < 1.4.0", # https://github.com/ibis-project/ibis/issues/11621
+    "duckdb",
     "hypothesis >= 6.92.7",
     "ipdb",
     "isort >= 5.7.0",

@@ -20,7 +20,7 @@ nox.options.sessions = (
     "docs",
 )
 
-PYTHON_VERSIONS = ["3.9", "3.10", "3.11", "3.12", "3.13", "3.14.0"]
+PYTHON_VERSIONS = ["3.10", "3.11", "3.12", "3.13", "3.14.0"]
 PANDAS_VERSIONS = ["2.1.1", "2.3.3"]
 PYDANTIC_VERSIONS = ["1.10.11", "2.12.3"]
 POLARS_VERSIONS = ["0.20.0", "1.33.1"]
@@ -139,9 +139,9 @@ def _testing_requirements(
 
     _numpy: Optional[str] = None
     if pandas != "2.3.3" or (
-        extra == "pyspark" and session.python in ("3.9", "3.10")
+        extra == "pyspark" and session.python in ("3.10", )
     ):
-        # constrain numpy < 2 for older versions of pandas and pyspark on py3.9 and py3.10
+        # constrain numpy < 2 for older versions of pandas and pyspark on py3.10
         _numpy = "< 2"
 
     _updated_requirements = []
@@ -165,7 +165,7 @@ def _testing_requirements(
         # have to specifically pin dask[dataframe] to a higher version
         if (
             req == "dask[dataframe]" or req.startswith("dask[dataframe] ")
-        ) and session.python in ("3.9", "3.10", "3.11"):
+        ) and session.python in ("3.10", "3.11"):
             req = "dask[dataframe]>=2023.9.2"
 
         if req not in _updated_requirements:

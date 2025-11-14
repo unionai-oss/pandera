@@ -30,7 +30,7 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13", "3.14.0"]
+        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14.0"]
         polars-version: ["0.20.0", "1.33.1"]
     defaults:
       run:
@@ -93,7 +93,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13", "3.14.0"]
+        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14.0"]
         pydantic-version: ["2.12.3"]
     steps:
       - uses: actions/checkout@v4
@@ -126,7 +126,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13", "3.14.0"]
+        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14.0"]
         pandas-version: ["2.1.1", "2.3.3"]
         pydantic-version: ["1.10.11", "2.12.3"]
         exclude:
@@ -167,7 +167,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13", "3.14.0"]
+        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14.0"]
         pandas-version: ["2.3.3"]
         pydantic-version: ["2.12.3"]
         extra:
@@ -180,6 +180,9 @@ jobs:
         exclude:
         - extra: mypy
           os: windows-latest
+        # remove this when pyogrio is supported on Python 3.14
+        - extra: geopandas
+          python-version: "3.14.0"
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python ${{ matrix.python-version }}
@@ -213,7 +216,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13", "3.14.0"]
+        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14.0"]
         extra:
         - dask
         - polars
@@ -290,7 +293,7 @@ jobs:
       matrix:
         # TODO(deepyaman): Add Python version 3.14, pending Ray support;
         #   see https://github.com/ray-project/ray/issues/57642
-        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
     defaults:
       run:
         shell: bash -l {0}
