@@ -30,7 +30,7 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13", "3.14"]
+        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13", "3.14.0"]
         polars-version: ["0.20.0", "1.33.1"]
     defaults:
       run:
@@ -93,7 +93,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13", "3.14"]
+        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13", "3.14.0"]
         pydantic-version: ["2.12.3"]
     steps:
       - uses: actions/checkout@v4
@@ -126,16 +126,16 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13", "3.14"]
+        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13", "3.14.0"]
         pandas-version: ["2.1.1", "2.3.3"]
         pydantic-version: ["1.10.11", "2.12.3"]
         exclude:
           - pandas-version: "2.1.1"
             python-version: "3.13"
           - pandas-version: "2.1.1"
-            python-version: "3.14"
+            python-version: "3.14.0"
           - pydantic-version: "1.10.11"
-            python-version: "3.14"
+            python-version: "3.14.0"
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python ${{ matrix.python-version }}
@@ -167,7 +167,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13", "3.14"]
+        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13", "3.14.0"]
         pandas-version: ["2.3.3"]
         pydantic-version: ["2.12.3"]
         extra:
@@ -213,7 +213,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13", "3.14"]
+        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13", "3.14.0"]
         extra:
         - dask
         - polars
@@ -240,15 +240,15 @@ jobs:
         - extra: pyspark
           python-version: "3.13"
         - extra: pyspark
-          python-version: "3.14"
+          python-version: "3.14.0"
         - extra: modin-dask
           python-version: "3.13"
         - extra: modin-dask
-          python-version: "3.14"
+          python-version: "3.14.0"
         - extra: modin-ray
           python-version: "3.13"
         - extra: modin-ray
-          python-version: "3.14"
+          python-version: "3.14.0"
 
     steps:
       - uses: actions/checkout@v4

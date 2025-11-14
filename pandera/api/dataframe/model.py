@@ -246,7 +246,9 @@ class DataFrameModel(Generic[TDataFrame, TSchema], BaseModel):
             cls.Config = type("Config", (cls.Config,), {"name": cls.__name__})
 
         super().__init_subclass__(**kwargs)
-        subclass_annotations = cls.__dict__.get("__annotations__", {})
+        subclass_annotations = getattr(
+            cls, "__annotations__", getattr(cls, "__annotations_cache__", {})
+        )
         for field_name in subclass_annotations.keys():
             if _is_field(field_name) and field_name not in cls.__dict__:
                 # Field omitted

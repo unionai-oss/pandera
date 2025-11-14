@@ -20,7 +20,7 @@ nox.options.sessions = (
     "docs",
 )
 
-PYTHON_VERSIONS = ["3.9", "3.10", "3.11", "3.12", "3.13", "3.14"]
+PYTHON_VERSIONS = ["3.9", "3.10", "3.11", "3.12", "3.13", "3.14.0"]
 PANDAS_VERSIONS = ["2.1.1", "2.3.3"]
 PYDANTIC_VERSIONS = ["1.10.11", "2.12.3"]
 POLARS_VERSIONS = ["0.20.0", "1.33.1"]
@@ -178,7 +178,7 @@ def _testing_requirements(
 
 
 # the base module with no extras
-EXTRA_PYTHON_PYDANTIC = [(None, None, None, None)]
+EXTRA_PYTHON_PYDANTIC: list[tuple[str | None, ...]] = [(None, None, None, None)]
 DATAFRAME_EXTRAS = {
     "pyspark",
     "modin-dask",
