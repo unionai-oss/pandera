@@ -108,11 +108,11 @@ class TestDecorator:
                 "CHECK_ERROR": [
                     {
                         "check": "str_startswith('B')",
-                        "column": 'code',
+                        "column": "code",
                         "error": 'SchemaError("The check with name "str_startswith" '
-                        'was expected to be run for string but got integer '
-                        'instead from the input. This error is usually caused '
-                        'by schema mismatch the value is different from schema '
+                        "was expected to be run for string but got integer "
+                        "instead from the input. This error is usually caused "
+                        "by schema mismatch the value is different from schema "
                         'defined in pandera schema and one in the dataframe")',
                         "schema": None,
                     }

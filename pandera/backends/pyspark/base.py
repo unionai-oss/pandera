@@ -19,7 +19,12 @@ from pandera.backends.pyspark.error_formatters import (
     format_generic_error_message,
     scalar_failure_case,
 )
-from pandera.errors import FailureCaseMetadata, SchemaError, SchemaWarning, SchemaErrorReason
+from pandera.errors import (
+    FailureCaseMetadata,
+    SchemaError,
+    SchemaWarning,
+    SchemaErrorReason,
+)
 from pandera.api.pyspark.types import PySparkDataFrameTypes
 
 

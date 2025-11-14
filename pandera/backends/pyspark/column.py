@@ -11,7 +11,12 @@ from pandera.backends.base import CoreCheckResult
 from pandera.backends.pyspark.base import PysparkSchemaBackend
 from pandera.backends.pyspark.error_formatters import scalar_failure_case
 from pandera.engines.pyspark_engine import Engine
-from pandera.errors import ParserError, SchemaError, SchemaErrorReason, SchemaErrors
+from pandera.errors import (
+    ParserError,
+    SchemaError,
+    SchemaErrorReason,
+    SchemaErrors,
+)
 from pandera.validation_depth import ValidationScope, validate_scope
 
 
@@ -21,7 +26,9 @@ class ColumnSchemaBackend(PysparkSchemaBackend):
     def preprocess(self, check_obj, inplace: bool = False):
         return check_obj
 
-    def _core_checks(self, check_obj, schema, error_handler: ErrorHandler) -> ErrorHandler:
+    def _core_checks(
+        self, check_obj, schema, error_handler: ErrorHandler
+    ) -> ErrorHandler:
         """This function runs the core checks"""
         # run the core checks
         for check in (

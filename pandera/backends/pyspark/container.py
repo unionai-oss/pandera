@@ -8,7 +8,11 @@ from typing import Any, Callable, Optional
 from pyspark.sql import DataFrame
 from pyspark.sql.functions import col, count
 
-from pandera.api.base.error_handler import ErrorCategory, ErrorHandler, get_error_category
+from pandera.api.base.error_handler import (
+    ErrorCategory,
+    ErrorHandler,
+    get_error_category,
+)
 from pandera.api.pyspark.types import is_table
 from pandera.backends.base import CoreCheckResult, ColumnInfo
 from pandera.backends.pyspark.base import PysparkSchemaBackend
@@ -182,7 +186,8 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
                     CoreCheckResult(
                         passed=False,
                         check="schema_component_checks",
-                        reason_code=err.reason_code or SchemaErrorReason.SCHEMA_COMPONENT_CHECK,
+                        reason_code=err.reason_code
+                        or SchemaErrorReason.SCHEMA_COMPONENT_CHECK,
                         schema_error=err,
                     )
                 )
@@ -192,7 +197,8 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
                         CoreCheckResult(
                             passed=False,
                             check="schema_component_checks",
-                            reason_code=schema_error.reason_code or SchemaErrorReason.SCHEMA_COMPONENT_CHECK,
+                            reason_code=schema_error.reason_code
+                            or SchemaErrorReason.SCHEMA_COMPONENT_CHECK,
                             schema_error=schema_error,
                         )
                         for schema_error in err.schema_errors
@@ -207,7 +213,9 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
         return check_results
 
     @validate_scope(scope=ValidationScope.DATA)
-    def run_checks(self, check_obj: DataFrame, schema) -> list[CoreCheckResult]:
+    def run_checks(
+        self, check_obj: DataFrame, schema
+    ) -> list[CoreCheckResult]:
         """Run a list of checks on the check object."""
         # dataframe-level checks
         check_results: list[CoreCheckResult] = []
@@ -519,8 +527,8 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
         if duplicates_count > 0:
             passed = False
             message = (
-                    f"Duplicated rows [{duplicates_count}] were found "
-                    f"for columns {unique_columns}"
+                f"Duplicated rows [{duplicates_count}] were found "
+                f"for columns {unique_columns}"
             )
             failure_cases = unique_columns
 

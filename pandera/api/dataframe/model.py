@@ -47,10 +47,6 @@ from .model_components import (
 )
 from .model_config import BaseConfig
 
-try:
-    from typing_extensions import get_type_hints
-except ImportError:  # pragma: no cover
-    from typing import get_type_hints  # type: ignore
 
 if PYDANTIC_V2:
     from pydantic import GetCoreSchemaHandler, GetJsonSchemaHandler
