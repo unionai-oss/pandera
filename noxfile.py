@@ -139,7 +139,7 @@ def _testing_requirements(
 
     _numpy: Optional[str] = None
     if pandas != "2.3.3" or (
-        extra == "pyspark" and session.python in ("3.10", )
+        extra == "pyspark" and session.python in ("3.10",)
     ):
         # constrain numpy < 2 for older versions of pandas and pyspark on py3.10
         _numpy = "< 2"
