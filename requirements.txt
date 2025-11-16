@@ -35,10 +35,9 @@ xdoctest
 nox
 uv
 setuptools
-ibis-framework[duckdb]
+ibis-framework[duckdb]>= 11.0.0
 uvicorn
 python-multipart
-duckdb
 sphinx
 sphinx-design
 sphinx-autodoc-typehints <= 1.14.1
