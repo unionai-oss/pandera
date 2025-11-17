@@ -136,7 +136,7 @@ testing = [
     "pytest-xdist",
     "pytest-asyncio",
     "sphinx",
-    "ibis-framework[duckdb,sqlite] >= 9.0.0",
+    "ibis-framework[duckdb,sqlite] >= 11.0.0",
 ]
 docs = [
     "setuptools",
