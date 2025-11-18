@@ -231,7 +231,6 @@ class SeriesSchema(ArraySchema[pd.Series]):
         if hasattr(check_obj, "dask"):
             # special case for dask series
             if inplace:
-
                 from pandera.accessors import dask_accessor
 
                 check_obj = check_obj.pandera.add_schema(self)

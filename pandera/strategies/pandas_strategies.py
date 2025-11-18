@@ -939,7 +939,6 @@ def index_strategy(
     # this is a hack to convert np.str_ data values into native python str.
     col_dtype = str(pandera_dtype)
     if col_dtype in {"object", "str"} or col_dtype.startswith("string"):
-
         strategy = strategy.map(lambda index: index.map(str))
 
     if name is not None:
@@ -1143,7 +1142,6 @@ def dataframe_strategy(
                 string_columns.append(col_name)
 
         if string_columns:
-
             strategy = strategy.map(
                 lambda df: df.assign(
                     **{
@@ -1217,7 +1215,6 @@ def multiindex_strategy(
     # this is a hack to convert np.str_ data values into native python str.
     for name, dtype in index_dtypes.items():
         if dtype in {"object", "str"} or dtype.startswith("string"):
-
             strategy = strategy.map(
                 lambda df, name=name: df.assign(**{name: df[name].map(str)})
             )

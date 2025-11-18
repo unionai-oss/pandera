@@ -71,9 +71,10 @@ jobs:
       - name: Sort Imports
         run: pre-commit run isort --all-files
 
-      - name: Black
-        if: always()
-        run: pre-commit run black --all-files
+      - if: always()
+        uses: astral-sh/ruff-action@v3
+        with:
+          args: format
 
       - name: Mypy Type Checking
         if: always()

@@ -120,7 +120,6 @@ def _testing_requirements(
     pydantic: Optional[str] = None,
     polars: Optional[str] = None,
 ) -> list[str]:
-
     pandas = pandas or PANDAS_VERSIONS[-1]
     pydantic = pydantic or PYDANTIC_VERSIONS[-1]
     polars = polars or POLARS_VERSIONS[-1]

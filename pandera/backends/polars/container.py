@@ -40,7 +40,6 @@ def _to_frame_kind(lf: pl.LazyFrame, kind: type[PolarsFrame]) -> PolarsFrame:
 
 
 class DataFrameSchemaBackend(PolarsSchemaBackend):
-
     def validate(
         self,
         check_obj: PolarsFrame,
@@ -176,7 +175,7 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
             except Exception as err:
                 # catch other exceptions that may occur when executing the check
                 err_msg = f'"{err.args[0]}"' if err.args else ""
-                err_str = f"{err.__class__.__name__}({ err_msg})"
+                err_str = f"{err.__class__.__name__}({err_msg})"
                 msg = (
                     f"Error while executing check function: {err_str}\n"
                     + traceback.format_exc()
@@ -636,7 +635,9 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
                 failure_cases = check_obj.filter(duplicates).collect()
 
                 passed = False
-                message = f"columns '{*subset,}' not unique:\n{failure_cases}"
+                message = (
+                    f"columns '{(*subset,)}' not unique:\n{failure_cases}"
+                )
                 break
         return CoreCheckResult(
             passed=passed,

@@ -391,7 +391,6 @@ def test_regex_selector(
 
 
 def test_lazy_validation_errors():
-
     schema = DataFrameSchema(
         {
             "a": Column(int),

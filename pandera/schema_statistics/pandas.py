@@ -212,7 +212,7 @@ def parse_checks(checks) -> Union[list[dict[str, Any]], None]:
             [f"{key} ({value})" for key, value in incompatibile_checks.items()]
         )
         warnings.warn(
-            "You do not need more than one check out of " f"{error_message}."
+            f"You do not need more than one check out of {error_message}."
         )
 
     return check_statistics if check_statistics else None

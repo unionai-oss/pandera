@@ -380,7 +380,6 @@ def test_check_validate_method() -> None:
 
         @pa.check("a")
         def int_column_lt_100(cls, series: pd.Series) -> Iterable[bool]:
-
             assert cls is Schema
             return series < 100
 
@@ -397,13 +396,11 @@ def test_check_validate_method_field() -> None:
 
         @pa.check(a)
         def int_column_lt_200(cls, series: pd.Series) -> Iterable[bool]:
-
             assert cls is Schema
             return series < 200
 
         @pa.check(a, "b")
         def int_column_lt_100(cls, series: pd.Series) -> Iterable[bool]:
-
             assert cls is Schema
             return series < 100
 
@@ -419,7 +416,6 @@ def test_check_validate_method_aliased_field() -> None:
 
         @pa.check(a)
         def int_column_lt_100(cls, series: pd.Series) -> Iterable[bool]:
-
             assert cls is Schema
             return series < 100
 
@@ -436,7 +432,6 @@ def test_check_single_column() -> None:
 
         @pa.check("a")
         def int_column_lt_100(cls, series: pd.Series) -> Iterable[bool]:
-
             assert cls is Schema
             return series < 100
 
@@ -455,7 +450,6 @@ def test_check_single_index() -> None:
 
         @pa.check("a")
         def not_dog(cls, idx: pd.Index) -> Iterable[bool]:
-
             assert cls is Schema
             return ~idx.str.contains("dog")
 
@@ -2004,7 +1998,6 @@ def test_parse_single_column():
         # parsers at the column level
         @pa.parser("col1")
         def sqrt(cls, series):
-
             return series.transform("sqrt")
 
     assert Schema.validate(
@@ -2024,7 +2017,6 @@ def test_parse_dataframe():
         # parsers at the dataframe level
         @pa.dataframe_parser
         def dataframe_sqrt(cls, df):
-
             return df.transform("sqrt")
 
     assert Schema.validate(
@@ -2044,13 +2036,11 @@ def test_parse_both_dataframe_and_column():
         # parsers at the column level
         @pa.parser("col1")
         def sqrt(cls, series):
-
             return series.transform("sqrt")
 
         # parsers at the dataframe level
         @pa.dataframe_parser
         def dataframe_sqrt(cls, df):
-
             return df.transform("sqrt")
 
     assert Schema.validate(
@@ -2070,7 +2060,6 @@ def test_parse_non_existing() -> None:
         # parsers at the column level
         @pa.parser("nope")
         def sqrt(cls, series):
-
             return series.transform("sqrt")
 
     err_msg = "Parser sqrt is assigned to a non-existing field 'nope'"
@@ -2089,7 +2078,6 @@ def test_parse_regex() -> None:
         @pa.parser("^a", regex=True)
         @classmethod
         def sqrt(cls, series):
-
             return series.transform("sqrt")
 
     df = pd.DataFrame({"a": [121.0], "abc": [1.0], "cba": [200.0]})
@@ -2163,7 +2151,6 @@ def test_model_with_pydantic_base_model_with_df_init():
 
     # pylint: disable=unused-variable
     class PydanticModel(BaseModel):
-
         class PanderaDataFrameModel(pa.DataFrameModel):
             """The DF we use to represent code/label/description associations."""
 

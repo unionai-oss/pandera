@@ -10,7 +10,6 @@ F = TypeVar("F", bound=Callable)
 
 
 try:
-
     from hypothesis.strategies import SearchStrategy, composite
 except ImportError:  # pragma: no cover
     T = TypeVar("T")

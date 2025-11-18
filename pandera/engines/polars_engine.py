@@ -430,9 +430,9 @@ class Decimal(DataType, dtypes.Decimal):
     ) -> Union[bool, Iterable[bool]]:
         try:
             pandera_dtype = Engine.dtype(pandera_dtype)
-            assert isinstance(
-                pandera_dtype, Decimal
-            ), "The return is expected to be of Decimal class"
+            assert isinstance(pandera_dtype, Decimal), (
+                "The return is expected to be of Decimal class"
+            )
         except TypeError:  # pragma: no cover
             return False
 
@@ -493,7 +493,6 @@ class DateTime(DataType, dtypes.DateTime):
         time_zone: Optional[str] = None,
         time_unit: Optional[Literal["ns", "us", "ms"]] = None,
     ) -> None:
-
         # avoid deprecated warning when initializing pl.Datetime:
         # passing time_unit=None is deprecated.
         if time_unit is not None:
@@ -619,7 +618,6 @@ class Array(DataType):
         *,
         width: Optional[int] = None,
     ) -> None:
-
         kwargs: _ArrayKwargs = {}
         if width is not None:
             # width deprecated in polars 0.20.31, replaced by shape

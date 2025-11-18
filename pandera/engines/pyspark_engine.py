@@ -162,7 +162,15 @@ class Bool(DataType, dtypes.Bool):
 
 
 @Engine.register_dtype(
-    equivalents=[str, "str", "string", "StringType", "StringType()", pst.StringType(), pst.StringType],  # type: ignore
+    equivalents=[
+        str,
+        "str",
+        "string",
+        "StringType",
+        "StringType()",
+        pst.StringType(),
+        pst.StringType,
+    ],  # type: ignore
 )
 @immutable
 class String(DataType, dtypes.String):  # type: ignore
@@ -177,7 +185,14 @@ class String(DataType, dtypes.String):  # type: ignore
 
 
 @Engine.register_dtype(
-    equivalents=[int, "int", "IntegerType", "IntegerType()", pst.IntegerType(), pst.IntegerType],  # type: ignore
+    equivalents=[
+        int,
+        "int",
+        "IntegerType",
+        "IntegerType()",
+        pst.IntegerType(),
+        pst.IntegerType,
+    ],  # type: ignore
 )
 @immutable
 class Int(DataType, dtypes.Int):  # type: ignore
@@ -192,7 +207,14 @@ class Int(DataType, dtypes.Int):  # type: ignore
 
 
 @Engine.register_dtype(
-    equivalents=[float, "float", "FloatType", "FloatType()", pst.FloatType(), pst.FloatType],  # type: ignore
+    equivalents=[
+        float,
+        "float",
+        "FloatType",
+        "FloatType()",
+        pst.FloatType(),
+        pst.FloatType,
+    ],  # type: ignore
 )
 @immutable
 class Float(DataType, dtypes.Float):  # type: ignore
@@ -207,7 +229,14 @@ class Float(DataType, dtypes.Float):  # type: ignore
 
 
 @Engine.register_dtype(
-    equivalents=["bigint", "long", "LongType", "LongType()", pst.LongType(), pst.LongType],  # type: ignore
+    equivalents=[
+        "bigint",
+        "long",
+        "LongType",
+        "LongType()",
+        pst.LongType(),
+        pst.LongType,
+    ],  # type: ignore
 )
 @immutable
 class BigInt(DataType, dtypes.Int64):  # type: ignore
@@ -222,7 +251,14 @@ class BigInt(DataType, dtypes.Int64):  # type: ignore
 
 
 @Engine.register_dtype(
-    equivalents=["smallint", "short", "ShortType", "ShortType()", pst.ShortType(), pst.ShortType],  # type: ignore
+    equivalents=[
+        "smallint",
+        "short",
+        "ShortType",
+        "ShortType()",
+        pst.ShortType(),
+        pst.ShortType,
+    ],  # type: ignore
 )
 @immutable
 class ShortInt(DataType, dtypes.Int16):  # type: ignore
@@ -237,7 +273,15 @@ class ShortInt(DataType, dtypes.Int16):  # type: ignore
 
 
 @Engine.register_dtype(
-    equivalents=[bytes, "tinyint", "bytes", "ByteType", "ByteType()", pst.ByteType(), pst.ByteType],  # type: ignore
+    equivalents=[
+        bytes,
+        "tinyint",
+        "bytes",
+        "ByteType",
+        "ByteType()",
+        pst.ByteType(),
+        pst.ByteType,
+    ],  # type: ignore
 )
 @immutable
 class ByteInt(DataType, dtypes.Int8):  # type: ignore
@@ -252,13 +296,21 @@ class ByteInt(DataType, dtypes.Int8):  # type: ignore
 
 
 @Engine.register_dtype(
-    equivalents=["decimal", "DecimalType", "DecimalType()", pst.DecimalType(), pst.DecimalType],  # type: ignore
+    equivalents=[
+        "decimal",
+        "DecimalType",
+        "DecimalType()",
+        pst.DecimalType(),
+        pst.DecimalType,
+    ],  # type: ignore
 )
 @immutable(init=True)
 class Decimal(DataType, dtypes.Decimal):  # type: ignore
     """Semantic representation of a :class:`pyspark.sql.types.DecimalType`."""
 
-    type: pst.DecimalType = dataclasses.field(default=pst.DecimalType, init=False)  # type: ignore[assignment]  # noqa
+    type: pst.DecimalType = dataclasses.field(
+        default=pst.DecimalType, init=False
+    )  # type: ignore[assignment]  # noqa
 
     def __init__(
         self,
@@ -285,9 +337,9 @@ class Decimal(DataType, dtypes.Decimal):  # type: ignore
     ) -> Union[bool, Iterable[bool]]:
         try:
             pandera_dtype = Engine.dtype(pandera_dtype)
-            assert isinstance(
-                pandera_dtype, Decimal
-            ), "The return is expected to be of Decimal class"
+            assert isinstance(pandera_dtype, Decimal), (
+                "The return is expected to be of Decimal class"
+            )
         except TypeError:  # pragma: no cover
             return False
 
@@ -311,7 +363,13 @@ class Decimal(DataType, dtypes.Decimal):  # type: ignore
 
 
 @Engine.register_dtype(
-    equivalents=["double", "DoubleType", "DoubleType()", pst.DoubleType(), pst.DoubleType],  # type: ignore
+    equivalents=[
+        "double",
+        "DoubleType",
+        "DoubleType()",
+        pst.DoubleType(),
+        pst.DoubleType,
+    ],  # type: ignore
 )
 @immutable
 class Double(DataType, dtypes.Float):  # type: ignore
@@ -326,7 +384,13 @@ class Double(DataType, dtypes.Float):  # type: ignore
 
 
 @Engine.register_dtype(
-    equivalents=["date", "DateType", "DateType()", pst.DateType(), pst.DateType],  # type: ignore
+    equivalents=[
+        "date",
+        "DateType",
+        "DateType()",
+        pst.DateType(),
+        pst.DateType,
+    ],  # type: ignore
 )
 @immutable
 class Date(DataType, dtypes.Date):  # type: ignore
@@ -340,11 +404,23 @@ class Date(DataType, dtypes.Date):  # type: ignore
 ###############################################################################
 
 # Default timestamp equivalents
-equivalents = ["datetime", "timestamp", "TimestampType", "TimestampType()", pst.TimestampType(), pst.TimestampType]  # type: ignore
+equivalents = [
+    "datetime",
+    "timestamp",
+    "TimestampType",
+    "TimestampType()",
+    pst.TimestampType(),
+    pst.TimestampType,
+]  # type: ignore
 
 # Include new Spark 3.4 TimestampNTZType as equivalents
 if CURRENT_PYSPARK_VERSION >= version.parse("3.4"):
-    equivalents += ["TimestampNTZType", "TimestampNTZType()", pst.TimestampNTZType, pst.TimestampNTZType()]  # type: ignore
+    equivalents += [
+        "TimestampNTZType",
+        "TimestampNTZType()",
+        pst.TimestampNTZType,
+        pst.TimestampNTZType(),
+    ]  # type: ignore
 
 
 @Engine.register_dtype(equivalents=equivalents)  # type: ignore
@@ -361,7 +437,13 @@ class Timestamp(DataType, dtypes.Timestamp):  # type: ignore
 
 
 @Engine.register_dtype(
-    equivalents=["binary", "BinaryType", "BinaryType()", pst.BinaryType(), pst.BinaryType],  # type: ignore
+    equivalents=[
+        "binary",
+        "BinaryType",
+        "BinaryType()",
+        pst.BinaryType(),
+        pst.BinaryType,
+    ],  # type: ignore
 )
 @immutable
 class Binary(DataType, dtypes.Binary):  # type: ignore
@@ -401,7 +483,10 @@ class ArrayType(DataType):
     def from_parametrized_dtype(cls, ps_dtype: pst.ArrayType):
         """Convert a :class:`pyspark.sql.types.ArrayType` to
         a Pandera :class:`pandera.engines.pyspark_engine.ArrayType`."""
-        return cls(elementType=ps_dtype.elementType, containsNull=ps_dtype.containsNull)  # type: ignore
+        return cls(
+            elementType=ps_dtype.elementType,
+            containsNull=ps_dtype.containsNull,
+        )  # type: ignore
 
     def check(
         self,

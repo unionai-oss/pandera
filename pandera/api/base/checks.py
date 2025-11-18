@@ -33,9 +33,7 @@ _T = TypeVar("_T", bound="BaseCheck")
 class MetaCheck(type):  # pragma: no cover
     """Check metaclass."""
 
-    BACKEND_REGISTRY: dict[tuple[type, type], type[BaseCheckBackend]] = (
-        {}
-    )  # noqa
+    BACKEND_REGISTRY: dict[tuple[type, type], type[BaseCheckBackend]] = {}  # noqa
     """Registry of check backends implemented for specific data objects."""
 
     CHECK_FUNCTION_REGISTRY: dict[str, Dispatcher] = {}  # noqa

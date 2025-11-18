@@ -216,7 +216,6 @@ def check_input(
     """
 
     def decorator(wrapped):
-
         @functools.wraps(wrapped)
         def _wrapper(*args, **kwargs):
             """Check pandas DataFrame or Series before calling the function."""
@@ -403,7 +402,6 @@ def check_output(
         raise TypeError(f"obj_getter is unrecognized type: {type(obj_getter)}")
 
     def decorator(wrapped):
-
         @functools.wraps(wrapped)
         def _wrapper(*args, **kwargs):
             """Check pandas DataFrame or Series before calling the function."""
@@ -474,7 +472,6 @@ def check_io(
     check_args = (head, tail, sample, random_state, lazy, inplace)
 
     def decorator(wrapped):
-
         @functools.wraps(wrapped)
         def _wrapper(*args, **kwargs):
             """Check pandas DataFrame or Series before calling the function.
@@ -503,9 +500,10 @@ def check_io(
 
             wrapped_fn = wrapped
             for input_getter, input_schema in inputs.items():
-
                 wrapped_fn = check_input(
-                    input_schema, input_getter, *check_args  # type: ignore
+                    input_schema,
+                    input_getter,
+                    *check_args,  # type: ignore
                 )(wrapped_fn)
 
             for out_getter, out_schema in out_schemas:  # type: ignore
@@ -613,7 +611,6 @@ def check_types(
         ).items():
             annotation_info = AnnotationInfo(annotation)
             if not annotation_info.is_generic_df:
-
                 if annotation_info.origin == Union:
                     annotation_model_pairs = []
                     for annot in annotation_info.args:  # type: ignore[union-attr]

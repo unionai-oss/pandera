@@ -515,9 +515,9 @@ def test_pandas_arrow_dtype_error(data, dtype):
         assert coerced_data.dtype == dtype.type
 
 
-def generate_test_cases_pandas_arrow_struct() -> (
-    list[tuple[pd.DataFrame, pd.DataFrame]]
-):
+def generate_test_cases_pandas_arrow_struct() -> list[
+    tuple[pd.DataFrame, pd.DataFrame]
+]:
     """
     Generate test parameter combinations for pandas arrow struct dtype.
 

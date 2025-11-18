@@ -140,7 +140,6 @@ class PolarsSchemaBackend(BaseSchemaBackend):
         failure_case_collection = []
 
         for err in schema_errors:
-
             error_counts[err.reason_code] += 1
 
             check_identifier = (

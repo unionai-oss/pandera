@@ -445,7 +445,6 @@ class MultiIndex(DataFrameSchema):
     # https://github.com/pandera-dev/pandera/issues/403
 
     def example(self, size=None) -> pd.MultiIndex:  # type: ignore
-
         import hypothesis
 
         with warnings.catch_warnings():

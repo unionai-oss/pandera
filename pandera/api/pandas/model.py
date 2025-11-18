@@ -150,8 +150,7 @@ class DataFrameModel(_DataFrameModel[pd.DataFrame, DataFrameSchema]):
 
                 if check_name is False or (
                     # default single index
-                    check_name is None
-                    and index_count == 1
+                    check_name is None and index_count == 1
                 ):
                     field_name = None  # type:ignore
 

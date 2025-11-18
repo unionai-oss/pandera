@@ -32,9 +32,9 @@ def check_values(
     )
 
     # Assert that the returned check object is what was passed in
-    assert (
-        check_result.checked_object == expected_check_obj
-    ).all(), "Wrong checked_object returned"
+    assert (check_result.checked_object == expected_check_obj).all(), (
+        "Wrong checked_object returned"
+    )
 
     # Assert that the failure cases are correct
     check_result_failures = set(
@@ -42,9 +42,9 @@ def check_values(
         if check_result.failure_cases is None
         else check_result.failure_cases
     )
-    assert check_result_failures == set(
-        expected_failure_cases
-    ), "Unexpected failure cases returned by Check.__call__()"
+    assert check_result_failures == set(expected_failure_cases), (
+        "Unexpected failure cases returned by Check.__call__()"
+    )
 
 
 def check_none_failures(values, check) -> None:
@@ -56,12 +56,12 @@ def check_none_failures(values, check) -> None:
     series = pd.Series(values)
     check_result = check(series)
     assert not check_result.check_passed, "Check should fail due to None value"
-    assert (
-        check_result.checked_object is series
-    ), "Wrong checked_object returned"
-    assert (
-        check_result.failure_cases.isnull().all()
-    ), "Only null values should be failure cases"
+    assert check_result.checked_object is series, (
+        "Wrong checked_object returned"
+    )
+    assert check_result.failure_cases.isnull().all(), (
+        "Only null values should be failure cases"
+    )
 
 
 def check_raise_error_or_warning(failure_values, check) -> None:

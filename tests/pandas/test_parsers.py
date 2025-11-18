@@ -98,7 +98,6 @@ def test_parser_non_existing() -> None:
 
 
 def test_parser_called_once():
-
     data = pd.DataFrame({"col": [2.0, 4.0, 9.0]})
     n_calls = 0
 
@@ -133,7 +132,6 @@ def test_parser_with_coercion():
     assert result["column"].isna().sum() == 4
 
     class SchemaWithCategoryCoercion(pa.DataFrameModel):
-
         col1: pd.CategoricalDtype = pa.Field(
             dtype_kwargs={"categories": ["category1", "category2"]}
         )
@@ -162,7 +160,6 @@ def test_parser_with_coercion():
 
 
 def test_parser_with_add_missing_columns():
-
     class Schema(pa.DataFrameModel):
         """Schema."""
 

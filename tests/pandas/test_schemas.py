@@ -2273,7 +2273,6 @@ def test_update_index():
 
 
 def test_update_index_with_properties():
-
     schema = DataFrameSchema(index=Index(dtype=int, name="idx"))
 
     assert schema.index.title is None

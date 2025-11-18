@@ -239,7 +239,9 @@ class ArrowDecimal128(ArrowDataType, dtypes.Decimal):
         cls,
         pyarrow_dtype: pyarrow.Decimal128Type,
     ):
-        return cls(precision=pyarrow_dtype.precision, scale=pyarrow_dtype.scale)  # type: ignore
+        return cls(
+            precision=pyarrow_dtype.precision, scale=pyarrow_dtype.scale
+        )  # type: ignore
 
 
 @Engine.register_dtype(equivalents=[pyarrow.timestamp, pyarrow.TimestampType])
@@ -347,7 +349,9 @@ class ArrowStruct(ArrowDataType):
     @classmethod
     def from_parametrized_dtype(cls, pyarrow_dtype: pyarrow.StructType):
         return cls(
-            fields=[pyarrow_dtype.field(i) for i in range(pyarrow_dtype.num_fields)]  # type: ignore
+            fields=[
+                pyarrow_dtype.field(i) for i in range(pyarrow_dtype.num_fields)
+            ]  # type: ignore
         )
 
 

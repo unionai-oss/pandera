@@ -137,7 +137,6 @@ def _element_wise_check_fn(x):
 
 
 def test_polars_element_wise_column_check(column_lf):
-
     check = pa.Check(_element_wise_check_fn, element_wise=True)
     col_schema = pa.Column(int, name="col", checks=check)
     validated_data = col_schema.validate(column_lf)
@@ -153,7 +152,6 @@ def test_polars_element_wise_column_check(column_lf):
 
 
 def test_polars_element_wise_dataframe_check(lf):
-
     check = pa.Check(_element_wise_check_fn, element_wise=True)
     schema = pa.DataFrameSchema(dtype=int, checks=check)
     validated_data = schema.validate(lf)
@@ -168,7 +166,6 @@ def test_polars_element_wise_dataframe_check(lf):
 
 
 def test_polars_element_wise_dataframe_different_dtypes(column_lf):
-
     # Custom check function
     def check_gt_2(v: int) -> bool:
         return v > 2

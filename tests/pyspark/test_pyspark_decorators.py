@@ -112,19 +112,19 @@ class TestPanderaDecorators:
         CACHE_MESSAGE = "Caching dataframe..."
         UNPERSIST_MESSAGE = "Unpersisting dataframe..."
         if expected_caching_message:
-            assert (
-                CACHE_MESSAGE in caplog.text
-            ), "Debugging info has no information about caching the dataframe."
+            assert CACHE_MESSAGE in caplog.text, (
+                "Debugging info has no information about caching the dataframe."
+            )
         else:
-            assert (
-                CACHE_MESSAGE not in caplog.text
-            ), "Debugging info has information about caching. It shouldn't."
+            assert CACHE_MESSAGE not in caplog.text, (
+                "Debugging info has information about caching. It shouldn't."
+            )
 
         if expected_unpersisting_message:
-            assert (
-                UNPERSIST_MESSAGE in caplog.text
-            ), "Debugging info has no information about unpersisting the dataframe."
+            assert UNPERSIST_MESSAGE in caplog.text, (
+                "Debugging info has no information about unpersisting the dataframe."
+            )
         else:
-            assert (
-                UNPERSIST_MESSAGE not in caplog.text
-            ), "Debugging info has information about unpersisting. It shouldn't."
+            assert UNPERSIST_MESSAGE not in caplog.text, (
+                "Debugging info has information about unpersisting. It shouldn't."
+            )

@@ -519,7 +519,6 @@ def test_polars_from_parametrized_nested_dtype(dtype, shape):
     ],
 )
 def test_datetime_time_zone_agnostic(dtype):
-
     tz_agnostic = pe.DateTime(time_zone_agnostic=True)
     dtype = pe.Engine.dtype(dtype)
 

@@ -46,7 +46,6 @@ class ColumnBackend(ColumnSchemaBackend):
 
         def validate_column(check_obj, column_name):
             try:
-
                 super(ColumnBackend, self).validate(
                     check_obj,
                     copy(schema).set_name(column_name),
@@ -145,7 +144,7 @@ class ColumnBackend(ColumnSchemaBackend):
             except Exception as err:
                 # catch other exceptions that may occur when executing the Check
                 err_msg = f'"{err.args[0]}"' if err.args else ""
-                err_str = f"{err.__class__.__name__}({ err_msg})"
+                err_str = f"{err.__class__.__name__}({err_msg})"
 
                 error_handler.collect_error(
                     error_type=ErrorCategory.DATA,

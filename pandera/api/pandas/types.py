@@ -41,7 +41,6 @@ PANDAS_LIKE_CLS_NAMES = frozenset(
 
 
 class BackendTypes(NamedTuple):
-
     # list of datatypes available
     dataframe_datatypes: tuple
     series_datatypes: tuple
@@ -52,7 +51,6 @@ class BackendTypes(NamedTuple):
 
 @lru_cache
 def get_backend_types(check_cls_fqn: str) -> BackendTypes:
-
     dataframe_datatypes = []
     series_datatypes = []
     index_datatypes = []

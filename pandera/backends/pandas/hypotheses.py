@@ -131,7 +131,8 @@ class PandasHypothesisBackend(PandasCheckBackend):
             return check_obj[self.check.samples[0]]  # type: ignore
 
         check_obj = [
-            (sample, check_obj[sample]) for sample in self.check.samples  # type: ignore[attr-defined]
+            (sample, check_obj[sample])
+            for sample in self.check.samples  # type: ignore[attr-defined]
         ]
         return cast(
             dict[str, pd.DataFrame],

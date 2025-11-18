@@ -182,7 +182,6 @@ __all__ = [
 
 
 if platform.system() != "Windows":
-
     from pandera.dtypes import Complex256, Float128
 
     __all__.extend(["Complex256", "Float128"])

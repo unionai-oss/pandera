@@ -12,9 +12,7 @@ def strategy_import_error(fn: F) -> F:
 
     @wraps(fn)
     def _wrapper(*args, **kwargs):
-
         try:
-
             import hypothesis
         except ImportError as exc:
             raise ImportError(

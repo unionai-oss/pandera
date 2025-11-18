@@ -32,10 +32,10 @@ repos:
     hooks:
       - id: flynt
 
-  - repo: https://github.com/psf/black
-    rev: 24.4.2
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.14.5
     hooks:
-      - id: black
+      - id: ruff-format
 
   - repo: https://github.com/asottile/pyupgrade
     rev: v3.20.0

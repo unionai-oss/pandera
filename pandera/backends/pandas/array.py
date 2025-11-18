@@ -40,7 +40,6 @@ class ArraySchemaBackend(PandasSchemaBackend):
         lazy: bool = False,
         inplace: bool = False,
     ):
-
         error_handler = ErrorHandler(lazy)
         check_obj = self.preprocess(check_obj, inplace)
 
@@ -240,7 +239,6 @@ class ArraySchemaBackend(PandasSchemaBackend):
             failed = None
 
             if type(check_obj).__module__.startswith("pyspark.pandas"):
-
                 import pyspark.pandas as ps
 
                 duplicates = (

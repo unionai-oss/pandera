@@ -227,13 +227,11 @@ class Engine(
             return engine.Engine.dtype(cls, data_type)
         except TypeError:
             if is_geopandas_dtype(data_type):
-
                 # register geopandas datatypes
                 import pandera.engines.geopandas_engine
 
                 np_or_pd_dtype = data_type
             elif is_pyarrow_dtype(data_type):
-
                 # register pyarrow datatypes
                 import pandera.engines.pyarrow_engine
 
@@ -531,7 +529,9 @@ def _check_decimal(
     precisions = len_left + len_right
 
     scales = series_cls(
-        np.full_like(decimals, np.nan), dtype=np.object_, index=decimals.index  # type: ignore
+        np.full_like(decimals, np.nan),
+        dtype=np.object_,
+        index=decimals.index,  # type: ignore
     )
     pos_left = len_left > 0
     scales[pos_left] = len_right[pos_left]
@@ -728,7 +728,6 @@ class NpString(numpy_engine.String):
             # pyspark.pandas.Index doesn't support .where method yet, use numpy
             reverter = None
             if type(obj).__module__.startswith("pyspark.pandas"):
-
                 import pyspark.pandas as ps
 
                 if isinstance(obj, ps.Index):
@@ -806,12 +805,10 @@ class _BaseDateTime(DataType):
         if type(obj).__module__.startswith(
             "pyspark.pandas"
         ):  # pragma: no cover
-
             import pyspark.pandas as ps
 
             to_datetime_fn = ps.to_datetime
         if type(obj).__module__.startswith("modin.pandas"):
-
             import modin.pandas as mpd
 
             to_datetime_fn = mpd.to_datetime
@@ -1216,7 +1213,9 @@ class Interval(DataType):
 class PydanticModel(DataType):
     """A pydantic model datatype applying to rows in a dataframe."""
 
-    type: builtins.type[BaseModel] = dataclasses.field(default=None, init=False)  # type: ignore[assignment]
+    type: builtins.type[BaseModel] = dataclasses.field(
+        default=None, init=False
+    )  # type: ignore[assignment]
     auto_coerce = True
 
     def __init__(self, model: builtins.type[BaseModel]) -> None:
@@ -1265,7 +1264,6 @@ class PydanticModel(DataType):
             cases.
             """
             try:
-
                 if PYDANTIC_V2:
                     row = self.type.model_validate(row).model_dump()
                 else:
@@ -1352,7 +1350,6 @@ class PythonGenericType(DataType):
 
     def _coerce_element(self, element: Any) -> Any:
         try:
-
             if PYDANTIC_V2:
                 coerced_element = self.coercion_model(element).root
             else:
@@ -1755,7 +1752,9 @@ if PYARROW_INSTALLED and PANDAS_2_0_0_PLUS:
             cls,
             pyarrow_dtype: pyarrow.Decimal128Type,
         ):
-            return cls(precision=pyarrow_dtype.precision, scale=pyarrow_dtype.scale)  # type: ignore
+            return cls(
+                precision=pyarrow_dtype.precision, scale=pyarrow_dtype.scale
+            )  # type: ignore
 
     @Engine.register_dtype(
         equivalents=[pyarrow.timestamp, pyarrow.TimestampType]
@@ -1873,7 +1872,10 @@ if PYARROW_INSTALLED and PANDAS_2_0_0_PLUS:
         @classmethod
         def from_parametrized_dtype(cls, pyarrow_dtype: pyarrow.StructType):
             return cls(
-                fields=[pyarrow_dtype.field(i) for i in range(pyarrow_dtype.num_fields)]  # type: ignore
+                fields=[
+                    pyarrow_dtype.field(i)
+                    for i in range(pyarrow_dtype.num_fields)
+                ]  # type: ignore
             )
 
     @Engine.register_dtype(

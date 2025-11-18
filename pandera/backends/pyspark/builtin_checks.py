@@ -197,7 +197,10 @@ def in_range(
         if include_max
         else col(data.column_name) < max_value
     )
-    return data.dataframe.filter(~(compare_min & compare_max)).limit(1).count() == 0  # type: ignore
+    return (
+        data.dataframe.filter(~(compare_min & compare_max)).limit(1).count()
+        == 0
+    )  # type: ignore
 
 
 @register_builtin_check(

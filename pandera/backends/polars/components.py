@@ -47,7 +47,6 @@ class ColumnBackend(PolarsSchemaBackend):
         lazy: bool = False,
         inplace: bool = False,
     ) -> pl.LazyFrame:
-
         if inplace:
             warnings.warn("setting inplace=True will have no effect.")
 
@@ -311,7 +310,6 @@ class ColumnBackend(PolarsSchemaBackend):
         check_obj: pl.LazyFrame,
         schema: Column,
     ) -> list[CoreCheckResult]:
-
         passed = True
         failure_cases = None
         msg = None

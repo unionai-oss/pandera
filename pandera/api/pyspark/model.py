@@ -365,7 +365,8 @@ class DataFrameModel(BaseModel):
         """Centralize publicly named fields and their corresponding annotations."""
 
         annotations = get_type_hints(
-            cls, include_extras=True  # type: ignore [call-arg]
+            cls,
+            include_extras=True,  # type: ignore [call-arg]
         )
         attrs = cls._get_model_attrs()
 

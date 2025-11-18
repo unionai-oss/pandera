@@ -581,7 +581,7 @@ def _format_index(index_statistics):
             name=(
                 "None"
                 if properties["name"] is None
-                else f"\"{properties['name']}\""
+                else f'"{properties["name"]}"'
             ),
             description=(None if description is None else f'"{description}"'),
             title=(None if title is None else f'"{title}"'),
