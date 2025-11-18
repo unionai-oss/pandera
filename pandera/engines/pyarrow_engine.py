@@ -335,7 +335,13 @@ class ArrowStruct(ArrowDataType):
     """Semantic representation of a :class:`pyarrow.struct`."""
 
     type: pd.ArrowDtype | None = dataclasses.field(default=None, init=False)
-    fields: Union[Iterable[Union[pyarrow.Field, tuple[str, pyarrow.DataType]]], dict[str, pyarrow.DataType]] | None = tuple()
+    fields: (
+        Union[
+            Iterable[Union[pyarrow.Field, tuple[str, pyarrow.DataType]]],
+            dict[str, pyarrow.DataType],
+        ]
+        | None
+    ) = tuple()
 
     def __post_init__(self):
         type_ = pd.ArrowDtype(pyarrow.struct(self.fields))

@@ -112,7 +112,8 @@ def get_config_global() -> PanderaConfig:
 
 
 def get_config_context(
-    validation_depth_default: ValidationDepth | None = ValidationDepth.SCHEMA_AND_DATA,
+    validation_depth_default: ValidationDepth
+    | None = ValidationDepth.SCHEMA_AND_DATA,
 ) -> PanderaConfig:
     """Gets the configuration context."""
     config = copy(_CONTEXT_CONFIG)
