@@ -191,7 +191,7 @@ class DataFrameModel(BaseModel):
                 if annot_info.arg in param_dict:
                     raw_annot = annot_info.origin[param_dict[annot_info.arg]]  # type: ignore
                     if annot_info.optional:
-                        raw_annot = Optional[raw_annot]
+                        raw_annot = Optional[raw_annot]  # noqa: UP045
                     extra["__annotations__"][field] = raw_annot
                     extra[field] = copy.deepcopy(field_info)
 
