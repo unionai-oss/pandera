@@ -48,7 +48,7 @@ class IbisCheckBackend(BaseCheckBackend):
         raise NotImplementedError
 
     def preprocess(
-        self, check_obj: Union[ibis.Column, ibis.Table], key: Optional[str]
+        self, check_obj: Union[ibis.Column, ibis.Table], key: str | None
     ):
         """Preprocesses a check object before applying the check function."""
         # This handles the case of Column validation by promoting it to
@@ -198,7 +198,7 @@ class IbisCheckBackend(BaseCheckBackend):
     def __call__(
         self,
         check_obj: ibis.Table,
-        key: Optional[str] = None,
+        key: str | None = None,
     ) -> CheckResult:
         check_obj = self.preprocess(check_obj, key)
         ibis_data = IbisData(check_obj, key)

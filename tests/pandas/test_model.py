@@ -187,10 +187,10 @@ def test_optional_column() -> None:
     """Test that optional columns are not required."""
 
     class Schema(pa.DataFrameModel):
-        a: Optional[Series[str]]
-        b: Optional[Series[str]] = pa.Field(eq="b")
-        c: Optional[Series[String]]  # test pandera.typing alias
-        d: Optional[Series[list[int]]]
+        a: Series[str] | None
+        b: Series[str] | None = pa.Field(eq="b")
+        c: Series[String] | None  # test pandera.typing alias
+        d: Series[list[int]] | None
 
     schema = Schema.to_schema()
     assert not schema.columns["a"].required
@@ -203,10 +203,10 @@ def test_optional_index() -> None:
     """Test that optional indices are not required."""
 
     class Schema(pa.DataFrameModel):
-        idx: Optional[Index[str]]
+        idx: Index[str] | None
 
     class SchemaWithAliasDtype(pa.DataFrameModel):
-        idx: Optional[Index[String]]  # test pandera.typing alias
+        idx: Index[String] | None  # test pandera.typing alias
 
     for model in (Schema, SchemaWithAliasDtype):
         with pytest.raises(
@@ -840,7 +840,7 @@ def test_config() -> None:
             ordered = True
             multiindex_coerce = True
             multiindex_strict = True
-            multiindex_name: Optional[str] = "mi"
+            multiindex_name: str | None = "mi"
             unique_column_names = True
             add_missing_columns = True
 
@@ -888,7 +888,7 @@ def test_multiindex_unique() -> None:
             multiindex_coerce = True
             multiindex_strict = True
             multiindex_unique = ["idx_1", "idx_2"]
-            multiindex_name: Optional[str] = "mi"
+            multiindex_name: str | None = "mi"
             unique_column_names = True
             add_missing_columns = True
 
@@ -1664,7 +1664,7 @@ def test_from_records_validates_the_schema():
         state: Series[str]
         city: Series[str]
         price: Series[float]
-        postal_code: Optional[Series[int]] = pa.Field(nullable=True)
+        postal_code: Series[int] | None = pa.Field(nullable=True)
 
     raw_data = [
         {
@@ -1823,7 +1823,7 @@ def test_generic_optional_field() -> None:
 
     class GenericModel(pa.DataFrameModel, Generic[T]):
         x: Series[int]
-        y: Optional[Series[T]]
+        y: Series[T] | None
 
     class IntYModel(GenericModel[int]): ...
 

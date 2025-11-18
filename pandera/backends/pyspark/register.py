@@ -15,7 +15,7 @@ if CURRENT_PYSPARK_VERSION >= version.parse("3.4"):
 
 @lru_cache
 def register_pyspark_backends(
-    check_cls_fqn: Optional[str] = None,
+    check_cls_fqn: str | None = None,
 ):
     """Register pyspark backends.
 

@@ -18,8 +18,8 @@ class PanderaAccessor:
     def __init__(self, pyspark_obj):
         """Initialize the pandera accessor."""
         self._pyspark_obj = pyspark_obj
-        self._schema: Optional[Schemas] = None
-        self._errors: Optional[Errors] = None
+        self._schema: Schemas | None = None
+        self._errors: Errors | None = None
 
     @staticmethod
     def check_schema_type(schema: Schemas):  # type: ignore
@@ -33,17 +33,17 @@ class PanderaAccessor:
         return self._pyspark_obj
 
     @property
-    def schema(self) -> Optional[Schemas]:  # type: ignore
+    def schema(self) -> Schemas | None:  # type: ignore
         """Access schema metadata."""
         return self._schema
 
     @property
-    def errors(self) -> Optional[Errors]:  # type: ignore
+    def errors(self) -> Errors | None:  # type: ignore
         """Access errors details."""
         return self._errors
 
     @errors.setter
-    def errors(self, value: Optional[Errors]):  # type: ignore
+    def errors(self, value: Errors | None):  # type: ignore
         """Set errors details."""
         self._errors = value
 

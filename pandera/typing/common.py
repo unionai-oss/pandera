@@ -122,7 +122,7 @@ class DataFrameBase(Generic[T]):
     initialization.
     """
 
-    default_dtype: Optional[type] = None
+    default_dtype: type | None = None
 
     def __setattr__(self, name: str, value: Any) -> None:
         object.__setattr__(self, name, value)
@@ -156,7 +156,7 @@ class DataFrameBase(Generic[T]):
 class SeriesBase(Generic[GenericDtype]):
     """Pandera Series base class to use for all pandas-like APIs."""
 
-    default_dtype: Optional[type] = None
+    default_dtype: type | None = None
 
     def __get__(
         self, instance: object, owner: type
@@ -170,7 +170,7 @@ class IndexBase(Generic[GenericDtype]):
     *new in 0.5.0*
     """
 
-    default_dtype: Optional[type] = None
+    default_dtype: type | None = None
 
     def __get__(
         self, instance: object, owner: type

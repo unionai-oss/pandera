@@ -47,16 +47,16 @@ class DataFrameModelPydantic(BaseModel):
 class DataFrameSchemaPydantic(BaseModel):
     """Test pydantic model with a DataFrameSchema and MultiIndex."""
 
-    pa_schema: Optional[pa.DataFrameSchema]
-    pa_mi: Optional[pa.MultiIndex]
+    pa_schema: pa.DataFrameSchema | None
+    pa_mi: pa.MultiIndex | None
 
 
 class SeriesSchemaPydantic(BaseModel):
     """Test pydantic model with a SeriesSchema, Column and Index."""
 
-    pa_series_schema: Optional[pa.SeriesSchema]
-    pa_column: Optional[pa.Column]
-    pa_index: Optional[pa.Index]
+    pa_series_schema: pa.SeriesSchema | None
+    pa_column: pa.Column | None
+    pa_index: pa.Index | None
 
 
 TableT = TypeVar("TableT", bound=pa.DataFrameModel)

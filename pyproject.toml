@@ -175,13 +175,15 @@ extend-exclude = [
     "setup.py",
     "asv_bench",
 ]
-target-version = "py39"
+target-version = "py310"
 
 [tool.ruff.lint]
-select = ["UP"]
-
-[tool.ruff.lint.pyupgrade]
-keep-runtime-typing = true
+select = [
+    "UP",
+]
+ignore = [
+    "UP007",
+]
 
 [tool.codespell]
 ignore-words-list = ["notin", "splitted", "fo", "strat"]

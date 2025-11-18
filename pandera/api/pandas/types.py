@@ -145,7 +145,7 @@ def _get_fullname(_cls: type) -> str:
     return f"{_cls.__module__}.{_cls.__name__}"
 
 
-def get_backend_types_from_mro(_cls: type) -> Optional[BackendTypes]:
+def get_backend_types_from_mro(_cls: type) -> BackendTypes | None:
     try:
         return get_backend_types(_get_fullname(_cls))
     except BackendNotFoundError:

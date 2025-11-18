@@ -4,7 +4,8 @@
 import datetime
 import operator
 import re
-from typing import Any, Callable, Optional
+from typing import Any, Optional
+from collections.abc import Callable
 from unittest.mock import MagicMock
 from warnings import catch_warnings
 
@@ -336,7 +337,7 @@ def test_isin_notin_strategies(data_type, chained, data):
 @hypothesis.given(st.data(), st.text())
 def test_str_pattern_checks(
     str_strat: Callable,
-    pattern_fn: Optional[Callable[..., str]],
+    pattern_fn: Callable[..., str] | None,
     chained: bool,
     data,
     pattern,

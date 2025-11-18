@@ -46,22 +46,22 @@ N_INDENT_SPACES = 4
 class DataFrameSchema(Generic[TDataObject], BaseSchema):
     def __init__(
         self,
-        columns: Optional[dict[Any, Any]] = None,
-        checks: Optional[CheckList] = None,
-        parsers: Optional[ParserList] = None,
+        columns: dict[Any, Any] | None = None,
+        checks: CheckList | None = None,
+        parsers: ParserList | None = None,
         index=None,
-        dtype: Optional[Any] = None,
+        dtype: Any | None = None,
         coerce: bool = False,
         strict: StrictType = False,
-        name: Optional[str] = None,
+        name: str | None = None,
         ordered: bool = False,
-        unique: Optional[Union[str, list[str]]] = None,
+        unique: Union[str, list[str]] | None = None,
         report_duplicates: UniqueSettings = "all",
         unique_column_names: bool = False,
         add_missing_columns: bool = False,
-        title: Optional[str] = None,
-        description: Optional[str] = None,
-        metadata: Optional[dict] = None,
+        title: str | None = None,
+        description: str | None = None,
+        metadata: dict | None = None,
         drop_invalid_rows: bool = False,
     ) -> None:
         """Library-agnostic base class for DataFrameSchema definitions.
@@ -151,7 +151,7 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
         if isinstance(parsers, Parser):
             parsers = [parsers]
 
-        self._dtype: Optional[DataType] = None
+        self._dtype: DataType | None = None
 
         super().__init__(
             dtype=dtype,
@@ -217,7 +217,7 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
         return self._unique
 
     @unique.setter
-    def unique(self, value: Optional[Union[str, list[str]]]) -> None:
+    def unique(self, value: Union[str, list[str]] | None) -> None:
         """Set unique attribute."""
         self._unique = [value] if isinstance(value, str) else value
 
@@ -242,7 +242,7 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
             )
         return {n: c.dtype for n, c in self.columns.items() if not c.regex}
 
-    def get_metadata(self) -> Optional[dict]:
+    def get_metadata(self) -> dict | None:
         """Provide metadata for columns and schema level"""
         res: dict[Any, Any] = {"columns": {}}
         for k in self.columns.keys():
@@ -282,10 +282,10 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
     def __call__(
         self,
         dataframe: TDataObject,
-        head: Optional[int] = None,
-        tail: Optional[int] = None,
-        sample: Optional[int] = None,
-        random_state: Optional[int] = None,
+        head: int | None = None,
+        tail: int | None = None,
+        sample: int | None = None,
+        random_state: int | None = None,
         lazy: bool = False,
         inplace: bool = False,
     ) -> TDataObject:
@@ -1107,7 +1107,7 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
         return cast(Self, new_schema)
 
     def reset_index(
-        self, level: Optional[list[str]] = None, drop: bool = False
+        self, level: list[str] | None = None, drop: bool = False
     ) -> Self:
         """
         A method for resetting the :class:`Index` of a
@@ -1290,7 +1290,7 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
     # Schema IO Methods #
     #####################
 
-    def to_script(self, fp: Optional[Union[str, Path]] = None) -> Self:
+    def to_script(self, fp: Union[str, Path] | None = None) -> Self:
         """Write DataFrameSchema to python script.
 
         :param path: str, Path to write script
@@ -1314,7 +1314,7 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
 
         return pandera.io.from_yaml(yaml_schema)
 
-    def to_yaml(self, stream: Optional[os.PathLike] = None) -> Optional[str]:
+    def to_yaml(self, stream: os.PathLike | None = None) -> str | None:
         """Write DataFrameSchema to yaml file.
 
         :param stream: file stream to write to. If None, dumps to string.
@@ -1351,8 +1351,8 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
         ...
 
     def to_json(
-        self, target: Optional[os.PathLike] = None, **kwargs
-    ) -> Optional[str]:
+        self, target: os.PathLike | None = None, **kwargs
+    ) -> str | None:
         """Write DataFrameSchema to json file.
 
         :param target: file target to write to. If None, dumps to string.

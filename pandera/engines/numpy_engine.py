@@ -358,7 +358,7 @@ class String(DataType, dtypes.String):
     def check(
         self,
         pandera_dtype: dtypes.DataType,
-        data_container: Optional[PandasObject] = None,
+        data_container: PandasObject | None = None,
     ) -> Union[bool, Iterable[bool]]:
         return isinstance(pandera_dtype, (Object, type(self)))
 

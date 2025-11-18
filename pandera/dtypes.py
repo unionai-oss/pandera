@@ -8,12 +8,12 @@ import inspect
 from abc import ABC
 from typing import (
     Any,
-    Callable,
     Literal,
     Optional,
     TypeVar,
     Union,
 )
+from collections.abc import Callable
 from collections.abc import Iterable
 
 from typing_extensions import overload
@@ -23,7 +23,7 @@ class DataType(ABC):
     """Base class of all Pandera data types."""
 
     type: Any = None
-    continuous: Optional[bool] = None
+    continuous: bool | None = None
     """Whether the number data type is continuous."""
     auto_coerce: bool = False
     """Whether to force coerce to be True in all cases"""
@@ -56,7 +56,7 @@ class DataType(ABC):
     def check(
         self,
         pandera_dtype: DataType,
-        data_container: Optional[Any] = None,
+        data_container: Any | None = None,
     ) -> Union[bool, Iterable[bool]]:
         """Check that pandera :class:`~pandera.dtypes.DataType` are equivalent.
 
@@ -97,7 +97,7 @@ def immutable(
 
 
 def immutable(
-    pandera_dtype_cls: Optional[_DataTypeClass] = None, **dataclass_kwargs: Any
+    pandera_dtype_cls: _DataTypeClass | None = None, **dataclass_kwargs: Any
 ) -> Union[_DataTypeClass, Callable[[_DataTypeClass], _DataTypeClass]]:
     """:func:`dataclasses.dataclass` decorator with different default values:
     `frozen=True`, `init=False`, `repr=False`.
@@ -141,11 +141,11 @@ def immutable(
 class _Number(DataType):
     """Semantic representation of a numeric data type."""
 
-    exact: Optional[bool] = None
+    exact: bool | None = None
     """Whether the data type is an exact representation of a number."""
 
     def check(
-        self, pandera_dtype: DataType, data_container: Optional[Any] = None
+        self, pandera_dtype: DataType, data_container: Any | None = None
     ) -> Union[bool, Iterable[bool]]:
         if self.__class__ is _Number:
             return isinstance(pandera_dtype, _Number)
@@ -154,9 +154,9 @@ class _Number(DataType):
 
 @immutable
 class _PhysicalNumber(_Number):
-    bit_width: Optional[int] = None
+    bit_width: int | None = None
     """Number of bits used by the machine representation."""
-    _base_name: Optional[str] = dataclasses.field(
+    _base_name: str | None = dataclasses.field(
         default=None, init=False, repr=False
     )
 
@@ -198,7 +198,7 @@ class Int(_PhysicalNumber):  # type: ignore
     """Whether the integer data type is signed."""
 
     def check(
-        self, pandera_dtype: DataType, data_container: Optional[Any] = None
+        self, pandera_dtype: DataType, data_container: Any | None = None
     ) -> Union[bool, Iterable[bool]]:
         return (
             isinstance(pandera_dtype, Int)
@@ -305,7 +305,7 @@ class Float(_PhysicalNumber):  # type: ignore
     bit_width = 64
 
     def check(
-        self, pandera_dtype: DataType, data_container: Optional[Any] = None
+        self, pandera_dtype: DataType, data_container: Any | None = None
     ) -> Union[bool, Iterable[bool]]:
         return (
             isinstance(pandera_dtype, Float)
@@ -359,7 +359,7 @@ class Complex(_PhysicalNumber):  # type: ignore
     bit_width = 128
 
     def check(
-        self, pandera_dtype: DataType, data_container: Optional[Any] = None
+        self, pandera_dtype: DataType, data_container: Any | None = None
     ) -> Union[bool, Iterable[bool]]:
         return (
             isinstance(pandera_dtype, Complex)
@@ -420,7 +420,7 @@ class Decimal(_Number):
     scale: int = 0  # default 0 is aligned with pyarrow and various databases.
     """The number of digits after the decimal point."""
 
-    rounding: Optional[str] = dataclasses.field(
+    rounding: str | None = dataclasses.field(
         default_factory=lambda: decimal.getcontext().rounding
     )
     """
@@ -432,7 +432,7 @@ class Decimal(_Number):
         self,
         precision: int = DEFAULT_PYTHON_PREC,
         scale: int = 0,
-        rounding: Optional[str] = None,
+        rounding: str | None = None,
     ):
         super().__init__()
         if precision <= 0:
@@ -470,11 +470,11 @@ class Decimal(_Number):
 class Category(DataType):  # type: ignore
     """Semantic representation of a categorical data type."""
 
-    categories: Optional[tuple[Any]] = None  # tuple to ensure safe hash
+    categories: tuple[Any] | None = None  # tuple to ensure safe hash
     ordered: bool = False
 
     def __init__(
-        self, categories: Optional[Iterable[Any]] = None, ordered: bool = False
+        self, categories: Iterable[Any] | None = None, ordered: bool = False
     ):
         # Define __init__ to avoid exposing pylint errors to end users.
         super().__init__()
@@ -483,7 +483,7 @@ class Category(DataType):  # type: ignore
         object.__setattr__(self, "ordered", ordered)
 
     def check(
-        self, pandera_dtype: DataType, data_container: Optional[Any] = None
+        self, pandera_dtype: DataType, data_container: Any | None = None
     ) -> Union[bool, Iterable[bool]]:
         if isinstance(pandera_dtype, Category) and (
             self.categories is None or pandera_dtype.categories is None

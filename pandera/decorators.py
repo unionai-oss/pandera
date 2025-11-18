@@ -6,7 +6,6 @@ import sys
 import types
 from typing import (
     Any,
-    Callable,
     NoReturn,
     Optional,
     TypeVar,
@@ -14,6 +13,7 @@ from typing import (
     cast,
     overload,
 )
+from collections.abc import Callable
 from collections.abc import Iterable
 
 from pydantic import validate_arguments
@@ -149,11 +149,11 @@ def _parse_schema_error(
 
 def check_input(
     schema: Schemas,
-    obj_getter: Optional[InputGetter] = None,
-    head: Optional[int] = None,
-    tail: Optional[int] = None,
-    sample: Optional[int] = None,
-    random_state: Optional[int] = None,
+    obj_getter: InputGetter | None = None,
+    head: int | None = None,
+    tail: int | None = None,
+    sample: int | None = None,
+    random_state: int | None = None,
     lazy: bool = False,
     inplace: bool = False,
 ) -> Callable[[F], F]:
@@ -289,11 +289,11 @@ def check_input(
 
 def check_output(
     schema: Schemas,
-    obj_getter: Optional[OutputGetter] = None,
-    head: Optional[int] = None,
-    tail: Optional[int] = None,
-    sample: Optional[int] = None,
-    random_state: Optional[int] = None,
+    obj_getter: OutputGetter | None = None,
+    head: int | None = None,
+    tail: int | None = None,
+    sample: int | None = None,
+    random_state: int | None = None,
     lazy: bool = False,
     inplace: bool = False,
 ) -> Callable[[F], F]:
@@ -426,10 +426,10 @@ def check_output(
 
 
 def check_io(
-    head: Optional[int] = None,
-    tail: Optional[int] = None,
-    sample: Optional[int] = None,
-    random_state: Optional[int] = None,
+    head: int | None = None,
+    tail: int | None = None,
+    sample: int | None = None,
+    random_state: int | None = None,
     lazy: bool = False,
     inplace: bool = False,
     out: Union[
@@ -523,10 +523,10 @@ def check_types(
     wrapped: F,
     *,
     with_pydantic: bool = False,
-    head: Optional[int] = None,
-    tail: Optional[int] = None,
-    sample: Optional[int] = None,
-    random_state: Optional[int] = None,
+    head: int | None = None,
+    tail: int | None = None,
+    sample: int | None = None,
+    random_state: int | None = None,
     lazy: bool = False,
     inplace: bool = False,
 ) -> F: ...  # pragma: no cover
@@ -537,10 +537,10 @@ def check_types(
     wrapped: None = None,
     *,
     with_pydantic: bool = False,
-    head: Optional[int] = None,
-    tail: Optional[int] = None,
-    sample: Optional[int] = None,
-    random_state: Optional[int] = None,
+    head: int | None = None,
+    tail: int | None = None,
+    sample: int | None = None,
+    random_state: int | None = None,
     lazy: bool = False,
     inplace: bool = False,
 ) -> Callable[[F], F]: ...  # pragma: no cover
@@ -550,10 +550,10 @@ def check_types(
     wrapped=None,
     *,
     with_pydantic: bool = False,
-    head: Optional[int] = None,
-    tail: Optional[int] = None,
-    sample: Optional[int] = None,
-    random_state: Optional[int] = None,
+    head: int | None = None,
+    tail: int | None = None,
+    sample: int | None = None,
+    random_state: int | None = None,
     lazy: bool = False,
     inplace: bool = False,
 ) -> Callable:

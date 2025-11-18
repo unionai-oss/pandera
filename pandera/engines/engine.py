@@ -9,7 +9,6 @@ from dataclasses import dataclass
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     NamedTuple,
     Optional,
     TypeVar,
@@ -17,6 +16,7 @@ from typing import (
     get_origin,
     get_type_hints,
 )
+from collections.abc import Callable
 
 import typing_inspect
 
@@ -68,7 +68,7 @@ class _DtypeRegistry:
     equivalents: dict[Any, DataType]
     strict_equivalents: dict[Any, DataType]
 
-    def get_equivalent(self, data_type: Any) -> Optional[DataType]:
+    def get_equivalent(self, data_type: Any) -> DataType | None:
         if (data_type, type(data_type)) in self.strict_equivalents:
             return self.strict_equivalents.get((data_type, type(data_type)))
         return self.equivalents.get(data_type)
@@ -166,9 +166,9 @@ class Engine(ABCMeta):
 
     def register_dtype(
         cls: "Engine",
-        pandera_dtype_cls: Optional[type[_DataType]] = None,
+        pandera_dtype_cls: type[_DataType] | None = None,
         *,
-        equivalents: Optional[list[Any]] = None,
+        equivalents: list[Any] | None = None,
     ) -> Callable:
         """Register a Pandera :class:`~pandera.dtypes.DataType` with the engine,
         as class decorator.

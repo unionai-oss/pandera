@@ -22,8 +22,8 @@ class CoreCheckResult(NamedTuple):
     check: str
     reason_code: SchemaErrorReason
     passed: bool
-    message: Optional[str] = None
-    failure_cases: Optional[Iterable] = None
+    message: str | None = None
+    failure_cases: Iterable | None = None
 
 
 class ColumnSchemaBackend(PysparkSchemaBackend):
@@ -61,10 +61,10 @@ class ColumnSchemaBackend(PysparkSchemaBackend):
         check_obj,
         schema,
         *,
-        head: Optional[int] = None,
-        tail: Optional[int] = None,
-        sample: Optional[int] = None,
-        random_state: Optional[int] = None,
+        head: int | None = None,
+        tail: int | None = None,
+        sample: int | None = None,
+        random_state: int | None = None,
         lazy: bool = False,
         inplace: bool = False,
         error_handler: ErrorHandler = None,

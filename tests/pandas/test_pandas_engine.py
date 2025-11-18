@@ -217,7 +217,7 @@ def test_pandas_datetimetz_dtype(timezone_aware, data, timezone):
 def generate_test_cases_time_zone_agnostic() -> list[
     tuple[
         list[dt.datetime],
-        Optional[dt.tzinfo],
+        dt.tzinfo | None,
         bool,
         list[dt.datetime],
         bool,

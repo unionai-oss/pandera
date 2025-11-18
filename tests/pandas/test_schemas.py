@@ -5,7 +5,8 @@
 import copy
 from datetime import datetime, timedelta
 from functools import partial
-from typing import Any, Callable, Union
+from typing import Any, Union
+from collections.abc import Callable
 
 import numpy as np
 import pandas as pd

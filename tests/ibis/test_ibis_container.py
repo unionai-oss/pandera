@@ -333,7 +333,7 @@ def test_drop_invalid_rows(
     assert validated_data.execute().equals(expected_valid_data.execute())
 
 
-def _failure_value(column: str, dtype: Optional[ibis.DataType] = None):
+def _failure_value(column: str, dtype: ibis.DataType | None = None):
     if column.startswith("string"):
         return ibis.literal("9", type=dtype or dt.String)
     elif column.startswith("int"):

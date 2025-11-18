@@ -444,7 +444,7 @@ def test_column_regex_multiindex() -> None:
 )
 def test_column_regex_matching(
     column_name_regex: str,
-    expected_matches: Optional[list[tuple[str, str]]],
+    expected_matches: list[tuple[str, str]] | None,
     error: type[BaseException],
 ) -> None:
     """

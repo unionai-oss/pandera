@@ -725,7 +725,7 @@ class FrictionlessFieldParser:
         )
 
     @property
-    def checks(self) -> Optional[list[dict[str, Any]]]:
+    def checks(self) -> list[dict[str, Any]] | None:
         """Convert a set of frictionless schema field constraints into checks.
 
         This parses the standard set of frictionless constraints which can be

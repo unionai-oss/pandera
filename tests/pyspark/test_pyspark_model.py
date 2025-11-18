@@ -429,9 +429,9 @@ def test_schema():
     class Schema(pa.DataFrameModel):
         """Simple DataFrameModel containing optional columns."""
 
-        a: Optional[str]
-        b: Optional[str] = pa.Field(eq="b")
-        c: Optional[str]  # test pandera.typing alias
+        a: str | None
+        b: str | None = pa.Field(eq="b")
+        c: str | None  # test pandera.typing alias
 
     return Schema
 

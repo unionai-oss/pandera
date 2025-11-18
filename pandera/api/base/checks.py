@@ -4,13 +4,13 @@ import inspect
 from itertools import chain
 from typing import (
     Any,
-    Callable,
     NamedTuple,
     Optional,
     TypeVar,
     Union,
     no_type_check,
 )
+from collections.abc import Callable
 from collections.abc import Iterable
 
 from pandera.api.function_dispatch import Dispatcher
@@ -84,9 +84,9 @@ class BaseCheck(metaclass=MetaCheck):
 
     def __init__(
         self,
-        name: Optional[str] = None,
-        error: Optional[str] = None,
-        statistics: Optional[dict[str, Any]] = None,
+        name: str | None = None,
+        error: str | None = None,
+        statistics: dict[str, Any] | None = None,
     ):
         self.name = name
         self.error = error
@@ -120,8 +120,8 @@ class BaseCheck(metaclass=MetaCheck):
         name: str,
         init_kwargs,
         error: Union[str, Callable],
-        statistics: Optional[dict[str, Any]] = None,
-        defaults: Optional[dict[str, Any]] = None,
+        statistics: dict[str, Any] | None = None,
+        defaults: dict[str, Any] | None = None,
         **check_kwargs,
     ):
         """Create a Check object from a built-in check's name."""

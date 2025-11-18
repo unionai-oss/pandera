@@ -32,7 +32,7 @@ CONDA_REQUIREMENTS_FILE = REPO_PATH / "environment.yml"
 PIP_REQUIREMENTS_FILE = REPO_PATH / "requirements.txt"
 
 
-def conda_package_to_pip(package: str) -> Optional[str]:
+def conda_package_to_pip(package: str) -> str | None:
     """
     Convert a conda package to its pip equivalent.
 

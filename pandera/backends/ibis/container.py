@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import copy
 import traceback
-from typing import TYPE_CHECKING, Any, Callable, Optional
+from typing import TYPE_CHECKING, Any, Optional
+from collections.abc import Callable
 from collections.abc import Iterable
 
 import ibis
@@ -38,10 +39,10 @@ class DataFrameSchemaBackend(IbisSchemaBackend):
         check_obj: ibis.Table,
         schema: DataFrameSchema,
         *,
-        head: Optional[int] = None,
-        tail: Optional[int] = None,
-        sample: Optional[int] = None,
-        random_state: Optional[int] = None,
+        head: int | None = None,
+        tail: int | None = None,
+        sample: int | None = None,
+        random_state: int | None = None,
         lazy: bool = False,
         inplace: bool = False,
     ):

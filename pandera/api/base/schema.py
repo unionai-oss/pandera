@@ -81,7 +81,7 @@ class BaseSchema(ABC):
         """Coerce object to the expected type."""
         raise NotImplementedError
 
-    def to_yaml(self, stream: Optional[os.PathLike] = None) -> Optional[str]:
+    def to_yaml(self, stream: os.PathLike | None = None) -> str | None:
         """Write DataFrameSchema to yaml file."""
         raise NotImplementedError
 
@@ -99,8 +99,8 @@ class BaseSchema(ABC):
     @classmethod
     def get_backend(
         cls,
-        check_obj: Optional[Any] = None,
-        check_type: Optional[type] = None,
+        check_obj: Any | None = None,
+        check_type: type | None = None,
     ) -> BaseSchemaBackend:
         """Get the backend associated with the type of ``check_obj``."""
         if check_obj is not None:

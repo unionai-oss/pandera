@@ -1,6 +1,7 @@
 """Data validation parse definition."""
 
-from typing import Any, Callable, Optional
+from typing import Any, Optional
+from collections.abc import Callable
 
 from pandera.api.base.parsers import BaseParser, ParserResult
 
@@ -13,9 +14,9 @@ class Parser(BaseParser):
         parser_fn: Callable,
         element_wise: bool = False,
         ignore_na: bool = False,
-        name: Optional[str] = None,
-        title: Optional[str] = None,
-        description: Optional[str] = None,
+        name: str | None = None,
+        title: str | None = None,
+        description: str | None = None,
         **parser_kwargs,
     ) -> None:
         """Apply a parser function to a data object.
@@ -62,7 +63,7 @@ class Parser(BaseParser):
         self.description = description
 
     def __call__(
-        self, parse_obj: Any, column: Optional[str] = None
+        self, parse_obj: Any, column: str | None = None
     ) -> ParserResult:
         """Validate pandas DataFrame or Series.
 

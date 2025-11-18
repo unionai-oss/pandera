@@ -76,7 +76,7 @@ class PandasParserBackend(BaseParserBackend):
     def __call__(
         self,
         parse_obj: Union[pd.Series, pd.DataFrame],
-        key: Optional[str] = None,
+        key: str | None = None,
     ):
         parse_obj = self.preprocess(parse_obj, key)
         parser_output = self.apply(parse_obj)

@@ -49,10 +49,10 @@ class PysparkSchemaBackend(BaseSchemaBackend):
     def subsample(
         self,
         check_obj: DataFrameTypes,
-        head: Optional[int] = None,
-        tail: Optional[int] = None,
-        sample: Optional[float] = None,
-        random_state: Optional[int] = None,
+        head: int | None = None,
+        tail: int | None = None,
+        sample: float | None = None,
+        random_state: int | None = None,
     ):
         if sample is not None:
             return check_obj.sample(

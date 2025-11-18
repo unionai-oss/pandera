@@ -32,9 +32,9 @@ class BaseModel(metaclass=MetaModel):
     """Base class for a Data Object Model."""
 
     Config: type[BaseModelConfig] = BaseModelConfig
-    __extras__: Optional[dict[str, Any]] = None
-    __schema__: ClassVar[Optional[Any]] = None
-    __config__: Optional[type[BaseModelConfig]] = None
+    __extras__: dict[str, Any] | None = None
+    __schema__: ClassVar[Any | None] = None
+    __config__: type[BaseModelConfig] | None = None
 
     #: Key according to `FieldInfo.name`
     __fields__: ClassVar[
@@ -64,7 +64,7 @@ class BaseModel(metaclass=MetaModel):
         raise NotImplementedError
 
     @classmethod
-    def to_yaml(cls, stream: Optional[os.PathLike] = None):
+    def to_yaml(cls, stream: os.PathLike | None = None):
         """Convert `Schema` to yaml using `io.to_yaml`."""
         raise NotImplementedError
 
@@ -72,10 +72,10 @@ class BaseModel(metaclass=MetaModel):
     def validate(
         cls: type[TBaseModel],
         check_obj: Any,
-        head: Optional[int] = None,
-        tail: Optional[int] = None,
-        sample: Optional[int] = None,
-        random_state: Optional[int] = None,
+        head: int | None = None,
+        tail: int | None = None,
+        sample: int | None = None,
+        random_state: int | None = None,
         lazy: bool = False,
         inplace: bool = False,
     ) -> Any:
@@ -83,12 +83,12 @@ class BaseModel(metaclass=MetaModel):
         raise NotImplementedError
 
     @classmethod
-    def strategy(cls: type[TBaseModel], *, size: Optional[int] = None):
+    def strategy(cls: type[TBaseModel], *, size: int | None = None):
         """Create a data synthesis strategy."""
         raise NotImplementedError
 
     @classmethod
-    def example(cls: type[TBaseModel], *, size: Optional[int] = None) -> Any:
+    def example(cls: type[TBaseModel], *, size: int | None = None) -> Any:
         """Generate an example of this data model specification."""
         raise NotImplementedError
 

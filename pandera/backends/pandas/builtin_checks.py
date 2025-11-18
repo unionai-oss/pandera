@@ -267,8 +267,8 @@ def str_endswith(data: PandasData, string: str) -> PandasData:
 )
 def str_length(
     data: PandasData,
-    min_value: Optional[int] = None,
-    max_value: Optional[int] = None,
+    min_value: int | None = None,
+    max_value: int | None = None,
 ) -> PandasData:
     """Ensure that the length of strings is within a specified range.
 

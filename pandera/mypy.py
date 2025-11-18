@@ -1,6 +1,7 @@
 """Pandera mypy plugin."""
 
-from typing import Callable, Optional, Union, cast
+from typing import Optional, Union, cast
+from collections.abc import Callable
 
 from mypy.nodes import FuncBase, SymbolNode, TypeInfo
 from mypy.plugin import (
@@ -71,7 +72,7 @@ class PanderaPlugin(Plugin):
 
     def get_base_class_hook(
         self, fullname: str
-    ) -> "Optional[Callable[[ClassDefContext], None]]":
+    ) -> "Callable[[ClassDefContext], None] | None":
         sym = self.lookup_fully_qualified(fullname)
         if sym and isinstance(sym.node, TypeInfo):  # pragma: no branch
             if any(

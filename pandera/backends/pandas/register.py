@@ -17,7 +17,7 @@ from pandera.backends.pandas.parsers import PandasParserBackend
 
 @lru_cache
 def register_pandas_backends(
-    check_cls_fqn: Optional[str] = None,
+    check_cls_fqn: str | None = None,
 ):
     """Register pandas backends.
 

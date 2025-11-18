@@ -125,7 +125,7 @@ def test_model_schema_equivalency(
 
 def test_model_schema_equivalency_with_optional():
     class ModelWithOptional(DataFrameModel):
-        string_col: Optional[str]
+        string_col: str | None
         int_col: int
 
     schema = DataFrameSchema(

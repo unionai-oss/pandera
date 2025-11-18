@@ -38,7 +38,7 @@ class ArraySchema(ComponentSchema[TDataObject]):
         return self._dtype  # type: ignore
 
     @dtype.setter
-    def dtype(self, value: Optional[PandasDtypeInputTypes]) -> None:
+    def dtype(self, value: PandasDtypeInputTypes | None) -> None:
         """Set the pandas dtype"""
         self._dtype = pandas_engine.Engine.dtype(value) if value else None
 
@@ -103,19 +103,19 @@ class SeriesSchema(ArraySchema[pd.Series]):
 
     def __init__(
         self,
-        dtype: Optional[PandasDtypeInputTypes] = None,
-        checks: Optional[CheckList] = None,
-        parsers: Optional[ParserList] = None,
+        dtype: PandasDtypeInputTypes | None = None,
+        checks: CheckList | None = None,
+        parsers: ParserList | None = None,
         index=None,
         nullable: bool = False,
         unique: bool = False,
         report_duplicates: UniqueSettings = "all",
         coerce: bool = False,
-        name: Optional[str] = None,
-        title: Optional[str] = None,
-        description: Optional[str] = None,
-        default: Optional[Any] = None,
-        metadata: Optional[dict] = None,
+        name: str | None = None,
+        title: str | None = None,
+        description: str | None = None,
+        default: Any | None = None,
+        metadata: dict | None = None,
         drop_invalid_rows: bool = False,
     ) -> None:
         """Initialize series schema base object.
@@ -173,10 +173,10 @@ class SeriesSchema(ArraySchema[pd.Series]):
     def validate(  # type: ignore [override]
         self,
         check_obj: pd.Series,
-        head: Optional[int] = None,
-        tail: Optional[int] = None,
-        sample: Optional[int] = None,
-        random_state: Optional[int] = None,
+        head: int | None = None,
+        tail: int | None = None,
+        sample: int | None = None,
+        random_state: int | None = None,
         lazy: bool = False,
         inplace: bool = False,
     ) -> pd.Series:

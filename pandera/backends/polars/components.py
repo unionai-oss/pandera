@@ -1,7 +1,8 @@
 """Validation backend for polars components."""
 
 import warnings
-from typing import Any, Callable, Optional, cast
+from typing import Any, Optional, cast
+from collections.abc import Callable
 from collections.abc import Iterable
 
 import polars as pl
@@ -40,10 +41,10 @@ class ColumnBackend(PolarsSchemaBackend):
         check_obj: pl.LazyFrame,
         schema: Column,
         *,
-        head: Optional[int] = None,
-        tail: Optional[int] = None,
-        sample: Optional[int] = None,
-        random_state: Optional[int] = None,
+        head: int | None = None,
+        tail: int | None = None,
+        sample: int | None = None,
+        random_state: int | None = None,
         lazy: bool = False,
         inplace: bool = False,
     ) -> pl.LazyFrame:

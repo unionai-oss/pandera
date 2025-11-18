@@ -252,8 +252,8 @@ def str_endswith(data: PolarsData, string: str) -> pl.LazyFrame:
 )
 def str_length(
     data: PolarsData,
-    min_value: Optional[int] = None,
-    max_value: Optional[int] = None,
+    min_value: int | None = None,
+    max_value: int | None = None,
 ) -> pl.LazyFrame:
     """Ensure that the length of strings is within a specified range.
 

@@ -2,11 +2,11 @@
 
 from typing import (
     Any,
-    Callable,
     Optional,
     Union,
     cast,
 )
+from collections.abc import Callable
 from collections.abc import Iterable
 
 from pandera.api.checks import Check
@@ -17,13 +17,13 @@ ParserArg = Union[Parser, list[Parser]]
 AnyCallable = Callable[..., Any]
 
 
-def to_checklist(checks: Optional[CheckArg]) -> list[Check]:
+def to_checklist(checks: CheckArg | None) -> list[Check]:
     """Convert value to list of checks."""
     checks = checks or []
     return [checks] if isinstance(checks, Check) else checks
 
 
-def to_parserlist(parsers: Optional[ParserArg]) -> list[Parser]:
+def to_parserlist(parsers: ParserArg | None) -> list[Parser]:
     parsers = parsers or []
     return [parsers] if isinstance(parsers, Parser) else parsers
 
@@ -53,19 +53,19 @@ class BaseFieldInfo:
 
     def __init__(
         self,
-        checks: Optional[CheckArg] = None,
-        parses: Optional[ParserArg] = None,
+        checks: CheckArg | None = None,
+        parses: ParserArg | None = None,
         nullable: bool = False,
         unique: bool = False,
         coerce: bool = False,
         regex: bool = False,
         alias: Any = None,
-        check_name: Optional[bool] = None,
-        dtype_kwargs: Optional[dict[str, Any]] = None,
-        title: Optional[str] = None,
-        description: Optional[str] = None,
-        default: Optional[Any] = None,
-        metadata: Optional[dict] = None,
+        check_name: bool | None = None,
+        dtype_kwargs: dict[str, Any] | None = None,
+        title: str | None = None,
+        description: str | None = None,
+        default: Any | None = None,
+        metadata: dict | None = None,
     ) -> None:
         self.checks = to_checklist(checks)
         self.parses = to_parserlist(parses)

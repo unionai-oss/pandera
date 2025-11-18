@@ -726,7 +726,7 @@ def test_check_types_optional_out() -> None:
     @check_types
     def optional_derived_out(
         df: DataFrame[InSchema],  # pylint: disable=unused-argument
-    ) -> typing.Optional[DataFrame[DerivedOutSchema]]:
+    ) -> DataFrame[DerivedOutSchema] | None:
         return None
 
     df = pd.DataFrame({"a": [1]}, index=["1"])
@@ -735,7 +735,7 @@ def test_check_types_optional_out() -> None:
     @check_types
     def optional_out(
         df: DataFrame[InSchema],  # pylint: disable=unused-argument
-    ) -> typing.Optional[DataFrame[OutSchema]]:
+    ) -> DataFrame[OutSchema] | None:
         return None
 
     df = pd.DataFrame({"a": [1]}, index=["1"])
@@ -748,7 +748,7 @@ def test_check_types_optional_in() -> None:
     @check_types
     def optional_in(
         # pylint: disable=unused-argument
-        df: typing.Optional[DataFrame[InSchema]],
+        df: DataFrame[InSchema] | None,
     ) -> None:
         return None
 
@@ -764,8 +764,8 @@ def test_check_types_optional_in_out() -> None:
     @check_types
     def transform_derived(
         # pylint: disable=unused-argument
-        df: typing.Optional[DataFrame[InSchema]],
-    ) -> typing.Optional[DataFrame[DerivedOutSchema]]:
+        df: DataFrame[InSchema] | None,
+    ) -> DataFrame[DerivedOutSchema] | None:
         return None
 
     assert transform_derived(None) is None
@@ -773,8 +773,8 @@ def test_check_types_optional_in_out() -> None:
     @check_types
     def transform(
         # pylint: disable=unused-argument
-        df: typing.Optional[DataFrame[InSchema]],
-    ) -> typing.Optional[DataFrame[OutSchema]]:
+        df: DataFrame[InSchema] | None,
+    ) -> DataFrame[OutSchema] | None:
         return None
 
     assert transform(None) is None
@@ -1078,7 +1078,7 @@ def test_check_types_star_kwargs() -> None:
     @check_types
     def get_star_kwargs_keys_dataframe(
         # pylint: disable=unused-argument
-        kwarg1: typing.Optional[DataFrame[InSchema]] = None,
+        kwarg1: DataFrame[InSchema] | None = None,
         **kwargs: DataFrame[InSchema],
     ) -> list[str]:
         return list(kwargs.keys())

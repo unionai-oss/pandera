@@ -48,14 +48,14 @@ class Geometry(pandas_engine.DataType):
 
     type = GeometryDtype()
 
-    crs: Optional[str] = dataclasses.field(default=None)
+    crs: str | None = dataclasses.field(default=None)
     """Coordinate Reference System of the geometry objects.
     """
 
     # define __init__ to please mypy
     def __init__(
         self,
-        crs: Optional[Any] = None,
+        crs: Any | None = None,
     ) -> None:
         if crs is not None:
             try:
@@ -162,7 +162,7 @@ class Geometry(pandas_engine.DataType):
     def check(  # type: ignore
         self,
         pandera_dtype: pandas_engine.DataType,
-        data_container: Optional[GeoPandasObject] = None,
+        data_container: GeoPandasObject | None = None,
     ) -> Union[bool, Iterable[bool]]:
         """Check data container to the specified data type."""
         # Type check

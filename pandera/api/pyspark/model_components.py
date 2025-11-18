@@ -2,12 +2,12 @@
 
 from typing import (
     Any,
-    Callable,
     Optional,
     TypeVar,
     Union,
     cast,
 )
+from collections.abc import Callable
 from collections.abc import Iterable
 
 from pandera.api.base.model_components import (
@@ -97,11 +97,11 @@ def Field(
     in_range: dict[str, Any] = None,
     isin: Iterable = None,
     notin: Iterable = None,
-    str_contains: Optional[str] = None,
-    str_endswith: Optional[str] = None,
-    str_length: Optional[dict[str, Any]] = None,
-    str_matches: Optional[str] = None,
-    str_startswith: Optional[str] = None,
+    str_contains: str | None = None,
+    str_endswith: str | None = None,
+    str_length: dict[str, Any] | None = None,
+    str_matches: str | None = None,
+    str_startswith: str | None = None,
     nullable: bool = False,
     unique: bool = False,
     coerce: bool = False,
@@ -110,11 +110,11 @@ def Field(
     raise_warning: bool = False,
     n_failure_cases: int = None,
     alias: Any = None,
-    check_name: Optional[bool] = None,
-    dtype_kwargs: Optional[dict[str, Any]] = None,
-    title: Optional[str] = None,
-    description: Optional[str] = None,
-    metadata: Optional[dict] = None,
+    check_name: bool | None = None,
+    dtype_kwargs: dict[str, Any] | None = None,
+    title: str | None = None,
+    description: str | None = None,
+    metadata: dict | None = None,
     **kwargs,
 ) -> Any:
     """Used to provide extra information about a field of a DataFrameModel.

@@ -3,7 +3,8 @@
 import copy
 import traceback
 import warnings
-from typing import Any, Callable, Optional
+from typing import Any, Optional
+from collections.abc import Callable
 
 import polars as pl
 
@@ -45,10 +46,10 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
         check_obj: PolarsFrame,
         schema: DataFrameSchema,
         *,
-        head: Optional[int] = None,
-        tail: Optional[int] = None,
-        sample: Optional[int] = None,
-        random_state: Optional[int] = None,
+        head: int | None = None,
+        tail: int | None = None,
+        sample: int | None = None,
+        random_state: int | None = None,
         lazy: bool = False,
         inplace: bool = False,
     ) -> PolarsFrame:

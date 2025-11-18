@@ -1,6 +1,7 @@
 """General utility functions"""
 
-from typing import Any, Callable, TypeVar
+from typing import Any, TypeVar
+from collections.abc import Callable
 
 F = TypeVar("F", bound=Callable)
 

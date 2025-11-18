@@ -74,7 +74,7 @@ class DataFrameModel(_DataFrameModel[pd.DataFrame, DataFrameSchema]):
         **multiindex_kwargs: Any,
     ) -> tuple[
         dict[str, Column],
-        Optional[Union[Index, MultiIndex]],
+        Union[Index, MultiIndex] | None,
     ]:
         index_count = sum(
             annotation.origin in get_index_types()
@@ -178,10 +178,10 @@ class DataFrameModel(_DataFrameModel[pd.DataFrame, DataFrameSchema]):
     def validate(
         cls: type[Self],
         check_obj: pd.DataFrame,
-        head: Optional[int] = None,
-        tail: Optional[int] = None,
-        sample: Optional[int] = None,
-        random_state: Optional[int] = None,
+        head: int | None = None,
+        tail: int | None = None,
+        sample: int | None = None,
+        random_state: int | None = None,
         lazy: bool = False,
         inplace: bool = False,
     ) -> DataFrame[Self]:
@@ -255,8 +255,8 @@ class DataFrameModel(_DataFrameModel[pd.DataFrame, DataFrameSchema]):
 
 def _build_schema_index(
     indices: list[Index], **multiindex_kwargs: Any
-) -> Optional[SchemaIndex]:
-    index: Optional[SchemaIndex] = None
+) -> SchemaIndex | None:
+    index: SchemaIndex | None = None
     if indices:
         if len(indices) == 1:
             index = indices[0]

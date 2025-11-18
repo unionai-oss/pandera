@@ -244,10 +244,7 @@ def test_check_data_container():
         def check(
             self,
             pandera_dtype: DataType,
-            data_container: Optional[  # type:ignore
-                # test case doesn't need to be Liskov substitutable
-                ibis.Column
-            ] = None,
+            data_container: ibis.Column | None = None,
         ) -> Union[bool, Iterable[bool]]:
             return (
                 data_container.count(where=data_container.startswith("id_"))  # type: ignore[union-attr]

@@ -2,11 +2,11 @@
 
 from typing import (
     Any,
-    Callable,
     Optional,
     Union,
     cast,
 )
+from collections.abc import Callable
 from collections.abc import Iterable
 
 from pandera.api.base.model_components import (
@@ -38,8 +38,8 @@ class FieldInfo(BaseFieldInfo):
     def _get_schema_properties(
         self,
         dtype: Any,
-        checks: Optional[CheckArg] = None,
-        parsers: Optional[ParserArg] = None,
+        checks: CheckArg | None = None,
+        parsers: ParserArg | None = None,
         **kwargs: Any,
     ) -> dict[str, Any]:
         if self.dtype_kwargs:
@@ -54,10 +54,10 @@ class FieldInfo(BaseFieldInfo):
     def column_properties(
         self,
         dtype: Any,
-        checks: Optional[CheckArg] = None,
-        parsers: Optional[ParserArg] = None,
+        checks: CheckArg | None = None,
+        parsers: ParserArg | None = None,
         required: bool = True,
-        name: Optional[str] = None,
+        name: str | None = None,
     ) -> dict[str, Any]:
         """Create a schema_components.Column from a field."""
         return self._get_schema_properties(
@@ -79,8 +79,8 @@ class FieldInfo(BaseFieldInfo):
     def index_properties(
         self,
         dtype: Any,
-        checks: Optional[CheckArg] = None,
-        name: Optional[str] = None,
+        checks: CheckArg | None = None,
+        name: str | None = None,
     ) -> dict[str, Any]:
         """Create a schema_components.Index from a field."""
         return self._get_schema_properties(
@@ -114,34 +114,34 @@ class FieldInfo(BaseFieldInfo):
 
 def Field(
     *,
-    eq: Optional[Any] = None,
-    ne: Optional[Any] = None,
-    gt: Optional[Any] = None,
-    ge: Optional[Any] = None,
-    lt: Optional[Any] = None,
-    le: Optional[Any] = None,
-    in_range: Optional[dict[str, Any]] = None,
-    isin: Optional[Iterable[Any]] = None,
-    notin: Optional[Iterable[Any]] = None,
-    str_contains: Optional[str] = None,
-    str_endswith: Optional[str] = None,
-    str_length: Optional[dict[str, Any]] = None,
-    str_matches: Optional[str] = None,
-    str_startswith: Optional[str] = None,
+    eq: Any | None = None,
+    ne: Any | None = None,
+    gt: Any | None = None,
+    ge: Any | None = None,
+    lt: Any | None = None,
+    le: Any | None = None,
+    in_range: dict[str, Any] | None = None,
+    isin: Iterable[Any] | None = None,
+    notin: Iterable[Any] | None = None,
+    str_contains: str | None = None,
+    str_endswith: str | None = None,
+    str_length: dict[str, Any] | None = None,
+    str_matches: str | None = None,
+    str_startswith: str | None = None,
     nullable: bool = False,
     unique: bool = False,
     coerce: bool = False,
     regex: bool = False,
     ignore_na: bool = True,
     raise_warning: bool = False,
-    n_failure_cases: Optional[int] = None,
-    alias: Optional[Any] = None,
-    check_name: Optional[bool] = None,
-    dtype_kwargs: Optional[dict[str, Any]] = None,
-    title: Optional[str] = None,
-    description: Optional[str] = None,
-    default: Optional[Any] = None,
-    metadata: Optional[dict[str, Any]] = None,
+    n_failure_cases: int | None = None,
+    alias: Any | None = None,
+    check_name: bool | None = None,
+    dtype_kwargs: dict[str, Any] | None = None,
+    title: str | None = None,
+    description: str | None = None,
+    default: Any | None = None,
+    metadata: dict[str, Any] | None = None,
     **kwargs: Any,
 ) -> Any:
     """Column or index field specification of a DataFrameModel.

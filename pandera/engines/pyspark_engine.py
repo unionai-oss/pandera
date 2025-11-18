@@ -70,7 +70,7 @@ class DataType(dtypes.DataType):
     def check(
         self,
         pandera_dtype: dtypes.DataType,
-        data_container: Optional[Any] = None,
+        data_container: Any | None = None,
     ) -> Union[bool, Iterable[bool]]:
         try:
             return self.type == pandera_dtype.type

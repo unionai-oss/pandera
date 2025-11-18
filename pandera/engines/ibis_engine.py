@@ -26,7 +26,7 @@ class DataType(dtypes.DataType):
     type: Any = dataclasses.field(repr=False, init=False)
     """Native Ibis dtype boxed by the data type."""
 
-    def __init__(self, dtype: Optional[Any] = None):
+    def __init__(self, dtype: Any | None = None):
         super().__init__()
         object.__setattr__(self, "type", ibis.dtype(dtype))
         dtype_cls = dtype if inspect.isclass(dtype) else dtype.__class__
@@ -54,7 +54,7 @@ class DataType(dtypes.DataType):
     def check(
         self,
         pandera_dtype: dtypes.DataType,
-        data_container: Optional[ibis.Table] = None,
+        data_container: ibis.Table | None = None,
     ) -> Union[bool, Iterable[bool]]:
         try:
             return self.type == pandera_dtype.type
@@ -380,8 +380,8 @@ class DateTime(DataType, dtypes.DateTime):
 
     def __init__(
         self,
-        timezone: Optional[str] = None,
-        scale: Optional[Literal[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]] = None,
+        timezone: str | None = None,
+        scale: Literal[0, 1, 2, 3, 4, 5, 6, 7, 8, 9] | None = None,
     ):
         object.__setattr__(
             self, "type", dt.Timestamp(timezone=timezone, scale=scale)

@@ -216,9 +216,9 @@ class DataFrameModel(Generic[TDataFrame, TSchema], BaseModel):
     """
 
     Config: type[BaseConfig] = BaseConfig
-    __extras__: Optional[dict[str, Any]] = None
+    __extras__: dict[str, Any] | None = None
     __schema__ = _SchemaDescriptor()
-    __config__: Optional[type[BaseConfig]] = None
+    __config__: type[BaseConfig] | None = None
 
     #: Key according to `FieldInfo.name`
     __fields__: ClassVar[TFields] = cast(TFields, _FieldsDescriptor())
@@ -316,7 +316,7 @@ class DataFrameModel(Generic[TDataFrame, TSchema], BaseModel):
         return cls.__schema__
 
     @classmethod
-    def to_yaml(cls, stream: Optional[os.PathLike] = None):
+    def to_yaml(cls, stream: os.PathLike | None = None):
         """
         Convert `Schema` to yaml using `io.to_yaml`.
         """
@@ -327,10 +327,10 @@ class DataFrameModel(Generic[TDataFrame, TSchema], BaseModel):
     def validate(
         cls: type[TDataFrameModel],
         check_obj: TDataFrame,
-        head: Optional[int] = None,
-        tail: Optional[int] = None,
-        sample: Optional[int] = None,
-        random_state: Optional[int] = None,
+        head: int | None = None,
+        tail: int | None = None,
+        sample: int | None = None,
+        random_state: int | None = None,
         lazy: bool = False,
         inplace: bool = False,
     ) -> DataFrameBase[TDataFrameModel]:
@@ -579,7 +579,7 @@ class DataFrameModel(Generic[TDataFrame, TSchema], BaseModel):
         return [parser_info.to_parser(cls) for parser_info in parser_infos]
 
     @classmethod
-    def get_metadata(cls) -> Optional[dict]:
+    def get_metadata(cls) -> dict | None:
         """Provide metadata for columns and schema level"""
         res: dict[Any, Any] = {"columns": {}}
         columns = cls._collect_fields()

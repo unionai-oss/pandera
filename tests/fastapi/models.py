@@ -40,7 +40,7 @@ class TransactionsDictOut(TransactionsOut):
 class Item(BaseModel):
     name: str
     value: int = Field(ge=0)
-    description: Optional[str] = None
+    description: str | None = None
 
 
 class ResponseModel(BaseModel):

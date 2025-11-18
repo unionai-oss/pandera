@@ -3,11 +3,11 @@
 import re
 from typing import (
     Any,
-    Callable,
     Optional,
     TypeVar,
     Union,
 )
+from collections.abc import Callable
 from collections.abc import Iterable
 
 from pandera import errors
@@ -22,18 +22,18 @@ class Check(BaseCheck):
     def __init__(
         self,
         check_fn: Callable,
-        groups: Optional[Union[str, list[str]]] = None,
-        groupby: Optional[Union[str, list[str], Callable]] = None,
+        groups: Union[str, list[str]] | None = None,
+        groupby: Union[str, list[str], Callable] | None = None,
         ignore_na: bool = True,
         element_wise: bool = False,
-        name: Optional[str] = None,
-        error: Optional[str] = None,
+        name: str | None = None,
+        error: str | None = None,
         raise_warning: bool = False,
-        n_failure_cases: Optional[int] = None,
-        title: Optional[str] = None,
-        description: Optional[str] = None,
-        statistics: Optional[dict[str, Any]] = None,
-        strategy: Optional[Any] = None,
+        n_failure_cases: int | None = None,
+        title: str | None = None,
+        description: str | None = None,
+        statistics: dict[str, Any] | None = None,
+        strategy: Any | None = None,
         determined_by_unique: bool = False,
         **check_kwargs,
     ) -> None:
@@ -197,7 +197,7 @@ class Check(BaseCheck):
         self.groupby = groupby
         if isinstance(groups, str):
             groups = [groups]
-        self.groups: Optional[list[str]] = groups
+        self.groups: list[str] | None = groups
 
         self.statistics = statistics or check_kwargs or {}
         self.statistics_args = [*self.statistics.keys()]
@@ -206,7 +206,7 @@ class Check(BaseCheck):
     def __call__(
         self,
         check_obj: Any,
-        column: Optional[str] = None,
+        column: str | None = None,
     ) -> CheckResult:
         """Validate DataFrame or Series.
 
@@ -525,8 +525,8 @@ class Check(BaseCheck):
     @classmethod
     def str_length(
         cls,
-        min_value: Optional[int] = None,
-        max_value: Optional[int] = None,
+        min_value: int | None = None,
+        max_value: int | None = None,
         **kwargs,
     ) -> "Check":
         """Ensure that the length of strings is within a specified range.

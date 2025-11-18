@@ -27,7 +27,7 @@ def _infer_interval_with_mixed_units(value: Any) -> Any:
     return value
 
 
-def _across(table: ibis.Table, selection: Optional[str], func) -> ibis.Table:
+def _across(table: ibis.Table, selection: str | None, func) -> ibis.Table:
     return table.select(
         s.across(
             s.all() if selection is None else select_column(selection), func
@@ -284,8 +284,8 @@ def str_endswith(data: IbisData, string: str) -> ibis.Table:
 )
 def str_length(
     data: IbisData,
-    min_value: Optional[int] = None,
-    max_value: Optional[int] = None,
+    min_value: int | None = None,
+    max_value: int | None = None,
 ) -> ibis.Table:
     """Ensure that the length of strings is within a specified range.
 

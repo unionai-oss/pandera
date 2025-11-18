@@ -40,10 +40,10 @@ class ColumnBackend(ArraySchemaBackend):
         check_obj: pd.DataFrame,
         schema,
         *,
-        head: Optional[int] = None,
-        tail: Optional[int] = None,
-        sample: Optional[int] = None,
-        random_state: Optional[int] = None,
+        head: int | None = None,
+        tail: int | None = None,
+        sample: int | None = None,
+        random_state: int | None = None,
         lazy: bool = False,
         inplace: bool = False,
     ) -> pd.DataFrame:
@@ -282,10 +282,10 @@ class IndexBackend(ArraySchemaBackend):
         check_obj: Union[pd.DataFrame, pd.Series],
         schema,
         *,
-        head: Optional[int] = None,
-        tail: Optional[int] = None,
-        sample: Optional[int] = None,
-        random_state: Optional[int] = None,
+        head: int | None = None,
+        tail: int | None = None,
+        sample: int | None = None,
+        random_state: int | None = None,
         lazy: bool = False,
         inplace: bool = False,
     ) -> Union[pd.DataFrame, pd.Series]:
@@ -429,10 +429,10 @@ class MultiIndexBackend(PandasSchemaBackend):
         check_obj: Union[pd.DataFrame, pd.Series],
         schema,
         *,
-        head: Optional[int] = None,
-        tail: Optional[int] = None,
-        sample: Optional[int] = None,
-        random_state: Optional[int] = None,
+        head: int | None = None,
+        tail: int | None = None,
+        sample: int | None = None,
+        random_state: int | None = None,
         lazy: bool = False,
         inplace: bool = False,
     ) -> Union[pd.DataFrame, pd.Series]:
@@ -648,10 +648,10 @@ class MultiIndexBackend(PandasSchemaBackend):
         multiindex: pd.MultiIndex,
         level_pos: int,
         index_schema,
-        head: Optional[int] = None,
-        tail: Optional[int] = None,
-        sample: Optional[int] = None,
-        random_state: Optional[int] = None,
+        head: int | None = None,
+        tail: int | None = None,
+        sample: int | None = None,
+        random_state: int | None = None,
         lazy: bool = False,
     ) -> None:
         """Validate a level using full materialization.
@@ -833,16 +833,16 @@ class MultiIndexBackend(PandasSchemaBackend):
 
     @staticmethod
     def _nonconsecutive_duplicates(
-        names: list[Optional[Any]],
-    ) -> list[Optional[Any]]:
+        names: list[Any | None],
+    ) -> list[Any | None]:
         """Check whether the names have any non-consecutive duplicates.
 
         If any non-consecutive duplicates are found, return the names that
         are duplicated non-consecutively.
         """
-        seen: set[Optional[Any]] = set()
-        last_name: Optional[Any] = None
-        nonconsecutive_duplicates: set[Optional[Any]] = set()
+        seen: set[Any | None] = set()
+        last_name: Any | None = None
+        nonconsecutive_duplicates: set[Any | None] = set()
         for name in names:
             if name == last_name:
                 # Consecutive duplicate – allowed.
@@ -856,7 +856,7 @@ class MultiIndexBackend(PandasSchemaBackend):
 
     @staticmethod
     def _collect_or_raise(
-        error_handler: Optional[ErrorHandler],
+        error_handler: ErrorHandler | None,
         err: Union[SchemaError, SchemaErrors],
         schema,
     ) -> None:
@@ -915,7 +915,7 @@ class MultiIndexBackend(PandasSchemaBackend):
         mi: pd.MultiIndex,
         schema,
         level_mapping: list[tuple[int, Any]],
-        error_handler: Optional[ErrorHandler] = None,
+        error_handler: ErrorHandler | None = None,
     ) -> None:
         """Perform high-level validation of index names/order requirements.
 
@@ -1018,7 +1018,7 @@ class MultiIndexBackend(PandasSchemaBackend):
         self,
         mi: pd.MultiIndex,
         schema,
-        error_handler: Optional[ErrorHandler] = None,
+        error_handler: ErrorHandler | None = None,
     ) -> list[tuple[int, Any]]:
         """
         Return a list of ``(level_position, index_schema)`` mappings for an
@@ -1041,10 +1041,10 @@ class MultiIndexBackend(PandasSchemaBackend):
         mi_names = list(mi.names)
         n_levels = mi.nlevels
         current_level_pos: int = 0
-        last_mapped_name: Optional[str] = None
+        last_mapped_name: str | None = None
 
         for idx_schema in schema.indexes:
-            idx_name: Optional[str] = idx_schema.name
+            idx_name: str | None = idx_schema.name
 
             if idx_name is None:
                 # Unnamed schema index – accept next dataframe level as-is
@@ -1112,7 +1112,7 @@ class MultiIndexBackend(PandasSchemaBackend):
         self,
         mi: pd.MultiIndex,
         schema,
-        error_handler: Optional[ErrorHandler] = None,
+        error_handler: ErrorHandler | None = None,
     ):
         """Map schema index definitions to concrete level positions.
 

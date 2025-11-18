@@ -1,6 +1,7 @@
 """Data validation checks for hypothesis testing."""
 
-from typing import Any, Callable, Optional, TypeVar, Union
+from typing import Any, Optional, TypeVar, Union
+from collections.abc import Callable
 
 from pandera import errors
 from pandera.api.checks import Check
@@ -19,20 +20,20 @@ class Hypothesis(Check):
     def __init__(
         self,
         test: Callable,
-        samples: Optional[Union[str, list[str]]] = None,
-        groupby: Optional[Union[str, list[str], Callable]] = None,
+        samples: Union[str, list[str]] | None = None,
+        groupby: Union[str, list[str], Callable] | None = None,
         relationship: Union[str, Callable] = "equal",
-        alpha: Optional[float] = None,
-        test_kwargs: Optional[dict] = None,
-        relationship_kwargs: Optional[dict] = None,
-        name: Optional[str] = None,
-        error: Optional[str] = None,
+        alpha: float | None = None,
+        test_kwargs: dict | None = None,
+        relationship_kwargs: dict | None = None,
+        name: str | None = None,
+        error: str | None = None,
         raise_warning: bool = False,
-        n_failure_cases: Optional[int] = None,
-        title: Optional[str] = None,
-        description: Optional[str] = None,
-        statistics: Optional[dict[str, Any]] = None,
-        strategy: Optional[Any] = None,
+        n_failure_cases: int | None = None,
+        title: str | None = None,
+        description: str | None = None,
+        statistics: dict[str, Any] | None = None,
+        strategy: Any | None = None,
         **check_kwargs,
     ) -> None:
         """Perform a hypothesis test on a Series or DataFrame.
@@ -182,7 +183,7 @@ class Hypothesis(Check):
         cls,
         sample1: str,
         sample2: str,
-        groupby: Optional[Union[str, list[str], Callable]] = None,
+        groupby: Union[str, list[str], Callable] | None = None,
         relationship: str = "equal",
         alpha: float = DEFAULT_ALPHA,
         equal_var: bool = True,
@@ -292,8 +293,8 @@ class Hypothesis(Check):
     def one_sample_ttest(
         cls,
         popmean: float,
-        sample: Optional[str] = None,
-        groupby: Optional[Union[str, list[str], Callable]] = None,
+        sample: str | None = None,
+        groupby: Union[str, list[str], Callable] | None = None,
         relationship: str = "equal",
         alpha: float = DEFAULT_ALPHA,
         nan_policy="propagate",

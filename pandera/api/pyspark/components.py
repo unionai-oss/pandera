@@ -16,15 +16,15 @@ class Column(ColumnSchema):
     def __init__(
         self,
         dtype: PySparkDtypeInputTypes = None,
-        checks: Optional[CheckList] = None,
+        checks: CheckList | None = None,
         nullable: bool = False,
         coerce: bool = False,
         required: bool = True,
         name: Union[str, tuple[str, ...], None] = None,
         regex: bool = False,
-        title: Optional[str] = None,
-        description: Optional[str] = None,
-        metadata: Optional[dict] = None,
+        title: str | None = None,
+        description: str | None = None,
+        metadata: dict | None = None,
     ) -> None:
         """Create column validator object.
 
@@ -120,10 +120,10 @@ class Column(ColumnSchema):
     def validate(
         self,
         check_obj: ps.DataFrame,
-        head: Optional[int] = None,
-        tail: Optional[int] = None,
-        sample: Optional[int] = None,
-        random_state: Optional[int] = None,
+        head: int | None = None,
+        tail: int | None = None,
+        sample: int | None = None,
+        random_state: int | None = None,
         lazy: bool = True,
         inplace: bool = False,
         error_handler: ErrorHandler = None,

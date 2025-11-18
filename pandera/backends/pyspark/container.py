@@ -109,10 +109,10 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
         check_obj: DataFrame,
         schema,
         *,
-        head: Optional[int] = None,
-        tail: Optional[int] = None,
-        sample: Optional[int] = None,
-        random_state: Optional[int] = None,
+        head: int | None = None,
+        tail: int | None = None,
+        sample: int | None = None,
+        random_state: int | None = None,
         lazy: bool = False,
         inplace: bool = False,
         error_handler: ErrorHandler = None,
@@ -192,7 +192,7 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
         schema,
         schema_components: list,
         lazy: bool,
-        error_handler: Optional[ErrorHandler],
+        error_handler: ErrorHandler | None,
     ):
         """Run checks for all schema components."""
         assert error_handler is not None, (

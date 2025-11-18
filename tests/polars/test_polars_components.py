@@ -217,10 +217,7 @@ def test_check_data_container():
         def check(
             self,
             pandera_dtype: DataType,
-            data_container: Optional[  # type:ignore
-                # test case doesn't need to be Liskov substitutable
-                polars_engine.PolarsData
-            ] = None,
+            data_container: polars_engine.PolarsData | None = None,
         ) -> Union[bool, Iterable[bool]]:
             if data_container:
                 ldf = data_container.lazyframe
