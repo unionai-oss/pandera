@@ -1147,6 +1147,15 @@ def test_check_types_star_args_kwargs() -> None:
 
 
 def test_coroutines() -> None:
+    """Test coroutine decorated functions with a running event loop."""
+
+    # Get the current event loop or create a new one if not present (for Python 3.10+).
+    try:
+        loop = asyncio.get_event_loop()
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+
     # pylint: disable=missing-class-docstring,too-few-public-methods,missing-function-docstring
     class Schema(DataFrameModel):
         col1: Series[int]

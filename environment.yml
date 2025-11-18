@@ -60,14 +60,11 @@ dependencies:
   - setuptools # required in noxfile and not automatically provided by python >= 3.12
 
   # ibis testing
-  - ibis-duckdb
+  - ibis-duckdb >= 11.0.0 # https://github.com/ibis-project/ibis/pull/11666
 
   # fastapi testing
   - uvicorn
   - python-multipart
-
-  # ibis testing
-  - duckdb
 
   # documentation
   - sphinx
@@ -92,7 +89,7 @@ dependencies:
       - distributed
 
       # ibis extra
-      - ibis-framework >= 9.0.0, < 11.0.0
+      - ibis-framework >= 9.0.0
 
       # docs
       - furo

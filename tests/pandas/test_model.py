@@ -59,8 +59,8 @@ def test_idempotent_magics() -> None:
     assert Model.__checks__["a"]
     assert Model.__parsers__["a"]
 
-    assert Model.__root_checks__[0].name is "root_check_test"
-    assert Model.__root_parsers__[0].name is "root_parser_test"
+    assert Model.__root_checks__[0].name == "root_check_test"
+    assert Model.__root_parsers__[0].name == "root_parser_test"
 
 
 def test_to_schema_and_validate() -> None:

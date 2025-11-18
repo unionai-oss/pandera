@@ -14,7 +14,7 @@ authors = [
 description = "A light-weight and flexible data validation and testing tool for statistical data objects."
 readme = "README.md"
 license = {file = "LICENSE.txt"}
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 keywords = ["pandas", "validation", "data-structures"]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
@@ -23,11 +23,11 @@ classifiers = [
     "Intended Audience :: Science/Research",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Topic :: Scientific/Engineering",
 ]
 dependencies = [
@@ -88,7 +88,7 @@ dask = [
     "dask[dataframe]",
     "distributed",
 ]
-ibis = ["ibis-framework >= 9.0.0, < 11.0.0"]
+ibis = ["ibis-framework >= 9.0.0"]
 polars = ["polars >= 0.20.0"]
 all = [
     "hypothesis >= 6.92.7",
@@ -106,13 +106,13 @@ all = [
     "fastapi",
     "geopandas < 1.1.0",
     "shapely",
-    "ibis-framework >= 9.0.0, < 11.0.0",
+    "ibis-framework >= 9.0.0",
     "polars >= 0.20.0",
 ]
 
 [dependency-groups]
 dev = [
-    "duckdb < 1.4.0", # https://github.com/ibis-project/ibis/issues/11621
+    "duckdb",
     "hypothesis >= 6.92.7",
     "ipdb",
     "isort >= 5.7.0",
@@ -135,7 +135,8 @@ testing = [
     "pytest-xdist",
     "pytest-asyncio",
     "sphinx",
-    "ibis-framework[duckdb,sqlite] >= 9.0.0, < 11.0.0",
+    "ibis-framework[duckdb,sqlite] >= 11.0.0",
+
 ]
 docs = [
     "setuptools",

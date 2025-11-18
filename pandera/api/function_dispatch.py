@@ -1,8 +1,7 @@
 """Multidispatcher implementation."""
 
 from inspect import signature
-from typing import Callable, Union
-import typing_inspect
+from typing import Callable, Union, get_args, get_origin
 
 
 class Dispatcher:
@@ -52,11 +51,11 @@ def get_first_arg_type(fn):
     # object to validate is the first argument.
     data_type = [*fn_sig.parameters.values()][0].annotation
 
-    if typing_inspect.get_origin(data_type) in (tuple, tuple):
-        data_type, *_ = typing_inspect.get_args(data_type)
+    if get_origin(data_type) in (tuple, tuple):
+        data_type, *_ = get_args(data_type)
 
-    if typing_inspect.get_origin(data_type) is Union:
-        data_types = typing_inspect.get_args(data_type)
+    if get_origin(data_type) is Union:
+        data_types = get_args(data_type)
     else:
         data_types = (data_type,)
 
