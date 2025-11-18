@@ -40,7 +40,8 @@ class DataFrameSchema(BaseSchema):
 
     def __init__(
         self,
-        columns: dict[Any, pandera.api.pyspark.components.Column] | None = None,
+        columns: dict[Any, pandera.api.pyspark.components.Column]
+        | None = None,
         checks: CheckList | None = None,
         dtype: PySparkDtypeInputTypes = None,
         coerce: bool = False,

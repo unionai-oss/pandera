@@ -836,9 +836,7 @@ class DateTime(_BaseDateTime, dtypes.Timestamp):
     :class:`pandas.DatetimeTZDtype` for timezone-aware datetimes.
     """
 
-    type: _PandasDatetime | None = dataclasses.field(
-        default=None, init=False
-    )
+    type: _PandasDatetime | None = dataclasses.field(default=None, init=False)
     unit: str = "ns"
     """The precision of the datetime data. Currently limited to "ns"."""
 
@@ -1858,7 +1856,13 @@ if PYARROW_INSTALLED and PANDAS_2_0_0_PLUS:
         type: pd.ArrowDtype | None = dataclasses.field(
             default=None, init=False
         )
-        fields: Union[Iterable[Union[pyarrow.Field, tuple[str, pyarrow.DataType]]], dict[str, pyarrow.DataType]] | None = tuple()
+        fields: (
+            Union[
+                Iterable[Union[pyarrow.Field, tuple[str, pyarrow.DataType]]],
+                dict[str, pyarrow.DataType],
+            ]
+            | None
+        ) = tuple()
 
         def __post_init__(self):
             type_ = pd.ArrowDtype(pyarrow.struct(self.fields))

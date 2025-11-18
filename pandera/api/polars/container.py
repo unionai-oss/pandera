@@ -72,9 +72,7 @@ class DataFrameSchema(_DataFrameSchema[PolarsCheckObjects]):
         """Set the dtype property."""
         self._dtype = polars_engine.Engine.dtype(value) if value else None
 
-    def strategy(
-        self, *, size: int | None = None, n_regex_columns: int = 1
-    ):
+    def strategy(self, *, size: int | None = None, n_regex_columns: int = 1):
         """Create a ``hypothesis`` strategy for generating a DataFrame.
 
         :param size: number of elements to generate
