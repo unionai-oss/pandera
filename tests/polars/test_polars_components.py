@@ -217,7 +217,7 @@ def test_check_data_container():
         def check(
             self,
             pandera_dtype: DataType,
-            data_container: polars_engine.PolarsData | None = None,
+            data_container: pl.LazyFrame | polars_engine.PolarsData | None = None,
         ) -> Union[bool, Iterable[bool]]:
             if data_container:
                 ldf = data_container.lazyframe
