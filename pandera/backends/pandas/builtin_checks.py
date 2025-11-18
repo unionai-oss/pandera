@@ -1,16 +1,15 @@
 """Built-in checks for pandas."""
 
-import sys
 import operator
 import re
-from typing import Any, Optional, TypeVar, Union, cast
+import sys
 from collections.abc import Iterable
+from typing import Any, Optional, TypeVar, Union, cast
 
 import pandas as pd
 
 import pandera.strategies.pandas_strategies as st
 from pandera.api.extensions import register_builtin_check
-
 
 MODIN_IMPORTED = "modin" in sys.modules
 PYSPARK_IMPORTED = "pyspark" in sys.modules

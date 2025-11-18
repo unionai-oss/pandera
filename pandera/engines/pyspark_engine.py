@@ -9,18 +9,17 @@ import inspect
 import re
 import sys
 import warnings
-from typing import Any, Optional, Union
 from collections.abc import Iterable
+from typing import Any, Optional, Union
 
 import pyspark
 import pyspark.sql.types as pst
-from pyspark.sql import DataFrame
 from packaging import version
+from pyspark.sql import DataFrame
 
 from pandera import dtypes, errors
 from pandera.dtypes import immutable
 from pandera.engines import engine
-
 
 PysparkObject = Union[DataFrame]
 

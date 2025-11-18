@@ -1,7 +1,7 @@
 """Data validation checks for hypothesis testing."""
 
-from typing import Any, Optional, TypeVar, Union
 from collections.abc import Callable
+from typing import Any, Optional, TypeVar, Union
 
 from pandera import errors
 from pandera.api.checks import Check

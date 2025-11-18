@@ -1,14 +1,15 @@
 """Tests for configuration functions."""
 
 import os
+
 import pytest
 
 from pandera.config import (
     ValidationDepth,
+    _config_from_env_vars,
     config_context,
     get_config_context,
     get_config_global,
-    _config_from_env_vars,
 )
 
 

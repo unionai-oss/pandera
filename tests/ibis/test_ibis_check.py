@@ -1,11 +1,11 @@
 """Unit tests for the Ibis check backend."""
 
-import pytest
-
-import pandas as pd
 import ibis
 import ibis.expr.types as ir
-from ibis import _, selectors as s
+import pandas as pd
+import pytest
+from ibis import _
+from ibis import selectors as s
 
 import pandera.ibis as pa
 from pandera.backends.ibis.register import register_ibis_backends

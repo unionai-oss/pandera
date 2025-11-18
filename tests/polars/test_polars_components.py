@@ -1,7 +1,7 @@
 """Unit tests for polars components."""
 
-from typing import Optional, Union
 from collections.abc import Iterable
+from typing import Optional, Union
 
 import numpy as np
 import polars as pl

@@ -6,15 +6,15 @@ import datetime
 import decimal
 import inspect
 import warnings
+from collections.abc import Iterable, Mapping, Sequence
 from typing import (
     Any,
     Literal,
     Optional,
-    Union,
     TypedDict,
+    Union,
     overload,
 )
-from collections.abc import Iterable, Mapping, Sequence
 
 import polars as pl
 from packaging import version

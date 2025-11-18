@@ -1,8 +1,8 @@
 """Unit tests for pydantic compatibility."""
 
-from typing import Optional
 from typing import (
     Generic,
+    Optional,
     TypeVar,
 )
 
@@ -22,8 +22,8 @@ except ImportError:
 PYDANTIC_V2 = False
 if pydantic_version().release >= (2, 0, 0):
     PYDANTIC_V2 = True
-    from packaging import version
     import pydantic_core
+    from packaging import version
 
 
 class SimpleSchema(pa.DataFrameModel):

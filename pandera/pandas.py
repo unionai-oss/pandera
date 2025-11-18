@@ -2,11 +2,9 @@
 
 import platform
 
-from packaging.version import parse
-
-import pandas as pd
 import numpy as np
-
+import pandas as pd
+from packaging.version import parse
 
 _min_pandas_version = parse("2.1.1")
 _min_numpy_version = parse("1.24.4")
@@ -94,7 +92,6 @@ from pandera.engines.pandas_engine import (
     pandas_version,
 )
 from pandera.schema_inference.pandas import infer_schema
-
 
 external_config._set_pyspark_environment_variables()
 

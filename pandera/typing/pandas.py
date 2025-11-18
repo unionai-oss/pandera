@@ -15,19 +15,19 @@ import numpy as np
 import pandas as pd
 
 from pandera import dtypes
-from pandera.engines import PYDANTIC_V2
-from pandera.engines import numpy_engine, pandas_engine
+from pandera.config import config_context
+from pandera.engines import PYDANTIC_V2, numpy_engine, pandas_engine
 from pandera.errors import SchemaError, SchemaInitError
 from pandera.typing.common import (
     DataFrameBase,
     DataFrameModel,
-    GenericDtype as _CommonGenericDtype,
     IndexBase,
     SeriesBase,
 )
+from pandera.typing.common import (
+    GenericDtype as _CommonGenericDtype,
+)
 from pandera.typing.formats import Formats
-from pandera.config import config_context
-
 
 try:
     from typing import _GenericAlias  # type: ignore[attr-defined]
@@ -36,10 +36,10 @@ except ImportError:  # pragma: no cover
 
 
 if PYDANTIC_V2:
+    import pydantic_core
+    from packaging import version
     from pydantic import GetCoreSchemaHandler
     from pydantic_core import core_schema
-    from packaging import version
-    import pydantic_core
 
 
 Bool = dtypes.Bool  #: ``"bool"`` numpy dtype

@@ -8,11 +8,11 @@ import pandas as pd
 from pandera.api.base.checks import CheckResult
 from pandera.api.checks import Check
 from pandera.api.pandas.types import (
+    GroupbyObject,
     is_bool,
     is_field,
     is_table,
     is_table_or_field,
-    GroupbyObject,
 )
 from pandera.backends.base import BaseCheckBackend
 

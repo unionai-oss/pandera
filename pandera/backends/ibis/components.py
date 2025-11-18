@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import warnings
-from typing import TYPE_CHECKING, Optional, cast
 from collections.abc import Iterable
+from typing import TYPE_CHECKING, Optional, cast
 
 import ibis
 import ibis.expr.operations as ops

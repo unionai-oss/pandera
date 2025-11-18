@@ -6,6 +6,7 @@ import os
 import re
 import threading
 import typing
+from collections.abc import Iterable
 from typing import (
     Any,
     ClassVar,
@@ -14,9 +15,9 @@ from typing import (
     TypeVar,
     Union,
     cast,
+    get_type_hints,
 )
-from collections.abc import Iterable
-from typing import get_type_hints
+
 from pandera.api.base.model import BaseModel
 from pandera.api.base.schema import BaseSchema
 from pandera.api.checks import Check

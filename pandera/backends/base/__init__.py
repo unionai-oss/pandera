@@ -6,8 +6,8 @@ together to implement the pandera schema specification.
 """
 
 from abc import ABC
-from typing import Any, NamedTuple, Optional, Union
 from collections.abc import Iterable
+from typing import Any, NamedTuple, Optional, Union
 
 # from pandera.api.base.checks import BaseCheck
 from pandera.errors import SchemaError, SchemaErrorReason

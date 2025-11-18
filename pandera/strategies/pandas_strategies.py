@@ -14,6 +14,7 @@ import operator
 import re
 import warnings
 from collections import defaultdict
+from collections.abc import Callable, Sequence
 from copy import deepcopy
 from functools import partial, wraps
 from typing import (
@@ -23,8 +24,6 @@ from typing import (
     Union,
     cast,
 )
-from collections.abc import Callable
-from collections.abc import Sequence
 
 import numpy as np
 import pandas as pd

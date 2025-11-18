@@ -5,6 +5,7 @@ import functools
 import inspect
 import sys
 from abc import ABCMeta
+from collections.abc import Callable
 from dataclasses import dataclass
 from typing import (
     TYPE_CHECKING,
@@ -16,7 +17,6 @@ from typing import (
     get_origin,
     get_type_hints,
 )
-from collections.abc import Callable
 
 import typing_inspect
 

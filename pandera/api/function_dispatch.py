@@ -1,8 +1,8 @@
 """Multidispatcher implementation."""
 
+from collections.abc import Callable
 from inspect import signature
 from typing import Union, get_args, get_origin
-from collections.abc import Callable
 
 
 class Dispatcher:

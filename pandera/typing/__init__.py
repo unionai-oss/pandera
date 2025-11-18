@@ -5,15 +5,23 @@ the typing module.
 """
 
 from functools import lru_cache
+
 from pandera.typing.common import AnnotationInfo
 
 try:
     from pandera.typing.pandas import (
-        DataFrame,
-        Index,
-        Series,
+        INT8,
+        INT16,
+        INT32,
+        INT64,
+        STRING,
+        UINT8,
+        UINT16,
+        UINT32,
+        UINT64,
         Bool,
         Category,
+        DataFrame,
         Date,
         DateTime,
         Decimal,
@@ -21,27 +29,20 @@ try:
         Float16,
         Float32,
         Float64,
+        Index,
         Int,
         Int8,
         Int16,
         Int32,
         Int64,
         Object,
+        Series,
         String,
         Timedelta,
         UInt8,
         UInt16,
         UInt32,
         UInt64,
-        INT8,
-        INT16,
-        INT32,
-        INT64,
-        UINT8,
-        UINT16,
-        UINT32,
-        UINT64,
-        STRING,
     )
 except ImportError:
     pass

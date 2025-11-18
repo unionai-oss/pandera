@@ -3,8 +3,8 @@
 import copy
 import itertools
 import traceback
-from typing import Any, Optional
 from collections.abc import Callable
+from typing import Any, Optional
 
 import pandas as pd
 from pydantic import BaseModel

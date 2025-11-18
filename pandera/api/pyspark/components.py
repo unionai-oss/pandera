@@ -1,7 +1,7 @@
 """Core PySpark schema component specifications."""
 
-from typing import Any, Optional, Union
 from collections.abc import Iterable
+from typing import Any, Optional, Union
 
 import pyspark.sql as ps
 

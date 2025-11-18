@@ -1,7 +1,7 @@
 """Class-based dataframe model API configuration for pyspark."""
 
-from typing import Any, Optional, Union
 from collections.abc import Callable
+from typing import Any, Optional, Union
 
 from pandera.api.base.model_config import BaseModelConfig
 from pandera.api.base.types import StrictType

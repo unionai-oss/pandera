@@ -1,9 +1,9 @@
 """Backend implementation for pandas schema components."""
 
 import traceback
+from collections.abc import Iterable
 from copy import deepcopy
 from typing import Any, Optional, Union
-from collections.abc import Iterable
 
 import numpy as np
 import pandas as pd
@@ -18,6 +18,7 @@ from pandera.api.pandas.types import (
 from pandera.backends.base import CoreCheckResult
 from pandera.backends.pandas.array import ArraySchemaBackend
 from pandera.backends.pandas.base import PandasSchemaBackend
+from pandera.backends.pandas.error_formatters import reshape_failure_cases
 from pandera.errors import (
     SchemaDefinitionError,
     SchemaError,
@@ -29,7 +30,6 @@ from pandera.validation_depth import (
     validate_scope,
     validation_type,
 )
-from pandera.backends.pandas.error_formatters import reshape_failure_cases
 
 
 class ColumnBackend(ArraySchemaBackend):

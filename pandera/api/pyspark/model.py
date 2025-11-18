@@ -5,19 +5,18 @@ import inspect
 import os
 import re
 import typing
+from collections.abc import Callable, Iterable, Mapping
 from typing import (
     Any,
     Optional,
     TypeVar,
     Union,
     cast,
+    get_type_hints,
 )
-from collections.abc import Callable
-from collections.abc import Iterable, Mapping
 
 import pyspark.sql as ps
 from pyspark.sql.types import StructType
-from typing import get_type_hints
 
 from pandera.api.base.model import BaseModel
 from pandera.api.checks import Check
@@ -36,7 +35,6 @@ from pandera.errors import SchemaInitError
 from pandera.typing import AnnotationInfo
 from pandera.typing.common import DataFrameBase
 from pandera.typing.pyspark import DataFrame
-
 
 _CONFIG_KEY = "Config"
 

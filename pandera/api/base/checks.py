@@ -1,6 +1,7 @@
 """Data validation base check."""
 
 import inspect
+from collections.abc import Callable, Iterable
 from itertools import chain
 from typing import (
     Any,
@@ -10,11 +11,8 @@ from typing import (
     Union,
     no_type_check,
 )
-from collections.abc import Callable
-from collections.abc import Iterable
 
 from pandera.api.function_dispatch import Dispatcher
-
 from pandera.backends.base import BaseCheckBackend
 
 

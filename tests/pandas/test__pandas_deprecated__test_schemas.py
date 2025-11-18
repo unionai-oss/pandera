@@ -6,6 +6,7 @@ removed.
 """
 
 import pytest
+
 from pandera._pandas_deprecated import DataFrameSchema as _DataFrameSchema
 
 

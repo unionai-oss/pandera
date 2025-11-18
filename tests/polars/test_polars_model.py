@@ -1,7 +1,7 @@
 """Unit tests for Polars dataframe model."""
 
-from datetime import datetime
 import sys
+from datetime import datetime
 from typing import Optional
 
 try:  # python 3.9+

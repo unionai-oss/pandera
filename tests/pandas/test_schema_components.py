@@ -2,12 +2,13 @@
 
 import copy
 from typing import Any, Optional
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 import numpy as np
 import pandas as pd
 import pytest
 
+from pandera.engines.pandas_engine import Engine, pandas_version
 from pandera.pandas import (
     Check,
     Column,
@@ -21,7 +22,6 @@ from pandera.pandas import (
     String,
     errors,
 )
-from pandera.engines.pandas_engine import Engine, pandas_version
 
 
 def test_column() -> None:

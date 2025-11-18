@@ -2,9 +2,9 @@
 
 import datetime
 import decimal
+from collections.abc import Sequence
 from decimal import Decimal
 from typing import Union
-from collections.abc import Sequence
 
 import polars as pl
 import pytest

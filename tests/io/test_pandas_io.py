@@ -2037,8 +2037,8 @@ def test_frictionless_schema_with_description_and_title(
 
 def test_enum_isin_json_serialization():
     """Test that StrEnum and Enum can be used with isin and serialized to JSON."""
-    import sys
     import json
+    import sys
 
     # StrEnum was introduced in Python 3.11
     if sys.version_info >= (3, 11):
@@ -2115,12 +2115,13 @@ def test_enum_isin_json_serialization():
 
 def test_enum_isin_dataframe_model_json_serialization():
     """Test that StrEnum can be used in DataFrameModel with isin and serialized to JSON."""
-    import sys
     import json
+    import sys
 
     # StrEnum was introduced in Python 3.11
     if sys.version_info >= (3, 11):
         from enum import StrEnum
+
         from pandera.typing import Series
 
         class Color(StrEnum):

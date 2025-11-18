@@ -4,6 +4,7 @@ import functools
 import inspect
 import sys
 import types
+from collections.abc import Callable, Iterable
 from typing import (
     Any,
     NoReturn,
@@ -11,13 +12,11 @@ from typing import (
     TypeVar,
     Union,
     cast,
+    get_type_hints,
     overload,
 )
-from collections.abc import Callable
-from collections.abc import Iterable
 
 from pydantic import validate_arguments
-from typing import get_type_hints
 
 from pandera import errors
 from pandera.api.base.error_handler import ErrorHandler

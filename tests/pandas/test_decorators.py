@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
+from pandera.engines.pandas_engine import Engine
 from pandera.pandas import (
     Check,
     Column,
@@ -25,7 +26,6 @@ from pandera.pandas import (
     check_types,
     errors,
 )
-from pandera.engines.pandas_engine import Engine
 from pandera.typing import DataFrame, Index, Series
 
 

@@ -6,8 +6,8 @@ import dataclasses
 import datetime
 import inspect
 import warnings
-from typing import Any, Optional, Union, cast
 from collections.abc import Iterable
+from typing import Any, Optional, Union, cast
 
 import numpy as np
 from numpy.typing import DTypeLike

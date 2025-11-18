@@ -3,15 +3,18 @@
 # pylint: disable=too-many-lines,redefined-outer-name
 
 import copy
+from collections.abc import Callable
 from datetime import datetime, timedelta
 from functools import partial
 from typing import Any, Union
-from collections.abc import Callable
 
 import numpy as np
 import pandas as pd
 import pytest
 
+from pandera.api.pandas.array import ArraySchema
+from pandera.dtypes import UniqueSettings
+from pandera.engines.pandas_engine import Engine
 from pandera.pandas import (
     Category,
     Check,
@@ -27,9 +30,6 @@ from pandera.pandas import (
     String,
     errors,
 )
-from pandera.api.pandas.array import ArraySchema
-from pandera.dtypes import UniqueSettings
-from pandera.engines.pandas_engine import Engine
 
 
 def test_dataframe_schema() -> None:

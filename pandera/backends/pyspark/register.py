@@ -2,10 +2,10 @@
 
 from functools import lru_cache
 from typing import Optional
-from packaging import version
 
 import pyspark
 import pyspark.sql as ps
+from packaging import version
 
 # Handles optional Spark Connect imports for pyspark>=3.4 (if available)
 CURRENT_PYSPARK_VERSION = version.parse(pyspark.__version__)

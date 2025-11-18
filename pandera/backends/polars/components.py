@@ -1,9 +1,8 @@
 """Validation backend for polars components."""
 
 import warnings
+from collections.abc import Callable, Iterable
 from typing import Any, Optional, cast
-from collections.abc import Callable
-from collections.abc import Iterable
 
 import polars as pl
 
@@ -11,8 +10,8 @@ from pandera.api.base.error_handler import ErrorHandler
 from pandera.api.polars.components import Column
 from pandera.api.polars.types import PolarsData
 from pandera.api.polars.utils import (
-    get_lazyframe_schema,
     get_lazyframe_column_names,
+    get_lazyframe_schema,
 )
 from pandera.backends.base import CoreCheckResult
 from pandera.backends.polars.base import PolarsSchemaBackend, is_float_dtype

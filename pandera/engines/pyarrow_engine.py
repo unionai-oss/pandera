@@ -2,15 +2,15 @@
 
 import dataclasses
 import datetime
-from typing import Any, Optional, Union
 from collections.abc import Iterable
+from typing import Any, Optional, Union
 
 import pandas as pd
 import pyarrow
 
 from pandera import dtypes
 from pandera.dtypes import immutable
-from pandera.engines.pandas_engine import Engine, DataType, BOOL
+from pandera.engines.pandas_engine import BOOL, DataType, Engine
 from pandera.engines.type_aliases import PandasObject
 
 

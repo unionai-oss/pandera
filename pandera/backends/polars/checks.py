@@ -10,8 +10,8 @@ from pandera.api.base.checks import CheckResult
 from pandera.api.checks import Check
 from pandera.api.polars.types import PolarsData
 from pandera.api.polars.utils import (
-    get_lazyframe_schema,
     get_lazyframe_column_names,
+    get_lazyframe_schema,
 )
 from pandera.backends.base import BaseCheckBackend
 from pandera.constants import CHECK_OUTPUT_KEY

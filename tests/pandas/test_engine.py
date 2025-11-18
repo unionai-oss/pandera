@@ -1,8 +1,8 @@
 """Tests Engine subclassing and registering DataTypes."""
 
 import re
-from typing import Any, Union
 from collections.abc import Generator
+from typing import Any, Union
 
 import pytest
 

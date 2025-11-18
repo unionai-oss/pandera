@@ -6,6 +6,7 @@ import dataclasses
 import decimal
 import inspect
 from abc import ABC
+from collections.abc import Callable, Iterable
 from typing import (
     Any,
     Literal,
@@ -13,8 +14,6 @@ from typing import (
     TypeVar,
     Union,
 )
-from collections.abc import Callable
-from collections.abc import Iterable
 
 from typing_extensions import overload
 

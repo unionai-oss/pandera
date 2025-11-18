@@ -1,7 +1,7 @@
 """Pandera mypy plugin."""
 
-from typing import Optional, Union, cast
 from collections.abc import Callable
+from typing import Optional, Union, cast
 
 from mypy.nodes import FuncBase, SymbolNode, TypeInfo
 from mypy.plugin import (

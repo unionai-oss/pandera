@@ -1,6 +1,7 @@
 """PySpark parsing, validation, and error-reporting backends."""
 
 import warnings
+from collections.abc import Iterable
 from typing import (
     Any,
     NamedTuple,
@@ -8,18 +9,17 @@ from typing import (
     TypeVar,
     Union,
 )
-from collections.abc import Iterable
 
 from pyspark.sql import DataFrame
 from pyspark.sql.functions import col
 
+from pandera.api.pyspark.types import DataFrameTypes
 from pandera.backends.base import BaseSchemaBackend
 from pandera.backends.pyspark.error_formatters import (
     format_generic_error_message,
     scalar_failure_case,
 )
 from pandera.errors import FailureCaseMetadata, SchemaError, SchemaWarning
-from pandera.api.pyspark.types import DataFrameTypes
 
 
 class ColumnInfo(NamedTuple):

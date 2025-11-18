@@ -6,13 +6,13 @@ from typing import Optional, Union
 from pandera.api.base.checks import CheckResult
 from pandera.api.checks import Check
 from pandera.api.pyspark.types import (
+    DataFrameTypes,
+    GroupbyObject,
     PysparkDataframeColumnObject,
     is_bool,
     is_table,
-    GroupbyObject,
 )
 from pandera.backends.base import BaseCheckBackend
-from pandera.api.pyspark.types import DataFrameTypes
 
 
 class PySparkCheckBackend(BaseCheckBackend):

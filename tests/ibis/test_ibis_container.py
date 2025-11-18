@@ -7,7 +7,8 @@ import ibis.expr.datatypes as dt
 import ibis.expr.types as ir
 import pandas as pd
 import pytest
-from ibis import _, selectors as s
+from ibis import _
+from ibis import selectors as s
 
 import pandera as pa
 from pandera.api.ibis.types import IbisData

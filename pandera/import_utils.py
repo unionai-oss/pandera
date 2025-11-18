@@ -1,9 +1,8 @@
 """Utility functions for importing optional dependencies."""
 
+from collections.abc import Callable
 from functools import wraps
 from typing import TypeVar, cast
-from collections.abc import Callable
-
 
 F = TypeVar("F", bound=Callable)
 

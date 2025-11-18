@@ -33,19 +33,18 @@ def register_pandas_backends(
 
     _patch_numpy2()
 
-    from pandera.api.checks import Check
-    from pandera.api.hypotheses import Hypothesis
-    from pandera.api.pandas.array import SeriesSchema
-    from pandera.api.pandas.components import Column, Index, MultiIndex
-    from pandera.api.pandas.container import DataFrameSchema
-    from pandera.api.parsers import Parser
-    from pandera.api.pandas.types import get_backend_types
-
     # NOTE: This registers the deprecated DataFrameSchema class. Remove this
     # once the deprecated class is removed.
     from pandera._pandas_deprecated import (
         DataFrameSchema as _DataFrameSchemaDeprecated,
     )
+    from pandera.api.checks import Check
+    from pandera.api.hypotheses import Hypothesis
+    from pandera.api.pandas.array import SeriesSchema
+    from pandera.api.pandas.components import Column, Index, MultiIndex
+    from pandera.api.pandas.container import DataFrameSchema
+    from pandera.api.pandas.types import get_backend_types
+    from pandera.api.parsers import Parser
 
     assert check_cls_fqn is not None, (
         "pandas backend registration requires passing in the fully qualified "

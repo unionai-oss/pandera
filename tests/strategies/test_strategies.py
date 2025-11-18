@@ -4,8 +4,8 @@
 import datetime
 import operator
 import re
-from typing import Any, Optional
 from collections.abc import Callable
+from typing import Any, Optional
 from unittest.mock import MagicMock
 from warnings import catch_warnings
 
@@ -14,11 +14,11 @@ import pandas as pd
 import pytest
 
 import pandera.pandas as pa
-from pandera.strategies import pandas_strategies as strategies
 from pandera.api.checks import Check
 from pandera.api.extensions import register_check_statistics
 from pandera.dtypes import is_category, is_complex, is_float
 from pandera.engines import pandas_engine
+from pandera.strategies import pandas_strategies as strategies
 
 try:
     import hypothesis

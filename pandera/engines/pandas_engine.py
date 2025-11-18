@@ -10,6 +10,7 @@ import decimal
 import inspect
 import sys
 import warnings
+from collections.abc import Callable, Iterable
 from typing import (
     Any,
     Literal,
@@ -18,8 +19,6 @@ from typing import (
     Union,
     cast,
 )
-from collections.abc import Callable
-from collections.abc import Iterable
 
 import numpy as np
 import pandas as pd

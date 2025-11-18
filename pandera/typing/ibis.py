@@ -1,9 +1,9 @@
 """Pandera type annotations for Ibis."""
 
 import functools
+from collections.abc import Mapping
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Generic, TypeVar
-from collections.abc import Mapping
 
 from packaging import version
 

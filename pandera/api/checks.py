@@ -1,14 +1,13 @@
 """Data validation check definition."""
 
 import re
+from collections.abc import Callable, Iterable
 from typing import (
     Any,
     Optional,
     TypeVar,
     Union,
 )
-from collections.abc import Callable
-from collections.abc import Iterable
 
 from pandera import errors
 from pandera.api.base.checks import BaseCheck, CheckResult

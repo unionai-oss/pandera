@@ -4,19 +4,19 @@ from __future__ import annotations
 
 import copy
 import traceback
+from collections.abc import Callable, Iterable
 from typing import TYPE_CHECKING, Any, Optional
-from collections.abc import Callable
-from collections.abc import Iterable
 
 import ibis
-from ibis import _, selectors as s
+from ibis import _
+from ibis import selectors as s
 from ibis.common.exceptions import IbisError
 
 from pandera.api.ibis.error_handler import ErrorHandler
-from pandera.config import ValidationScope
-from pandera.backends.base import CoreCheckResult, ColumnInfo
-from pandera.backends.utils import convert_uniquesettings
+from pandera.backends.base import ColumnInfo, CoreCheckResult
 from pandera.backends.ibis.base import IbisSchemaBackend
+from pandera.backends.utils import convert_uniquesettings
+from pandera.config import ValidationScope
 from pandera.errors import (
     ParserError,
     SchemaDefinitionError,

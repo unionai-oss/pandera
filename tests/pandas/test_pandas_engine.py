@@ -1,7 +1,7 @@
 """Test pandas engine."""
 
 import datetime as dt
-from typing import Optional, Any
+from typing import Any, Optional
 
 import hypothesis
 import hypothesis.extra.pandas as pd_st
@@ -13,9 +13,9 @@ import pytest
 import pytz
 from hypothesis import given
 
-from pandera.pandas import Field, DataFrameModel, errors, check
 from pandera.engines import pandas_engine
 from pandera.errors import ParserError, SchemaError
+from pandera.pandas import DataFrameModel, Field, check, errors
 
 UNSUPPORTED_DTYPE_CLS: set[Any] = set()
 

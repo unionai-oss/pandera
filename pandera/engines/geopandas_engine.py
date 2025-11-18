@@ -1,7 +1,7 @@
 """Geopandas data types for the pandas type engine."""
 
-from typing import Any, Optional, Union
 from collections.abc import Iterable
+from typing import Any, Optional, Union
 
 try:
     import geopandas as gpd

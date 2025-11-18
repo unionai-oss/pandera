@@ -1,11 +1,10 @@
 """Base module for `hypothesis`-based strategies for data synthesis."""
 
+from collections.abc import Callable
 from functools import wraps
 from typing import Generic, TypeVar, cast
-from collections.abc import Callable
 
 import pandera.backends.base.builtin_checks
-
 
 F = TypeVar("F", bound=Callable)
 

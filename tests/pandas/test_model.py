@@ -3,18 +3,18 @@
 import os
 import re
 import runpy
+from collections.abc import Iterable
 from copy import deepcopy
 from enum import Enum
 from typing import Any, Generic, Optional, TypeVar
-from collections.abc import Iterable
 
 import numpy as np
 import pandas as pd
 import pytest
 from pandas._testing import assert_frame_equal
 
-import pandera.pandas as pa
 import pandera.api.extensions as pax
+import pandera.pandas as pa
 from pandera.errors import SchemaError, SchemaInitError
 from pandera.typing import DataFrame, Index, Series, String
 

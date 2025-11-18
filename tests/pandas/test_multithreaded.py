@@ -1,7 +1,7 @@
 """Test that pandera schemas are thread safe."""
 
-import pandas as pd
 import numpy as np
+import pandas as pd
 from joblib import Parallel, delayed
 
 import pandera.pandas as pa

@@ -5,9 +5,8 @@ import polars as pl
 import pytest
 
 import pandera.polars as pa
-from pandera.engines.polars_engine import polars_version
-from pandera.api.polars.utils import get_lazyframe_schema
 from pandera.api.base.error_handler import ErrorCategory
+from pandera.api.polars.utils import get_lazyframe_schema
 from pandera.config import (
     CONFIG,
     ValidationDepth,
@@ -16,6 +15,7 @@ from pandera.config import (
     get_config_global,
     reset_config_context,
 )
+from pandera.engines.polars_engine import polars_version
 
 
 @pytest.fixture(scope="function")

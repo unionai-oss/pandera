@@ -60,6 +60,7 @@ class IbisSchemaBackend(BaseSchemaBackend):
                 )
             else:
                 import pandas as pd
+
                 from pandera.api.pandas.types import is_table
 
                 check_failure_cases = check_result.failure_cases.to_pandas()

@@ -5,6 +5,7 @@ import copy
 import pandas as pd
 import pytest
 
+from pandera.backends.pandas import error_formatters
 from pandera.pandas import (
     Bool,
     Check,
@@ -17,7 +18,6 @@ from pandera.pandas import (
     String,
     errors,
 )
-from pandera.backends.pandas import error_formatters
 
 
 def test_vectorized_checks() -> None:

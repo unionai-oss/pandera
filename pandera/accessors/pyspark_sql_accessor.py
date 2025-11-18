@@ -2,9 +2,10 @@
 
 import warnings
 from typing import Optional
-from packaging import version
 
 import pyspark
+from packaging import version
+
 from pandera.api.base.error_handler import ErrorHandler
 from pandera.api.pyspark.container import DataFrameSchema
 

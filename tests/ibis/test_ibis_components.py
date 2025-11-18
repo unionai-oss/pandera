@@ -1,8 +1,8 @@
 """Unit tests for Ibis components."""
 
-from typing import Optional, Union
 from collections.abc import Iterable
 from contextlib import nullcontext
+from typing import Optional, Union
 
 import ibis
 import ibis.expr.datatypes as dt

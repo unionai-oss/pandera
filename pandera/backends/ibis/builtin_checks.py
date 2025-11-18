@@ -2,11 +2,12 @@
 
 import datetime
 import re
-from typing import Any, Optional, TypeVar, Union
 from collections.abc import Iterable
+from typing import Any, Optional, TypeVar, Union
 
 import ibis
-from ibis import _, selectors as s
+from ibis import _
+from ibis import selectors as s
 
 from pandera.api.extensions import register_builtin_check
 from pandera.api.ibis.types import IbisData

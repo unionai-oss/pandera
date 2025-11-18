@@ -115,7 +115,6 @@ dev = [
     "duckdb",
     "hypothesis >= 6.92.7",
     "ipdb",
-    "isort >= 5.7.0",
     "joblib",
     "mypy == 1.10.0",
     "nox",
@@ -179,6 +178,7 @@ target-version = "py310"
 
 [tool.ruff.lint]
 select = [
+    "I",
     "UP",
 ]
 ignore = [

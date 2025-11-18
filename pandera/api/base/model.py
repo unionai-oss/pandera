@@ -1,6 +1,7 @@
 """Base classes for model API."""
 
 import os
+from collections.abc import Mapping
 from typing import (
     Any,
     ClassVar,
@@ -8,7 +9,6 @@ from typing import (
     TypeVar,
     Union,
 )
-from collections.abc import Mapping
 
 from pandera.api.base.model_components import BaseFieldInfo
 from pandera.api.base.model_config import BaseModelConfig

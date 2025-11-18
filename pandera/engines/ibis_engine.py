@@ -4,8 +4,8 @@ import dataclasses
 import datetime
 import inspect
 import warnings
-from typing import Any, Literal, Optional, Union
 from collections.abc import Iterable
+from typing import Any, Literal, Optional, Union
 
 import ibis
 import ibis.expr.datatypes as dt

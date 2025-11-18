@@ -2,8 +2,8 @@
 
 from typing import Optional
 
-import pytest
 import ibis.expr.datatypes as dt
+import pytest
 
 from pandera.ibis import Column, DataFrameModel, DataFrameSchema
 

@@ -2,11 +2,11 @@
 
 import inspect
 import warnings
+from collections.abc import Callable
 from enum import Enum
 from functools import partial, wraps
 from inspect import signature
 from typing import Optional, Union, get_args, get_origin
-from collections.abc import Callable
 
 from pandera.api.checks import Check
 from pandera.api.hypotheses import Hypothesis

@@ -1,8 +1,8 @@
 """Hypothesis backend for pandas."""
 
+from collections.abc import Callable
 from functools import partial
 from typing import Any, Union, cast
-from collections.abc import Callable
 
 import pandas as pd
 
@@ -10,7 +10,6 @@ from pandera import errors
 from pandera.api.hypotheses import Hypothesis
 from pandera.api.pandas.types import is_field, is_table
 from pandera.backends.pandas.checks import PandasCheckBackend
-
 
 DEFAULT_ALPHA = 0.01
 

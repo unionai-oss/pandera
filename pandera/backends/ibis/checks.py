@@ -4,7 +4,8 @@ from functools import partial
 from typing import TYPE_CHECKING, Optional, Union
 
 import ibis
-from ibis import _, selectors as s
+from ibis import _
+from ibis import selectors as s
 
 from pandera.api.base.checks import CheckResult
 from pandera.api.checks import Check

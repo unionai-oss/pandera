@@ -18,10 +18,10 @@ from pandera.api.parsers import Parser
 from pandera.engines.pandas_engine import Engine
 from pandera.errors import SchemaInitError
 from pandera.typing import (
-    get_index_types,
-    get_series_types,
     AnnotationInfo,
     DataFrame,
+    get_index_types,
+    get_series_types,
 )
 from pandera.utils import docstring_substitution
 

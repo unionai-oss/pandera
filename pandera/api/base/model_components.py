@@ -1,13 +1,12 @@
 """Model component base classes."""
 
+from collections.abc import Callable, Iterable
 from typing import (
     Any,
     Optional,
     Union,
     cast,
 )
-from collections.abc import Callable
-from collections.abc import Iterable
 
 from pandera.api.checks import Check
 from pandera.api.parsers import Parser
