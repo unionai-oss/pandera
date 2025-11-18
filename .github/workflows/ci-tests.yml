@@ -73,8 +73,6 @@ jobs:
 
       - if: always()
         uses: astral-sh/ruff-action@v3
-        with:
-          args: format
 
       - name: Mypy Type Checking
         if: always()

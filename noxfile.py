@@ -8,7 +8,7 @@
 import os
 import shutil
 import sys
-from typing import Optional, Tuple, List
+from typing import Optional
 
 import nox
 from nox import Session

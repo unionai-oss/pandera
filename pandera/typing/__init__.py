@@ -5,7 +5,6 @@ the typing module.
 """
 
 from functools import lru_cache
-from typing import Set, Type
 from pandera.typing.common import AnnotationInfo
 
 try:

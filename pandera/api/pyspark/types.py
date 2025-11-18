@@ -1,6 +1,6 @@
 """Utility functions for pyspark validation."""
 
-from functools import lru_cache
+from functools import lru_cache, cache
 from typing import NamedTuple, Union
 from numpy import bool_ as np_bool
 from packaging import version
@@ -77,7 +77,7 @@ class PysparkDataframeColumnObject(NamedTuple):
     column_name: str
 
 
-@lru_cache(maxsize=None)
+@cache
 def supported_types() -> SupportedTypes:
     """Get the types supported by pandera schemas."""
 
