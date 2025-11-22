@@ -220,7 +220,10 @@ def test_pandas_stubs_false_positives(
         str(test_module_dir / "config" / config),
     ]
     # pylint: disable=subprocess-run-check
-    subprocess.run(commands, text=True)
+    result = subprocess.run(commands, text=True)
+    # NOTE: mypy return code is 0 if no errors were found, 1 if errors were found
+    # or 2 if there was a failure in checking
+    assert result.returncode in (0, 1)
     resulting_errors = _get_mypy_errors(module, capfd.readouterr().out)
     assert len(expected_errors) == len(resulting_errors)
     for expected, error in zip(expected_errors, resulting_errors):

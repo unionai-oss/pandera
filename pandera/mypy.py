@@ -64,11 +64,6 @@ class PanderaPlugin(Plugin):
         self.plugin_config = PanderaPluginConfig(options)
         super().__init__(options)
 
-    def get_function_signature_hook(self, fullname: str):
-        """Adjust the function signatures of pandas functions."""
-        if fullname == PANDAS_CONCAT:
-            return self.pandas_concat_callback
-
     def get_base_class_hook(
         self, fullname: str
     ) -> "Optional[Callable[[ClassDefContext], None]]":
@@ -86,30 +81,6 @@ class PanderaPlugin(Plugin):
     ) -> None:
         transformer = DataFrameModelTransformer(ctx, self.plugin_config)
         transformer.transform()
-
-    def pandas_concat_callback(
-        self, ctx: Union[FunctionSigContext, MethodSigContext]
-    ) -> CallableType:
-        """Adjusts the signature pandas.concat to allow generator inputs."""
-        iterable = self.lookup_fully_qualified("typing.Iterable")
-        if iterable is not None:
-            iterable_node = cast(TypeInfo, iterable.node)
-        else:
-            raise ValueError("typing.Iterable node not found")
-
-        union_type = cast(UnionType, ctx.default_signature.arg_types[0])
-
-        pandas_data_type = ctx.default_signature.ret_type
-        arg_types = [
-            UnionType(
-                [
-                    Instance(iterable_node, [pandas_data_type]),
-                    *union_type.items,
-                ]
-            ),
-            *ctx.default_signature.arg_types[1:],
-        ]
-        return ctx.default_signature.copy_modified(arg_types=arg_types)
 
 
 class DataFrameModelTransformer:
