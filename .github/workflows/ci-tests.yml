@@ -111,6 +111,8 @@ jobs:
         run: nox -v -db uv --non-interactive --session "tests-${{ matrix.python-version }}(extra=None, pandas=None, pydantic=None, polars=None)"
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
+        env:
+          CODECOV_TOKEN: ${{ secrets.PANDERA_CODECOV_TOKEN }}
 
   # test pandas functionality
   unit-tests-pandas:
@@ -152,6 +154,8 @@ jobs:
         run: nox -v -db uv --non-interactive --session "tests-${{ matrix.python-version }}(extra='pandas', pandas='${{ matrix.pandas-version }}', pydantic='${{ matrix.pydantic-version }}', polars=None)"
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
+        env:
+          CODECOV_TOKEN: ${{ secrets.PANDERA_CODECOV_TOKEN }}
 
   # test extras that add functionality to core pandera features
   unit-tests-supplemental-extras:
@@ -199,6 +203,8 @@ jobs:
         run: nox -v -db uv --non-interactive --session "tests-${{ matrix.python-version }}(extra='${{ matrix.extra }}', pandas='${{ matrix.pandas-version }}', pydantic='${{ matrix.pydantic-version }}', polars=None)"
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
+        env:
+          CODECOV_TOKEN: ${{ secrets.PANDERA_CODECOV_TOKEN }}
 
   # test extras for popular dataframe libraries
   unit-tests-dataframe-extras:
@@ -284,6 +290,8 @@ jobs:
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
+        env:
+          CODECOV_TOKEN: ${{ secrets.PANDERA_CODECOV_TOKEN }}
 
   docs:
     name: Docs (${{ matrix.python-version }})
