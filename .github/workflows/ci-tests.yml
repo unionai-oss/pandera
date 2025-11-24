@@ -71,6 +71,11 @@ jobs:
       - if: always()
         uses: astral-sh/ruff-action@v3
 
+      - if: always()
+        uses: astral-sh/ruff-action@v3
+        with:
+          args: "format --check --diff"
+
       - name: Mypy Type Checking
         if: always()
         run: pre-commit run mypy --all-files
