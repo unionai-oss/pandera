@@ -3,7 +3,8 @@
 import copy
 import itertools
 import traceback
-from typing import Any, Callable, Optional
+from collections.abc import Callable
+from typing import Any, Optional
 
 import pandas as pd
 from pydantic import BaseModel
@@ -42,10 +43,10 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
         check_obj: pd.DataFrame,
         schema,
         *,
-        head: Optional[int] = None,
-        tail: Optional[int] = None,
-        sample: Optional[int] = None,
-        random_state: Optional[int] = None,
+        head: int | None = None,
+        tail: int | None = None,
+        sample: int | None = None,
+        random_state: int | None = None,
         lazy: bool = False,
         inplace: bool = False,
     ):
@@ -276,7 +277,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
             except Exception as err:
                 # catch other exceptions that may occur when executing the check
                 err_msg = f'"{err.args[0]}"' if err.args else ""
-                err_str = f"{err.__class__.__name__}({ err_msg})"
+                err_str = f"{err.__class__.__name__}({err_msg})"
                 msg = (
                     f"Error while executing check function: {err_str}\n"
                     + traceback.format_exc()
@@ -813,7 +814,8 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
             if not subset:
                 continue
             duplicates = check_obj.duplicated(  # type: ignore
-                subset=subset, keep=keep_setting  # type: ignore
+                subset=subset,
+                keep=keep_setting,  # type: ignore
             )
             if duplicates.any():
                 # NOTE: this is a hack to support pyspark.pandas, need to
@@ -821,7 +823,6 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
                 # series or dataframe because it comes from a different
                 # dataframe."
                 if type(duplicates).__module__.startswith("pyspark.pandas"):
-
                     import pyspark.pandas as ps
 
                     with ps.option_context("compute.ops_on_diff_frames", True):
@@ -830,7 +831,9 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
                     failure_cases = check_obj.loc[duplicates, subset]
 
                 passed = False
-                message = f"columns '{*subset,}' not unique:\n{failure_cases}"
+                message = (
+                    f"columns '{(*subset,)}' not unique:\n{failure_cases}"
+                )
                 failure_cases = reshape_failure_cases(failure_cases)
                 break
         return CoreCheckResult(

@@ -109,10 +109,10 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
         check_obj: DataFrame,
         schema,
         *,
-        head: Optional[int] = None,
-        tail: Optional[int] = None,
-        sample: Optional[int] = None,
-        random_state: Optional[int] = None,
+        head: int | None = None,
+        tail: int | None = None,
+        sample: int | None = None,
+        random_state: int | None = None,
         lazy: bool = False,
         inplace: bool = False,
         error_handler: ErrorHandler = None,
@@ -121,9 +121,9 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
         Parse and validate a check object, returning type-coerced and validated
         object.
         """
-        assert (
-            error_handler is not None
-        ), "The `error_handler` argument must be provided."
+        assert error_handler is not None, (
+            "The `error_handler` argument must be provided."
+        )
         if not get_config_context().validation_enabled:
             warnings.warn(
                 "Skipping the validation checks as validation is disabled"
@@ -192,12 +192,12 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
         schema,
         schema_components: list,
         lazy: bool,
-        error_handler: Optional[ErrorHandler],
+        error_handler: ErrorHandler | None,
     ):
         """Run checks for all schema components."""
-        assert (
-            error_handler is not None
-        ), "The `error_handler` argument must be provided."
+        assert error_handler is not None, (
+            "The `error_handler` argument must be provided."
+        )
         check_results = []
         # schema-component-level checks
         for schema_component in schema_components:
@@ -238,7 +238,7 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
             except Exception as err:
                 # catch other exceptions that may occur when executing the check
                 err_msg = f'"{err.args[0]}"' if err.args else ""
-                err_str = f"{err.__class__.__name__}({ err_msg})"
+                err_str = f"{err.__class__.__name__}({err_msg})"
                 msg = (
                     f"Error while executing check function: {err_str}\n"
                     + traceback.format_exc()
@@ -405,9 +405,9 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
     ):
         """Coerces check object to the expected type."""
         assert schema is not None, "The `schema` argument must be provided."
-        assert (
-            error_handler is not None
-        ), "The `error_handler` argument must be provided."
+        assert error_handler is not None, (
+            "The `error_handler` argument must be provided."
+        )
 
         if not (
             schema.coerce or any(col.coerce for col in schema.columns.values())
@@ -512,9 +512,9 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
     ):
         """Check uniqueness in the check object."""
         assert schema is not None, "The `schema` argument must be provided."
-        assert (
-            error_handler is not None
-        ), "The `error_handler` argument must be provided."
+        assert error_handler is not None, (
+            "The `error_handler` argument must be provided."
+        )
 
         if not schema.unique:
             return check_obj

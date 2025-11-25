@@ -1,11 +1,11 @@
 """Unit tests for the Ibis check backend."""
 
-import pytest
-
-import pandas as pd
 import ibis
 import ibis.expr.types as ir
-from ibis import _, selectors as s
+import pandas as pd
+import pytest
+from ibis import _
+from ibis import selectors as s
 
 import pandera.ibis as pa
 from pandera.backends.ibis.register import register_ibis_backends
@@ -158,7 +158,6 @@ def _element_wise_check_fn(x: int) -> bool:
 
 
 def test_ibis_element_wise_column_check(column_t):
-
     check = pa.Check(_element_wise_check_fn, element_wise=True)
     check_result = check(column_t, column="col")
     assert check_result.check_passed.execute()
@@ -172,7 +171,6 @@ def test_ibis_element_wise_column_check(column_t):
 
 
 def test_ibis_element_wise_dataframe_check(t):
-
     check = pa.Check(_element_wise_check_fn, element_wise=True)
     check_result = check(t)
     assert check_result.check_passed.execute()
@@ -190,7 +188,6 @@ def test_ibis_element_wise_dataframe_check(t):
 
 
 def test_ibis_element_wise_dataframe_different_dtypes():
-
     # Custom check function
     def check_gt_2(v: int) -> bool:
         return v > 2

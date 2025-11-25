@@ -1,5 +1,6 @@
 # pylint: disable=W0212
 """Unit tests for inferring statistics of pandas objects."""
+
 import numpy as np
 import pandas as pd
 import pytest

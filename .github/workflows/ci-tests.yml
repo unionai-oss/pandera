@@ -68,12 +68,13 @@ jobs:
       - name: Check requirements
         run: nox -db uv -r --non-interactive --python ${{ matrix.python-version }} --session requirements-${{ matrix.python-version }}
 
-      - name: Sort Imports
-        run: pre-commit run isort --all-files
+      - if: always()
+        uses: astral-sh/ruff-action@v3
 
-      - name: Black
-        if: always()
-        run: pre-commit run black --all-files
+      - if: always()
+        uses: astral-sh/ruff-action@v3
+        with:
+          args: "format --check --diff"
 
       - name: Mypy Type Checking
         if: always()

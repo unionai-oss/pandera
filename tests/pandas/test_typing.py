@@ -193,7 +193,7 @@ class SchemaFieldCategoricalDtype(pa.DataFrameModel):
 def _test_annotated_dtype(
     model: type[pa.DataFrameModel],
     dtype: type,
-    dtype_kwargs: Optional[dict[str, Any]] = None,
+    dtype_kwargs: dict[str, Any] | None = None,
 ):
     dtype_kwargs = dtype_kwargs or {}
     schema = model.to_schema()

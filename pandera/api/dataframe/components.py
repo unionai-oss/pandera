@@ -25,18 +25,18 @@ class ComponentSchema(Generic[TDataObject], BaseSchema):
 
     def __init__(
         self,
-        dtype: Optional[Any] = None,
-        checks: Optional[CheckList] = None,
-        parsers: Optional[ParserList] = None,
+        dtype: Any | None = None,
+        checks: CheckList | None = None,
+        parsers: ParserList | None = None,
         nullable: bool = False,
         unique: bool = False,
         report_duplicates: UniqueSettings = "all",
         coerce: bool = False,
         name: Any = None,
-        title: Optional[str] = None,
-        description: Optional[str] = None,
-        default: Optional[Any] = None,
-        metadata: Optional[dict] = None,
+        title: str | None = None,
+        description: str | None = None,
+        default: Any | None = None,
+        metadata: dict | None = None,
         drop_invalid_rows: bool = False,
     ) -> None:
         """Initialize array schema.
@@ -120,10 +120,10 @@ class ComponentSchema(Generic[TDataObject], BaseSchema):
     def validate(
         self,
         check_obj,
-        head: Optional[int] = None,
-        tail: Optional[int] = None,
-        sample: Optional[int] = None,
-        random_state: Optional[int] = None,
+        head: int | None = None,
+        tail: int | None = None,
+        sample: int | None = None,
+        random_state: int | None = None,
         lazy: bool = False,
         inplace: bool = False,
     ):
@@ -159,10 +159,10 @@ class ComponentSchema(Generic[TDataObject], BaseSchema):
     def __call__(
         self,
         check_obj: TDataObject,
-        head: Optional[int] = None,
-        tail: Optional[int] = None,
-        sample: Optional[int] = None,
-        random_state: Optional[int] = None,
+        head: int | None = None,
+        tail: int | None = None,
+        sample: int | None = None,
+        random_state: int | None = None,
         lazy: bool = False,
         inplace: bool = False,
     ) -> TDataObject:

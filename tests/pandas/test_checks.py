@@ -5,6 +5,7 @@ import copy
 import pandas as pd
 import pytest
 
+from pandera.backends.pandas import error_formatters
 from pandera.pandas import (
     Bool,
     Check,
@@ -17,7 +18,6 @@ from pandera.pandas import (
     String,
     errors,
 )
-from pandera.backends.pandas import error_formatters
 
 
 def test_vectorized_checks() -> None:
@@ -350,7 +350,8 @@ def test_reshape_failure_cases_exceptions() -> None:
     for data in [1, "foobar", 1.0, {"key": "value"}, list(range(10))]:
         with pytest.raises(TypeError):
             error_formatters.reshape_failure_cases(
-                data, bool(check.n_failure_cases)  # type: ignore
+                data,
+                bool(check.n_failure_cases),  # type: ignore
             )
 
 

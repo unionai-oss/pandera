@@ -1,20 +1,18 @@
 """Data validation base check."""
 
 import inspect
+from collections.abc import Callable, Iterable
 from itertools import chain
 from typing import (
     Any,
-    Callable,
     NamedTuple,
     Optional,
     TypeVar,
     Union,
     no_type_check,
 )
-from collections.abc import Iterable
 
 from pandera.api.function_dispatch import Dispatcher
-
 from pandera.backends.base import BaseCheckBackend
 
 
@@ -33,9 +31,7 @@ _T = TypeVar("_T", bound="BaseCheck")
 class MetaCheck(type):  # pragma: no cover
     """Check metaclass."""
 
-    BACKEND_REGISTRY: dict[tuple[type, type], type[BaseCheckBackend]] = (
-        {}
-    )  # noqa
+    BACKEND_REGISTRY: dict[tuple[type, type], type[BaseCheckBackend]] = {}  # noqa
     """Registry of check backends implemented for specific data objects."""
 
     CHECK_FUNCTION_REGISTRY: dict[str, Dispatcher] = {}  # noqa
@@ -86,9 +82,9 @@ class BaseCheck(metaclass=MetaCheck):
 
     def __init__(
         self,
-        name: Optional[str] = None,
-        error: Optional[str] = None,
-        statistics: Optional[dict[str, Any]] = None,
+        name: str | None = None,
+        error: str | None = None,
+        statistics: dict[str, Any] | None = None,
     ):
         self.name = name
         self.error = error
@@ -122,8 +118,8 @@ class BaseCheck(metaclass=MetaCheck):
         name: str,
         init_kwargs,
         error: Union[str, Callable],
-        statistics: Optional[dict[str, Any]] = None,
-        defaults: Optional[dict[str, Any]] = None,
+        statistics: dict[str, Any] | None = None,
+        defaults: dict[str, Any] | None = None,
         **check_kwargs,
     ):
         """Create a Check object from a built-in check's name."""

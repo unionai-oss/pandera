@@ -1,16 +1,15 @@
 """Base module for `hypothesis`-based strategies for data synthesis."""
 
+from collections.abc import Callable
 from functools import wraps
-from typing import Callable, Generic, TypeVar, cast
+from typing import Generic, TypeVar, cast
 
 import pandera.backends.base.builtin_checks
-
 
 F = TypeVar("F", bound=Callable)
 
 
 try:
-
     from hypothesis.strategies import SearchStrategy, composite
 except ImportError:  # pragma: no cover
     T = TypeVar("T")

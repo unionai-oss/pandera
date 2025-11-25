@@ -7,7 +7,8 @@ import ibis.expr.datatypes as dt
 import ibis.expr.types as ir
 import pandas as pd
 import pytest
-from ibis import _, selectors as s
+from ibis import _
+from ibis import selectors as s
 
 import pandera as pa
 from pandera.api.ibis.types import IbisData
@@ -333,7 +334,7 @@ def test_drop_invalid_rows(
     assert validated_data.execute().equals(expected_valid_data.execute())
 
 
-def _failure_value(column: str, dtype: Optional[ibis.DataType] = None):
+def _failure_value(column: str, dtype: ibis.DataType | None = None):
     if column.startswith("string"):
         return ibis.literal("9", type=dtype or dt.String)
     elif column.startswith("int"):
@@ -391,7 +392,6 @@ def test_regex_selector(
 
 
 def test_lazy_validation_errors():
-
     schema = DataFrameSchema(
         {
             "a": Column(int),

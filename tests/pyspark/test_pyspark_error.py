@@ -108,11 +108,7 @@ def test_pyspark_check_nullable(spark_session, sample_spark_schema, request):
             {
                 "check": "not_nullable",
                 "column": "price",
-                "error": "non-nullable "
-                "column "
-                "'price' "
-                "contains "
-                "null",
+                "error": "non-nullable column 'price' contains null",
                 "schema": None,
             }
         ]

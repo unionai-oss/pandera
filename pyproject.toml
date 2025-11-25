@@ -115,19 +115,19 @@ dev = [
     "duckdb",
     "hypothesis >= 6.92.7",
     "ipdb",
-    "isort >= 5.7.0",
     "joblib",
     "mypy == 1.10.0",
+    "nox",
     "pip",
     "polars >= 0.20.0",
     "pre_commit",
     "pyarrow >= 13",
-    "pytz",
-    "xdoctest",
-    "nox",
-    "uvicorn",
     "python-multipart",
+    "pytz",
+    "ruff",
     "uv",
+    "uvicorn",
+    "xdoctest",
 ]
 testing = [
     "pytest",
@@ -136,7 +136,6 @@ testing = [
     "pytest-asyncio",
     "sphinx",
     "ibis-framework[duckdb,sqlite] >= 11.0.0",
-
 ]
 docs = [
     "setuptools",
@@ -170,33 +169,21 @@ log_cli = true
 log_cli_level = 20
 
 [tool.ruff]
-line-length = 120
+line-length = 79
 extend-exclude = [
     "setup.py",
-    ".venv",
-    ".nox",
-    ".git",
     "asv_bench",
 ]
+target-version = "py310"
 
-[tool.black]
-line-length = 79
-target-version = [
-  'py39',
-  'py310',
-  'py311',
-  'py312',
+[tool.ruff.lint]
+select = [
+    "I",
+    "UP",
 ]
-include = '\.pyi?$'
-exclude = '''
-(
-  \.git
-  | \.venv
-  | \.nox
-  | setup.py
-  | asv_bench
-)
-'''
+ignore = [
+    "UP007",
+]
 
 [tool.codespell]
 ignore-words-list = ["notin", "splitted", "fo", "strat"]

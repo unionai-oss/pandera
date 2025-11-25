@@ -206,7 +206,7 @@ def test_pandas_stubs_false_positives(
     cache_dir = str(
         test_module_dir
         / ".mypy_cache"
-        / f'{module.replace(".", "_")}-{config.replace(".", "_")}'
+        / f"{module.replace('.', '_')}-{config.replace('.', '_')}"
     )
 
     commands = [

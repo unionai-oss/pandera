@@ -11,4 +11,4 @@ class BaseConfig(_BaseConfig):
 
     #: datatype of the dataframe. This overrides the data types specified in
     #: any of the fields.
-    dtype: Optional[PolarsDtypeInputTypes] = None
+    dtype: PolarsDtypeInputTypes | None = None

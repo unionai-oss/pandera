@@ -1,8 +1,8 @@
 """Pandera array backends."""
 
 import traceback
-from typing import NamedTuple, Optional, cast
 from collections.abc import Iterable
+from typing import NamedTuple, Optional, cast
 
 from pyspark.sql import DataFrame
 from pyspark.sql.functions import col
@@ -22,8 +22,8 @@ class CoreCheckResult(NamedTuple):
     check: str
     reason_code: SchemaErrorReason
     passed: bool
-    message: Optional[str] = None
-    failure_cases: Optional[Iterable] = None
+    message: str | None = None
+    failure_cases: Iterable | None = None
 
 
 class ColumnSchemaBackend(PysparkSchemaBackend):
@@ -61,15 +61,14 @@ class ColumnSchemaBackend(PysparkSchemaBackend):
         check_obj,
         schema,
         *,
-        head: Optional[int] = None,
-        tail: Optional[int] = None,
-        sample: Optional[int] = None,
-        random_state: Optional[int] = None,
+        head: int | None = None,
+        tail: int | None = None,
+        sample: int | None = None,
+        random_state: int | None = None,
         lazy: bool = False,
         inplace: bool = False,
         error_handler: ErrorHandler = None,
     ):
-
         check_obj = self.preprocess(check_obj, inplace)
 
         if schema.coerce:
@@ -78,9 +77,9 @@ class ColumnSchemaBackend(PysparkSchemaBackend):
                     check_obj, schema=schema, error_handler=error_handler
                 )
             except SchemaError as exc:
-                assert (
-                    error_handler is not None
-                ), "The `error_handler` argument must be provided."
+                assert error_handler is not None, (
+                    "The `error_handler` argument must be provided."
+                )
                 error_handler.collect_error(
                     ErrorCategory.SCHEMA, exc.reason_code, exc
                 )
@@ -227,7 +226,7 @@ class ColumnSchemaBackend(PysparkSchemaBackend):
             except Exception as err:
                 # catch other exceptions that may occur when executing the Check
                 err_msg = f'"{err.args[0]}"' if err.args else ""
-                err_str = f"{err.__class__.__name__}({ err_msg})"
+                err_str = f"{err.__class__.__name__}({err_msg})"
                 error_handler.collect_error(
                     ErrorCategory.DATA,
                     SchemaErrorReason.CHECK_ERROR,

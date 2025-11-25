@@ -3,18 +3,18 @@
 import os
 import re
 import runpy
+from collections.abc import Iterable
 from copy import deepcopy
 from enum import Enum
 from typing import Any, Generic, Optional, TypeVar
-from collections.abc import Iterable
 
 import numpy as np
 import pandas as pd
 import pytest
 from pandas._testing import assert_frame_equal
 
-import pandera.pandas as pa
 import pandera.api.extensions as pax
+import pandera.pandas as pa
 from pandera.errors import SchemaError, SchemaInitError
 from pandera.typing import DataFrame, Index, Series, String
 
@@ -187,10 +187,10 @@ def test_optional_column() -> None:
     """Test that optional columns are not required."""
 
     class Schema(pa.DataFrameModel):
-        a: Optional[Series[str]]
-        b: Optional[Series[str]] = pa.Field(eq="b")
-        c: Optional[Series[String]]  # test pandera.typing alias
-        d: Optional[Series[list[int]]]
+        a: Series[str] | None
+        b: Series[str] | None = pa.Field(eq="b")
+        c: Series[String] | None  # test pandera.typing alias
+        d: Series[list[int]] | None
 
     schema = Schema.to_schema()
     assert not schema.columns["a"].required
@@ -203,10 +203,10 @@ def test_optional_index() -> None:
     """Test that optional indices are not required."""
 
     class Schema(pa.DataFrameModel):
-        idx: Optional[Index[str]]
+        idx: Index[str] | None
 
     class SchemaWithAliasDtype(pa.DataFrameModel):
-        idx: Optional[Index[String]]  # test pandera.typing alias
+        idx: Index[String] | None  # test pandera.typing alias
 
     for model in (Schema, SchemaWithAliasDtype):
         with pytest.raises(
@@ -380,7 +380,6 @@ def test_check_validate_method() -> None:
 
         @pa.check("a")
         def int_column_lt_100(cls, series: pd.Series) -> Iterable[bool]:
-
             assert cls is Schema
             return series < 100
 
@@ -397,13 +396,11 @@ def test_check_validate_method_field() -> None:
 
         @pa.check(a)
         def int_column_lt_200(cls, series: pd.Series) -> Iterable[bool]:
-
             assert cls is Schema
             return series < 200
 
         @pa.check(a, "b")
         def int_column_lt_100(cls, series: pd.Series) -> Iterable[bool]:
-
             assert cls is Schema
             return series < 100
 
@@ -419,7 +416,6 @@ def test_check_validate_method_aliased_field() -> None:
 
         @pa.check(a)
         def int_column_lt_100(cls, series: pd.Series) -> Iterable[bool]:
-
             assert cls is Schema
             return series < 100
 
@@ -436,7 +432,6 @@ def test_check_single_column() -> None:
 
         @pa.check("a")
         def int_column_lt_100(cls, series: pd.Series) -> Iterable[bool]:
-
             assert cls is Schema
             return series < 100
 
@@ -455,7 +450,6 @@ def test_check_single_index() -> None:
 
         @pa.check("a")
         def not_dog(cls, idx: pd.Index) -> Iterable[bool]:
-
             assert cls is Schema
             return ~idx.str.contains("dog")
 
@@ -846,7 +840,7 @@ def test_config() -> None:
             ordered = True
             multiindex_coerce = True
             multiindex_strict = True
-            multiindex_name: Optional[str] = "mi"
+            multiindex_name: str | None = "mi"
             unique_column_names = True
             add_missing_columns = True
 
@@ -894,7 +888,7 @@ def test_multiindex_unique() -> None:
             multiindex_coerce = True
             multiindex_strict = True
             multiindex_unique = ["idx_1", "idx_2"]
-            multiindex_name: Optional[str] = "mi"
+            multiindex_name: str | None = "mi"
             unique_column_names = True
             add_missing_columns = True
 
@@ -1670,7 +1664,7 @@ def test_from_records_validates_the_schema():
         state: Series[str]
         city: Series[str]
         price: Series[float]
-        postal_code: Optional[Series[int]] = pa.Field(nullable=True)
+        postal_code: Series[int] | None = pa.Field(nullable=True)
 
     raw_data = [
         {
@@ -1829,7 +1823,7 @@ def test_generic_optional_field() -> None:
 
     class GenericModel(pa.DataFrameModel, Generic[T]):
         x: Series[int]
-        y: Optional[Series[T]]
+        y: Series[T] | None
 
     class IntYModel(GenericModel[int]): ...
 
@@ -2004,7 +1998,6 @@ def test_parse_single_column():
         # parsers at the column level
         @pa.parser("col1")
         def sqrt(cls, series):
-
             return series.transform("sqrt")
 
     assert Schema.validate(
@@ -2024,7 +2017,6 @@ def test_parse_dataframe():
         # parsers at the dataframe level
         @pa.dataframe_parser
         def dataframe_sqrt(cls, df):
-
             return df.transform("sqrt")
 
     assert Schema.validate(
@@ -2044,13 +2036,11 @@ def test_parse_both_dataframe_and_column():
         # parsers at the column level
         @pa.parser("col1")
         def sqrt(cls, series):
-
             return series.transform("sqrt")
 
         # parsers at the dataframe level
         @pa.dataframe_parser
         def dataframe_sqrt(cls, df):
-
             return df.transform("sqrt")
 
     assert Schema.validate(
@@ -2070,7 +2060,6 @@ def test_parse_non_existing() -> None:
         # parsers at the column level
         @pa.parser("nope")
         def sqrt(cls, series):
-
             return series.transform("sqrt")
 
     err_msg = "Parser sqrt is assigned to a non-existing field 'nope'"
@@ -2089,7 +2078,6 @@ def test_parse_regex() -> None:
         @pa.parser("^a", regex=True)
         @classmethod
         def sqrt(cls, series):
-
             return series.transform("sqrt")
 
     df = pd.DataFrame({"a": [121.0], "abc": [1.0], "cba": [200.0]})
@@ -2163,7 +2151,6 @@ def test_model_with_pydantic_base_model_with_df_init():
 
     # pylint: disable=unused-variable
     class PydanticModel(BaseModel):
-
         class PanderaDataFrameModel(pa.DataFrameModel):
             """The DF we use to represent code/label/description associations."""
 

@@ -2,8 +2,8 @@
 
 from typing import Optional
 
-import pytest
 import ibis.expr.datatypes as dt
+import pytest
 
 from pandera.ibis import Column, DataFrameModel, DataFrameSchema
 
@@ -38,7 +38,7 @@ def test_model_schema_equivalency(
 
 def test_model_schema_equivalency_with_optional():
     class ModelWithOptional(DataFrameModel):
-        string_col: Optional[str]
+        string_col: str | None
         int_col: int
 
     schema = DataFrameSchema(

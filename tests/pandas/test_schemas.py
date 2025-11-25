@@ -3,14 +3,18 @@
 # pylint: disable=too-many-lines,redefined-outer-name
 
 import copy
+from collections.abc import Callable
 from datetime import datetime, timedelta
 from functools import partial
-from typing import Any, Callable, Union
+from typing import Any, Union
 
 import numpy as np
 import pandas as pd
 import pytest
 
+from pandera.api.pandas.array import ArraySchema
+from pandera.dtypes import UniqueSettings
+from pandera.engines.pandas_engine import Engine
 from pandera.pandas import (
     Category,
     Check,
@@ -26,9 +30,6 @@ from pandera.pandas import (
     String,
     errors,
 )
-from pandera.api.pandas.array import ArraySchema
-from pandera.dtypes import UniqueSettings
-from pandera.engines.pandas_engine import Engine
 
 
 def test_dataframe_schema() -> None:
@@ -2273,7 +2274,6 @@ def test_update_index():
 
 
 def test_update_index_with_properties():
-
     schema = DataFrameSchema(index=Index(dtype=int, name="idx"))
 
     assert schema.index.title is None

@@ -411,7 +411,7 @@ def test_set_defaults(ldf_basic, ldf_schema_basic):
     assert validated_data.equals(expected_data.collect())
 
 
-def _failure_value(column: str, dtype: Optional[PolarsDataType] = None):
+def _failure_value(column: str, dtype: PolarsDataType | None = None):
     if column.startswith("string"):
         return pl.lit("9", dtype=dtype or pl.Utf8)
     elif column.startswith("int"):
@@ -493,7 +493,6 @@ def test_ordered(ldf_basic, ldf_schema_basic):
 
 
 def test_sample_dataframe_schema(df_basic, ldf_basic, ldf_schema_basic):
-
     with pytest.raises(NotImplementedError):
         ldf_schema_basic.validate(ldf_basic, sample=1, random_state=1)
 
@@ -515,7 +514,6 @@ def test_report_duplicates(arg):
 
 
 def test_lazy_validation_errors():
-
     schema = DataFrameSchema(
         {
             "a": Column(int),
@@ -631,7 +629,6 @@ def lf_with_nested_types():
 
 
 def test_dataframe_schema_with_nested_types(lf_with_nested_types):
-
     schema = DataFrameSchema(
         {
             "list_col": Column(pl.List(pl.Int64())),
@@ -738,7 +735,6 @@ def test_dataframe_coerce_col_with_null_in_other_column():
 
 
 def test_dataframe_column_level_coerce():
-
     schema = DataFrameSchema(
         {
             "a": Column(int, coerce=True),

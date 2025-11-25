@@ -1,14 +1,13 @@
 """Utility functions for pandas validation."""
 
 from functools import lru_cache
-from typing import NamedTuple, TypeVar, Union, Optional
+from typing import NamedTuple, Optional, TypeVar, Union
 
 import numpy as np
 import pandas as pd
 
 from pandera.dtypes import DataType
 from pandera.errors import BackendNotFoundError
-
 
 PandasDtypeInputTypes = Union[
     str,
@@ -41,7 +40,6 @@ PANDAS_LIKE_CLS_NAMES = frozenset(
 
 
 class BackendTypes(NamedTuple):
-
     # list of datatypes available
     dataframe_datatypes: tuple
     series_datatypes: tuple
@@ -52,7 +50,6 @@ class BackendTypes(NamedTuple):
 
 @lru_cache
 def get_backend_types(check_cls_fqn: str) -> BackendTypes:
-
     dataframe_datatypes = []
     series_datatypes = []
     index_datatypes = []
@@ -82,6 +79,7 @@ def get_backend_types(check_cls_fqn: str) -> BackendTypes:
 
     def register_dask_backend():
         import dask.dataframe as dd
+
         from pandera.accessors import dask_accessor
 
         dataframe_datatypes.append(dd.DataFrame)
@@ -90,6 +88,7 @@ def get_backend_types(check_cls_fqn: str) -> BackendTypes:
 
     def register_modin_backend():
         import modin.pandas as mpd
+
         from pandera.accessors import modin_accessor
 
         dataframe_datatypes.append(mpd.DataFrame)
@@ -99,6 +98,7 @@ def get_backend_types(check_cls_fqn: str) -> BackendTypes:
 
     def register_pyspark_backend():
         import pyspark.pandas as ps
+
         from pandera.accessors import pyspark_accessor
 
         dataframe_datatypes.append(ps.DataFrame)
@@ -147,7 +147,7 @@ def _get_fullname(_cls: type) -> str:
     return f"{_cls.__module__}.{_cls.__name__}"
 
 
-def get_backend_types_from_mro(_cls: type) -> Optional[BackendTypes]:
+def get_backend_types_from_mro(_cls: type) -> BackendTypes | None:
     try:
         return get_backend_types(_get_fullname(_cls))
     except BackendNotFoundError:

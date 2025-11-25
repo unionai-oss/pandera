@@ -10,16 +10,15 @@ import decimal
 import inspect
 import sys
 import warnings
+from collections.abc import Callable, Iterable
 from typing import (
     Any,
-    Callable,
     Literal,
     NamedTuple,
     Optional,
     Union,
     cast,
 )
-from collections.abc import Iterable
 
 import numpy as np
 import pandas as pd
@@ -189,7 +188,7 @@ class DataType(dtypes.DataType):
     def check(
         self,
         pandera_dtype: dtypes.DataType,
-        data_container: Optional[PandasObject] = None,
+        data_container: PandasObject | None = None,
     ) -> Union[bool, Iterable[bool]]:
         try:
             pandera_dtype = Engine.dtype(pandera_dtype)
@@ -227,13 +226,11 @@ class Engine(
             return engine.Engine.dtype(cls, data_type)
         except TypeError:
             if is_geopandas_dtype(data_type):
-
                 # register geopandas datatypes
                 import pandera.engines.geopandas_engine
 
                 np_or_pd_dtype = data_type
             elif is_pyarrow_dtype(data_type):
-
                 # register pyarrow datatypes
                 import pandera.engines.pyarrow_engine
 
@@ -505,8 +502,8 @@ _register_numpy_numbers(
 
 def _check_decimal(
     pandas_obj: pd.Series,
-    precision: Optional[int] = None,
-    scale: Optional[int] = None,
+    precision: int | None = None,
+    scale: int | None = None,
 ) -> pd.Series:
     series_cls = type(pandas_obj)  # support non-pandas series (modin, etc.)
     if pandas_obj.isnull().all():
@@ -531,7 +528,9 @@ def _check_decimal(
     precisions = len_left + len_right
 
     scales = series_cls(
-        np.full_like(decimals, np.nan), dtype=np.object_, index=decimals.index  # type: ignore
+        np.full_like(decimals, np.nan),
+        dtype=np.object_,
+        index=decimals.index,  # type: ignore
     )
     pos_left = len_left > 0
     scales[pos_left] = len_right[pos_left]
@@ -575,7 +574,7 @@ class Decimal(DataType, dtypes.Decimal):
         self,
         precision: int = dtypes.DEFAULT_PYTHON_PREC,
         scale: int = 0,
-        rounding: Optional[str] = None,
+        rounding: str | None = None,
     ) -> None:
         dtypes.Decimal.__init__(self, precision, scale, rounding)
 
@@ -594,7 +593,7 @@ class Decimal(DataType, dtypes.Decimal):
     def check(  # type: ignore
         self,
         pandera_dtype: DataType,
-        data_container: Optional[pd.Series] = None,
+        data_container: pd.Series | None = None,
     ) -> Union[bool, Iterable[bool]]:
         if type(data_container).__module__.startswith("pyspark.pandas"):
             raise NotImplementedError(
@@ -635,7 +634,7 @@ class Category(DataType, dtypes.Category):
     type: pd.CategoricalDtype = dataclasses.field(default=None, init=False)  # type: ignore[assignment]  # noqa
 
     def __init__(
-        self, categories: Optional[Iterable[Any]] = None, ordered: bool = False
+        self, categories: Iterable[Any] | None = None, ordered: bool = False
     ) -> None:
         dtypes.Category.__init__(self, categories, ordered)
         object.__setattr__(
@@ -678,7 +677,7 @@ if PANDAS_1_3_0_PLUS:
         """Semantic representation of a :class:`pandas.StringDtype`."""
 
         type: pd.StringDtype = dataclasses.field(default=None, init=False)  # type: ignore[assignment]
-        storage: Optional[Literal["python", "pyarrow"]] = "python"
+        storage: Literal["python", "pyarrow"] | None = "python"
 
         def __post_init__(self):
             if self.storage == "pyarrow" and not PYARROW_INSTALLED:
@@ -728,7 +727,6 @@ class NpString(numpy_engine.String):
             # pyspark.pandas.Index doesn't support .where method yet, use numpy
             reverter = None
             if type(obj).__module__.startswith("pyspark.pandas"):
-
                 import pyspark.pandas as ps
 
                 if isinstance(obj, ps.Index):
@@ -749,7 +747,7 @@ class NpString(numpy_engine.String):
     def check(
         self,
         pandera_dtype: dtypes.DataType,
-        data_container: Optional[PandasObject] = None,
+        data_container: PandasObject | None = None,
     ) -> Union[bool, Iterable[bool]]:
         if data_container is None:
             return isinstance(pandera_dtype, (numpy_engine.Object, type(self)))
@@ -806,12 +804,10 @@ class _BaseDateTime(DataType):
         if type(obj).__module__.startswith(
             "pyspark.pandas"
         ):  # pragma: no cover
-
             import pyspark.pandas as ps
 
             to_datetime_fn = ps.to_datetime
         if type(obj).__module__.startswith("modin.pandas"):
-
             import modin.pandas as mpd
 
             to_datetime_fn = mpd.to_datetime
@@ -839,13 +835,11 @@ class DateTime(_BaseDateTime, dtypes.Timestamp):
     :class:`pandas.DatetimeTZDtype` for timezone-aware datetimes.
     """
 
-    type: Optional[_PandasDatetime] = dataclasses.field(
-        default=None, init=False
-    )
+    type: _PandasDatetime | None = dataclasses.field(default=None, init=False)
     unit: str = "ns"
     """The precision of the datetime data. Currently limited to "ns"."""
 
-    tz: Optional[datetime.tzinfo] = None
+    tz: datetime.tzinfo | None = None
     """The timezone."""
 
     time_zone_agnostic: bool = False
@@ -1000,7 +994,7 @@ class DateTime(_BaseDateTime, dtypes.Timestamp):
     def check(
         self,
         pandera_dtype: dtypes.DataType,
-        data_container: Optional[PandasObject] = None,
+        data_container: PandasObject | None = None,
     ) -> Union[bool, Iterable[bool]]:
         if self.time_zone_agnostic:
             self._prepare_check_time_zone_agnostic(
@@ -1011,7 +1005,7 @@ class DateTime(_BaseDateTime, dtypes.Timestamp):
     def _prepare_check_time_zone_agnostic(
         self,
         pandera_dtype: dtypes.DataType,
-        data_container: Optional[PandasObject],
+        data_container: PandasObject | None,
     ) -> None:
         # If there is a single timezone, define the type as a timezone-aware DatetimeTZDtype
         if (
@@ -1070,7 +1064,7 @@ class Date(_BaseDateTime, dtypes.Date):
     # define __init__ to please mypy
     def __init__(
         self,
-        to_datetime_kwargs: Optional[dict[str, Any]] = None,
+        to_datetime_kwargs: dict[str, Any] | None = None,
     ) -> None:
         object.__setattr__(
             self, "to_datetime_kwargs", to_datetime_kwargs or {}
@@ -1104,7 +1098,7 @@ class Date(_BaseDateTime, dtypes.Date):
     def check(  # type: ignore
         self,
         pandera_dtype: DataType,
-        data_container: Optional[pd.Series] = None,
+        data_container: pd.Series | None = None,
     ) -> Union[bool, Iterable[bool]]:
         if not DataType.check(self, pandera_dtype, data_container):
             if data_container is None:
@@ -1216,7 +1210,9 @@ class Interval(DataType):
 class PydanticModel(DataType):
     """A pydantic model datatype applying to rows in a dataframe."""
 
-    type: builtins.type[BaseModel] = dataclasses.field(default=None, init=False)  # type: ignore[assignment]
+    type: builtins.type[BaseModel] = dataclasses.field(
+        default=None, init=False
+    )  # type: ignore[assignment]
     auto_coerce = True
 
     def __init__(self, model: builtins.type[BaseModel]) -> None:
@@ -1265,7 +1261,6 @@ class PydanticModel(DataType):
             cases.
             """
             try:
-
                 if PYDANTIC_V2:
                     row = self.type.model_validate(row).model_dump()
                 else:
@@ -1352,7 +1347,6 @@ class PythonGenericType(DataType):
 
     def _coerce_element(self, element: Any) -> Any:
         try:
-
             if PYDANTIC_V2:
                 coerced_element = self.coercion_model(element).root
             else:
@@ -1366,7 +1360,7 @@ class PythonGenericType(DataType):
     def check(
         self,
         pandera_dtype: dtypes.DataType,
-        data_container: Optional[PandasObject] = None,
+        data_container: PandasObject | None = None,
     ) -> Union[bool, Iterable[bool]]:
         """Check that data container has the expected type."""
         try:
@@ -1427,7 +1421,7 @@ class PythonDict(PythonGenericType):
 
     type: type[dict] = dict
 
-    def __init__(self, generic_type: Optional[builtins.type] = None) -> None:
+    def __init__(self, generic_type: builtins.type | None = None) -> None:
         if generic_type is not None:
             object.__setattr__(self, "generic_type", generic_type)
 
@@ -1446,7 +1440,7 @@ class PythonList(PythonGenericType):
 
     type: type[list] = list
 
-    def __init__(self, generic_type: Optional[builtins.type] = None) -> None:
+    def __init__(self, generic_type: builtins.type | None = None) -> None:
         if generic_type is not None:
             object.__setattr__(self, "generic_type", generic_type)
 
@@ -1465,7 +1459,7 @@ class PythonTuple(PythonGenericType):
 
     type: type[list] = list
 
-    def __init__(self, generic_type: Optional[builtins.type] = None) -> None:
+    def __init__(self, generic_type: builtins.type | None = None) -> None:
         if generic_type is not None:
             object.__setattr__(self, "generic_type", generic_type)
 
@@ -1486,7 +1480,7 @@ class PythonTypedDict(PythonGenericType):
 
     def __init__(
         self,
-        special_type: Optional[builtins.type] = None,
+        special_type: builtins.type | None = None,
     ) -> None:
         if special_type is not None:
             object.__setattr__(self, "special_type", special_type)
@@ -1511,7 +1505,7 @@ class PythonNamedTuple(PythonGenericType):
 
     def __init__(
         self,
-        special_type: Optional[builtins.type] = None,
+        special_type: builtins.type | None = None,
     ) -> None:
         if special_type is not None:
             object.__setattr__(self, "special_type", special_type)
@@ -1738,7 +1732,7 @@ if PYARROW_INSTALLED and PANDAS_2_0_0_PLUS:
     class ArrowDecimal128(ArrowDataType, dtypes.Decimal):
         """Semantic representation of a :class:`pyarrow.decimal128`."""
 
-        type: Optional[pd.ArrowDtype] = dataclasses.field(
+        type: pd.ArrowDtype | None = dataclasses.field(
             default=None, init=False
         )
         precision: int = 28
@@ -1755,7 +1749,9 @@ if PYARROW_INSTALLED and PANDAS_2_0_0_PLUS:
             cls,
             pyarrow_dtype: pyarrow.Decimal128Type,
         ):
-            return cls(precision=pyarrow_dtype.precision, scale=pyarrow_dtype.scale)  # type: ignore
+            return cls(
+                precision=pyarrow_dtype.precision, scale=pyarrow_dtype.scale
+            )  # type: ignore
 
     @Engine.register_dtype(
         equivalents=[pyarrow.timestamp, pyarrow.TimestampType]
@@ -1764,11 +1760,11 @@ if PYARROW_INSTALLED and PANDAS_2_0_0_PLUS:
     class ArrowTimestamp(ArrowDataType, dtypes.Timestamp):
         """Semantic representation of a :class:`pyarrow.timestamp`."""
 
-        type: Optional[pd.ArrowDtype] = dataclasses.field(
+        type: pd.ArrowDtype | None = dataclasses.field(
             default=None, init=False
         )
-        unit: Optional[str] = "ns"
-        tz: Optional[datetime.tzinfo] = None
+        unit: str | None = "ns"
+        tz: datetime.tzinfo | None = None
 
         def __post_init__(self):
             type_ = pd.ArrowDtype(pyarrow.timestamp(self.unit, self.tz))
@@ -1785,11 +1781,11 @@ if PYARROW_INSTALLED and PANDAS_2_0_0_PLUS:
     class ArrowDictionary(ArrowDataType):
         """Semantic representation of a :class:`pyarrow.dictionary`."""
 
-        type: Optional[pd.ArrowDtype] = dataclasses.field(
+        type: pd.ArrowDtype | None = dataclasses.field(
             default=None, init=False
         )
-        index_type: Optional[pyarrow.DataType] = pyarrow.int64()
-        value_type: Optional[pyarrow.DataType] = pyarrow.int64()
+        index_type: pyarrow.DataType | None = pyarrow.int64()
+        value_type: pyarrow.DataType | None = pyarrow.int64()
         ordered: bool = False
 
         def __post_init__(self):
@@ -1823,13 +1819,13 @@ if PYARROW_INSTALLED and PANDAS_2_0_0_PLUS:
     class ArrowList(ArrowDataType):
         """Semantic representation of a :class:`pyarrow.list_`."""
 
-        type: Optional[pd.ArrowDtype] = dataclasses.field(
+        type: pd.ArrowDtype | None = dataclasses.field(
             default=None, init=False
         )
-        value_type: Optional[Union[pyarrow.DataType, pyarrow.Field]] = (
+        value_type: Union[pyarrow.DataType, pyarrow.Field] | None = (
             pyarrow.string()
         )
-        list_size: Optional[int] = -1
+        list_size: int | None = -1
 
         def __post_init__(self):
             type_ = pd.ArrowDtype(
@@ -1856,15 +1852,16 @@ if PYARROW_INSTALLED and PANDAS_2_0_0_PLUS:
     class ArrowStruct(ArrowDataType):
         """Semantic representation of a :class:`pyarrow.struct`."""
 
-        type: Optional[pd.ArrowDtype] = dataclasses.field(
+        type: pd.ArrowDtype | None = dataclasses.field(
             default=None, init=False
         )
-        fields: Optional[
+        fields: (
             Union[
                 Iterable[Union[pyarrow.Field, tuple[str, pyarrow.DataType]]],
                 dict[str, pyarrow.DataType],
             ]
-        ] = tuple()
+            | None
+        ) = tuple()
 
         def __post_init__(self):
             type_ = pd.ArrowDtype(pyarrow.struct(self.fields))
@@ -1873,7 +1870,10 @@ if PYARROW_INSTALLED and PANDAS_2_0_0_PLUS:
         @classmethod
         def from_parametrized_dtype(cls, pyarrow_dtype: pyarrow.StructType):
             return cls(
-                fields=[pyarrow_dtype.field(i) for i in range(pyarrow_dtype.num_fields)]  # type: ignore
+                fields=[
+                    pyarrow_dtype.field(i)
+                    for i in range(pyarrow_dtype.num_fields)
+                ]  # type: ignore
             )
 
     @Engine.register_dtype(
@@ -1922,10 +1922,10 @@ if PYARROW_INSTALLED and PANDAS_2_0_0_PLUS:
     class ArrowDuration(ArrowDataType):
         """Semantic representation of a :class:`pyarrow.duration`."""
 
-        type: Optional[pd.ArrowDtype] = dataclasses.field(
+        type: pd.ArrowDtype | None = dataclasses.field(
             default=None, init=False
         )
-        unit: Optional[str] = "ns"
+        unit: str | None = "ns"
 
         def __post_init__(self):
             type_ = pd.ArrowDtype(pyarrow.duration(self.unit))
@@ -1940,10 +1940,10 @@ if PYARROW_INSTALLED and PANDAS_2_0_0_PLUS:
     class ArrowTime32(ArrowDataType):
         """Semantic representation of a :class:`pyarrow.time32`."""
 
-        type: Optional[pd.ArrowDtype] = dataclasses.field(
+        type: pd.ArrowDtype | None = dataclasses.field(
             default=None, init=False
         )
-        unit: Optional[str] = "ms"
+        unit: str | None = "ms"
 
         def __post_init__(self):
             type_ = pd.ArrowDtype(pyarrow.time32(self.unit))
@@ -1966,10 +1966,10 @@ if PYARROW_INSTALLED and PANDAS_2_0_0_PLUS:
     class ArrowTime64(ArrowDataType):
         """Semantic representation of a :class:`pyarrow.time64`."""
 
-        type: Optional[pd.ArrowDtype] = dataclasses.field(
+        type: pd.ArrowDtype | None = dataclasses.field(
             default=None, init=False
         )
-        unit: Optional[str] = "ns"
+        unit: str | None = "ns"
 
         def __post_init__(self):
             type_ = pd.ArrowDtype(pyarrow.time64(self.unit))
@@ -1992,11 +1992,11 @@ if PYARROW_INSTALLED and PANDAS_2_0_0_PLUS:
     class ArrowMap(ArrowDataType):
         """Semantic representation of a :class:`pyarrow.map_`."""
 
-        type: Optional[pd.ArrowDtype] = dataclasses.field(
+        type: pd.ArrowDtype | None = dataclasses.field(
             default=None, init=False
         )
-        key_type: Optional[pyarrow.DataType] = pyarrow.int64()
-        item_type: Optional[pyarrow.DataType] = pyarrow.int64()
+        key_type: pyarrow.DataType | None = pyarrow.int64()
+        item_type: pyarrow.DataType | None = pyarrow.int64()
         keys_sorted: bool = False
 
         def __post_init__(self):
@@ -2029,10 +2029,10 @@ if PYARROW_INSTALLED and PANDAS_2_0_0_PLUS:
     class ArrowBinary(ArrowDataType, dtypes.Binary):
         """Semantic representation of a :class:`pyarrow.binary`."""
 
-        type: Optional[pd.ArrowDtype] = dataclasses.field(
+        type: pd.ArrowDtype | None = dataclasses.field(
             default=None, init=False
         )
-        length: Optional[int] = -1
+        length: int | None = -1
 
         def __post_init__(self):
             type_ = pd.ArrowDtype(pyarrow.binary(self.length))

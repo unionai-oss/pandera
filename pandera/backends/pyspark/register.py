@@ -2,10 +2,10 @@
 
 from functools import lru_cache
 from typing import Optional
-from packaging import version
 
 import pyspark
 import pyspark.sql as ps
+from packaging import version
 
 # Handles optional Spark Connect imports for pyspark>=3.4 (if available)
 CURRENT_PYSPARK_VERSION = version.parse(pyspark.__version__)
@@ -15,7 +15,7 @@ if CURRENT_PYSPARK_VERSION >= version.parse("3.4"):
 
 @lru_cache
 def register_pyspark_backends(
-    check_cls_fqn: Optional[str] = None,
+    check_cls_fqn: str | None = None,
 ):
     """Register pyspark backends.
 

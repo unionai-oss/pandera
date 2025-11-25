@@ -2,10 +2,11 @@
 
 import inspect
 import warnings
+from collections.abc import Callable
 from enum import Enum
 from functools import partial, wraps
 from inspect import signature
-from typing import Callable, Optional, Union, get_args, get_origin
+from typing import Optional, Union, get_args, get_origin
 
 from pandera.api.checks import Check
 from pandera.api.hypotheses import Hypothesis
@@ -21,9 +22,9 @@ class BuiltinCheckRegistrationError(Exception):
 
 def register_builtin_check(
     fn=None,
-    strategy: Optional[Callable] = None,
+    strategy: Callable | None = None,
     _check_cls: type = Check,
-    aliases: Optional[list[str]] = None,
+    aliases: list[str] | None = None,
     **outer_kwargs,
 ):
     """Register a check method to the Check namespace.
@@ -133,8 +134,8 @@ def register_check_statistics(statistics_args):
 def register_check_method(
     check_fn=None,
     *,
-    statistics: Optional[list[str]] = None,
-    supported_types: Optional[Union[type, tuple, list]] = None,
+    statistics: list[str] | None = None,
+    supported_types: Union[type, tuple, list] | None = None,
     check_type: Union[CheckType, str] = "vectorized",
     strategy=None,
 ):
@@ -223,7 +224,9 @@ def register_check_method(
         if supported_type not in ALLOWED_TYPES:
             raise TypeError(msg.format(supported_type))
 
-    if check_type is CheckType.ELEMENT_WISE and set(supported_types) != set(ALLOWED_TYPES):  # type: ignore
+    if check_type is CheckType.ELEMENT_WISE and set(supported_types) != set(
+        ALLOWED_TYPES
+    ):  # type: ignore
         raise ValueError(
             "Element-wise checks should support DataFrame and Series "
             "validation. Use the default setting for the 'supported_types' "

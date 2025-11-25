@@ -1,7 +1,7 @@
 """Class-based API for Ibis models."""
 
-import sys
 import inspect
+import sys
 from typing import (
     Optional,
     cast,
@@ -22,7 +22,6 @@ from pandera.errors import SchemaInitError
 from pandera.typing import AnnotationInfo
 from pandera.typing.ibis import Table
 from pandera.utils import docstring_substitution
-
 
 # if python version is < 3.11, import Self from typing_extensions
 if sys.version_info < (3, 11):
@@ -122,10 +121,10 @@ class DataFrameModel(_DataFrameModel[ibis.Table, DataFrameSchema]):
     def validate(
         cls: type[Self],
         check_obj: ibis.Table,
-        head: Optional[int] = None,
-        tail: Optional[int] = None,
-        sample: Optional[int] = None,
-        random_state: Optional[int] = None,
+        head: int | None = None,
+        tail: int | None = None,
+        sample: int | None = None,
+        random_state: int | None = None,
         lazy: bool = False,
         inplace: bool = False,
     ) -> Table[Self]:

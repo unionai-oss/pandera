@@ -21,14 +21,14 @@ class ColumnSchema(BaseSchema):
 
     def __init__(
         self,
-        dtype: Optional[PySparkDtypeInputTypes] = None,
-        checks: Optional[CheckList] = None,
+        dtype: PySparkDtypeInputTypes | None = None,
+        checks: CheckList | None = None,
         nullable: bool = False,
         coerce: bool = False,
         name: Any = None,
-        title: Optional[str] = None,
-        description: Optional[str] = None,
-        metadata: Optional[dict] = None,
+        title: str | None = None,
+        description: str | None = None,
+        metadata: dict | None = None,
     ) -> None:
         """Initialize column schema.
 
@@ -80,17 +80,17 @@ class ColumnSchema(BaseSchema):
         return self._dtype  # type: ignore
 
     @dtype.setter
-    def dtype(self, value: Optional[PySparkDtypeInputTypes]) -> None:
+    def dtype(self, value: PySparkDtypeInputTypes | None) -> None:
         """Set the pyspark dtype"""
         self._dtype = pyspark_engine.Engine.dtype(value) if value else None
 
     def validate(
         self,
         check_obj,
-        head: Optional[int] = None,
-        tail: Optional[int] = None,
-        sample: Optional[int] = None,
-        random_state: Optional[int] = None,
+        head: int | None = None,
+        tail: int | None = None,
+        sample: int | None = None,
+        random_state: int | None = None,
         lazy: bool = False,
         inplace: bool = False,
         error_handler: ErrorHandler = None,
@@ -129,10 +129,10 @@ class ColumnSchema(BaseSchema):
     def __call__(
         self,
         check_obj: ps.DataFrame,
-        head: Optional[int] = None,
-        tail: Optional[int] = None,
-        sample: Optional[int] = None,
-        random_state: Optional[int] = None,
+        head: int | None = None,
+        tail: int | None = None,
+        sample: int | None = None,
+        random_state: int | None = None,
         lazy: bool = False,
         inplace: bool = False,
     ):

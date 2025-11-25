@@ -1485,14 +1485,14 @@ def test_to_yaml_registered_dataframe_check(_):
         nonlocal ncols_gt_called
         ncols_gt_called = True
         assert isinstance(column_count, int), "column_count must be integral"
-        assert isinstance(
-            pandas_obj, pd.DataFrame
-        ), "ncols_gt should only be applied to DataFrame"
+        assert isinstance(pandas_obj, pd.DataFrame), (
+            "ncols_gt should only be applied to DataFrame"
+        )
         return len(pandas_obj.columns) > column_count
 
-    assert (
-        len(pandera.Check.REGISTERED_CUSTOM_CHECKS) == 1
-    ), "custom check is registered"
+    assert len(pandera.Check.REGISTERED_CUSTOM_CHECKS) == 1, (
+        "custom check is registered"
+    )
 
     schema = pandera.DataFrameSchema(
         {
@@ -1907,9 +1907,9 @@ def test_frictionless_schema_parses_correctly(frictionless_schema):
 
     assert str(schema.to_yaml()).strip() == YAML_FROM_FRICTIONLESS.strip()
 
-    assert isinstance(
-        schema, DataFrameSchema
-    ), "schema object not loaded successfully"
+    assert isinstance(schema, DataFrameSchema), (
+        "schema object not loaded successfully"
+    )
 
     df = schema.validate(VALID_FRICTIONLESS_DF)
     assert dict(df.dtypes) == {
@@ -2037,8 +2037,8 @@ def test_frictionless_schema_with_description_and_title(
 
 def test_enum_isin_json_serialization():
     """Test that StrEnum and Enum can be used with isin and serialized to JSON."""
-    import sys
     import json
+    import sys
 
     # StrEnum was introduced in Python 3.11
     if sys.version_info >= (3, 11):
@@ -2115,12 +2115,13 @@ def test_enum_isin_json_serialization():
 
 def test_enum_isin_dataframe_model_json_serialization():
     """Test that StrEnum can be used in DataFrameModel with isin and serialized to JSON."""
-    import sys
     import json
+    import sys
 
     # StrEnum was introduced in Python 3.11
     if sys.version_info >= (3, 11):
         from enum import StrEnum
+
         from pandera.typing import Series
 
         class Color(StrEnum):

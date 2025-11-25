@@ -13,7 +13,6 @@ from pandera import (
     errors,
 )
 
-
 try:
     from scipy import stats  # pylint: disable=unused-import
 except ImportError:  # pragma: no cover

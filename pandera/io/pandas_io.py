@@ -6,7 +6,7 @@ import warnings
 from collections.abc import Mapping
 from functools import partial
 from pathlib import Path
-from typing import Optional, Union, Any
+from typing import Any, Optional, Union
 
 import pandas as pd
 
@@ -581,7 +581,7 @@ def _format_index(index_statistics):
             name=(
                 "None"
                 if properties["name"] is None
-                else f"\"{properties['name']}\""
+                else f'"{properties["name"]}"'
             ),
             description=(None if description is None else f'"{description}"'),
             title=(None if title is None else f'"{title}"'),
@@ -725,7 +725,7 @@ class FrictionlessFieldParser:
         )
 
     @property
-    def checks(self) -> Optional[list[dict[str, Any]]]:
+    def checks(self) -> list[dict[str, Any]] | None:
         """Convert a set of frictionless schema field constraints into checks.
 
         This parses the standard set of frictionless constraints which can be

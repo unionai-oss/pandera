@@ -55,7 +55,6 @@ def validate_scope(scope: ValidationScope):
     def _wrapper(func):
         @functools.wraps(func)
         def wrapper(self, check_obj, *args, **kwargs):
-
             config = get_config_context()
 
             if scope == ValidationScope.SCHEMA:

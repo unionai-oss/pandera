@@ -2,12 +2,13 @@
 
 import copy
 from typing import Any, Optional
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 import numpy as np
 import pandas as pd
 import pytest
 
+from pandera.engines.pandas_engine import Engine, pandas_version
 from pandera.pandas import (
     Check,
     Column,
@@ -21,7 +22,6 @@ from pandera.pandas import (
     String,
     errors,
 )
-from pandera.engines.pandas_engine import Engine, pandas_version
 
 
 def test_column() -> None:
@@ -444,7 +444,7 @@ def test_column_regex_multiindex() -> None:
 )
 def test_column_regex_matching(
     column_name_regex: str,
-    expected_matches: Optional[list[tuple[str, str]]],
+    expected_matches: list[tuple[str, str]] | None,
     error: type[BaseException],
 ) -> None:
     """
@@ -478,7 +478,6 @@ def test_column_regex_matching(
 
 
 def test_column_regex_error_failure_cases():
-
     data = pd.DataFrame({"a": [0, 2], "b": [1, 3]})
 
     column_schema = Column(
@@ -993,16 +992,15 @@ def test_multiindex_optimization_path_selection(
             "pandera.backends.pandas.components.MultiIndexBackend._validate_level_with_full_materialization"
         ) as mock_full,
     ):
-
         schema.validate(df)
 
         # Verify correct number of calls
-        assert (
-            mock_optimized.call_count == expected_optimized_calls
-        ), f"Expected {expected_optimized_calls} calls to optimized path, got {mock_optimized.call_count}"
-        assert (
-            mock_full.call_count == expected_full_calls
-        ), f"Expected {expected_full_calls} calls to full materialization, got {mock_full.call_count}"
+        assert mock_optimized.call_count == expected_optimized_calls, (
+            f"Expected {expected_optimized_calls} calls to optimized path, got {mock_optimized.call_count}"
+        )
+        assert mock_full.call_count == expected_full_calls, (
+            f"Expected {expected_full_calls} calls to full materialization, got {mock_full.call_count}"
+        )
 
         # Verify correct levels were called with correct methods
         if expected_optimized_calls > 0:
@@ -1011,13 +1009,15 @@ def test_multiindex_optimization_path_selection(
             ]  # Extract level_pos argument
             assert sorted(optimized_calls) == sorted(
                 expected_optimized_levels
-            ), f"Expected optimized calls for levels {expected_optimized_levels}, got {optimized_calls}"
+            ), (
+                f"Expected optimized calls for levels {expected_optimized_levels}, got {optimized_calls}"
+            )
 
         if expected_full_calls > 0:
             full_calls = [call[0][1] for call in mock_full.call_args_list]
-            assert sorted(full_calls) == sorted(
-                expected_full_levels
-            ), f"Expected full calls for levels {expected_full_levels}, got {full_calls}"
+            assert sorted(full_calls) == sorted(expected_full_levels), (
+                f"Expected full calls for levels {expected_full_levels}, got {full_calls}"
+            )
 
 
 @pytest.mark.parametrize(

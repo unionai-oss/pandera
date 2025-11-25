@@ -4,6 +4,7 @@ import os
 from collections.abc import Generator
 
 import pytest
+
 from pandera.api.checks import Check
 
 # pylint: disable=unused-import

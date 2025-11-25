@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import warnings
-from typing import TYPE_CHECKING, Optional, cast
 from collections.abc import Iterable
+from typing import TYPE_CHECKING, Optional, cast
 
 import ibis
 import ibis.expr.operations as ops
@@ -36,10 +36,10 @@ class ColumnBackend(IbisSchemaBackend):
         check_obj: ibis.Table,
         schema: Column,
         *,
-        head: Optional[int] = None,
-        tail: Optional[int] = None,
-        sample: Optional[int] = None,
-        random_state: Optional[int] = None,
+        head: int | None = None,
+        tail: int | None = None,
+        sample: int | None = None,
+        random_state: int | None = None,
         lazy: bool = False,
         inplace: bool = False,
     ) -> ibis.Table:

@@ -10,8 +10,8 @@ from pandera.api.base.checks import CheckResult
 from pandera.api.checks import Check
 from pandera.api.polars.types import PolarsData
 from pandera.api.polars.utils import (
-    get_lazyframe_schema,
     get_lazyframe_column_names,
+    get_lazyframe_schema,
 )
 from pandera.backends.base import BaseCheckBackend
 from pandera.constants import CHECK_OUTPUT_KEY
@@ -39,7 +39,7 @@ class PolarsCheckBackend(BaseCheckBackend):
         """Implements aggregation behavior for check object."""
         raise NotImplementedError
 
-    def preprocess(self, check_obj: pl.LazyFrame, key: Optional[str]):
+    def preprocess(self, check_obj: pl.LazyFrame, key: str | None):
         """Preprocesses a check object before applying the check function."""
         return check_obj
 
@@ -129,7 +129,7 @@ class PolarsCheckBackend(BaseCheckBackend):
     def __call__(
         self,
         check_obj: pl.LazyFrame,
-        key: Optional[str] = None,
+        key: str | None = None,
     ) -> CheckResult:
         check_obj = self.preprocess(check_obj, key)
         polars_data = PolarsData(check_obj, key or "*")

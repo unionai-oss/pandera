@@ -2,17 +2,15 @@
 
 from pandera._version import __version__
 
-
 try:
     # Only add pandas to the top-level pandera namespace
     # if pandas and numpy are installed
-    import pandas as pd
     import numpy as np
+    import pandas as pd
 
+    from pandera import dtypes, typing
     from pandera._pandas_deprecated import *
     from pandera._pandas_deprecated import __all__ as _pandas_deprecated_all
-    from pandera import dtypes
-    from pandera import typing
 
     __all__ = [
         "__version__",
@@ -33,8 +31,7 @@ except (ImportError, ModuleNotFoundError) as err:
     else:
         raise  # Re-raise any other `ImportError` exceptions
 
-    from pandera import dtypes
-    from pandera import typing
+    from pandera import dtypes, typing
     from pandera.api.checks import Check
     from pandera.api.dataframe.model_components import (
         Field,

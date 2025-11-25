@@ -2,8 +2,8 @@
 
 import functools
 import io
-from typing import TYPE_CHECKING, Any, Generic, TypeVar
 from collections.abc import Mapping
+from typing import TYPE_CHECKING, Any, Generic, TypeVar
 
 from packaging import version
 

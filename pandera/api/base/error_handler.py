@@ -52,7 +52,7 @@ class ErrorHandler:
     def collect_error(
         self,
         error_type: ErrorCategory,
-        reason_code: Optional[SchemaErrorReason],
+        reason_code: SchemaErrorReason | None,
         schema_error: SchemaError,
         original_exc: Union[BaseException, None] = None,
     ):

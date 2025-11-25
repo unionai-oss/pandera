@@ -10,7 +10,7 @@ def format_generic_error_message(
     :param parent_schema: class of schema being validated.
     :param check: check that generated error.
     """
-    return f"{parent_schema} failed validation " f"{check.error}"
+    return f"{parent_schema} failed validation {check.error}"
 
 
 def scalar_failure_case(x) -> dict:

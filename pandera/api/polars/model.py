@@ -116,10 +116,10 @@ class DataFrameModel(_DataFrameModel[pl.LazyFrame, DataFrameSchema]):
     def validate(
         cls: type[Self],
         check_obj: pl.DataFrame,
-        head: Optional[int] = None,
-        tail: Optional[int] = None,
-        sample: Optional[int] = None,
-        random_state: Optional[int] = None,
+        head: int | None = None,
+        tail: int | None = None,
+        sample: int | None = None,
+        random_state: int | None = None,
         lazy: bool = False,
         inplace: bool = False,
     ) -> DataFrame[Self]: ...
@@ -129,10 +129,10 @@ class DataFrameModel(_DataFrameModel[pl.LazyFrame, DataFrameSchema]):
     def validate(
         cls: type[Self],
         check_obj: pl.LazyFrame,
-        head: Optional[int] = None,
-        tail: Optional[int] = None,
-        sample: Optional[int] = None,
-        random_state: Optional[int] = None,
+        head: int | None = None,
+        tail: int | None = None,
+        sample: int | None = None,
+        random_state: int | None = None,
         lazy: bool = False,
         inplace: bool = False,
     ) -> LazyFrame[Self]: ...
@@ -142,10 +142,10 @@ class DataFrameModel(_DataFrameModel[pl.LazyFrame, DataFrameSchema]):
     def validate(
         cls: type[Self],
         check_obj: PolarsFrame,
-        head: Optional[int] = None,
-        tail: Optional[int] = None,
-        sample: Optional[int] = None,
-        random_state: Optional[int] = None,
+        head: int | None = None,
+        tail: int | None = None,
+        sample: int | None = None,
+        random_state: int | None = None,
         lazy: bool = False,
         inplace: bool = False,
     ) -> Union[LazyFrame[Self], DataFrame[Self]]:

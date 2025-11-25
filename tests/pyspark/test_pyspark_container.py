@@ -403,7 +403,9 @@ def test_schema_to_structtype(
                 name="non_nullable", dataType=T.IntegerType(), nullable=True
             ),
             T.StructField(
-                name="binary", dataType=T.StringType(), nullable=True  # Wrong
+                name="binary",
+                dataType=T.StringType(),
+                nullable=True,  # Wrong
             ),
             T.StructField(
                 name="byte", dataType=T.StringType(), nullable=True

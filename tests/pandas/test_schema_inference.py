@@ -1,5 +1,6 @@
 # pylint: disable=W0212
 """Unit tests for schema inference module."""
+
 from typing import Union
 
 import pandas as pd

@@ -4,18 +4,19 @@ from __future__ import annotations
 
 import copy
 import traceback
-from typing import TYPE_CHECKING, Any, Callable, Optional
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
+from typing import TYPE_CHECKING, Any, Optional
 
 import ibis
-from ibis import _, selectors as s
+from ibis import _
+from ibis import selectors as s
 from ibis.common.exceptions import IbisError
 
 from pandera.api.ibis.error_handler import ErrorHandler
-from pandera.config import ValidationScope
-from pandera.backends.base import CoreCheckResult, ColumnInfo
-from pandera.backends.utils import convert_uniquesettings
+from pandera.backends.base import ColumnInfo, CoreCheckResult
 from pandera.backends.ibis.base import IbisSchemaBackend
+from pandera.backends.utils import convert_uniquesettings
+from pandera.config import ValidationScope
 from pandera.errors import (
     ParserError,
     SchemaDefinitionError,
@@ -38,10 +39,10 @@ class DataFrameSchemaBackend(IbisSchemaBackend):
         check_obj: ibis.Table,
         schema: DataFrameSchema,
         *,
-        head: Optional[int] = None,
-        tail: Optional[int] = None,
-        sample: Optional[int] = None,
-        random_state: Optional[int] = None,
+        head: int | None = None,
+        tail: int | None = None,
+        sample: int | None = None,
+        random_state: int | None = None,
         lazy: bool = False,
         inplace: bool = False,
     ):
@@ -149,7 +150,7 @@ class DataFrameSchemaBackend(IbisSchemaBackend):
             except Exception as err:
                 # catch other exceptions that may occur when executing the check
                 err_msg = f'"{err.args[0]}"' if err.args else ""
-                err_str = f"{err.__class__.__name__}({ err_msg})"
+                err_str = f"{err.__class__.__name__}({err_msg})"
                 msg = (
                     f"Error while executing check function: {err_str}\n"
                     + traceback.format_exc()
@@ -424,7 +425,9 @@ class DataFrameSchemaBackend(IbisSchemaBackend):
             if duplicates.any().execute():
                 failure_cases = check_obj.filter(duplicated)
                 passed = False
-                message = f"columns '{*subset,}' not unique:\n{failure_cases}"
+                message = (
+                    f"columns '{(*subset,)}' not unique:\n{failure_cases}"
+                )
                 break
         return CoreCheckResult(
             passed=passed,

@@ -9,7 +9,6 @@ from pandera.validation_depth import validate_scope
 
 def custom_backend():
     class CustomBackend:
-
         # pylint: disable=unused-argument
         @validate_scope(ValidationScope.SCHEMA)
         def check_schema(self, check_obj):
@@ -37,7 +36,6 @@ def custom_backend():
     ],
 )
 def test_validate_scope(validation_depth, expected):
-
     with config_context(validation_depth=validation_depth):
         backend = custom_backend()
         schema_result = backend.check_schema("foo")

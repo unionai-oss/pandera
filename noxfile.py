@@ -8,7 +8,7 @@
 import os
 import shutil
 import sys
-from typing import Optional, Tuple, List
+from typing import Optional
 
 import nox
 from nox import Session
@@ -115,12 +115,11 @@ def requirements(session: Session) -> None:
 
 def _testing_requirements(
     session: Session,
-    extra: Optional[str] = None,
-    pandas: Optional[str] = None,
-    pydantic: Optional[str] = None,
-    polars: Optional[str] = None,
+    extra: str | None = None,
+    pandas: str | None = None,
+    pydantic: str | None = None,
+    polars: str | None = None,
 ) -> list[str]:
-
     pandas = pandas or PANDAS_VERSIONS[-1]
     pydantic = pydantic or PYDANTIC_VERSIONS[-1]
     polars = polars or POLARS_VERSIONS[-1]
@@ -137,7 +136,7 @@ def _testing_requirements(
 
     _requirements = list(set(_requirements))
 
-    _numpy: Optional[str] = None
+    _numpy: str | None = None
     if pandas != "2.3.3" or (
         extra == "pyspark" and session.python in ("3.10",)
     ):
@@ -178,7 +177,7 @@ def _testing_requirements(
 
 
 # the base module with no extras
-EXTRA_PYTHON_PYDANTIC: list[tuple[Optional[str], ...]] = [
+EXTRA_PYTHON_PYDANTIC: list[tuple[str | None, ...]] = [
     (None, None, None, None)
 ]
 DATAFRAME_EXTRAS = {
@@ -222,10 +221,10 @@ for extra in OPTIONAL_DEPENDENCIES:
 @nox.parametrize("extra, pandas, pydantic, polars", EXTRA_PYTHON_PYDANTIC)
 def tests(
     session: Session,
-    extra: Optional[str] = None,
-    pandas: Optional[str] = None,
-    pydantic: Optional[str] = None,
-    polars: Optional[str] = None,
+    extra: str | None = None,
+    pandas: str | None = None,
+    pydantic: str | None = None,
+    polars: str | None = None,
 ) -> None:
     """Run the test suite."""
 
