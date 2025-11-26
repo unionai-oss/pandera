@@ -1,7 +1,7 @@
 """Unit tests for polars components."""
 
-from typing import Optional, Union
 from collections.abc import Iterable
+from typing import Optional, Union
 
 import numpy as np
 import polars as pl
@@ -217,10 +217,9 @@ def test_check_data_container():
         def check(
             self,
             pandera_dtype: DataType,
-            data_container: Optional[  # type:ignore
-                # test case doesn't need to be Liskov substitutable
-                polars_engine.PolarsData
-            ] = None,
+            data_container: pl.LazyFrame
+            | polars_engine.PolarsData
+            | None = None,
         ) -> Union[bool, Iterable[bool]]:
             if data_container:
                 ldf = data_container.lazyframe

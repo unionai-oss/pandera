@@ -6,8 +6,8 @@ import dataclasses
 import datetime
 import inspect
 import warnings
-from typing import Any, Optional, Union, cast
 from collections.abc import Iterable
+from typing import Any, Optional, Union, cast
 
 import numpy as np
 from numpy.typing import DTypeLike
@@ -358,7 +358,7 @@ class String(DataType, dtypes.String):
     def check(
         self,
         pandera_dtype: dtypes.DataType,
-        data_container: Optional[PandasObject] = None,
+        data_container: PandasObject | None = None,
     ) -> Union[bool, Iterable[bool]]:
         return isinstance(pandera_dtype, (Object, type(self)))
 

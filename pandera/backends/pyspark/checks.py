@@ -6,13 +6,13 @@ from typing import Optional, Union
 from pandera.api.base.checks import CheckResult
 from pandera.api.checks import Check
 from pandera.api.pyspark.types import (
+    DataFrameTypes,
+    GroupbyObject,
     PysparkDataframeColumnObject,
     is_bool,
     is_table,
-    GroupbyObject,
 )
 from pandera.backends.base import BaseCheckBackend
-from pandera.api.pyspark.types import DataFrameTypes
 
 
 class PySparkCheckBackend(BaseCheckBackend):
@@ -43,7 +43,7 @@ class PySparkCheckBackend(BaseCheckBackend):
     @staticmethod
     def _format_groupby_input(
         groupby_obj: GroupbyObject,
-        groups: Optional[list[str]],
+        groups: list[str] | None,
     ) -> dict[str, DataFrameTypes]:  # pragma: no cover
         raise NotImplementedError
 
@@ -85,7 +85,7 @@ class PySparkCheckBackend(BaseCheckBackend):
     def __call__(
         self,
         check_obj: DataFrameTypes,
-        key: Optional[str] = None,
+        key: str | None = None,
     ) -> CheckResult:
         check_obj = self.preprocess(check_obj, key)
 

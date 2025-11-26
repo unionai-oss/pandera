@@ -14,7 +14,7 @@ authors = [
 description = "A light-weight and flexible data validation and testing tool for statistical data objects."
 readme = "README.md"
 license = {file = "LICENSE.txt"}
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 keywords = ["pandas", "validation", "data-structures"]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
@@ -23,11 +23,11 @@ classifiers = [
     "Intended Audience :: Science/Research",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Topic :: Scientific/Engineering",
 ]
 dependencies = [
@@ -112,21 +112,22 @@ all = [
 
 [dependency-groups]
 dev = [
+    "duckdb",
     "hypothesis >= 6.92.7",
     "ipdb",
-    "isort >= 5.7.0",
     "joblib",
     "mypy == 1.10.0",
+    "nox",
     "pip",
     "polars >= 0.20.0",
     "pre_commit",
     "pyarrow >= 13",
-    "pytz",
-    "xdoctest",
-    "nox",
-    "uvicorn",
     "python-multipart",
+    "pytz",
+    "ruff",
     "uv",
+    "uvicorn",
+    "xdoctest",
 ]
 testing = [
     "pytest",
@@ -134,7 +135,7 @@ testing = [
     "pytest-xdist",
     "pytest-asyncio",
     "sphinx",
-    "ibis-framework[duckdb,sqlite] >= 9.0.0",
+    "ibis-framework[duckdb,sqlite] >= 11.0.0",
 ]
 docs = [
     "setuptools",
@@ -168,33 +169,21 @@ log_cli = true
 log_cli_level = 20
 
 [tool.ruff]
-line-length = 120
+line-length = 79
 extend-exclude = [
     "setup.py",
-    ".venv",
-    ".nox",
-    ".git",
     "asv_bench",
 ]
+target-version = "py310"
 
-[tool.black]
-line-length = 79
-target-version = [
-  'py39',
-  'py310',
-  'py311',
-  'py312',
+[tool.ruff.lint]
+select = [
+    "I",
+    "UP",
 ]
-include = '\.pyi?$'
-exclude = '''
-(
-  \.git
-  | \.venv
-  | \.nox
-  | setup.py
-  | asv_bench
-)
-'''
+ignore = [
+    "UP007",
+]
 
 [tool.codespell]
 ignore-words-list = ["notin", "splitted", "fo", "strat"]

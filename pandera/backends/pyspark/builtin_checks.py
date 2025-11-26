@@ -1,7 +1,7 @@
 """Built-in checks for PySpark."""
 
-from typing import Any, TypeVar
 from collections.abc import Iterable
+from typing import Any, TypeVar
 
 import pyspark.sql.types as pst
 from pyspark.sql.functions import col
@@ -197,7 +197,10 @@ def in_range(
         if include_max
         else col(data.column_name) < max_value
     )
-    return data.dataframe.filter(~(compare_min & compare_max)).limit(1).count() == 0  # type: ignore
+    return (
+        data.dataframe.filter(~(compare_min & compare_max)).limit(1).count()
+        == 0
+    )  # type: ignore
 
 
 @register_builtin_check(

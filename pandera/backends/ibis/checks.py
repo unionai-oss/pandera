@@ -4,23 +4,20 @@ from functools import partial
 from typing import TYPE_CHECKING, Optional, Union
 
 import ibis
-from ibis import _, selectors as s
+from ibis import _
+from ibis import selectors as s
 
 from pandera.api.base.checks import CheckResult
 from pandera.api.checks import Check
 from pandera.api.ibis.types import IbisData
 from pandera.backends.base import BaseCheckBackend
+from pandera.backends.ibis.constants import POSITIONAL_JOIN_BACKENDS
 from pandera.backends.ibis.utils import select_column
 from pandera.constants import CHECK_OUTPUT_KEY, CHECK_OUTPUT_SUFFIX
 
 if TYPE_CHECKING:
     import ibis.expr.types as ir
     from ibis.expr.types.groupby import GroupedTable
-
-
-# Manually maintained list derived from
-# https://github.com/ibis-project/ibis/blob/10.6.0/ibis/backends/tests/test_join.py#L370-L399
-POSITIONAL_JOIN_BACKENDS = {"duckdb", "polars"}
 
 
 class IbisCheckBackend(BaseCheckBackend):
@@ -52,7 +49,7 @@ class IbisCheckBackend(BaseCheckBackend):
         raise NotImplementedError
 
     def preprocess(
-        self, check_obj: Union[ibis.Column, ibis.Table], key: Optional[str]
+        self, check_obj: Union[ibis.Column, ibis.Table], key: str | None
     ):
         """Preprocesses a check object before applying the check function."""
         # This handles the case of Column validation by promoting it to
@@ -184,8 +181,7 @@ class IbisCheckBackend(BaseCheckBackend):
         """Postprocesses the result of applying the check function."""
         passed = check_output[CHECK_OUTPUT_KEY].all()
         failure_cases = check_output.filter(~_[CHECK_OUTPUT_KEY]).drop(
-            s.endswith(f"__{CHECK_OUTPUT_KEY}__")
-            | select_column(CHECK_OUTPUT_KEY)
+            s.endswith(CHECK_OUTPUT_SUFFIX) | select_column(CHECK_OUTPUT_KEY)
         )
         if check_obj.key is not None:
             failure_cases = failure_cases.select(check_obj.key)
@@ -203,7 +199,7 @@ class IbisCheckBackend(BaseCheckBackend):
     def __call__(
         self,
         check_obj: ibis.Table,
-        key: Optional[str] = None,
+        key: str | None = None,
     ) -> CheckResult:
         check_obj = self.preprocess(check_obj, key)
         ibis_data = IbisData(check_obj, key)

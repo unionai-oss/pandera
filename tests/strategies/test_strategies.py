@@ -1,9 +1,11 @@
 # pylint: disable=undefined-variable,redefined-outer-name,invalid-name,undefined-loop-variable,too-many-lines  # noqa
 """Unit tests for pandera data generating strategies."""
+
 import datetime
 import operator
 import re
-from typing import Any, Callable, Optional
+from collections.abc import Callable
+from typing import Any, Optional
 from unittest.mock import MagicMock
 from warnings import catch_warnings
 
@@ -12,11 +14,11 @@ import pandas as pd
 import pytest
 
 import pandera.pandas as pa
-from pandera.strategies import pandas_strategies as strategies
 from pandera.api.checks import Check
 from pandera.api.extensions import register_check_statistics
 from pandera.dtypes import is_category, is_complex, is_float
 from pandera.engines import pandas_engine
+from pandera.strategies import pandas_strategies as strategies
 
 try:
     import hypothesis
@@ -335,7 +337,7 @@ def test_isin_notin_strategies(data_type, chained, data):
 @hypothesis.given(st.data(), st.text())
 def test_str_pattern_checks(
     str_strat: Callable,
-    pattern_fn: Optional[Callable[..., str]],
+    pattern_fn: Callable[..., str] | None,
     chained: bool,
     data,
     pattern,

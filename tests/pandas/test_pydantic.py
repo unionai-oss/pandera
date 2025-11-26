@@ -1,8 +1,8 @@
 """Unit tests for pydantic compatibility."""
 
-from typing import Optional
 from typing import (
     Generic,
+    Optional,
     TypeVar,
 )
 
@@ -22,8 +22,8 @@ except ImportError:
 PYDANTIC_V2 = False
 if pydantic_version().release >= (2, 0, 0):
     PYDANTIC_V2 = True
-    from packaging import version
     import pydantic_core
+    from packaging import version
 
 
 class SimpleSchema(pa.DataFrameModel):
@@ -47,16 +47,16 @@ class DataFrameModelPydantic(BaseModel):
 class DataFrameSchemaPydantic(BaseModel):
     """Test pydantic model with a DataFrameSchema and MultiIndex."""
 
-    pa_schema: Optional[pa.DataFrameSchema]
-    pa_mi: Optional[pa.MultiIndex]
+    pa_schema: pa.DataFrameSchema | None
+    pa_mi: pa.MultiIndex | None
 
 
 class SeriesSchemaPydantic(BaseModel):
     """Test pydantic model with a SeriesSchema, Column and Index."""
 
-    pa_series_schema: Optional[pa.SeriesSchema]
-    pa_column: Optional[pa.Column]
-    pa_index: Optional[pa.Index]
+    pa_series_schema: pa.SeriesSchema | None
+    pa_column: pa.Column | None
+    pa_index: pa.Index | None
 
 
 TableT = TypeVar("TableT", bound=pa.DataFrameModel)

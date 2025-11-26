@@ -1,8 +1,8 @@
 """Utility functions for importing optional dependencies."""
 
+from collections.abc import Callable
 from functools import wraps
-from typing import Callable, TypeVar, cast
-
+from typing import TypeVar, cast
 
 F = TypeVar("F", bound=Callable)
 
@@ -12,9 +12,7 @@ def strategy_import_error(fn: F) -> F:
 
     @wraps(fn)
     def _wrapper(*args, **kwargs):
-
         try:
-
             import hypothesis
         except ImportError as exc:
             raise ImportError(

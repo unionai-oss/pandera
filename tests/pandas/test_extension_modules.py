@@ -5,7 +5,6 @@ import pytest
 
 from pandera.api.hypotheses import Hypothesis
 
-
 try:
     from scipy import stats  # pylint: disable=unused-import
 except ImportError:  # pragma: no cover

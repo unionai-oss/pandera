@@ -1,6 +1,6 @@
 """Polars types."""
 
-from typing import NamedTuple, Union, TypeVar
+from typing import NamedTuple, TypeVar, Union
 
 import polars as pl
 

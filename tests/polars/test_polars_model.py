@@ -1,7 +1,7 @@
 """Unit tests for Polars dataframe model."""
 
-from datetime import datetime
 import sys
+from datetime import datetime
 from typing import Optional
 
 try:  # python 3.9+
@@ -125,7 +125,7 @@ def test_model_schema_equivalency(
 
 def test_model_schema_equivalency_with_optional():
     class ModelWithOptional(DataFrameModel):
-        string_col: Optional[str]
+        string_col: str | None
         int_col: int
 
     schema = DataFrameSchema(

@@ -429,9 +429,9 @@ def test_schema():
     class Schema(pa.DataFrameModel):
         """Simple DataFrameModel containing optional columns."""
 
-        a: Optional[str]
-        b: Optional[str] = pa.Field(eq="b")
-        c: Optional[str]  # test pandera.typing alias
+        a: str | None
+        b: str | None = pa.Field(eq="b")
+        c: str | None  # test pandera.typing alias
 
     return Schema
 
@@ -443,15 +443,15 @@ def test_optional_column(
     """Test that optional columns are not required."""
 
     schema = test_schema_optional_columns.to_schema()
-    assert not schema.columns[
-        "a"
-    ].required, "Optional column 'a' shouldn't be required"
-    assert not schema.columns[
-        "b"
-    ].required, "Optional column 'b' shouldn't be required"
-    assert not schema.columns[
-        "c"
-    ].required, "Optional column 'c' shouldn't be required"
+    assert not schema.columns["a"].required, (
+        "Optional column 'a' shouldn't be required"
+    )
+    assert not schema.columns["b"].required, (
+        "Optional column 'b' shouldn't be required"
+    )
+    assert not schema.columns["c"].required, (
+        "Optional column 'c' shouldn't be required"
+    )
 
 
 def test_validation_succeeds_with_missing_optional_column(
@@ -471,9 +471,9 @@ def test_validation_succeeds_with_missing_optional_column(
     df_out = test_schema_optional_columns.validate(check_obj=df)
 
     # `df_out.pandera.errors` should be empty if validation is successful.
-    assert (
-        df_out.pandera.errors == {}
-    ), "No error should be raised in case of a missing optional column."
+    assert df_out.pandera.errors == {}, (
+        "No error should be raised in case of a missing optional column."
+    )
 
 
 def test_invalid_field(

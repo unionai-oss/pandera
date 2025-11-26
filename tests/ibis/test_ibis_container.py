@@ -7,7 +7,8 @@ import ibis.expr.datatypes as dt
 import ibis.expr.types as ir
 import pandas as pd
 import pytest
-from ibis import _, selectors as s
+from ibis import _
+from ibis import selectors as s
 
 import pandera as pa
 from pandera.api.ibis.types import IbisData
@@ -23,7 +24,6 @@ def t_basic():
             "string_col": ["0", "1", "2"],
             "int_col": [0, 1, 2],
         },
-        name="t",
     )
 
 
@@ -61,7 +61,6 @@ def t_for_regex_match():
             "int_col_1": [0, 1, 2],
             "int_col_2": [0, 1, 2],
         },
-        name="t",
     )
 
 
@@ -285,7 +284,57 @@ def test_dataframe_level_checks():
         assert err.failure_cases.shape[0] == 6
 
 
-def _failure_value(column: str, dtype: Optional[ibis.DataType] = None):
+@pytest.mark.parametrize(
+    "column_mod,filter_expr",
+    [
+        ({"int_col": [-1, 1, 1]}, _.int_col >= 0),
+        ({"string_col": [*"013"]}, _.string_col != "3"),
+        (
+            {
+                "int_col": [-1, 1, 1],
+                "string_col": [*"013"],
+            },
+            (_.int_col >= 0) & (_.string_col != "3"),
+        ),
+        ({"int_col": -1}, _.int_col >= 0),
+        ({"string_col": "d"}, _.string_col != "d"),
+        (
+            {"int_col": [None, 1, 1]},
+            _.int_col.notnull(),
+        ),
+    ],
+)
+@pytest.mark.parametrize("backend", ["duckdb", "sqlite"])
+def test_drop_invalid_rows(
+    column_mod,
+    filter_expr,
+    t_schema_with_check,
+    monkeypatch,
+    backend,
+):
+    monkeypatch.setattr(ibis.options, "default_backend", None)
+    ibis.set_backend(backend)
+
+    t_schema_with_check.drop_invalid_rows = True
+    data = {
+        "string_col": ["0", "1", "2"],
+        "int_col": [0, 1, 2],
+    }
+    modified_data = ibis.memtable(
+        data | column_mod,
+        schema=ibis.schema([("string_col", "string"), ("int_col", "int64")]),
+    )
+    validated_data = modified_data.pipe(
+        t_schema_with_check.validate,
+        lazy=True,
+    )
+    expected_valid_data = modified_data.filter(filter_expr)
+    got = validated_data.execute()
+    expected = expected_valid_data.execute()
+    assert validated_data.execute().equals(expected_valid_data.execute())
+
+
+def _failure_value(column: str, dtype: ibis.DataType | None = None):
     if column.startswith("string"):
         return ibis.literal("9", type=dtype or dt.String)
     elif column.startswith("int"):
@@ -340,3 +389,26 @@ def test_regex_selector(
             modified_data = transform_fn(t_for_regex_match, column)
             with pytest.raises(pa.errors.SchemaError, match=exception_msg):
                 modified_data.pipe(schema.validate)
+
+
+def test_lazy_validation_errors():
+    schema = DataFrameSchema(
+        {
+            "a": Column(int),
+            "b": Column(str, pa.Check.isin([*"abc"])),
+            "c": Column(float, [pa.Check.ge(0.0), pa.Check.le(1.0)]),
+        }
+    )
+
+    invalid_t = ibis.memtable(
+        {
+            "a": ["1", "2", "3"],  # 1 dtype error
+            "b": ["d", "e", "f"],  # 3 value errors
+            "c": [0.0, 1.1, -0.1],  # 2 value errors
+        }
+    )
+
+    try:
+        schema.validate(invalid_t, lazy=True)
+    except pa.errors.SchemaErrors as exc:
+        assert exc.failure_cases.shape[0] == 6

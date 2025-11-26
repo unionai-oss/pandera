@@ -23,7 +23,7 @@ class MetaParser(type):
 class BaseParser(metaclass=MetaParser):
     """Parser base class."""
 
-    def __init__(self, name: Optional[str] = None):
+    def __init__(self, name: str | None = None):
         self.name = name
 
     @classmethod

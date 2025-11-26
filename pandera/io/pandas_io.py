@@ -1,11 +1,12 @@
 """Module for reading and writing schema objects."""
 
+import enum
 import json
 import warnings
 from collections.abc import Mapping
 from functools import partial
 from pathlib import Path
-from typing import Optional, Union, Any
+from typing import Any, Optional, Union
 
 import pandas as pd
 
@@ -55,6 +56,10 @@ def _serialize_check_stats(check_stats, dtype=None):
     """Serialize check statistics into json/yaml-compatible format."""
 
     def handle_stat_dtype(stat):
+        # Handle enum types by converting them to a list of values
+        if isinstance(stat, type) and issubclass(stat, enum.Enum):
+            return [e.value for e in stat]
+
         if pandas_engine.Engine.dtype(dtypes.DateTime).check(
             dtype
         ) and hasattr(stat, "strftime"):
@@ -576,7 +581,7 @@ def _format_index(index_statistics):
             name=(
                 "None"
                 if properties["name"] is None
-                else f"\"{properties['name']}\""
+                else f'"{properties["name"]}"'
             ),
             description=(None if description is None else f'"{description}"'),
             title=(None if title is None else f'"{title}"'),
@@ -669,7 +674,7 @@ class FrictionlessFieldParser:
 
     For this implementation, we are using field names, constraints and types
     but leaving other frictionless parameters out (e.g. foreign keys, type
-    formats, titles, descriptions).
+    formats).
 
     :param field: a field object from a frictionless schema.
     :param primary_keys: the primary keys from a frictionless schema. These
@@ -680,8 +685,12 @@ class FrictionlessFieldParser:
     def __init__(self, field, primary_keys) -> None:
         self.constraints = field.constraints or {}
         self.primary_keys = primary_keys
+        self.description = (
+            None if field.description == "" else field.description
+        )
+        self.title = None if field.title == "" else field.title
         self.name = field.name
-        self.type = field.get("type", "string")
+        self.type = field.type
 
     @property
     def dtype(self) -> str:
@@ -716,7 +725,7 @@ class FrictionlessFieldParser:
         )
 
     @property
-    def checks(self) -> Optional[list[dict[str, Any]]]:
+    def checks(self) -> list[dict[str, Any]] | None:
         """Convert a set of frictionless schema field constraints into checks.
 
         This parses the standard set of frictionless constraints which can be
@@ -850,6 +859,8 @@ class FrictionlessFieldParser:
             "required": self.required,
             "name": self.name,
             "regex": self.regex,
+            "description": self.description,
+            "title": self.title,
         }
 
 

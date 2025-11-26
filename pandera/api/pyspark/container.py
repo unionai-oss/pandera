@@ -40,21 +40,20 @@ class DataFrameSchema(BaseSchema):
 
     def __init__(
         self,
-        columns: Optional[  # type: ignore [name-defined]
-            dict[Any, pandera.api.pyspark.components.Column]  # type: ignore [name-defined]
-        ] = None,
-        checks: Optional[CheckList] = None,
+        columns: dict[Any, pandera.api.pyspark.components.Column]
+        | None = None,
+        checks: CheckList | None = None,
         dtype: PySparkDtypeInputTypes = None,
         coerce: bool = False,
         strict: StrictType = False,
-        name: Optional[str] = None,
+        name: str | None = None,
         ordered: bool = False,
-        unique: Optional[Union[str, list[str]]] = None,
+        unique: Union[str, list[str]] | None = None,
         report_duplicates: UniqueSettings = "all",
         unique_column_names: bool = False,
-        title: Optional[str] = None,
-        description: Optional[str] = None,
-        metadata: Optional[dict] = None,
+        title: str | None = None,
+        description: str | None = None,
+        metadata: dict | None = None,
     ) -> None:
         """Initialize DataFrameSchema validator.
 
@@ -184,7 +183,7 @@ class DataFrameSchema(BaseSchema):
         return self._unique
 
     @unique.setter
-    def unique(self, value: Optional[Union[str, list[str]]]) -> None:
+    def unique(self, value: Union[str, list[str]] | None) -> None:
         """Set unique attribute."""
         self._unique = [value] if isinstance(value, str) else value
 
@@ -209,7 +208,7 @@ class DataFrameSchema(BaseSchema):
             )
         return {n: c.dtype for n, c in self.columns.items() if not c.regex}
 
-    def get_metadata(self) -> Optional[dict]:
+    def get_metadata(self) -> dict | None:
         """Provide metadata for columns and schema level"""
         res: dict[Any, Any] = {"columns": {}}
         for k in self.columns.keys():
@@ -265,10 +264,10 @@ class DataFrameSchema(BaseSchema):
     def validate(
         self,
         check_obj: DataFrame,
-        head: Optional[int] = None,
-        tail: Optional[int] = None,
-        sample: Optional[int] = None,
-        random_state: Optional[int] = None,
+        head: int | None = None,
+        tail: int | None = None,
+        sample: int | None = None,
+        random_state: int | None = None,
         lazy: bool = True,
         inplace: bool = False,
     ):
@@ -342,10 +341,10 @@ class DataFrameSchema(BaseSchema):
     def _validate(
         self,
         check_obj: DataFrame,
-        head: Optional[int] = None,
-        tail: Optional[int] = None,
-        sample: Optional[int] = None,
-        random_state: Optional[int] = None,
+        head: int | None = None,
+        tail: int | None = None,
+        sample: int | None = None,
+        random_state: int | None = None,
         lazy: bool = False,
         inplace: bool = False,
         error_handler: ErrorHandler = None,
@@ -365,10 +364,10 @@ class DataFrameSchema(BaseSchema):
     def __call__(
         self,
         dataframe: DataFrame,
-        head: Optional[int] = None,
-        tail: Optional[int] = None,
-        sample: Optional[int] = None,
-        random_state: Optional[int] = None,
+        head: int | None = None,
+        tail: int | None = None,
+        sample: int | None = None,
+        random_state: int | None = None,
         lazy: bool = True,
         inplace: bool = False,
     ):
@@ -500,7 +499,7 @@ class DataFrameSchema(BaseSchema):
 
         return pandera.io.from_yaml(yaml_schema)
 
-    def to_yaml(self, stream: Optional[os.PathLike] = None) -> Optional[str]:
+    def to_yaml(self, stream: os.PathLike | None = None) -> str | None:
         """Write DataFrameSchema to yaml file.
 
         :param stream: file stream to write to. If None, dumps to string.
@@ -537,8 +536,8 @@ class DataFrameSchema(BaseSchema):
         ...
 
     def to_json(
-        self, target: Optional[os.PathLike] = None, **kwargs
-    ) -> Optional[str]:
+        self, target: os.PathLike | None = None, **kwargs
+    ) -> str | None:
         """Write DataFrameSchema to json file.
 
         :param target: file target to write to. If None, dumps to string.

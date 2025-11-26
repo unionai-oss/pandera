@@ -3,7 +3,8 @@
 import copy
 import traceback
 import warnings
-from typing import Any, Callable, Optional
+from collections.abc import Callable
+from typing import Any, Optional
 
 import polars as pl
 
@@ -40,16 +41,15 @@ def _to_frame_kind(lf: pl.LazyFrame, kind: type[PolarsFrame]) -> PolarsFrame:
 
 
 class DataFrameSchemaBackend(PolarsSchemaBackend):
-
     def validate(
         self,
         check_obj: PolarsFrame,
         schema: DataFrameSchema,
         *,
-        head: Optional[int] = None,
-        tail: Optional[int] = None,
-        sample: Optional[int] = None,
-        random_state: Optional[int] = None,
+        head: int | None = None,
+        tail: int | None = None,
+        sample: int | None = None,
+        random_state: int | None = None,
         lazy: bool = False,
         inplace: bool = False,
     ) -> PolarsFrame:
@@ -176,7 +176,7 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
             except Exception as err:
                 # catch other exceptions that may occur when executing the check
                 err_msg = f'"{err.args[0]}"' if err.args else ""
-                err_str = f"{err.__class__.__name__}({ err_msg})"
+                err_str = f"{err.__class__.__name__}({err_msg})"
                 msg = (
                     f"Error while executing check function: {err_str}\n"
                     + traceback.format_exc()
@@ -514,7 +514,7 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
                     check_output=exc.parser_output,
                 ),
             )
-        except pl.ComputeError as exc:
+        except pl.exceptions.ComputeError as exc:
             error_handler.collect_error(
                 validation_type(SchemaErrorReason.DATATYPE_COERCION),
                 SchemaErrorReason.DATATYPE_COERCION,
@@ -636,7 +636,9 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
                 failure_cases = check_obj.filter(duplicates).collect()
 
                 passed = False
-                message = f"columns '{*subset,}' not unique:\n{failure_cases}"
+                message = (
+                    f"columns '{(*subset,)}' not unique:\n{failure_cases}"
+                )
                 break
         return CoreCheckResult(
             passed=passed,

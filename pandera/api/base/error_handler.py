@@ -19,7 +19,7 @@ class ErrorCategory(Enum):
 
 
 class ErrorHandler:
-    """Handler for Schema & Data level errors during validation."""
+    """Handler for schema- and data-level errors during validation."""
 
     def __init__(self, lazy: bool = True) -> None:
         """Initialize ErrorHandler.
@@ -37,10 +37,22 @@ class ErrorHandler:
         """Whether or not the schema error handler raises errors immediately."""
         return self._lazy
 
+    @staticmethod
+    def _count_failure_cases(failure_cases: Any) -> int:
+        # Failure cases can be a dataframe-like object or a scalar value. Try
+        # getting the number of elements in failure cases or set to one.
+        if isinstance(failure_cases, str):  # Avoid returning str length
+            return 1
+
+        try:
+            return len(failure_cases)
+        except TypeError:
+            return 0 if failure_cases is None else 1
+
     def collect_error(
         self,
         error_type: ErrorCategory,
-        reason_code: Optional[SchemaErrorReason],
+        reason_code: SchemaErrorReason | None,
         schema_error: SchemaError,
         original_exc: Union[BaseException, None] = None,
     ):
@@ -63,15 +75,11 @@ class ErrorHandler:
 
         self._schema_errors.append(schema_error)
 
-        # Failure cases can be a dataframe-like object or a scalar value. Try
-        # getting the number of elements in failure cases column or set to one.
-        try:
-            failure_cases_count = len(schema_error.failure_cases)
-        except TypeError:
-            if schema_error.failure_cases is None:
-                failure_cases_count = 0
-            else:
-                failure_cases_count = 1
+        failure_cases_count = (
+            0
+            if schema_error.failure_cases is None
+            else self._count_failure_cases(schema_error.failure_cases)
+        )
 
         self._collected_errors.append(
             {

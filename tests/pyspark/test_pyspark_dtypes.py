@@ -2,9 +2,9 @@
 
 from typing import Any
 
-import pytest
 import pyspark
 import pyspark.sql.types as T
+import pytest
 from pyspark.sql import DataFrame
 
 from pandera.backends.pyspark.decorators import validate_scope

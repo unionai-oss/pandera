@@ -1,8 +1,8 @@
 """Validation backend for polars components."""
 
 import warnings
-from typing import Any, Callable, Optional, cast
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
+from typing import Any, Optional, cast
 
 import polars as pl
 
@@ -10,8 +10,8 @@ from pandera.api.base.error_handler import ErrorHandler
 from pandera.api.polars.components import Column
 from pandera.api.polars.types import PolarsData
 from pandera.api.polars.utils import (
-    get_lazyframe_schema,
     get_lazyframe_column_names,
+    get_lazyframe_schema,
 )
 from pandera.backends.base import CoreCheckResult
 from pandera.backends.polars.base import PolarsSchemaBackend, is_float_dtype
@@ -40,14 +40,13 @@ class ColumnBackend(PolarsSchemaBackend):
         check_obj: pl.LazyFrame,
         schema: Column,
         *,
-        head: Optional[int] = None,
-        tail: Optional[int] = None,
-        sample: Optional[int] = None,
-        random_state: Optional[int] = None,
+        head: int | None = None,
+        tail: int | None = None,
+        sample: int | None = None,
+        random_state: int | None = None,
         lazy: bool = False,
         inplace: bool = False,
     ) -> pl.LazyFrame:
-
         if inplace:
             warnings.warn("setting inplace=True will have no effect.")
 
@@ -311,7 +310,6 @@ class ColumnBackend(PolarsSchemaBackend):
         check_obj: pl.LazyFrame,
         schema: Column,
     ) -> list[CoreCheckResult]:
-
         passed = True
         failure_cases = None
         msg = None

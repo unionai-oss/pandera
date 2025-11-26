@@ -33,14 +33,13 @@ class ArraySchemaBackend(PandasSchemaBackend):
         check_obj,
         schema,
         *,
-        head: Optional[int] = None,
-        tail: Optional[int] = None,
-        sample: Optional[int] = None,
-        random_state: Optional[int] = None,
+        head: int | None = None,
+        tail: int | None = None,
+        sample: int | None = None,
+        random_state: int | None = None,
         lazy: bool = False,
         inplace: bool = False,
     ):
-
         error_handler = ErrorHandler(lazy)
         check_obj = self.preprocess(check_obj, inplace)
 
@@ -240,7 +239,6 @@ class ArraySchemaBackend(PandasSchemaBackend):
             failed = None
 
             if type(check_obj).__module__.startswith("pyspark.pandas"):
-
                 import pyspark.pandas as ps
 
                 duplicates = (

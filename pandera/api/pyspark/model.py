@@ -5,19 +5,18 @@ import inspect
 import os
 import re
 import typing
+from collections.abc import Callable, Iterable, Mapping
 from typing import (
     Any,
-    Callable,
     Optional,
     TypeVar,
     Union,
     cast,
+    get_type_hints,
 )
-from collections.abc import Iterable, Mapping
 
 import pyspark.sql as ps
 from pyspark.sql.types import StructType
-from typing import get_type_hints
 
 from pandera.api.base.model import BaseModel
 from pandera.api.checks import Check
@@ -36,7 +35,6 @@ from pandera.errors import SchemaInitError
 from pandera.typing import AnnotationInfo
 from pandera.typing.common import DataFrameBase
 from pandera.typing.pyspark import DataFrame
-
 
 _CONFIG_KEY = "Config"
 
@@ -122,9 +120,9 @@ class DataFrameModel(BaseModel):
     """
 
     Config: type[BaseConfig] = BaseConfig
-    __extras__: Optional[dict[str, Any]] = None
-    __schema__: Optional[DataFrameSchema] = None
-    __config__: Optional[type[BaseConfig]] = None
+    __extras__: dict[str, Any] | None = None
+    __schema__: DataFrameSchema | None = None
+    __config__: type[BaseConfig] | None = None
 
     #: Key according to `FieldInfo.name`
     __fields__: Mapping[str, tuple[AnnotationInfo, FieldInfo]] = {}
@@ -191,7 +189,7 @@ class DataFrameModel(BaseModel):
                 if annot_info.arg in param_dict:
                     raw_annot = annot_info.origin[param_dict[annot_info.arg]]  # type: ignore
                     if annot_info.optional:
-                        raw_annot = Optional[raw_annot]
+                        raw_annot = Optional[raw_annot]  # noqa: UP045
                     extra["__annotations__"][field] = raw_annot
                     extra[field] = copy.deepcopy(field_info)
 
@@ -256,7 +254,7 @@ class DataFrameModel(BaseModel):
         return cls.__schema__  # type: ignore
 
     @classmethod
-    def to_yaml(cls, stream: Optional[os.PathLike] = None):
+    def to_yaml(cls, stream: os.PathLike | None = None):
         """
         Convert `Schema` to yaml using `io.to_yaml`.
         """
@@ -283,10 +281,10 @@ class DataFrameModel(BaseModel):
     def validate(
         cls: type[TDataFrameModel],
         check_obj: ps.DataFrame,
-        head: Optional[int] = None,
-        tail: Optional[int] = None,
-        sample: Optional[int] = None,
-        random_state: Optional[int] = None,
+        head: int | None = None,
+        tail: int | None = None,
+        sample: int | None = None,
+        random_state: int | None = None,
         lazy: bool = True,
         inplace: bool = False,
     ) -> DataFrame[TDataFrameModel]:
@@ -365,7 +363,8 @@ class DataFrameModel(BaseModel):
         """Centralize publicly named fields and their corresponding annotations."""
 
         annotations = get_type_hints(
-            cls, include_extras=True  # type: ignore [call-arg]
+            cls,
+            include_extras=True,  # type: ignore [call-arg]
         )
         attrs = cls._get_model_attrs()
 
@@ -499,7 +498,7 @@ class DataFrameModel(BaseModel):
         return cast("DataFrameModel", schema_model)
 
     @classmethod
-    def get_metadata(cls) -> Optional[dict]:
+    def get_metadata(cls) -> dict | None:
         """Provide metadata for columns and schema level"""
         res: dict[Any, Any] = {"columns": {}}
         columns = cls._collect_fields()

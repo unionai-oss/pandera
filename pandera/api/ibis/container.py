@@ -20,10 +20,10 @@ class DataFrameSchema(_DataFrameSchema[ibis.Table]):
     def validate(
         self,
         check_obj: ibis.Table,
-        head: Optional[int] = None,
-        tail: Optional[int] = None,
-        sample: Optional[int] = None,
-        random_state: Optional[int] = None,
+        head: int | None = None,
+        tail: int | None = None,
+        sample: int | None = None,
+        random_state: int | None = None,
         lazy: bool = False,
         inplace: bool = False,
     ) -> ibis.Table:
@@ -59,7 +59,7 @@ class DataFrameSchema(_DataFrameSchema[ibis.Table]):
         ...     "probability": [0.1, 0.4, 0.52, 0.23, 0.8, 0.76],
         ...     "category": ["dog", "dog", "cat", "duck", "dog", "dog"],
         ... })
-        >>> t = ibis.memtable(df, name="t")
+        >>> t = ibis.memtable(df)
         >>>
         >>> schema_withchecks = pa.DataFrameSchema({
         ...     "probability": pa.Column(

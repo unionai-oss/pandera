@@ -210,7 +210,7 @@ def test_register_check_with_strategy(custom_check_teardown: None) -> None:
 
     def custom_ge_strategy(
         pandas_dtype: DataType,
-        strategy: Optional[st.SearchStrategy] = None,
+        strategy: st.SearchStrategy | None = None,
         *,
         min_value: Any,
     ) -> st.SearchStrategy:

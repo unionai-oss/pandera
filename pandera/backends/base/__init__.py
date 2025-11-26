@@ -6,8 +6,8 @@ together to implement the pandera schema specification.
 """
 
 from abc import ABC
-from typing import Any, FrozenSet, List, NamedTuple, Optional, Union
 from collections.abc import Iterable
+from typing import Any, NamedTuple, Optional, Union
 
 # from pandera.api.base.checks import BaseCheck
 from pandera.errors import SchemaError, SchemaErrorReason
@@ -17,14 +17,14 @@ class CoreCheckResult(NamedTuple):
     """Namedtuple for holding results of core checks."""
 
     passed: bool
-    check: Optional[Union[str, "BaseCheck"]] = None  # type: ignore
-    check_index: Optional[int] = None
-    check_output: Optional[Any] = None
-    reason_code: Optional[SchemaErrorReason] = None
-    message: Optional[str] = None
-    failure_cases: Optional[Any] = None
-    schema_error: Optional[SchemaError] = None
-    original_exc: Optional[Exception] = None
+    check: Union[str, "BaseCheck"] | None = None  # type: ignore
+    check_index: int | None = None
+    check_output: Any | None = None
+    reason_code: SchemaErrorReason | None = None
+    message: str | None = None
+    failure_cases: Any | None = None
+    schema_error: SchemaError | None = None
+    original_exc: Exception | None = None
 
 
 class ColumnInfo(NamedTuple):
@@ -41,14 +41,14 @@ class CoreParserResult(NamedTuple):
     """Namedtuple for holding core parser results."""
 
     passed: bool
-    parser: Optional[Union[str, "BaseParser"]] = None  # type: ignore
-    parser_index: Optional[int] = None
-    parser_output: Optional[Any] = None
-    reason_code: Optional[SchemaErrorReason] = None
-    message: Optional[str] = None
-    failure_cases: Optional[Any] = None
-    schema_error: Optional[SchemaError] = None
-    original_exc: Optional[Exception] = None
+    parser: Union[str, "BaseParser"] | None = None  # type: ignore
+    parser_index: int | None = None
+    parser_output: Any | None = None
+    reason_code: SchemaErrorReason | None = None
+    message: str | None = None
+    failure_cases: Any | None = None
+    schema_error: SchemaError | None = None
+    original_exc: Exception | None = None
 
 
 class BaseSchemaBackend(ABC):
@@ -65,10 +65,10 @@ class BaseSchemaBackend(ABC):
     def subsample(
         self,
         check_obj,
-        head: Optional[int] = None,
-        tail: Optional[int] = None,
-        sample: Optional[int] = None,
-        random_state: Optional[int] = None,
+        head: int | None = None,
+        tail: int | None = None,
+        sample: int | None = None,
+        random_state: int | None = None,
     ):
         """Subsamples a check object before applying check functions."""
         raise NotImplementedError
@@ -78,10 +78,10 @@ class BaseSchemaBackend(ABC):
         check_obj,
         schema,
         *,
-        head: Optional[int] = None,
-        tail: Optional[int] = None,
-        sample: Optional[int] = None,
-        random_state: Optional[int] = None,
+        head: int | None = None,
+        tail: int | None = None,
+        sample: int | None = None,
+        random_state: int | None = None,
         lazy: bool = False,
         inplace: bool = False,
     ):

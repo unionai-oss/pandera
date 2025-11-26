@@ -1662,9 +1662,7 @@ class TestCustomCheck(BaseClass):
             if df_out.pandera.errors:
                 raise PysparkSchemaError
 
-    def test_extension(
-        self, spark_session, extra_registered_checks, request
-    ):  # pylint: disable=unused-argument
+    def test_extension(self, spark_session, extra_registered_checks, request):  # pylint: disable=unused-argument
         """Test custom extension with DataFrameSchema way of defining schema"""
         spark = request.getfixturevalue(spark_session)
         schema = DataFrameSchema(

@@ -186,7 +186,6 @@ def reshape_failure_cases(
 
 
 def _multiindex_to_frame(df):
-
     from pandera.engines.utils import pandas_version
 
     if pandas_version().release >= (1, 5, 0):
@@ -290,7 +289,6 @@ def consolidate_failure_cases(
         type(x).__module__.startswith("pyspark.pandas")
         for x in check_failure_cases
     ):
-
         import pyspark.pandas as ps
 
         concat_fn = ps.concat  # type: ignore
@@ -307,7 +305,6 @@ def consolidate_failure_cases(
         type(x).__module__.startswith("modin.pandas")
         for x in check_failure_cases
     ):
-
         import modin.pandas as mpd
 
         concat_fn = mpd.concat  # type: ignore

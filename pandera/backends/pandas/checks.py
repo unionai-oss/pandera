@@ -8,11 +8,11 @@ import pandas as pd
 from pandera.api.base.checks import CheckResult
 from pandera.api.checks import Check
 from pandera.api.pandas.types import (
+    GroupbyObject,
     is_bool,
     is_field,
     is_table,
     is_table_or_field,
-    GroupbyObject,
 )
 from pandera.backends.base import BaseCheckBackend
 
@@ -45,7 +45,7 @@ class PandasCheckBackend(BaseCheckBackend):
     @staticmethod
     def _format_groupby_input(
         groupby_obj: GroupbyObject,
-        groups: Optional[list[str]],
+        groups: list[str] | None,
     ) -> Union[dict[str, pd.Series], dict[str, pd.DataFrame]]:
         """Format groupby object into dict of groups to Series or DataFrame.
 
@@ -61,7 +61,8 @@ class PandasCheckBackend(BaseCheckBackend):
                 for k, v in groupby_obj  # type: ignore[union-attr]
             }
         group_keys = {
-            k[0] if len(k) == 1 else k for k, _ in groupby_obj  # type: ignore[union-attr]
+            k[0] if len(k) == 1 else k
+            for k, _ in groupby_obj  # type: ignore[union-attr]
         }
         invalid_groups = [g for g in groups if g not in group_keys]
         if invalid_groups:
@@ -195,7 +196,7 @@ class PandasCheckBackend(BaseCheckBackend):
         self,
         check_obj,
         check_output: pd.Series,
-    ) -> Optional[pd.Series]:
+    ) -> pd.Series | None:
         if not check_obj.index.equals(check_output.index):
             return None
 
@@ -343,7 +344,7 @@ class PandasCheckBackend(BaseCheckBackend):
     def __call__(
         self,
         check_obj: Union[pd.Series, pd.DataFrame],
-        key: Optional[str] = None,
+        key: str | None = None,
     ) -> CheckResult:
         check_obj = self.preprocess(check_obj, key)
         check_output = self.apply(check_obj)

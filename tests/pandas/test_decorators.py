@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
+from pandera.engines.pandas_engine import Engine
 from pandera.pandas import (
     Check,
     Column,
@@ -25,7 +26,6 @@ from pandera.pandas import (
     check_types,
     errors,
 )
-from pandera.engines.pandas_engine import Engine
 from pandera.typing import DataFrame, Index, Series
 
 
@@ -726,7 +726,7 @@ def test_check_types_optional_out() -> None:
     @check_types
     def optional_derived_out(
         df: DataFrame[InSchema],  # pylint: disable=unused-argument
-    ) -> typing.Optional[DataFrame[DerivedOutSchema]]:
+    ) -> DataFrame[DerivedOutSchema] | None:
         return None
 
     df = pd.DataFrame({"a": [1]}, index=["1"])
@@ -735,7 +735,7 @@ def test_check_types_optional_out() -> None:
     @check_types
     def optional_out(
         df: DataFrame[InSchema],  # pylint: disable=unused-argument
-    ) -> typing.Optional[DataFrame[OutSchema]]:
+    ) -> DataFrame[OutSchema] | None:
         return None
 
     df = pd.DataFrame({"a": [1]}, index=["1"])
@@ -748,7 +748,7 @@ def test_check_types_optional_in() -> None:
     @check_types
     def optional_in(
         # pylint: disable=unused-argument
-        df: typing.Optional[DataFrame[InSchema]],
+        df: DataFrame[InSchema] | None,
     ) -> None:
         return None
 
@@ -764,8 +764,8 @@ def test_check_types_optional_in_out() -> None:
     @check_types
     def transform_derived(
         # pylint: disable=unused-argument
-        df: typing.Optional[DataFrame[InSchema]],
-    ) -> typing.Optional[DataFrame[DerivedOutSchema]]:
+        df: DataFrame[InSchema] | None,
+    ) -> DataFrame[DerivedOutSchema] | None:
         return None
 
     assert transform_derived(None) is None
@@ -773,8 +773,8 @@ def test_check_types_optional_in_out() -> None:
     @check_types
     def transform(
         # pylint: disable=unused-argument
-        df: typing.Optional[DataFrame[InSchema]],
-    ) -> typing.Optional[DataFrame[OutSchema]]:
+        df: DataFrame[InSchema] | None,
+    ) -> DataFrame[OutSchema] | None:
         return None
 
     assert transform(None) is None
@@ -1078,7 +1078,7 @@ def test_check_types_star_kwargs() -> None:
     @check_types
     def get_star_kwargs_keys_dataframe(
         # pylint: disable=unused-argument
-        kwarg1: typing.Optional[DataFrame[InSchema]] = None,
+        kwarg1: DataFrame[InSchema] | None = None,
         **kwargs: DataFrame[InSchema],
     ) -> list[str]:
         return list(kwargs.keys())
@@ -1147,6 +1147,15 @@ def test_check_types_star_args_kwargs() -> None:
 
 
 def test_coroutines() -> None:
+    """Test coroutine decorated functions with a running event loop."""
+
+    # Get the current event loop or create a new one if not present (for Python 3.10+).
+    try:
+        loop = asyncio.get_event_loop()
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+
     # pylint: disable=missing-class-docstring,too-few-public-methods,missing-function-docstring
     class Schema(DataFrameModel):
         col1: Series[int]

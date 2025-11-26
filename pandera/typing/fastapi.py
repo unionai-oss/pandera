@@ -9,7 +9,7 @@ from pandera.typing.common import T
 try:
     from typing import get_args
 except ImportError:
-    from typing_extensions import get_args
+    from typing import get_args
 
 try:
     import fastapi

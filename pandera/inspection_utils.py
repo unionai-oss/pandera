@@ -1,7 +1,7 @@
 """Decorators for integrating pandera into existing data pipelines."""
 
+from collections.abc import Callable
 from inspect import ismethod
-from typing import Callable
 
 
 def _is_like_classmethod(fn: Callable) -> bool:

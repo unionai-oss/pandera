@@ -40,7 +40,7 @@ class PanderaConfig:
     # to support the use case where a pandera validation engine needs to
     # establish default validation depth behavior if the user doesn't explicitly
     # specify the environment variable.
-    validation_depth: Optional[ValidationDepth] = None
+    validation_depth: ValidationDepth | None = None
     cache_dataframe: bool = False
     keep_cached_dataframe: bool = False
     max_reported_failures: int = (
@@ -89,11 +89,11 @@ _CONTEXT_CONFIG = copy(CONFIG)
 
 @contextmanager
 def config_context(
-    validation_enabled: Optional[bool] = None,
-    validation_depth: Optional[ValidationDepth] = None,
-    cache_dataframe: Optional[bool] = None,
-    keep_cached_dataframe: Optional[bool] = None,
-    max_reported_failures: Optional[int] = None,
+    validation_enabled: bool | None = None,
+    validation_depth: ValidationDepth | None = None,
+    cache_dataframe: bool | None = None,
+    keep_cached_dataframe: bool | None = None,
+    max_reported_failures: int | None = None,
 ):
     """Temporarily set pandera config options to custom settings."""
     _outer_config_ctx = get_config_context(validation_depth_default=None)
@@ -115,7 +115,7 @@ def config_context(
         reset_config_context(_outer_config_ctx)
 
 
-def reset_config_context(conf: Optional[PanderaConfig] = None):
+def reset_config_context(conf: PanderaConfig | None = None):
     """Reset the context configuration to the global configuration."""
 
     global _CONTEXT_CONFIG
@@ -128,9 +128,8 @@ def get_config_global() -> PanderaConfig:
 
 
 def get_config_context(
-    validation_depth_default: Optional[
-        ValidationDepth
-    ] = ValidationDepth.SCHEMA_AND_DATA,
+    validation_depth_default: ValidationDepth
+    | None = ValidationDepth.SCHEMA_AND_DATA,
 ) -> PanderaConfig:
     """Gets the configuration context."""
     config = copy(_CONTEXT_CONFIG)

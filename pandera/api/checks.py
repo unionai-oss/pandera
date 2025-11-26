@@ -1,14 +1,13 @@
 """Data validation check definition."""
 
 import re
+from collections.abc import Callable, Iterable
 from typing import (
     Any,
-    Callable,
     Optional,
     TypeVar,
     Union,
 )
-from collections.abc import Iterable
 
 from pandera import errors
 from pandera.api.base.checks import BaseCheck, CheckResult
@@ -22,18 +21,19 @@ class Check(BaseCheck):
     def __init__(
         self,
         check_fn: Callable,
-        groups: Optional[Union[str, list[str]]] = None,
-        groupby: Optional[Union[str, list[str], Callable]] = None,
+        groups: Union[str, list[str]] | None = None,
+        groupby: Union[str, list[str], Callable] | None = None,
         ignore_na: bool = True,
         element_wise: bool = False,
-        name: Optional[str] = None,
-        error: Optional[str] = None,
+        name: str | None = None,
+        error: str | None = None,
         raise_warning: bool = False,
-        n_failure_cases: Optional[int] = None,
-        title: Optional[str] = None,
-        description: Optional[str] = None,
-        statistics: Optional[dict[str, Any]] = None,
-        strategy: Optional[Any] = None,
+        n_failure_cases: int | None = None,
+        title: str | None = None,
+        description: str | None = None,
+        statistics: dict[str, Any] | None = None,
+        strategy: Any | None = None,
+        determined_by_unique: bool = False,
         **check_kwargs,
     ) -> None:
         """Apply a validation function to a data object.
@@ -98,6 +98,12 @@ class Check(BaseCheck):
         :param strategy: A hypothesis strategy, used for implementing data
             synthesis strategies for this check. See the
             :ref:`User Guide <custom-strategies>` for more details.
+        :param determined_by_unique: If True, indicates that this check's
+            result is fully determined by the unique values in the data, meaning
+            duplicate values don't affect the outcome. This enables significant
+            performance optimizations for MultiIndex validation when dealing with
+            large datasets. If True, the check function must produce the same result
+            whether applied to unique values or full values.
         :param check_kwargs: key-word arguments to pass into ``check_fn``
 
         :example:
@@ -177,6 +183,7 @@ class Check(BaseCheck):
         self.n_failure_cases = n_failure_cases
         self.title = title
         self.description = description
+        self.determined_by_unique = determined_by_unique
 
         if groupby is None and groups is not None:
             raise ValueError(
@@ -189,7 +196,7 @@ class Check(BaseCheck):
         self.groupby = groupby
         if isinstance(groups, str):
             groups = [groups]
-        self.groups: Optional[list[str]] = groups
+        self.groups: list[str] | None = groups
 
         self.statistics = statistics or check_kwargs or {}
         self.statistics_args = [*self.statistics.keys()]
@@ -198,7 +205,7 @@ class Check(BaseCheck):
     def __call__(
         self,
         check_obj: Any,
-        column: Optional[str] = None,
+        column: str | None = None,
     ) -> CheckResult:
         """Validate DataFrame or Series.
 
@@ -240,6 +247,7 @@ class Check(BaseCheck):
             "equal_to",
             kwargs,
             error=f"equal_to({value})",
+            defaults={"determined_by_unique": True},
             value=value,
         )
 
@@ -253,6 +261,7 @@ class Check(BaseCheck):
             "not_equal_to",
             kwargs,
             error=f"not_equal_to({value})",
+            defaults={"determined_by_unique": True},
             value=value,
         )
 
@@ -272,6 +281,7 @@ class Check(BaseCheck):
             "greater_than",
             kwargs,
             error=f"greater_than({min_value})",
+            defaults={"determined_by_unique": True},
             min_value=min_value,
         )
 
@@ -289,6 +299,7 @@ class Check(BaseCheck):
             "greater_than_or_equal_to",
             kwargs,
             error=f"greater_than_or_equal_to({min_value})",
+            defaults={"determined_by_unique": True},
             min_value=min_value,
         )
 
@@ -306,6 +317,7 @@ class Check(BaseCheck):
             "less_than",
             kwargs,
             error=f"less_than({max_value})",
+            defaults={"determined_by_unique": True},
             max_value=max_value,
         )
 
@@ -323,6 +335,7 @@ class Check(BaseCheck):
             "less_than_or_equal_to",
             kwargs,
             error=f"less_than_or_equal_to({max_value})",
+            defaults={"determined_by_unique": True},
             max_value=max_value,
         )
 
@@ -365,6 +378,7 @@ class Check(BaseCheck):
             "in_range",
             kwargs,
             error=f"in_range({min_value}, {max_value})",
+            defaults={"determined_by_unique": True},
             min_value=min_value,
             max_value=max_value,
             include_min=include_min,
@@ -395,6 +409,7 @@ class Check(BaseCheck):
             "isin",
             kwargs,
             error=f"isin({allowed_values})",
+            defaults={"determined_by_unique": True},
             statistics={"allowed_values": allowed_values},
             allowed_values=allowed_values_mod,
         )
@@ -424,6 +439,7 @@ class Check(BaseCheck):
             "notin",
             kwargs,
             error=f"notin({forbidden_values})",
+            defaults={"determined_by_unique": True},
             statistics={"forbidden_values": forbidden_values},
             forbidden_values=forbidden_values_mod,
         )
@@ -445,6 +461,7 @@ class Check(BaseCheck):
             "str_matches",
             kwargs,
             error=f"str_matches('{pattern}')",
+            defaults={"determined_by_unique": True},
             statistics={"pattern": pattern},
             pattern=pattern,
         )
@@ -468,6 +485,7 @@ class Check(BaseCheck):
             "str_contains",
             kwargs,
             error=f"str_contains('{pattern}')",
+            defaults={"determined_by_unique": True},
             statistics={"pattern": pattern},
             pattern=pattern,
         )
@@ -484,6 +502,7 @@ class Check(BaseCheck):
             "str_startswith",
             kwargs,
             error=f"str_startswith('{string}')",
+            defaults={"determined_by_unique": True},
             string=string,
         )
 
@@ -498,14 +517,15 @@ class Check(BaseCheck):
             "str_endswith",
             kwargs,
             error=f"str_endswith('{string}')",
+            defaults={"determined_by_unique": True},
             string=string,
         )
 
     @classmethod
     def str_length(
         cls,
-        min_value: Optional[int] = None,
-        max_value: Optional[int] = None,
+        min_value: int | None = None,
+        max_value: int | None = None,
         **kwargs,
     ) -> "Check":
         """Ensure that the length of strings is within a specified range.
@@ -522,6 +542,7 @@ class Check(BaseCheck):
             "str_length",
             kwargs,
             error=f"str_length({min_value}, {max_value})",
+            defaults={"determined_by_unique": True},
             min_value=min_value,
             max_value=max_value,
         )
@@ -546,6 +567,7 @@ class Check(BaseCheck):
             "unique_values_eq",
             kwargs,
             error=f"unique_values_eq({values})",
+            defaults={"determined_by_unique": True},
             statistics={"values": values_mod},
             values=values_mod,
         )

@@ -15,9 +15,9 @@ def two_sample_ttest(
 ) -> tuple[float, float]:
     from scipy import stats
 
-    assert (
-        len(samples) == 2
-    ), "Expected two sample ttest data to contain exactly two samples"
+    assert len(samples) == 2, (
+        "Expected two sample ttest data to contain exactly two samples"
+    )
     return stats.ttest_ind(
         samples[0],
         samples[1],
@@ -37,9 +37,9 @@ def one_sample_ttest(
 ) -> tuple[float, float]:
     from scipy import stats
 
-    assert (
-        len(samples) == 1
-    ), "Expected one sample ttest data to contain only one sample"
+    assert len(samples) == 1, (
+        "Expected one sample ttest data to contain only one sample"
+    )
     return stats.ttest_1samp(
         samples[0], popmean=popmean, nan_policy=nan_policy
     )

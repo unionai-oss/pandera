@@ -41,7 +41,7 @@ class PolarsDataFrameModelPydantic(BaseModel):
 class PolarsDataFrameSchemaPydantic(BaseModel):
     """Test pydantic model with a Polars DataFrameSchema."""
 
-    pa_schema: Optional[pa.DataFrameSchema]
+    pa_schema: pa.DataFrameSchema | None
 
 
 def test_typed_polars_dataframe():
@@ -134,7 +134,7 @@ def test_optional_column_schema():
         """Test Polars DataFrameModel with an optional column."""
 
         required_col: Series[str]
-        optional_col: Optional[Series[int]]
+        optional_col: Series[int] | None
 
     # Create a custom pydantic model that uses our schema with optional column
     class OptionalColumnModelPydantic(BaseModel):
