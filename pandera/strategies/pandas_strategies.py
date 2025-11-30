@@ -709,7 +709,6 @@ def str_length_strategy(
     pandera_dtype: Union[numpy_engine.DataType, pandas_engine.DataType],
     strategy: SearchStrategy | None = None,
     *,
-    value: int,
     min_value: int,
     max_value: int,
 ) -> SearchStrategy:
@@ -718,20 +717,11 @@ def str_length_strategy(
     :param pandera_dtype: :class:`pandera.dtypes.DataType` instance.
     :param strategy: an optional hypothesis strategy. If specified, the
         pandas dtype strategy will be chained onto this strategy.
-    :param value: absolute string length.
+
     :param min_value: minimum string length.
     :param max_value: maximum string length.
     :returns: ``hypothesis`` strategy
     """
-
-    if value is not None and (min_value is not None or max_value is not None):
-        raise ValueError(
-            "A minimum or a maximum cannot be specified when absolute is specified."
-        )
-    else:
-        min_value = value
-        max_value = value
-
     if strategy is None:
         return st.text(min_size=min_value, max_size=max_value).map(
             to_numpy_dtype(pandera_dtype).type

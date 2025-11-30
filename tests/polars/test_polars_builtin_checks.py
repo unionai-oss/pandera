@@ -129,6 +129,7 @@ class BaseClass:
         fail_case_data,
         data_types,
         function_args,
+        function_kwargs={},
         fail_on_init=False,
         init_exception_cls=None,
     ):
@@ -137,16 +138,20 @@ class BaseClass:
         """
         if fail_on_init:
             with pytest.raises(init_exception_cls):
-                check_fn(*function_args)
+                check_fn(*function_args, **function_kwargs)
             return
 
         schema = DataFrameSchema(
             {
                 "product": Column(Utf8()),
                 "code": (
-                    Column(data_types, check_fn(*function_args))
+                    Column(
+                        data_types, check_fn(*function_args, **function_kwargs)
+                    )
                     if isinstance(function_args, tuple)
-                    else Column(data_types, check_fn(function_args))
+                    else Column(
+                        data_types, check_fn(function_args, **function_kwargs)
+                    )
                 ),
             }
         )
@@ -1235,6 +1240,7 @@ class TestStringType(BaseClass):
             pass_data,
             fail_data,
             Utf8(),
+            (),
             check_value,
             fail_on_init=fail_on_init,
             init_exception_cls=init_exception_cls,
