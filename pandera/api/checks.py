@@ -524,28 +524,49 @@ class Check(BaseCheck):
     @classmethod
     def str_length(
         cls,
+        value: int | None = None,
+        *,
         min_value: int | None = None,
         max_value: int | None = None,
         **kwargs,
     ) -> "Check":
         """Ensure that the length of strings is within a specified range.
 
+        :param value: Absolute length of strings (default: no absolute)
         :param min_value: Minimum length of strings (default: no minimum)
         :param max_value: Maximum length of strings (default: no maximum)
         """
-        if min_value is None and max_value is None:
+
+        if value is None and min_value is None and max_value is None:
             raise ValueError(
-                "At least a minimum or a maximum need to be specified. Got "
+                "At least an absolute or a minimum or a maximum need to be specified. Got "
                 "None."
             )
-        return cls.from_builtin_check_name(
-            "str_length",
-            kwargs,
-            error=f"str_length({min_value}, {max_value})",
-            defaults={"determined_by_unique": True},
-            min_value=min_value,
-            max_value=max_value,
-        )
+
+        if value is not None and (
+            min_value is not None or max_value is not None
+        ):
+            raise ValueError(
+                "A minimum or a maximum cannot be specified when absolute is specified."
+            )
+
+        if value is not None:
+            return cls.from_builtin_check_name(
+                "str_length",
+                kwargs,
+                error=f"str_length({value})",
+                defaults={"determined_by_unique": True},
+                value=value,
+            )
+        else:
+            return cls.from_builtin_check_name(
+                "str_length",
+                kwargs,
+                error=f"str_length({min_value}, {max_value})",
+                defaults={"determined_by_unique": True},
+                min_value=min_value,
+                max_value=max_value,
+            )
 
     @classmethod
     def unique_values_eq(cls, values: Iterable, **kwargs) -> "Check":

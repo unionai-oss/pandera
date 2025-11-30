@@ -251,6 +251,8 @@ def str_endswith(data: PolarsData, string: str) -> pl.LazyFrame:
 )
 def str_length(
     data: PolarsData,
+    value: int | None = None,
+    *,
     min_value: int | None = None,
     max_value: int | None = None,
 ) -> pl.LazyFrame:
@@ -258,16 +260,25 @@ def str_length(
 
     :param data: NamedTuple PolarsData contains the dataframe and column name for the check. The key
         to access the dataframe is "dataframe", and the key the to access the column name is "key".
+    :param value: Absolute length of strings (inclusive). (default: no absolute)
     :param min_value: Minimum length of strings (inclusive). (default: no minimum)
     :param max_value: Maximum length of strings (inclusive). (default: no maximum)
     """
-    if min_value is None and max_value is None:
+    if value is None and min_value is None and max_value is None:
         raise ValueError(
-            "Must provide at least one of 'min_value' and 'max_value'"
+            "At least an absolute or a minimum or a maximum need to be specified. Got "
+            "None."
+        )
+
+    if value is not None and (min_value is not None or max_value is not None):
+        raise ValueError(
+            "A minimum or a maximum cannot be specified when absolute is specified."
         )
 
     n_chars = pl.col(data.key).str.len_chars()
-    if min_value is None:
+    if value is not None:
+        expr = n_chars.eq(value)
+    elif min_value is None:
         expr = n_chars.le(max_value)
     elif max_value is None:
         expr = n_chars.ge(min_value)
