@@ -81,7 +81,7 @@ def _create_schema(index="single"):
                 pandera.String,
                 checks=[
                     pandera.Check.isin(["foo", "bar", "x", "xy"]),
-                    pandera.Check.str_length(1, 3),
+                    pandera.Check.str_length(min_value=1, max_value=3),
                 ],
             ),
             "datetime_column": pandera.Column(
@@ -105,7 +105,7 @@ def _create_schema(index="single"):
                 coerce=True,
                 required=False,
                 regex=True,
-                checks=[pandera.Check.str_length(1, 3)],
+                checks=[pandera.Check.str_length(min_value=1, max_value=3)],
             ),
             "notype_column": pandera.Column(
                 checks=pandera.Check.isin(["foo", "bar", "x", "xy"]),
@@ -499,7 +499,7 @@ def _create_schema_null_index():
                 pandera.String,
                 checks=[
                     pandera.Check.isin(["foo", "bar", "x", "xy"]),
-                    pandera.Check.str_length(1, 3),
+                    pandera.Check.str_length(min_value=1, max_value=3),
                 ],
             ),
         },
@@ -1112,7 +1112,7 @@ def _create_schema_no_descr_no_title(index="single"):
                 pandera.String,
                 checks=[
                     pandera.Check.isin(["foo", "bar", "x", "xy"]),
-                    pandera.Check.str_length(1, 3),
+                    pandera.Check.str_length(min_value=1, max_value=3),
                 ],
             ),
             "datetime_column": pandera.Column(
@@ -1136,7 +1136,7 @@ def _create_schema_no_descr_no_title(index="single"):
                 coerce=True,
                 required=False,
                 regex=True,
-                checks=[pandera.Check.str_length(1, 3)],
+                checks=[pandera.Check.str_length(min_value=1, max_value=3)],
             ),
             "notype_column": pandera.Column(
                 checks=pandera.Check.isin(["foo", "bar", "x", "xy"]),
