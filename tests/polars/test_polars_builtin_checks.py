@@ -1208,12 +1208,12 @@ class TestStringType(BaseClass):
     @pytest.mark.parametrize(
         "check_value",
         [
-            {"min_value": 3, "man_value": None},
-            {"min_value": None, "man_value": 4},
-            {"min_value": 3, "man_value": 7},
-            {"min_value": 1, "man_value": 4},
-            {"min_value": 3, "man_value": 4},
-            {"min_value": None, "man_value": None},
+            {"min_value": 3, "max_value": None},
+            {"min_value": None, "max_value": 4},
+            {"min_value": 3, "max_value": 7},
+            {"min_value": 1, "max_value": 4},
+            {"min_value": 3, "max_value": 4},
+            {"min_value": None, "max_value": None},
         ],
     )
     def test_str_length_check(self, check_value) -> None:
@@ -1223,7 +1223,7 @@ class TestStringType(BaseClass):
         pass_data = [("Bal", "Bat"), ("Bal", "Batt")]
         fail_data = [("Bal", "Cs"), ("Bal", "BamBam")]
 
-        if check_value == {"min_value": None, "man_value": None}:
+        if check_value == {"min_value": None, "max_value": None}:
             fail_on_init = True
             init_exception_cls = ValueError
         else:
