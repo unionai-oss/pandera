@@ -603,8 +603,8 @@ def _format_index(index_statistics):
 def _format_script(script):
     try:
         import black
-    except ImportError as exc:
-        raise ImportError(_MISSING_IMPORT_ERROR_MESSAGE)
+    except ImportError as exc:  # pragma: no cover
+        raise ImportError(_MISSING_IMPORT_ERROR_MESSAGE) from exc
         
     formatter = partial(black.format_str, mode=black.FileMode(line_length=80))
     return formatter(script)
@@ -928,7 +928,7 @@ def from_frictionless_schema(
     """
     try:
         from frictionless import Schema as FrictionlessSchema
-    except ImportError as exc:
+    except ImportError as exc:  # pragma: no cover
         raise ImportError(_MISSING_IMPORT_ERROR_MESSAGE) from exc
 
     if not isinstance(schema, FrictionlessSchema):
