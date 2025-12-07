@@ -948,10 +948,21 @@ class TestStrLength:
     """Tests for Check.str_length"""
 
     @staticmethod
-    def test_argument_check():
-        """Test if at least one argument is enforced"""
+    @pytest.mark.parametrize(
+        "abs_len, min_len, max_len",
+        [
+            (None, None, None),
+            (3, 1, None),
+        ],
+    )
+    def test_argument_check(abs_len, min_len, max_len):
+        """Test if correct argument are enforced"""
         with pytest.raises(ValueError):
-            Check.str_length()
+            Check.str_length(
+                value=abs_len,
+                min_value=min_len,
+                max_value=max_len,
+            )
 
     @staticmethod
     @pytest.mark.parametrize(
