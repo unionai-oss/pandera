@@ -717,7 +717,6 @@ def str_length_strategy(
     :param pandera_dtype: :class:`pandera.dtypes.DataType` instance.
     :param strategy: an optional hypothesis strategy. If specified, the
         pandas dtype strategy will be chained onto this strategy.
-
     :param min_value: minimum string length.
     :param max_value: maximum string length.
     :returns: ``hypothesis`` strategy
