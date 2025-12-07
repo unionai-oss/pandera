@@ -597,6 +597,7 @@ def test_schema_model():
         [pa.Check.str_startswith("a"), "ab", "ba"],
         [pa.Check.str_endswith("a"), "ba", "ab"],
         [pa.Check.str_length(min_value=1, max_value=2), "a", ""],
+        [pa.Check.str_length(1), "a", ""],
     ],
 )
 def test_check_comparison_operators(check, valid, invalid):
