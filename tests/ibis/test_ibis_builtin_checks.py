@@ -85,16 +85,17 @@ class BaseClass:
         fail_case_data,
         data_types,
         function_args,
-        function_kwargs={},
+        function_kwargs=None,
         fail_on_init=False,
         init_exception_cls=None,
     ):
         """
         This function does performs the actual validation
         """
+        _kwargs = function_kwargs or {}
         if fail_on_init:
             with pytest.raises(init_exception_cls):
-                check_fn(*function_args, **function_kwargs)
+                check_fn(*function_args, **_kwargs)
             return
 
         schema = DataFrameSchema(
@@ -102,11 +103,11 @@ class BaseClass:
                 "product": Column(dt.String),
                 "code": (
                     Column(
-                        data_types, check_fn(*function_args, **function_kwargs)
+                        data_types, check_fn(*function_args, **_kwargs)
                     )
                     if isinstance(function_args, tuple)
                     else Column(
-                        data_types, check_fn(function_args, **function_kwargs)
+                        data_types, check_fn(function_args, **_kwargs)
                     )
                 ),
             }
