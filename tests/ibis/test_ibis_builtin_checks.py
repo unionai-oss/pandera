@@ -102,13 +102,9 @@ class BaseClass:
             {
                 "product": Column(dt.String),
                 "code": (
-                    Column(
-                        data_types, check_fn(*function_args, **_kwargs)
-                    )
+                    Column(data_types, check_fn(*function_args, **_kwargs))
                     if isinstance(function_args, tuple)
-                    else Column(
-                        data_types, check_fn(function_args, **_kwargs)
-                    )
+                    else Column(data_types, check_fn(function_args, **_kwargs))
                 ),
             }
         )
