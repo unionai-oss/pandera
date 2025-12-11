@@ -98,7 +98,7 @@ def Field(
     notin: Iterable = None,
     str_contains: str | None = None,
     str_endswith: str | None = None,
-    str_length: dict[str, Any] | None = None,
+    str_length: int | dict[str, Any] | None = None,
     str_matches: str | None = None,
     str_startswith: str | None = None,
     nullable: bool = False,

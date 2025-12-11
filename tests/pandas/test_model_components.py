@@ -60,7 +60,17 @@ def test_field_no_checks() -> None:
         (
             "str_length",
             {"min_value": 1, "max_value": 9},
-            pa.Check.str_length(1, 9),
+            pa.Check.str_length(min_value=1, max_value=9),
+        ),
+        (
+            "str_length",
+            {"value": 5},
+            pa.Check.str_length(value=5),
+        ),
+        (
+            "str_length",
+            5,
+            pa.Check.str_length(5),
         ),
         ("str_startswith", "a", pa.Check.str_startswith("a")),
     ],

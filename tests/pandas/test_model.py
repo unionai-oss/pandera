@@ -244,7 +244,7 @@ def test_dataframemodel_with_fields() -> None:
             ),
             "b": pa.Column(str),
         },
-        index=pa.Index(str, pa.Check.str_length(1)),
+        index=pa.Index(str, pa.Check.str_length(min_value=1)),
     )
 
     assert actual == expected
