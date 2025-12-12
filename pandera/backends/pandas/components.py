@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd
 
 from pandera.api.base.error_handler import ErrorHandler
+from pandera.api.pandas.components import Column
 from pandera.api.pandas.types import (
     is_field,
     is_index,
@@ -16,7 +17,10 @@ from pandera.api.pandas.types import (
     is_table,
 )
 from pandera.backends.base import CoreCheckResult
-from pandera.backends.pandas.array import ArraySchemaBackend
+from pandera.backends.pandas.array import (
+    ArraySchemaBackend,
+    SeriesSchemaBackend,
+)
 from pandera.backends.pandas.base import PandasSchemaBackend
 from pandera.backends.pandas.error_formatters import reshape_failure_cases
 from pandera.errors import (
@@ -660,20 +664,47 @@ class MultiIndexBackend(PandasSchemaBackend):
         Used both as a fallback when optimization isn't possible and when
         errors are identified in optimized validation
         in order to provide proper error reporting with correct indices.
+
+        Validates a Series indexed by the full MultiIndex to ensure failure_cases
+        naturally contains the correct MultiIndex positions.
         """
         # Materialize the full level values
         full_values = multiindex.get_level_values(level_pos)
-        full_stub_df = pd.DataFrame(index=full_values)
 
-        # Run validation on full materialized values
-        index_schema.validate(
-            full_stub_df,
+        # Create a Series with level values as data, indexed by the full MultiIndex
+        level_series = pd.Series(
+            full_values.values, index=multiindex, name=index_schema.name
+        )
+
+        # Validate as a column (Series), rather than as an index
+        # to ensure that failure_cases will have all levels in the 'index' column
+        column_schema = Column(
+            dtype=index_schema.dtype,
+            checks=index_schema.checks,
+            parsers=index_schema.parsers,
+            nullable=index_schema.nullable,
+            unique=index_schema.unique,
+            report_duplicates=index_schema.report_duplicates,
+            coerce=index_schema.coerce,
+            name=index_schema.name,
+            title=index_schema.title,
+            description=index_schema.description,
+            default=index_schema.default,
+            metadata=index_schema.metadata,
+            drop_invalid_rows=index_schema.drop_invalid_rows,
+        )
+
+        # Use the SeriesSchemaBackend directly instead of column_schema.validate()
+        # because Column.validate() expects a DataFrame.
+        backend = SeriesSchemaBackend()
+        backend.validate(
+            check_obj=level_series,
+            schema=column_schema,
             head=head,
             tail=tail,
             sample=sample,
             random_state=random_state,
             lazy=lazy,
-            inplace=True,
         )
 
     def _check_strict(
