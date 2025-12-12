@@ -665,22 +665,19 @@ class MultiIndexBackend(PandasSchemaBackend):
         errors are identified in optimized validation
         in order to provide proper error reporting with correct indices.
 
-        For backward compatibility with pandera 0.25, validates a Series
-        indexed by the full MultiIndex. This ensures failure_cases naturally
-        contains the correct MultiIndex positions.
+        Validates a Series indexed by the full MultiIndex to ensure failure_cases
+        naturally contains the correct MultiIndex positions.
         """
         # Materialize the full level values
         full_values = multiindex.get_level_values(level_pos)
 
         # Create a Series with level values as data, indexed by the full MultiIndex
-        # This mimics the 0.25 behavior where MultiIndex was converted to a DataFrame
-        # with levels as columns, and each column was validated separately
         level_series = pd.Series(
             full_values.values, index=multiindex, name=index_schema.name
         )
 
         # Validate as a column (Series), rather than as an index
-        # to ensure that failure_cases will have the MultiIndex in the 'index' column
+        # to ensure that failure_cases will have all levels in the 'index' column
         column_schema = Column(
             dtype=index_schema.dtype,
             checks=index_schema.checks,
