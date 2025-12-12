@@ -740,13 +740,8 @@ class MultiIndexBackend(PandasSchemaBackend):
     ) -> None:
         """Validate a level using full materialization.
 
-        This materializes all values (including duplicates) for validation.
-        Used both as a fallback when optimization isn't possible and when
-        errors are identified in optimized validation
-        in order to provide proper error reporting with correct indices.
-
-        Validates a Series indexed by the full MultiIndex to ensure failure_cases
-        naturally contains the correct MultiIndex positions.
+        This materializes all values (including duplicates) for validation
+        when we can't just validate based on unique values.
         """
         # Materialize the full level values
         full_values = multiindex.get_level_values(level_pos)
