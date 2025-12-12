@@ -201,6 +201,50 @@ def test_multi_index_index() -> None:
         schema.validate(df_fail)
 
 
+def test_multi_index_failure_cases_show_full_tuples() -> None:
+    """Test that MultiIndex failure_cases include full tuples, not just level values."""
+    # Create a MultiIndex where 'c' appears at positions 2 and 4
+    mi = pd.MultiIndex.from_arrays(
+        [
+            ["a", "a", "c", "b", "c", "a"],  # level 0: 'c' at positions 2, 4
+            [1, 2, 3, 4, 5, 6],  # level 1
+        ],
+        names=["level0", "level1"],
+    )
+    df = pd.DataFrame({"col": range(6)}, index=mi)
+
+    # Schema that will fail for 'c' values
+    schema = DataFrameSchema(
+        columns={"col": Column(int)},
+        index=MultiIndex(
+            indexes=[
+                Index(String, Check.isin(["a", "b"]), name="level0"),
+                Index(Int, name="level1"),
+            ]
+        ),
+    )
+
+    # Validate with lazy=True to collect all errors
+    with pytest.raises(errors.SchemaErrors) as exc_info:
+        schema.validate(df, lazy=True)
+
+    # Check that we got the expected error
+    schema_errors = exc_info.value.schema_errors
+    assert len(schema_errors) == 1
+
+    # Get the failure_cases
+    failure_cases = schema_errors[0].failure_cases
+    assert isinstance(failure_cases, pd.DataFrame)
+    assert "index" in failure_cases.columns
+
+    expected_index = pd.Series(["('c', 3)", "('c', 5)"], name="index")
+    pd.testing.assert_series_equal(
+        failure_cases["index"].reset_index(drop=True),
+        expected_index,
+        check_names=False,
+    )
+
+
 def test_single_index_multi_index_mismatch() -> None:
     """Tests the failure case that attempting to validate a MultiIndex DataFrame
     against a single index schema raises a SchemaError with a constructive error
