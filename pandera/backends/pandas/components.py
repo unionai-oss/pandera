@@ -665,7 +665,7 @@ class MultiIndexBackend(PandasSchemaBackend):
     ) -> SchemaError:
         """Expand error from unique values to all positions in MultiIndex.
 
-        Takes failure_cases from unique value validation and expands them
+        Takes failure_cases from validation on unique values and expands them
         to include all positions where those values occur, with full tuple
         representation in the 'index' column.
 
@@ -708,8 +708,8 @@ class MultiIndexBackend(PandasSchemaBackend):
             suffixes=("_unique", ""),
         )
 
-        # Drop temporary columns
-        expanded = expanded.drop(columns=["level_value", "index_unique"])
+        # Keep only the original columns
+        expanded = expanded[fc.columns]
 
         return SchemaError(
             schema=error.schema,
