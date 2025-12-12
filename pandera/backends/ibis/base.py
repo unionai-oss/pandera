@@ -12,9 +12,11 @@ from pandera.backends.base import BaseSchemaBackend, CoreCheckResult
 from pandera.backends.ibis.constants import POSITIONAL_JOIN_BACKENDS
 from pandera.backends.pandas.error_formatters import (
     consolidate_failure_cases,
+    reshape_failure_cases,
+)
+from pandera.backends.ibis.error_formatters import (
     format_generic_error_message,
     format_vectorized_error_message,
-    reshape_failure_cases,
 )
 from pandera.constants import CHECK_OUTPUT_KEY, CHECK_OUTPUT_SUFFIX
 from pandera.errors import (
