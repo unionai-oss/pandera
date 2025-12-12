@@ -614,9 +614,8 @@ class MultiIndexBackend(PandasSchemaBackend):
         index_schema,
         lazy: bool = False,
     ) -> None:
-        """Validate a level using unique values optimization.
-
-        When validation fails, expands failure_cases to all positions.
+        """Validate a level using unique values optimization,
+        expanding failure_cases to the full index if validation fails.
 
         :param multiindex: The MultiIndex being validated
         :param level_pos: Position of this level in the MultiIndex
@@ -639,7 +638,7 @@ class MultiIndexBackend(PandasSchemaBackend):
                 inplace=True,
             )
         except SchemaErrors as exc:
-            # Expand failure_cases from unique values to all positions
+            # Expand failure_cases from unique values to the full index.
             transformed_errors = [
                 self._expand_error_to_full_multiindex(
                     err, multiindex, level_pos
