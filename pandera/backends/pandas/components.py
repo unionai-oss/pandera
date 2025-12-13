@@ -663,7 +663,7 @@ class MultiIndexBackend(PandasSchemaBackend):
         multiindex: pd.MultiIndex,
         level_pos: int,
     ) -> SchemaError:
-        """Expand error from unique values to all positions in MultiIndex.
+        """Expand error from unique values to the full MultiIndex.
 
         Takes failure_cases from validation on unique values and expands them
         to include all positions where those values occur, with full tuple
@@ -737,19 +737,12 @@ class MultiIndexBackend(PandasSchemaBackend):
         random_state: int | None = None,
         lazy: bool = False,
     ) -> None:
-        """Validate a level using full materialization.
+        """Validate a level using full materialization, for cases where we can't validate
+        based on unique values.
 
-        This materializes all values (including duplicates) for validation
-        when we can't just validate based on unique values.
+        This validates a Series indexed by the full MultiIndex to ensure failure_cases
+        contains the correct MultiIndex tuples.
         """
-        # Materialize the full level values
-        full_values = multiindex.get_level_values(level_pos)
-
-        # Create a Series with level values as data, indexed by the full MultiIndex
-        level_series = pd.Series(
-            full_values.values, index=multiindex, name=index_schema.name
-        )
-
         # Validate as a column (Series), rather than as an index
         # to ensure that failure_cases will have all levels in the 'index' column
         column_schema = Column(

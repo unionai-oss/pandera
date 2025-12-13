@@ -1157,11 +1157,13 @@ def multiindex_with_failures():
 
 @pytest.fixture
 def failing_index_schema():
-    """Create an index schema that will fail on "invalid"."""
+    """Create an index schema that will fail on "invalid" and "other_invalid"."""
     index_schema = Index(
         String,
         checks=[
-            Check.isin(["cat", "dog"]),  # "invalid" will fail this check
+            Check.isin(
+                ["cat", "dog"]
+            ),  # "invalid" and "other_invalid" will fail this check
         ],
         name="animal",
     )
@@ -1173,7 +1175,7 @@ def failing_index_schema():
 
 @pytest.fixture
 def failing_multiindex_schema(failing_index_schema):
-    """Create a MultiIndex schema that will fail on "invalid"."""
+    """Create a MultiIndex schema that will fail on "invalid" and "other_invalid"."""
     return MultiIndex(indexes=[failing_index_schema])
 
 
