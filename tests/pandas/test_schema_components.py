@@ -11,7 +11,6 @@ import pytest
 from pandera.api.base.error_handler import ErrorHandler
 from pandera.backends.pandas.components import MultiIndexBackend
 from pandera.engines.pandas_engine import Engine, pandas_version
-
 from pandera.pandas import (
     Check,
     Column,
