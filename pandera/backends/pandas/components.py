@@ -568,7 +568,9 @@ class MultiIndexBackend(PandasSchemaBackend):
                         lazy=lazy,
                     )
             except (SchemaError, SchemaErrors) as exc:
-                self._collect_or_raise(error_handler, exc, index_schema)
+                self._collect_or_raise(
+                    error_handler, exc, schema, index_schema=index_schema
+                )
 
         # Validate multiindex_unique: ensure no duplicate index combinations
         if schema.unique:
@@ -628,14 +630,35 @@ class MultiIndexBackend(PandasSchemaBackend):
         # will include nan if present, whereas multiindex.levels[level_pos]
         # will not.
         unique_values = multiindex.unique(level=level_pos)
-        unique_stub_df = pd.DataFrame(index=unique_values)
+
+        # Create a Series with unique values as data, similar to full materialization.
+        # This ensures error reporting is consistent between optimized and full paths.
+        unique_series = pd.Series(unique_values.values, name=index_schema.name)
+
+        # Create a Column schema from the Index schema, similar to full materialization
+        column_schema = Column(
+            dtype=index_schema.dtype,
+            checks=index_schema.checks,
+            parsers=index_schema.parsers,
+            nullable=index_schema.nullable,
+            unique=index_schema.unique,
+            report_duplicates=index_schema.report_duplicates,
+            coerce=index_schema.coerce,
+            name=index_schema.name,
+            title=index_schema.title,
+            description=index_schema.description,
+            default=index_schema.default,
+            metadata=index_schema.metadata,
+            drop_invalid_rows=index_schema.drop_invalid_rows,
+        )
 
         try:
-            # Run validation on unique values
-            index_schema.validate(
-                unique_stub_df,
+            # Use the SeriesSchemaBackend directly, similar to full materialization
+            backend = SeriesSchemaBackend()
+            backend.validate(
+                check_obj=unique_series,
+                schema=column_schema,
                 lazy=lazy,
-                inplace=True,
             )
         except SchemaErrors as exc:
             # Expand failure_cases from unique values to the full index.
@@ -990,7 +1013,8 @@ class MultiIndexBackend(PandasSchemaBackend):
     def _collect_or_raise(
         error_handler: ErrorHandler | None,
         err: Union[SchemaError, SchemaErrors],
-        schema,
+        multiindex_schema,
+        index_schema=None,
     ) -> None:
         """Collect errors (respecting lazy), adjusting schema context and
         failure cases appropriately.
@@ -1008,18 +1032,16 @@ class MultiIndexBackend(PandasSchemaBackend):
             # that downstream error reporting groups these failures under the
             # "MultiIndex" key.
             try:
-                schema_error.schema = schema
+                schema_error.schema = multiindex_schema
             except Exception:
                 # In case the attribute is frozen / read-only, skip.
                 pass
 
-            if is_table(failure_cases):
+            if is_table(failure_cases) and index_schema is not None:
                 # Attach the originating component name so that it can be
                 # displayed alongside the failure row.
-                component_name = getattr(schema, "name", None)
-                # if component_name is not None and "column" not in failure_cases.columns:
                 schema_error.failure_cases = failure_cases.assign(
-                    column=component_name
+                    column=index_schema.name
                 )
 
         # First, update failure_cases in the incoming error(s) with the component name

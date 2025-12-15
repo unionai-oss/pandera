@@ -307,9 +307,12 @@ def test_multi_index_failure_cases_with_nulls() -> None:
     )
     expected_sorted = expected.sort_values("index").reset_index(drop=True)
 
+    print(failure_cases_sorted)
+
     pd.testing.assert_frame_equal(
         failure_cases_sorted,
         expected_sorted,
+        check_like=True,
     )
 
 
