@@ -633,7 +633,11 @@ class MultiIndexBackend(PandasSchemaBackend):
 
         # Create a Series with unique values as data, similar to full materialization.
         # This ensures error reporting is consistent between optimized and full paths.
-        unique_series = pd.Series(unique_values.values, name=index_schema.name)
+        unique_series = pd.Series(
+            unique_values.values,
+            name=index_schema.name,
+            dtype=multiindex.levels[level_pos].dtype,
+        )
 
         # Create a Column schema from the Index schema, similar to full materialization
         column_schema = Column(
@@ -706,6 +710,7 @@ class MultiIndexBackend(PandasSchemaBackend):
             return error
 
         # Get unique failing values
+        dtype = failure_cases["failure_case"].dtype
         failing_values = failure_cases["failure_case"].values
         failing_null_mask = pd.isna(failing_values)
 
@@ -721,7 +726,9 @@ class MultiIndexBackend(PandasSchemaBackend):
         # Create mapping of failing values to their indices in the MultiIndex
         lookup_df = pd.DataFrame(
             {
-                "level_value": level_values[codes[mask]],
+                "level_value": pd.Series(
+                    level_values[codes[mask]], dtype=dtype
+                ),
                 "index": multiindex[mask].map(str),
             }
         )
@@ -733,7 +740,7 @@ class MultiIndexBackend(PandasSchemaBackend):
             null_values = pd.Series(
                 [failing_values[failing_null_mask][0]] * len(null_indices),
                 index=null_indices,
-                dtype=failing_values.dtype,
+                dtype=dtype,
             ).values
             lookup_df = pd.concat(
                 [
@@ -1038,7 +1045,7 @@ class MultiIndexBackend(PandasSchemaBackend):
                 pass
 
             if is_table(failure_cases) and index_schema is not None:
-                # Attach the originating component name so that it can be
+                # Attach the originating level name so that it can be
                 # displayed alongside the failure row.
                 schema_error.failure_cases = failure_cases.assign(
                     column=index_schema.name
