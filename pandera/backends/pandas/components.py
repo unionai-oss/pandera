@@ -568,7 +568,7 @@ class MultiIndexBackend(PandasSchemaBackend):
                         lazy=lazy,
                     )
             except (SchemaError, SchemaErrors) as exc:
-                self._collect_or_raise(error_handler, exc, schema)
+                self._collect_or_raise(error_handler, exc, index_schema)
 
         # Validate multiindex_unique: ensure no duplicate index combinations
         if schema.unique:
@@ -674,33 +674,59 @@ class MultiIndexBackend(PandasSchemaBackend):
         :param level_pos: Position of the level being validated
         :returns: SchemaError with expanded failure_cases
         """
-        fc = error.failure_cases
+        failure_cases = error.failure_cases
 
         if (
-            not isinstance(fc, pd.DataFrame)
-            or "failure_case" not in fc.columns
+            not isinstance(failure_cases, pd.DataFrame)
+            or "failure_case" not in failure_cases.columns
         ):
             return error
 
         # Get unique failing values
-        failing_values = fc["failure_case"].unique()
+        failing_values = failure_cases["failure_case"].values
+        failing_null_mask = pd.isna(failing_values)
 
         # Find all positions where these values appear in the MultiIndex
-        levels = multiindex.levels[level_pos]
+        level_values = multiindex.levels[level_pos]
         codes = np.asarray(multiindex.codes[level_pos])
-        failing_codes = levels.get_indexer(failing_values)
+        failing_codes = level_values.get_indexer(
+            failing_values[~failing_null_mask]
+        )
+
         mask = np.isin(codes, failing_codes)
 
         # Create mapping of failing values to their indices in the MultiIndex
         lookup_df = pd.DataFrame(
             {
-                "level_value": levels[codes[mask]],
+                "level_value": level_values[codes[mask]],
                 "index": multiindex[mask].map(str),
             }
         )
 
+        # Handle null values as a special case since they won't be in level_values
+        # and will be represented by -1 in codes which cannot be indexed into level_values
+        if failing_null_mask.any():
+            null_indices = multiindex[codes == -1]
+            null_values = pd.Series(
+                [failing_values[failing_null_mask][0]] * len(null_indices),
+                index=null_indices,
+                dtype=failing_values.dtype,
+            ).values
+            lookup_df = pd.concat(
+                [
+                    lookup_df,
+                    pd.DataFrame(
+                        {
+                            "level_value": null_values,
+                            "index": null_indices.map(str),
+                        }
+                    ),
+                ],
+                ignore_index=True,
+            )
+
         # Merge to expand failure cases
-        expanded = fc.merge(
+        expanded = failure_cases.merge(
             lookup_df,
             left_on="failure_case",
             right_on="level_value",
@@ -709,7 +735,7 @@ class MultiIndexBackend(PandasSchemaBackend):
         )
 
         # Keep only the original columns
-        expanded = expanded[fc.columns]
+        expanded = expanded[failure_cases.columns]
 
         return SchemaError(
             schema=error.schema,
@@ -743,6 +769,14 @@ class MultiIndexBackend(PandasSchemaBackend):
         This validates a Series indexed by the full MultiIndex to ensure failure_cases
         contains the correct MultiIndex tuples.
         """
+        # Materialize the full level values
+        full_values = multiindex.get_level_values(level_pos)
+
+        # Create a Series with level values as data, indexed by the full MultiIndex
+        level_series = pd.Series(
+            full_values.values, index=multiindex, name=index_schema.name
+        )
+
         # Validate as a column (Series), rather than as an index
         # to ensure that failure_cases will have all levels in the 'index' column
         column_schema = Column(

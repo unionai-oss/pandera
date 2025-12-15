@@ -247,6 +247,72 @@ def test_multi_index_failure_cases_show_full_tuples() -> None:
     )
 
 
+def test_multi_index_failure_cases_with_nulls() -> None:
+    """Test that MultiIndex failure_cases include full tuples when null values fail checks."""
+    # Create a MultiIndex with null values
+    mi = pd.MultiIndex.from_arrays(
+        [
+            np.array(
+                [None, "a", "a", "c", "b", "c", "a", np.nan], dtype=object
+            ),
+            [1, 2, 3, 4, 5, 6, 7, 8],
+        ],
+        names=["level0", "level1"],
+    )
+    df = pd.DataFrame({"col": range(len(mi))}, index=mi)
+
+    schema = DataFrameSchema(
+        columns={"col": Column(int)},
+        index=MultiIndex(
+            indexes=[
+                Index(
+                    String,
+                    nullable=True,
+                    name="level0",
+                    checks=Check.isin(["a"], ignore_na=False),
+                ),
+                Index(Int, name="level1"),
+            ]
+        ),
+    )
+
+    with pytest.raises(errors.SchemaErrors) as exc_info:
+        schema.validate(df, lazy=True)
+
+    # Get failure cases from the aggregated errors
+    schema_errors = exc_info.value.schema_errors
+    assert len(schema_errors) == 1
+
+    failure_cases = schema_errors[0].failure_cases
+
+    # Expected failures: 2 NaN (positions 0, 7), 2 'c' (positions 3, 5), 1 'b' (position 4)
+    # Note: failure_case will be NaN for null values, 'c' for 'c', 'b' for 'b'
+    expected = pd.DataFrame(
+        {
+            "index": [
+                "(nan, 1)",
+                "(nan, 8)",
+                "('c', 4)",
+                "('c', 6)",
+                "('b', 5)",
+            ],
+            "failure_case": [np.nan, np.nan, "c", "c", "b"],
+            "column": ["level0"] * 5,
+        }
+    )
+
+    # Sort both DataFrames by index for consistent comparison
+    failure_cases_sorted = failure_cases.sort_values("index").reset_index(
+        drop=True
+    )
+    expected_sorted = expected.sort_values("index").reset_index(drop=True)
+
+    pd.testing.assert_frame_equal(
+        failure_cases_sorted,
+        expected_sorted,
+    )
+
+
 def test_single_index_multi_index_mismatch() -> None:
     """Tests the failure case that attempting to validate a MultiIndex DataFrame
     against a single index schema raises a SchemaError with a constructive error
@@ -1135,163 +1201,233 @@ def test_check_determined_by_unique(
 
 
 @pytest.fixture
-def multiindex_with_failures():
-    """Create a MultiIndex with duplicates and some failing values."""
-    return pd.MultiIndex.from_arrays(
+def multiindex_optimization_test_data():
+    """Create a DataFrame with MultiIndex containing duplicates and failing values including nulls."""
+    mi = pd.MultiIndex.from_arrays(
         [
-            [
-                "invalid",
-                "cat",
-                "dog",
-                "cat",
-                "dog",
-                "invalid",
-                "other_invalid",
-                "other_invalid",
-            ],
-            [0, 1, 2, 3, 4, 5, 6, 7],
+            np.array(
+                [
+                    "invalid",
+                    "cat",
+                    "dog",
+                    "cat",
+                    "dog",
+                    "invalid",
+                    "other_invalid",
+                    np.nan,
+                    "other_invalid",
+                    np.nan,
+                ],
+                dtype=object,
+            ),
+            [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
         ],
         names=["animal", "id"],
     )
+    return pd.DataFrame({"col": range(len(mi))}, index=mi)
 
 
 @pytest.fixture
-def failing_index_schema():
-    """Create an index schema that will fail on "invalid" and "other_invalid"."""
-    index_schema = Index(
-        String,
-        checks=[
-            Check.isin(
-                ["cat", "dog"]
-            ),  # "invalid" and "other_invalid" will fail this check
-        ],
-        name="animal",
+def schema_with_optimized_validation():
+    """Schema with determined_by_unique=True (uses optimized validation path)."""
+    return DataFrameSchema(
+        columns={"col": Column(int)},
+        index=MultiIndex(
+            indexes=[
+                Index(
+                    String,
+                    checks=Check.isin(
+                        ["cat", "dog"],
+                        ignore_na=False,
+                        determined_by_unique=True,
+                    ),
+                    name="animal",
+                ),
+                Index(
+                    Int,
+                    name="id",
+                    checks=Check.greater_than(-1, determined_by_unique=True),
+                ),
+            ]
+        ),
     )
-    # Disable coercion to avoid side effects
-    index_schema = copy.deepcopy(index_schema)
-    index_schema.coerce = False
-    return index_schema
 
 
 @pytest.fixture
-def failing_multiindex_schema(failing_index_schema):
-    """Create a MultiIndex schema that will fail on "invalid" and "other_invalid"."""
-    return MultiIndex(indexes=[failing_index_schema])
+def schema_with_full_validation():
+    """Schema with determined_by_unique=False (uses full materialization path)."""
+    return DataFrameSchema(
+        columns={"col": Column(int)},
+        index=MultiIndex(
+            indexes=[
+                Index(
+                    String,
+                    checks=Check.isin(
+                        ["cat", "dog"],
+                        ignore_na=False,
+                        determined_by_unique=False,
+                    ),
+                    name="animal",
+                ),
+                Index(
+                    Int,
+                    name="id",
+                    checks=Check.greater_than(-1, determined_by_unique=False),
+                ),
+            ]
+        ),
+    )
 
 
-def test_validate_level_optimized_vs_full_materialization_failure_cases_lazy(
-    multiindex_with_failures, failing_index_schema, failing_multiindex_schema
-):
-    """Test that _validate_level_optimized and _validate_level_with_full_materialization
-    produce identical failure_cases with lazy=True after going through _collect_or_raise."""
-    backend = MultiIndexBackend()
-    multiindex = multiindex_with_failures
+def test_schema_with_optimized_validation_uses_optimized_path(
+    multiindex_optimization_test_data,
+    schema_with_optimized_validation,
+) -> None:
+    """Verify that schema with determined_by_unique=True actually calls the optimized validation method."""
+    with (
+        patch(
+            "pandera.backends.pandas.components.MultiIndexBackend._validate_level_optimized"
+        ) as mock_optimized,
+        patch(
+            "pandera.backends.pandas.components.MultiIndexBackend._validate_level_with_full_materialization"
+        ) as mock_full,
+    ):
+        # Make the mock not raise an error so validation continues
+        mock_optimized.return_value = None
+        mock_full.return_value = None
+        try:
+            schema_with_optimized_validation.validate(
+                multiindex_optimization_test_data
+            )
+        except (errors.SchemaError, errors.SchemaErrors):
+            # Validation may fail, but we only care about which method was called
+            pass
 
-    # Create a dummy DataFrame to pass to SchemaErrors (as in real validation)
-    df = pd.DataFrame(index=multiindex)
+        # Verify that only the optimized method was called
+        assert mock_optimized.call_count == 2, (
+            "Schema with determined_by_unique=True should call _validate_level_optimized"
+        )
+        assert mock_full.call_count == 0, (
+            "Schema with determined_by_unique=True should not call _validate_level_with_full_materialization"
+        )
 
-    # Test optimized validation
-    error_handler_optimized = ErrorHandler(lazy=True)
+
+def test_schema_with_full_validation_uses_full_materialization_path(
+    multiindex_optimization_test_data,
+    schema_with_full_validation,
+) -> None:
+    """Verify that schema with determined_by_unique=False actually calls the full materialization method."""
+    with (
+        patch(
+            "pandera.backends.pandas.components.MultiIndexBackend._validate_level_with_full_materialization"
+        ) as mock_full,
+        patch(
+            "pandera.backends.pandas.components.MultiIndexBackend._validate_level_optimized"
+        ) as mock_optimized,
+    ):
+        # Make the mock not raise an error so validation continues
+        mock_full.return_value = None
+        mock_optimized.return_value = None
+
+        try:
+            schema_with_full_validation.validate(
+                multiindex_optimization_test_data
+            )
+        except (errors.SchemaError, errors.SchemaErrors):
+            # Validation may fail, but we only care about which method was called
+            pass
+
+        # Verify that only the full materialization method was called
+        assert mock_full.call_count == 2, (
+            "Schema with determined_by_unique=False should call _validate_level_with_full_materialization"
+        )
+        assert mock_optimized.call_count == 0, (
+            "Schema with determined_by_unique=False should not call _validate_level_optimized"
+        )
+
+
+def test_multiindex_optimized_vs_full_validation_lazy(
+    multiindex_optimization_test_data,
+    schema_with_optimized_validation,
+    schema_with_full_validation,
+) -> None:
+    """Test that optimized and full materialization validation produce identical results.
+
+    Uses determined_by_unique flag to control which validation path is taken:
+    - determined_by_unique=True uses optimized validation
+    - determined_by_unique=False uses full materialization
+    """
+    # Validate with both schemas using lazy=True
+    optimized_errors = None
     try:
-        backend._validate_level_optimized(
-            multiindex, 0, failing_index_schema, lazy=True
+        schema_with_optimized_validation.validate(
+            multiindex_optimization_test_data, lazy=True
         )
-    except (errors.SchemaError, errors.SchemaErrors) as exc:
-        backend._collect_or_raise(
-            error_handler_optimized, exc, failing_multiindex_schema
-        )
+    except errors.SchemaErrors as exc:
+        optimized_errors = exc
 
-    # Create SchemaErrors from collected errors (as in real validation)
-    if error_handler_optimized.collected_errors:
-        schema_errors_optimized = errors.SchemaErrors(
-            schema=failing_multiindex_schema,
-            schema_errors=error_handler_optimized.schema_errors,
-            data=df,
-        )
-        optimized_fc = schema_errors_optimized.failure_cases
-    else:
-        optimized_fc = None
-
-    # Test full materialization method
-    error_handler_full = ErrorHandler(lazy=True)
+    full_errors = None
     try:
-        backend._validate_level_with_full_materialization(
-            multiindex, 0, failing_index_schema, lazy=True
+        schema_with_full_validation.validate(
+            multiindex_optimization_test_data, lazy=True
         )
-    except (errors.SchemaError, errors.SchemaErrors) as exc:
-        backend._collect_or_raise(
-            error_handler_full, exc, failing_multiindex_schema
-        )
+    except errors.SchemaErrors as exc:
+        full_errors = exc
 
-    # Create SchemaErrors from collected errors (as in real validation)
-    if error_handler_full.collected_errors:
-        schema_errors_full = errors.SchemaErrors(
-            schema=failing_multiindex_schema,
-            schema_errors=error_handler_full.schema_errors,
-            data=df,
-        )
-        full_fc = schema_errors_full.failure_cases
-    else:
-        full_fc = None
+    # Both should raise errors
+    assert optimized_errors is not None
+    assert full_errors is not None
 
-    # Both should have failure_cases, and they should be identical
-    assert optimized_fc is not None
-    assert full_fc is not None
+    # Compare failure cases - they should be identical up to ordering
+    optimized_fc = optimized_errors.failure_cases
+    full_fc = full_errors.failure_cases
 
     pd.testing.assert_frame_equal(
-        optimized_fc,
-        full_fc,
+        optimized_fc.sort_values(by="index").reset_index(drop=True),
+        full_fc.sort_values(by="index").reset_index(drop=True),
         check_like=True,
     )
 
 
-def test_validate_level_optimized_vs_full_materialization_failure_cases_eager(
-    multiindex_with_failures, failing_index_schema, failing_multiindex_schema
-):
-    """Test that _validate_level_optimized and _validate_level_with_full_materialization
-    produce identical failure_cases with lazy=False after going through _collect_or_raise."""
-    backend = MultiIndexBackend()
-    multiindex = multiindex_with_failures
+def test_multiindex_optimized_vs_full_validation_eager(
+    multiindex_optimization_test_data,
+    schema_with_optimized_validation,
+    schema_with_full_validation,
+) -> None:
+    """Test that optimized and full materialization validation produce identical results in eager mode.
 
-    # Test optimized method
-    # _collect_or_raise modifies the error in place and then raises it
+    Uses determined_by_unique flag to control which validation path is taken:
+    - determined_by_unique=True uses optimized validation
+    - determined_by_unique=False uses full materialization
+    """
+    # Validate with both schemas using lazy=False (eager mode)
     optimized_error = None
     try:
-        backend._validate_level_optimized(
-            multiindex, 0, failing_index_schema, lazy=False
+        schema_with_optimized_validation.validate(
+            multiindex_optimization_test_data, lazy=False
         )
-    except (errors.SchemaError, errors.SchemaErrors) as exc:
-        # Pass error through _collect_or_raise which modifies it in place and raises it
-        try:
-            backend._collect_or_raise(None, exc, failing_multiindex_schema)
-        except (errors.SchemaError, errors.SchemaErrors) as raised_exc:
-            optimized_error = raised_exc
+    except errors.SchemaError as exc:
+        optimized_error = exc
 
-    # Get errors from fully materialized validation
     full_error = None
     try:
-        backend._validate_level_with_full_materialization(
-            multiindex, 0, failing_index_schema, lazy=False
+        schema_with_full_validation.validate(
+            multiindex_optimization_test_data, lazy=False
         )
-    except (errors.SchemaError, errors.SchemaErrors) as exc:
-        # Pass error through _collect_or_raise which modifies it in place and raises it
-        try:
-            backend._collect_or_raise(None, exc, failing_multiindex_schema)
-        except (errors.SchemaError, errors.SchemaErrors) as raised_exc:
-            full_error = raised_exc
+    except errors.SchemaError as exc:
+        full_error = exc
 
-    # Both should have raised errors
+    # Both should produce errors
     assert optimized_error is not None
     assert full_error is not None
 
-    # Get failure_cases from the errors after _collect_or_raise processing
-    # _update_schema_error modifies failure_cases
+    # Compare failure cases - they should be identical
     optimized_fc = optimized_error.failure_cases
     full_fc = full_error.failure_cases
 
     pd.testing.assert_frame_equal(
-        optimized_fc,
-        full_fc,
+        optimized_fc.sort_values(by="index").reset_index(drop=True),
+        full_fc.sort_values(by="index").reset_index(drop=True),
         check_like=True,
     )
 
