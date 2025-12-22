@@ -109,7 +109,7 @@ class DataFrameModel(_DataFrameModel[pd.DataFrame, DataFrameSchema]):
                     Engine.dtype(annotation.raw_annotation)
                     dtype = annotation.raw_annotation
                     use_raw_annotation = True
-                except TypeError:
+                except (TypeError, ValueError):
                     dtype = annotation.arg
 
             dtype = None if dtype is Any else dtype
