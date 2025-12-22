@@ -508,10 +508,22 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
         # Check if values belong to the dataframe columns
         missing_unique_columns = set(unique_columns) - set(check_obj.columns)
         if missing_unique_columns:
-            passed = False
-            message = (
-                f"Specified `unique` columns are missing in the dataframe: "
-                f"{list(missing_unique_columns)}"
+            return CoreCheckResult(
+                passed=False,
+                check="unique",
+                reason_code=SchemaErrorReason.DUPLICATES,
+                message=(
+                    f"Specified `unique` columns are missing in the dataframe: "
+                    f"{list(missing_unique_columns)}"
+                ),
+            )
+
+        # Filter out empty column names
+        unique_columns = [col for col in unique_columns if col]
+        if not unique_columns:
+            return CoreCheckResult(
+                passed=True,
+                check="unique",
             )
 
         duplicates_count = (

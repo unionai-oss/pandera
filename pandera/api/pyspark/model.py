@@ -117,13 +117,7 @@ class DataFrameModel(_DataFrameModel[PySparkFrame, DataFrameSchema]):
 
     Config: type[BaseConfig] = BaseConfig
     __extras__: dict[str, Any] | None = None
-    __schema__: DataFrameSchema | None = None
     __config__: type[BaseConfig] | None = None
-
-    #: Key according to `FieldInfo.name`
-    __fields__: Mapping[str, tuple[AnnotationInfo, FieldInfo]] = {}
-    __checks__: dict[str, list[Check]] = {}
-    __root_checks__: list[Check] = []
 
     @classmethod
     @docstring_substitution(validate_doc=BaseSchema.validate.__doc__)
