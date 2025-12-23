@@ -2,11 +2,7 @@
 
 from __future__ import annotations
 
-from typing import (
-    TYPE_CHECKING,
-    Optional,
-    Type,
-)
+from typing import TYPE_CHECKING
 
 from pyspark.sql import SparkSession
 from pyspark.sql.types import StructField, StructType
@@ -19,8 +15,8 @@ from pandera.engines import pyspark_engine
 from pandera.utils import docstring_substitution
 
 from .types import (
-    PySparkDtypeInputTypes,
     PySparkDataFrameTypes,
+    PySparkDtypeInputTypes,
     PySparkFrame,
 )
 
@@ -52,10 +48,10 @@ class DataFrameSchema(_DataFrameSchema[PySparkDataFrameTypes]):
     def validate(
         self,
         check_obj: PySparkFrame,
-        head: Optional[int] = None,
-        tail: Optional[int] = None,
-        sample: Optional[int] = None,
-        random_state: Optional[int] = None,
+        head: int | None = None,
+        tail: int | None = None,
+        sample: int | None = None,
+        random_state: int | None = None,
         lazy: bool = True,
         inplace: bool = False,
     ) -> PySparkFrame:
@@ -129,10 +125,10 @@ class DataFrameSchema(_DataFrameSchema[PySparkDataFrameTypes]):
     def __call__(
         self,
         dataframe: PySparkFrame,
-        head: Optional[int] = None,
-        tail: Optional[int] = None,
-        sample: Optional[int] = None,
-        random_state: Optional[int] = None,
+        head: int | None = None,
+        tail: int | None = None,
+        sample: int | None = None,
+        random_state: int | None = None,
         lazy: bool = True,
         inplace: bool = False,
     ) -> PySparkFrame:

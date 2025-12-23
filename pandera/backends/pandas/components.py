@@ -8,7 +8,7 @@ from typing import Any, Optional, Union
 import numpy as np
 import pandas as pd
 
-from pandera.api.base.error_handler import ErrorHandler
+from pandera.api.base.error_handler import ErrorHandler, get_error_category
 from pandera.api.pandas.components import Column
 from pandera.api.pandas.types import (
     is_field,
@@ -97,12 +97,14 @@ class ColumnBackend(ArraySchemaBackend):
                 for err in errs.schema_errors:
                     err.column_name = column_name
                     error_handler.collect_error(
-                        validation_type(err.reason_code), err.reason_code, err
+                        get_error_category(err.reason_code),
+                        err.reason_code,
+                        err,
                     )
             except SchemaError as err:
                 err.column_name = column_name
                 error_handler.collect_error(
-                    validation_type(err.reason_code), err.reason_code, err
+                    get_error_category(err.reason_code), err.reason_code, err
                 )
 
         column_keys_to_check = (
@@ -308,7 +310,7 @@ class IndexBackend(ArraySchemaBackend):
                 check_obj.index = schema.coerce_dtype(check_obj.index)
             except SchemaError as exc:
                 error_handler.collect_error(
-                    validation_type(exc.reason_code),
+                    get_error_category(exc.reason_code),
                     exc.reason_code,
                     exc,
                 )
@@ -327,7 +329,7 @@ class IndexBackend(ArraySchemaBackend):
             assert is_field(_validated_obj)
         except SchemaError as exc:
             error_handler.collect_error(
-                validation_type(exc.reason_code),
+                get_error_category(exc.reason_code),
                 exc.reason_code,
                 exc,
             )
@@ -384,7 +386,7 @@ class MultiIndexBackend(PandasSchemaBackend):
                         index_array = _index.coerce_dtype(index_array)
                     except SchemaError as err:
                         error_handler.collect_error(
-                            validation_type(
+                            get_error_category(
                                 SchemaErrorReason.DATATYPE_COERCION
                             ),
                             SchemaErrorReason.DATATYPE_COERCION,
@@ -936,7 +938,7 @@ class MultiIndexBackend(PandasSchemaBackend):
 
             if error_handler is not None and error_handler.lazy:
                 error_handler.collect_error(
-                    validation_type(err.reason_code), err.reason_code, err
+                    get_error_category(err.reason_code), err.reason_code, err
                 )
             else:
                 raise err

@@ -149,14 +149,12 @@ class BaseSchema(ABC):
         self.name = name
         return self
 
-    def strategy(
-        self, *, size: Optional[int] = None, n_regex_columns: int = 1
-    ):
+    def strategy(self, *, size: int | None = None, n_regex_columns: int = 1):
         """Create a data synthesis strategy."""
         raise NotImplementedError
 
     def example(
-        self, size: Optional[int] = None, n_regex_columns: int = 1
+        self, size: int | None = None, n_regex_columns: int = 1
     ) -> Any:
         """Generate an example of this data model specification."""
         raise NotImplementedError

@@ -14,6 +14,7 @@ from pyspark.sql import DataFrame
 from pyspark.sql.functions import col
 
 from pandera.api.checks import CheckResult
+from pandera.api.pyspark.types import PySparkDataFrameTypes
 from pandera.backends.base import BaseSchemaBackend, CoreCheckResult
 from pandera.backends.pyspark.error_formatters import (
     format_generic_error_message,
@@ -22,10 +23,9 @@ from pandera.backends.pyspark.error_formatters import (
 from pandera.errors import (
     FailureCaseMetadata,
     SchemaError,
-    SchemaWarning,
     SchemaErrorReason,
+    SchemaWarning,
 )
-from pandera.api.pyspark.types import PySparkDataFrameTypes
 
 
 class ColumnInfo(NamedTuple):
@@ -55,14 +55,16 @@ class PysparkSchemaBackend(BaseSchemaBackend):
     def subsample(
         self,
         check_obj: PySparkDataFrameTypes,
-        head: Optional[int] = None,
-        tail: Optional[int] = None,
-        sample: Optional[float] = None,
-        random_state: Optional[int] = None,
+        head: int | None = None,
+        tail: int | None = None,
+        sample: float | None = None,
+        random_state: int | None = None,
     ):
         if sample is not None:
             return check_obj.sample(
-                withReplacement=False, fraction=sample, seed=random_state  # type: ignore
+                withReplacement=False,
+                fraction=sample,
+                seed=random_state,  # type: ignore
             )
         return check_obj
 

@@ -3,7 +3,7 @@
 from typing import Union
 
 import pytest
-from pyspark.sql import DataFrame, SparkSession, Column
+from pyspark.sql import Column, DataFrame, SparkSession
 from pyspark.sql.functions import col
 from pyspark.sql.types import FloatType, LongType
 

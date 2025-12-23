@@ -54,7 +54,7 @@ try:
         "collection_check_strategy": CollectionCheckStrategy.ALL_ITEMS,
     }
     TYPEGUARD_COLLECTION_STRATEGY_AVAILABLE = True
-    TYPEGUARD_ERROR = typeguard.TypeCheckError
+    TYPEGUARD_ERROR: type[BaseException] = typeguard.TypeCheckError
 except ImportError:
     warnings.warn(
         "Using typeguard < 3. Generic types like List[TYPE], Dict[TYPE, TYPE] "
@@ -760,7 +760,7 @@ class NpString(numpy_engine.String):
             )
         else:
             is_python_string = data_container.map(lambda x: isinstance(x, str))  # type: ignore[operator]
-        return is_python_string.astype(bool) | data_container.isna()
+        return is_python_string.astype(bool) | data_container.isna()  # type: ignore[return-value]
 
 
 Engine.register_dtype(
@@ -951,26 +951,34 @@ class DateTime(_BaseDateTime, dtypes.Timestamp):
         # If there is a single timezone, define the type as a timezone-aware DatetimeTZDtype
         if isinstance(data_container.dtype, pd.DatetimeTZDtype):
             tz = self.tz
-            unit = self.unit if self.unit else data_container.dtype.unit
-            type_ = pd.DatetimeTZDtype(unit, tz)
+            unit = (
+                self.unit
+                if self.unit
+                else getattr(data_container.dtype, "unit", "ns")
+            )
+            type_ = pd.DatetimeTZDtype(unit, tz)  # type: ignore[arg-type]
             object.__setattr__(self, "tz", tz)
             object.__setattr__(self, "type", type_)
         # If there are multiple timezones, convert them to the specified tz and set the type accordingly
         elif all(isinstance(x, datetime.datetime) for x in data_container):
             container_type = type(data_container)
             tz = self.tz
-            unit = self.unit if self.unit else data_container.dtype.unit
+            unit = (
+                self.unit
+                if self.unit
+                else getattr(data_container.dtype, "unit", "ns")
+            )
             data_container = container_type(
                 [
                     (
-                        pd.Timestamp(ts).tz_convert(tz)
+                        pd.Timestamp(ts).tz_convert(tz)  # type: ignore[arg-type]
                         if pd.Timestamp(ts).tzinfo
-                        else pd.Timestamp(ts).tz_localize(tz)
+                        else pd.Timestamp(ts).tz_localize(tz)  # type: ignore[arg-type, call-overload]
                     )
                     for ts in data_container
                 ]
             )
-            type_ = pd.DatetimeTZDtype(unit, tz)
+            type_ = pd.DatetimeTZDtype(unit, tz)  # type: ignore[arg-type]
             object.__setattr__(self, "tz", tz)
             object.__setattr__(self, "type", type_)
         else:
@@ -1012,7 +1020,7 @@ class DateTime(_BaseDateTime, dtypes.Timestamp):
             isinstance(pandera_dtype, DateTime)
             and pandera_dtype.tz is not None
         ):
-            type_ = pd.DatetimeTZDtype(self.unit, pandera_dtype.tz)
+            type_ = pd.DatetimeTZDtype(self.unit, pandera_dtype.tz)  # type: ignore[arg-type]
             object.__setattr__(self, "tz", pandera_dtype.tz)
             object.__setattr__(self, "type", type_)
         # If the data has a mix of timezones, pandas defines the dtype as 'object`
@@ -1249,9 +1257,9 @@ class PydanticModel(DataType):
             )
 
             if PYDANTIC_V2:
-                column_names = list(self.type.model_fields)
+                column_names = list(self.type.model_fields.keys())  # type: ignore[attr-defined]
             else:
-                column_names = list(self.type.__fields__)
+                column_names = list(self.type.__fields__.keys())  # type: ignore[attr-defined]
             self._check_column_names(data_container, column_names)
             return data_container
 
@@ -1336,10 +1344,10 @@ class PythonGenericType(DataType):
                 _type = _TypedDict(_type.__name__, _type.__annotations__)  # type: ignore
 
             if TYPEGUARD_COLLECTION_STRATEGY_AVAILABLE:
-                typeguard.check_type(element, _type, **type_types_kwargs)
+                typeguard.check_type(element, _type, **type_types_kwargs)  # type: ignore[call-overload]
             else:
                 # typeguard <= 3 takes `argname` as the first positional argument
-                typeguard.check_type("data_container", element, _type)
+                typeguard.check_type("data_container", element, _type)  # type: ignore[call-overload]
 
             return True
         except TYPEGUARD_ERROR:
@@ -1348,13 +1356,13 @@ class PythonGenericType(DataType):
     def _coerce_element(self, element: Any) -> Any:
         try:
             if PYDANTIC_V2:
-                coerced_element = self.coercion_model(element).root
+                coerced_element = self.coercion_model(element).model_dump()  # type: ignore[attr-defined, call-arg]
             else:
                 coerced_element = self.coercion_model(
-                    __root__=element
-                ).__root__
+                    __root__=element  # type: ignore[call-arg]
+                ).__root__  # type: ignore[attr-defined]
         except ValidationError:
-            coerced_element = pd.NA
+            coerced_element = pd.NA  # type: ignore[assignment]
         return coerced_element
 
     def check(
@@ -1377,7 +1385,7 @@ class PythonGenericType(DataType):
         elif self.generic_type is None and self.special_type is None:
             return data_container.map(type) == self.type  # type: ignore[operator]
         else:
-            return data_container.map(self._check_type)  # type: ignore[operator]
+            return data_container.map(self._check_type)  # type: ignore[operator, return-value]
 
     def coerce(self, data_container: PandasObject) -> PandasObject:
         """Coerce data container to the specified data type."""
@@ -1385,9 +1393,9 @@ class PythonGenericType(DataType):
         from pandera.backends.pandas import error_formatters
 
         orig_isna = data_container.isna()
-        coerced_data = data_container.map(self._coerce_element)  # type: ignore[operator]
+        coerced_data: PandasObject = data_container.map(self._coerce_element)  # type: ignore[operator]
         failed_selector = coerced_data.isna() & ~orig_isna
-        failure_cases = coerced_data[failed_selector]
+        failure_cases = coerced_data[failed_selector]  # type: ignore[index]
 
         if len(failure_cases) > 0:
             raise errors.ParserError(
@@ -1548,7 +1556,7 @@ if PYARROW_INSTALLED and PANDAS_2_0_0_PLUS:
     class ArrowBool(ArrowDataType, BOOL):
         """Semantic representation of a :class:`pyarrow.bool_`."""
 
-        type = pd.ArrowDtype(pyarrow.bool_())
+        type: pd.ArrowDtype = pd.ArrowDtype(pyarrow.bool_())  # type: ignore[assignment]
 
     @Engine.register_dtype(
         equivalents=[
@@ -1617,8 +1625,8 @@ if PYARROW_INSTALLED and PANDAS_2_0_0_PLUS:
             # engine registers the following two types in terms of the type's
             # string __repr__ method ("string[pyarrow]") and its type
             # (pd.ArrowDtype).
-            engine.StrictEquivalent(pd.ArrowDtype(pyarrow.string())),
-            engine.StrictEquivalent(pd.ArrowDtype(pyarrow.utf8())),
+            engine.StrictEquivalent(pd.ArrowDtype(pyarrow.string())),  # type: ignore[arg-type]
+            engine.StrictEquivalent(pd.ArrowDtype(pyarrow.utf8())),  # type: ignore[arg-type]
         ]
     )
     @immutable
@@ -1959,7 +1967,7 @@ if PYARROW_INSTALLED and PANDAS_2_0_0_PLUS:
             else:
                 return data_container.astype(
                     pd.ArrowDtype(pyarrow.int32())
-                ).astype(self.type)
+                ).astype(self.type)  # type: ignore[arg-type]
 
     @Engine.register_dtype(equivalents=[pyarrow.time64, pyarrow.Time64Type])
     @immutable(init=True)
@@ -1985,7 +1993,7 @@ if PYARROW_INSTALLED and PANDAS_2_0_0_PLUS:
             else:
                 return data_container.astype(
                     pd.ArrowDtype(pyarrow.int64())
-                ).astype(self.type)
+                ).astype(self.type)  # type: ignore[arg-type]
 
     @Engine.register_dtype(equivalents=[pyarrow.map_, pyarrow.MapType])
     @immutable(init=True)

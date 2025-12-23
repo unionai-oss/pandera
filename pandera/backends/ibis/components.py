@@ -10,6 +10,7 @@ import ibis
 import ibis.expr.operations as ops
 import ibis.selectors as s
 
+from pandera.api.base.error_handler import get_error_category
 from pandera.api.ibis.error_handler import ErrorHandler
 from pandera.backends.base import CoreCheckResult
 from pandera.backends.ibis.base import IbisSchemaBackend
@@ -100,7 +101,7 @@ class ColumnBackend(IbisSchemaBackend):
                                 reason_code=result.reason_code,
                             )
                         error_handler.collect_error(
-                            validation_type(result.reason_code),
+                            get_error_category(result.reason_code),
                             result.reason_code,
                             error,
                             original_exc=result.original_exc,

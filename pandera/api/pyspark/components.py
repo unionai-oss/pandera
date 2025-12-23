@@ -3,7 +3,6 @@
 from collections.abc import Iterable
 from typing import Any, Optional, Union
 
-
 from pandera.api.base.types import CheckList, ParserList
 from pandera.api.dataframe.components import ComponentSchema
 from pandera.backends.pyspark.register import register_pyspark_backends
@@ -118,9 +117,7 @@ class Column(ComponentSchema[PySparkDataFrameTypes]):
     @dtype.setter
     def dtype(self, value: PySparkDtypeInputTypes) -> None:
         """Set the pyspark dtype property."""
-        self._dtype = (
-            pyspark_engine.Engine.dtype(value) if value else None
-        )  # pylint:disable=no-value-for-parameter
+        self._dtype = pyspark_engine.Engine.dtype(value) if value else None  # pylint:disable=no-value-for-parameter
 
     @property
     def properties(self) -> dict[str, Any]:
@@ -141,10 +138,10 @@ class Column(ComponentSchema[PySparkDataFrameTypes]):
     def validate(
         self,
         check_obj: PySparkFrame,
-        head: Optional[int] = None,
-        tail: Optional[int] = None,
-        sample: Optional[int] = None,
-        random_state: Optional[int] = None,
+        head: int | None = None,
+        tail: int | None = None,
+        sample: int | None = None,
+        random_state: int | None = None,
         lazy: bool = False,
         inplace: bool = False,
     ) -> PySparkFrame:

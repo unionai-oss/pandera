@@ -13,18 +13,18 @@ from typing import (
     cast,
 )
 
-from typing_extensions import Self
 from pyspark.sql.types import StructType
+from typing_extensions import Self
 
 from pandera.api.base.schema import BaseSchema
 from pandera.api.checks import Check
+from pandera.api.dataframe.model import DataFrameModel as _DataFrameModel
 from pandera.api.dataframe.model_components import Field, FieldInfo
 from pandera.errors import SchemaInitError
 from pandera.typing import AnnotationInfo
 from pandera.typing.common import DataFrameBase
 from pandera.typing.pyspark import DataFrame as PySparkPandasDataFrame
 from pandera.typing.pyspark_sql import DataFrame as PySparkSQLDataFrame
-from pandera.api.dataframe.model import DataFrameModel as _DataFrameModel
 
 from .components import Column
 from .container import DataFrameSchema
@@ -124,10 +124,10 @@ class DataFrameModel(_DataFrameModel[PySparkFrame, DataFrameSchema]):
     def validate(
         cls: type[Self],
         check_obj: DataFrame,
-        head: Optional[int] = None,
-        tail: Optional[int] = None,
-        sample: Optional[int] = None,
-        random_state: Optional[int] = None,
+        head: int | None = None,
+        tail: int | None = None,
+        sample: int | None = None,
+        random_state: int | None = None,
         lazy: bool = True,
         inplace: bool = False,
     ) -> DataFrameBase[Self]:
@@ -135,7 +135,13 @@ class DataFrameModel(_DataFrameModel[PySparkFrame, DataFrameSchema]):
         return cast(
             DataFrameBase[Self],
             cls.to_schema().validate(
-                check_obj, head, tail, sample, random_state, lazy, inplace  # type: ignore
+                check_obj,
+                head,
+                tail,
+                sample,
+                random_state,
+                lazy,
+                inplace,  # type: ignore
             ),
         )
 

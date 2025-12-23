@@ -7,8 +7,8 @@ from typing import (
     TypeVar,
 )
 
-from pandera.api.dataframe.model_components import Field as _Field
 from pandera.api.dataframe.components import ComponentSchema
+from pandera.api.dataframe.model_components import Field as _Field
 from pandera.errors import SchemaInitError
 
 AnyCallable = Callable[..., Any]

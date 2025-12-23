@@ -334,7 +334,9 @@ def test_dataframe_schema_unique_wrong_column(
 
     # Validation should collect errors about missing unique columns
     df_out = UniqueMultipleColumns.validate(check_obj=df)
-    assert df_out.pandera.errors, "Expected validation errors for missing unique columns"
+    assert df_out.pandera.errors, (
+        "Expected validation errors for missing unique columns"
+    )
     assert "DATA" in df_out.pandera.errors
 
 

@@ -2,13 +2,13 @@
 
 from functools import lru_cache
 from typing import NamedTuple, TypeVar, Union
-from numpy import bool_ as np_bool
-from packaging import version
 
 import pyspark
 import pyspark.sql.types as pst
-from pyspark.sql import DataFrame as PySparkSQLDataFrame
+from numpy import bool_ as np_bool
+from packaging import version
 from pyspark.pandas import DataFrame as PySparkPandasDataFrame
+from pyspark.sql import DataFrame as PySparkSQLDataFrame
 
 from pandera.api.checks import Check
 from pandera.dtypes import DataType

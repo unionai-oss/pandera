@@ -1,8 +1,8 @@
 """Backend implementation for PySpark schema components."""
 
 import re
-from copy import copy
 from collections.abc import Iterable
+from copy import copy
 
 from pyspark.sql import DataFrame
 from pyspark.sql.functions import col

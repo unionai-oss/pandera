@@ -137,7 +137,7 @@ class ErrorHandler:
         """
         for schema_error in schema_errors:
             self.collect_error(
-                validation_type(schema_error.reason_code),
+                get_error_category(schema_error.reason_code),
                 schema_error.reason_code,
                 schema_error,
                 original_exc or schema_error,

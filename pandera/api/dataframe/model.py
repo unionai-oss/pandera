@@ -17,8 +17,6 @@ from typing import (
     cast,
     get_type_hints,
 )
-from collections.abc import Iterable
-from typing import get_type_hints
 
 from typing_extensions import Self
 
@@ -46,7 +44,6 @@ from .model_components import (
     ParserInfo,
 )
 from .model_config import BaseConfig
-
 
 if PYDANTIC_V2:
     from pydantic import GetCoreSchemaHandler, GetJsonSchemaHandler

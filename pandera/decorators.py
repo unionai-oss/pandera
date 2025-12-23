@@ -19,7 +19,7 @@ from typing import (
 from pydantic import validate_arguments
 
 from pandera import errors
-from pandera.api.base.error_handler import ErrorHandler
+from pandera.api.base.error_handler import ErrorHandler, get_error_category
 from pandera.api.dataframe.components import ComponentSchema
 from pandera.api.dataframe.container import DataFrameSchema
 from pandera.api.dataframe.model import DataFrameModel
@@ -691,7 +691,7 @@ def check_types(
                         )
                     except errors.SchemaError as e:
                         error_handler.collect_error(
-                            validation_type(
+                            get_error_category(
                                 errors.SchemaErrorReason.INVALID_TYPE
                             ),
                             errors.SchemaErrorReason.INVALID_TYPE,

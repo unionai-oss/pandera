@@ -3,7 +3,8 @@
 import copy
 import traceback
 import warnings
-from typing import Any, Callable, Optional
+from collections.abc import Callable
+from typing import Any, Optional
 
 from pyspark.sql import DataFrame
 from pyspark.sql.functions import col, count
@@ -14,7 +15,7 @@ from pandera.api.base.error_handler import (
     get_error_category,
 )
 from pandera.api.pyspark.types import is_table
-from pandera.backends.base import CoreCheckResult, ColumnInfo
+from pandera.backends.base import ColumnInfo, CoreCheckResult
 from pandera.backends.pyspark.base import PysparkSchemaBackend
 from pandera.backends.pyspark.decorators import cache_check_obj
 from pandera.backends.pyspark.error_formatters import scalar_failure_case

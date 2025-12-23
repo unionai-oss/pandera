@@ -8,7 +8,7 @@ from typing import Any, Optional
 
 import polars as pl
 
-from pandera.api.base.error_handler import ErrorHandler
+from pandera.api.base.error_handler import ErrorHandler, get_error_category
 from pandera.api.polars.container import DataFrameSchema
 from pandera.api.polars.types import PolarsData, PolarsFrame
 from pandera.api.polars.utils import get_lazyframe_column_names
@@ -80,7 +80,7 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
                 check_lf = parser(check_lf, *args)
             except SchemaError as exc:
                 error_handler.collect_error(
-                    validation_type(exc.reason_code),
+                    get_error_category(exc.reason_code),
                     exc.reason_code,
                     exc,
                 )
@@ -137,7 +137,7 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
                         reason_code=result.reason_code,
                     )
                 error_handler.collect_error(
-                    validation_type(result.reason_code),
+                    get_error_category(result.reason_code),
                     result.reason_code,
                     error,
                     original_exc=result.original_exc,
@@ -295,7 +295,10 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
             if (
                 col.required  # type: ignore
                 or col_name in check_obj
-                or col.selector in column_info.regex_match_patterns
+                or (
+                    column_info.regex_match_patterns is not None
+                    and col.selector in column_info.regex_match_patterns
+                )
             ) and col_name not in column_info.absent_column_names:
                 col = copy.deepcopy(col)
                 if schema.dtype is not None:
@@ -434,13 +437,15 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
         except SchemaErrors as err:
             for schema_error in err.schema_errors:
                 error_handler.collect_error(
-                    validation_type(SchemaErrorReason.SCHEMA_COMPONENT_CHECK),
+                    get_error_category(
+                        SchemaErrorReason.SCHEMA_COMPONENT_CHECK
+                    ),
                     SchemaErrorReason.SCHEMA_COMPONENT_CHECK,
                     schema_error,
                 )
         except SchemaError as err:
             error_handler.collect_error(
-                validation_type(SchemaErrorReason.SCHEMA_COMPONENT_CHECK),
+                get_error_category(SchemaErrorReason.SCHEMA_COMPONENT_CHECK),
                 SchemaErrorReason.SCHEMA_COMPONENT_CHECK,
                 err,
             )
@@ -502,7 +507,7 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
                         )
         except ParserError as exc:
             error_handler.collect_error(
-                validation_type(SchemaErrorReason.DATATYPE_COERCION),
+                get_error_category(SchemaErrorReason.DATATYPE_COERCION),
                 SchemaErrorReason.DATATYPE_COERCION,
                 SchemaError(
                     schema=schema,
@@ -516,7 +521,7 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
             )
         except pl.exceptions.ComputeError as exc:
             error_handler.collect_error(
-                validation_type(SchemaErrorReason.DATATYPE_COERCION),
+                get_error_category(SchemaErrorReason.DATATYPE_COERCION),
                 SchemaErrorReason.DATATYPE_COERCION,
                 SchemaError(
                     schema=schema,
