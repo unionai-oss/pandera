@@ -54,7 +54,7 @@ def validate_scope(scope: ValidationScope):
 
     def _wrapper(func):
         @functools.wraps(func)
-        def wrapper(self, check_obj, *args, **kwargs):
+        def wrapper(*args, **kwargs):
             config = get_config_context()
 
             if scope == ValidationScope.SCHEMA:
@@ -65,7 +65,7 @@ def validate_scope(scope: ValidationScope):
                         stacklevel=2,
                     )
                     return CoreCheckResult(passed=True)
-                return func(self, check_obj, *args, **kwargs)
+                return func(*args, **kwargs)
 
             elif scope == ValidationScope.DATA:
                 if config.validation_depth == ValidationDepth.SCHEMA_ONLY:
@@ -75,7 +75,7 @@ def validate_scope(scope: ValidationScope):
                         stacklevel=2,
                     )
                     return CoreCheckResult(passed=True)
-                return func(self, check_obj, *args, **kwargs)
+                return func(*args, **kwargs)
 
         return wrapper
 

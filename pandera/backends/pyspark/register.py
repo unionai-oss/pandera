@@ -5,7 +5,6 @@ from typing import Optional
 
 import pyspark
 import pyspark.sql as pyspark_sql
-import pyspark.pandas as pyspark_pandas
 from packaging import version
 
 # Handles optional Spark Connect imports for pyspark>=3.4 (if available)
@@ -49,15 +48,8 @@ def register_pyspark_backends(
         pyspark_sql.DataFrame, DataFrameSchemaBackend
     )
 
-    # Register PySpark Pandas DataFrame
-    Check.register_backend(pyspark_pandas.DataFrame, PySparkCheckBackend)
-    ComponentSchema.register_backend(
-        pyspark_pandas.DataFrame, ColumnSchemaBackend
-    )
-    Column.register_backend(pyspark_pandas.DataFrame, ColumnBackend)
-    DataFrameSchema.register_backend(
-        pyspark_pandas.DataFrame, DataFrameSchemaBackend
-    )
+    # Note: pyspark.pandas DataFrames use pandas-like API and should use
+    # the pandas backends which are registered in pandera.backends.pandas.register
 
     # Register Spark Connect DataFrame, if available
     if PYSPARK_CONNECT_AVAILABLE:
