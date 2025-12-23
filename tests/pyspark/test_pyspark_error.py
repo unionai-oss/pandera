@@ -56,25 +56,13 @@ def test_pyspark_check_eq(spark_session, sample_spark_schema, request):
             {
                 "check": "str_startswith('B')",
                 "column": "product",
-                "error": "column "
-                "'product' "
-                "with type "
-                f"{str(StringType())} "
-                "failed "
-                "validation "
-                "str_startswith('B')",
+                "error": "<Schema Column(name=product, type=DataType(StringType()))> failed validation str_startswith('B')",
                 "schema": "product_schema",
             },
             {
                 "check": "greater_than(5)",
                 "column": "price",
-                "error": "column "
-                "'price' with "
-                "type "
-                f"{str(T.IntegerType())} "
-                "failed "
-                "validation "
-                "greater_than(5)",
+                "error": "<Schema Column(name=price, type=DataType(IntegerType()))> failed validation greater_than(5)",
                 "schema": "product_schema",
             },
         ]
@@ -150,19 +138,13 @@ def test_pyspark_schema_data_checks(spark_session, request):
                 {
                     "check": "str_startswith('B')",
                     "column": "product",
-                    "error": "column 'product' with "
-                    f"type {str(T.StringType())} failed "
-                    "validation "
-                    "str_startswith('B')",
+                    "error": "<Schema Column(name=product, type=DataType(StringType()))> failed validation str_startswith('B')",
                     "schema": "product_schema",
                 },
                 {
                     "check": "greater_than(5)",
                     "column": "price",
-                    "error": "column 'price' with type "
-                    f"{str(T.IntegerType())} failed "
-                    "validation "
-                    "greater_than(5)",
+                    "error": "<Schema Column(name=price, type=DataType(IntegerType()))> failed validation greater_than(5)",
                     "schema": "product_schema",
                 },
             ]
@@ -230,25 +212,13 @@ def test_pyspark_fields(spark_session, request):
                 {
                     "check": "str_startswith('B')",
                     "column": "product",
-                    "error": "column "
-                    "'product' "
-                    "with type "
-                    f"{str(T.StringType())} "
-                    "failed "
-                    "validation "
-                    "str_startswith('B')",
+                    "error": "<Schema Column(name=product, type=DataType(StringType()))> failed validation str_startswith('B')",
                     "schema": "PanderaSchema",
                 },
                 {
                     "check": "greater_than(5)",
                     "column": "price",
-                    "error": "column "
-                    "'price' with "
-                    "type "
-                    f"{str(T.IntegerType())} "
-                    "failed "
-                    "validation "
-                    "greater_than(5)",
+                    "error": "<Schema Column(name=price, type=DataType(IntegerType()))> failed validation greater_than(5)",
                     "schema": "PanderaSchema",
                 },
             ]

@@ -84,7 +84,7 @@ class DataType(dtypes.DataType):
 
     def coerce(self, data_container: PysparkObject) -> PysparkObject:
         """Pure coerce without catching exceptions."""
-        coerced = data_container.astype(self.type)
+        coerced = data_container.astype(self.type)  # type: ignore[operator]
         return coerced
 
     def try_coerce(self, data_container: PysparkObject) -> PysparkObject:

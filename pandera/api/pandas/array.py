@@ -81,7 +81,7 @@ class ArraySchema(ComponentSchema[TDataObject]):
             size=size,
         )
 
-    def example(self, size=None) -> TDataObject:
+    def example(self, size=None, n_regex_columns: int = 1) -> TDataObject:
         """Generate an example of a particular size.
 
         :param size: number of elements in the generated array.
@@ -271,7 +271,11 @@ class SeriesSchema(ArraySchema[pd.Series]):
             )
         return cast(pd.Series, validated_obj)
 
-    def example(self, size=None) -> pd.Series:
+    def example(
+        self,
+        size=None,
+        n_regex_columns: int = 1,  # pylint: disable=unused-argument
+    ) -> pd.Series:
         """Generate an example of a particular size.
 
         :param size: number of elements in the generated Series.

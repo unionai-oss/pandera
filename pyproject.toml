@@ -161,6 +161,7 @@ packages = ["pandera"]
 package-data = {"pandera" = ["py.typed"]}
 
 [tool.pyright]
+typeCheckingMode = "basic"
 include = ["pandera", "tests"]
 exclude = [".nox/**", ".nox-*/**"]
 

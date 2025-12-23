@@ -255,7 +255,7 @@ def test_pyspark_unique_field(spark_session, request):
             id: T.StringType() = pa.Field(unique=True)
 
         data = [
-            ("id1"),
+            ("id1",),
         ]
         spark_schema = T.StructType(
             [

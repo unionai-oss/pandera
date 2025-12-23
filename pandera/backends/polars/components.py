@@ -6,7 +6,7 @@ from typing import Any, Optional, cast
 
 import polars as pl
 
-from pandera.api.base.error_handler import ErrorHandler
+from pandera.api.base.error_handler import ErrorHandler, get_error_category
 from pandera.api.polars.components import Column
 from pandera.api.polars.types import PolarsData
 from pandera.api.polars.utils import (
@@ -73,7 +73,7 @@ class ColumnBackend(PolarsSchemaBackend):
                 check_obj = parser(check_obj, schema)
             except SchemaError as exc:
                 error_handler.collect_error(
-                    validation_type(exc.reason_code),
+                    get_error_category(exc.reason_code),
                     exc.reason_code,
                     exc,
                 )
@@ -147,7 +147,7 @@ class ColumnBackend(PolarsSchemaBackend):
                         reason_code=result.reason_code,
                     )
                     error_handler.collect_error(
-                        validation_type(result.reason_code),
+                        get_error_category(result.reason_code),
                         result.reason_code,
                         error,
                         original_exc=result.original_exc,

@@ -3,14 +3,20 @@
 from collections.abc import Iterable
 from typing import Any, Optional, Union
 
-import pyspark.sql as ps
+from pandera.api.base.types import CheckList, ParserList
+from pandera.api.dataframe.components import ComponentSchema
+from pandera.backends.pyspark.register import register_pyspark_backends
+from pandera.dtypes import DataType
+from pandera.engines import pyspark_engine
 
-from pandera.api.base.error_handler import ErrorHandler
-from pandera.api.pyspark.column_schema import ColumnSchema
-from pandera.api.pyspark.types import CheckList, PySparkDtypeInputTypes
+from .types import (
+    PySparkDataFrameTypes,
+    PySparkDtypeInputTypes,
+    PySparkFrame,
+)
 
 
-class Column(ColumnSchema):
+class Column(ComponentSchema[PySparkDataFrameTypes]):
     """Validate types and properties of DataFrame columns."""
 
     def __init__(
@@ -78,19 +84,40 @@ class Column(ColumnSchema):
             description=description,
             metadata=metadata,
         )
-        if name is not None and not isinstance(name, str) and regex:
+
+        self.required = required
+        self.regex = regex
+
+    def _validate_attributes(self):
+        if (
+            self.name is not None
+            and not isinstance(self.name, str)
+            and self.regex
+        ):
             raise ValueError(
                 "You cannot specify a non-string name when setting regex=True"
             )
-        self.required = required
-        self.name = name
-        self.regex = regex
-        self.metadata = metadata
+
+    @staticmethod
+    def register_default_backends(check_obj_cls: type):
+        register_pyspark_backends()
 
     @property
     def _allow_groupby(self) -> bool:
         """Whether the schema or schema component allows groupby operations."""
         return True
+
+    @property
+    def dtype(
+        self,
+    ) -> DataType:
+        """Get the dtype property."""
+        return self._dtype  # type: ignore
+
+    @dtype.setter
+    def dtype(self, value: PySparkDtypeInputTypes) -> None:
+        """Set the pyspark dtype property."""
+        self._dtype = pyspark_engine.Engine.dtype(value) if value else None  # pylint:disable=no-value-for-parameter
 
     @property
     def properties(self) -> dict[str, Any]:
@@ -108,26 +135,16 @@ class Column(ColumnSchema):
             "metadata": self.metadata,
         }
 
-    def set_name(self, name: str):
-        """Used to set or modify the name of a column object.
-
-        :param str name: the name of the column object
-
-        """
-        self.name = name
-        return self
-
     def validate(
         self,
-        check_obj: ps.DataFrame,
+        check_obj: PySparkFrame,
         head: int | None = None,
         tail: int | None = None,
         sample: int | None = None,
         random_state: int | None = None,
-        lazy: bool = True,
+        lazy: bool = False,
         inplace: bool = False,
-        error_handler: ErrorHandler = None,
-    ) -> ps.DataFrame:
+    ) -> PySparkFrame:
         """Validate a Column in a DataFrame object.
 
         :param check_obj: pyspark DataFrame to validate.
@@ -155,7 +172,6 @@ class Column(ColumnSchema):
             random_state=random_state,
             lazy=lazy,
             inplace=inplace,
-            error_handler=error_handler,
         )
 
     def get_regex_columns(self, check_obj: Any) -> Iterable:
@@ -164,9 +180,9 @@ class Column(ColumnSchema):
         :param columns: columns to regex pattern match
         :returns: matching columns
         """
-        return self.get_backend(check_type=ps.DataFrame).get_regex_columns(
-            self, check_obj
-        )
+        return self.get_backend(
+            check_type=PySparkDataFrameTypes
+        ).get_regex_columns(self, check_obj)
 
     def __eq__(self, other):
         if not isinstance(other, self.__class__):

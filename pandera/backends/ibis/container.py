@@ -12,6 +12,7 @@ from ibis import _
 from ibis import selectors as s
 from ibis.common.exceptions import IbisError
 
+from pandera.api.base.error_handler import get_error_category
 from pandera.api.ibis.error_handler import ErrorHandler
 from pandera.backends.base import ColumnInfo, CoreCheckResult
 from pandera.backends.ibis.base import IbisSchemaBackend
@@ -63,7 +64,7 @@ class DataFrameSchemaBackend(IbisSchemaBackend):
                 check_obj = parser(check_obj, *args)
             except SchemaError as exc:
                 error_handler.collect_error(
-                    validation_type(exc.reason_code),
+                    get_error_category(exc.reason_code),
                     exc.reason_code,
                     exc,
                 )
@@ -112,7 +113,7 @@ class DataFrameSchemaBackend(IbisSchemaBackend):
                         reason_code=result.reason_code,
                     )
                 error_handler.collect_error(
-                    validation_type(result.reason_code),
+                    get_error_category(result.reason_code),
                     result.reason_code,
                     error,
                     original_exc=result.original_exc,
@@ -271,7 +272,10 @@ class DataFrameSchemaBackend(IbisSchemaBackend):
             if (
                 col.required  # type: ignore
                 or col_name in check_obj
-                or col_name in column_info.regex_match_patterns
+                or (
+                    column_info.regex_match_patterns is not None
+                    and col_name in column_info.regex_match_patterns
+                )
             ) and col_name not in column_info.absent_column_names:
                 col = copy.deepcopy(col)
                 if schema.dtype is not None:

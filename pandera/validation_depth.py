@@ -33,7 +33,7 @@ VALIDATION_DEPTH_ERROR_CODE_MAP = {
 }
 
 
-def validation_type(schema_error_reason):
+def validation_type(schema_error_reason: SchemaErrorReason) -> ValidationScope:
     """Map a reason_code to a ValidationScope depth type
 
     :param SchemaErrorReason: schema error reason enum
@@ -54,7 +54,7 @@ def validate_scope(scope: ValidationScope):
 
     def _wrapper(func):
         @functools.wraps(func)
-        def wrapper(self, check_obj, *args, **kwargs):
+        def wrapper(*args, **kwargs):
             config = get_config_context()
 
             if scope == ValidationScope.SCHEMA:
@@ -65,7 +65,7 @@ def validate_scope(scope: ValidationScope):
                         stacklevel=2,
                     )
                     return CoreCheckResult(passed=True)
-                return func(self, check_obj, *args, **kwargs)
+                return func(*args, **kwargs)
 
             elif scope == ValidationScope.DATA:
                 if config.validation_depth == ValidationDepth.SCHEMA_ONLY:
@@ -75,7 +75,7 @@ def validate_scope(scope: ValidationScope):
                         stacklevel=2,
                     )
                     return CoreCheckResult(passed=True)
-                return func(self, check_obj, *args, **kwargs)
+                return func(*args, **kwargs)
 
         return wrapper
 

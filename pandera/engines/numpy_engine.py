@@ -49,7 +49,7 @@ class DataType(dtypes.DataType):
         self, data_container: Union[PandasObject, np.ndarray]
     ) -> Union[PandasObject, np.ndarray]:
         """Pure coerce without catching exceptions."""
-        coerced = data_container.astype(str(self.type))
+        coerced = data_container.astype(str(self.type))  # type: ignore[call-overload]
         if type(data_container).__module__.startswith("modin.pandas"):
             # NOTE: this is a hack to enable catching of errors in modin
             coerced.__str__()
@@ -57,7 +57,12 @@ class DataType(dtypes.DataType):
 
     def coerce_value(self, value: Any) -> Any:
         """Coerce an value to a particular type."""
-        return self.type.type(value)
+        type_obj = getattr(self.type, "type", None)
+        if type_obj is not None and callable(type_obj):
+            return type_obj(value)  # type: ignore[operator]
+        if callable(self.type):
+            return self.type(value)  # type: ignore[operator]
+        return value
 
     def try_coerce(
         self, data_container: Union[PandasObject, np.ndarray]
@@ -74,7 +79,7 @@ class DataType(dtypes.DataType):
             ) from exc
 
     def __str__(self) -> str:
-        return self.type.name
+        return getattr(self.type, "name", str(self.type))  # type: ignore[misc]
 
     def __repr__(self) -> str:
         return f"DataType({self})"

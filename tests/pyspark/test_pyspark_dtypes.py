@@ -7,10 +7,9 @@ import pyspark.sql.types as T
 import pytest
 from pyspark.sql import DataFrame
 
-from pandera.backends.pyspark.decorators import validate_scope
 from pandera.config import PanderaConfig
 from pandera.pyspark import Column, DataFrameSchema
-from pandera.validation_depth import ValidationScope
+from pandera.validation_depth import ValidationScope, validate_scope
 from tests.pyspark.conftest import spark_df
 
 pytestmark = pytest.mark.parametrize(
@@ -27,11 +26,11 @@ class BaseClass:
         """
         This function validates the dataframe schema and pandera defined schema to ensure both work
         """
-        df_out = pandera_schema(df)
+        df_out = pandera_schema(df, lazy=True)
 
         assert df.pandera.schema == pandera_schema
-        assert isinstance(pandera_schema.validate(df), DataFrame)
-        assert isinstance(pandera_schema(df), DataFrame)
+        assert isinstance(pandera_schema.validate(df, lazy=True), DataFrame)
+        assert isinstance(df_out, DataFrame)
         return df_out
 
     def pytest_generate_tests(self, metafunc):

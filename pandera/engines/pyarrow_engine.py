@@ -36,7 +36,7 @@ class ArrowDataType(DataType):
 class ArrowBool(ArrowDataType, BOOL):
     """Semantic representation of a :class:`pyarrow.bool_`."""
 
-    type = pd.ArrowDtype(pyarrow.bool_())
+    type: pd.ArrowDtype = pd.ArrowDtype(pyarrow.bool_())  # type: ignore[assignment]
 
 
 @Engine.register_dtype(
@@ -437,7 +437,7 @@ class ArrowTime32(ArrowDataType):
         else:
             return data_container.astype(
                 pd.ArrowDtype(pyarrow.int32())
-            ).astype(self.type)
+            ).astype(self.type)  # type: ignore[arg-type]
 
 
 @Engine.register_dtype(equivalents=[pyarrow.time64, pyarrow.Time64Type])
@@ -462,7 +462,7 @@ class ArrowTime64(ArrowDataType):
         else:
             return data_container.astype(
                 pd.ArrowDtype(pyarrow.int64())
-            ).astype(self.type)
+            ).astype(self.type)  # type: ignore[arg-type]
 
 
 @Engine.register_dtype(equivalents=[pyarrow.map_, pyarrow.MapType])

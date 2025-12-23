@@ -18,10 +18,20 @@ from typing import (
     get_type_hints,
 )
 
+from typing_extensions import Self
+
 from pandera.api.base.model import BaseModel
 from pandera.api.base.schema import BaseSchema
 from pandera.api.checks import Check
-from pandera.api.dataframe.model_components import (
+from pandera.api.parsers import Parser
+from pandera.engines import PYDANTIC_V2
+from pandera.errors import SchemaInitError
+from pandera.import_utils import strategy_import_error
+from pandera.typing import AnnotationInfo
+from pandera.typing.common import DataFrameBase
+from pandera.utils import docstring_substitution
+
+from .model_components import (
     CHECK_KEY,
     DATAFRAME_CHECK_KEY,
     DATAFRAME_PARSER_KEY,
@@ -33,14 +43,7 @@ from pandera.api.dataframe.model_components import (
     FieldParserInfo,
     ParserInfo,
 )
-from pandera.api.dataframe.model_config import BaseConfig
-from pandera.api.parsers import Parser
-from pandera.engines import PYDANTIC_V2
-from pandera.errors import SchemaInitError
-from pandera.import_utils import strategy_import_error
-from pandera.typing import AnnotationInfo
-from pandera.typing.common import DataFrameBase
-from pandera.utils import docstring_substitution
+from .model_config import BaseConfig
 
 if PYDANTIC_V2:
     from pydantic import GetCoreSchemaHandler, GetJsonSchemaHandler
@@ -48,7 +51,6 @@ if PYDANTIC_V2:
 
 
 TDataFrame = TypeVar("TDataFrame")
-TDataFrameModel = TypeVar("TDataFrameModel", bound="DataFrameModel")
 TSchema = TypeVar("TSchema", bound=BaseSchema)
 TFields = dict[str, tuple[AnnotationInfo, FieldInfo]]
 TChecks = dict[str, list[Check]]
@@ -229,11 +231,9 @@ class DataFrameModel(Generic[TDataFrame, TSchema], BaseModel):
     __root_parsers__: list[Parser] = cast(list[Parser], _RootParsers())
 
     @docstring_substitution(validate_doc=BaseSchema.validate.__doc__)
-    def __new__(cls, *args, **kwargs) -> DataFrameBase[TDataFrameModel]:  # type: ignore [misc]
+    def __new__(cls, *args, **kwargs) -> DataFrameBase[Self]:  # type: ignore [misc]
         """%(validate_doc)s"""
-        return cast(
-            DataFrameBase[TDataFrameModel], cls.validate(*args, **kwargs)
-        )
+        return cast(DataFrameBase[Self], cls.validate(*args, **kwargs))
 
     def __init_subclass__(cls, **kwargs):
         """Ensure :class:`~pandera.api.dataframe.model_components.FieldInfo` instances."""
@@ -267,9 +267,9 @@ class DataFrameModel(Generic[TDataFrame, TSchema], BaseModel):
         cls.__config__, cls.__extras__ = cls._collect_config_and_extras()
 
     def __class_getitem__(
-        cls: type[TDataFrameModel],
+        cls: type[Self],
         item: Union[type[Any], tuple[type[Any], ...]],
-    ) -> type[TDataFrameModel]:
+    ) -> type[Self]:
         """Parameterize the class's generic arguments with the specified types"""
         if not hasattr(cls, "__parameters__"):
             raise TypeError(
@@ -285,9 +285,7 @@ class DataFrameModel(Generic[TDataFrame, TSchema], BaseModel):
                 f"Expected {len(__parameters__)} generic arguments but found {len(item)}"
             )
         if (cls, item) in GENERIC_SCHEMA_CACHE:
-            return typing.cast(
-                type[TDataFrameModel], GENERIC_SCHEMA_CACHE[(cls, item)]
-            )
+            return typing.cast(type[Self], GENERIC_SCHEMA_CACHE[(cls, item)])
 
         param_dict: dict[TypeVar, type[Any]] = dict(zip(__parameters__, item))
         extra: dict[str, Any] = {"__annotations__": {}}
@@ -326,7 +324,7 @@ class DataFrameModel(Generic[TDataFrame, TSchema], BaseModel):
     @classmethod
     @docstring_substitution(validate_doc=BaseSchema.validate.__doc__)
     def validate(
-        cls: type[TDataFrameModel],
+        cls: type[Self],
         check_obj: TDataFrame,
         head: int | None = None,
         tail: int | None = None,
@@ -334,11 +332,11 @@ class DataFrameModel(Generic[TDataFrame, TSchema], BaseModel):
         random_state: int | None = None,
         lazy: bool = False,
         inplace: bool = False,
-    ) -> DataFrameBase[TDataFrameModel]:
+    ) -> DataFrameBase[Self]:
         """%(validate_doc)s"""
         return cast(
-            DataFrameBase[TDataFrameModel],
-            cls.__schema__.validate(
+            DataFrameBase[Self],
+            cls.to_schema().validate(
                 check_obj, head, tail, sample, random_state, lazy, inplace
             ),
         )
@@ -346,7 +344,7 @@ class DataFrameModel(Generic[TDataFrame, TSchema], BaseModel):
     # TODO: add docstring_substitution using generic class
     @classmethod
     @strategy_import_error
-    def strategy(cls: type[TDataFrameModel], **kwargs):
+    def strategy(cls: type[Self], **kwargs):
         """Create a ``hypothesis`` strategy for generating a DataFrame.
 
         :param size: number of elements to generate
@@ -359,17 +357,15 @@ class DataFrameModel(Generic[TDataFrame, TSchema], BaseModel):
     @classmethod
     @strategy_import_error
     def example(
-        cls: type[TDataFrameModel],
+        cls: type[Self],
         **kwargs,
-    ) -> DataFrameBase[TDataFrameModel]:
+    ) -> DataFrameBase[Self]:
         """Generate an example of a particular size.
 
         :param size: number of elements in the generated DataFrame.
         :returns: DataFrame object.
         """
-        return cast(
-            DataFrameBase[TDataFrameModel], cls.__schema__.example(**kwargs)
-        )
+        return cast(DataFrameBase[Self], cls.to_schema().example(**kwargs))
 
     @classmethod
     def _get_model_attrs(cls) -> dict[str, Any]:
@@ -621,9 +617,7 @@ class DataFrameModel(Generic[TDataFrame, TSchema], BaseModel):
         raise NotImplementedError
 
     @classmethod
-    def empty(
-        cls: type[TDataFrameModel], *_args
-    ) -> DataFrameBase[TDataFrameModel]:
+    def empty(cls: type[Self], *_args) -> DataFrameBase[Self]:
         """Create an empty DataFrame instance."""
         raise NotImplementedError
 

@@ -20,7 +20,7 @@ class Column(ArraySchema[pd.DataFrame]):
 
     def __init__(
         self,
-        dtype: PandasDtypeInputTypes = None,
+        dtype: PandasDtypeInputTypes | None = None,
         checks: CheckList | None = None,
         parsers: ParserList | None = None,
         nullable: bool = False,
@@ -193,7 +193,11 @@ class Column(ArraySchema[pd.DataFrame]):
             name=self.name,
         )
 
-    def example(self, size=None) -> pd.DataFrame:
+    def example(
+        self,
+        size=None,
+        n_regex_columns: int = 1,  # pylint: disable=unused-argument
+    ) -> pd.DataFrame:
         """Generate an example of a particular size.
 
         :param size: number of elements in the generated Index.
@@ -237,7 +241,12 @@ class Index(ArraySchema[pd.Index]):
     ###########################
 
     @strategy_import_error
-    def strategy(self, *, size: int | None = None):
+    def strategy(
+        self,
+        *,
+        size: int | None = None,
+        n_regex_columns: int = 1,  # pylint: disable=unused-argument
+    ):
         """Create a ``hypothesis`` strategy for generating an Index.
 
         :param size: number of elements to generate.
@@ -266,7 +275,11 @@ class Index(ArraySchema[pd.Index]):
             name=self.name,
         )
 
-    def example(self, size: int | None = None) -> pd.Index:
+    def example(
+        self,
+        size: int | None = None,
+        n_regex_columns: int = 1,  # pylint: disable=unused-argument
+    ) -> pd.Index:
         """Generate an example of a particular size.
 
         :param size: number of elements in the generated Index.

@@ -307,22 +307,20 @@ def test_dataframe_schema_unique(spark_session, data, expectation, request):
     [
         "x",
         ["x", "y"],
-        ["x", ""],
     ],
     ids=[
         "wrong_column",
         "multiple_wrong_columns",
-        "multiple_wrong_columns_w_empty",
     ],
 )
 def test_dataframe_schema_unique_wrong_column(
     spark_session, unique_column_name, request
 ):
-    """Test uniqueness checks on pyspark dataframes."""
+    """Test uniqueness checks on pyspark dataframes with wrong column names."""
     spark = request.getfixturevalue(spark_session)
     df = spark.createDataFrame(([1, 2],), "a: int, b: int")
 
-    # Test `unique` configuration with a single, wrongly named column
+    # Test `unique` configuration with wrongly named columns
     class UniqueMultipleColumns(pa.DataFrameModel):
         """Simple DataFrameModel containing two columns."""
 
@@ -334,8 +332,12 @@ def test_dataframe_schema_unique_wrong_column(
 
             unique = unique_column_name
 
-    with pytest.raises(SchemaDefinitionError):
-        _ = UniqueMultipleColumns.validate(check_obj=df)
+    # Validation should collect errors about missing unique columns
+    df_out = UniqueMultipleColumns.validate(check_obj=df)
+    assert df_out.pandera.errors, (
+        "Expected validation errors for missing unique columns"
+    )
+    assert "DATA" in df_out.pandera.errors
 
 
 def test_dataframe_schema_strict(

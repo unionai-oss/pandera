@@ -4,7 +4,7 @@ from typing import Optional, cast
 
 import pandas as pd
 
-from pandera.api.base.error_handler import ErrorHandler
+from pandera.api.base.error_handler import ErrorHandler, get_error_category
 from pandera.api.pandas.types import is_field
 from pandera.backends.base import CoreCheckResult, CoreParserResult
 from pandera.backends.pandas.base import PandasSchemaBackend
@@ -64,7 +64,7 @@ class ArraySchemaBackend(PandasSchemaBackend):
                 )
         except SchemaError as exc:
             error_handler.collect_error(
-                validation_type(exc.reason_code),
+                get_error_category(exc.reason_code),
                 exc.reason_code,
                 exc,
             )
@@ -135,7 +135,7 @@ class ArraySchemaBackend(PandasSchemaBackend):
                         reason_code=result.reason_code,
                     )
                     error_handler.collect_error(
-                        validation_type(result.reason_code),
+                        get_error_category(result.reason_code),
                         result.reason_code,
                         error,
                         original_exc=result.original_exc,

@@ -15,6 +15,22 @@ from pandera.validation_depth import ValidationScope
 logger = logging.getLogger(__name__)
 
 
+def _get_type_name(dtype) -> str:
+    """Get the type name from a dtype, handling both PySpark and numpy dtypes."""
+    if hasattr(dtype, "typeName"):
+        # PySpark DataType
+        return dtype.typeName
+    elif hasattr(dtype, "type") and hasattr(dtype.type, "typeName"):
+        # Pandera wrapped PySpark type
+        return dtype.type.typeName
+    elif hasattr(dtype, "name"):
+        # numpy dtype
+        return dtype.name
+    else:
+        # fallback
+        return str(dtype)
+
+
 def register_input_datatypes(
     acceptable_datatypes: list[type[PysparkDefaultTypes]] = None,
 ):
@@ -32,9 +48,23 @@ def register_input_datatypes(
             pyspark_object = list(args)[0]
             validation_df = pyspark_object.dataframe
             validation_column = pyspark_object.column_name
-            pandera_schema_datatype = validation_df.pandera.schema.get_dtypes(
+
+            # Check if this is a PySpark SQL DataFrame or pyspark.pandas DataFrame
+            is_pyspark_sql = hasattr(validation_df, "schema") and hasattr(
+                validation_df.schema, "fieldNames"
+            )
+
+            if not is_pyspark_sql:
+                # For pyspark.pandas DataFrames, skip type checking
+                # since they use numpy dtypes, not PySpark types
+                return func(*args, **kwargs)
+
+            schema_dtypes = validation_df.pandera.schema.get_dtypes(
                 validation_df
-            )[validation_column].type.typeName
+            )
+            pandera_schema_datatype = _get_type_name(
+                schema_dtypes[validation_column]
+            )
             # Type Name of the valid datatypes needed for comparison  to remove the parameterized values since
             # only checking type not the parameters
             valid_datatypes = [i.typeName for i in acceptable_datatypes]
@@ -66,63 +96,63 @@ def register_input_datatypes(
     return wrapper
 
 
-def validate_scope(scope: ValidationScope):
-    """This decorator decides if a function needs to be run or skipped based on params
+# def validate_scope(scope: ValidationScope):
+#     """This decorator decides if a function needs to be run or skipped based on params
 
-    :param params: The configuration parameters to which define how pandera has to be used
-    :param scope: the scope for which the function is valid. i.e. "DATA" scope function only works to validate the data,
-                 "SCHEMA"  scope runs for schema checks function.
-    """
+#     :param params: The configuration parameters to which define how pandera has to be used
+#     :param scope: the scope for which the function is valid. i.e. "DATA" scope function only works to validate the data,
+#                  "SCHEMA"  scope runs for schema checks function.
+#     """
 
-    def _wrapper(func):
-        @functools.wraps(func)
-        def wrapper(self, *args, **kwargs):
-            def _get_check_obj():
-                """
-                Get dataframe object passed as arg to the decorated func.
+#     def _wrapper(func):
+#         @functools.wraps(func)
+#         def wrapper(self, *args, **kwargs):
+#             def _get_check_obj():
+#                 """
+#                 Get dataframe object passed as arg to the decorated func.
 
-                Returns:
-                    The DataFrame object.
-                """
-                if args:
-                    for value in args:
-                        if isinstance(value, DataFrame):
-                            return value
+#                 Returns:
+#                     The DataFrame object.
+#                 """
+#                 if args:
+#                     for value in args:
+#                         if isinstance(value, DataFrame):
+#                             return value
 
-            config = get_config_context()
-            if scope == ValidationScope.SCHEMA:
-                if config.validation_depth in (
-                    ValidationDepth.SCHEMA_AND_DATA,
-                    ValidationDepth.SCHEMA_ONLY,
-                ):
-                    return func(self, *args, **kwargs)
-                else:
-                    warnings.warn(
-                        f"Skipping execution of function {func.__name__} as validation depth is set to DATA_ONLY ",
-                        stacklevel=2,
-                    )
-                    # If the function was skip, return the `check_obj` value anyway,
-                    # given that some return value is expected
-                    return _get_check_obj()
+#             config = get_config_context()
+#             if scope == ValidationScope.SCHEMA:
+#                 if config.validation_depth in (
+#                     ValidationDepth.SCHEMA_AND_DATA,
+#                     ValidationDepth.SCHEMA_ONLY,
+#                 ):
+#                     return func(self, *args, **kwargs)
+#                 else:
+#                     warnings.warn(
+#                         f"Skipping execution of function {func.__name__} as validation depth is set to DATA_ONLY ",
+#                         stacklevel=2,
+#                     )
+#                     # If the function was skip, return the `check_obj` value anyway,
+#                     # given that some return value is expected
+#                     return _get_check_obj()
 
-            elif scope == ValidationScope.DATA:
-                if config.validation_depth in (
-                    ValidationDepth.SCHEMA_AND_DATA,
-                    ValidationDepth.DATA_ONLY,
-                ):
-                    return func(self, *args, **kwargs)
-                else:
-                    warnings.warn(
-                        f"Skipping execution of function {func.__name__} as validation depth is set to SCHEMA_ONLY",
-                        stacklevel=2,
-                    )
-                    # If the function was skip, return the `check_obj` value anyway,
-                    # given that some return value is expected
-                    return _get_check_obj()
+#             elif scope == ValidationScope.DATA:
+#                 if config.validation_depth in (
+#                     ValidationDepth.SCHEMA_AND_DATA,
+#                     ValidationDepth.DATA_ONLY,
+#                 ):
+#                     return func(self, *args, **kwargs)
+#                 else:
+#                     warnings.warn(
+#                         f"Skipping execution of function {func.__name__} as validation depth is set to SCHEMA_ONLY",
+#                         stacklevel=2,
+#                     )
+#                     # If the function was skip, return the `check_obj` value anyway,
+#                     # given that some return value is expected
+#                     return _get_check_obj()
 
-        return wrapper
+#         return wrapper
 
-    return _wrapper
+#     return _wrapper
 
 
 def cache_check_obj():

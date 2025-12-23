@@ -1,20 +1,17 @@
 """Backend implementation for PySpark schema components."""
 
 import re
-import traceback
 from collections.abc import Iterable
 from copy import copy
-from typing import Optional
 
 from pyspark.sql import DataFrame
 from pyspark.sql.functions import col
 
 from pandera.api.base.error_handler import ErrorCategory, ErrorHandler
 from pandera.backends.pyspark.column import ColumnSchemaBackend
-from pandera.backends.pyspark.decorators import validate_scope
 from pandera.backends.pyspark.error_formatters import scalar_failure_case
-from pandera.errors import SchemaError, SchemaErrorReason
-from pandera.validation_depth import ValidationScope
+from pandera.errors import SchemaError
+from pandera.validation_depth import ValidationScope, validate_scope
 
 
 class ColumnBackend(ColumnSchemaBackend):
@@ -31,9 +28,10 @@ class ColumnBackend(ColumnSchemaBackend):
         random_state: int | None = None,
         lazy: bool = False,
         inplace: bool = False,
-        error_handler: ErrorHandler = None,
     ) -> DataFrame:
         """Validation backend implementation for PySpark dataframe columns."""
+
+        error_handler = ErrorHandler(lazy=lazy)
 
         if schema.name is None:
             raise SchemaError(
@@ -55,7 +53,6 @@ class ColumnBackend(ColumnSchemaBackend):
                     random_state=random_state,
                     lazy=lazy,
                     inplace=inplace,
-                    error_handler=error_handler,
                 )
 
             except SchemaError as err:
@@ -71,11 +68,7 @@ class ColumnBackend(ColumnSchemaBackend):
 
         for column_name in column_keys_to_check:
             if schema.coerce:
-                check_obj = self.coerce_dtype(
-                    check_obj,
-                    schema=schema,
-                    error_handler=error_handler,
-                )
+                check_obj = self.coerce_dtype(check_obj, schema=schema)
             validate_column(check_obj, column_name)
 
         return check_obj
@@ -112,7 +105,7 @@ class ColumnBackend(ColumnSchemaBackend):
         self,
         check_obj: DataFrame,
         *,
-        schema=None,
+        schema,
     ) -> DataFrame:
         """Coerce dtype of a column, handling duplicate column names."""
 
@@ -121,45 +114,3 @@ class ColumnBackend(ColumnSchemaBackend):
         )
 
         return check_obj
-
-    @validate_scope(scope=ValidationScope.DATA)
-    def run_checks(self, check_obj, schema, error_handler, lazy):
-        check_results = []
-        for check_index, check in enumerate(schema.checks):
-            check_args = [schema.name]
-            try:
-                check_results.append(
-                    self.run_check(
-                        check_obj, schema, check, check_index, *check_args
-                    )
-                )
-            except SchemaError as err:
-                error_handler.collect_error(
-                    error_type=ErrorCategory.DATA,
-                    reason_code=SchemaErrorReason.DATAFRAME_CHECK,
-                    schema_error=err,
-                )
-            except TypeError as err:
-                raise err
-            except Exception as err:
-                # catch other exceptions that may occur when executing the Check
-                err_msg = f'"{err.args[0]}"' if err.args else ""
-                err_str = f"{err.__class__.__name__}({err_msg})"
-
-                error_handler.collect_error(
-                    error_type=ErrorCategory.DATA,
-                    reason_code=SchemaErrorReason.CHECK_ERROR,
-                    schema_error=SchemaError(
-                        schema=schema,
-                        data=check_obj,
-                        message=(
-                            f"Error while executing check function: {err_str}\n"
-                            + traceback.format_exc()
-                        ),
-                        failure_cases=scalar_failure_case(err_str),
-                        check=check,
-                        check_index=check_index,
-                    ),
-                    original_exc=err,
-                )
-        return check_results

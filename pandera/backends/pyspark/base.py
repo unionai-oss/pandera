@@ -13,13 +13,19 @@ from typing import (
 from pyspark.sql import DataFrame
 from pyspark.sql.functions import col
 
-from pandera.api.pyspark.types import DataFrameTypes
-from pandera.backends.base import BaseSchemaBackend
+from pandera.api.checks import CheckResult
+from pandera.api.pyspark.types import PySparkDataFrameTypes
+from pandera.backends.base import BaseSchemaBackend, CoreCheckResult
 from pandera.backends.pyspark.error_formatters import (
     format_generic_error_message,
     scalar_failure_case,
 )
-from pandera.errors import FailureCaseMetadata, SchemaError, SchemaWarning
+from pandera.errors import (
+    FailureCaseMetadata,
+    SchemaError,
+    SchemaErrorReason,
+    SchemaWarning,
+)
 
 
 class ColumnInfo(NamedTuple):
@@ -32,13 +38,13 @@ class ColumnInfo(NamedTuple):
     lazy_exclude_column_names: list
 
 
-FieldCheckObj = Union[col, DataFrameTypes]
+FieldCheckObj = Union[col, PySparkDataFrameTypes]
 
 T = TypeVar(
     "T",
-    col,
+    col,  # type: ignore
     DataFrame,
-    FieldCheckObj,
+    FieldCheckObj,  # type: ignore
     covariant=True,
 )
 
@@ -48,7 +54,7 @@ class PysparkSchemaBackend(BaseSchemaBackend):
 
     def subsample(
         self,
-        check_obj: DataFrameTypes,
+        check_obj: PySparkDataFrameTypes,
         head: int | None = None,
         tail: int | None = None,
         sample: float | None = None,
@@ -56,7 +62,9 @@ class PysparkSchemaBackend(BaseSchemaBackend):
     ):
         if sample is not None:
             return check_obj.sample(
-                withReplacement=False, fraction=sample, seed=random_state
+                withReplacement=False,
+                fraction=sample,
+                seed=random_state,  # type: ignore
             )
         return check_obj
 
@@ -67,7 +75,7 @@ class PysparkSchemaBackend(BaseSchemaBackend):
         check,
         check_index: int,
         *args,
-    ) -> bool:
+    ) -> CoreCheckResult:
         """Handle check results, raising SchemaError on check failure.
 
         :param check_obj: pyspark dataframe object
@@ -79,30 +87,38 @@ class PysparkSchemaBackend(BaseSchemaBackend):
             False.
         """
 
-        check_result = check(check_obj, *args)
-        if not check_result.check_passed:
+        check_result: CheckResult = check(check_obj, *args)
+
+        passed = check_result.check_passed
+        failure_cases = None
+        message = None
+
+        if not passed:
             # encode scalar False values explicitly
-            failure_cases = scalar_failure_case(check_result.check_passed)
-            error_msg = format_generic_error_message(schema, check)
+            failure_cases = scalar_failure_case(passed)
+            message = format_generic_error_message(schema, check)
 
             # raise a warning without exiting if the check is specified to do so
             if check.raise_warning:  # pragma: no cover
                 warnings.warn(
-                    message=error_msg,
+                    message=message,
                     category=SchemaWarning,
                 )
-                return True
+                return CoreCheckResult(
+                    passed=True,
+                    check=check,
+                    reason_code=SchemaErrorReason.CHECK_ERROR,
+                )
 
-            raise SchemaError(
-                schema,
-                check_obj,
-                error_msg,
-                failure_cases=failure_cases,
-                check=check,
-                check_index=check_index,
-                check_output=check_result.check_output,
-            )
-        return check_result.check_passed
+        return CoreCheckResult(
+            passed=passed,
+            check=check,
+            check_index=check_index,
+            check_output=check_result.check_output,
+            reason_code=SchemaErrorReason.DATAFRAME_CHECK,
+            message=message,
+            failure_cases=failure_cases,
+        )
 
     def failure_cases_metadata(
         self,

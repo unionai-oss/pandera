@@ -10,6 +10,8 @@ import os
 from abc import ABC
 from typing import Any, Optional, Union
 
+from typing_extensions import Self
+
 from pandera.backends.base import BaseSchemaBackend
 from pandera.dtypes import DataType
 from pandera.errors import BackendNotFoundError
@@ -137,3 +139,22 @@ class BaseSchema(ABC):
 
     def __setstate__(self, state):
         self.__dict__ = state
+
+    def set_name(self, name: str) -> Self:
+        """Used to set or modify the name of a base model object.
+
+        :param str name: the name of the column object
+
+        """
+        self.name = name
+        return self
+
+    def strategy(self, *, size: int | None = None, n_regex_columns: int = 1):
+        """Create a data synthesis strategy."""
+        raise NotImplementedError
+
+    def example(
+        self, size: int | None = None, n_regex_columns: int = 1
+    ) -> Any:
+        """Generate an example of this data model specification."""
+        raise NotImplementedError

@@ -4,12 +4,12 @@ import copy
 import itertools
 import traceback
 from collections.abc import Callable
-from typing import Any, Optional
+from typing import Any, TypeVar
 
 import pandas as pd
 from pydantic import BaseModel
 
-from pandera.api.base.error_handler import ErrorHandler
+from pandera.api.base.error_handler import ErrorHandler, get_error_category
 from pandera.api.pandas.types import is_table
 from pandera.backends.base import ColumnInfo, CoreCheckResult, CoreParserResult
 from pandera.backends.pandas.base import PandasSchemaBackend
@@ -27,6 +27,8 @@ from pandera.errors import (
     SchemaErrors,
 )
 from pandera.validation_depth import validate_scope, validation_type
+
+T = TypeVar("T")
 
 
 class DataFrameSchemaBackend(PandasSchemaBackend):
@@ -87,7 +89,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
                 check_obj = parser(check_obj, *args)
             except SchemaError as exc:
                 error_handler.collect_error(
-                    validation_type(exc.reason_code), exc.reason_code, exc
+                    get_error_category(exc.reason_code), exc.reason_code, exc
                 )
             except SchemaErrors as exc:
                 error_handler.collect_errors(exc.schema_errors)
@@ -190,7 +192,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
                         reason_code=result.reason_code,
                     )
                 error_handler.collect_error(
-                    validation_type(result.reason_code),
+                    get_error_category(result.reason_code),
                     result.reason_code,
                     error,
                     result.original_exc,
@@ -206,8 +208,8 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
         lazy: bool,
     ) -> list[CoreCheckResult]:
         """Run checks for all schema components."""
-        check_results = []
-        check_passed = []
+        check_results: list[CoreCheckResult] = []
+        check_passed: list[bool] = []
         # schema-component-level checks
         for schema_component in schema_components:
             # make sure the schema component mutations are reverted after
@@ -378,7 +380,10 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
             if (
                 col.required  # type: ignore
                 or col_name in check_obj
-                or col_name in column_info.regex_match_patterns
+                or (
+                    column_info.regex_match_patterns is not None
+                    and col_name in column_info.regex_match_patterns
+                )
             ) and col_name not in column_info.absent_column_names:
                 if col.name != col_name:
                     col.name = col_name
@@ -595,20 +600,20 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
         except SchemaErrors as err:
             for schema_error in err.schema_errors:
                 error_handler.collect_error(
-                    validation_type(SchemaErrorReason.SCHEMA_COMPONENT_CHECK),
+                    get_error_category(
+                        SchemaErrorReason.SCHEMA_COMPONENT_CHECK
+                    ),
                     SchemaErrorReason.SCHEMA_COMPONENT_CHECK,
                     schema_error,
                 )
         except SchemaError as err:
             error_handler.collect_error(
-                validation_type(SchemaErrorReason.SCHEMA_COMPONENT_CHECK),
+                get_error_category(SchemaErrorReason.SCHEMA_COMPONENT_CHECK),
                 SchemaErrorReason.SCHEMA_COMPONENT_CHECK,
                 err,
             )
 
         if error_handler.collected_errors:
-            # raise SchemaErrors if this method is called without an
-            # error_handler
             raise SchemaErrors(
                 schema=schema,
                 schema_errors=error_handler.schema_errors,
@@ -657,7 +662,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
                 return coerce_fn(obj)
             except SchemaError as exc:
                 error_handler.collect_error(
-                    validation_type(SchemaErrorReason.DATATYPE_COERCION),
+                    get_error_category(SchemaErrorReason.DATATYPE_COERCION),
                     SchemaErrorReason.DATATYPE_COERCION,
                     exc,
                 )
@@ -713,7 +718,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
 
         return obj
 
-    def run_parsers(self, schema, check_obj):
+    def run_parsers(self, schema, check_obj: T) -> T:
         """Run parsers"""
         parser_results: list[CoreParserResult] = []
         for parser_index, parser in enumerate(schema.parsers):
@@ -722,7 +727,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
                 parser,
                 parser_index,
             )
-            check_obj = result.parser_output
+            check_obj = result.parser_output  # type: ignore[assignment]
             parser_results.append(result)
         return check_obj
 
