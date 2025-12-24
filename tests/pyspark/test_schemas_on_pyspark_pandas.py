@@ -338,7 +338,7 @@ def test_nullable(
             ks_null_sample: ps.DataFrame = ps.DataFrame(null_sample)
         except TypeError as exc:
             # pylint: disable=no-member
-            exc_msg = exc.message if len(exc.args) == 0 else exc.args[0]
+            exc_msg = str(exc) if len(exc.args) == 0 else exc.args[0]
             match = re.search(
                 r"can not accept object `?(<NA>|NaT)`? in type", exc_msg
             )
