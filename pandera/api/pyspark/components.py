@@ -21,7 +21,7 @@ class Column(ComponentSchema[PySparkDataFrameTypes]):
 
     def __init__(
         self,
-        dtype: PySparkDtypeInputTypes = None,
+        dtype: PySparkDtypeInputTypes | None = None,
         checks: CheckList | None = None,
         nullable: bool = False,
         coerce: bool = False,
@@ -55,22 +55,25 @@ class Column(ComponentSchema[PySparkDataFrameTypes]):
 
         :example:
 
-        >>> import pyspark as ps
-        >>> from pyspark.sql import SparkSession
-        >>> import pandera.pyspark as pa
-        >>>
-        >>>
-        >>> schema = pa.DataFrameSchema({
-        ...     "column": pa.Column(str)
-        ... })
-        >>> spark = SparkSession.builder.getOrCreate()
-        >>> schema.validate(spark.createDataFrame([{"column": "foo"},{ "column":"bar"}])).show()
-            +------+
-            |column|
-            +------+
-            |   foo|
-            |   bar|
-            +------+
+        .. doctest::
+            :skipif: SKIP_PYSPARK_TYPING
+
+            >>> import pyspark as ps
+            >>> from pyspark.sql import SparkSession
+            >>> import pandera.pyspark as pa
+            >>>
+            >>>
+            >>> schema = pa.DataFrameSchema({
+            ...     "column": pa.Column(str)
+            ... })
+            >>> spark = SparkSession.builder.getOrCreate()
+            >>> schema.validate(spark.createDataFrame([{"column": "foo"},{ "column":"bar"}])).show()
+                +------+
+                |column|
+                +------+
+                |   foo|
+                |   bar|
+                +------+
 
         See :ref:`here<column>` for more usage details.
         """
