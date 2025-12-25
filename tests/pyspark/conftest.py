@@ -32,7 +32,9 @@ def spark() -> SparkSession:
     # This is needed for PySpark 4.0+ when using Java 17+
     if PYSPARK_VERSION >= version.parse("4.0.0"):
         builder = builder.config("spark.hadoop.fs.defaultFS", "file:///")
-        builder = builder.config("spark.sql.warehouse.dir", "file:///tmp/spark-warehouse")
+        builder = builder.config(
+            "spark.sql.warehouse.dir", "file:///tmp/spark-warehouse"
+        )
     spark: SparkSession = builder.getOrCreate()
     yield spark
     spark.stop()
@@ -51,7 +53,9 @@ def spark_connect() -> SparkSession:
     # This is needed for PySpark 4.0+ when using Java 17+
     if PYSPARK_VERSION >= version.parse("4.0.0"):
         builder = builder.config("spark.hadoop.fs.defaultFS", "file:///")
-        builder = builder.config("spark.sql.warehouse.dir", "file:///tmp/spark-warehouse")
+        builder = builder.config(
+            "spark.sql.warehouse.dir", "file:///tmp/spark-warehouse"
+        )
     spark: SparkSession = builder.getOrCreate()
     yield spark
     spark.stop()
