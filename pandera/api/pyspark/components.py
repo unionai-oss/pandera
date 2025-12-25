@@ -21,7 +21,7 @@ class Column(ComponentSchema[PySparkDataFrameTypes]):
 
     def __init__(
         self,
-        dtype: PySparkDtypeInputTypes = None,
+        dtype: PySparkDtypeInputTypes | None = None,
         checks: CheckList | None = None,
         nullable: bool = False,
         coerce: bool = False,
