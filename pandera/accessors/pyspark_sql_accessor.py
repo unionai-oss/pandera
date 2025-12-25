@@ -1,7 +1,7 @@
 """Custom accessor functionality for PySpark.Sql. Register pyspark accessor for pandera schema metadata."""
 
+import logging
 import warnings
-from typing import Optional
 
 import pyspark
 from packaging import version
@@ -11,6 +11,9 @@ from pandera.api.pyspark.container import DataFrameSchema
 
 Schemas = DataFrameSchema  # type: ignore
 Errors = ErrorHandler  # type: ignore
+
+
+logger = logging.getLogger(__name__)
 
 
 class PanderaAccessor:
@@ -126,6 +129,13 @@ def register_connect_dataframe_accessor(name):
     """
 
     from pyspark.sql.connect.dataframe import DataFrame as psc_DataFrame
+
+    if hasattr(psc_DataFrame, name):
+        logger.info(
+            f"Accessor {name} already registered for "
+            "pyspark.sql.connect.dataframe.DataFrame",
+        )
+        return lambda x: None  # type: ignore
 
     return _register_accessor(name, psc_DataFrame)
 

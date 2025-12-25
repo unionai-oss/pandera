@@ -80,28 +80,31 @@ class DataFrameSchema(_DataFrameSchema[PySparkDataFrameTypes]):
         Calling ``schema.validate`` returns the dataframe.
 
 
-        >>> import pandera.pyspark as psa
-        >>> from pyspark.sql import SparkSession
-        >>> import pyspark.sql.types as T
-        >>> spark = SparkSession.builder.getOrCreate()
-        >>> data = [("Bread", 9), ("Butter", 15)]
-        >>> spark_schema = T.StructType(
-        ...     [
-        ...         T.StructField("product", T.StringType(), False),
-        ...         T.StructField("price", T.IntegerType(), False),
-        ...     ],
-        ... )
-        >>> df = spark.createDataFrame(data=data, schema=spark_schema)
-        >>> schema_with_checks = psa.DataFrameSchema(
-        ...     columns={
-        ...         "product": psa.Column("str", checks=psa.Check.str_startswith("B")),
-        ...         "price": psa.Column("int", checks=psa.Check.gt(5)),
-        ...     },
-        ...     name="product_schema",
-        ...     description="schema for product info",
-        ...     title="ProductSchema",
-        ... )
-        >>> schema_with_checks.validate(df dd).take(2)
+        .. doctest::
+            :skipif: SKIP_PYSPARK_TYPING
+
+            >>> import pandera.pyspark as psa
+            >>> from pyspark.sql import SparkSession
+            >>> import pyspark.sql.types as T
+            >>> spark = SparkSession.builder.getOrCreate()
+            >>> data = [("Bread", 9), ("Butter", 15)]
+            >>> spark_schema = T.StructType(
+            ...     [
+            ...         T.StructField("product", T.StringType(), False),
+            ...         T.StructField("price", T.IntegerType(), False),
+            ...     ],
+            ... )
+            >>> df = spark.createDataFrame(data=data, schema=spark_schema)
+            >>> schema_with_checks = psa.DataFrameSchema(
+            ...     columns={
+            ...         "product": psa.Column("str", checks=psa.Check.str_startswith("B")),
+            ...         "price": psa.Column("int", checks=psa.Check.gt(5)),
+            ...     },
+            ...     name="product_schema",
+            ...     description="schema for product info",
+            ...     title="ProductSchema",
+            ... )
+            >>> schema_with_checks.validate(df).take(2)
         """
         if not get_config_context().validation_enabled:
             return check_obj
