@@ -328,10 +328,13 @@ class Decimal(DataType, dtypes.Decimal):
     def from_parametrized_dtype(cls, ibis_dtype: dt.Decimal):
         """Convert a :class:`dt.Decimal` to a Pandera
         :class:`~pandera.engines.ibis_engine.Decimal`."""
-        return cls(
-            precision=ibis_dtype.precision,
-            scale=ibis_dtype.scale,
+        # Ibis precision may be nullable; Pandera imposes a default.
+        precision = (
+            ibis_dtype.precision
+            if ibis_dtype.precision is not None
+            else dtypes.DEFAULT_PYTHON_DECIMAL_PREC
         )
+        return cls(precision=precision, scale=ibis_dtype.scale)
 
 
 ###############################################################################
