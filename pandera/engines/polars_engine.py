@@ -387,11 +387,9 @@ class Decimal(DataType, dtypes.Decimal):
     # polars Decimal doesn't have a rounding attribute
     rounding = None
 
-    _default_precision: int = dtypes.DEFAULT_PYTHON_PREC
-
     def __init__(
         self,
-        precision: int = _default_precision,
+        precision: int = dtypes.DEFAULT_PYTHON_PREC,
         scale: int = 0,
     ) -> None:
         object.__setattr__(self, "precision", precision)
@@ -404,11 +402,11 @@ class Decimal(DataType, dtypes.Decimal):
     def from_parametrized_dtype(cls, polars_dtype: pl.Decimal):
         """Convert a :class:`polars.Decimal` to
         a Pandera :class:`pandera.engines.polars_engine.Decimal`."""
-        # polars precision may be nullable, pandera imposes a default.
+        # Polars precision may be nullable; Pandera imposes a default.
         precision = (
             polars_dtype.precision
             if polars_dtype.precision is not None
-            else cls._default_precision
+            else dtypes.DEFAULT_PYTHON_PREC
         )
         return cls(precision=precision, scale=polars_dtype.scale)
 
