@@ -1347,82 +1347,43 @@ def test_schema_with_full_validation_uses_full_materialization_path(
         )
 
 
-def test_multiindex_optimized_vs_full_validation_lazy(
+@pytest.mark.parametrize("lazy", [True, False], ids=["lazy", "eager"])
+def test_multiindex_optimized_vs_full_validation(
     multiindex_optimization_test_data,
     schema_with_optimized_validation,
     schema_with_full_validation,
+    lazy,
 ) -> None:
     """Test that optimized and full materialization validation produce identical results.
 
     Uses determined_by_unique flag to control which validation path is taken:
     - determined_by_unique=True uses optimized validation
     - determined_by_unique=False uses full materialization
+
+    Tests both lazy and eager validation modes.
     """
-    # Validate with both schemas using lazy=True
-    optimized_errors = None
-    try:
-        schema_with_optimized_validation.validate(
-            multiindex_optimization_test_data, lazy=True
-        )
-    except errors.SchemaErrors as exc:
-        optimized_errors = exc
-
-    full_errors = None
-    try:
-        schema_with_full_validation.validate(
-            multiindex_optimization_test_data, lazy=True
-        )
-    except errors.SchemaErrors as exc:
-        full_errors = exc
-
-    # Both should raise errors
-    assert optimized_errors is not None
-    assert full_errors is not None
-
-    # Compare failure cases - they should be identical up to ordering
-    optimized_fc = optimized_errors.failure_cases
-    full_fc = full_errors.failure_cases
-
-    pd.testing.assert_frame_equal(
-        optimized_fc.sort_values(by="index").reset_index(drop=True),
-        full_fc.sort_values(by="index").reset_index(drop=True),
-        check_like=True,
-    )
-
-
-def test_multiindex_optimized_vs_full_validation_eager(
-    multiindex_optimization_test_data,
-    schema_with_optimized_validation,
-    schema_with_full_validation,
-) -> None:
-    """Test that optimized and full materialization validation produce identical results in eager mode.
-
-    Uses determined_by_unique flag to control which validation path is taken:
-    - determined_by_unique=True uses optimized validation
-    - determined_by_unique=False uses full materialization
-    """
-    # Validate with both schemas using lazy=False (eager mode)
+    # Validate with both schemas
     optimized_error = None
     try:
         schema_with_optimized_validation.validate(
-            multiindex_optimization_test_data, lazy=False
+            multiindex_optimization_test_data, lazy=lazy
         )
-    except errors.SchemaError as exc:
+    except (errors.SchemaError, errors.SchemaErrors) as exc:
         optimized_error = exc
 
     full_error = None
     try:
         schema_with_full_validation.validate(
-            multiindex_optimization_test_data, lazy=False
+            multiindex_optimization_test_data, lazy=lazy
         )
-    except errors.SchemaError as exc:
+    except (errors.SchemaError, errors.SchemaErrors) as exc:
         full_error = exc
 
     # Both should produce errors
     assert optimized_error is not None
     assert full_error is not None
 
-    # Compare failure cases - they should be identical
+    # Compare failure cases - they should be identical up to ordering
     optimized_fc = optimized_error.failure_cases
     full_fc = full_error.failure_cases
 
