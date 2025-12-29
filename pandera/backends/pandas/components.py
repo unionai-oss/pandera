@@ -570,7 +570,9 @@ class MultiIndexBackend(PandasSchemaBackend):
                         lazy=lazy,
                     )
             except (SchemaError, SchemaErrors) as exc:
-                self._collect_or_raise(error_handler, exc, schema)
+                self._collect_or_raise(
+                    error_handler, exc, schema, index_schema=index_schema
+                )
 
         # Validate multiindex_unique: ensure no duplicate index combinations
         if schema.unique:
@@ -616,38 +618,171 @@ class MultiIndexBackend(PandasSchemaBackend):
         index_schema,
         lazy: bool = False,
     ) -> None:
-        """Validate a level using unique values optimization.
+        """Validate a level using unique values optimization,
+        expanding failure_cases to the full index if validation fails.
 
         :param multiindex: The MultiIndex being validated
         :param level_pos: Position of this level in the MultiIndex
         :param index_schema: The schema for this level
         :param lazy: if True, collect errors instead of raising immediately
         """
-        try:
-            # Use unique values. Use the MultiIndex.unique method rather than
-            # multiindex.levels[level_pos] which can have extra values that
-            # don't appear in the full data. Additionally, multiindex.unique
-            # will include nan if present, whereas multiindex.levels[level_pos]
-            # will not.
-            unique_values = multiindex.unique(level=level_pos)
-            unique_stub_df = pd.DataFrame(index=unique_values)
+        # Use unique values. Use the MultiIndex.unique method rather than
+        # multiindex.levels[level_pos] which can have extra values that
+        # don't appear in the full data. Additionally, multiindex.unique
+        # will include nan if present, whereas multiindex.levels[level_pos]
+        # will not.
+        unique_values = multiindex.unique(level=level_pos)
 
-            # Run validation on unique values only, using lazy=False to cut to
-            # full validation as soon as we hit a failure
-            index_schema.validate(
-                unique_stub_df,
-                lazy=False,
-                inplace=True,
-            )
-        except (SchemaError, SchemaErrors):
-            # Validation failed on unique values, need to materialize full values
-            # for proper error reporting with correct indices
-            self._validate_level_with_full_materialization(
-                multiindex,
-                level_pos,
-                index_schema,
+        # Create a Series with unique values as data, similar to full materialization.
+        # This ensures error reporting is consistent between optimized and full paths.
+        unique_series = pd.Series(
+            unique_values.values,
+            name=index_schema.name,
+            dtype=multiindex.levels[level_pos].dtype,
+        )
+
+        # Create a Column schema from the Index schema, similar to full materialization
+        column_schema = Column(
+            dtype=index_schema.dtype,
+            checks=index_schema.checks,
+            parsers=index_schema.parsers,
+            nullable=index_schema.nullable,
+            unique=index_schema.unique,
+            report_duplicates=index_schema.report_duplicates,
+            coerce=index_schema.coerce,
+            name=index_schema.name,
+            title=index_schema.title,
+            description=index_schema.description,
+            default=index_schema.default,
+            metadata=index_schema.metadata,
+            drop_invalid_rows=index_schema.drop_invalid_rows,
+        )
+
+        try:
+            # Use the SeriesSchemaBackend directly, similar to full materialization
+            backend = SeriesSchemaBackend()
+            backend.validate(
+                check_obj=unique_series,
+                schema=column_schema,
                 lazy=lazy,
             )
+        except SchemaErrors as exc:
+            # Expand failure_cases from unique values to the full index.
+            transformed_errors = [
+                self._expand_error_to_full_multiindex(
+                    err, multiindex, level_pos
+                )
+                for err in exc.schema_errors
+            ]
+            raise SchemaErrors(
+                schema=exc.schema,
+                schema_errors=transformed_errors,
+                data=exc.data,
+            )
+        except SchemaError as exc:
+            # Expand the single error
+            transformed_error = self._expand_error_to_full_multiindex(
+                exc, multiindex, level_pos
+            )
+            raise transformed_error
+
+    def _expand_error_to_full_multiindex(
+        self,
+        error: SchemaError,
+        multiindex: pd.MultiIndex,
+        level_pos: int,
+    ) -> SchemaError:
+        """Expand error from unique values to the full MultiIndex.
+
+        Takes failure_cases from validation on unique values and expands them
+        to include all positions where those values occur, with full tuple
+        representation in the 'index' column.
+
+        :param error: SchemaError from unique value validation
+        :param multiindex: The full MultiIndex
+        :param level_pos: Position of the level being validated
+        :returns: SchemaError with expanded failure_cases
+        """
+        failure_cases = error.failure_cases
+
+        if (
+            not isinstance(failure_cases, pd.DataFrame)
+            or "failure_case" not in failure_cases.columns
+        ):
+            return error
+
+        # Get unique failing values
+        dtype = failure_cases["failure_case"].dtype
+        failing_values = failure_cases["failure_case"].values
+        failing_null_mask = pd.isna(failing_values)
+
+        # Find all positions where these values appear in the MultiIndex
+        level_values = multiindex.levels[level_pos]
+        codes = np.asarray(multiindex.codes[level_pos])
+        failing_codes = level_values.get_indexer(
+            failing_values[~failing_null_mask]
+        )
+
+        mask = np.isin(codes, failing_codes)
+
+        # Create mapping of failing values to their indices in the MultiIndex
+        lookup_df = pd.DataFrame(
+            {
+                "level_value": pd.Series(
+                    level_values[codes[mask]], dtype=dtype
+                ),
+                "index": multiindex[mask].map(str),
+            }
+        )
+
+        # Handle null values as a special case since they won't be in level_values
+        # and will be represented by -1 in codes which cannot be indexed into level_values
+        if failing_null_mask.any():
+            null_indices = multiindex[codes == -1]
+            null_values = pd.Series(
+                [failing_values[failing_null_mask][0]] * len(null_indices),
+                index=null_indices,
+                dtype=dtype,
+            ).values
+            lookup_df = pd.concat(
+                [
+                    lookup_df,
+                    pd.DataFrame(
+                        {
+                            "level_value": null_values,
+                            "index": null_indices.map(str),
+                        }
+                    ),
+                ],
+                ignore_index=True,
+            )
+
+        # Merge to expand failure cases
+        expanded = failure_cases.merge(
+            lookup_df,
+            left_on="failure_case",
+            right_on="level_value",
+            how="inner",
+            suffixes=("_unique", ""),
+        )
+
+        # Keep only the original columns
+        expanded = expanded[failure_cases.columns]
+
+        return SchemaError(
+            schema=error.schema,
+            data=error.data,
+            message=error.args[0] if error.args else str(error),
+            failure_cases=expanded,
+            check=error.check,
+            check_index=error.check_index,
+            check_output=error.check_output,
+            parser=error.parser,
+            parser_index=error.parser_index,
+            parser_output=error.parser_output,
+            reason_code=error.reason_code,
+            column_name=error.column_name,
+        )
 
     def _validate_level_with_full_materialization(
         self,
@@ -660,15 +795,11 @@ class MultiIndexBackend(PandasSchemaBackend):
         random_state: int | None = None,
         lazy: bool = False,
     ) -> None:
-        """Validate a level using full materialization.
+        """Validate a level using full materialization, for cases where we can't validate
+        based on unique values.
 
-        This materializes all values (including duplicates) for validation.
-        Used both as a fallback when optimization isn't possible and when
-        errors are identified in optimized validation
-        in order to provide proper error reporting with correct indices.
-
-        Validates a Series indexed by the full MultiIndex to ensure failure_cases
-        naturally contains the correct MultiIndex positions.
+        This validates a Series indexed by the full MultiIndex to ensure failure_cases
+        contains the correct MultiIndex tuples.
         """
         # Materialize the full level values
         full_values = multiindex.get_level_values(level_pos)
@@ -891,7 +1022,8 @@ class MultiIndexBackend(PandasSchemaBackend):
     def _collect_or_raise(
         error_handler: ErrorHandler | None,
         err: Union[SchemaError, SchemaErrors],
-        schema,
+        multiindex_schema,
+        index_schema=None,
     ) -> None:
         """Collect errors (respecting lazy), adjusting schema context and
         failure cases appropriately.
@@ -909,18 +1041,16 @@ class MultiIndexBackend(PandasSchemaBackend):
             # that downstream error reporting groups these failures under the
             # "MultiIndex" key.
             try:
-                schema_error.schema = schema
+                schema_error.schema = multiindex_schema
             except Exception:
                 # In case the attribute is frozen / read-only, skip.
                 pass
 
-            if is_table(failure_cases):
-                # Attach the originating component name so that it can be
+            if is_table(failure_cases) and index_schema is not None:
+                # Attach the originating level name so that it can be
                 # displayed alongside the failure row.
-                component_name = getattr(schema, "name", None)
-                # if component_name is not None and "column" not in failure_cases.columns:
                 schema_error.failure_cases = failure_cases.assign(
-                    column=component_name
+                    column=index_schema.name
                 )
 
         # First, update failure_cases in the incoming error(s) with the component name
