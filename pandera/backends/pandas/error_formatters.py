@@ -1,10 +1,14 @@
 """Make schema error messages human-friendly."""
 
 import re
-from typing import Any, Union
+from typing import Any, Optional, Union
 
 import pandas as pd
 
+from pandera.backends.error_formatters import (
+    format_failure_cases_with_truncation,
+)
+from pandera.config import get_config_context
 from pandera.errors import SchemaError
 
 
@@ -26,11 +30,41 @@ def format_generic_error_message(
     )
 
 
+def _format_failure_cases_string(
+    failure_cases,
+    total_failures: int,
+    max_reported_failures: int,
+    is_pyspark: bool = False,
+) -> str:
+    """Format failure cases into a string with appropriate truncation."""
+
+    def format_all(cases):
+        return ", ".join(cases.astype(str) if is_pyspark else cases.apply(str))
+
+    def format_limited(cases, limit):
+        if is_pyspark:
+            limited = cases[:limit]
+            formatted = ", ".join(limited.astype(str))
+        else:
+            limited = cases.iloc[:limit]
+            formatted = ", ".join(limited.apply(str))
+        return formatted, len(limited)
+
+    return format_failure_cases_with_truncation(
+        failure_cases,
+        total_failures,
+        max_reported_failures,
+        format_all,
+        format_limited,
+    )
+
+
 def format_vectorized_error_message(
     parent_schema,
     check,
     check_index: int,
     reshaped_failure_cases: Any,
+    max_reported_failures: Optional[int] = None,
 ) -> str:
     """Construct an error message when a validator fails.
 
@@ -39,8 +73,13 @@ def format_vectorized_error_message(
     :param check_index: The validator that failed.
     :param reshaped_failure_cases: The failure cases encountered by the
         element-wise or vectorized validator.
+    :param max_reported_failures: Maximum number of failures to report
+        in the error message. If None, use config value.
 
     """
+    if max_reported_failures is None:
+        config = get_config_context()
+        max_reported_failures = config.max_reported_failures
 
     pattern = r"<Check\s+([^:>]+):\s*([^>]+)>"
     matches = re.findall(pattern, str(check))
@@ -52,14 +91,19 @@ def format_vectorized_error_message(
     else:
         check_str = str(check)
 
-    if type(reshaped_failure_cases.failure_case).__module__.startswith(
-        "pyspark.pandas"
-    ):
+    is_pyspark = type(
+        reshaped_failure_cases.failure_case
+    ).__module__.startswith("pyspark.pandas")
+
+    if is_pyspark:
         failure_cases = reshaped_failure_cases.failure_case.to_numpy()
-        failure_cases_string = ", ".join(failure_cases.astype(str))
     else:
         failure_cases = reshaped_failure_cases.failure_case
-        failure_cases_string = ", ".join(failure_cases.apply(str))
+
+    total_failures = len(failure_cases)
+    failure_cases_string = _format_failure_cases_string(
+        failure_cases, total_failures, max_reported_failures, is_pyspark
+    )
 
     return (
         f"{parent_schema.__class__.__name__} '{parent_schema.name}' failed "
@@ -149,7 +193,10 @@ def _multiindex_to_frame(df):
     return df.index.to_frame().drop_duplicates()
 
 
-def consolidate_failure_cases(schema_errors: list[SchemaError]):
+def consolidate_failure_cases(
+    schema_errors: list[SchemaError],
+    max_reported_failures: Optional[int] = None,
+):
     """Consolidate schema error dicts to produce data for error message."""
     from pandera.api.pandas.types import is_table
 
@@ -157,6 +204,12 @@ def consolidate_failure_cases(schema_errors: list[SchemaError]):
         "schema_errors input cannot be empty. Check how the backend "
         "validation logic is handling/raising SchemaError(s)."
     )
+
+    # Get max_reported_failures from config if not provided
+    if max_reported_failures is None:
+        config = get_config_context()
+        max_reported_failures = config.max_reported_failures
+
     check_failure_cases = []
     scalar_check_failure_cases = []
 
