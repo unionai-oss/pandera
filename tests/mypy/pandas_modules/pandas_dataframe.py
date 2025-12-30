@@ -72,7 +72,7 @@ def fn_cast_dataframe(df: DataFrame[Schema]) -> DataFrame[SchemaOut]:
 def fn_mutate_inplace(df: DataFrame[Schema]) -> DataFrame[SchemaOut]:
     out = df.assign(age=30).pipe(DataFrame[SchemaOut])
     out.drop(columns="age", inplace=True)
-    return out  # okay for mypy, pandera raises error
+    return out  # okay for mypy, pandera should raise error but doesn't due to in-place mutation
 
 
 @pa.check_types
@@ -87,3 +87,10 @@ def fn_cast_dataframe_invalid(df: DataFrame[Schema]) -> DataFrame[SchemaOut]:
     return cast(
         DataFrame[SchemaOut], df
     )  # okay for mypy, pandera raises error
+
+
+@pa.check_types
+def fn_working_example(df: DataFrame[Schema]) -> DataFrame[SchemaOut]:
+    # This works correctly - no in-place modifications after validation
+    # Return a DataFrame that violates SchemaOut (missing 'age' column)
+    return df.drop(columns=['name'])  # This should raise error because 'age' column is missing

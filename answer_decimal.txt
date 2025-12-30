@@ -1,0 +1,92 @@
+Hi! Here's how you can use the `Decimal` type as a dtype for a column in Pandera, for all supported backends:
+
+---
+
+## 🐼 Pandas Backend
+
+You can use the standard Python `decimal.Decimal` type for columns. Make sure your data is actually of type `Decimal` (not float or str):
+
+```python
+import pandas as pd
+from decimal import Decimal
+import pandera as pa
+from pandera import Column, DataFrameSchema
+
+# Example DataFrame with Decimal values
+df = pd.DataFrame({
+    "amount": [Decimal("1.23"), Decimal("4.56"), Decimal("7.89")]
+})
+
+# Define schema
+schema = DataFrameSchema({
+    "amount": Column(Decimal)
+})
+
+# Validate
+validated = schema.validate(df)
+print(validated)
+```
+
+**Note:** If your data comes in as strings or floats, convert it first:
+```python
+df["amount"] = df["amount"].apply(Decimal)
+```
+
+---
+
+## 🦀 Polars Backend
+
+Use `pandera.engines.polars_engine.Decimal` as the dtype. You can specify precision and scale if needed:
+
+```python
+import polars as pl
+import pandera as pa
+from pandera.polars import DataFrameModel, Field
+from pandera.typing import Series
+from pandera.engines.polars_engine import Decimal
+
+class MySchema(DataFrameModel):
+    amount: Series[Decimal] = Field(nullable=False)
+    # Or specify precision/scale:
+    # amount: Series[Decimal(precision=10, scale=2)] = Field(nullable=False)
+
+# Example DataFrame
+df = pl.DataFrame({"amount": ["1.23", "4.56", "7.89"]}).with_columns(
+    pl.col("amount").cast(pl.Decimal(precision=10, scale=2))
+)
+
+validated = MySchema.validate(df)
+print(validated)
+```
+
+---
+
+## 🔥 PySpark Backend
+
+Use `pyspark.sql.types.DecimalType` as the dtype:
+
+```python
+import pyspark.sql.types as T
+from pandera.pyspark import DataFrameModel, Field
+from pandera.typing import Series
+
+class MySchema(DataFrameModel):
+    amount: Series[T.DecimalType(10, 2)] = Field(nullable=False)
+
+# Example usage (assuming you have a Spark DataFrame `df` with a Decimal column):
+validated = MySchema.validate(df)
+```
+
+---
+
+## 📚 References
+- [Pandera dtype validation docs](https://pandera.readthedocs.io/en/stable/dtype_validation.html)
+- [Polars Decimal support](https://pandera.readthedocs.io/en/stable/polars.html#supported-data-types)
+- [PySpark DecimalType support](https://pandera.readthedocs.io/en/stable/pyspark.html#supported-data-types)
+
+---
+
+**Tip:**
+- Always ensure your data column is actually of the correct type before validation (e.g., use `.apply(Decimal)` for Pandas, `.cast(pl.Decimal(...))` for Polars, or the correct schema for PySpark).
+
+Let me know if you need a more specific example for your use case! 
