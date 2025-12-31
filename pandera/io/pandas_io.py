@@ -1,5 +1,7 @@
 """Module for reading and writing schema objects."""
 
+from __future__ import annotations
+
 import enum
 import json
 import warnings
@@ -23,11 +25,18 @@ if TYPE_CHECKING:
 
 
 DATETIME_FORMAT = "%Y-%m-%d %H:%M:%S"
-_MISSING_IMPORT_ERROR_MESSAGE = (
-    "IO and formatting requires 'pyyaml', 'black' and 'frictionless'"
-    "to be installed.\n"
+_MISSING_PYYAML_IMPORT_ERROR_MESSAGE = (
+    "IO and formatting requires 'pyyaml to be installed.\n"
     "You can install pandera together with the IO dependencies with:\n"
     "pip install pandera[io]\n"
+)
+_FORMAT_SCRIPT_WARNING_MESSAGE = (
+    "Schema script formatting requires 'black' to be installed. "
+    "Please install 'black' to use this feature."
+)
+_MISSING_FRICTIONLESS_IMPORT_ERROR_MESSAGE = (
+    "Frictionless schema parsing requires 'frictionless' to be installed. "
+    "Please install 'frictionless' to use this feature."
 )
 
 def _get_dtype_string_alias(dtype: pandas_engine.DataType) -> str:
@@ -381,7 +390,7 @@ def from_yaml(yaml_schema):
     try:
         import yaml
     except ImportError as exc:  # pragma: no cover
-        raise ImportError(_MISSING_IMPORT_ERROR_MESSAGE) from exc
+        raise ImportError(_MISSING_PYYAML_IMPORT_ERROR_MESSAGE) from exc
 
     try:
         with Path(yaml_schema).open("r", encoding="utf-8") as f:
@@ -401,7 +410,7 @@ def to_yaml(dataframe_schema, stream=None):
     try:
         import yaml
     except ImportError as exc:  # pragma: no cover
-        raise ImportError(_MISSING_IMPORT_ERROR_MESSAGE) from exc
+        raise ImportError(_MISSING_PYYAML_IMPORT_ERROR_MESSAGE) from exc
         
     statistics = serialize_schema(dataframe_schema)
 
@@ -604,7 +613,7 @@ def _format_script(script):
     try:
         import black
     except ImportError as exc:  # pragma: no cover
-        raise ImportError(_MISSING_IMPORT_ERROR_MESSAGE) from exc
+        raise ImportError(_FORMAT_SCRIPT_WARNING_MESSAGE) from exc
         
     formatter = partial(black.format_str, mode=black.FileMode(line_length=80))
     return formatter(script)
@@ -929,7 +938,7 @@ def from_frictionless_schema(
     try:
         from frictionless import Schema as FrictionlessSchema
     except ImportError as exc:  # pragma: no cover
-        raise ImportError(_MISSING_IMPORT_ERROR_MESSAGE) from exc
+        raise ImportError(_MISSING_FRICTIONLESS_IMPORT_ERROR_MESSAGE) from exc
 
     if not isinstance(schema, FrictionlessSchema):
         schema = FrictionlessSchema(schema)
