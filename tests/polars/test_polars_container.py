@@ -1,7 +1,7 @@
 # pylint: disable=redefined-outer-name
 """Unit tests for Polars container."""
 
-from typing import Optional
+from typing import Annotated, Optional
 
 import polars as pl
 import pytest
@@ -18,9 +18,9 @@ from pandera.engines import polars_engine as pe
 from pandera.polars import Column, DataFrameModel, DataFrameSchema
 
 try:
-    from typing import Annotated  # type: ignore
-except ImportError:
-    from typing import Annotated  # type: ignore
+    from polars._typing import PolarsDataType  # type: ignore
+except NameError:
+    from polars.type_aliases import PolarsDataType  # type: ignore
 
 
 @pytest.fixture
@@ -411,7 +411,7 @@ def test_set_defaults(ldf_basic, ldf_schema_basic):
     assert validated_data.equals(expected_data.collect())
 
 
-def _failure_value(column: str, dtype: Optional[pl.DataTypeClass] = None):
+def _failure_value(column: str, dtype: PolarsDataType | None = None):
     if column.startswith("string"):
         return pl.lit("9", dtype=dtype or pl.Utf8)
     elif column.startswith("int"):
@@ -493,7 +493,6 @@ def test_ordered(ldf_basic, ldf_schema_basic):
 
 
 def test_sample_dataframe_schema(df_basic, ldf_basic, ldf_schema_basic):
-
     with pytest.raises(NotImplementedError):
         ldf_schema_basic.validate(ldf_basic, sample=1, random_state=1)
 
@@ -515,7 +514,6 @@ def test_report_duplicates(arg):
 
 
 def test_lazy_validation_errors():
-
     schema = DataFrameSchema(
         {
             "a": Column(int),
@@ -564,6 +562,61 @@ def test_dataframe_validation_errors_unique():
         assert exc.failure_cases.shape[0] == 4
 
 
+def test_dataframe_validation_errors_unique_key():
+    """
+    Test unique key constraint validation.
+    i.e. multiple fields must be unique together.
+    """
+    schema = DataFrameSchema(
+        {"key_part_a": Column(str), "key_part_b": Column(str)},
+        unique=["key_part_a", "key_part_b"],
+    )
+    invalid_df = pl.DataFrame(
+        {
+            "key_part_a": ["1", "1", "1", "1"],
+            "key_part_b": ["a", "b", "c", "c"],
+        }
+    )
+    try:
+        schema.validate(invalid_df, lazy=True)
+        assert False, "Expected SchemaErrors"
+    except pa.errors.SchemaErrors as exc:
+        assert len(exc.schema_errors) == 1
+        schema_error = exc.schema_errors[0]
+
+        # Ensure type of 'schema_error.failure_cases' is a Dataframe, since
+        # handling of LazyFrame is not currently supported further downstream
+        assert isinstance(schema_error.failure_cases, pl.DataFrame)
+
+        # Ensure check_output property exists and is set correctly, since
+        # it is required for assigning row numbers to the resulting failure_cases
+        # further downstream
+        check_output_df = schema_error.check_output
+        assert isinstance(check_output_df, pl.DataFrame)
+        assert_frame_equal(
+            check_output_df,
+            pl.DataFrame(
+                {
+                    "key_part_a": ["1", "1", "1", "1"],
+                    "key_part_b": ["a", "b", "c", "c"],
+                    "check_output": [True, True, False, False],
+                }
+            ),
+        )
+
+        # We expect two failure cases for the unique key constraint
+        # for the 2 rows where key_part_a="1" and key_part_b="c"
+        assert exc.failure_cases.shape[0] == 2
+        assert all(
+            check == "multiple_fields_uniqueness"
+            for check in exc.failure_cases["check"]
+        )
+        assert all(
+            failure_case == '{"key_part_a":"1","key_part_b":"c"}'
+            for failure_case in exc.failure_cases["failure_case"]
+        )
+
+
 @pytest.fixture
 def lf_with_nested_types():
     return pl.LazyFrame(
@@ -576,7 +629,6 @@ def lf_with_nested_types():
 
 
 def test_dataframe_schema_with_nested_types(lf_with_nested_types):
-
     schema = DataFrameSchema(
         {
             "list_col": Column(pl.List(pl.Int64())),
@@ -683,7 +735,6 @@ def test_dataframe_coerce_col_with_null_in_other_column():
 
 
 def test_dataframe_column_level_coerce():
-
     schema = DataFrameSchema(
         {
             "a": Column(int, coerce=True),

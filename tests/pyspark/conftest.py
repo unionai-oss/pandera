@@ -3,11 +3,22 @@
 import datetime
 import os
 
+import pyspark
 import pyspark.sql.types as T
 import pytest
+from packaging import version
 from pyspark.sql import SparkSession
 
 from pandera.config import PanderaConfig
+
+PYSPARK_VERSION = version.parse(pyspark.__version__)
+
+
+@pytest.fixture(autouse=True)
+def spark_env_vars():
+    """Sets environment variables for pyspark."""
+    os.environ["SPARK_LOCAL_IP"] = "127.0.0.1"
+    os.environ["PYARROW_IGNORE_TIMEZONE"] = "1"
 
 
 @pytest.fixture(scope="session")
@@ -15,7 +26,16 @@ def spark() -> SparkSession:
     """
     creates spark session
     """
-    spark: SparkSession = SparkSession.builder.getOrCreate()
+    builder = SparkSession.builder
+    builder = builder.config("spark.sql.ansi.enabled", False)
+    # Workaround for Java 17+ security manager issues with Hadoop file system
+    # This is needed for PySpark 4.0+ when using Java 17+
+    if PYSPARK_VERSION >= version.parse("4.0.0"):
+        builder = builder.config("spark.hadoop.fs.defaultFS", "file:///")
+        builder = builder.config(
+            "spark.sql.warehouse.dir", "file:///tmp/spark-warehouse"
+        )
+    spark: SparkSession = builder.getOrCreate()
     yield spark
     spark.stop()
 
@@ -27,7 +47,16 @@ def spark_connect() -> SparkSession:
     """
     # Set location of localhost Spark Connect server
     os.environ["SPARK_LOCAL_REMOTE"] = "sc://localhost"
-    spark: SparkSession = SparkSession.builder.getOrCreate()
+    builder = SparkSession.builder
+    builder = builder.config("spark.sql.ansi.enabled", False)
+    # Workaround for Java 17+ security manager issues with Hadoop file system
+    # This is needed for PySpark 4.0+ when using Java 17+
+    if PYSPARK_VERSION >= version.parse("4.0.0"):
+        builder = builder.config("spark.hadoop.fs.defaultFS", "file:///")
+        builder = builder.config(
+            "spark.sql.warehouse.dir", "file:///tmp/spark-warehouse"
+        )
+    spark: SparkSession = builder.getOrCreate()
     yield spark
     spark.stop()
 

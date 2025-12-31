@@ -21,9 +21,10 @@ dependencies:
 
   # mypy extra
   - pandas-stubs
+  - scipy-stubs
 
   # pyspark extra
-  - pyspark[connect] >= 3.2.0, < 4.0.0
+  - pyspark[connect] >= 3.2.0
 
   # polars extra
   - polars >= 0.20.0
@@ -59,14 +60,11 @@ dependencies:
   - setuptools # required in noxfile and not automatically provided by python >= 3.12
 
   # ibis testing
-  - ibis-duckdb
+  - ibis-duckdb >= 11.0.0 # https://github.com/ibis-project/ibis/pull/11666
 
   # fastapi testing
   - uvicorn
   - python-multipart
-
-  # ibis testing
-  - duckdb
 
   # documentation
   - sphinx

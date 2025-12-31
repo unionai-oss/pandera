@@ -11,6 +11,8 @@ from typing import (  # type: ignore[attr-defined]
     TypeVar,
     Union,
     _GenericAlias,
+    get_args,
+    get_origin,
 )
 
 
@@ -121,7 +123,7 @@ class DataFrameBase(Generic[T]):
     initialization.
     """
 
-    default_dtype: Optional[type] = None
+    default_dtype: type | None = None
 
     def __setattr__(self, name: str, value: Any) -> None:
         object.__setattr__(self, name, value)
@@ -155,7 +157,7 @@ class DataFrameBase(Generic[T]):
 class SeriesBase(Generic[GenericDtype]):
     """Pandera Series base class to use for all pandas-like APIs."""
 
-    default_dtype: Optional[type] = None
+    default_dtype: type | None = None
 
     def __get__(
         self, instance: object, owner: type
@@ -169,7 +171,7 @@ class IndexBase(Generic[GenericDtype]):
     *new in 0.5.0*
     """
 
-    default_dtype: Optional[type] = None
+    default_dtype: type | None = None
 
     def __get__(
         self, instance: object, owner: type
@@ -219,12 +221,12 @@ class AnnotationInfo:
         if self.optional and typing_inspect.is_union_type(raw_annotation):
             # Annotated with Optional or Union[..., NoneType]
             # get_args -> (pandera.typing.Index[str], <class 'NoneType'>)
-            raw_annotation = typing_inspect.get_args(raw_annotation)[0]
+            raw_annotation = get_args(raw_annotation)[0]
             self.raw_annotation = raw_annotation
 
-        self.origin = typing_inspect.get_origin(raw_annotation)
+        self.origin = get_origin(raw_annotation)
         # Replace empty tuple returned from get_args by None
-        args = typing_inspect.get_args(raw_annotation) or None
+        args = get_args(raw_annotation) or None
         self.args = args
         self.arg = args[0] if args else args
 
@@ -239,13 +241,14 @@ class AnnotationInfo:
                 metadata = None
 
         elif metadata := getattr(self.arg, "__metadata__", None):
-            self.arg = typing_inspect.get_args(self.arg)[0]
+            self.arg = get_args(self.arg)[0]
 
         self.metadata = metadata
-        self.literal = typing_inspect.is_literal_type(self.arg)
+
+        self.literal = get_origin(self.arg) is typing.Literal
 
         if self.literal:
-            self.arg = typing_inspect.get_args(self.arg)[0]
+            self.arg = get_args(self.arg)[0]
         elif self.origin is None and self.metadata is None:
             if isinstance(raw_annotation, type) and issubclass(
                 raw_annotation, SeriesBase

@@ -2,15 +2,15 @@
 
 import dataclasses
 import datetime
-from typing import Any, Optional, Union
 from collections.abc import Iterable
+from typing import Any, Optional, Union
 
 import pandas as pd
 import pyarrow
 
 from pandera import dtypes
 from pandera.dtypes import immutable
-from pandera.engines.pandas_engine import Engine, DataType, BOOL
+from pandera.engines.pandas_engine import BOOL, DataType, Engine
 from pandera.engines.type_aliases import PandasObject
 
 
@@ -36,7 +36,7 @@ class ArrowDataType(DataType):
 class ArrowBool(ArrowDataType, BOOL):
     """Semantic representation of a :class:`pyarrow.bool_`."""
 
-    type = pd.ArrowDtype(pyarrow.bool_())
+    type: pd.ArrowDtype = pd.ArrowDtype(pyarrow.bool_())  # type: ignore[assignment]
 
 
 @Engine.register_dtype(
@@ -226,7 +226,7 @@ class ArrowFloat16(ArrowFloat32):
 class ArrowDecimal128(ArrowDataType, dtypes.Decimal):
     """Semantic representation of a :class:`pyarrow.decimal128`."""
 
-    type: Optional[pd.ArrowDtype] = dataclasses.field(default=None, init=False)
+    type: pd.ArrowDtype | None = dataclasses.field(default=None, init=False)
     precision: int = 28
     scale: int = 0
 
@@ -239,7 +239,9 @@ class ArrowDecimal128(ArrowDataType, dtypes.Decimal):
         cls,
         pyarrow_dtype: pyarrow.Decimal128Type,
     ):
-        return cls(precision=pyarrow_dtype.precision, scale=pyarrow_dtype.scale)  # type: ignore
+        return cls(
+            precision=pyarrow_dtype.precision, scale=pyarrow_dtype.scale
+        )  # type: ignore
 
 
 @Engine.register_dtype(equivalents=[pyarrow.timestamp, pyarrow.TimestampType])
@@ -247,9 +249,9 @@ class ArrowDecimal128(ArrowDataType, dtypes.Decimal):
 class ArrowTimestamp(ArrowDataType, dtypes.Timestamp):
     """Semantic representation of a :class:`pyarrow.timestamp`."""
 
-    type: Optional[pd.ArrowDtype] = dataclasses.field(default=None, init=False)
-    unit: Optional[str] = "ns"
-    tz: Optional[datetime.tzinfo] = None
+    type: pd.ArrowDtype | None = dataclasses.field(default=None, init=False)
+    unit: str | None = "ns"
+    tz: datetime.tzinfo | None = None
 
     def __post_init__(self):
         type_ = pd.ArrowDtype(pyarrow.timestamp(self.unit, self.tz))
@@ -267,9 +269,9 @@ class ArrowTimestamp(ArrowDataType, dtypes.Timestamp):
 class ArrowDictionary(ArrowDataType):
     """Semantic representation of a :class:`pyarrow.dictionary`."""
 
-    type: Optional[pd.ArrowDtype] = dataclasses.field(default=None, init=False)
-    index_type: Optional[pyarrow.DataType] = pyarrow.int64()
-    value_type: Optional[pyarrow.DataType] = pyarrow.int64()
+    type: pd.ArrowDtype | None = dataclasses.field(default=None, init=False)
+    index_type: pyarrow.DataType | None = pyarrow.int64()
+    value_type: pyarrow.DataType | None = pyarrow.int64()
     ordered: bool = False
 
     def __post_init__(self):
@@ -302,11 +304,11 @@ class ArrowDictionary(ArrowDataType):
 class ArrowList(ArrowDataType):
     """Semantic representation of a :class:`pyarrow.list_`."""
 
-    type: Optional[pd.ArrowDtype] = dataclasses.field(default=None, init=False)
-    value_type: Optional[Union[pyarrow.DataType, pyarrow.Field]] = (
+    type: pd.ArrowDtype | None = dataclasses.field(default=None, init=False)
+    value_type: Union[pyarrow.DataType, pyarrow.Field] | None = (
         pyarrow.string()
     )
-    list_size: Optional[int] = -1
+    list_size: int | None = -1
 
     def __post_init__(self):
         type_ = pd.ArrowDtype(pyarrow.list_(self.value_type, self.list_size))
@@ -332,13 +334,14 @@ class ArrowList(ArrowDataType):
 class ArrowStruct(ArrowDataType):
     """Semantic representation of a :class:`pyarrow.struct`."""
 
-    type: Optional[pd.ArrowDtype] = dataclasses.field(default=None, init=False)
-    fields: Optional[
+    type: pd.ArrowDtype | None = dataclasses.field(default=None, init=False)
+    fields: (
         Union[
             Iterable[Union[pyarrow.Field, tuple[str, pyarrow.DataType]]],
             dict[str, pyarrow.DataType],
         ]
-    ] = tuple()
+        | None
+    ) = tuple()
 
     def __post_init__(self):
         type_ = pd.ArrowDtype(pyarrow.struct(self.fields))
@@ -347,7 +350,9 @@ class ArrowStruct(ArrowDataType):
     @classmethod
     def from_parametrized_dtype(cls, pyarrow_dtype: pyarrow.StructType):
         return cls(
-            fields=[pyarrow_dtype.field(i) for i in range(pyarrow_dtype.num_fields)]  # type: ignore
+            fields=[
+                pyarrow_dtype.field(i) for i in range(pyarrow_dtype.num_fields)
+            ]  # type: ignore
         )
 
 
@@ -398,8 +403,8 @@ class ArrowDate64(ArrowDataType, dtypes.Date):
 class ArrowDuration(ArrowDataType):
     """Semantic representation of a :class:`pyarrow.duration`."""
 
-    type: Optional[pd.ArrowDtype] = dataclasses.field(default=None, init=False)
-    unit: Optional[str] = "ns"
+    type: pd.ArrowDtype | None = dataclasses.field(default=None, init=False)
+    unit: str | None = "ns"
 
     def __post_init__(self):
         type_ = pd.ArrowDtype(pyarrow.duration(self.unit))
@@ -415,8 +420,8 @@ class ArrowDuration(ArrowDataType):
 class ArrowTime32(ArrowDataType):
     """Semantic representation of a :class:`pyarrow.time32`."""
 
-    type: Optional[pd.ArrowDtype] = dataclasses.field(default=None, init=False)
-    unit: Optional[str] = "ms"
+    type: pd.ArrowDtype | None = dataclasses.field(default=None, init=False)
+    unit: str | None = "ms"
 
     def __post_init__(self):
         type_ = pd.ArrowDtype(pyarrow.time32(self.unit))
@@ -432,7 +437,7 @@ class ArrowTime32(ArrowDataType):
         else:
             return data_container.astype(
                 pd.ArrowDtype(pyarrow.int32())
-            ).astype(self.type)
+            ).astype(self.type)  # type: ignore[arg-type]
 
 
 @Engine.register_dtype(equivalents=[pyarrow.time64, pyarrow.Time64Type])
@@ -440,8 +445,8 @@ class ArrowTime32(ArrowDataType):
 class ArrowTime64(ArrowDataType):
     """Semantic representation of a :class:`pyarrow.time64`."""
 
-    type: Optional[pd.ArrowDtype] = dataclasses.field(default=None, init=False)
-    unit: Optional[str] = "ns"
+    type: pd.ArrowDtype | None = dataclasses.field(default=None, init=False)
+    unit: str | None = "ns"
 
     def __post_init__(self):
         type_ = pd.ArrowDtype(pyarrow.time64(self.unit))
@@ -457,7 +462,7 @@ class ArrowTime64(ArrowDataType):
         else:
             return data_container.astype(
                 pd.ArrowDtype(pyarrow.int64())
-            ).astype(self.type)
+            ).astype(self.type)  # type: ignore[arg-type]
 
 
 @Engine.register_dtype(equivalents=[pyarrow.map_, pyarrow.MapType])
@@ -465,9 +470,9 @@ class ArrowTime64(ArrowDataType):
 class ArrowMap(ArrowDataType):
     """Semantic representation of a :class:`pyarrow.map_`."""
 
-    type: Optional[pd.ArrowDtype] = dataclasses.field(default=None, init=False)
-    key_type: Optional[pyarrow.DataType] = pyarrow.int64()
-    item_type: Optional[pyarrow.DataType] = pyarrow.int64()
+    type: pd.ArrowDtype | None = dataclasses.field(default=None, init=False)
+    key_type: pyarrow.DataType | None = pyarrow.int64()
+    item_type: pyarrow.DataType | None = pyarrow.int64()
     keys_sorted: bool = False
 
     def __post_init__(self):
@@ -501,8 +506,8 @@ class ArrowMap(ArrowDataType):
 class ArrowBinary(ArrowDataType, dtypes.Binary):
     """Semantic representation of a :class:`pyarrow.binary`."""
 
-    type: Optional[pd.ArrowDtype] = dataclasses.field(default=None, init=False)
-    length: Optional[int] = -1
+    type: pd.ArrowDtype | None = dataclasses.field(default=None, init=False)
+    length: int | None = -1
 
     def __post_init__(self):
         type_ = pd.ArrowDtype(pyarrow.binary(self.length))

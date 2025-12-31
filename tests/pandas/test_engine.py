@@ -1,8 +1,8 @@
 """Tests Engine subclassing and registering DataTypes."""
 
 import re
-from typing import Any, Union
 from collections.abc import Generator
+from typing import Any, Union
 
 import pytest
 
@@ -32,7 +32,8 @@ def equivalents() -> list[Any]:
 @pytest.fixture
 def engine() -> Generator[Engine, None, None]:
     class FakeEngine(
-        metaclass=Engine, base_pandera_dtypes=BaseDataType  # type: ignore[call-arg]
+        metaclass=Engine,
+        base_pandera_dtypes=BaseDataType,  # type: ignore[call-arg]
     ):
         pass
 

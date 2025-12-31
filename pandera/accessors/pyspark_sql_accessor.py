@@ -1,15 +1,19 @@
 """Custom accessor functionality for PySpark.Sql. Register pyspark accessor for pandera schema metadata."""
 
+import logging
 import warnings
-from typing import Optional
-from packaging import version
 
 import pyspark
+from packaging import version
+
 from pandera.api.base.error_handler import ErrorHandler
 from pandera.api.pyspark.container import DataFrameSchema
 
 Schemas = DataFrameSchema  # type: ignore
 Errors = ErrorHandler  # type: ignore
+
+
+logger = logging.getLogger(__name__)
 
 
 class PanderaAccessor:
@@ -18,8 +22,8 @@ class PanderaAccessor:
     def __init__(self, pyspark_obj):
         """Initialize the pandera accessor."""
         self._pyspark_obj = pyspark_obj
-        self._schema: Optional[Schemas] = None
-        self._errors: Optional[Errors] = None
+        self._schema: Schemas | None = None
+        self._errors: Errors | None = None
 
     @staticmethod
     def check_schema_type(schema: Schemas):  # type: ignore
@@ -33,17 +37,17 @@ class PanderaAccessor:
         return self._pyspark_obj
 
     @property
-    def schema(self) -> Optional[Schemas]:  # type: ignore
+    def schema(self) -> Schemas | None:  # type: ignore
         """Access schema metadata."""
         return self._schema
 
     @property
-    def errors(self) -> Optional[Errors]:  # type: ignore
+    def errors(self) -> Errors | None:  # type: ignore
         """Access errors details."""
         return self._errors
 
     @errors.setter
-    def errors(self, value: Optional[Errors]):  # type: ignore
+    def errors(self, value: Errors | None):  # type: ignore
         """Set errors details."""
         self._errors = value
 
@@ -125,6 +129,13 @@ def register_connect_dataframe_accessor(name):
     """
 
     from pyspark.sql.connect.dataframe import DataFrame as psc_DataFrame
+
+    if hasattr(psc_DataFrame, name):
+        logger.info(
+            f"Accessor {name} already registered for "
+            "pyspark.sql.connect.dataframe.DataFrame",
+        )
+        return lambda x: None  # type: ignore
 
     return _register_accessor(name, psc_DataFrame)
 

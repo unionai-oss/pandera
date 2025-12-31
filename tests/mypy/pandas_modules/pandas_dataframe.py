@@ -24,7 +24,7 @@ class SchemaOut(pa.DataFrameModel):
 
 class AnotherSchema(pa.DataFrameModel):
     id: Series[int]
-    first_name: Optional[Series[str]]
+    first_name: Series[str] | None
 
 
 def fn(df: DataFrame[Schema]) -> DataFrame[SchemaOut]:

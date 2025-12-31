@@ -22,7 +22,6 @@ class Model(pa.DataFrameModel):
 
 
 def test_simple_forwardref():
-
     func(pd.DataFrame({"a": [1, 2, 3]}))
     with pytest.raises(pa.errors.SchemaError):
         func(pd.DataFrame({"a": [*"abc"]}))
@@ -70,7 +69,6 @@ def test_forwardref_in_df_model_with_custom_type():
 
 
 def test_forwardref_in_df_model_with_annotated_types():
-
     class ModelWithAnnotatedType(pa.DataFrameModel):
         a: int
         b: typing.Annotated[int, "foo"]
@@ -107,7 +105,6 @@ def test_forwardref_with_local_custom_types():
 
 
 def test_forwardref_with_pandera_dataframe_generic_initialization():
-
     def func(data) -> pa.typing.DataFrame[LocalModel]:
         return pa.typing.DataFrame[LocalModel](data)
 

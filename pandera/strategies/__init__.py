@@ -4,6 +4,7 @@ import warnings
 
 try:
     import pandas
+
     from pandera.strategies.pandas_strategies import *
 except ImportError:
     pass

@@ -1,7 +1,7 @@
 """Test pandas engine."""
 
 import datetime as dt
-from typing import Optional, Any
+from typing import Any, Optional
 
 import hypothesis
 import hypothesis.extra.pandas as pd_st
@@ -13,9 +13,9 @@ import pytest
 import pytz
 from hypothesis import given
 
-from pandera.pandas import Field, DataFrameModel, errors, check
 from pandera.engines import pandas_engine
 from pandera.errors import ParserError, SchemaError
+from pandera.pandas import DataFrameModel, Field, check, errors
 
 UNSUPPORTED_DTYPE_CLS: set[Any] = set()
 
@@ -217,7 +217,7 @@ def test_pandas_datetimetz_dtype(timezone_aware, data, timezone):
 def generate_test_cases_time_zone_agnostic() -> list[
     tuple[
         list[dt.datetime],
-        Optional[dt.tzinfo],
+        dt.tzinfo | None,
         bool,
         list[dt.datetime],
         bool,
@@ -515,9 +515,9 @@ def test_pandas_arrow_dtype_error(data, dtype):
         assert coerced_data.dtype == dtype.type
 
 
-def generate_test_cases_pandas_arrow_struct() -> (
-    list[tuple[pd.DataFrame, pd.DataFrame]]
-):
+def generate_test_cases_pandas_arrow_struct() -> list[
+    tuple[pd.DataFrame, pd.DataFrame]
+]:
     """
     Generate test parameter combinations for pandas arrow struct dtype.
 

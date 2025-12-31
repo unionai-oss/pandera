@@ -8,7 +8,7 @@ import polars as pl
 
 @lru_cache
 def register_polars_backends(
-    check_cls_fqn: Optional[str] = None,
+    check_cls_fqn: str | None = None,
 ):
     """Register polars backends.
 

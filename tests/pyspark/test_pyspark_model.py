@@ -307,22 +307,20 @@ def test_dataframe_schema_unique(spark_session, data, expectation, request):
     [
         "x",
         ["x", "y"],
-        ["x", ""],
     ],
     ids=[
         "wrong_column",
         "multiple_wrong_columns",
-        "multiple_wrong_columns_w_empty",
     ],
 )
 def test_dataframe_schema_unique_wrong_column(
     spark_session, unique_column_name, request
 ):
-    """Test uniqueness checks on pyspark dataframes."""
+    """Test uniqueness checks on pyspark dataframes with wrong column names."""
     spark = request.getfixturevalue(spark_session)
     df = spark.createDataFrame(([1, 2],), "a: int, b: int")
 
-    # Test `unique` configuration with a single, wrongly named column
+    # Test `unique` configuration with wrongly named columns
     class UniqueMultipleColumns(pa.DataFrameModel):
         """Simple DataFrameModel containing two columns."""
 
@@ -334,8 +332,12 @@ def test_dataframe_schema_unique_wrong_column(
 
             unique = unique_column_name
 
-    with pytest.raises(SchemaDefinitionError):
-        _ = UniqueMultipleColumns.validate(check_obj=df)
+    # Validation should collect errors about missing unique columns
+    df_out = UniqueMultipleColumns.validate(check_obj=df)
+    assert df_out.pandera.errors, (
+        "Expected validation errors for missing unique columns"
+    )
+    assert "DATA" in df_out.pandera.errors
 
 
 def test_dataframe_schema_strict(
@@ -429,9 +431,9 @@ def test_schema():
     class Schema(pa.DataFrameModel):
         """Simple DataFrameModel containing optional columns."""
 
-        a: Optional[str]
-        b: Optional[str] = pa.Field(eq="b")
-        c: Optional[str]  # test pandera.typing alias
+        a: str | None
+        b: str | None = pa.Field(eq="b")
+        c: str | None  # test pandera.typing alias
 
     return Schema
 
@@ -443,15 +445,15 @@ def test_optional_column(
     """Test that optional columns are not required."""
 
     schema = test_schema_optional_columns.to_schema()
-    assert not schema.columns[
-        "a"
-    ].required, "Optional column 'a' shouldn't be required"
-    assert not schema.columns[
-        "b"
-    ].required, "Optional column 'b' shouldn't be required"
-    assert not schema.columns[
-        "c"
-    ].required, "Optional column 'c' shouldn't be required"
+    assert not schema.columns["a"].required, (
+        "Optional column 'a' shouldn't be required"
+    )
+    assert not schema.columns["b"].required, (
+        "Optional column 'b' shouldn't be required"
+    )
+    assert not schema.columns["c"].required, (
+        "Optional column 'c' shouldn't be required"
+    )
 
 
 def test_validation_succeeds_with_missing_optional_column(
@@ -471,9 +473,9 @@ def test_validation_succeeds_with_missing_optional_column(
     df_out = test_schema_optional_columns.validate(check_obj=df)
 
     # `df_out.pandera.errors` should be empty if validation is successful.
-    assert (
-        df_out.pandera.errors == {}
-    ), "No error should be raised in case of a missing optional column."
+    assert df_out.pandera.errors == {}, (
+        "No error should be raised in case of a missing optional column."
+    )
 
 
 def test_invalid_field(

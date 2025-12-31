@@ -4,23 +4,22 @@ import functools
 import inspect
 import sys
 import types
+from collections.abc import Callable, Iterable
 from typing import (
     Any,
-    Callable,
     NoReturn,
     Optional,
     TypeVar,
     Union,
     cast,
+    get_type_hints,
     overload,
 )
-from collections.abc import Iterable
 
 from pydantic import validate_arguments
-from typing import get_type_hints
 
 from pandera import errors
-from pandera.api.base.error_handler import ErrorHandler
+from pandera.api.base.error_handler import ErrorHandler, get_error_category
 from pandera.api.dataframe.components import ComponentSchema
 from pandera.api.dataframe.container import DataFrameSchema
 from pandera.api.dataframe.model import DataFrameModel
@@ -149,11 +148,11 @@ def _parse_schema_error(
 
 def check_input(
     schema: Schemas,
-    obj_getter: Optional[InputGetter] = None,
-    head: Optional[int] = None,
-    tail: Optional[int] = None,
-    sample: Optional[int] = None,
-    random_state: Optional[int] = None,
+    obj_getter: InputGetter | None = None,
+    head: int | None = None,
+    tail: int | None = None,
+    sample: int | None = None,
+    random_state: int | None = None,
     lazy: bool = False,
     inplace: bool = False,
 ) -> Callable[[F], F]:
@@ -216,7 +215,6 @@ def check_input(
     """
 
     def decorator(wrapped):
-
         @functools.wraps(wrapped)
         def _wrapper(*args, **kwargs):
             """Check pandas DataFrame or Series before calling the function."""
@@ -290,11 +288,11 @@ def check_input(
 
 def check_output(
     schema: Schemas,
-    obj_getter: Optional[OutputGetter] = None,
-    head: Optional[int] = None,
-    tail: Optional[int] = None,
-    sample: Optional[int] = None,
-    random_state: Optional[int] = None,
+    obj_getter: OutputGetter | None = None,
+    head: int | None = None,
+    tail: int | None = None,
+    sample: int | None = None,
+    random_state: int | None = None,
     lazy: bool = False,
     inplace: bool = False,
 ) -> Callable[[F], F]:
@@ -403,7 +401,6 @@ def check_output(
         raise TypeError(f"obj_getter is unrecognized type: {type(obj_getter)}")
 
     def decorator(wrapped):
-
         @functools.wraps(wrapped)
         def _wrapper(*args, **kwargs):
             """Check pandas DataFrame or Series before calling the function."""
@@ -428,10 +425,10 @@ def check_output(
 
 
 def check_io(
-    head: Optional[int] = None,
-    tail: Optional[int] = None,
-    sample: Optional[int] = None,
-    random_state: Optional[int] = None,
+    head: int | None = None,
+    tail: int | None = None,
+    sample: int | None = None,
+    random_state: int | None = None,
     lazy: bool = False,
     inplace: bool = False,
     out: Union[
@@ -474,7 +471,6 @@ def check_io(
     check_args = (head, tail, sample, random_state, lazy, inplace)
 
     def decorator(wrapped):
-
         @functools.wraps(wrapped)
         def _wrapper(*args, **kwargs):
             """Check pandas DataFrame or Series before calling the function.
@@ -503,9 +499,10 @@ def check_io(
 
             wrapped_fn = wrapped
             for input_getter, input_schema in inputs.items():
-
                 wrapped_fn = check_input(
-                    input_schema, input_getter, *check_args  # type: ignore
+                    input_schema,
+                    input_getter,
+                    *check_args,  # type: ignore
                 )(wrapped_fn)
 
             for out_getter, out_schema in out_schemas:  # type: ignore
@@ -525,10 +522,10 @@ def check_types(
     wrapped: F,
     *,
     with_pydantic: bool = False,
-    head: Optional[int] = None,
-    tail: Optional[int] = None,
-    sample: Optional[int] = None,
-    random_state: Optional[int] = None,
+    head: int | None = None,
+    tail: int | None = None,
+    sample: int | None = None,
+    random_state: int | None = None,
     lazy: bool = False,
     inplace: bool = False,
 ) -> F: ...  # pragma: no cover
@@ -539,10 +536,10 @@ def check_types(
     wrapped: None = None,
     *,
     with_pydantic: bool = False,
-    head: Optional[int] = None,
-    tail: Optional[int] = None,
-    sample: Optional[int] = None,
-    random_state: Optional[int] = None,
+    head: int | None = None,
+    tail: int | None = None,
+    sample: int | None = None,
+    random_state: int | None = None,
     lazy: bool = False,
     inplace: bool = False,
 ) -> Callable[[F], F]: ...  # pragma: no cover
@@ -552,10 +549,10 @@ def check_types(
     wrapped=None,
     *,
     with_pydantic: bool = False,
-    head: Optional[int] = None,
-    tail: Optional[int] = None,
-    sample: Optional[int] = None,
-    random_state: Optional[int] = None,
+    head: int | None = None,
+    tail: int | None = None,
+    sample: int | None = None,
+    random_state: int | None = None,
     lazy: bool = False,
     inplace: bool = False,
 ) -> Callable:
@@ -613,7 +610,6 @@ def check_types(
         ).items():
             annotation_info = AnnotationInfo(annotation)
             if not annotation_info.is_generic_df:
-
                 if annotation_info.origin == Union:
                     annotation_model_pairs = []
                     for annot in annotation_info.args:  # type: ignore[union-attr]
@@ -695,7 +691,7 @@ def check_types(
                         )
                     except errors.SchemaError as e:
                         error_handler.collect_error(
-                            validation_type(
+                            get_error_category(
                                 errors.SchemaErrorReason.INVALID_TYPE
                             ),
                             errors.SchemaErrorReason.INVALID_TYPE,

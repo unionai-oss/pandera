@@ -81,7 +81,7 @@ def _create_schema(index="single"):
                 pandera.String,
                 checks=[
                     pandera.Check.isin(["foo", "bar", "x", "xy"]),
-                    pandera.Check.str_length(1, 3),
+                    pandera.Check.str_length(min_value=1, max_value=3),
                 ],
             ),
             "datetime_column": pandera.Column(
@@ -105,7 +105,7 @@ def _create_schema(index="single"):
                 coerce=True,
                 required=False,
                 regex=True,
-                checks=[pandera.Check.str_length(1, 3)],
+                checks=[pandera.Check.str_length(3)],
             ),
             "notype_column": pandera.Column(
                 checks=pandera.Check.isin(["foo", "bar", "x", "xy"]),
@@ -248,8 +248,7 @@ columns:
     dtype: str
     nullable: true
     checks:
-    - min_value: 1
-      max_value: 3
+    - value: 3
       options:
         check_name: str_length
         raise_warning: false
@@ -432,8 +431,7 @@ columns:
     nullable: true
     checks:
       str_length:
-        min_value: 1
-        max_value: 3
+        value: 3
         options:
           raise_warning: false
           ignore_na: true
@@ -499,7 +497,7 @@ def _create_schema_null_index():
                 pandera.String,
                 checks=[
                     pandera.Check.isin(["foo", "bar", "x", "xy"]),
-                    pandera.Check.str_length(1, 3),
+                    pandera.Check.str_length(min_value=1, max_value=3),
                 ],
             ),
         },
@@ -783,8 +781,7 @@ columns:
         check_name: isin
         raise_warning: false
         ignore_na: true
-    - min_value: 1
-      max_value: 3
+    - value: 3
       options:
         check_name: str_length
         raise_warning: false
@@ -967,8 +964,7 @@ columns:
           raise_warning: false
           ignore_na: true
       str_length:
-        min_value: 1
-        max_value: 3
+        value: 3
         options:
           raise_warning: false
           ignore_na: true
@@ -1112,7 +1108,7 @@ def _create_schema_no_descr_no_title(index="single"):
                 pandera.String,
                 checks=[
                     pandera.Check.isin(["foo", "bar", "x", "xy"]),
-                    pandera.Check.str_length(1, 3),
+                    pandera.Check.str_length(value=3),
                 ],
             ),
             "datetime_column": pandera.Column(
@@ -1136,7 +1132,7 @@ def _create_schema_no_descr_no_title(index="single"):
                 coerce=True,
                 required=False,
                 regex=True,
-                checks=[pandera.Check.str_length(1, 3)],
+                checks=[pandera.Check.str_length(min_value=1, max_value=3)],
             ),
             "notype_column": pandera.Column(
                 checks=pandera.Check.isin(["foo", "bar", "x", "xy"]),
@@ -1485,14 +1481,14 @@ def test_to_yaml_registered_dataframe_check(_):
         nonlocal ncols_gt_called
         ncols_gt_called = True
         assert isinstance(column_count, int), "column_count must be integral"
-        assert isinstance(
-            pandas_obj, pd.DataFrame
-        ), "ncols_gt should only be applied to DataFrame"
+        assert isinstance(pandas_obj, pd.DataFrame), (
+            "ncols_gt should only be applied to DataFrame"
+        )
         return len(pandas_obj.columns) > column_count
 
-    assert (
-        len(pandera.Check.REGISTERED_CUSTOM_CHECKS) == 1
-    ), "custom check is registered"
+    assert len(pandera.Check.REGISTERED_CUSTOM_CHECKS) == 1, (
+        "custom check is registered"
+    )
 
     schema = pandera.DataFrameSchema(
         {
@@ -1625,6 +1621,7 @@ fields:
       maxLength: 80
       minLength: 3
     name: string_col
+    type: string
   - constraints:
       pattern: \\d{3}[A-Z]
     name: string_col_2
@@ -1642,12 +1639,12 @@ fields:
       required: true
     name: float_col
     type: number
-  - constraints:
-    name: float_col_2
+  - name: float_col_2
     type: number
   - constraints:
       minimum: "20201231"
     name: date_col
+    type: date
 primaryKey: integer_col
 """
 )
@@ -1906,9 +1903,9 @@ def test_frictionless_schema_parses_correctly(frictionless_schema):
 
     assert str(schema.to_yaml()).strip() == YAML_FROM_FRICTIONLESS.strip()
 
-    assert isinstance(
-        schema, DataFrameSchema
-    ), "schema object not loaded successfully"
+    assert isinstance(schema, DataFrameSchema), (
+        "schema object not loaded successfully"
+    )
 
     df = schema.validate(VALID_FRICTIONLESS_DF)
     assert dict(df.dtypes) == {
@@ -1991,3 +1988,167 @@ def test_frictionless_schema_primary_key(frictionless_schema):
         assert schema.unique == frictionless_schema["primaryKey"]
         for key in frictionless_schema["primaryKey"]:
             assert not schema.columns[key].unique
+
+
+@pytest.mark.parametrize(
+    "frictionless_schema",
+    [
+        {
+            "fields": [
+                {
+                    "name": "street_id",
+                    "type": "string",
+                    "description": "Id of the street",
+                    "title": "street identifier",
+                    "example": "45566_4455_4",  # example does not exists in pandera so no need to check it
+                },
+                {
+                    "name": "street_type",
+                    "type": "string",
+                    "constraints": {
+                        "enum": ["highway", "motorway", "secondary"]
+                    },
+                },
+                {
+                    "name": "timestamp",
+                    "type": "datetime",
+                    "format": "%Y-%m-%d_%H:%M",
+                },
+                {
+                    "name": "count",
+                    "type": "integer",
+                },
+            ],
+            "primaryKey": ["street_id", "timestamp"],
+        }
+    ],
+)
+def test_frictionless_schema_with_description_and_title(
+    frictionless_schema: dict[str, str],
+):
+    schema = pandera.io.from_frictionless_schema(frictionless_schema)
+    assert schema.columns["street_id"].description == "Id of the street"
+    assert schema.columns["street_id"].title == "street identifier"
+
+
+def test_enum_isin_json_serialization():
+    """Test that StrEnum and Enum can be used with isin and serialized to JSON."""
+    import json
+    import sys
+
+    # StrEnum was introduced in Python 3.11
+    if sys.version_info >= (3, 11):
+        from enum import StrEnum
+
+        class Status(StrEnum):
+            ACTIVE = "active"
+            INACTIVE = "inactive"
+            PENDING = "pending"
+
+        # Test with StrEnum
+        schema = pandera.DataFrameSchema(
+            {"status": pandera.Column(str, checks=pandera.Check.isin(Status))}
+        )
+
+        # Should not raise TypeError
+        json_output = schema.to_json()
+
+        # Verify the enum values are properly serialized
+        schema_dict = json.loads(json_output)
+        assert "columns" in schema_dict
+        assert "status" in schema_dict["columns"]
+        status_checks = schema_dict["columns"]["status"]["checks"]
+        assert len(status_checks) > 0
+
+        # Find the isin check
+        isin_check = None
+        for check in status_checks:
+            if isinstance(check, dict) and "options" in check:
+                if check["options"]["check_name"] == "isin":
+                    isin_check = check
+                    break
+
+        assert isin_check is not None
+        # The enum should be serialized as a list of values
+        assert "value" in isin_check
+        assert set(isin_check["value"]) == {"active", "inactive", "pending"}
+
+    # Test with regular Enum (available in all Python versions)
+    from enum import Enum
+
+    class Priority(Enum):
+        HIGH = "high"
+        MEDIUM = "medium"
+        LOW = "low"
+
+    schema = pandera.DataFrameSchema(
+        {"priority": pandera.Column(str, checks=pandera.Check.isin(Priority))}
+    )
+
+    # Should not raise TypeError
+    json_output = schema.to_json()
+
+    # Verify the enum values are properly serialized
+    schema_dict = json.loads(json_output)
+    assert "columns" in schema_dict
+    assert "priority" in schema_dict["columns"]
+    priority_checks = schema_dict["columns"]["priority"]["checks"]
+    assert len(priority_checks) > 0
+
+    # Find the isin check
+    isin_check = None
+    for check in priority_checks:
+        if isinstance(check, dict) and "options" in check:
+            if check["options"]["check_name"] == "isin":
+                isin_check = check
+                break
+
+    assert isin_check is not None
+    # The enum should be serialized as a list of values
+    assert "value" in isin_check
+    assert set(isin_check["value"]) == {"high", "medium", "low"}
+
+
+def test_enum_isin_dataframe_model_json_serialization():
+    """Test that StrEnum can be used in DataFrameModel with isin and serialized to JSON."""
+    import json
+    import sys
+
+    # StrEnum was introduced in Python 3.11
+    if sys.version_info >= (3, 11):
+        from enum import StrEnum
+
+        from pandera.typing import Series
+
+        class Color(StrEnum):
+            RED = "red"
+            GREEN = "green"
+            BLUE = "blue"
+
+        # Create a schema using the StrEnum in isin parameter
+        class ColorTable(pandera.DataFrameModel):
+            color: Series[str] = pandera.Field(isin=Color)
+
+        # Attempt to generate JSON schema
+        schema = ColorTable.to_schema()
+        json_output = schema.to_json()  # Should not raise TypeError
+
+        # Verify the enum values are in the JSON
+        schema_dict = json.loads(json_output)
+        assert "columns" in schema_dict
+        assert "color" in schema_dict["columns"]
+        color_checks = schema_dict["columns"]["color"]["checks"]
+        assert len(color_checks) > 0
+
+        # Find the isin check
+        isin_check = None
+        for check in color_checks:
+            if isinstance(check, dict) and "options" in check:
+                if check["options"]["check_name"] == "isin":
+                    isin_check = check
+                    break
+
+        assert isin_check is not None
+        # The enum should be serialized as a list of values
+        assert "value" in isin_check
+        assert set(isin_check["value"]) == {"red", "green", "blue"}

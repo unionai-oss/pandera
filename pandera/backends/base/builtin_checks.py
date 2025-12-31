@@ -8,8 +8,8 @@ specific implementations based on the data object type, e.g.
 """
 
 import re
-from typing import Any, Optional, TypeVar, Union
 from collections.abc import Iterable
+from typing import Any, Optional, TypeVar, Union
 
 from pandera.api.checks import Check
 
@@ -90,8 +90,10 @@ def str_endswith(data: Any, string: str) -> Any:
 @Check.register_builtin_check_fn
 def str_length(
     data: Any,
-    min_value: Optional[int] = None,
-    max_value: Optional[int] = None,
+    value: int | None = None,
+    *,
+    min_value: int | None = None,
+    max_value: int | None = None,
 ) -> Any:
     raise NotImplementedError
 

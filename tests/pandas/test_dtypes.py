@@ -3,7 +3,6 @@ coercion examples."""
 
 # pylint doesn't know about __init__ generated with dataclass
 
-
 import dataclasses
 import datetime
 import inspect
@@ -670,8 +669,7 @@ def test_is_bool(bool_dtype: Any, expected: bool):
 
 @pytest.mark.parametrize(
     "string_dtype, expected",
-    [(dtype, True) for dtype in string_dtypes]
-    + [("int", False)],  # type:ignore
+    [(dtype, True) for dtype in string_dtypes] + [("int", False)],  # type:ignore
 )
 def test_is_string(string_dtype: Any, expected: bool):
     """Test is_string."""

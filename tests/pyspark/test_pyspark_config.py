@@ -173,13 +173,7 @@ class TestPanderaConfig:
                     {
                         "check": "str_startswith('B')",
                         "column": "product",
-                        "error": "column "
-                        "'product' "
-                        "with type "
-                        f"{str(T.StringType())} "
-                        "failed "
-                        "validation "
-                        "str_startswith('B')",
+                        "error": "<Schema Column(name=product, type=DataType(StringType()))> failed validation str_startswith('B')",
                         "schema": None,
                     }
                 ]
@@ -213,13 +207,7 @@ class TestPanderaConfig:
                     {
                         "check": "str_startswith('B')",
                         "column": "product",
-                        "error": "column "
-                        "'product' "
-                        "with type "
-                        f"{str(T.StringType())} "
-                        "failed "
-                        "validation "
-                        "str_startswith('B')",
+                        "error": "<Schema Column(name=product, type=DataType(StringType()))> failed validation str_startswith('B')",
                         "schema": "TestSchema",
                     }
                 ]
@@ -269,13 +257,7 @@ class TestPanderaConfig:
                     {
                         "check": "str_startswith('B')",
                         "column": "product",
-                        "error": "column "
-                        "'product' "
-                        "with type "
-                        f"{str(T.StringType())} "
-                        "failed "
-                        "validation "
-                        "str_startswith('B')",
+                        "error": "<Schema Column(name=product, type=DataType(StringType()))> failed validation str_startswith('B')",
                         "schema": None,
                     }
                 ]
@@ -285,13 +267,7 @@ class TestPanderaConfig:
                     {
                         "check": "column_in_dataframe",
                         "column": None,
-                        "error": "column "
-                        "'price_val' "
-                        "not "
-                        "in "
-                        "dataframe "
-                        "Row(product='Bread', "
-                        "price=9)",
+                        "error": "column 'price_val' not in dataframe Row(product='Bread', price=9)",
                         "schema": None,
                     }
                 ]
@@ -325,13 +301,7 @@ class TestPanderaConfig:
                     {
                         "check": "str_startswith('B')",
                         "column": "product",
-                        "error": "column "
-                        "'product' "
-                        "with type "
-                        f"{str(T.StringType())} "
-                        "failed "
-                        "validation "
-                        "str_startswith('B')",
+                        "error": "<Schema Column(name=product, type=DataType(StringType()))> failed validation str_startswith('B')",
                         "schema": "TestSchema",
                     }
                 ]

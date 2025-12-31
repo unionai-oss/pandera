@@ -18,8 +18,40 @@ class ErrorCategory(Enum):
     DTYPE_COERCION = "dtype-coercion-failures"
 
 
+ERROR_CATEGORY_MAP = {
+    SchemaErrorReason.INVALID_TYPE: ErrorCategory.DATA,
+    SchemaErrorReason.DATATYPE_COERCION: ErrorCategory.DATA,
+    SchemaErrorReason.COLUMN_NOT_IN_SCHEMA: ErrorCategory.SCHEMA,
+    SchemaErrorReason.COLUMN_NOT_ORDERED: ErrorCategory.SCHEMA,
+    SchemaErrorReason.DUPLICATE_COLUMN_LABELS: ErrorCategory.SCHEMA,
+    SchemaErrorReason.COLUMN_NOT_IN_DATAFRAME: ErrorCategory.SCHEMA,
+    SchemaErrorReason.SCHEMA_COMPONENT_CHECK: ErrorCategory.SCHEMA,
+    SchemaErrorReason.DATAFRAME_CHECK: ErrorCategory.DATA,
+    SchemaErrorReason.CHECK_ERROR: ErrorCategory.DATA,
+    SchemaErrorReason.DUPLICATES: ErrorCategory.DATA,
+    SchemaErrorReason.WRONG_FIELD_NAME: ErrorCategory.SCHEMA,
+    SchemaErrorReason.SERIES_CONTAINS_NULLS: ErrorCategory.SCHEMA,
+    SchemaErrorReason.SERIES_CONTAINS_DUPLICATES: ErrorCategory.DATA,
+    SchemaErrorReason.WRONG_DATATYPE: ErrorCategory.SCHEMA,
+    SchemaErrorReason.NO_ERROR: ErrorCategory.SCHEMA,
+    SchemaErrorReason.ADD_MISSING_COLUMN_NO_DEFAULT: ErrorCategory.DATA,
+    SchemaErrorReason.INVALID_COLUMN_NAME: ErrorCategory.SCHEMA,
+    SchemaErrorReason.MISMATCH_INDEX: ErrorCategory.DATA,
+    SchemaErrorReason.PARSER_ERROR: ErrorCategory.DATA,
+}
+
+
+def get_error_category(reason_code) -> ErrorCategory:
+    """Get the error category for a reason code.
+
+    :param reason_code: schema error reason enum
+    :returns ErrorCategory: error category enum
+    """
+    return ERROR_CATEGORY_MAP[reason_code]
+
+
 class ErrorHandler:
-    """Handler for Schema & Data level errors during validation."""
+    """Handler for schema- and data-level errors during validation."""
 
     def __init__(self, lazy: bool = True) -> None:
         """Initialize ErrorHandler.
@@ -37,10 +69,22 @@ class ErrorHandler:
         """Whether or not the schema error handler raises errors immediately."""
         return self._lazy
 
+    @staticmethod
+    def _count_failure_cases(failure_cases: Any) -> int:
+        # Failure cases can be a dataframe-like object or a scalar value. Try
+        # getting the number of elements in failure cases or set to one.
+        if isinstance(failure_cases, str):  # Avoid returning str length
+            return 1
+
+        try:
+            return len(failure_cases)
+        except TypeError:
+            return 0 if failure_cases is None else 1
+
     def collect_error(
         self,
         error_type: ErrorCategory,
-        reason_code: Optional[SchemaErrorReason],
+        reason_code: SchemaErrorReason | None,
         schema_error: SchemaError,
         original_exc: Union[BaseException, None] = None,
     ):
@@ -63,15 +107,11 @@ class ErrorHandler:
 
         self._schema_errors.append(schema_error)
 
-        # Failure cases can be a dataframe-like object or a scalar value. Try
-        # getting the number of elements in failure cases column or set to one.
-        try:
-            failure_cases_count = len(schema_error.failure_cases)
-        except TypeError:
-            if schema_error.failure_cases is None:
-                failure_cases_count = 0
-            else:
-                failure_cases_count = 1
+        failure_cases_count = (
+            0
+            if schema_error.failure_cases is None
+            else self._count_failure_cases(schema_error.failure_cases)
+        )
 
         self._collected_errors.append(
             {
@@ -97,7 +137,7 @@ class ErrorHandler:
         """
         for schema_error in schema_errors:
             self.collect_error(
-                validation_type(schema_error.reason_code),
+                get_error_category(schema_error.reason_code),
                 schema_error.reason_code,
                 schema_error,
                 original_exc or schema_error,

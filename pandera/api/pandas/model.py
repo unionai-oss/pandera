@@ -18,10 +18,10 @@ from pandera.api.parsers import Parser
 from pandera.engines.pandas_engine import Engine
 from pandera.errors import SchemaInitError
 from pandera.typing import (
-    get_index_types,
-    get_series_types,
     AnnotationInfo,
     DataFrame,
+    get_index_types,
+    get_series_types,
 )
 from pandera.utils import docstring_substitution
 
@@ -74,7 +74,7 @@ class DataFrameModel(_DataFrameModel[pd.DataFrame, DataFrameSchema]):
         **multiindex_kwargs: Any,
     ) -> tuple[
         dict[str, Column],
-        Optional[Union[Index, MultiIndex]],
+        Union[Index, MultiIndex] | None,
     ]:
         index_count = sum(
             annotation.origin in get_index_types()
@@ -124,7 +124,7 @@ class DataFrameModel(_DataFrameModel[pd.DataFrame, DataFrameSchema]):
                     Engine.dtype(annotation.raw_annotation)
                     dtype = annotation.raw_annotation
                     use_raw_annotation = True
-                except TypeError:
+                except (TypeError, ValueError):
                     dtype = annotation.arg
 
             dtype = None if dtype is Any else dtype
@@ -165,8 +165,7 @@ class DataFrameModel(_DataFrameModel[pd.DataFrame, DataFrameSchema]):
 
                 if check_name is False or (
                     # default single index
-                    check_name is None
-                    and index_count == 1
+                    check_name is None and index_count == 1
                 ):
                     field_name = None  # type:ignore
 
@@ -194,10 +193,10 @@ class DataFrameModel(_DataFrameModel[pd.DataFrame, DataFrameSchema]):
     def validate(
         cls: type[Self],
         check_obj: pd.DataFrame,
-        head: Optional[int] = None,
-        tail: Optional[int] = None,
-        sample: Optional[int] = None,
-        random_state: Optional[int] = None,
+        head: int | None = None,
+        tail: int | None = None,
+        sample: int | None = None,
+        random_state: int | None = None,
         lazy: bool = False,
         inplace: bool = False,
     ) -> DataFrame[Self]:
@@ -253,14 +252,26 @@ class DataFrameModel(_DataFrameModel[pd.DataFrame, DataFrameSchema]):
         """Create an empty DataFrame with the schema of this model."""
         schema = copy.deepcopy(cls.to_schema())
         schema.coerce = True
-        empty_df = schema.coerce_dtype(pd.DataFrame(columns=[*schema.columns]))
+
+        if isinstance(schema.index, MultiIndex):
+            index = pd.MultiIndex.from_arrays(
+                [pd.Index([], name=idx.name) for idx in schema.index.indexes]
+            )
+        elif isinstance(schema.index, Index):
+            index = pd.Index([], name=schema.index.name)
+        else:
+            index = None
+
+        empty_df = schema.coerce_dtype(
+            pd.DataFrame(columns=[*schema.columns], index=index)
+        )
         return DataFrame[Self](empty_df)
 
 
 def _build_schema_index(
     indices: list[Index], **multiindex_kwargs: Any
-) -> Optional[SchemaIndex]:
-    index: Optional[SchemaIndex] = None
+) -> SchemaIndex | None:
+    index: SchemaIndex | None = None
     if indices:
         if len(indices) == 1:
             index = indices[0]

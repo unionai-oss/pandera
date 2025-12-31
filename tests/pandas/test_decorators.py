@@ -3,11 +3,13 @@
 import asyncio
 import pickle
 import typing
+from contextlib import nullcontext
 
 import numpy as np
 import pandas as pd
 import pytest
 
+from pandera.engines.pandas_engine import Engine
 from pandera.pandas import (
     Check,
     Column,
@@ -24,7 +26,6 @@ from pandera.pandas import (
     check_types,
     errors,
 )
-from pandera.engines.pandas_engine import Engine
 from pandera.typing import DataFrame, Index, Series
 
 
@@ -536,42 +537,67 @@ class OnlyOnesSchema(DataFrameModel):
     a: Series[int] = Field(eq=1)
 
 
-def test_check_types_arguments() -> None:
+@pytest.mark.parametrize(
+    ("check_types_args", "df_return", "expected"),
+    [
+        pytest.param(
+            dict(),
+            pd.DataFrame({"a": [0, 0]}),
+            nullcontext(),
+            id="validate entire df (2 rows)",
+        ),
+        pytest.param(
+            dict(head=1),
+            pd.DataFrame({"a": [0, 1]}),
+            nullcontext(),
+            id="validate header (row 1) - while row 2 is bad",
+        ),
+        pytest.param(
+            dict(tail=1),
+            pd.DataFrame({"a": [1, 0]}),
+            nullcontext(),
+            id="validate tail, (row 2) - while row 1 is bad",
+        ),
+        pytest.param(
+            dict(lazy=True),
+            pd.DataFrame({"a": [0, 0]}),
+            nullcontext(),
+            id="validate entire df (2 rows) - lazy mode ",
+        ),
+        pytest.param(
+            dict(lazy=True),
+            pd.DataFrame({"a": [1, 1]}),
+            pytest.raises(
+                errors.SchemaErrors,
+                match=r"DATA",  # error msg is specific for lazy-
+            ),
+            id="1's not allowed in schema - lazy mode",
+        ),
+        pytest.param(
+            dict(),
+            pd.DataFrame({"a": [1, 1]}),
+            pytest.raises(
+                errors.SchemaError,
+                match=r"failed element-wise validator",  # error msg is specific for regular-mode
+            ),
+            id="1's not allowed in schema - regular mode",
+        ),
+    ],
+)
+def test_check_types_arguments(
+    check_types_args: dict, df_return: pd.DataFrame, expected
+) -> None:
     """Test that check_types forwards key-words arguments to validate."""
     df = pd.DataFrame({"a": [0, 0]})
 
-    @check_types()
-    def transform_empty_parenthesis(
+    @check_types(**check_types_args)
+    def transform_with_checks(
         df: DataFrame[OnlyZeroesSchema],
     ) -> DataFrame[OnlyZeroesSchema]:  # pylint: disable=unused-argument
-        return df
+        return df_return
 
-    transform_empty_parenthesis(df)  # type: ignore
-
-    @check_types(head=1)
-    def transform_head(
-        df: DataFrame[OnlyZeroesSchema],  # pylint: disable=unused-argument
-    ) -> DataFrame[OnlyZeroesSchema]:
-        return pd.DataFrame({"a": [0, 0]})  # type: ignore
-
-    transform_head(df)  # type: ignore
-
-    @check_types(tail=1)
-    def transform_tail(
-        df: DataFrame[OnlyZeroesSchema],  # pylint: disable=unused-argument
-    ) -> DataFrame[OnlyZeroesSchema]:
-        return pd.DataFrame({"a": [1, 0]})  # type: ignore
-
-    transform_tail(df)  # type: ignore
-
-    @check_types(lazy=True)
-    def transform_lazy(
-        df: DataFrame[OnlyZeroesSchema],  # pylint: disable=unused-argument
-    ) -> DataFrame[OnlyZeroesSchema]:
-        return pd.DataFrame({"a": [1, 1]})  # type: ignore
-
-    with pytest.raises(errors.SchemaErrors, match=r"DATA"):
-        transform_lazy(df)  # type: ignore
+    with expected:
+        transform_with_checks(df)  # type: ignore
 
 
 def test_check_types_unchanged() -> None:
@@ -700,7 +726,7 @@ def test_check_types_optional_out() -> None:
     @check_types
     def optional_derived_out(
         df: DataFrame[InSchema],  # pylint: disable=unused-argument
-    ) -> typing.Optional[DataFrame[DerivedOutSchema]]:
+    ) -> DataFrame[DerivedOutSchema] | None:
         return None
 
     df = pd.DataFrame({"a": [1]}, index=["1"])
@@ -709,7 +735,7 @@ def test_check_types_optional_out() -> None:
     @check_types
     def optional_out(
         df: DataFrame[InSchema],  # pylint: disable=unused-argument
-    ) -> typing.Optional[DataFrame[OutSchema]]:
+    ) -> DataFrame[OutSchema] | None:
         return None
 
     df = pd.DataFrame({"a": [1]}, index=["1"])
@@ -722,7 +748,7 @@ def test_check_types_optional_in() -> None:
     @check_types
     def optional_in(
         # pylint: disable=unused-argument
-        df: typing.Optional[DataFrame[InSchema]],
+        df: DataFrame[InSchema] | None,
     ) -> None:
         return None
 
@@ -738,8 +764,8 @@ def test_check_types_optional_in_out() -> None:
     @check_types
     def transform_derived(
         # pylint: disable=unused-argument
-        df: typing.Optional[DataFrame[InSchema]],
-    ) -> typing.Optional[DataFrame[DerivedOutSchema]]:
+        df: DataFrame[InSchema] | None,
+    ) -> DataFrame[DerivedOutSchema] | None:
         return None
 
     assert transform_derived(None) is None
@@ -747,11 +773,44 @@ def test_check_types_optional_in_out() -> None:
     @check_types
     def transform(
         # pylint: disable=unused-argument
-        df: typing.Optional[DataFrame[InSchema]],
-    ) -> typing.Optional[DataFrame[OutSchema]]:
+        df: DataFrame[InSchema] | None,
+    ) -> DataFrame[OutSchema] | None:
         return None
 
     assert transform(None) is None
+
+
+@pytest.mark.parametrize(
+    "callable_annotation",
+    [
+        pytest.param(typing.Callable[[None], None], id="no args, no return"),
+        pytest.param(typing.Callable[[None], int], id="no args, returns int"),
+        pytest.param(
+            typing.Callable[..., int], id="no info on args, returns int"
+        ),
+        pytest.param(
+            typing.Callable[..., list[int]],
+            id="no info on args, returns list of int",
+        ),
+        pytest.param(
+            typing.Callable[[typing.Any], int],
+            id="includes info on callable args",
+        ),
+    ],
+)
+def test_check_types_callables(callable_annotation: typing.Callable) -> None:
+    """
+    Ensures `check_types` validates a dataframe, while passing in an additional callable argument
+    """
+
+    class MySchema1(DataFrameModel):
+        a: int
+
+    @check_types
+    def some_transformation(df: MySchema1, f: callable_annotation):  # type: ignore[valid-type]
+        pass
+
+    _ = some_transformation(pd.DataFrame({"a": [1, 2]}), lambda x: 1)
 
 
 def test_check_types_coerce() -> None:
@@ -1019,7 +1078,7 @@ def test_check_types_star_kwargs() -> None:
     @check_types
     def get_star_kwargs_keys_dataframe(
         # pylint: disable=unused-argument
-        kwarg1: typing.Optional[DataFrame[InSchema]] = None,
+        kwarg1: DataFrame[InSchema] | None = None,
         **kwargs: DataFrame[InSchema],
     ) -> list[str]:
         return list(kwargs.keys())
@@ -1088,6 +1147,15 @@ def test_check_types_star_args_kwargs() -> None:
 
 
 def test_coroutines() -> None:
+    """Test coroutine decorated functions with a running event loop."""
+
+    # Get the current event loop or create a new one if not present (for Python 3.10+).
+    try:
+        loop = asyncio.get_event_loop()
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+
     # pylint: disable=missing-class-docstring,too-few-public-methods,missing-function-docstring
     class Schema(DataFrameModel):
         col1: Series[int]

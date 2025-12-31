@@ -3,11 +3,12 @@
 import copy
 import traceback
 import warnings
-from typing import Any, Callable, Optional
+from collections.abc import Callable
+from typing import Any, Optional
 
 import polars as pl
 
-from pandera.api.base.error_handler import ErrorHandler
+from pandera.api.base.error_handler import ErrorHandler, get_error_category
 from pandera.api.polars.container import DataFrameSchema
 from pandera.api.polars.types import PolarsData, PolarsFrame
 from pandera.api.polars.utils import get_lazyframe_column_names
@@ -40,16 +41,15 @@ def _to_frame_kind(lf: pl.LazyFrame, kind: type[PolarsFrame]) -> PolarsFrame:
 
 
 class DataFrameSchemaBackend(PolarsSchemaBackend):
-
     def validate(
         self,
         check_obj: PolarsFrame,
         schema: DataFrameSchema,
         *,
-        head: Optional[int] = None,
-        tail: Optional[int] = None,
-        sample: Optional[int] = None,
-        random_state: Optional[int] = None,
+        head: int | None = None,
+        tail: int | None = None,
+        sample: int | None = None,
+        random_state: int | None = None,
         lazy: bool = False,
         inplace: bool = False,
     ) -> PolarsFrame:
@@ -80,7 +80,7 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
                 check_lf = parser(check_lf, *args)
             except SchemaError as exc:
                 error_handler.collect_error(
-                    validation_type(exc.reason_code),
+                    get_error_category(exc.reason_code),
                     exc.reason_code,
                     exc,
                 )
@@ -137,7 +137,7 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
                         reason_code=result.reason_code,
                     )
                 error_handler.collect_error(
-                    validation_type(result.reason_code),
+                    get_error_category(result.reason_code),
                     result.reason_code,
                     error,
                     original_exc=result.original_exc,
@@ -176,7 +176,7 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
             except Exception as err:
                 # catch other exceptions that may occur when executing the check
                 err_msg = f'"{err.args[0]}"' if err.args else ""
-                err_str = f"{err.__class__.__name__}({ err_msg})"
+                err_str = f"{err.__class__.__name__}({err_msg})"
                 msg = (
                     f"Error while executing check function: {err_str}\n"
                     + traceback.format_exc()
@@ -295,7 +295,10 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
             if (
                 col.required  # type: ignore
                 or col_name in check_obj
-                or col.selector in column_info.regex_match_patterns
+                or (
+                    column_info.regex_match_patterns is not None
+                    and col.selector in column_info.regex_match_patterns
+                )
             ) and col_name not in column_info.absent_column_names:
                 col = copy.deepcopy(col)
                 if schema.dtype is not None:
@@ -434,13 +437,15 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
         except SchemaErrors as err:
             for schema_error in err.schema_errors:
                 error_handler.collect_error(
-                    validation_type(SchemaErrorReason.SCHEMA_COMPONENT_CHECK),
+                    get_error_category(
+                        SchemaErrorReason.SCHEMA_COMPONENT_CHECK
+                    ),
                     SchemaErrorReason.SCHEMA_COMPONENT_CHECK,
                     schema_error,
                 )
         except SchemaError as err:
             error_handler.collect_error(
-                validation_type(SchemaErrorReason.SCHEMA_COMPONENT_CHECK),
+                get_error_category(SchemaErrorReason.SCHEMA_COMPONENT_CHECK),
                 SchemaErrorReason.SCHEMA_COMPONENT_CHECK,
                 err,
             )
@@ -502,7 +507,7 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
                         )
         except ParserError as exc:
             error_handler.collect_error(
-                validation_type(SchemaErrorReason.DATATYPE_COERCION),
+                get_error_category(SchemaErrorReason.DATATYPE_COERCION),
                 SchemaErrorReason.DATATYPE_COERCION,
                 SchemaError(
                     schema=schema,
@@ -514,9 +519,9 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
                     check_output=exc.parser_output,
                 ),
             )
-        except pl.ComputeError as exc:
+        except pl.exceptions.ComputeError as exc:
             error_handler.collect_error(
-                validation_type(SchemaErrorReason.DATATYPE_COERCION),
+                get_error_category(SchemaErrorReason.DATATYPE_COERCION),
                 SchemaErrorReason.DATATYPE_COERCION,
                 SchemaError(
                     schema=schema,
@@ -613,27 +618,32 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
         if not schema.unique:
             return CoreCheckResult(
                 passed=passed,
-                check="dataframe_column_labels_unique",
+                check="multiple_fields_uniqueness",
             )
-
-        # NOTE: fix this pylint error
 
         temp_unique: list[list] = (
             [schema.unique]
             if all(isinstance(x, str) for x in schema.unique)
             else schema.unique
         )
-
+        check_output = None
         for lst in temp_unique:
             subset = [
                 x for x in lst if x in get_lazyframe_column_names(check_obj)
             ]
             duplicates = check_obj.select(subset).collect().is_duplicated()
+
+            check_output = check_obj.with_columns(
+                duplicates.not_().alias("check_output")
+            ).collect()
+
             if duplicates.any():
-                failure_cases = check_obj.filter(duplicates)
+                failure_cases = check_obj.filter(duplicates).collect()
 
                 passed = False
-                message = f"columns '{*subset,}' not unique:\n{failure_cases}"
+                message = (
+                    f"columns '{(*subset,)}' not unique:\n{failure_cases}"
+                )
                 break
         return CoreCheckResult(
             passed=passed,
@@ -641,4 +651,5 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
             reason_code=SchemaErrorReason.DUPLICATES,
             message=message,
             failure_cases=failure_cases,
+            check_output=check_output,
         )

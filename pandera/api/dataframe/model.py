@@ -6,20 +6,32 @@ import os
 import re
 import threading
 import typing
+from collections.abc import Iterable
 from typing import (
     Any,
+    ClassVar,
     Generic,
     Optional,
     TypeVar,
     Union,
     cast,
+    get_type_hints,
 )
-from collections.abc import Iterable
-from typing import get_type_hints
+
+from typing_extensions import Self
+
 from pandera.api.base.model import BaseModel
 from pandera.api.base.schema import BaseSchema
 from pandera.api.checks import Check
-from pandera.api.dataframe.model_components import (
+from pandera.api.parsers import Parser
+from pandera.engines import PYDANTIC_V2
+from pandera.errors import SchemaInitError
+from pandera.import_utils import strategy_import_error
+from pandera.typing import AnnotationInfo
+from pandera.typing.common import DataFrameBase
+from pandera.utils import docstring_substitution
+
+from .model_components import (
     CHECK_KEY,
     DATAFRAME_CHECK_KEY,
     DATAFRAME_PARSER_KEY,
@@ -31,14 +43,7 @@ from pandera.api.dataframe.model_components import (
     FieldParserInfo,
     ParserInfo,
 )
-from pandera.api.dataframe.model_config import BaseConfig
-from pandera.api.parsers import Parser
-from pandera.engines import PYDANTIC_V2
-from pandera.errors import SchemaInitError
-from pandera.import_utils import strategy_import_error
-from pandera.typing import AnnotationInfo
-from pandera.typing.common import DataFrameBase
-from pandera.utils import docstring_substitution
+from .model_config import BaseConfig
 
 if PYDANTIC_V2:
     from pydantic import GetCoreSchemaHandler, GetJsonSchemaHandler
@@ -46,8 +51,10 @@ if PYDANTIC_V2:
 
 
 TDataFrame = TypeVar("TDataFrame")
-TDataFrameModel = TypeVar("TDataFrameModel", bound="DataFrameModel")
 TSchema = TypeVar("TSchema", bound=BaseSchema)
+TFields = dict[str, tuple[AnnotationInfo, FieldInfo]]
+TChecks = dict[str, list[Check]]
+TParsers = dict[str, list[Parser]]
 
 _CONFIG_KEY = "Config"
 MODEL_CACHE: dict[tuple[type["DataFrameModel"], int], Any] = {}
@@ -114,6 +121,107 @@ def _convert_extras_to_checks(extras: dict[str, Any]) -> list[Check]:
 _CONFIG_OPTIONS = [attr for attr in vars(BaseConfig) if _is_field(attr)]
 
 
+class _ClassDescriptor:
+    def __init__(self):
+        self.cache = {}
+
+
+class _FieldsDescriptor(_ClassDescriptor):
+    """Descriptor which allows __fields__ to act as a class property."""
+
+    def __get__(self, obj, cls) -> TFields:
+        if self.cache.get(cls) is None:
+            self.cache[cls] = cls._collect_fields()
+
+            for field, (annot_info, _) in self.cache[cls].items():
+                if isinstance(annot_info.arg, TypeVar):
+                    raise SchemaInitError(
+                        f"Field {field} has a generic data type"
+                    )
+
+        return self.cache[cls]
+
+
+class _SchemaDescriptor:
+    def __get__(self, obj, cls):
+        thread_id = threading.get_ident()
+        if (
+            MODEL_CACHE.get(
+                (cls, thread_id),
+            )
+            is None
+        ):
+            if cls.__config__ is not None:
+                kwargs = {
+                    "dtype": cls.__config__.dtype,
+                    "coerce": cls.__config__.coerce,
+                    "strict": cls.__config__.strict,
+                    "name": cls.__config__.name,
+                    "ordered": cls.__config__.ordered,
+                    "unique": cls.__config__.unique,
+                    "title": cls.__config__.title,
+                    "description": cls.__config__.description or cls.__doc__,
+                    "unique_column_names": cls.__config__.unique_column_names,
+                    "add_missing_columns": cls.__config__.add_missing_columns,
+                    "drop_invalid_rows": cls.__config__.drop_invalid_rows,
+                }
+            else:
+                kwargs = {}
+
+            MODEL_CACHE[(cls, thread_id)] = cls.build_schema_(**kwargs)
+
+        return MODEL_CACHE[(cls, thread_id)]  # type: ignore
+
+
+class _ChecksDescriptor(_ClassDescriptor):
+    def __get__(self, obj, cls) -> TChecks:
+        if self.cache.get(cls) is None:
+            check_infos = typing.cast(
+                list[FieldCheckInfo], cls._collect_check_infos(CHECK_KEY)
+            )
+
+            self.cache[cls] = cls._extract_checks(
+                check_infos, field_names=list(cls.__fields__.keys())
+            )
+
+        return self.cache[cls]
+
+
+class _RootCheckDescriptor(_ClassDescriptor):
+    def __get__(self, obj, cls) -> list[Check]:
+        if self.cache.get(cls) is None:
+            df_check_infos = cls._collect_check_infos(DATAFRAME_CHECK_KEY)
+            df_custom_checks = cls._extract_df_checks(df_check_infos)
+            df_registered_checks = _convert_extras_to_checks(
+                {} if cls.__extras__ is None else cls.__extras__
+            )
+            self.cache[cls] = df_custom_checks + df_registered_checks
+
+        return self.cache[cls]
+
+
+class _RootParsers(_ClassDescriptor):
+    def __get__(self, obj, cls) -> list[Check]:
+        if self.cache.get(cls) is None:
+            df_parser_infos = cls._collect_parser_infos(DATAFRAME_PARSER_KEY)
+            self.cache[cls] = cls._extract_df_parsers(df_parser_infos)
+
+        return self.cache[cls]
+
+
+class _ParsersDescriptor(_ClassDescriptor):
+    def __get__(self, obj, cls) -> TParsers:
+        if self.cache.get(cls) is None:
+            parser_infos = typing.cast(
+                list[FieldParserInfo], cls._collect_parser_infos(PARSER_KEY)
+            )
+            self.cache[cls] = cls._extract_parsers(
+                parser_infos, field_names=list(cls.__fields__.keys())
+            )
+
+        return self.cache[cls]
+
+
 class DataFrameModel(Generic[TDataFrame, TSchema], BaseModel):
     """Base class for the DataFrame model.
 
@@ -121,23 +229,21 @@ class DataFrameModel(Generic[TDataFrame, TSchema], BaseModel):
     """
 
     Config: type[BaseConfig] = BaseConfig
-    __extras__: Optional[dict[str, Any]] = None
-    __schema__: Optional[TSchema] = None
-    __config__: Optional[type[BaseConfig]] = None
+    __extras__: dict[str, Any] | None = None
+    __schema__ = _SchemaDescriptor()
+    __config__: type[BaseConfig] | None = None
 
     #: Key according to `FieldInfo.name`
-    __fields__: dict[str, tuple[AnnotationInfo, FieldInfo]] = {}
-    __checks__: dict[str, list[Check]] = {}
-    __parsers__: dict[str, list[Parser]] = {}
-    __root_checks__: list[Check] = []
-    __root_parsers__: list[Parser] = []
+    __fields__: ClassVar[TFields] = cast(TFields, _FieldsDescriptor())
+    __checks__ = cast(TChecks, _ChecksDescriptor())
+    __parsers__: TParsers = cast(TParsers, _ParsersDescriptor())
+    __root_checks__ = cast(list[Check], _RootCheckDescriptor())
+    __root_parsers__: list[Parser] = cast(list[Parser], _RootParsers())
 
     @docstring_substitution(validate_doc=BaseSchema.validate.__doc__)
-    def __new__(cls, *args, **kwargs) -> DataFrameBase[TDataFrameModel]:  # type: ignore [misc]
+    def __new__(cls, *args, **kwargs) -> DataFrameBase[Self]:  # type: ignore [misc]
         """%(validate_doc)s"""
-        return cast(
-            DataFrameBase[TDataFrameModel], cls.validate(*args, **kwargs)
-        )
+        return cast(DataFrameBase[Self], cls.validate(*args, **kwargs))
 
     def __init_subclass__(cls, **kwargs):
         """Ensure :class:`~pandera.api.dataframe.model_components.FieldInfo` instances."""
@@ -151,43 +257,29 @@ class DataFrameModel(Generic[TDataFrame, TSchema], BaseModel):
             cls.Config = type("Config", (cls.Config,), {"name": cls.__name__})
 
         super().__init_subclass__(**kwargs)
-
-        # Initialize the annotation cache  
-        cls.__annotation_infos__ = {}  
-
-        # Use get_type_hints with include_extras=True instead of raw annotations  
-        annotations = get_type_hints(cls, include_extras=True)  
-        
-        for field_name, annotation in annotations.items():  
-            if _is_field(field_name):  
-                existing_field = None  
-
-                if hasattr(annotation, "__metadata__"):
-                    metadata = annotation.__metadata__
-
-                    field_info_list = [
-                        item for item in metadata
-                        if isinstance(item, FieldInfo)
-                    ]
-
-                    if field_info_list:  
-                        existing_field = field_info_list[0]  
-
-                if existing_field and field_name not in cls.__dict__:  
-                    existing_field.__set_name__(cls, field_name)  
-                    setattr(cls, field_name, existing_field)  
-
-                elif field_name not in cls.__dict__:  
-                    field = Field()  
-                    field.__set_name__(cls, field_name)  
-                    setattr(cls, field_name, field)  
+        subclass_annotations = getattr(
+            cls,
+            "__annotations__",
+            getattr(
+                cls,
+                "__annotations_cache__",
+                # for py < 3.14
+                cls.__dict__.get("__annotations__", {}),
+            ),
+        )
+        for field_name in subclass_annotations.keys():
+            if _is_field(field_name) and field_name not in cls.__dict__:
+                # Field omitted
+                field = Field()
+                field.__set_name__(cls, field_name)
+                setattr(cls, field_name, field)
 
         cls.__config__, cls.__extras__ = cls._collect_config_and_extras()
 
     def __class_getitem__(
-        cls: type[TDataFrameModel],
+        cls: type[Self],
         item: Union[type[Any], tuple[type[Any], ...]],
-    ) -> type[TDataFrameModel]:
+    ) -> type[Self]:
         """Parameterize the class's generic arguments with the specified types"""
         if not hasattr(cls, "__parameters__"):
             raise TypeError(
@@ -203,9 +295,7 @@ class DataFrameModel(Generic[TDataFrame, TSchema], BaseModel):
                 f"Expected {len(__parameters__)} generic arguments but found {len(item)}"
             )
         if (cls, item) in GENERIC_SCHEMA_CACHE:
-            return typing.cast(
-                type[TDataFrameModel], GENERIC_SCHEMA_CACHE[(cls, item)]
-            )
+            return typing.cast(type[Self], GENERIC_SCHEMA_CACHE[(cls, item)])
 
         param_dict: dict[TypeVar, type[Any]] = dict(zip(__parameters__, item))
         extra: dict[str, Any] = {"__annotations__": {}}
@@ -214,7 +304,7 @@ class DataFrameModel(Generic[TDataFrame, TSchema], BaseModel):
                 if annot_info.arg in param_dict:
                     raw_annot = annot_info.origin[param_dict[annot_info.arg]]  # type: ignore
                     if annot_info.optional:
-                        raw_annot = Optional[raw_annot]
+                        raw_annot = Optional[raw_annot]  # noqa: UP045
                     extra["__annotations__"][field] = raw_annot
                     extra[field] = copy.deepcopy(field_info)
 
@@ -232,84 +322,30 @@ class DataFrameModel(Generic[TDataFrame, TSchema], BaseModel):
     @classmethod
     def to_schema(cls) -> TSchema:
         """Create :class:`~pandera.DataFrameSchema` from the :class:`.DataFrameModel`."""
-        thread_id = threading.get_ident()
-        if (cls, thread_id) in MODEL_CACHE:
-            return MODEL_CACHE[(cls, thread_id)]
-
-        cls.__fields__ = cls._collect_fields()
-        for field, (annot_info, _) in cls.__fields__.items():
-            if isinstance(annot_info.arg, TypeVar):
-                raise SchemaInitError(f"Field {field} has a generic data type")
-
-        check_infos = typing.cast(
-            list[FieldCheckInfo], cls._collect_check_infos(CHECK_KEY)
-        )
-
-        cls.__checks__ = cls._extract_checks(
-            check_infos, field_names=list(cls.__fields__.keys())
-        )
-
-        df_check_infos = cls._collect_check_infos(DATAFRAME_CHECK_KEY)
-        df_custom_checks = cls._extract_df_checks(df_check_infos)
-        df_registered_checks = _convert_extras_to_checks(
-            {} if cls.__extras__ is None else cls.__extras__
-        )
-        cls.__root_checks__ = df_custom_checks + df_registered_checks
-
-        parser_infos = typing.cast(
-            list[FieldParserInfo], cls._collect_parser_infos(PARSER_KEY)
-        )
-
-        cls.__parsers__ = cls._extract_parsers(
-            parser_infos, field_names=list(cls.__fields__.keys())
-        )
-
-        df_parser_infos = cls._collect_parser_infos(DATAFRAME_PARSER_KEY)
-        df_custom_parsers = cls._extract_df_parsers(df_parser_infos)
-        cls.__root_parsers__ = df_custom_parsers
-
-        kwargs = {}
-        if cls.__config__ is not None:
-            kwargs = {
-                "dtype": cls.__config__.dtype,
-                "coerce": cls.__config__.coerce,
-                "strict": cls.__config__.strict,
-                "name": cls.__config__.name,
-                "ordered": cls.__config__.ordered,
-                "unique": cls.__config__.unique,
-                "title": cls.__config__.title,
-                "description": cls.__config__.description or cls.__doc__,
-                "unique_column_names": cls.__config__.unique_column_names,
-                "add_missing_columns": cls.__config__.add_missing_columns,
-                "drop_invalid_rows": cls.__config__.drop_invalid_rows,
-            }
-        cls.__schema__ = cls.build_schema_(**kwargs)
-        if (cls, thread_id) not in MODEL_CACHE:
-            MODEL_CACHE[(cls, thread_id)] = cls.__schema__  # type: ignore
-        return cls.__schema__  # type: ignore
+        return cls.__schema__
 
     @classmethod
-    def to_yaml(cls, stream: Optional[os.PathLike] = None):
+    def to_yaml(cls, stream: os.PathLike | None = None):
         """
         Convert `Schema` to yaml using `io.to_yaml`.
         """
-        return cls.to_schema().to_yaml(stream)
+        return cls.__schema__.to_yaml(stream)
 
     @classmethod
     @docstring_substitution(validate_doc=BaseSchema.validate.__doc__)
     def validate(
-        cls: type[TDataFrameModel],
+        cls: type[Self],
         check_obj: TDataFrame,
-        head: Optional[int] = None,
-        tail: Optional[int] = None,
-        sample: Optional[int] = None,
-        random_state: Optional[int] = None,
+        head: int | None = None,
+        tail: int | None = None,
+        sample: int | None = None,
+        random_state: int | None = None,
         lazy: bool = False,
         inplace: bool = False,
-    ) -> DataFrameBase[TDataFrameModel]:
+    ) -> DataFrameBase[Self]:
         """%(validate_doc)s"""
         return cast(
-            DataFrameBase[TDataFrameModel],
+            DataFrameBase[Self],
             cls.to_schema().validate(
                 check_obj, head, tail, sample, random_state, lazy, inplace
             ),
@@ -318,30 +354,28 @@ class DataFrameModel(Generic[TDataFrame, TSchema], BaseModel):
     # TODO: add docstring_substitution using generic class
     @classmethod
     @strategy_import_error
-    def strategy(cls: type[TDataFrameModel], **kwargs):
+    def strategy(cls: type[Self], **kwargs):
         """Create a ``hypothesis`` strategy for generating a DataFrame.
 
         :param size: number of elements to generate
         :param n_regex_columns: number of regex columns to generate.
         :returns: a strategy that generates DataFrame objects.
         """
-        return cls.to_schema().strategy(**kwargs)
+        return cls.__schema__.strategy(**kwargs)
 
     # TODO: add docstring_substitution using generic class
     @classmethod
     @strategy_import_error
     def example(
-        cls: type[TDataFrameModel],
+        cls: type[Self],
         **kwargs,
-    ) -> DataFrameBase[TDataFrameModel]:
+    ) -> DataFrameBase[Self]:
         """Generate an example of a particular size.
 
         :param size: number of elements in the generated DataFrame.
         :returns: DataFrame object.
         """
-        return cast(
-            DataFrameBase[TDataFrameModel], cls.to_schema().example(**kwargs)
-        )
+        return cast(DataFrameBase[Self], cls.to_schema().example(**kwargs))
 
     @classmethod
     def _get_model_attrs(cls) -> dict[str, Any]:
@@ -356,7 +390,7 @@ class DataFrameModel(Generic[TDataFrame, TSchema], BaseModel):
         return attrs
 
     @classmethod
-    def _collect_fields(cls) -> dict[str, tuple[AnnotationInfo, FieldInfo]]:
+    def _collect_fields(cls) -> TFields:
         """Centralize publicly named fields and their corresponding annotations."""
 
         annotations = get_type_hints(cls, include_extras=True)
@@ -560,7 +594,7 @@ class DataFrameModel(Generic[TDataFrame, TSchema], BaseModel):
         return [parser_info.to_parser(cls) for parser_info in parser_infos]
 
     @classmethod
-    def get_metadata(cls) -> Optional[dict]:
+    def get_metadata(cls) -> dict | None:
         """Provide metadata for columns and schema level"""
         res: dict[Any, Any] = {"columns": {}}
         columns = cls._collect_fields()
@@ -601,9 +635,7 @@ class DataFrameModel(Generic[TDataFrame, TSchema], BaseModel):
         raise NotImplementedError
 
     @classmethod
-    def empty(
-        cls: type[TDataFrameModel], *_args
-    ) -> DataFrameBase[TDataFrameModel]:
+    def empty(cls: type[Self], *_args) -> DataFrameBase[Self]:
         """Create an empty DataFrame instance."""
         raise NotImplementedError
 

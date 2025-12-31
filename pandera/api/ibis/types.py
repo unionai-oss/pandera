@@ -8,7 +8,7 @@ import ibis.expr.datatypes as dt
 
 class IbisData(NamedTuple):
     table: ibis.Table
-    key: Optional[str] = None
+    key: str | None = None
 
 
 class CheckResult(NamedTuple):

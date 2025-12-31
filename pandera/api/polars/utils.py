@@ -3,12 +3,12 @@
 import polars as pl
 
 from pandera.api.polars.types import PolarsCheckObjects
-from pandera.engines.polars_engine import polars_version
 from pandera.config import (
     ValidationDepth,
     get_config_context,
     get_config_global,
 )
+from pandera.engines.polars_engine import polars_version
 
 
 def get_lazyframe_schema(lf: pl.LazyFrame) -> dict[str, pl.DataType]:

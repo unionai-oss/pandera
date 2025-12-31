@@ -44,10 +44,10 @@ class PandasSchemaBackend(BaseSchemaBackend):
     def subsample(
         self,
         check_obj,
-        head: Optional[int] = None,
-        tail: Optional[int] = None,
-        sample: Optional[int] = None,
-        random_state: Optional[int] = None,
+        head: int | None = None,
+        tail: int | None = None,
+        sample: int | None = None,
+        random_state: int | None = None,
     ):
         pandas_obj_subsample = []
         if head is not None:

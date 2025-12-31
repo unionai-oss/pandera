@@ -12,7 +12,8 @@ pyarrow >= 13
 pydantic
 scipy
 pandas-stubs
-pyspark[connect] >= 3.2.0, < 4.0.0
+scipy-stubs
+pyspark[connect] >= 3.2.0
 polars >= 0.20.0
 modin
 protobuf
@@ -34,10 +35,9 @@ xdoctest
 nox
 uv
 setuptools
-ibis-framework[duckdb]
+ibis-framework[duckdb]>= 11.0.0
 uvicorn
 python-multipart
-duckdb
 sphinx
 sphinx-design
 sphinx-autodoc-typehints <= 1.14.1

@@ -1,7 +1,8 @@
 """Hypothesis backend for pandas."""
 
+from collections.abc import Callable
 from functools import partial
-from typing import Any, Callable, Union, cast
+from typing import Any, Union, cast
 
 import pandas as pd
 
@@ -9,7 +10,6 @@ from pandera import errors
 from pandera.api.hypotheses import Hypothesis
 from pandera.api.pandas.types import is_field, is_table
 from pandera.backends.pandas.checks import PandasCheckBackend
-
 
 DEFAULT_ALPHA = 0.01
 
@@ -131,7 +131,8 @@ class PandasHypothesisBackend(PandasCheckBackend):
             return check_obj[self.check.samples[0]]  # type: ignore
 
         check_obj = [
-            (sample, check_obj[sample]) for sample in self.check.samples  # type: ignore[attr-defined]
+            (sample, check_obj[sample])
+            for sample in self.check.samples  # type: ignore[attr-defined]
         ]
         return cast(
             dict[str, pd.DataFrame],

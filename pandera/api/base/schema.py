@@ -10,6 +10,8 @@ import os
 from abc import ABC
 from typing import Any, Optional, Union
 
+from typing_extensions import Self
+
 from pandera.backends.base import BaseSchemaBackend
 from pandera.dtypes import DataType
 from pandera.errors import BackendNotFoundError
@@ -20,9 +22,7 @@ DtypeInputTypes = Union[str, type, DataType, type]
 class BaseSchema(ABC):
     """Core schema specification."""
 
-    BACKEND_REGISTRY: dict[tuple[type, type], type[BaseSchemaBackend]] = (
-        {}
-    )  # noqa
+    BACKEND_REGISTRY: dict[tuple[type, type], type[BaseSchemaBackend]] = {}  # noqa
 
     def __init__(
         self,
@@ -83,7 +83,7 @@ class BaseSchema(ABC):
         """Coerce object to the expected type."""
         raise NotImplementedError
 
-    def to_yaml(self, stream: Optional[os.PathLike] = None) -> Optional[str]:
+    def to_yaml(self, stream: os.PathLike | None = None) -> str | None:
         """Write DataFrameSchema to yaml file."""
         raise NotImplementedError
 
@@ -101,8 +101,8 @@ class BaseSchema(ABC):
     @classmethod
     def get_backend(
         cls,
-        check_obj: Optional[Any] = None,
-        check_type: Optional[type] = None,
+        check_obj: Any | None = None,
+        check_type: type | None = None,
     ) -> BaseSchemaBackend:
         """Get the backend associated with the type of ``check_obj``."""
         if check_obj is not None:
@@ -139,3 +139,22 @@ class BaseSchema(ABC):
 
     def __setstate__(self, state):
         self.__dict__ = state
+
+    def set_name(self, name: str) -> Self:
+        """Used to set or modify the name of a base model object.
+
+        :param str name: the name of the column object
+
+        """
+        self.name = name
+        return self
+
+    def strategy(self, *, size: int | None = None, n_regex_columns: int = 1):
+        """Create a data synthesis strategy."""
+        raise NotImplementedError
+
+    def example(
+        self, size: int | None = None, n_regex_columns: int = 1
+    ) -> Any:
+        """Generate an example of this data model specification."""
+        raise NotImplementedError

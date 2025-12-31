@@ -1,16 +1,15 @@
 """Built-in checks for pandas."""
 
-import sys
 import operator
 import re
-from typing import Any, Optional, TypeVar, Union, cast
+import sys
 from collections.abc import Iterable
+from typing import Any, Optional, TypeVar, Union, cast
 
 import pandas as pd
 
 import pandera.strategies.pandas_strategies as st
 from pandera.api.extensions import register_builtin_check
-
 
 MODIN_IMPORTED = "modin" in sys.modules
 PYSPARK_IMPORTED = "pyspark" in sys.modules
@@ -267,20 +266,32 @@ def str_endswith(data: PandasData, string: str) -> PandasData:
 )
 def str_length(
     data: PandasData,
-    min_value: Optional[int] = None,
-    max_value: Optional[int] = None,
+    value: int | None = None,
+    *,
+    min_value: int | None = None,
+    max_value: int | None = None,
 ) -> PandasData:
     """Ensure that the length of strings is within a specified range.
 
+    :param value: Absolute length of strings (inclusive). (default: no absolute)
     :param min_value: Minimum length of strings (inclusive). (default: no minimum)
     :param max_value: Maximum length of strings (inclusive). (default: no maximum)
     """
-    if min_value is None and max_value is None:
+    if value is None and min_value is None and max_value is None:
         raise ValueError(
-            "Must provide at least one of 'min_value' and 'max_value'"
+            "At least an absolute or a minimum or a maximum need to be specified. Got "
+            "None."
         )
+
+    if value is not None and (min_value is not None or max_value is not None):
+        raise ValueError(
+            "A minimum or a maximum cannot be specified when absolute is specified."
+        )
+
     str_len = data.str.len()
-    if max_value is None:
+    if value is not None:
+        return str_len == value
+    elif max_value is None:
         return str_len >= min_value  # type: ignore[operator]
     elif min_value is None:
         return str_len <= max_value

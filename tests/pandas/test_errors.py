@@ -18,7 +18,6 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from pandera.pandas import Check, Column, DataFrameSchema
 from pandera.config import ValidationDepth, config_context
 from pandera.engines import numpy_engine, pandas_engine
 from pandera.errors import (
@@ -27,6 +26,7 @@ from pandera.errors import (
     SchemaError,
     SchemaErrors,
 )
+from pandera.pandas import Check, Column, DataFrameSchema
 
 
 class MyError(ReducedPickleExceptionBase):

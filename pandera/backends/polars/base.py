@@ -38,10 +38,10 @@ class PolarsSchemaBackend(BaseSchemaBackend):
     def subsample(
         self,
         check_obj: PolarsFrame,
-        head: Optional[int] = None,
-        tail: Optional[int] = None,
-        sample: Optional[int] = None,
-        random_state: Optional[int] = None,
+        head: int | None = None,
+        tail: int | None = None,
+        sample: int | None = None,
+        random_state: int | None = None,
     ) -> PolarsFrame:
         obj_subsample = []
         if head is not None:
@@ -140,7 +140,6 @@ class PolarsSchemaBackend(BaseSchemaBackend):
         failure_case_collection = []
 
         for err in schema_errors:
-
             error_counts[err.reason_code] += 1
 
             check_identifier = (
@@ -254,7 +253,7 @@ class PolarsSchemaBackend(BaseSchemaBackend):
         check_obj: PolarsFrame,
         error_handler: ErrorHandler,
     ) -> PolarsFrame:
-        """Remove invalid elements in a check obj according to failures in caught by the error handler."""
+        """Remove invalid elements in a check obj according to failures caught by the error handler."""
         errors = error_handler.schema_errors
         check_outputs = pl.DataFrame(
             {str(i): err.check_output for i, err in enumerate(errors)}

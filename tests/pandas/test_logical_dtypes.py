@@ -1,9 +1,9 @@
 """Tests logical dtypes."""
 
+from collections.abc import Iterable
 from datetime import date, datetime
 from decimal import Decimal
 from typing import Any, cast
-from collections.abc import Iterable
 
 import numpy as np
 import pandas as pd

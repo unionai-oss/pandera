@@ -21,7 +21,9 @@ class PandasParserBackend(BaseParserBackend):
         self.parser = parser
         self.parser_fn = partial(parser._parser_fn, **parser._parser_kwargs)
 
-    def preprocess(self, parse_obj, key) -> pd.Series:
+    def preprocess(
+        self, parse_obj, key
+    ) -> pd.Series | pd.DataFrame | dict[str, pd.DataFrame]:
         """Preprocesses a parser object before applying the parse function."""
         if is_table(parse_obj) and key is not None:
             return self.preprocess_table_with_key(parse_obj, key)
@@ -76,7 +78,7 @@ class PandasParserBackend(BaseParserBackend):
     def __call__(
         self,
         parse_obj: Union[pd.Series, pd.DataFrame],
-        key: Optional[str] = None,
+        key: str | None = None,
     ):
         parse_obj = self.preprocess(parse_obj, key)
         parser_output = self.apply(parse_obj)

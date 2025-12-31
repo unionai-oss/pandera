@@ -1,5 +1,6 @@
 # pylint: disable=W0212
 """Unit tests for inferring statistics of pandas objects."""
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -689,7 +690,8 @@ def test_get_index_schema_statistics(index_schema_component, expectation):
                 pa.Check.str_contains("foobar"),
                 pa.Check.str_startswith("foobar"),
                 pa.Check.str_endswith("foobar"),
-                pa.Check.str_length(5, 10),
+                pa.Check.str_length(min_value=5, max_value=10),
+                pa.Check.str_length(5),
             ]
         ],
         # multiple checks at once

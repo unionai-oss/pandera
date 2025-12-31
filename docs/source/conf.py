@@ -69,6 +69,24 @@ except ImportError:
 else:
     SKIP_STRATEGY = False
 
+try:
+    from pyspark.sql import SparkSession
+    # Try to create a SparkSession to check if Java is available
+    try:
+        spark = SparkSession.builder.getOrCreate()
+        spark.stop()
+        SKIP_PYSPARK = False
+    except Exception:
+        SKIP_PYSPARK = True
+except ImportError:
+    SKIP_PYSPARK = True
+
+try:
+    import pyspark.sql._typing
+    SKIP_PYSPARK_TYPING = False
+except ImportError:
+    SKIP_PYSPARK_TYPING = True
+
 
 SKIP = sys.version_info < (3, 6)
 PY36 = sys.version_info < (3, 7)

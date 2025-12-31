@@ -40,10 +40,10 @@ class DataFrameSchema(_DataFrameSchema[PolarsCheckObjects]):
     def validate(
         self,
         check_obj: PolarsFrame,
-        head: Optional[int] = None,
-        tail: Optional[int] = None,
-        sample: Optional[int] = None,
-        random_state: Optional[int] = None,
+        head: int | None = None,
+        tail: int | None = None,
+        sample: int | None = None,
+        random_state: int | None = None,
         lazy: bool = False,
         inplace: bool = False,
     ) -> PolarsFrame:
@@ -72,9 +72,7 @@ class DataFrameSchema(_DataFrameSchema[PolarsCheckObjects]):
         """Set the dtype property."""
         self._dtype = polars_engine.Engine.dtype(value) if value else None
 
-    def strategy(
-        self, *, size: Optional[int] = None, n_regex_columns: int = 1
-    ):
+    def strategy(self, *, size: int | None = None, n_regex_columns: int = 1):
         """Create a ``hypothesis`` strategy for generating a DataFrame.
 
         :param size: number of elements to generate
@@ -89,7 +87,7 @@ class DataFrameSchema(_DataFrameSchema[PolarsCheckObjects]):
             "Data synthesis is not supported in with polars schemas."
         )
 
-    def example(self, size: Optional[int] = None, n_regex_columns: int = 1):
+    def example(self, size: int | None = None, n_regex_columns: int = 1):
         """Generate an example of a particular size.
 
         :param size: number of elements in the generated DataFrame.

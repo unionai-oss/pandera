@@ -1,29 +1,40 @@
 """Utility functions for pyspark validation."""
 
 from functools import lru_cache
-from typing import NamedTuple, Union
-from numpy import bool_ as np_bool
-from packaging import version
-
-import pyspark.sql.types as pst
-from pyspark.sql import DataFrame
+from typing import NamedTuple, TypeVar, Union
 
 import pyspark
+import pyspark.sql.types as pst
+from numpy import bool_ as np_bool
+from packaging import version
+from pyspark.pandas import DataFrame as PySparkPandasDataFrame
+from pyspark.sql import DataFrame as PySparkSQLDataFrame
+
 from pandera.api.checks import Check
 from pandera.dtypes import DataType
 
-
 # Handles optional Spark Connect imports for pyspark>=3.4 (if available)
 if version.parse(pyspark.__version__) >= version.parse("3.4"):
-    from pyspark.sql.connect.dataframe import DataFrame as psc_DataFrame
+    from pyspark.sql.connect.dataframe import (
+        DataFrame as PySparkConnectDataFrame,
+    )
     from pyspark.sql.connect.group import GroupedData
 else:
     from pyspark.sql import (
-        DataFrame as psc_DataFrame,
+        DataFrame as PySparkConnectDataFrame,
     )
     from pyspark.sql.group import GroupedData
 
-DataFrameTypes = Union[DataFrame, psc_DataFrame]
+PySparkDataFrameTypes = Union[
+    PySparkSQLDataFrame, PySparkPandasDataFrame, PySparkConnectDataFrame
+]
+PySparkFrame = TypeVar(
+    "PySparkFrame",
+    PySparkSQLDataFrame,
+    PySparkPandasDataFrame,
+    PySparkConnectDataFrame,
+)
+
 GroupbyObject = GroupedData
 
 CheckList = Union[Check, list[Check]]
@@ -73,19 +84,19 @@ class SupportedTypes(NamedTuple):
 class PysparkDataframeColumnObject(NamedTuple):
     """Pyspark Object which holds dataframe and column value in a named tuble"""
 
-    dataframe: DataFrameTypes
+    dataframe: PySparkDataFrameTypes
     column_name: str
 
 
-@lru_cache(maxsize=None)
+@lru_cache
 def supported_types() -> SupportedTypes:
     """Get the types supported by pandera schemas."""
-
-    table_types = [DataFrame]
+    # pylint: disable=import-outside-toplevel
+    table_types = [PySparkSQLDataFrame]
 
     try:
-        table_types.append(DataFrame)
-        table_types.append(psc_DataFrame)
+        table_types.append(PySparkSQLDataFrame)
+        table_types.append(PySparkConnectDataFrame)
 
     except ImportError:  # pragma: no cover
         pass

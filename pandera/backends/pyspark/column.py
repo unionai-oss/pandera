@@ -1,29 +1,23 @@
 """Pandera array backends."""
 
 import traceback
-from typing import NamedTuple, Optional, cast
-from collections.abc import Iterable
+from typing import cast
 
 from pyspark.sql import DataFrame
 from pyspark.sql.functions import col
 
 from pandera.api.base.error_handler import ErrorCategory, ErrorHandler
+from pandera.backends.base import CoreCheckResult
 from pandera.backends.pyspark.base import PysparkSchemaBackend
-from pandera.backends.pyspark.decorators import validate_scope
 from pandera.backends.pyspark.error_formatters import scalar_failure_case
 from pandera.engines.pyspark_engine import Engine
-from pandera.errors import ParserError, SchemaError, SchemaErrorReason
-from pandera.validation_depth import ValidationScope
-
-
-class CoreCheckResult(NamedTuple):
-    """Namedtuple for holding results of core checks."""
-
-    check: str
-    reason_code: SchemaErrorReason
-    passed: bool
-    message: Optional[str] = None
-    failure_cases: Optional[Iterable] = None
+from pandera.errors import (
+    ParserError,
+    SchemaError,
+    SchemaErrorReason,
+    SchemaErrors,
+)
+from pandera.validation_depth import ValidationScope, validate_scope
 
 
 class ColumnSchemaBackend(PysparkSchemaBackend):
@@ -32,72 +26,85 @@ class ColumnSchemaBackend(PysparkSchemaBackend):
     def preprocess(self, check_obj, inplace: bool = False):
         return check_obj
 
-    @validate_scope(scope=ValidationScope.SCHEMA)
-    def _core_checks(self, check_obj, schema, error_handler):
+    def _core_checks(
+        self, check_obj, schema, error_handler: ErrorHandler
+    ) -> ErrorHandler:
         """This function runs the core checks"""
         # run the core checks
-        for core_check in (
+        for check in (
             self.check_name,
             self.check_dtype,
             self.check_nullable,
+            self.run_checks,
         ):
-            check_result = core_check(check_obj, schema)
-            if not check_result.passed:
-                error_handler.collect_error(
-                    ErrorCategory.SCHEMA,
-                    check_result.reason_code,
-                    SchemaError(
+            results = check(check_obj, schema)
+            if isinstance(results, CoreCheckResult):
+                results = [results]
+
+            for result in results:
+                if result.passed:
+                    continue
+
+                if result.schema_error is not None:
+                    error = result.schema_error
+                else:
+                    error = SchemaError(
                         schema=schema,
                         data=check_obj,
-                        message=check_result.message,
-                        failure_cases=check_result.failure_cases,
-                        check=check_result.check,
-                        reason_code=check_result.reason_code,
-                    ),
+                        message=result.message,
+                        failure_cases=result.failure_cases,
+                        check=result.check,
+                        reason_code=result.reason_code,
+                    )
+                error_handler.collect_error(
+                    ErrorCategory.SCHEMA,
+                    result.reason_code,
+                    error,
+                    result.original_exc,
                 )
+
+        return error_handler
 
     def validate(
         self,
         check_obj,
         schema,
         *,
-        head: Optional[int] = None,
-        tail: Optional[int] = None,
-        sample: Optional[int] = None,
-        random_state: Optional[int] = None,
+        head: int | None = None,
+        tail: int | None = None,
+        sample: int | None = None,
+        random_state: int | None = None,
         lazy: bool = False,
         inplace: bool = False,
-        error_handler: ErrorHandler = None,
     ):
-
         check_obj = self.preprocess(check_obj, inplace)
+
+        error_handler = ErrorHandler(lazy=lazy)
 
         if schema.coerce:
             try:
-                check_obj = self.coerce_dtype(
-                    check_obj, schema=schema, error_handler=error_handler
-                )
+                check_obj = self.coerce_dtype(check_obj, schema=schema)
             except SchemaError as exc:
-                assert (
-                    error_handler is not None
-                ), "The `error_handler` argument must be provided."
                 error_handler.collect_error(
                     ErrorCategory.SCHEMA, exc.reason_code, exc
                 )
 
-        self._core_checks(check_obj, schema, error_handler)
+        error_handler = self._core_checks(check_obj, schema, error_handler)
 
-        self.run_checks(check_obj, schema, error_handler, lazy)
-
+        if lazy and error_handler.collected_errors:
+            raise SchemaErrors(
+                schema=schema,
+                schema_errors=error_handler.schema_errors,
+                data=check_obj,
+            )
         return check_obj
 
     @validate_scope(scope=ValidationScope.SCHEMA)
     def coerce_dtype(
         self,
-        check_obj,
-        *,
-        schema=None,
-    ):
+        check_obj: DataFrame,
+        schema,
+    ) -> DataFrame:
         """Coerce type of a pyspark.sql.function.col by type specified in dtype.
 
         :param check_obj: Pyspark DataFrame
@@ -122,7 +129,7 @@ class ColumnSchemaBackend(PysparkSchemaBackend):
             ) from exc
 
     @validate_scope(scope=ValidationScope.SCHEMA)
-    def check_nullable(self, check_obj: DataFrame, schema):
+    def check_nullable(self, check_obj: DataFrame, schema) -> CoreCheckResult:
         passed = True
 
         # Use schema level information to optimize execution of the `nullable` check:
@@ -144,7 +151,7 @@ class ColumnSchemaBackend(PysparkSchemaBackend):
         )
 
     @validate_scope(scope=ValidationScope.SCHEMA)
-    def check_name(self, check_obj: DataFrame, schema):
+    def check_name(self, check_obj: DataFrame, schema) -> CoreCheckResult:
         column_found = not (
             schema.name is None or schema.name not in check_obj.columns
         )
@@ -168,10 +175,11 @@ class ColumnSchemaBackend(PysparkSchemaBackend):
         )
 
     @validate_scope(scope=ValidationScope.SCHEMA)
-    def check_dtype(self, check_obj: DataFrame, schema):
+    def check_dtype(self, check_obj: DataFrame, schema) -> CoreCheckResult:
         passed = True
         failure_cases = None
         msg = None
+        reason_code = None
 
         if schema.dtype is not None:
             dtype_check_results = schema.dtype.check(
@@ -204,45 +212,43 @@ class ColumnSchemaBackend(PysparkSchemaBackend):
         )
 
     @validate_scope(scope=ValidationScope.DATA)
-    def run_checks(self, check_obj, schema, error_handler, lazy):
+    def run_checks(self, check_obj, schema) -> list[CoreCheckResult]:
         check_results = []
         for check_index, check in enumerate(schema.checks):
             check_args = [schema.name]
             try:
                 check_results.append(
                     self.run_check(
-                        check_obj,
-                        schema,
-                        check,
-                        check_index,
-                        *check_args,
+                        check_obj, schema, check, check_index, *check_args
                     )
                 )
-            except SchemaError as err:
-                error_handler.collect_error(
-                    ErrorCategory.DATA,
-                    SchemaErrorReason.DATAFRAME_CHECK,
-                    err,
-                )
+            # except SchemaError as err:
+            #     check_results.append(
+            #         CoreCheckResult(
+            #             passed=False,
+            #             check=check,
+            #             check_index=check_index,
+            #             reason_code=SchemaErrorReason.CHECK_ERROR,
+            #             message=str(err),
+            #             failure_cases=err.failure_cases,
+            #             original_exc=err,
+            #         )
+            #     )
+            except TypeError as err:
+                raise err
             except Exception as err:
                 # catch other exceptions that may occur when executing the Check
                 err_msg = f'"{err.args[0]}"' if err.args else ""
-                err_str = f"{err.__class__.__name__}({ err_msg})"
-                error_handler.collect_error(
-                    ErrorCategory.DATA,
-                    SchemaErrorReason.CHECK_ERROR,
-                    SchemaError(
-                        schema=schema,
-                        data=check_obj,
-                        message=(
-                            f"Error while executing check function: {err_str}\n"
-                            + traceback.format_exc()
-                        ),
-                        failure_cases=scalar_failure_case(err_str),
+                msg = f"{err.__class__.__name__}({err_msg})"
+                check_results.append(
+                    CoreCheckResult(
+                        passed=False,
                         check=check,
                         check_index=check_index,
-                    ),
-                    original_exc=err,
+                        reason_code=SchemaErrorReason.CHECK_ERROR,
+                        message=msg,
+                        failure_cases=msg,
+                        original_exc=err,
+                    )
                 )
-
         return check_results

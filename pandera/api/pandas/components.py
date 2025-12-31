@@ -1,8 +1,8 @@
 """Core pandas schema component specifications."""
 
 import warnings
-from typing import Any, Optional, Union, cast
 from collections.abc import Iterable
+from typing import Any, Optional, Union, cast
 
 import pandas as pd
 
@@ -20,9 +20,9 @@ class Column(ArraySchema[pd.DataFrame]):
 
     def __init__(
         self,
-        dtype: PandasDtypeInputTypes = None,
-        checks: Optional[CheckList] = None,
-        parsers: Optional[ParserList] = None,
+        dtype: PandasDtypeInputTypes | None = None,
+        checks: CheckList | None = None,
+        parsers: ParserList | None = None,
         nullable: bool = False,
         unique: bool = False,
         report_duplicates: UniqueSettings = "all",
@@ -30,10 +30,10 @@ class Column(ArraySchema[pd.DataFrame]):
         required: bool = True,
         name: Union[str, tuple[str, ...], None] = None,
         regex: bool = False,
-        title: Optional[str] = None,
-        description: Optional[str] = None,
-        default: Optional[Any] = None,
-        metadata: Optional[dict] = None,
+        title: str | None = None,
+        description: str | None = None,
+        default: Any | None = None,
+        metadata: dict | None = None,
         drop_invalid_rows: bool = False,
     ) -> None:
         """Create column validator object.
@@ -193,7 +193,11 @@ class Column(ArraySchema[pd.DataFrame]):
             name=self.name,
         )
 
-    def example(self, size=None) -> pd.DataFrame:
+    def example(
+        self,
+        size=None,
+        n_regex_columns: int = 1,  # pylint: disable=unused-argument
+    ) -> pd.DataFrame:
         """Generate an example of a particular size.
 
         :param size: number of elements in the generated Index.
@@ -237,7 +241,12 @@ class Index(ArraySchema[pd.Index]):
     ###########################
 
     @strategy_import_error
-    def strategy(self, *, size: Optional[int] = None):
+    def strategy(
+        self,
+        *,
+        size: int | None = None,
+        n_regex_columns: int = 1,  # pylint: disable=unused-argument
+    ):
         """Create a ``hypothesis`` strategy for generating an Index.
 
         :param size: number of elements to generate.
@@ -266,7 +275,11 @@ class Index(ArraySchema[pd.Index]):
             name=self.name,
         )
 
-    def example(self, size: Optional[int] = None) -> pd.Index:
+    def example(
+        self,
+        size: int | None = None,
+        n_regex_columns: int = 1,  # pylint: disable=unused-argument
+    ) -> pd.Index:
         """Generate an example of a particular size.
 
         :param size: number of elements in the generated Index.
@@ -295,9 +308,9 @@ class MultiIndex(DataFrameSchema):
         indexes: list[Index],
         coerce: bool = False,
         strict: bool = False,
-        name: Optional[str] = None,
+        name: str | None = None,
         ordered: bool = True,
-        unique: Optional[Union[str, list[str]]] = None,
+        unique: Union[str, list[str]] | None = None,
     ) -> None:
         """Create MultiIndex validator.
 
@@ -445,7 +458,6 @@ class MultiIndex(DataFrameSchema):
     # https://github.com/pandera-dev/pandera/issues/403
 
     def example(self, size=None) -> pd.MultiIndex:  # type: ignore
-
         import hypothesis
 
         with warnings.catch_warnings():
