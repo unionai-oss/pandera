@@ -8,7 +8,6 @@
 import os
 import shutil
 import sys
-from typing import Optional
 
 import nox
 from nox import Session
@@ -287,6 +286,7 @@ def docs(session: Session) -> None:
         *_testing_requirements(session, extra="all"),
         *nox.project.dependency_groups(PYPROJECT, "dev", "testing", "docs"),
     )
+    session.run("uv", "pip", "list")
     session.chdir("docs")
 
     # build html docs

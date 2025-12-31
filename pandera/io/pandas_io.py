@@ -8,7 +8,7 @@ import warnings
 from collections.abc import Mapping
 from functools import partial
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Optional, Union
+from typing import TYPE_CHECKING, Any, Union
 
 import pandas as pd
 
@@ -909,32 +909,35 @@ def from_frictionless_schema(
     :class:`~pandera.api.pandas.container.DataFrameSchema` object as per any other Pandera
     schema:
 
-    >>> from pandera.io import from_frictionless_schema
-    >>>
-    >>> FRICTIONLESS_SCHEMA = {
-    ...     "fields": [
-    ...         {
-    ...             "name": "column_1",
-    ...             "type": "integer",
-    ...             "constraints": {"minimum": 10, "maximum": 99}
-    ...         },
-    ...         {
-    ...             "name": "column_2",
-    ...             "type": "string",
-    ...             "constraints": {"maxLength": 10, "pattern": "\\S+"}
-    ...         },
-    ...     ],
-    ...     "primaryKey": "column_1"
-    ... }
-    >>> schema = from_frictionless_schema(FRICTIONLESS_SCHEMA)
-    >>> schema.columns["column_1"].checks
-    [<Check in_range: in_range(10, 99)>]
-    >>> schema.columns["column_1"].required
-    True
-    >>> schema.columns["column_1"].unique
-    True
-    >>> schema.columns["column_2"].checks
-    [<Check str_length: str_length(None, 10)>, <Check str_matches: str_matches('^\S+$')>]
+    .. doctest::
+        :skipif: SKIP_FRICTIONLESS_TESTS
+
+        >>> from pandera.io import from_frictionless_schema
+        >>>
+        >>> FRICTIONLESS_SCHEMA = {
+        ...     "fields": [
+        ...         {
+        ...             "name": "column_1",
+        ...             "type": "integer",
+        ...             "constraints": {"minimum": 10, "maximum": 99}
+        ...         },
+        ...         {
+        ...             "name": "column_2",
+        ...             "type": "string",
+        ...             "constraints": {"maxLength": 10, "pattern": "\\S+"}
+        ...         },
+        ...     ],
+        ...     "primaryKey": "column_1"
+        ... }
+        >>> schema = from_frictionless_schema(FRICTIONLESS_SCHEMA)
+        >>> schema.columns["column_1"].checks
+        [<Check in_range: in_range(10, 99)>]
+        >>> schema.columns["column_1"].required
+        True
+        >>> schema.columns["column_1"].unique
+        True
+        >>> schema.columns["column_2"].checks
+        [<Check str_length: str_length(None, 10)>, <Check str_matches: str_matches('^\S+$')>]
     """
     try:
         from frictionless import Schema as FrictionlessSchema
