@@ -8,7 +8,7 @@ import warnings
 from collections.abc import Mapping
 from functools import partial
 from pathlib import Path
-from typing import Any, Optional, Union, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Optional, Union
 
 import pandas as pd
 
@@ -38,6 +38,7 @@ _MISSING_FRICTIONLESS_IMPORT_ERROR_MESSAGE = (
     "Frictionless schema parsing requires 'frictionless' to be installed. "
     "Please install 'frictionless' to use this feature."
 )
+
 
 def _get_dtype_string_alias(dtype: pandas_engine.DataType) -> str:
     """Get string alias of the datatype for serialization.
@@ -411,7 +412,7 @@ def to_yaml(dataframe_schema, stream=None):
         import yaml
     except ImportError as exc:  # pragma: no cover
         raise ImportError(_MISSING_PYYAML_IMPORT_ERROR_MESSAGE) from exc
-        
+
     statistics = serialize_schema(dataframe_schema)
 
     def _write_yaml(obj, stream):
@@ -614,7 +615,7 @@ def _format_script(script):
         import black
     except ImportError as exc:  # pragma: no cover
         raise ImportError(_FORMAT_SCRIPT_WARNING_MESSAGE) from exc
-        
+
     formatter = partial(black.format_str, mode=black.FileMode(line_length=80))
     return formatter(script)
 
