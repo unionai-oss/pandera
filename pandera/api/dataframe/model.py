@@ -158,7 +158,17 @@ class _SchemaDescriptor:
             else:
                 kwargs = {}
 
-            MODEL_CACHE[(cls, thread_id)] = cls.build_schema_(**kwargs)
+            try:
+                MODEL_CACHE[(cls, thread_id)] = cls.build_schema_(**kwargs)
+            except NotImplementedError as e:
+                # Raise AttributeError to signal that this attribute is not available
+                # for abstract/incomplete model classes. This allows introspection tools
+                # like pydoc to continue without crashing.
+                raise AttributeError(
+                    f"'{cls.__name__}' does not implement build_schema_() and cannot "
+                    f"generate a schema. To be able to generate a schema, subclass the"
+                    "DataFrameModel for a specific backend."
+                ) from e
 
         return MODEL_CACHE[(cls, thread_id)]  # type: ignore
 
