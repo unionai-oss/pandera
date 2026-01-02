@@ -15,6 +15,7 @@ from pandas._testing import assert_frame_equal
 
 import pandera.api.extensions as pax
 import pandera.pandas as pa
+from pandera.api.base.model import MetaModel
 from pandera.errors import SchemaError, SchemaInitError
 from pandera.typing import DataFrame, Index, Series, String
 
@@ -1489,6 +1490,22 @@ def test_inherit_alias() -> None:
     assert schema_alias.columns.get("_a") == pa.Column(str, name="_a")
     assert schema_alias.columns.get("_b") == pa.Column(str, name="_b")
     assert schema_alias.columns.get("_c") == pa.Column(str, name="_c")
+
+
+def test_inherit_alias_after_metaclass_access():
+    """Test that aliases are inherited after metaclass annotations access.
+    This guards against a bug caused by annotations leaking from parent classes
+    to child classes as noted in PEP 749, see
+    https://peps.python.org/pep-0749/#pre-existing-bugs"""
+    _ = MetaModel.__annotations__
+
+    class Base(pa.DataFrameModel):
+        a: Series[int] = pa.Field(alias="_a")
+
+    class Child(Base):
+        pass
+
+    assert list(Child.to_schema().columns.keys()) == ["_a"]
 
 
 def test_field_name_access():
