@@ -65,14 +65,24 @@ GENERIC_SCHEMA_CACHE: dict[
 
 
 def get_dtype_kwargs(annotation: AnnotationInfo) -> dict[str, Any]:
+
+    if annotation.arg in (str, int, float, bool, type(None)) or \
+                hasattr(annotation.arg, '__module__') and annotation.arg.__module__ == 'builtins':
+            return {}
+
     sig = inspect.signature(annotation.arg)  # type: ignore
     dtype_arg_names = list(sig.parameters.keys())
-    if len(annotation.metadata) != len(dtype_arg_names):  # type: ignore
+
+    dtype_params = [
+        item for item in annotation.metadata
+        if not isinstance(item, FieldInfo)
+    ]
+    if len(dtype_params) != len(dtype_arg_names):  # type: ignore
         raise TypeError(
             f"Annotation '{annotation.arg.__name__}' requires "  # type: ignore
             + f"all positional arguments {dtype_arg_names}."
         )
-    return dict(zip(dtype_arg_names, annotation.metadata))  # type: ignore
+    return dict(zip(dtype_arg_names, dtype_params))
 
 
 def _is_field(name: str) -> bool:
@@ -403,13 +413,21 @@ class DataFrameModel(Generic[TDataFrame, TSchema], BaseModel):
         for field_name, annotation in annotations.items():
             if not _is_field(field_name):
                 continue
+
             field = attrs[field_name]  # __init_subclass__ guarantees existence
             if not isinstance(field, FieldInfo):
                 raise SchemaInitError(
                     f"'{field_name}' can only be assigned a 'Field', "
                     + f"not a '{type(field)}.'"
                 )
-            fields[field.name] = (AnnotationInfo(annotation), field)
+            
+            if hasattr(cls, '__annotation_infos__') and field_name in cls.__annotation_infos__:  
+                annotation_info = cls.__annotation_infos__[field_name]  
+            else:
+                # Fallback to creating new AnnotationInfo if cache doesn't exist
+                annotation_info = AnnotationInfo(annotation)
+
+            fields[field.name] = (annotation_info, field)
         return fields
 
     @classmethod

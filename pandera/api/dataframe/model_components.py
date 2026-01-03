@@ -19,6 +19,7 @@ from pandera.api.base.model_components import (
 )
 from pandera.api.checks import Check
 from pandera.errors import SchemaInitError
+from pandera.utils import F
 
 AnyCallable = Callable[..., Any]
 
@@ -33,7 +34,7 @@ class FieldInfo(BaseFieldInfo):
 
     *new in 0.5.0*
     """
-
+    
     def _get_schema_properties(
         self,
         dtype: Any,
@@ -58,7 +59,7 @@ class FieldInfo(BaseFieldInfo):
         required: bool = True,
         name: str | None = None,
     ) -> dict[str, Any]:
-        """Create a schema_components.Column from a field."""
+        
         return self._get_schema_properties(
             dtype,
             nullable=self.nullable,

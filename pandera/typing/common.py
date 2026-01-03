@@ -15,6 +15,7 @@ from typing import (  # type: ignore[attr-defined]
     get_origin,
 )
 
+
 import typing_inspect
 
 from pandera import dtypes, errors
@@ -215,6 +216,7 @@ class AnnotationInfo:
         self.origin = self.arg = None
         self.is_annotated_type = False
 
+
         self.optional = typing_inspect.is_optional_type(raw_annotation)
         if self.optional and typing_inspect.is_union_type(raw_annotation):
             # Annotated with Optional or Union[..., NoneType]
@@ -227,6 +229,7 @@ class AnnotationInfo:
         args = get_args(raw_annotation) or None
         self.args = args
         self.arg = args[0] if args else args
+
 
         metadata = getattr(raw_annotation, "__metadata__", None)
 
