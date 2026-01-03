@@ -56,7 +56,8 @@ hypotheses = [
 ]
 io = [
     "pyyaml >= 5.1",
-    "black",
+]
+frictionless = [
     "frictionless <= 4.40.8",
 ]
 mypy = [
@@ -112,6 +113,8 @@ all = [
 
 [dependency-groups]
 dev = [
+    "black",
+    "frictionless <= 4.40.8",
     "duckdb",
     "hypothesis >= 6.92.7",
     "ipdb",

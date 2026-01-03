@@ -87,6 +87,11 @@ try:
 except ImportError:
     SKIP_PYSPARK_TYPING = True
 
+try:
+    import frictionless
+    SKIP_FRICTIONLESS_TESTS = False
+except ImportError:
+    SKIP_FRICTIONLESS_TESTS = True
 
 SKIP = sys.version_info < (3, 6)
 PY36 = sys.version_info < (3, 7)
