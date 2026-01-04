@@ -2,6 +2,7 @@
 
 import dataclasses
 import datetime
+import decimal
 import inspect
 import warnings
 from collections.abc import Iterable
@@ -294,6 +295,46 @@ class Float64(DataType, dtypes.Float64):
     """Semantic representation of a :class:`dt.Float64`."""
 
     type = dt.float64
+
+
+###############################################################################
+# decimal
+###############################################################################
+
+
+@Engine.register_dtype(
+    equivalents=[
+        "decimal",
+        decimal.Decimal,
+        dtypes.Decimal,
+        dtypes.Decimal(),
+        dt.Decimal,
+        dt.decimal,
+        dt.Decimal(nullable=False),
+    ]
+)
+@immutable(init=True)
+class Decimal(DataType, dtypes.Decimal):
+    """Semantic representation of a :class:`dt.Decimal`."""
+
+    type: type[dt.Decimal]
+
+    def __init__(self, precision: int | None = None, scale: int | None = None):
+        object.__setattr__(
+            self, "type", dt.Decimal(precision=precision, scale=scale)
+        )
+
+    @classmethod
+    def from_parametrized_dtype(cls, ibis_dtype: dt.Decimal):
+        """Convert a :class:`dt.Decimal` to a Pandera
+        :class:`~pandera.engines.ibis_engine.Decimal`."""
+        # Ibis precision may be nullable; Pandera imposes a default.
+        precision = (
+            ibis_dtype.precision
+            if ibis_dtype.precision is not None
+            else dtypes.DEFAULT_PYTHON_DECIMAL_PREC
+        )
+        return cls(precision=precision, scale=ibis_dtype.scale)
 
 
 ###############################################################################
