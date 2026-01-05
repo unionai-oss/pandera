@@ -332,6 +332,20 @@ def test_polars_object_coercible(to_dtype, container, result):
 
 
 @pytest.mark.parametrize(
+    "polars_dtype, expected_dtype",
+    [
+        (pl.Decimal(5, 2), pe.Decimal(5, 2)),
+        (pl.Decimal(None, 2), pe.Decimal(38, 2)),
+    ],
+)
+def test_polars_decimal_from_parametrized_dtype(polars_dtype, expected_dtype):
+    pandera_dtype = pe.Engine.dtype(polars_dtype)
+
+    assert pandera_dtype.precision == expected_dtype.precision
+    assert pandera_dtype.scale == expected_dtype.scale
+
+
+@pytest.mark.parametrize(
     "inner_dtype_cls",
     [
         pl.Utf8,
