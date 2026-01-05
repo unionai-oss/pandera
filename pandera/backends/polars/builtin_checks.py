@@ -246,9 +246,7 @@ def str_endswith(data: PolarsData, string: str) -> pl.LazyFrame:
     return data.lazyframe.select(pl.col(data.key).str.ends_with(string))
 
 
-@register_builtin_check(
-    error="str_length({min_value}, {max_value})",
-)
+@register_builtin_check()
 def str_length(
     data: PolarsData,
     min_value: int | None = None,

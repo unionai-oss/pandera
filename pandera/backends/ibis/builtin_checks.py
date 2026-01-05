@@ -280,9 +280,7 @@ def str_endswith(data: IbisData, string: str) -> ibis.Table:
     return _across(data.table, data.key, _.endswith(string))
 
 
-@register_builtin_check(
-    error="str_length({length})",
-)
+@register_builtin_check()
 def str_length(
     data: IbisData,
     min_value: int | None = None,

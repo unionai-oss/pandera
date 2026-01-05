@@ -325,9 +325,7 @@ def str_endswith(data: PysparkDataframeColumnObject, string: str) -> bool:
     return data.dataframe.filter(~cond).limit(1).count() == 0
 
 
-@register_builtin_check(
-    error="str_length({min_value}, {max_value})",
-)
+@register_builtin_check()
 @register_input_datatypes(acceptable_datatypes=convert_to_list(STRING_TYPE))
 def str_length(
     data: PysparkDataframeColumnObject,
