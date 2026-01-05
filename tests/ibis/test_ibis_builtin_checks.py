@@ -65,31 +65,25 @@ class BaseClass:
                     data_dict[key] = final_val
         return data_dict
 
-    @staticmethod
-    def convert_data(sample_data, convert_type):
+    @classmethod
+    def convert_data(cls, sample_data, convert_type):
         """
         Convert the numeric data to required format
         """
         if convert_type in ("float32", "float64"):
-            data_dict = BaseClass.convert_value(sample_data, float)
+            data_dict = cls.convert_value(sample_data, float)
 
         if convert_type == "decimal":
-            data_dict = BaseClass.convert_value(sample_data, decimal.Decimal)
+            data_dict = cls.convert_value(sample_data, decimal.Decimal)
 
         if convert_type == "date":
-            data_dict = BaseClass.convert_value(
-                sample_data, methodcaller("date")
-            )
+            data_dict = cls.convert_value(sample_data, methodcaller("date"))
 
         if convert_type == "time":
-            data_dict = BaseClass.convert_value(
-                sample_data, methodcaller("time")
-            )
+            data_dict = cls.convert_value(sample_data, methodcaller("time"))
 
         if convert_type == "binary":
-            data_dict = BaseClass.convert_value(
-                sample_data, methodcaller("encode")
-            )
+            data_dict = cls.convert_value(sample_data, methodcaller("encode"))
 
         return data_dict
 
@@ -384,6 +378,12 @@ class TestNotEqualToCheck(BaseClass):
                     ),
                 },
                 {
+                    "datatype": dt.Decimal(precision=38, scale=10),
+                    "data": self.convert_data(
+                        self.sample_numeric_data, "decimal"
+                    ),
+                },
+                {
                     "datatype": dt.Date,
                     "data": self.convert_data(
                         self.sample_datetime_data, "date"
@@ -491,6 +491,12 @@ class TestGreaterThanCheck(BaseClass):
                     ),
                 },
                 {
+                    "datatype": dt.Decimal(precision=38, scale=10),
+                    "data": self.convert_data(
+                        self.sample_numeric_data, "decimal"
+                    ),
+                },
+                {
                     "datatype": dt.Date,
                     "data": self.convert_data(
                         self.sample_datetime_data, "date"
@@ -594,6 +600,12 @@ class TestGreaterThanEqualToCheck(BaseClass):
                     "datatype": dt.Float64,
                     "data": self.convert_data(
                         self.sample_numeric_data, "float64"
+                    ),
+                },
+                {
+                    "datatype": dt.Decimal(precision=38, scale=10),
+                    "data": self.convert_data(
+                        self.sample_numeric_data, "decimal"
                     ),
                 },
                 {
@@ -707,6 +719,12 @@ class TestLessThanCheck(BaseClass):
                     ),
                 },
                 {
+                    "datatype": dt.Decimal(precision=38, scale=10),
+                    "data": self.convert_data(
+                        self.sample_numeric_data, "decimal"
+                    ),
+                },
+                {
                     "datatype": dt.Date,
                     "data": self.convert_data(
                         self.sample_datetime_data, "date"
@@ -810,6 +828,12 @@ class TestLessThanEqualToCheck(BaseClass):
                     "datatype": dt.Float64,
                     "data": self.convert_data(
                         self.sample_numeric_data, "float64"
+                    ),
+                },
+                {
+                    "datatype": dt.Decimal(precision=38, scale=10),
+                    "data": self.convert_data(
+                        self.sample_numeric_data, "decimal"
                     ),
                 },
                 {
@@ -934,6 +958,13 @@ class TestInRangeCheck(BaseClass):
                 "datatype": dt.Float64,
                 "data": self.convert_data(self.sample_numeric_data, "float64"),
             },
+            # TODO(deepyaman): Enable once the decimal issue is resolved
+            # {
+            #     "datatype": dt.Decimal(precision=38, scale=10),
+            #     "data": self.convert_data(
+            #         self.sample_numeric_data, "decimal"
+            #     ),
+            # },
             {
                 "datatype": dt.Date,
                 "data": self.convert_data(self.sample_datetime_data, "date"),
@@ -1119,6 +1150,12 @@ class TestIsInCheck(BaseClass):
                     ),
                 },
                 {
+                    "datatype": dt.Decimal(precision=38, scale=10),
+                    "data": self.convert_data(
+                        self.sample_numeric_data, "decimal"
+                    ),
+                },
+                {
                     "datatype": dt.Date,
                     "data": self.convert_data(
                         self.sample_datetime_data, "date"
@@ -1233,6 +1270,12 @@ class TestNotInCheck(BaseClass):
                     "datatype": dt.Float64,
                     "data": self.convert_data(
                         self.sample_numeric_data, "float64"
+                    ),
+                },
+                {
+                    "datatype": dt.Decimal(precision=38, scale=10),
+                    "data": self.convert_data(
+                        self.sample_numeric_data, "decimal"
                     ),
                 },
                 {
@@ -1409,6 +1452,39 @@ class TestStringType(BaseClass):
 class TestUniqueValuesEqCheck(BaseClass):
     """This class is used to test the unique values eq check"""
 
+    # Use the original `convert_value` implementation. Once the upstream
+    # issue is fixed, we can remove this override; the "original" method
+    # will again be the `BaseClass` implementation.
+    @staticmethod
+    def convert_value(sample_data, conversion_datatype):
+        """
+        Convert the sample data to other formats excluding dates and does not
+        support complex datatypes such as array and map as of now
+        """
+
+        data_dict = {}
+        for key, value in sample_data.items():
+            if key == "test_expression":
+                if not isinstance(value, list):
+                    data_dict[key] = conversion_datatype(value)
+                else:
+                    data_dict[key] = [conversion_datatype(i) for i in value]
+
+            else:
+                if not isinstance(value[0][1], list):
+                    data_dict[key] = [
+                        (i[0], conversion_datatype(i[1])) for i in value
+                    ]
+                else:
+                    final_val = []
+                    for row in value:
+                        data_val = []
+                        for column in row[1]:
+                            data_val.append(conversion_datatype(column))
+                        final_val.append((row[0], data_val))
+                    data_dict[key] = final_val
+        return data_dict
+
     sample_numeric_data = {
         "test_pass_data": [("foo", 32), ("bar", 31)],
         "test_fail_data": [("foo", 31), ("bar", 31)],
@@ -1487,6 +1563,12 @@ class TestUniqueValuesEqCheck(BaseClass):
                     "datatype": dt.Float64,
                     "data": self.convert_data(
                         self.sample_numeric_data, "float64"
+                    ),
+                },
+                {
+                    "datatype": dt.Decimal(precision=38, scale=10),
+                    "data": self.convert_data(
+                        self.sample_numeric_data, "decimal"
                     ),
                 },
                 {
