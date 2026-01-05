@@ -78,6 +78,9 @@ As you can see in the examples above, you can define a schema by sub-classing
 The {func}`~pandera.decorators.check_types` decorator is required to perform validation of the dataframe at
 run-time.
 
+The {func}`~pandera.api.dataframe.model_components.Field` class is used to define the schema
+specification for a column or index.
+
 Note that {class}`~pandera.api.dataframe.model_components.Field` s apply to both
 {class}`~pandera.api.pandas.components.Column` and {class}`~pandera.api.pandas.components.Index`
 objects, exposing the built-in {class}`Check` s via key-word arguments.
