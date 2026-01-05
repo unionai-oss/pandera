@@ -13,6 +13,7 @@ from polars.datatypes import (
     Categorical,
     Date,
     Datetime,
+    Decimal,
     Duration,
     Float32,
     Float64,
@@ -264,6 +265,12 @@ class TestEqualToCheck(BaseClass):
                     "datatype": Float64,
                     "data": self.convert_data(
                         self.sample_numeric_data, "float64"
+                    ),
+                },
+                {
+                    "datatype": Decimal(precision=38, scale=10),
+                    "data": self.convert_data(
+                        self.sample_numeric_data, "decimal"
                     ),
                 },
                 {
