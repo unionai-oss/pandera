@@ -20,19 +20,6 @@ from pandera.constants import CHECK_OUTPUT_KEY
 from pandera.engines import polars_engine as pe
 from pandera.engines.polars_engine import polars_object_coercible
 
-
-def convert_object_to_decimal(
-    number: Union[Decimal, float, str, tuple[int, Sequence[int], int]],
-    precision: int,
-    scale: int,
-) -> decimal.Decimal:
-    """Convert number to decimal with precision and scale."""
-    decimal.getcontext().prec = precision
-    return decimal.Decimal(number).quantize(
-        decimal.Decimal(f"1e-{scale}"), decimal.ROUND_HALF_UP
-    )
-
-
 POLARS_NUMERIC_DTYPES = [
     pl.Int8,
     pl.Int16,
@@ -45,7 +32,6 @@ POLARS_NUMERIC_DTYPES = [
     pl.Float32,
     pl.Float64,
 ]
-
 
 numeric_dtypes = [
     pe.Int8,

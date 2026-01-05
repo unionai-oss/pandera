@@ -319,7 +319,12 @@ class Decimal(DataType, dtypes.Decimal):
 
     type: type[dt.Decimal]
 
-    def __init__(self, precision: int | None = None, scale: int | None = None):
+    # Ibis Decimal doesn't have a rounding attribute.
+    rounding = None
+
+    def __init__(
+        self, precision: int = dtypes.DEFAULT_PYTHON_PREC, scale: int = 0
+    ):
         object.__setattr__(
             self, "type", dt.Decimal(precision=precision, scale=scale)
         )
@@ -328,13 +333,14 @@ class Decimal(DataType, dtypes.Decimal):
     def from_parametrized_dtype(cls, ibis_dtype: dt.Decimal):
         """Convert a :class:`dt.Decimal` to a Pandera
         :class:`~pandera.engines.ibis_engine.Decimal`."""
-        # Ibis precision may be nullable; Pandera imposes a default.
+        # Ibis precision and scale may be nullable; Pandera imposes a default.
         precision = (
             ibis_dtype.precision
             if ibis_dtype.precision is not None
-            else dtypes.DEFAULT_PYTHON_DECIMAL_PREC
+            else dtypes.DEFAULT_PYTHON_PREC
         )
-        return cls(precision=precision, scale=ibis_dtype.scale)
+        scale = ibis_dtype.scale if ibis_dtype.scale is not None else 0
+        return cls(precision=precision, scale=scale)
 
 
 ###############################################################################

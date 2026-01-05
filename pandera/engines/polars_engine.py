@@ -384,7 +384,7 @@ class Decimal(DataType, dtypes.Decimal):
 
     type = pl.Decimal
 
-    # polars Decimal doesn't have a rounding attribute
+    # Polars Decimal doesn't have a rounding attribute.
     rounding = None
 
     def __init__(
