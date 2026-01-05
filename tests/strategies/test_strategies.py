@@ -391,10 +391,7 @@ def test_str_length_checks(chained, data, value_range):
             max_value=max_value + 5,
         )
     str_length_st = strategies.str_length_strategy(
-        pa.String,
-        base_st,
-        min_value=min_value,
-        max_value=max_value,
+        pa.String, base_st, min_value=min_value, max_value=max_value
     )
     example = data.draw(str_length_st)
     assert min_value <= len(example) <= max_value

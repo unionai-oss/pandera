@@ -90,8 +90,6 @@ def str_endswith(data: Any, string: str) -> Any:
 @Check.register_builtin_check_fn
 def str_length(
     data: Any,
-    value: int | None = None,
-    *,
     min_value: int | None = None,
     max_value: int | None = None,
 ) -> Any:

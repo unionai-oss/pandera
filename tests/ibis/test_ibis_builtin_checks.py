@@ -85,26 +85,24 @@ class BaseClass:
         fail_case_data,
         data_types,
         function_args,
-        function_kwargs=None,
         fail_on_init=False,
         init_exception_cls=None,
     ):
         """
         This function does performs the actual validation
         """
-        _kwargs = function_kwargs or {}
         if fail_on_init:
             with pytest.raises(init_exception_cls):
-                check_fn(*function_args, **_kwargs)
+                check_fn(*function_args)
             return
 
         schema = DataFrameSchema(
             {
                 "product": Column(dt.String),
                 "code": (
-                    Column(data_types, check_fn(*function_args, **_kwargs))
+                    Column(data_types, check_fn(*function_args))
                     if isinstance(function_args, tuple)
-                    else Column(data_types, check_fn(function_args, **_kwargs))
+                    else Column(data_types, check_fn(function_args))
                 ),
             }
         )
@@ -1302,71 +1300,17 @@ class TestStringType(BaseClass):
         )
 
     @pytest.mark.parametrize(
-        "check_value_args, check_value_kwargs, pass_data, fail_data",
-        [
-            (
-                (),
-                {"min_value": 3, "max_value": None},
-                [("Bal", "Bat"), ("Bal", "Batt")],
-                [("Bal", "Cs"), ("Bal", "BamBam")],
-            ),
-            (
-                (),
-                {"min_value": None, "max_value": 4},
-                [("Bal", "Bat"), ("Bal", "Batt")],
-                [("Bal", "Cs"), ("Bal", "BamBam")],
-            ),
-            (
-                (),
-                {"min_value": 3, "max_value": 7},
-                [("Bal", "Bat"), ("Bal", "Batt")],
-                [("Bal", "Cs"), ("Bal", "BamBam")],
-            ),
-            (
-                (),
-                {"min_value": 1, "max_value": 4},
-                [("Bal", "Bat"), ("Bal", "Batt")],
-                [("Bal", "Cs"), ("Bal", "BamBam")],
-            ),
-            (
-                (),
-                {"min_value": 3, "max_value": 4},
-                [("Bal", "Bat"), ("Bal", "Batt")],
-                [("Bal", "Cs"), ("Bal", "BamBam")],
-            ),
-            ((), {"value": 3}, [("Bal", "Bat")], [("Bal", "Cs")]),
-            ((3,), {}, [("Bal", "Bat")], [("Bal", "Cs")]),
-            ((), {"min_value": None, "max_value": None}, None, None),
-            (
-                (),
-                {"value": None, "min_value": None, "max_value": None},
-                None,
-                None,
-            ),
-            ((3,), {"min_value": 3, "max_value": None}, None, None),
-        ],
+        "check_value",
+        [(3, None), (None, 4), (3, 7), (1, 4), (3, 4), (None, None)],
     )
-    def test_str_length_check(
-        self, check_value_args, check_value_kwargs, pass_data, fail_data
-    ) -> None:
+    def test_str_length_check(self, check_value) -> None:
         """Test the Check to see if length of strings is within a specified range."""
         check_func = pa.Check.str_length
 
-        if (
-            check_value_args == ()
-            and check_value_kwargs.get("value", None) is None
-            and check_value_kwargs.get("min_value", None) is None
-            and check_value_kwargs.get("max_value", None) is None
-        ) or (
-            (
-                check_value_args != ()
-                or check_value_kwargs.get("value", None) is not None
-            )
-            and (
-                check_value_kwargs.get("min_value", None) is not None
-                or check_value_kwargs.get("max_value", None) is not None
-            )
-        ):
+        pass_data = [("Bal", "Bat"), ("Bal", "Batt")]
+        fail_data = [("Bal", "Cs"), ("Bal", "BamBam")]
+
+        if check_value == (None, None):
             fail_on_init = True
             init_exception_cls = ValueError
         else:
@@ -1378,8 +1322,7 @@ class TestStringType(BaseClass):
             pass_data,
             fail_data,
             dt.String(),
-            check_value_args,
-            check_value_kwargs,
+            check_value,
             fail_on_init=fail_on_init,
             init_exception_cls=init_exception_cls,
         )
