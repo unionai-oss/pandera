@@ -1233,6 +1233,29 @@ class TestStringType(BaseClass):
             init_exception_cls=init_exception_cls,
         )
 
+    @pytest.mark.parametrize(
+        "check_value",
+        [3, 4],  # exact length values
+    )
+    def test_str_length_exact_check(self, check_value) -> None:
+        """Test the Check to see if length of strings is exactly a specified value."""
+        check_func = pa.Check.str_length
+
+        if check_value == 3:
+            pass_data = [("Bal", "Bat"), ("Bal", "Bam")]
+            fail_data = [("Bal", "Batt"), ("Bal", "BamBam")]
+        else:  # check_value == 4
+            pass_data = [("Bal", "Batt"), ("Bal", "Bamm")]
+            fail_data = [("Bal", "Bat"), ("Bal", "BamBam")]
+
+        self.check_function(
+            check_func,
+            pass_data,
+            fail_data,
+            Utf8(),
+            (check_value,),  # single arg tuple to be unpacked
+        )
+
 
 class TestInRangeCheck(BaseClass):
     """This class is used to test the value in range check"""

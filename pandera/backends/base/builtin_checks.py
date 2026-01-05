@@ -92,6 +92,7 @@ def str_length(
     data: Any,
     min_value: int | None = None,
     max_value: int | None = None,
+    exact_value: int | None = None,
 ) -> Any:
     raise NotImplementedError
 

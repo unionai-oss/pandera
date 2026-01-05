@@ -57,11 +57,18 @@ def test_field_no_checks() -> None:
         ("str_contains", "a", pa.Check.str_contains("a")),
         ("str_endswith", "a", pa.Check.str_endswith("a")),
         ("str_matches", "a", pa.Check.str_matches("a")),
+        # str_length with dict (kwargs style)
         (
             "str_length",
             {"min_value": 1, "max_value": 9},
             pa.Check.str_length(1, 9),
         ),
+        # str_length with int (exact length)
+        ("str_length", 5, pa.Check.str_length(5)),
+        # str_length with single-element tuple (exact length)
+        ("str_length", (5,), pa.Check.str_length(5)),
+        # str_length with tuple (min, max range)
+        ("str_length", (1, 9), pa.Check.str_length(1, 9)),
         ("str_startswith", "a", pa.Check.str_startswith("a")),
     ],
 )

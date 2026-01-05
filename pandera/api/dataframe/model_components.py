@@ -124,7 +124,11 @@ def Field(
     notin: Iterable[Any] | None = None,
     str_contains: str | None = None,
     str_endswith: str | None = None,
-    str_length: dict[str, Any] | None = None,
+    str_length: int
+    | tuple[int]
+    | tuple[int, int]
+    | dict[str, int]
+    | None = None,
     str_matches: str | None = None,
     str_startswith: str | None = None,
     nullable: bool = False,
@@ -197,6 +201,9 @@ def Field(
             continue
         if isinstance(arg_value, dict):
             check_ = check_constructor(**arg_value, **check_kwargs)
+        elif isinstance(arg_value, tuple):
+            # Unpack tuples as positional args (e.g., str_length=(1, 5))
+            check_ = check_constructor(*arg_value, **check_kwargs)
         else:
             check_ = check_constructor(arg_value, **check_kwargs)
         checks.append(check_)

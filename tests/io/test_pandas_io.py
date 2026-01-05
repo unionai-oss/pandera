@@ -194,6 +194,7 @@ columns:
         ignore_na: true
     - min_value: 1
       max_value: 3
+      exact_value: null
       options:
         check_name: str_length
         raise_warning: false
@@ -250,6 +251,7 @@ columns:
     checks:
     - min_value: 1
       max_value: 3
+      exact_value: null
       options:
         check_name: str_length
         raise_warning: false
@@ -542,6 +544,7 @@ columns:
         ignore_na: true
     - min_value: 1
       max_value: 3
+      exact_value: null
       options:
         check_name: str_length
         raise_warning: false
@@ -785,6 +788,7 @@ columns:
         ignore_na: true
     - min_value: 1
       max_value: 3
+      exact_value: null
       options:
         check_name: str_length
         raise_warning: false
@@ -841,6 +845,7 @@ columns:
     checks:
     - min_value: 1
       max_value: 3
+      exact_value: null
       options:
         check_name: str_length
         raise_warning: false
@@ -1750,6 +1755,7 @@ columns:
     checks:
     - min_value: 3
       max_value: 80
+      exact_value: null
       options:
         check_name: str_length
         raise_warning: false
@@ -1781,6 +1787,7 @@ columns:
     checks:
     - min_value: 3
       max_value: null
+      exact_value: null
       options:
         check_name: str_length
         raise_warning: false
@@ -1797,6 +1804,7 @@ columns:
     checks:
     - min_value: null
       max_value: 3
+      exact_value: null
       options:
         check_name: str_length
         raise_warning: false

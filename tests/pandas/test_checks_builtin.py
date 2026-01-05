@@ -954,6 +954,12 @@ class TestStrLength:
             Check.str_length()
 
     @staticmethod
+    def test_too_many_args():
+        """Test that too many positional args raises error"""
+        with pytest.raises(ValueError, match="at most 2 positional arguments"):
+            Check.str_length(1, 2, 3)
+
+    @staticmethod
     @pytest.mark.parametrize(
         "series_values, min_len, max_len",
         [
@@ -966,6 +972,35 @@ class TestStrLength:
         """Run checks which should succeed"""
         check_values(
             series_values, Check.str_length(min_len, max_len), True, {}
+        )
+
+    @staticmethod
+    @pytest.mark.parametrize(
+        "series_values, exact_len",
+        [
+            (("abc", "def"), 3),  # exact length with single positional arg
+            (("ab", "cd"), 2),
+        ],
+    )
+    def test_exact_length_succeeding(series_values, exact_len):
+        """Test exact length matching with single positional arg"""
+        check_values(series_values, Check.str_length(exact_len), True, {})
+
+    @staticmethod
+    @pytest.mark.parametrize(
+        "series_values, exact_len, failure_cases",
+        [
+            (("abc", "defabc"), 3, {"defabc"}),  # "defabc" is 6 chars
+            (("ab", "abc"), 2, {"abc"}),
+        ],
+    )
+    def test_exact_length_failing(series_values, exact_len, failure_cases):
+        """Test exact length matching failures"""
+        check_values(
+            series_values, Check.str_length(exact_len), False, failure_cases
+        )
+        check_raise_error_or_warning(
+            series_values, Check.str_length(exact_len)
         )
 
     @staticmethod

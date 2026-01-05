@@ -287,6 +287,7 @@ def str_length(
     data: IbisData,
     min_value: int | None = None,
     max_value: int | None = None,
+    exact_value: int | None = None,
 ) -> ibis.Table:
     """Ensure that the length of strings is within a specified range.
 
@@ -294,13 +295,17 @@ def str_length(
         to access the table is "table", and the key to access the column name is "key".
     :param min_value: Minimum length of strings (inclusive). (default: no minimum)
     :param max_value: Maximum length of strings (inclusive). (default: no maximum)
+    :param exact_value: Exact length of strings. (default: no exact value)
     """
+    if exact_value is not None:
+        func = _.length() == exact_value
+        return _across(data.table, data.key, func)
+
     if min_value is None and max_value is None:
         raise ValueError(
             "Must provide at least one of 'min_value' and 'max_value'"
         )
-
-    if min_value is None:
+    elif min_value is None:
         func = _.length() <= max_value
     elif max_value is None:
         func = _.length() >= min_value

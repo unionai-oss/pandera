@@ -28,7 +28,11 @@ def Field(
     notin: Iterable = None,
     str_contains: str | None = None,
     str_endswith: str | None = None,
-    str_length: dict[str, Any] | None = None,
+    str_length: int
+    | tuple[int]
+    | tuple[int, int]
+    | dict[str, int]
+    | None = None,
     str_matches: str | None = None,
     str_startswith: str | None = None,
     nullable: bool = False,

@@ -524,15 +524,54 @@ class Check(BaseCheck):
     @classmethod
     def str_length(
         cls,
+        *args,
         min_value: int | None = None,
         max_value: int | None = None,
+        exact_value: int | None = None,
         **kwargs,
     ) -> "Check":
         """Ensure that the length of strings is within a specified range.
 
+        This method supports multiple calling conventions:
+
+        .. code-block:: python
+
+            Check.str_length(5)  # exact length of 5
+            Check.str_length(1, 5)  # length between 1 and 5 (inclusive)
+            Check.str_length(min_value=1, max_value=5)  # same as above
+            Check.str_length(min_value=1)  # length >= 1
+            Check.str_length(max_value=5)  # length <= 5
+
+        :param args: Positional arguments. If one value is provided, it
+            represents the exact length. If two values are provided, they
+            represent min_value and max_value respectively.
         :param min_value: Minimum length of strings (default: no minimum)
         :param max_value: Maximum length of strings (default: no maximum)
+        :param exact_value: Exact length of strings. (default: no exact value)
+        :param kwargs: key-word arguments passed into the `Check` initializer.
         """
+        if len(args) == 1:
+            # Single positional arg means exact length
+            exact_value = args[0]
+        elif len(args) == 2:
+            # Two positional args means min and max
+            min_value = args[0]
+            max_value = args[1]
+        elif len(args) > 2:
+            raise ValueError(
+                "str_length accepts at most 2 positional arguments "
+                f"(min_value, max_value), got {len(args)}"
+            )
+
+        if exact_value is not None:
+            return cls.from_builtin_check_name(
+                "str_length",
+                kwargs,
+                error=f"str_length({exact_value})",
+                defaults={"determined_by_unique": True},
+                exact_value=exact_value,
+            )
+
         if min_value is None and max_value is None:
             raise ValueError(
                 "At least a minimum or a maximum need to be specified. Got "
@@ -545,6 +584,7 @@ class Check(BaseCheck):
             defaults={"determined_by_unique": True},
             min_value=min_value,
             max_value=max_value,
+            exact_value=exact_value,
         )
 
     @classmethod
