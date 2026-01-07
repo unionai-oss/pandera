@@ -383,14 +383,49 @@ class Check(BaseCheck):
         """
         # Handle positional arguments for backward compatibility
         # in_range(0, 1) or in_range(0, 1, True, False) should work
+        # Track whether values were provided (vs being default None)
+        min_value_provided = min_value is not None
+        max_value_provided = max_value is not None
+
         if len(args) >= 2:
             min_value = args[0]
             max_value = args[1]
+            min_value_provided = True
+            max_value_provided = True
+        elif len(args) == 1:
+            # If only one positional arg is provided without keyword args,
+            # raise TypeError to match original behavior
+            if not min_value_provided and not max_value_provided:
+                raise TypeError(
+                    "in_range() missing required argument: 'max_value'"
+                )
+            # One positional arg with one keyword arg
+            if not min_value_provided:
+                min_value = args[0]
+                min_value_provided = True
+            elif not max_value_provided:
+                max_value = args[0]
+                max_value_provided = True
         if len(args) >= 3:
             include_min = args[2]
         if len(args) >= 4:
             include_max = args[3]
 
+        # Check for missing required arguments
+        if not min_value_provided and not max_value_provided:
+            raise TypeError(
+                "in_range() missing required arguments: 'min_value' and 'max_value'"
+            )
+        if not min_value_provided:
+            raise TypeError(
+                "in_range() missing required argument: 'min_value'"
+            )
+        if not max_value_provided:
+            raise TypeError(
+                "in_range() missing required argument: 'max_value'"
+            )
+
+        # Check for invalid None values (explicitly passed)
         if min_value is None:
             raise ValueError("min_value must not be None")
         if max_value is None:
