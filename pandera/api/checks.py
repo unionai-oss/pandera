@@ -369,6 +369,16 @@ class Check(BaseCheck):
         :param include_max: Defines whether min_value is also an allowed value
             (the default) or whether all values must be strictly smaller than
             max_value.
+
+        :example:
+
+        >>> import pandera as pa
+        >>>
+        >>> pa.Check.in_range(0, 1)  # positional args
+        >>> pa.Check.in_range(0, 1, True)  # positional args, include_min=True
+        >>> pa.Check.in_range(0, 1, True, False)  # positional args, include_min=True, include_max=False
+        >>> pa.Check.in_range(min_value=0, max_value=1)  # keyword args
+        >>> pa.Check.in_range(min_value=0, max_value=1, include_min=True, include_max=False)  # keyword args
         """
         # Handle positional arguments for backward compatibility
         # in_range(0, 1) or in_range(0, 1, True, False) should work
@@ -423,10 +433,12 @@ class Check(BaseCheck):
 
         :example:
 
-        >>> Check.isin([1, 2, 3])  # single list/tuple as positional arg
-        >>> Check.isin(1, 2, 3)  # multiple values as positional args
-        >>> Check.isin(allowed_values=[1, 2, 3])  # keyword arg
-        >>> Check.isin(allowed_values=[1, 2, 3])
+        >>> import pandera as pa
+        >>>
+        >>> pa.Check.isin([1, 2, 3])  # single list/tuple as positional arg
+        >>> pa.Check.isin(1, 2, 3)  # multiple values as positional args
+        >>> pa.Check.isin(allowed_values=[1, 2, 3])  # keyword arg
+        >>> pa.Check.isin(allowed_values=[1, 2, 3])
         """
         values: Iterable
         if allowed_values is not None:
@@ -478,9 +490,11 @@ class Check(BaseCheck):
 
         :example:
 
-        >>> Check.notin([1, 2, 3])  # single list/tuple as positional arg
-        >>> Check.notin(1, 2, 3)  # multiple values as positional args
-        >>> Check.notin(forbidden_values=[1, 2, 3])  # keyword arg
+        >>> import pandera as pa
+        >>>
+        >>> pa.Check.notin([1, 2, 3])  # single list/tuple as positional arg
+        >>> pa.Check.notin(1, 2, 3)  # multiple values as positional args
+        >>> pa.Check.notin(forbidden_values=[1, 2, 3])  # keyword arg
         """
         values: Iterable
         if forbidden_values is not None:
