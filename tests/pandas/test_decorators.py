@@ -4,6 +4,7 @@ import asyncio
 import pickle
 import typing
 from contextlib import nullcontext
+from copy import deepcopy
 
 import numpy as np
 import pandas as pd
@@ -996,6 +997,389 @@ def test_check_types_union_args() -> None:
 
     with pytest.raises(errors.SchemaErrors):
         validate_union_wrong_outputs(pd.DataFrame({"a": [0, 0]}))  # type: ignore [arg-type]
+
+
+def test_check_types_tuple_args() -> None:
+    """Test that the @check_types decorator works with
+    tuple[pandera.typing.DataFrame[S1], pandera.typing.DataFrame[S2]] type inputs/outputs
+    """
+
+    @check_types
+    def validate_tuple(
+        tuple_of_df: tuple[
+            DataFrame[OnlyZeroesSchema],
+            DataFrame[OnlyOnesSchema],
+        ],
+    ) -> tuple[DataFrame[OnlyZeroesSchema], DataFrame[OnlyOnesSchema]]:
+        return tuple_of_df
+
+    validate_tuple((pd.DataFrame({"a": [0, 0]}), pd.DataFrame({"a": [1, 1]})))  # type: ignore [arg-type]
+
+    with pytest.raises(errors.SchemaError):
+        validate_tuple(
+            (pd.DataFrame({"a": [0, 1]}), pd.DataFrame({"a": [1, 1]}))
+        )  # type: ignore [arg-type]
+    with pytest.raises(errors.SchemaError):
+        validate_tuple(
+            (pd.DataFrame({"a": [0, 0]}), pd.DataFrame({"a": [0, 1]}))
+        )  # type: ignore [arg-type]
+
+    @check_types
+    def validate_tuple_wrong_outputs(
+        tuple_of_df: tuple[
+            DataFrame[OnlyZeroesSchema], DataFrame[OnlyOnesSchema]
+        ],
+    ) -> tuple[DataFrame[OnlyZeroesSchema], DataFrame[OnlyOnesSchema]]:
+        new_df = deepcopy(tuple_of_df)
+        new_df[0]["a"] = [0, 1]
+        return new_df  # type: ignore [return-value]
+
+    with pytest.raises(errors.SchemaError):
+        validate_tuple_wrong_outputs(
+            (pd.DataFrame({"a": [0, 0]}), pd.DataFrame({"a": [0, 1]}))
+        )  # type: ignore [arg-type]
+
+
+def test_check_types_list_args() -> None:
+    """Test that the @check_types decorator works with
+    list[pandera.typing.DataFrame[S]] type inputs/outputs
+    """
+
+    @check_types
+    def validate_list(
+        list_of_df: list[DataFrame[OnlyZeroesSchema],],
+    ) -> list[DataFrame[OnlyZeroesSchema]]:
+        return list_of_df
+
+    validate_list(
+        [
+            pd.DataFrame({"a": [0, 0]}),
+            pd.DataFrame({"a": [0, 0]}),
+        ]
+    )  # type: ignore [arg-type]
+
+    with pytest.raises(errors.SchemaError):
+        validate_list(
+            [
+                pd.DataFrame({"a": [0, 0]}),
+                pd.DataFrame({"a": [0, 1]}),
+                pd.DataFrame({"a": [0, 0]}),
+            ]
+        )  # type: ignore [arg-type]
+
+    @check_types
+    def validate_list_wrong_outputs(
+        list_of_df: list[DataFrame[OnlyZeroesSchema]],
+    ) -> list[DataFrame[OnlyZeroesSchema]]:
+        new_df = list_of_df.copy()
+        new_df[0]["a"] = [0, 1]
+        return new_df  # type: ignore [return-value]
+
+    with pytest.raises(errors.SchemaError):
+        validate_list_wrong_outputs(
+            [
+                pd.DataFrame({"a": [0, 0]}),
+                pd.DataFrame({"a": [0, 0]}),
+            ]
+        )  # type: ignore [arg-type]
+
+
+def test_check_types_dict_args() -> None:
+    """Test that the @check_types decorator works with
+    dict[str, pandera.typing.DataFrame[S]] type inputs/outputs
+    """
+
+    @check_types
+    def validate_dict(
+        dict_of_df: dict[str, DataFrame[OnlyZeroesSchema]],
+    ) -> dict[str, DataFrame[OnlyZeroesSchema]]:
+        return dict_of_df
+
+    validate_dict(
+        {
+            "zeroes_1": pd.DataFrame({"a": [0, 0]}),
+            "zeroes_2": pd.DataFrame({"a": [0, 0]}),
+        }
+    )  # type: ignore [arg-type]
+
+    with pytest.raises(errors.SchemaError):
+        validate_dict(
+            {
+                "zeroes_1": pd.DataFrame({"a": [0, 1]}),
+                "zeroes_2": pd.DataFrame({"a": [0, 0]}),
+            }
+        )  # type: ignore [arg-type]
+
+    with pytest.raises(errors.SchemaError):
+        validate_dict(
+            {
+                "zeroes_1": pd.DataFrame({"a": [0, 0]}),
+                "zeroes_2": pd.DataFrame({"a": [0, 1]}),
+            }
+        )  # type: ignore [arg-type]
+
+    @check_types
+    def validate_dict_wrong_outputs(
+        dict_of_df: dict[str, DataFrame[OnlyZeroesSchema]],
+    ) -> dict[str, DataFrame[OnlyZeroesSchema]]:
+        new_df = dict_of_df.copy()
+        # arbitrarily mutate the first value to be wrong
+        k = next(iter(new_df))
+        new_df[k]["a"] = [0, 1]
+        return new_df  # type: ignore [return-value]
+
+    with pytest.raises(errors.SchemaError):
+        validate_dict_wrong_outputs(
+            {
+                "zeroes": pd.DataFrame({"a": [0, 0]}),
+                "ones": pd.DataFrame({"a": [0, 0]}),
+            }
+        )  # type: ignore [arg-type]
+
+
+def test_check_types_dict_of_union_args() -> None:
+    """Test that the @check_types decorator works with
+    dict[str, pandera.typing.DataFrame[S]] type inputs/outputs
+    """
+
+    @check_types
+    def validate_dict(
+        dict_of_union_df: dict[
+            str,
+            typing.Union[
+                DataFrame[OnlyZeroesSchema], DataFrame[OnlyOnesSchema]
+            ],
+        ],
+    ) -> dict[
+        str,
+        typing.Union[DataFrame[OnlyZeroesSchema], DataFrame[OnlyOnesSchema]],
+    ]:
+        return dict_of_union_df
+
+    validate_dict(
+        {
+            "zeroes": pd.DataFrame({"a": [0, 0]}),
+            "ones": pd.DataFrame({"a": [1, 1]}),
+        }
+    )  # type: ignore [arg-type]
+
+    with pytest.raises(errors.SchemaErrors):
+        validate_dict(
+            {
+                "zeroes": pd.DataFrame({"a": [0, 1]}),
+                "ones": pd.DataFrame({"a": [1, 1]}),
+            }
+        )  # type: ignore [arg-type]
+
+    with pytest.raises(errors.SchemaErrors):
+        validate_dict(
+            {
+                "zeroes": pd.DataFrame({"a": [0, 0]}),
+                "ones": pd.DataFrame({"a": [0, 1]}),
+            }
+        )  # type: ignore [arg-type]
+
+    @check_types
+    def validate_dict_wrong_outputs(
+        dict_of_union_df: dict[
+            str,
+            typing.Union[
+                DataFrame[OnlyZeroesSchema], DataFrame[OnlyOnesSchema]
+            ],
+        ],
+    ) -> dict[
+        str,
+        typing.Union[DataFrame[OnlyZeroesSchema], DataFrame[OnlyOnesSchema]],
+    ]:
+        new_df = dict_of_union_df.copy()
+        # arbitrarily mutate the first value to be wrong
+        k = next(iter(new_df))
+        new_df[k]["a"] = [0, 1]
+        return new_df  # type: ignore [return-value]
+
+    with pytest.raises(errors.SchemaErrors):
+        validate_dict_wrong_outputs(
+            {
+                "zeroes": pd.DataFrame({"a": [0, 0]}),
+                "ones": pd.DataFrame({"a": [0, 1]}),
+            }
+        )  # type: ignore [arg-type]
+
+
+def test_check_types_list_of_lists_args() -> None:
+    """Test that the @check_types decorator works with
+    list[list[pandera.typing.DataFrame[S]]] type inputs/outputs
+    """
+
+    @check_types
+    def validate_list_of_lists(
+        list_of_list_df: list[list[DataFrame[OnlyZeroesSchema]]],
+    ) -> list[list[DataFrame[OnlyZeroesSchema]]]:
+        return list_of_list_df
+
+    validate_list_of_lists(
+        [
+            [pd.DataFrame({"a": [0, 0]}), pd.DataFrame({"a": [0, 0]})],
+            [
+                pd.DataFrame({"a": [0, 0]}),
+            ],
+        ]
+    )  # type: ignore [arg-type]
+
+    with pytest.raises(errors.SchemaError):
+        validate_list_of_lists(
+            [
+                [pd.DataFrame({"a": [0, 1]}), pd.DataFrame({"a": [0, 0]})],
+                [
+                    pd.DataFrame({"a": [0, 0]}),
+                ],
+            ]
+        )  # type: ignore [arg-type]
+
+    @check_types
+    def validate_list_of_lists_wrong_outputs(
+        list_of_list_df: list[list[DataFrame[OnlyZeroesSchema]]],
+    ) -> list[list[DataFrame[OnlyZeroesSchema]]]:
+        new_df = [lst.copy() for lst in list_of_list_df]
+        # Change a value in the first DataFrame in the first list to be invalid
+        new_df[0][0]["a"] = [0, 1]
+        return new_df  # type: ignore [return-value]
+
+    with pytest.raises(errors.SchemaError):
+        validate_list_of_lists_wrong_outputs(
+            [
+                [pd.DataFrame({"a": [0, 0]}), pd.DataFrame({"a": [0, 0]})],
+                [
+                    pd.DataFrame({"a": [0, 0]}),
+                ],
+            ]
+        )  # type: ignore [arg-type]
+
+
+def test_check_types_list_of_tuples_args() -> None:
+    """Test that the @check_types decorator works with
+    list[tuple[pandera.typing.DataFrame[S1], pandera.typing.DataFrame[S2]]] type inputs/outputs
+    """
+
+    @check_types
+    def validate_list_of_tuples(
+        list_of_tuple_df: list[
+            tuple[
+                DataFrame[OnlyZeroesSchema],
+                DataFrame[OnlyOnesSchema],
+            ],
+        ],
+    ) -> list[tuple[DataFrame[OnlyZeroesSchema], DataFrame[OnlyOnesSchema]]]:
+        return list_of_tuple_df
+
+    validate_list_of_tuples(
+        [
+            (
+                pd.DataFrame({"a": [0, 0]}),
+                pd.DataFrame({"a": [1, 1]}),
+            ),
+            (
+                pd.DataFrame({"a": [0, 0]}),
+                pd.DataFrame({"a": [1, 1]}),
+            ),
+        ]
+    )  # type: ignore [arg-type]
+
+    with pytest.raises(errors.SchemaError):
+        validate_list_of_tuples(
+            [
+                (
+                    pd.DataFrame({"a": [0, 0]}),
+                    pd.DataFrame({"a": [1, 1]}),
+                ),
+                (
+                    pd.DataFrame({"a": [0, 0]}),
+                    pd.DataFrame({"a": [0, 1]}),
+                ),
+            ]
+        )  # type: ignore [arg-type]
+
+    @check_types
+    def validate_list_of_tuples_wrong_outputs(
+        list_of_tuple_df: list[
+            tuple[
+                DataFrame[OnlyZeroesSchema],
+                DataFrame[OnlyOnesSchema],
+            ],
+        ],
+    ) -> list[tuple[DataFrame[OnlyZeroesSchema], DataFrame[OnlyOnesSchema]]]:
+        new_df = list_of_tuple_df.copy()
+        new_df[0][1]["a"] = [0, 1]
+        return new_df  # type: ignore [return-value]
+
+    with pytest.raises(errors.SchemaError):
+        validate_list_of_tuples_wrong_outputs(
+            [
+                (
+                    pd.DataFrame({"a": [0, 0]}),
+                    pd.DataFrame({"a": [1, 1]}),
+                ),
+                (
+                    pd.DataFrame({"a": [0, 0]}),
+                    pd.DataFrame({"a": [0, 1]}),
+                ),
+            ]
+        )  # type: ignore [arg-type]
+
+
+def test_check_types_tuple_of_lists_args() -> None:
+    """Test that the @check_types decorator works with
+    tuple[list[pandera.typing.DataFrame[S1]], list[pandera.typing.DataFrame[S2]]] type inputs/outputs
+    """
+
+    @check_types
+    def validate_tuple_of_lists(
+        tuple_of_list_df: tuple[
+            list[DataFrame[OnlyZeroesSchema]],
+            list[DataFrame[OnlyOnesSchema]],
+        ],
+    ) -> tuple[
+        list[DataFrame[OnlyZeroesSchema]], list[DataFrame[OnlyOnesSchema]]
+    ]:
+        return tuple_of_list_df
+
+    validate_tuple_of_lists(
+        (
+            [pd.DataFrame({"a": [0, 0]}), pd.DataFrame({"a": [0, 0]})],
+            [
+                pd.DataFrame({"a": [1, 1]}),
+            ],
+        )
+    )  # type: ignore [arg-type]
+
+    with pytest.raises(errors.SchemaError):
+        validate_tuple_of_lists(
+            (
+                [pd.DataFrame({"a": [0, 0]}), pd.DataFrame({"a": [0, 0]})],
+                [pd.DataFrame({"a": [1, 0]}), pd.DataFrame({"a": [1, 1]})],
+            )
+        )  # type: ignore [arg-type]
+
+    @check_types
+    def validate_tuple_of_lists_wrong_outputs(
+        tuple_of_list_df: tuple[
+            list[DataFrame[OnlyZeroesSchema]],
+            list[DataFrame[OnlyOnesSchema]],
+        ],
+    ) -> tuple[
+        list[DataFrame[OnlyZeroesSchema]], list[DataFrame[OnlyOnesSchema]]
+    ]:
+        new_df = (tuple_of_list_df[0], tuple_of_list_df[1].copy())
+        new_df[1][0]["a"] = [0, 0]
+        return new_df  # type: ignore [return-value]
+
+    with pytest.raises(errors.SchemaError):
+        validate_tuple_of_lists_wrong_outputs(
+            (
+                [pd.DataFrame({"a": [0, 0]}), pd.DataFrame({"a": [0, 0]})],
+                [pd.DataFrame({"a": [1, 0]}), pd.DataFrame({"a": [1, 1]})],
+            )
+        )  # type: ignore [arg-type]
 
 
 def test_check_types_non_dataframes() -> None:
