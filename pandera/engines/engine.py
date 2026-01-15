@@ -260,7 +260,7 @@ class Engine(ABCMeta):
             or ((NamedTuple,) if _is_namedtuple(data_type) else ())
             or typing_inspect.get_generic_bases(data_type)
         )
-        if datatype_generic_bases and (base := datatype_generic_bases[0]) in {
+        if datatype_generic_bases and inspect.getmodule(base := datatype_generic_bases[0]).__name__ in {
             *sys.stdlib_module_names,
             "typing_extensions",
         }:

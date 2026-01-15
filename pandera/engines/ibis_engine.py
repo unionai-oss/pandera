@@ -507,7 +507,10 @@ class Map(DataType):
         object.__setattr__(
             self,
             "type",
-            dt.Map(key_type=ibis.dtype(key_type), value_type=ibis.dtype(value_type)),
+            dt.Map(
+                key_type=ibis.dtype(key_type),
+                value_type=ibis.dtype(value_type),
+            ),
         )
 
     @classmethod
