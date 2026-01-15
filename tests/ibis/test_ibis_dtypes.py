@@ -22,6 +22,10 @@ OTHER_TYPES = [
     ie.String,
 ]
 
+SPECIAL_TYPES = [
+    ie.Map,
+]
+
 ALL_TYPES = NUMERIC_TYPES + TEMPORAL_TYPES + OTHER_TYPES
 
 
@@ -71,7 +75,7 @@ def test_coerce_cast(from_dtype, to_dtype, strategy, data):
         assert dtype == to_dtype.type
 
 
-@pytest.mark.parametrize("dtype", ALL_TYPES)
+@pytest.mark.parametrize("dtype", ALL_TYPES + SPECIAL_TYPES)
 def test_check_not_equivalent(dtype):
     """Test that check() rejects non-equivalent dtypes."""
     if str(ie.Engine.dtype(dtype)) == "string":
@@ -82,7 +86,7 @@ def test_check_not_equivalent(dtype):
     assert not actual_dtype.check(expected_dtype)
 
 
-@pytest.mark.parametrize("dtype", ALL_TYPES)
+@pytest.mark.parametrize("dtype", ALL_TYPES + SPECIAL_TYPES)
 def test_check_equivalent(dtype):
     """Test that check() accepts equivalent dtypes."""
     actual_dtype = ie.Engine.dtype(dtype)
