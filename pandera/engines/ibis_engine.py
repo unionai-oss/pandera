@@ -58,7 +58,7 @@ class DataType(dtypes.DataType):
         data_container: ibis.Table | None = None,
     ) -> Union[bool, Iterable[bool]]:
         try:
-            return self.type == pandera_dtype.type
+            return self.type == Engine.dtype(pandera_dtype).type
         except TypeError:
             return False
 

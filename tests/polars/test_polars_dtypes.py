@@ -354,7 +354,7 @@ def test_polars_decimal_from_parametrized_dtype(polars_dtype, expected_dtype):
 )
 @given(st.integers(min_value=2, max_value=10))
 @settings(max_examples=5)
-def test_polars_nested_array_type_check(inner_dtype_cls, width):
+def test_polars_array_nested_type(inner_dtype_cls, width):
     polars_dtype = pl.Array(inner_dtype_cls(), width)
     pandera_dtype = pe.Engine.dtype(polars_dtype)
 

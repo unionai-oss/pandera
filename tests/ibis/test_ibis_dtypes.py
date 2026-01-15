@@ -134,3 +134,13 @@ def test_ibis_decimal_from_parametrized_dtype(ibis_dtype, expected_dtype):
 
     assert pandera_dtype.precision == expected_dtype.precision
     assert pandera_dtype.scale == expected_dtype.scale
+
+
+@pytest.mark.parametrize("key_dtype", ALL_TYPES)
+@pytest.mark.parametrize("value_dtype", ALL_TYPES)
+def test_ibis_map_nested_type(key_dtype, value_dtype):
+    ibis_dtype = dt.Map(key_dtype.type(), value_dtype.type())
+    pandera_dtype = ie.Engine.dtype(ibis_dtype)
+
+    assert pandera_dtype.check(ibis_dtype)
+    assert pandera_dtype.check(pandera_dtype)
