@@ -501,14 +501,13 @@ class Timedelta(DataType, dtypes.DateTime):
 class Map(DataType):
     """Semantic representation of a :class:`dt.Map`."""
 
-    type: type[dt.Map]
+    type: dt.Map
 
-    def __init__(self, key_type: Any = dt.null, value_type: Any = dt.null):
-        object.__setattr__(
-            self,
-            "type",
-            dt.Map(key_type=ibis.dtype(key_type), value_type=ibis.dtype(value_type)),
-        )
+    def __init__(
+        self, key_type: dt.DataType | None = None, value_type: dt.DataType | None = None
+    ):
+        if key_type is not None and value_type is not None:
+            object.__setattr__(self, "type", dt.Map(key_type, value_type))
 
     @classmethod
     def from_parametrized_dtype(cls, ibis_dtype: dt.Map):

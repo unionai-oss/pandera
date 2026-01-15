@@ -623,7 +623,7 @@ class Array(DataType):
         elif shape is not None:
             kwargs["shape"] = shape
 
-        if inner:
+        if inner is not None:
             object.__setattr__(self, "type", pl.Array(inner=inner, **kwargs))
 
     @classmethod
@@ -655,7 +655,7 @@ class List(DataType):
         self,
         inner: PolarsDataType | None = None,
     ) -> None:
-        if inner:
+        if inner is not None:
             object.__setattr__(self, "type", pl.List(inner=inner))
 
     @classmethod
@@ -674,7 +674,7 @@ class Struct(DataType):
         self,
         fields: Union[Sequence[pl.Field], SchemaDict] | None = None,
     ) -> None:
-        if fields:
+        if fields is not None:
             object.__setattr__(self, "type", pl.Struct(fields=fields))
 
     @classmethod
