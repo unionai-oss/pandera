@@ -484,3 +484,37 @@ class Timedelta(DataType, dtypes.DateTime):
         """Convert a :class:`dt.Interval` to a Pandera
         :class:`~pandera.engines.ibis_engine.Timedelta`."""
         return cls(unit=ibis_dtype.unit)
+
+
+###############################################################################
+# nested
+###############################################################################
+
+
+@Engine.register_dtype(
+    equivalents=[
+        dict,
+        dt.Map,
+    ]
+)
+@immutable(init=True)
+class Map(DataType):
+    """Semantic representation of a :class:`dt.Map`."""
+
+    type: type[dt.Map]
+
+    def __init__(self, key_type: Any = dt.null, value_type: Any = dt.null):
+        object.__setattr__(
+            self,
+            "type",
+            dt.Map(key_type=ibis.dtype(key_type), value_type=ibis.dtype(value_type)),
+        )
+
+    @classmethod
+    def from_parametrized_dtype(cls, ibis_dtype: dt.Map):
+        """Convert a :class:`dt.Map` to a Pandera
+        :class:`~pandera.engines.ibis_engine.Map`."""
+        return cls(
+            key_type=ibis_dtype.key_type,
+            value_type=ibis_dtype.value_type,
+        )
