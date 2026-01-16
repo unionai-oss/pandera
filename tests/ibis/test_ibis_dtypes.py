@@ -5,9 +5,11 @@ import ibis.expr.datatypes as dt
 import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
+from ibis import _
 from polars.testing import assert_frame_equal
 from polars.testing.parametric import dataframes
 
+import pandera.ibis as pa
 from pandera.engines import ibis_engine as ie
 
 NUMERIC_TYPES = [
@@ -144,3 +146,47 @@ def test_ibis_map_nested_type(key_dtype, value_dtype):
 
     assert pandera_dtype.check(ibis_dtype)
     assert pandera_dtype.check(pandera_dtype)
+
+
+def test_ibis_map_type():
+    # https://github.com/unionai-oss/pandera/issues/2201
+    data = {
+        "id": ["01", "02", "03"],
+        "key_col": [
+            [1, 2, 3],
+            [
+                1,
+                2,
+            ],
+            None,
+        ],
+        "value_col": [
+            ["value_1A", "value_1B", "value_1C"],
+            ["value_2A", "value_2B"],
+            None,
+        ],
+    }
+    df = (
+        ibis.memtable(data)
+        .mutate(dict_col=ibis.map(_.key_col, _.value_col))
+        .drop("key_col", "value_col")
+    )
+
+    class ValidateSchema(pa.DataFrameModel):
+        id: str = pa.Field(nullable=False)
+        dict_col: ibis.dtype("map<int64, string>") = pa.Field(nullable=True)
+
+    ValidateSchema.validate(df)
+
+    class ValidateSchema(pa.DataFrameModel):
+        id: str = pa.Field(nullable=False)
+        dict_col: dt.Map = pa.Field(nullable=True)
+
+    ValidateSchema.validate(df)
+
+    class ValidateSchema(pa.DataFrameModel):
+        id: str = pa.Field(nullable=False)
+        dict_col: ibis.dtype("map<string, string>") = pa.Field(nullable=True)
+
+    with pytest.raises(pa.errors.SchemaError):
+        ValidateSchema.validate(df)
