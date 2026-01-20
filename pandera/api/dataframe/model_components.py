@@ -3,7 +3,6 @@
 from collections.abc import Callable, Iterable
 from typing import (
     Any,
-    Optional,
     Union,
     cast,
 )
@@ -119,16 +118,25 @@ def Field(
     ge: Any | None = None,
     lt: Any | None = None,
     le: Any | None = None,
-    in_range: dict[str, Any] | None = None,
+    in_range: Union[
+        tuple[Any, Any],
+        tuple[Any, Any, bool, bool],
+        tuple[Any, Any, bool, bool, bool],
+        tuple[Any, Any, bool, bool, bool, bool],
+        dict[str, Any],
+        None,
+    ] = None,
     isin: Iterable[Any] | None = None,
     notin: Iterable[Any] | None = None,
     str_contains: str | None = None,
     str_endswith: str | None = None,
-    str_length: int
-    | tuple[int]
-    | tuple[int, int]
-    | dict[str, int]
-    | None = None,
+    str_length: Union[
+        int,
+        tuple[int],
+        tuple[int, int],
+        dict[str, int],
+        None,
+    ] = None,
     str_matches: str | None = None,
     str_startswith: str | None = None,
     nullable: bool = False,
