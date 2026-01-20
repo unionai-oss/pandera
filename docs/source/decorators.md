@@ -160,6 +160,7 @@ print(preprocessed_df)
 The {func}`~pandera.decorators.check_input`, {func}`~pandera.decorators.check_output`, and {func}`~pandera.decorators.check_types` decorators all support validating DataFrames inside both `Union` and collection types (ex. `tuple`, `list`, `dict`).
 
 ### Union Types
+
 ```{code-cell} python
 import typing
 
@@ -188,11 +189,11 @@ process_either(pd.DataFrame({"a": [1, 1, 1]}))
 
 ```{code-cell} python
 @pa.check_types
-def process_tuple_and_return dict(
+def process_tuple_and_return_dict(
     dfs: tuple[DataFrame[OnlyZeroesSchema], DataFrame[OnlyOnesSchema]],
 ) -> dict[str, DataFrame[OnlyZeroesSchema]]:
     return {
-        "foo": dfs[0]
+        "foo": dfs[0],
         "bar": dfs[0]
     }
 
