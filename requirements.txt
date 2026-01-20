@@ -10,6 +10,7 @@ typing_inspect >= 0.6.0
 frictionless <= 4.40.8
 pyarrow >= 13
 pydantic
+narwhals >= 1.0.0
 scipy
 pandas-stubs
 scipy-stubs
