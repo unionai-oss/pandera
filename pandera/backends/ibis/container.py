@@ -14,6 +14,7 @@ from ibis.common.exceptions import IbisError
 
 from pandera.api.base.error_handler import get_error_category
 from pandera.api.ibis.error_handler import ErrorHandler
+from pandera.api.ibis.types import IbisData
 from pandera.backends.base import ColumnInfo, CoreCheckResult
 from pandera.backends.ibis.base import IbisSchemaBackend
 from pandera.backends.utils import convert_uniquesettings
@@ -29,6 +30,7 @@ from pandera.utils import is_regex
 from pandera.validation_depth import validate_scope, validation_type
 
 if TYPE_CHECKING:
+    from pandera.api.checks import Check
     from pandera.api.ibis.container import DataFrameSchema
 
 
@@ -138,25 +140,44 @@ class DataFrameSchemaBackend(IbisSchemaBackend):
         check_obj: ibis.Table,
         schema,
     ) -> list[CoreCheckResult]:
-        """Run a list of checks on the check object."""
-        # dataframe-level checks
-        check_results: list[CoreCheckResult] = []
+        """Run a list of checks using lazy evaluation with a shared wide table.
+
+        This method builds a wide table by passing through each check's apply()
+        method, then executes the wide table once and extracts individual check
+        results.
+
+        :param check_obj: The Ibis table to validate.
+        :param schema: The schema containing the checks to run.
+        :returns: List of CoreCheckResult objects.
+        """
+        if not schema.checks:
+            return []
+
+        # Preprocess once
+        wide_table = check_obj.as_table()
+        ibis_data = IbisData(wide_table, None)
+        checks_applied: list[tuple[int, Check]] = []
+        immediate_errors: list[CoreCheckResult] = []
+
+        # Phase 1: Build wide table by passing through each check's apply()
         for check_index, check in enumerate(schema.checks):
             try:
-                check_results.append(
-                    self.run_check(check_obj, schema, check, check_index)
+                check_backend = check.get_backend(check_obj)(check)
+                wide_table = check_backend.apply(
+                    ibis_data, wide_table, check_index
                 )
+                checks_applied.append((check_index, check))
             except SchemaDefinitionError:
                 raise
             except Exception as err:
-                # catch other exceptions that may occur when executing the check
+                # catch other exceptions that may occur when building the check
                 err_msg = f'"{err.args[0]}"' if err.args else ""
                 err_str = f"{err.__class__.__name__}({err_msg})"
                 msg = (
                     f"Error while executing check function: {err_str}\n"
                     + traceback.format_exc()
                 )
-                check_results.append(
+                immediate_errors.append(
                     CoreCheckResult(
                         passed=False,
                         check=check,
@@ -167,7 +188,19 @@ class DataFrameSchemaBackend(IbisSchemaBackend):
                         original_exc=err,
                     )
                 )
-        return check_results
+
+        if not checks_applied:
+            return immediate_errors
+
+        # Phase 2: Execute wide table once
+        wide_table_executed = wide_table.to_pandas()
+
+        # Phase 3: Extract individual check results
+        check_results = self._extract_check_results(
+            check_obj, wide_table_executed, checks_applied, schema
+        )
+
+        return immediate_errors + check_results
 
     def run_schema_component_checks(
         self,

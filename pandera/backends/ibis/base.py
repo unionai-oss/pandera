@@ -2,10 +2,13 @@
 
 import warnings
 from collections import defaultdict
+from typing import TYPE_CHECKING
 
 import ibis
 import ibis.selectors as s
+import pandas as pd
 
+from pandera.api.checks import Check
 from pandera.api.ibis.error_handler import ErrorHandler
 from pandera.api.ibis.types import CheckResult
 from pandera.backends.base import BaseSchemaBackend, CoreCheckResult
@@ -179,3 +182,97 @@ class IbisSchemaBackend(BaseSchemaBackend):
                 acc = acc & out[col]
 
         return out.filter(acc).drop(s.endswith(CHECK_OUTPUT_SUFFIX))
+
+    def _extract_check_results(
+        self,
+        original_table: ibis.Table,
+        wide_executed: pd.DataFrame,
+        checks_applied: list[tuple[int, Check]],
+        schema,
+    ) -> list[CoreCheckResult]:
+        """Extract individual CoreCheckResult from executed wide table.
+
+        :param original_table: The original Ibis table being validated.
+        :param wide_executed: The executed wide table as a pandas DataFrame.
+        :param checks_applied: List of (check_index, check) tuples for applied checks.
+        :param schema: The schema being validated against.
+        :returns: List of CoreCheckResult objects.
+        """
+        results = []
+
+        for check_index, check in checks_applied:
+            # Find check columns by prefix pattern: {check_index}_{col}{CHECK_OUTPUT_SUFFIX}
+            prefix = f"{check_index}_"
+            check_cols = [
+                c
+                for c in wide_executed.columns
+                if c.startswith(prefix) and c.endswith(CHECK_OUTPUT_SUFFIX)
+            ]
+
+            if not check_cols:
+                results.append(
+                    CoreCheckResult(
+                        passed=True,
+                        check=check,
+                        check_index=check_index,
+                        reason_code=SchemaErrorReason.DATAFRAME_CHECK,
+                    )
+                )
+                continue
+
+            # Compute passed: all check columns must be True for all rows
+            passed = wide_executed[check_cols].all(axis=None)
+
+            if passed:
+                results.append(
+                    CoreCheckResult(
+                        passed=True,
+                        check=check,
+                        check_index=check_index,
+                        reason_code=SchemaErrorReason.DATAFRAME_CHECK,
+                    )
+                )
+            else:
+                # Extract failure cases: rows where any check column is False
+                failure_mask = ~wide_executed[check_cols].all(axis=1)
+                original_cols = [
+                    c
+                    for c in wide_executed.columns
+                    if not c.endswith(CHECK_OUTPUT_SUFFIX)
+                ]
+                failure_cases = wide_executed.loc[failure_mask, original_cols]
+
+                # Apply n_failure_cases limit
+                if check.n_failure_cases is not None:
+                    failure_cases = failure_cases.head(check.n_failure_cases)
+
+                failure_cases = reshape_failure_cases(
+                    failure_cases, check.ignore_na
+                )
+                message = format_vectorized_error_message(
+                    schema, check, check_index, failure_cases
+                )
+
+                if check.raise_warning:
+                    warnings.warn(message, SchemaWarning)
+                    results.append(
+                        CoreCheckResult(
+                            passed=True,
+                            check=check,
+                            check_index=check_index,
+                            reason_code=SchemaErrorReason.DATAFRAME_CHECK,
+                        )
+                    )
+                else:
+                    results.append(
+                        CoreCheckResult(
+                            passed=False,
+                            check=check,
+                            check_index=check_index,
+                            reason_code=SchemaErrorReason.DATAFRAME_CHECK,
+                            message=message,
+                            failure_cases=failure_cases,
+                        )
+                    )
+
+        return results
