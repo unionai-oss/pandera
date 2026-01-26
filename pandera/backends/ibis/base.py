@@ -198,7 +198,16 @@ class IbisSchemaBackend(BaseSchemaBackend):
         :param schema: The schema being validated against.
         :returns: List of CoreCheckResult objects.
         """
+        from pandera.api.pandas.types import is_table
+
         results = []
+
+        # Get original column names (columns without check output suffix)
+        original_cols = [
+            c
+            for c in wide_executed.columns
+            if not c.endswith(CHECK_OUTPUT_SUFFIX)
+        ]
 
         for check_index, check in checks_applied:
             # Find check columns by prefix pattern: {check_index}_{col}{CHECK_OUTPUT_SUFFIX}
@@ -235,16 +244,22 @@ class IbisSchemaBackend(BaseSchemaBackend):
             else:
                 # Extract failure cases: rows where any check column is False
                 failure_mask = ~wide_executed[check_cols].all(axis=1)
-                original_cols = [
-                    c
-                    for c in wide_executed.columns
-                    if not c.endswith(CHECK_OUTPUT_SUFFIX)
-                ]
-                failure_cases = wide_executed.loc[failure_mask, original_cols]
+                failure_rows = wide_executed.loc[failure_mask, original_cols]
 
-                # Apply n_failure_cases limit
+                # Apply n_failure_cases limit (limiting rows before conversion)
                 if check.n_failure_cases is not None:
-                    failure_cases = failure_cases.head(check.n_failure_cases)
+                    failure_rows = failure_rows.head(check.n_failure_cases)
+
+                # Convert to dict records format, matching original run_check behavior
+                # Each row becomes a single failure case (a dict of column values)
+                if is_table(failure_rows):
+                    failure_cases = (
+                        pd.Series(failure_rows.to_dict("records"))
+                        .rename("failure_case")
+                        .to_frame()
+                    )
+                else:
+                    failure_cases = failure_rows
 
                 failure_cases = reshape_failure_cases(
                     failure_cases, check.ignore_na
