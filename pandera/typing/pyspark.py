@@ -14,7 +14,9 @@ try:
     import pyspark.pandas as ps
 
     PYSPARK_INSTALLED = True
-except ImportError:  # pragma: no cover
+except (ImportError, AttributeError):  # pragma: no cover
+    # AttributeError can occur when pyspark is installed but incompatible
+    # with the current pandas version
     PYSPARK_INSTALLED = False
 
 

@@ -33,7 +33,9 @@ try:
         _GenericAlias = None
 
     GEOPANDAS_INSTALLED = True
-except ImportError:  # pragma: no cover
+except (ImportError, AttributeError):  # pragma: no cover
+    # AttributeError can occur when geopandas is installed but incompatible
+    # with the current pandas version
     GEOPANDAS_INSTALLED = False
 
 

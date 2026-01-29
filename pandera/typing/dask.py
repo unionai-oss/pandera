@@ -9,7 +9,9 @@ try:
     import dask.dataframe as dd
 
     DASK_INSTALLED = True
-except ImportError:
+except (ImportError, AttributeError):
+    # AttributeError can occur when dask is installed but incompatible
+    # with the current pandas version
     DASK_INSTALLED = False
 
 

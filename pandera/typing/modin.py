@@ -12,7 +12,9 @@ try:
     import modin.pandas as mpd
 
     MODIN_INSTALLED = True
-except ImportError:
+except (ImportError, AttributeError):
+    # AttributeError can occur when modin is installed but incompatible
+    # with the current pandas version
     MODIN_INSTALLED = False
 
 

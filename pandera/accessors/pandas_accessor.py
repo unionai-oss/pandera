@@ -13,10 +13,12 @@ Schemas = Union[DataFrameSchema, SeriesSchema]
 class PanderaAccessor:
     """Pandera accessor for pandas object."""
 
+    # Key used to store schema in pandas object's attrs
+    _PANDERA_SCHEMA_KEY = "__pandera_schema__"
+
     def __init__(self, pandas_obj):
         """Initialize the pandera accessor."""
         self._pandas_obj = pandas_obj
-        self._schema: Schemas | None = None
 
     @staticmethod
     def check_schema_type(schema: Schemas):
@@ -26,13 +28,14 @@ class PanderaAccessor:
     def add_schema(self, schema):
         """Add a schema to the pandas object."""
         self.check_schema_type(schema)
-        self._schema = schema
+        # Store schema in the pandas object's attrs for persistence
+        self._pandas_obj.attrs[self._PANDERA_SCHEMA_KEY] = schema
         return self._pandas_obj
 
     @property
     def schema(self) -> Schemas | None:
         """Access schema metadata."""
-        return self._schema
+        return self._pandas_obj.attrs.get(self._PANDERA_SCHEMA_KEY)
 
 
 @pd.api.extensions.register_dataframe_accessor("pandera")
