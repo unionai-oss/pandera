@@ -22,6 +22,7 @@ from pandas import DatetimeTZDtype, to_datetime
 
 import pandera.pandas as pa
 from pandera.engines import pandas_engine
+from pandera.engines.pandas_engine import PANDAS_3_0_0_PLUS
 from pandera.engines.utils import pandas_version
 from pandera.system import FLOAT_128_AVAILABLE
 
@@ -595,8 +596,11 @@ def test_inferred_dtype(examples: pd.Series):
     alias = pd.api.types.infer_dtype(examples)
     if "mixed" in alias or alias == "string":
         # infer_dtype returns "string"
-        # whereas a Series will default to a "np.object_" dtype
-        inferred_datatype = pandas_engine.Engine.dtype(object)
+        # In pandas 3.0+, Series defaults to StringDtype, before it was object
+        if PANDAS_3_0_0_PLUS and alias == "string":
+            inferred_datatype = pandas_engine.Engine.dtype(pd.StringDtype())
+        else:
+            inferred_datatype = pandas_engine.Engine.dtype(object)
     else:
         inferred_datatype = pandas_engine.Engine.dtype(alias)
 

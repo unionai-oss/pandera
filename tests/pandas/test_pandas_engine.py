@@ -197,7 +197,8 @@ def test_pandas_datetimetz_dtype(timezone_aware, data, timezone):
         assert data.dt.tz is None
         try:
             data.dt.tz_localize(timezone, **tz_localize_kwargs)
-        except pytz.exceptions.NonExistentTimeError:
+        except (pytz.exceptions.NonExistentTimeError, ValueError):
+            # pandas 3.0 raises ValueError instead of pytz.exceptions.NonExistentTimeError
             expected_failure = True
 
     # pylint: disable=unexpected-keyword-arg,no-value-for-parameter
@@ -207,7 +208,8 @@ def test_pandas_datetimetz_dtype(timezone_aware, data, timezone):
         )
     )
     if expected_failure:
-        with pytest.raises(pytz.exceptions.NonExistentTimeError):
+        # pandas 3.0 raises ValueError instead of pytz.exceptions.NonExistentTimeError
+        with pytest.raises((pytz.exceptions.NonExistentTimeError, ValueError)):
             dtype.coerce(data)
     else:
         coerced_data = dtype.coerce(data)
@@ -392,17 +394,22 @@ def test_pandas_date_coerce_dtype(to_df, data):
     if to_df:
         assert (coerced_data.dtypes == "object").all() or (
             coerced_data.isna().all(axis=None)
-            and (coerced_data.dtypes == "datetime64[ns]").all()
+            # pandas 3.0 may use datetime64[s] instead of datetime64[ns]
+            and coerced_data.dtypes.apply(
+                lambda x: str(x).startswith("datetime64")
+            ).all()
         )
 
         assert (
-            coerced_data.applymap(lambda x: isinstance(x, dt.date))
+            coerced_data.map(lambda x: isinstance(x, dt.date))
             | coerced_data.isna()
         ).all(axis=None)
         return
 
     assert (coerced_data.dtype == "object") or (
-        coerced_data.isna().all() and coerced_data.dtype == "datetime64[ns]"
+        coerced_data.isna().all()
+        # pandas 3.0 may use datetime64[s] instead of datetime64[ns]
+        and str(coerced_data.dtype).startswith("datetime64")
     )
     assert (
         coerced_data.map(lambda x: isinstance(x, dt.date))

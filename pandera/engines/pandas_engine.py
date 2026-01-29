@@ -69,6 +69,7 @@ except ImportError:
 PANDAS_1_2_0_PLUS = pandas_version().release >= (1, 2, 0)
 PANDAS_1_3_0_PLUS = pandas_version().release >= (1, 3, 0)
 PANDAS_2_0_0_PLUS = pandas_version().release >= (2, 0, 0)
+PANDAS_3_0_0_PLUS = pandas_version().release >= (3, 0, 0)
 
 
 # register different TypedDict type depending on python version
@@ -677,7 +678,8 @@ if PANDAS_1_3_0_PLUS:
         """Semantic representation of a :class:`pandas.StringDtype`."""
 
         type: pd.StringDtype = dataclasses.field(default=None, init=False)  # type: ignore[assignment]
-        storage: Literal["python", "pyarrow"] | None = "python"
+        # Use None to let pandas use its default storage (python for pandas <3, pyarrow for pandas 3+)
+        storage: Literal["python", "pyarrow"] | None = None
 
         def __post_init__(self):
             if self.storage == "pyarrow" and not PYARROW_INSTALLED:
@@ -689,6 +691,8 @@ if PANDAS_1_3_0_PLUS:
                 )
             type_ = pd.StringDtype(self.storage)
             object.__setattr__(self, "type", type_)
+            # Sync storage with the actual type's storage (pandas may override None)
+            object.__setattr__(self, "storage", type_.storage)
 
         @classmethod
         def from_parametrized_dtype(cls, pd_dtype: pd.StringDtype):
@@ -726,6 +730,17 @@ class NpString(numpy_engine.String):
             # NOTE: this is a hack to handle the following case:
             # pyspark.pandas.Index doesn't support .where method yet, use numpy
             reverter = None
+            original_dtype = None
+
+            # Preserve original StringDtype if present (pandas 3.0+)
+            # Handle both Series (has .dtype) and DataFrame (has .dtypes)
+            try:
+                dtype_to_check = obj.dtype if hasattr(obj, "dtype") else None
+                if isinstance(dtype_to_check, pd.StringDtype):
+                    original_dtype = dtype_to_check
+            except AttributeError:
+                pass  # DataFrame or other object without single dtype
+
             if type(obj).__module__.startswith("pyspark.pandas"):
                 import pyspark.pandas as ps
 
@@ -740,6 +755,14 @@ class NpString(numpy_engine.String):
                 if obj.notna().all(axis=None)
                 else obj.where(obj.isna(), obj.astype(str))
             )
+
+            # Restore original StringDtype storage if applicable (pandas 3.0+)
+            if original_dtype is not None:
+                try:
+                    obj = obj.astype(original_dtype)
+                except (TypeError, ValueError):
+                    pass  # Keep the converted dtype if conversion fails
+
             return obj if reverter is None else reverter(obj)
 
         return _to_str(data_container)
@@ -750,6 +773,11 @@ class NpString(numpy_engine.String):
         data_container: PandasObject | None = None,
     ) -> Union[bool, Iterable[bool]]:
         if data_container is None:
+            # In pandas >= 3.0, str dtype is backed by StringDtype
+            if PANDAS_3_0_0_PLUS:
+                return isinstance(
+                    pandera_dtype, (numpy_engine.Object, type(self), STRING)
+                )
             return isinstance(pandera_dtype, (numpy_engine.Object, type(self)))
 
         # NOTE: this is a hack to handle the following case:

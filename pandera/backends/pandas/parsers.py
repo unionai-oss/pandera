@@ -60,9 +60,8 @@ class PandasParserBackend(BaseParserBackend):
 
     def apply_table(self, parse_obj):
         if self.parser.element_wise:
-            return getattr(parse_obj, "map", parse_obj.applymap)(
-                self.parser_fn
-            )
+            # pandas 3.0 removed applymap, use map instead
+            return parse_obj.map(self.parser_fn)
         return self.parser_fn(parse_obj)
 
     def postprocess(

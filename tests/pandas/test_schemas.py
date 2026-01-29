@@ -15,6 +15,7 @@ import pytest
 from pandera.api.pandas.array import ArraySchema
 from pandera.dtypes import UniqueSettings
 from pandera.engines.pandas_engine import Engine
+from pandera.engines.utils import pandas_version
 from pandera.pandas import (
     Category,
     Check,
@@ -30,6 +31,9 @@ from pandera.pandas import (
     String,
     errors,
 )
+
+
+PANDAS_3_0_0_PLUS = pandas_version().release >= (3, 0, 0)
 
 
 def test_dataframe_schema() -> None:
@@ -1310,6 +1314,8 @@ def test_lazy_dataframe_validation_error() -> None:
         index=pd.Index(["index0", "index1", "index2"], name="str_index"),
     )
 
+    # In pandas 3.0+, string columns report as 'str' dtype instead of 'object'
+    dtype_failure_case = ["str"] if PANDAS_3_0_0_PLUS else ["object"]
     expectation = {
         # schema object context -> check failure cases
         "DataFrameSchema": {
@@ -1320,7 +1326,7 @@ def test_lazy_dataframe_validation_error() -> None:
         },
         "Column": {
             "greater_than(5)": [1, 2],
-            "dtype('int64')": ["object"],
+            "dtype('int64')": dtype_failure_case,
             "less_than(0)": [1, 3],
         },
     }
@@ -1521,8 +1527,13 @@ def test_lazy_dataframe_validation_nullable_with_checks() -> None:
             },
             orient="index",
         ).astype({"check_number": object})
+        # pandas 3.0 uses None instead of nan in object columns,
+        # fillna to ensure consistent comparison
+        actual = err.failure_cases.fillna("__NA__")
+        expected = expected_failure_cases.fillna("__NA__")
         pd.testing.assert_frame_equal(
-            err.failure_cases, expected_failure_cases
+            actual, expected,
+            check_dtype=False,  # pandas 3.0 handles None vs nan differently
         )
 
 
@@ -1650,6 +1661,8 @@ def test_lazy_dataframe_unique() -> None:
                             "TypeError(\"'>' not supported between instances of 'str' and 'int'\")",
                             # TypeError raised in python=3.5
                             'TypeError("unorderable types: str() > int()")',
+                            # TypeError raised in pandas 3.0
+                            "TypeError(\"Invalid comparison between dtype=str and int\")",
                         ],
                         "dtype('int64')": ["object"],
                     },
@@ -1734,6 +1747,10 @@ def test_lazy_series_validation_error(schema, data, expectation) -> None:
             ]
             for check, failure_cases in check_failure_cases.items():
                 assert check in err_df.check.values
+                # In pandas 3.0+, string columns report as 'str' dtype
+                # instead of 'object'
+                if PANDAS_3_0_0_PLUS and failure_cases == ["object"]:
+                    failure_cases = ["object", "str"]
                 assert (
                     err_df.loc[err_df.check == check]
                     .failure_case.isin(failure_cases)
@@ -2648,7 +2665,10 @@ def test_drop_invalid_for_series_schema(schema, obj, expected_obj):
     actual_obj = schema.validate(obj, lazy=True).reset_index(drop=True)
     expected_obj = expected_obj.reset_index(drop=True)
 
-    pd.testing.assert_series_equal(actual_obj, expected_obj)
+    pd.testing.assert_series_equal(
+        actual_obj, expected_obj,
+        check_dtype=False,  # pandas 3.0 uses StringDtype for strings
+    )
 
     with pytest.raises(errors.SchemaDefinitionError):
         schema.validate(obj, lazy=False)
@@ -2669,7 +2689,8 @@ def test_drop_invalid_for_column(col, obj, expected_obj):
     actual_obj = col.validate(obj, lazy=True)
 
     pd.testing.assert_frame_equal(
-        expected_obj.reset_index(drop=True), actual_obj.reset_index(drop=True)
+        expected_obj.reset_index(drop=True), actual_obj.reset_index(drop=True),
+        check_dtype=False,  # pandas 3.0 uses StringDtype for strings
     )
 
     with pytest.raises(errors.SchemaDefinitionError):

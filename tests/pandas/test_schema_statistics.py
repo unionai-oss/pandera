@@ -45,19 +45,30 @@ def _create_dataframe(
     else:
         index = pd.Index([10, 11, 12], name="int_index")  # type: ignore
 
-    df = pd.DataFrame(
-        data={
-            "int": [1, 2, 3],
-            "float": [1.0, 2.0, 3.0],
-            "boolean": [True, False, True],
-            "string": ["a", "b", "c"],
-            "datetime": pd.to_datetime(["20180101", "20180102", "20180103"]),
-        },
-        index=index,
-    )
-
     if nullable:
-        df.iloc[0, :] = None  # type: ignore
+        # pandas 3.0 doesn't allow setting None in boolean columns directly
+        # Create DataFrame with nullable types from the start
+        df = pd.DataFrame(
+            data={
+                "int": pd.array([None, 2, 3], dtype="Int64"),
+                "float": [None, 2.0, 3.0],
+                "boolean": pd.array([None, False, True], dtype="boolean"),
+                "string": [None, "b", "c"],
+                "datetime": pd.to_datetime([None, "20180102", "20180103"]),
+            },
+            index=index,
+        )
+    else:
+        df = pd.DataFrame(
+            data={
+                "int": [1, 2, 3],
+                "float": [1.0, 2.0, 3.0],
+                "boolean": [True, False, True],
+                "string": ["a", "b", "c"],
+                "datetime": pd.to_datetime(["20180101", "20180102", "20180103"]),
+            },
+            index=index,
+        )
 
     return df
 
@@ -77,7 +88,14 @@ def test_infer_dataframe_statistics(multi_index: bool, nullable: bool) -> None:
     statistics = schema_statistics.infer_dataframe_statistics(dataframe)
     stat_columns = statistics["columns"]
 
-    if pa.pandas_version().release >= (1, 3, 0):
+    if pa.pandas_version().release >= (3, 0, 0):
+        # pandas 3.0 uses nullable Int64 for nullable integers
+        if nullable:
+            int64_dtype = pandas_engine.Engine.dtype("Int64")
+            assert int64_dtype.check(stat_columns["int"]["dtype"])
+        else:
+            assert DEFAULT_INT.check(stat_columns["int"]["dtype"])
+    elif pa.pandas_version().release >= (1, 3, 0):
         if nullable:
             assert DEFAULT_FLOAT.check(stat_columns["int"]["dtype"])
         else:
@@ -251,9 +269,9 @@ def test_infer_series_schema_statistics(series, expectation) -> None:
             ]
             for data_type in INTEGER_TYPES
         ],
-        [
-            # introducing nans to bool arrays upcasts to float except
-            # for pandas >= 1.3.0
+        pytest.param(
+            # introducing nans to bool arrays upcasts to object for pandas 1.3+
+            # but pandas 3.0 doesn't allow setting None in bool arrays
             0,
             pd.Series([True, False, True, False]),
             {
@@ -273,7 +291,11 @@ def test_infer_series_schema_statistics(series, expectation) -> None:
                 ),
                 "name": None,
             },
-        ],
+            marks=pytest.mark.skipif(
+                pa.pandas_version().release >= (3, 0, 0),
+                reason="pandas 3.0 doesn't allow setting None in bool arrays"
+            ),
+        ),
         [
             0,
             pd.Series(["a", "b", "c", "a"], dtype="category"),
@@ -379,7 +401,12 @@ def test_empty_series_schema_statistics(null_values, dtype):
             [
                 {
                     "name": "str_index",
-                    "dtype": pandas_engine.Engine.dtype("object"),
+                    # pandas 3.0 uses StringDtype for string indices
+                    "dtype": (
+                        pandas_engine.Engine.dtype(str)
+                        if pa.pandas_version().release >= (3, 0, 0)
+                        else pandas_engine.Engine.dtype("object")
+                    ),
                     "nullable": False,
                     "checks": None,
                 },

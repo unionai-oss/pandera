@@ -371,10 +371,9 @@ def tests_multi_index_subindex_coerce() -> None:
     ]:
         validated_df_override = schema_override(data)
         for level_i in range(validated_df_override.index.nlevels):
-            assert (
-                validated_df_override.index.get_level_values(level_i).dtype
-                == "object"
-            )
+            dtype = validated_df_override.index.get_level_values(level_i).dtype
+            # pandas 3.0 uses StringDtype for strings, earlier uses object
+            assert dtype == "object" or isinstance(dtype, pd.StringDtype)
 
     # coerce=False at the MultiIndex level should result in two type errors
     schema = DataFrameSchema(index=MultiIndex(indexes))
@@ -1391,6 +1390,7 @@ def test_multiindex_optimized_vs_full_validation(
         optimized_fc.sort_values(by="index").reset_index(drop=True),
         full_fc.sort_values(by="index").reset_index(drop=True),
         check_like=True,
+        check_dtype=False,  # pandas 3.0 uses StringDtype for strings
     )
 
 
