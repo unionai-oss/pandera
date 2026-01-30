@@ -14,6 +14,7 @@ import pytz
 from hypothesis import given
 
 from pandera.engines import pandas_engine
+from pandera.engines.pandas_engine import PANDAS_3_0_0_PLUS
 from pandera.errors import ParserError, SchemaError
 from pandera.pandas import DataFrameModel, Field, check, errors
 
@@ -354,6 +355,13 @@ def generate_test_cases_time_zone_agnostic() -> list[
 )
 def test_dt_time_zone_agnostic(examples, tz, coerce, expected_output, raises):
     """Test that time_zone_agnostic works as expected"""
+
+    # pandas 3.0 uses datetime64[us] instead of datetime64[ns] by default,
+    # which causes dtype mismatch errors when not coercing
+    if PANDAS_3_0_0_PLUS and not coerce and not raises:
+        pytest.skip(
+            "pandas 3.0 uses datetime64[us] resolution, causing dtype mismatch"
+        )
 
     # Testing using a pandera DataFrameModel rather than directly calling dtype coerce or validate because with
     # time_zone_agnostic, dtype is set dynamically based on the input data

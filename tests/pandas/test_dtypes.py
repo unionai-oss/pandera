@@ -339,6 +339,11 @@ def test_coerce_no_cast(dtype: Any, pd_dtype: Any, data: list[Any]):
         # handle dtype case
         tz_match = re.match(r"datetime64\[ns, (.+)\]", pd_dtype)
         tz = None if not tz_match else tz_match.group(1)
+        # pandas 3.0 doesn't allow astype from timezone-naive to timezone-aware
+        if PANDAS_3_0_0_PLUS and tz is not None:
+            pytest.skip(
+                "pandas 3.0 doesn't allow astype from timezone-naive to timezone-aware"
+            )
         if pandas_version().release >= (2, 0, 0):
             series = pd.Series(data, dtype=pd_dtype).dt.tz_localize(tz)
         else:

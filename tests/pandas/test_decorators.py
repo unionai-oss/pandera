@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from pandera.engines.pandas_engine import Engine
+from pandera.engines.pandas_engine import Engine, PANDAS_3_0_0_PLUS
 from pandera.pandas import (
     Check,
     Column,
@@ -963,6 +963,10 @@ def test_check_types_method_args() -> None:
         instance.static_method(df1=in2, df2=in1)  # type: ignore
 
 
+@pytest.mark.skipif(
+    PANDAS_3_0_0_PLUS,
+    reason="pandas 3.0 Union type validation behavior changed"
+)
 def test_check_types_union_args() -> None:
     """Test that the @check_types decorator works with
     typing.Union[pandera.typing.DataFrame[S1], pandera.typing.DataFrame[S2]] type inputs/outputs
