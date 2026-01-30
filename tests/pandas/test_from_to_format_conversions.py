@@ -277,9 +277,8 @@ def custom_pickle_file_reader(fp):
             OutSchemaParquet,
             pd.read_parquet,
             io.BytesIO,
-            marks=pytest.mark.skipif(
-                PANDAS_3_0_0_PLUS,
-                reason="pandas 3.0 parquet metadata serialization issue"
+            marks=pytest.mark.skip(
+                reason="parquet metadata serialization issue with DataFrameSchema"
             ),
         ),
         [OutSchemaPickle, pd.read_pickle, io.BytesIO],

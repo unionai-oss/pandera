@@ -730,16 +730,6 @@ class NpString(numpy_engine.String):
             # NOTE: this is a hack to handle the following case:
             # pyspark.pandas.Index doesn't support .where method yet, use numpy
             reverter = None
-            original_dtype = None
-
-            # Preserve original StringDtype if present (pandas 3.0+)
-            # Handle both Series (has .dtype) and DataFrame (has .dtypes)
-            try:
-                dtype_to_check = obj.dtype if hasattr(obj, "dtype") else None
-                if isinstance(dtype_to_check, pd.StringDtype):
-                    original_dtype = dtype_to_check
-            except AttributeError:
-                pass  # DataFrame or other object without single dtype
 
             if type(obj).__module__.startswith("pyspark.pandas"):
                 import pyspark.pandas as ps
@@ -755,13 +745,6 @@ class NpString(numpy_engine.String):
                 if obj.notna().all(axis=None)
                 else obj.where(obj.isna(), obj.astype(str))
             )
-
-            # Restore original StringDtype storage if applicable (pandas 3.0+)
-            if original_dtype is not None:
-                try:
-                    obj = obj.astype(original_dtype)
-                except (TypeError, ValueError):
-                    pass  # Keep the converted dtype if conversion fails
 
             return obj if reverter is None else reverter(obj)
 

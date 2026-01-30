@@ -46,18 +46,32 @@ def _create_dataframe(
         index = pd.Index([10, 11, 12], name="int_index")  # type: ignore
 
     if nullable:
-        # pandas 3.0 doesn't allow setting None in boolean columns directly
-        # Create DataFrame with nullable types from the start
-        df = pd.DataFrame(
-            data={
-                "int": pd.array([None, 2, 3], dtype="Int64"),
-                "float": [None, 2.0, 3.0],
-                "boolean": pd.array([None, False, True], dtype="boolean"),
-                "string": [None, "b", "c"],
-                "datetime": pd.to_datetime([None, "20180102", "20180103"]),
-            },
-            index=index,
-        )
+        if pa.pandas_version().release >= (3, 0, 0):
+            # pandas 3.0 doesn't allow setting None in boolean columns directly
+            # Create DataFrame with nullable types from the start
+            df = pd.DataFrame(
+                data={
+                    "int": pd.array([None, 2, 3], dtype="Int64"),
+                    "float": [None, 2.0, 3.0],
+                    "boolean": pd.array([None, False, True], dtype="boolean"),
+                    "string": [None, "b", "c"],
+                    "datetime": pd.to_datetime([None, "20180102", "20180103"]),
+                },
+                index=index,
+            )
+        else:
+            # pandas < 3.0: nullable ints become floats, booleans become objects
+            df = pd.DataFrame(
+                data={
+                    "int": [1, 2, 3],
+                    "float": [1.0, 2.0, 3.0],
+                    "boolean": [True, False, True],
+                    "string": ["a", "b", "c"],
+                    "datetime": pd.to_datetime(["20180101", "20180102", "20180103"]),
+                },
+                index=index,
+            )
+            df.iloc[0] = None
     else:
         df = pd.DataFrame(
             data={
