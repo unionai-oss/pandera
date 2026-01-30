@@ -331,15 +331,8 @@ class SchemaAnnotatedDatetimeTZDtype(pa.DataFrameModel):
     col: Series[Annotated[pd.DatetimeTZDtype, "ns", "UTC"]]
 
 
-if pa.PANDAS_1_3_0_PLUS:
-
-    class SchemaAnnotatedIntervalDtype(pa.DataFrameModel):
-        col: Series[Annotated[pd.IntervalDtype, "int32", "both"]]
-
-else:
-
-    class SchemaAnnotatedIntervalDtype(pa.DataFrameModel):  # type: ignore
-        col: Series[Annotated[pd.IntervalDtype, "int32"]]
+class SchemaAnnotatedIntervalDtype(pa.DataFrameModel):
+    col: Series[Annotated[pd.IntervalDtype, "int32", "both"]]
 
 
 class SchemaAnnotatedPeriodDtype(pa.DataFrameModel):
@@ -366,11 +359,7 @@ class SchemaAnnotatedSparseDtype(pa.DataFrameModel):
         (
             SchemaAnnotatedIntervalDtype,
             pd.IntervalDtype,
-            (
-                {"subtype": "int32", "closed": "both"}
-                if pa.PANDAS_1_3_0_PLUS
-                else {"subtype": "int32"}
-            ),
+            {"subtype": "int32", "closed": "both"},
         ),
         (SchemaAnnotatedPeriodDtype, pd.PeriodDtype, {"freq": "D"}),
         (

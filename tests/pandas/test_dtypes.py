@@ -109,12 +109,10 @@ if FLOAT_128_AVAILABLE:
         }
     )
 
-NULLABLE_FLOAT_DTYPES = None
-if pa.PANDAS_1_2_0_PLUS:
-    NULLABLE_FLOAT_DTYPES = {
-        pandas_engine.FLOAT32: "Float32",
-        pandas_engine.FLOAT64: "Float64",
-    }
+NULLABLE_FLOAT_DTYPES = {
+    pandas_engine.FLOAT32: "Float32",
+    pandas_engine.FLOAT64: "Float64",
+}
 
 boolean_dtypes = {bool: "bool", pa.Bool: "bool", np.bool_: "bool"}
 nullable_boolean_dtypes = {pd.BooleanDtype: "boolean", pa.BOOL: "boolean"}
@@ -126,7 +124,7 @@ string_dtypes = {
 }
 
 nullable_string_dtypes = {pd.StringDtype: "string"}
-if pa.PANDAS_1_3_0_PLUS and pandas_engine.PYARROW_INSTALLED:
+if pandas_engine.PYARROW_INSTALLED:
     nullable_string_dtypes.update(
         {pd.StringDtype(storage="pyarrow"): "string[pyarrow]"}  # type: ignore
     )
@@ -312,7 +310,6 @@ def test_check_equivalent(dtype: Any, pd_dtype: Any):
     """Test that a pandas-compatible dtype can be validated by check()."""
     if (
         pandas_engine.PYARROW_INSTALLED
-        and pandas_engine.PANDAS_2_0_0_PLUS
         and dtype == "string[pyarrow]"
     ):
         pytest.skip("`string[pyarrow]` gets parsed to type `string` by pandas")

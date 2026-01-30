@@ -20,10 +20,6 @@ from pandera.pandas import DataFrameModel, Field, check, errors
 
 UNSUPPORTED_DTYPE_CLS: set[Any] = set()
 
-# # `string[pyarrow]` gets parsed to type `string` by pandas
-# if pandas_engine.PYARROW_INSTALLED and pandas_engine.PANDAS_2_0_0_PLUS:
-#     UNSUPPORTED_DTYPE_CLS.add(pandas_engine.ArrowString)
-
 
 @pytest.mark.parametrize(
     "data_type",
@@ -463,9 +459,7 @@ pandas_arrow_dtype_cases = (
 @pytest.mark.parametrize(("data", "dtype"), pandas_arrow_dtype_cases)
 def test_pandas_arrow_dtype(data, dtype):
     """Test pyarrow dtype."""
-    if not (
-        pandas_engine.PYARROW_INSTALLED and pandas_engine.PANDAS_2_0_0_PLUS
-    ):
+    if not pandas_engine.PYARROW_INSTALLED:
         pytest.skip("Support of pandas 2.0.0+ with pyarrow only")
     dtype = pandas_engine.Engine.dtype(dtype)
 
@@ -513,9 +507,7 @@ pandas_arrow_dtype_error_cases = (
 @pytest.mark.parametrize(("data", "dtype"), pandas_arrow_dtype_error_cases)
 def test_pandas_arrow_dtype_error(data, dtype):
     """Test pyarrow dtype raises Error on bad data."""
-    if not (
-        pandas_engine.PYARROW_INSTALLED and pandas_engine.PANDAS_2_0_0_PLUS
-    ):
+    if not pandas_engine.PYARROW_INSTALLED:
         pytest.skip("Support of pandas 2.0.0+ with pyarrow only")
     dtype = pandas_engine.Engine.dtype(dtype)
 
@@ -597,9 +589,7 @@ def generate_test_cases_pandas_arrow_struct() -> list[
 )
 def test_pandas_arrow_struct_dtype(data, expected_output):
     """Test pyarrow struct cases."""
-    if not (
-        pandas_engine.PYARROW_INSTALLED and pandas_engine.PANDAS_2_0_0_PLUS
-    ):
+    if not pandas_engine.PYARROW_INSTALLED:
         pytest.skip("Support of pandas 2.0.0+ with pyarrow only")
 
     class SimpleSchema(DataFrameModel):

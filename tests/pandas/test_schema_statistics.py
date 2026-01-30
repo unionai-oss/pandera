@@ -289,20 +289,9 @@ def test_infer_series_schema_statistics(series, expectation) -> None:
             0,
             pd.Series([True, False, True, False]),
             {
-                "dtype": (
-                    pandas_engine.Engine.dtype(pa.Object)
-                    if pa.PANDAS_1_3_0_PLUS
-                    else DEFAULT_FLOAT
-                ),
+                "dtype": pandas_engine.Engine.dtype(pa.Object),
                 "nullable": True,
-                "checks": (
-                    None
-                    if pa.PANDAS_1_3_0_PLUS
-                    else {
-                        "greater_than_or_equal_to": 0,
-                        "less_than_or_equal_to": 1,
-                    }
-                ),
+                "checks": None,
                 "name": None,
             },
             marks=pytest.mark.skipif(

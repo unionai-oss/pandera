@@ -46,7 +46,7 @@ UNSUPPORTED_DTYPE_CLS: set[Any] = {
     pandas_engine.PythonNamedTuple,
 }
 
-if pandas_engine.PYARROW_INSTALLED and pandas_engine.PANDAS_2_0_0_PLUS:
+if pandas_engine.PYARROW_INSTALLED:
     UNSUPPORTED_DTYPE_CLS.update(
         [
             pandas_engine.ArrowBool,
