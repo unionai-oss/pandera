@@ -328,7 +328,7 @@ class SchemaAnnotatedCategoricalDtype(pa.DataFrameModel):
 
 
 class SchemaAnnotatedDatetimeTZDtype(pa.DataFrameModel):
-    col: Series[Annotated[pd.DatetimeTZDtype, "ns", "est"]]
+    col: Series[Annotated[pd.DatetimeTZDtype, "ns", "UTC"]]
 
 
 if pa.PANDAS_1_3_0_PLUS:
@@ -361,7 +361,7 @@ class SchemaAnnotatedSparseDtype(pa.DataFrameModel):
         (
             SchemaAnnotatedDatetimeTZDtype,
             pd.DatetimeTZDtype,
-            {"unit": "ns", "tz": "EST"},
+            {"unit": "ns", "tz": "UTC"},
         ),
         (
             SchemaAnnotatedIntervalDtype,
