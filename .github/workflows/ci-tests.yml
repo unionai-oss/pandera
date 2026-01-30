@@ -130,7 +130,7 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
         python-version: ["3.10", "3.11", "3.12", "3.13", "3.14.0"]
-        pandas-version: ["2.1.1", "2.3.3"]
+        pandas-version: ["2.3.3", "3.0.0"]
         pydantic-version: ["1.10.11", "2.12.3"]
         exclude:
           - pandas-version: "2.1.1"
@@ -173,7 +173,7 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
         python-version: ["3.10", "3.11", "3.12", "3.13", "3.14.0"]
-        pandas-version: ["2.3.3"]
+        pandas-version: ["2.3.3", "3.0.0"]
         pydantic-version: ["2.12.3"]
         extra:
         - hypotheses
