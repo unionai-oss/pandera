@@ -1938,12 +1938,12 @@ def test_frictionless_schema_parses_correctly(frictionless_schema):
         schema.validate(INVALID_FRICTIONLESS_DF, lazy=True)
     # check we're capturing all errors according to the frictionless schema:
     # Convert failure cases to a set of tuples for order-independent comparison
-    actual_failure_cases = set(
+    actual_failure_cases = {
         (row["check"], row["failure_case"])
         for row in err.value.failure_cases[["check", "failure_case"]]
         .fillna("NaN")
         .to_dict(orient="records")
-    )
+    }
     expected_failure_cases = {
         ("column_in_dataframe", "date_col"),
         ("column_in_schema", "unexpected_column"),

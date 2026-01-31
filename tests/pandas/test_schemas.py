@@ -32,7 +32,6 @@ from pandera.pandas import (
     errors,
 )
 
-
 PANDAS_3_0_0_PLUS = pandas_version().release >= (3, 0, 0)
 
 
@@ -1532,7 +1531,8 @@ def test_lazy_dataframe_validation_nullable_with_checks() -> None:
         actual = err.failure_cases.fillna("__NA__")
         expected = expected_failure_cases.fillna("__NA__")
         pd.testing.assert_frame_equal(
-            actual, expected,
+            actual,
+            expected,
             check_dtype=False,  # pandas 3.0 handles None vs nan differently
         )
 
@@ -1662,7 +1662,7 @@ def test_lazy_dataframe_unique() -> None:
                             # TypeError raised in python=3.5
                             'TypeError("unorderable types: str() > int()")',
                             # TypeError raised in pandas 3.0
-                            "TypeError(\"Invalid comparison between dtype=str and int\")",
+                            'TypeError("Invalid comparison between dtype=str and int")',
                         ],
                         "dtype('int64')": ["object"],
                     },
@@ -2666,7 +2666,8 @@ def test_drop_invalid_for_series_schema(schema, obj, expected_obj):
     expected_obj = expected_obj.reset_index(drop=True)
 
     pd.testing.assert_series_equal(
-        actual_obj, expected_obj,
+        actual_obj,
+        expected_obj,
         check_dtype=False,  # pandas 3.0 uses StringDtype for strings
     )
 
@@ -2689,7 +2690,8 @@ def test_drop_invalid_for_column(col, obj, expected_obj):
     actual_obj = col.validate(obj, lazy=True)
 
     pd.testing.assert_frame_equal(
-        expected_obj.reset_index(drop=True), actual_obj.reset_index(drop=True),
+        expected_obj.reset_index(drop=True),
+        actual_obj.reset_index(drop=True),
         check_dtype=False,  # pandas 3.0 uses StringDtype for strings
     )
 

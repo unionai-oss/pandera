@@ -2145,7 +2145,9 @@ def test_empty_with_multi_index() -> None:
     dtype_level_0 = df.index.get_level_values(0)
     dtype_level_1 = df.index.get_level_values(1)
     # pandas 3.0 uses StringDtype for strings, earlier uses object
-    assert pd.api.types.is_object_dtype(dtype_level_0) or pd.api.types.is_string_dtype(dtype_level_0)
+    assert pd.api.types.is_object_dtype(
+        dtype_level_0
+    ) or pd.api.types.is_string_dtype(dtype_level_0)
     assert pd.api.types.is_integer_dtype(dtype_level_1)
 
 

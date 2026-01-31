@@ -10,8 +10,8 @@ import pyarrow
 
 from pandera import dtypes
 from pandera.dtypes import immutable
-from pandera.engines.pandas_engine import BOOL, DataType, Engine
 from pandera.engines.engine import StrictEquivalent
+from pandera.engines.pandas_engine import BOOL, DataType, Engine
 from pandera.engines.type_aliases import PandasObject
 
 

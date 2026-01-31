@@ -474,6 +474,7 @@ class FLOAT64(DataType, dtypes.Float):
     type = pd.Float64Dtype()
     bit_width: int = 64
 
+
 @Engine.register_dtype(equivalents=[pd.Float32Dtype, pd.Float32Dtype()])
 @immutable
 class FLOAT32(FLOAT64):

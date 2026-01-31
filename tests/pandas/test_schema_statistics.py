@@ -67,7 +67,9 @@ def _create_dataframe(
                     "float": [1.0, 2.0, 3.0],
                     "boolean": [True, False, True],
                     "string": ["a", "b", "c"],
-                    "datetime": pd.to_datetime(["20180101", "20180102", "20180103"]),
+                    "datetime": pd.to_datetime(
+                        ["20180101", "20180102", "20180103"]
+                    ),
                 },
                 index=index,
             )
@@ -79,7 +81,9 @@ def _create_dataframe(
                 "float": [1.0, 2.0, 3.0],
                 "boolean": [True, False, True],
                 "string": ["a", "b", "c"],
-                "datetime": pd.to_datetime(["20180101", "20180102", "20180103"]),
+                "datetime": pd.to_datetime(
+                    ["20180101", "20180102", "20180103"]
+                ),
             },
             index=index,
         )
@@ -296,7 +300,7 @@ def test_infer_series_schema_statistics(series, expectation) -> None:
             },
             marks=pytest.mark.skipif(
                 pa.pandas_version().release >= (3, 0, 0),
-                reason="pandas 3.0 doesn't allow setting None in bool arrays"
+                reason="pandas 3.0 doesn't allow setting None in bool arrays",
             ),
         ),
         [

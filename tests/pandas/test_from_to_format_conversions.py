@@ -201,7 +201,7 @@ def _needs_pyarrow(schema) -> bool:
             None,
             marks=pytest.mark.skipif(
                 PANDAS_3_0_0_PLUS,
-                reason="pandas 3.0 doesn't accept raw JSON strings in read_json"
+                reason="pandas 3.0 doesn't accept raw JSON strings in read_json",
             ),
         ),
         [InSchemaFeather, lambda df, x: df.to_feather(x), io.BytesIO],
@@ -269,7 +269,7 @@ def custom_pickle_file_reader(fp):
             None,
             marks=pytest.mark.skipif(
                 PANDAS_3_0_0_PLUS,
-                reason="pandas 3.0 doesn't accept raw JSON strings in read_json"
+                reason="pandas 3.0 doesn't accept raw JSON strings in read_json",
             ),
         ),
         [OutSchemaFeather, pd.read_feather, io.BytesIO],

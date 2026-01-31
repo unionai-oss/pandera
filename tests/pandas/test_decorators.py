@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from pandera.engines.pandas_engine import Engine, PANDAS_3_0_0_PLUS
+from pandera.engines.pandas_engine import PANDAS_3_0_0_PLUS, Engine
 from pandera.pandas import (
     Check,
     Column,
