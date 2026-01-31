@@ -695,7 +695,11 @@ class STRING(DataType, dtypes.String):
         return cls(pd_dtype.storage)  # type: ignore[attr-defined]
 
     def __str__(self) -> str:
-        return repr(self.type)
+        if self.storage == "pyarrow":
+            return "string[pyarrow]"
+        elif self.storage == "python":
+            return "string[python]"
+        return "string"
 
 
 @Engine.register_dtype(

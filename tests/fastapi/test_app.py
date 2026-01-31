@@ -89,7 +89,7 @@ def test_upload_file_endpoint(app, sample):
     )
     output = response.json()
     assert output["filename"] == "file"
-    output_df = pd.read_json(output["df"])
+    output_df = pd.read_json(io.StringIO(output["df"]))
     cost_notna = ~output_df["cost"].isna()
     pd.testing.assert_frame_equal(
         TransactionsOut.validate(output_df[cost_notna]),

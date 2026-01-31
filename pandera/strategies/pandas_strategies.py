@@ -357,6 +357,54 @@ def to_numpy_dtype(pandera_dtype: DataType):
     return np_dtype
 
 
+def _is_string_dtype(pandera_dtype: DataType) -> bool:
+    """Check if a dtype is a string type that may use pyarrow backend.
+
+    In pandas 3.0+, the default string dtype uses pyarrow backend,
+    which cannot handle Unicode surrogate characters. We need to filter
+    surrogates for all string types to be safe.
+    """
+    dtype_str = str(pandera_dtype).lower()
+    # Check for any string-like type
+    if dtype_str in {"str", "string", "object"}:
+        return True
+    if dtype_str.startswith("string"):
+        return True
+    # Check if it's a STRING type (any storage)
+    if isinstance(pandera_dtype, pandas_engine.STRING):
+        return True
+    # Check if it's NpString
+    if isinstance(pandera_dtype, pandas_engine.NpString):
+        return True
+    return False
+
+
+def _remove_surrogates(s):
+    """Remove Unicode surrogate characters from a string.
+
+    Surrogates (U+D800 to U+DFFF) are not valid Unicode code points
+    and cannot be encoded by pyarrow.
+
+    Returns the same type as input (preserves numpy string types).
+    """
+    s_str = str(s)
+    cleaned = "".join(c for c in s_str if not ("\ud800" <= c <= "\udfff"))
+    # Preserve numpy string type if input was numpy
+    if hasattr(s, "dtype"):
+        return np.str_(cleaned)
+    return cleaned
+
+
+def _str_no_surrogates(obj) -> str:
+    """Convert object to string and remove surrogates.
+
+    This is used when generating string data for pyarrow-backed dtypes
+    which cannot handle Unicode surrogates.
+    """
+    s_str = str(obj)
+    return "".join(c for c in s_str if not ("\ud800" <= c <= "\udfff"))
+
+
 def pandas_dtype_strategy(
     pandera_dtype: DataType,
     strategy: SearchStrategy | None = None,
@@ -388,10 +436,16 @@ def pandas_dtype_strategy(
         )
 
     np_dtype = to_numpy_dtype(pandera_dtype)
+    is_string_type = _is_string_dtype(pandera_dtype)
+
     if strategy is not None:
         if _is_datetime_tz(pandera_dtype):
             return _datetime_strategy(pandera_dtype.type, strategy)  # type: ignore
-        return strategy.map(np_dtype.type)
+        result = strategy.map(np_dtype.type)
+        # Filter surrogates for string types (pandas 3.0+ uses pyarrow by default)
+        if is_string_type:
+            result = result.map(_remove_surrogates)
+        return result
     elif is_datetime(pandera_dtype) or is_timedelta(pandera_dtype):
         return numpy_time_dtypes(
             pandera_dtype.type if _is_datetime_tz(pandera_dtype) else np_dtype,  # type: ignore
@@ -404,7 +458,8 @@ def pandas_dtype_strategy(
                 "min_value", "max_value", "allow_infinity", "allow_nan"
             ),
         )
-    return npst.from_dtype(
+
+    result = npst.from_dtype(
         np_dtype,
         **{  # type: ignore
             "allow_nan": False,
@@ -412,6 +467,10 @@ def pandas_dtype_strategy(
             **kwargs,
         },
     )
+    # Filter surrogates for string types (pandas 3.0+ uses pyarrow by default)
+    if is_string_type:
+        result = result.map(_remove_surrogates)
+    return result
 
 
 def eq_strategy(
@@ -938,7 +997,7 @@ def index_strategy(
     # this is a hack to convert np.str_ data values into native python str.
     col_dtype = str(pandera_dtype)
     if col_dtype in {"object", "str"} or col_dtype.startswith("string"):
-        strategy = strategy.map(lambda index: index.map(str))
+        strategy = strategy.map(lambda index: index.map(_str_no_surrogates))
 
     if name is not None:
         strategy = strategy.map(lambda index: index.rename(name))
@@ -1144,7 +1203,7 @@ def dataframe_strategy(
             strategy = strategy.map(
                 lambda df: df.assign(
                     **{
-                        col_name: df[col_name].map(str)
+                        col_name: df[col_name].map(_str_no_surrogates)
                         for col_name in string_columns
                     }
                 )
@@ -1215,7 +1274,9 @@ def multiindex_strategy(
     for name, dtype in index_dtypes.items():
         if dtype in {"object", "str"} or dtype.startswith("string"):
             strategy = strategy.map(
-                lambda df, name=name: df.assign(**{name: df[name].map(str)})
+                lambda df, name=name: df.assign(
+                    **{name: df[name].map(_str_no_surrogates)}
+                )
             )
 
     if any(nullable_index.values()):
