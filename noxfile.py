@@ -209,7 +209,7 @@ for extra in OPTIONAL_DEPENDENCIES:
             ]
         )
     elif extra in DATAFRAME_EXTRAS:
-        EXTRA_PYTHON_PYDANTIC.append((extra, None, None, None))
+        EXTRA_PYTHON_PYDANTIC.append((extra, PANDAS_VERSIONS[0], None, None))
     else:
         EXTRA_PYTHON_PYDANTIC.append(
             (extra, PANDAS_VERSIONS[-1], PYDANTIC_VERSIONS[-1], None)
