@@ -138,6 +138,7 @@ testing = [
     "pytest-xdist",
     "pytest-asyncio",
     "sphinx",
+    "numpy >= 1.24.4",
 ]
 docs = [
     "setuptools",
