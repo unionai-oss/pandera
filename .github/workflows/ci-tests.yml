@@ -210,7 +210,7 @@ jobs:
   # test extras for popular dataframe libraries
   unit-tests-dataframe-extras:
     name: >
-      Unit Tests DataFrame Extras: python-${{ matrix.python-version }} ${{ matrix.os }} (extra-${{ matrix.extra }} polars=${{ matrix.polars-version }})
+      Unit Tests DataFrame Extras: python-${{ matrix.python-version }} ${{ matrix.os }} (extra-${{ matrix.extra }} pandas-${{ matrix.pandas-version }} polars=${{ matrix.polars-version }})
     runs-on: ${{ matrix.os }}
     defaults:
       run:
