@@ -29,13 +29,17 @@ class PanderaAccessor:
         """Add a schema to the pandas object."""
         self.check_schema_type(schema)
         # Store schema in the pandas object's attrs for persistence
-        self._pandas_obj.attrs[self._PANDERA_SCHEMA_KEY] = schema
+        # Some pandas-like objects (e.g., PySpark pandas) don't have attrs
+        if hasattr(self._pandas_obj, "attrs"):
+            self._pandas_obj.attrs[self._PANDERA_SCHEMA_KEY] = schema
         return self._pandas_obj
 
     @property
     def schema(self) -> Schemas | None:
         """Access schema metadata."""
-        return self._pandas_obj.attrs.get(self._PANDERA_SCHEMA_KEY)
+        if hasattr(self._pandas_obj, "attrs"):
+            return self._pandas_obj.attrs.get(self._PANDERA_SCHEMA_KEY)
+        return None
 
 
 @pd.api.extensions.register_dataframe_accessor("pandera")
