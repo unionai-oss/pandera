@@ -143,10 +143,12 @@ def _testing_requirements(
         _numpy = "< 2"
 
     _updated_requirements = []
+    _has_pandas = False
     for req in _requirements:
         req = req.strip()
         if req == "pandas" or req.startswith("pandas "):
             req = f"pandas=={pandas}"
+            _has_pandas = True
         if req == "pydantic" or req.startswith("pydantic "):
             req = f"pydantic=={pydantic}"
         if req.startswith("numpy") and _numpy is not None:
@@ -168,6 +170,11 @@ def _testing_requirements(
 
         if req not in _updated_requirements:
             _updated_requirements.append(req)
+
+    # Ensure pandas is explicitly constrained if it's not already in requirements
+    # This prevents uv from resolving to the latest version when installing -e .
+    if not _has_pandas and pandas is not None:
+        _updated_requirements.append(f"pandas=={pandas}")
 
     return [
         *_updated_requirements,

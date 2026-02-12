@@ -9,9 +9,11 @@ try:
     import dask.dataframe as dd
 
     DASK_INSTALLED = True
-except (ImportError, AttributeError):
+except (ImportError, AttributeError, SystemError, OSError):
     # AttributeError can occur when dask is installed but incompatible
     # with the current pandas version
+    # SystemError/OSError can occur when dask tries to access system resources
+    # (e.g., psutil.cpu_count()) in restricted environments like sandboxes
     DASK_INSTALLED = False
 
 
