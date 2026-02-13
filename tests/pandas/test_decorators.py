@@ -1528,6 +1528,48 @@ def test_check_types_union_with_none_in_class_init(
     assert getattr(obj, param_name) == param_value
 
 
+@pytest.mark.parametrize(
+    "test_value",
+    [
+        3.0,  # Scalar instead of list
+        "string",  # Scalar instead of list
+        42,  # Scalar instead of dict
+    ],
+    ids=["float_to_list", "str_to_list", "int_to_dict"],
+)
+def test_check_types_optional_collection_with_scalar(
+    test_value: typing.Any,
+) -> None:
+    """Test that @check_types handles type mismatches gracefully.
+
+    When a scalar is passed to a parameter annotated with Optional[collection],
+    @check_types should pass it through without validation since it only
+    validates DataFrame schemas, not Python type hints.
+    """
+
+    @check_types
+    def test_func_list(
+        param: typing.Optional[typing.List[float]],
+    ) -> typing.Any:
+        return param
+
+    @check_types
+    def test_func_dict(
+        param: typing.Optional[typing.Dict[str, int]],
+    ) -> typing.Any:
+        return param
+
+    # Test depending on the type
+    if isinstance(test_value, int):
+        # Test dict parameter with scalar
+        result = test_func_dict(test_value)  # type: ignore [arg-type]
+        assert result == test_value
+    else:
+        # Test list parameter with scalar
+        result = test_func_list(test_value)  # type: ignore [arg-type]
+        assert result == test_value
+
+
 def test_check_types_star_args() -> None:
     """Test to check_types for functions with *args arguments"""
 

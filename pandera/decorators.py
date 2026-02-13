@@ -756,9 +756,11 @@ def check_types(
         arg_value: Any,
         tuple_child_nodes: list[_AnnotationInfoWithDataFrameModelTree],
     ) -> Any:
-        # If arg_value is None, return it as-is to handle union types
-        # like tuple[X, Y] | None.
-        if arg_value is None:
+        # Pass through if not a tuple. This handles:
+        # 1. None values in union types like tuple[X, Y] | None
+        # 2. Type mismatches (e.g., passing a scalar to tuple[X, Y] | None)
+        # We don't validate Python types, only DataFrame schemas.
+        if not isinstance(arg_value, tuple):
             return arg_value
 
         # Each of the children should match their respective schema
@@ -776,9 +778,11 @@ def check_types(
             # List of no specific type
             return arg_value
 
-        # If arg_value is None, return it as-is to handle union types
-        # like list[X] | None.
-        if arg_value is None:
+        # Pass through if not a list. This handles:
+        # 1. None values in union types like list[X] | None
+        # 2. Type mismatches (e.g., passing a scalar to list[X] | None)
+        # We don't validate Python types, only DataFrame schemas.
+        if not isinstance(arg_value, list):
             return arg_value
 
         # Check all children conform to the schema
@@ -794,9 +798,11 @@ def check_types(
             # Dict of no specific value type
             return arg_value
 
-        # If arg_value is None, return it as-is to handle union types
-        # like dict[K, V] | None.
-        if arg_value is None:
+        # Pass through if not a dict. This handles:
+        # 1. None values in union types like dict[K, V] | None
+        # 2. Type mismatches (e.g., passing a scalar to dict[K, V] | None)
+        # We don't validate Python types, only DataFrame schemas.
+        if not isinstance(arg_value, dict):
             return arg_value
 
         # Check all children conform to the schema
