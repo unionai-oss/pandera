@@ -1414,6 +1414,120 @@ def test_check_types_non_dataframes() -> None:
     assert isinstance(str_val_pydantic, int)
 
 
+@pytest.mark.parametrize(
+    "test_value",
+    [
+        None,
+        [1.0, 2.0],
+    ],
+    ids=["explicit_none", "with_value"],
+)
+def test_check_types_optional_list_with_none(test_value: typing.Any) -> None:
+    """Test that @check_types handles None in Optional[list] unions.
+
+    This tests the fix for the issue where passing None to parameters with
+    type hints like Optional[list[X]] would cause TypeError: 'NoneType' object is not iterable.
+    """
+
+    @check_types
+    def test_func(param: typing.Optional[typing.List[float]]) -> typing.Any:
+        return param
+
+    result = test_func(test_value)
+    assert result == test_value
+
+
+@pytest.mark.parametrize(
+    "test_value",
+    [
+        None,
+        {"a": 1},
+    ],
+    ids=["explicit_none", "with_value"],
+)
+def test_check_types_optional_dict_with_none(test_value: typing.Any) -> None:
+    """Test that @check_types handles None in Optional[dict] unions.
+
+    This tests the fix for the issue where passing None to parameters with
+    type hints like Optional[dict[K, V]] would cause AttributeError: 'NoneType' object has no attribute 'items'.
+    """
+
+    @check_types
+    def test_func(param: typing.Optional[typing.Dict[str, int]]) -> typing.Any:
+        return param
+
+    result = test_func(test_value)
+    assert result == test_value
+
+
+@pytest.mark.parametrize(
+    "test_value",
+    [
+        None,
+        ("hello", 42),
+    ],
+    ids=["explicit_none", "with_value"],
+)
+def test_check_types_optional_tuple_with_none(test_value: typing.Any) -> None:
+    """Test that @check_types handles None in Optional[tuple] unions.
+
+    This tests the fix for the issue where passing None to parameters with
+    type hints like Optional[tuple[X, Y]] would cause TypeError: 'NoneType' object is not iterable.
+    """
+
+    @check_types
+    def test_func(
+        param: typing.Optional[typing.Tuple[str, int]],
+    ) -> typing.Any:
+        return param
+
+    result = test_func(test_value)
+    assert result == test_value
+
+
+@pytest.mark.parametrize(
+    "param_name,param_value",
+    [
+        ("optional_list", None),
+        ("optional_list", [1.0, 2.0, 3.0]),
+        ("optional_dict", None),
+        ("optional_dict", {"a": 1, "b": 2}),
+    ],
+    ids=[
+        "list-none",
+        "list-value",
+        "dict-none",
+        "dict-value",
+    ],
+)
+def test_check_types_union_with_none_in_class_init(
+    param_name: str, param_value: typing.Any
+) -> None:
+    """Test that @check_types works with __init__ methods having optional union types.
+
+    This is a common pattern for class constructors with optional parameters.
+    """
+
+    class MyClass:
+        @check_types
+        def __init__(
+            self,
+            required_param: str,
+            optional_list: typing.Optional[typing.List[float]] = None,
+            optional_dict: typing.Optional[typing.Dict[str, int]] = None,
+        ) -> None:
+            self.required_param = required_param
+            self.optional_list = optional_list
+            self.optional_dict = optional_dict
+
+    # Create instance with the specified parameter
+    kwargs = {"required_param": "test", param_name: param_value}
+    obj = MyClass(**kwargs)
+
+    assert obj.required_param == "test"
+    assert getattr(obj, param_name) == param_value
+
+
 def test_check_types_star_args() -> None:
     """Test to check_types for functions with *args arguments"""
 

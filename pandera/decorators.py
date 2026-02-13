@@ -756,6 +756,11 @@ def check_types(
         arg_value: Any,
         tuple_child_nodes: list[_AnnotationInfoWithDataFrameModelTree],
     ) -> Any:
+        # If arg_value is None, return it as-is to handle union types
+        # like tuple[X, Y] | None.
+        if arg_value is None:
+            return arg_value
+
         # Each of the children should match their respective schema
         for child_arg_value, child_annotation_model_tree in zip(
             arg_value, tuple_child_nodes
@@ -771,6 +776,11 @@ def check_types(
             # List of no specific type
             return arg_value
 
+        # If arg_value is None, return it as-is to handle union types
+        # like list[X] | None.
+        if arg_value is None:
+            return arg_value
+
         # Check all children conform to the schema
         for x in arg_value:
             _check_arg_value(x, list_child_node)
@@ -782,6 +792,11 @@ def check_types(
     ) -> Any:
         if not dict_child_node:
             # Dict of no specific value type
+            return arg_value
+
+        # If arg_value is None, return it as-is to handle union types
+        # like dict[K, V] | None.
+        if arg_value is None:
             return arg_value
 
         # Check all children conform to the schema
