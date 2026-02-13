@@ -2005,6 +2005,19 @@ def test_pandas_fields_metadata():
     assert PanderaSchema.get_metadata() == expected
 
 
+def test_index_field_metadata_persistence() -> None:
+    test_metadata = {"test_key": "test_value"}
+
+    class MyModel(pa.DataFrameModel):
+        index_field: Index[float] = pa.Field(
+            title="Index Field", metadata=test_metadata
+        )
+
+    class_schema = MyModel.to_schema()
+
+    assert class_schema.index.metadata == test_metadata
+
+
 def test_parse_single_column():
     """Test that a single column can be parsed from a DataFrame"""
 
