@@ -11,6 +11,7 @@ import pandera.pandas as pa
 from pandera.api.pandas.array import SeriesSchema
 from pandera.api.pandas.container import DataFrameSchema
 from pandera.api.parsers import Parser
+from pandera.engines.pandas_engine import PANDAS_3_0_0_PLUS
 from pandera.typing import Series
 
 
@@ -30,8 +31,11 @@ def test_dataframe_schema_parse_with_element_wise() -> None:
     schema_check_return_bool = DataFrameSchema(
         parsers=Parser(np.sqrt, element_wise=True)
     )
+    # pandas 3.0 removed applymap, use map instead
     result = (
-        data.map(np.sqrt) if hasattr(data, "map") else data.applymap(np.sqrt)
+        data.map(np.sqrt)
+        if PANDAS_3_0_0_PLUS or hasattr(data, "map")
+        else data.applymap(np.sqrt)
     )
     assert schema_check_return_bool.validate(data).equals(result)
 
@@ -41,9 +45,8 @@ def test_series_schema_parse_with_element_wise() -> None:
     schema_check_return_bool = SeriesSchema(
         parsers=Parser(np.sqrt, element_wise=True)
     )
-    result = (
-        data.map(np.sqrt) if hasattr(data, "map") else data.applymap(np.sqrt)
-    )
+    # Series always has map, but for consistency with DataFrame test
+    result = data.map(np.sqrt)
     assert schema_check_return_bool.validate(data).equals(result)
 
 
