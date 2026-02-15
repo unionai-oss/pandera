@@ -65,7 +65,7 @@ class ArraySchemaBackend(PandasSchemaBackend):
         """
         if (
             schema_dtype is None
-            or series.dtype != "object"
+            or not (pd.api.types.is_object_dtype(series.dtype) or pd.api.types.is_string_dtype(series.dtype))
             or series.isna().any()
         ):
             return series

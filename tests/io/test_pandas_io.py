@@ -15,6 +15,7 @@ import pandera.api.extensions as pa_ext
 import pandera.typing as pat
 from pandera.api.pandas.container import DataFrameSchema
 from pandera.engines import pandas_engine
+from pandera.engines.utils import pandas_version
 
 try:
     from pandera import io
@@ -33,6 +34,8 @@ else:
 
 
 SKIP_YAML_TESTS = PYYAML_VERSION is None or PYYAML_VERSION.release < (5, 1, 0)  # type: ignore
+
+PANDAS_3_0_0_PLUS = pandas_version().release >= (3, 0, 0)
 
 
 # skip all tests in module if "io" depends aren't installed
@@ -1964,7 +1967,7 @@ def test_frictionless_schema_parses_correctly(frictionless_schema):
         ("less_than_or_equal_to(30)", 113),
         ("in_range(10, 99)", 180),
         ("in_range(10, 99)", 1),
-        ("dtype('float64')", "object"),
+        ("dtype('float64')", "str" if PANDAS_3_0_0_PLUS else "object"),
     }
     assert actual_failure_cases == expected_failure_cases, (
         "validation failure cases not as expected"

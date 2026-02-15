@@ -1618,7 +1618,7 @@ def test_lazy_dataframe_unique() -> None:
             {
                 "data": pd.Series([1, 2, 3], index=list("abc")),
                 "schema_errors": {
-                    "Index": {"dtype('int64')": ["object"]},
+                    "Index": {"dtype('int64')": ["str"] if PANDAS_3_0_0_PLUS else ["object"]},
                 },
             },
         ],
@@ -1630,7 +1630,7 @@ def test_lazy_dataframe_unique() -> None:
                 "data": pd.Series(["1", "foo", "bar"]),
                 "schema_errors": {
                     "SeriesSchema": {
-                        "dtype('float64')": ["object"],
+                        "dtype('float64')": ["str"] if PANDAS_3_0_0_PLUS else ["object"],
                         "coerce_dtype('float64')": ["foo", "bar"],
                     },
                 },
@@ -1664,7 +1664,7 @@ def test_lazy_dataframe_unique() -> None:
                             # TypeError raised in pandas 3.0
                             'TypeError("Invalid comparison between dtype=str and int")',
                         ],
-                        "dtype('int64')": ["object"],
+                        "dtype('int64')": ["str"] if PANDAS_3_0_0_PLUS else ["object"],
                     },
                 },
             },
@@ -1749,11 +1749,13 @@ def test_lazy_series_validation_error(schema, data, expectation) -> None:
                 assert check in err_df.check.values
                 # In pandas 3.0+, string columns report as 'str' dtype
                 # instead of 'object'
-                if PANDAS_3_0_0_PLUS and failure_cases == ["object"]:
-                    failure_cases = ["object", "str"]
+                expected_failure_cases = failure_cases
+                if PANDAS_3_0_0_PLUS and "object" in failure_cases:
+                    # Replace "object" with "str" in the list
+                    expected_failure_cases = ["str" if f == "object" else f for f in failure_cases]
                 assert (
                     err_df.loc[err_df.check == check]
-                    .failure_case.isin(failure_cases)
+                    .failure_case.isin(expected_failure_cases)
                     .all()
                 )
 
