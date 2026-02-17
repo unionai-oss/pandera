@@ -3,7 +3,7 @@
 import datetime
 import re
 from collections.abc import Iterable
-from typing import Any, Optional, TypeVar, Union
+from typing import Any, TypeVar, Union
 
 import ibis
 from ibis import _
@@ -11,6 +11,7 @@ from ibis import selectors as s
 
 from pandera.api.extensions import register_builtin_check
 from pandera.api.ibis.types import IbisData
+from pandera.backends.base import builtin_checks as base_checks
 from pandera.backends.ibis.utils import select_column
 
 T = TypeVar("T")
@@ -41,15 +42,9 @@ def _across(table: ibis.Table, selection: str | None, func) -> ibis.Table:
     error="equal_to({value})",
 )
 def equal_to(data: IbisData, value: Any) -> ibis.Table:
-    """Ensure all elements of a column equal a certain value.
-
-    :param data: NamedTuple IbisData contains the table and column name for the check. The key
-        to access the table is "table", and the key to access the column name is "key".
-    :param value: Values in this Ibis data structure must be
-        equal to this value.
-    """
+    """Ensure all elements of a column equal a certain value."""
     value = _infer_interval_with_mixed_units(value)
-    return _across(data.table, data.key, _ == value)
+    return base_checks.equal_to(data, value)
 
 
 @register_builtin_check(
@@ -57,14 +52,9 @@ def equal_to(data: IbisData, value: Any) -> ibis.Table:
     error="not_equal_to({value})",
 )
 def not_equal_to(data: IbisData, value: Any) -> ibis.Table:
-    """Ensure no element of a column equals a certain value.
-
-    :param data: NamedTuple IbisData contains the table and column name for the check. The key
-        to access the table is "table", and the key to access the column name is "key".
-    :param value: This value must not occur in the checked data structure.
-    """
+    """Ensure no element of a column equals a certain value."""
     value = _infer_interval_with_mixed_units(value)
-    return _across(data.table, data.key, _ != value)
+    return base_checks.not_equal_to(data, value)
 
 
 @register_builtin_check(
@@ -72,16 +62,9 @@ def not_equal_to(data: IbisData, value: Any) -> ibis.Table:
     error="greater_than({min_value})",
 )
 def greater_than(data: IbisData, min_value: Any) -> ibis.Table:
-    """Ensure values of a column are strictly greater than a minimum
-    value.
-
-    :param data: NamedTuple IbisData contains the table and column name for the check. The key
-        to access the table is "table", and the key to access the column name is "key".
-    :param min_value: Lower bound to be exceeded. Must be a type comparable
-        to the dtype of the :class:`ibis.Column` to be validated.
-    """
-    value = _infer_interval_with_mixed_units(min_value)
-    return _across(data.table, data.key, _ > value)
+    """Ensure values are strictly greater than a minimum value."""
+    min_value = _infer_interval_with_mixed_units(min_value)
+    return base_checks.greater_than(data, min_value)
 
 
 @register_builtin_check(
@@ -89,15 +72,9 @@ def greater_than(data: IbisData, min_value: Any) -> ibis.Table:
     error="greater_than_or_equal_to({min_value})",
 )
 def greater_than_or_equal_to(data: IbisData, min_value: Any) -> ibis.Table:
-    """Ensure all values are greater than or equal to a minimum value.
-
-    :param data: NamedTuple IbisData contains the table and column name for the check. The key
-        to access the table is "table", and the key to access the column name is "key".
-    :param min_value: Allowed minimum value. Must be a type comparable
-        to the dtype of the :class:`ibis.Column` to be validated.
-    """
-    value = _infer_interval_with_mixed_units(min_value)
-    return _across(data.table, data.key, _ >= value)
+    """Ensure all values are greater than or equal to a minimum value."""
+    min_value = _infer_interval_with_mixed_units(min_value)
+    return base_checks.greater_than_or_equal_to(data, min_value)
 
 
 @register_builtin_check(
@@ -105,16 +82,9 @@ def greater_than_or_equal_to(data: IbisData, min_value: Any) -> ibis.Table:
     error="less_than({max_value})",
 )
 def less_than(data: IbisData, max_value: Any) -> ibis.Table:
-    """Ensure values of a column are strictly less than a maximum value.
-
-    :param data: NamedTuple IbisData contains the table and column name for the check. The key
-        to access the table is "table", and the key to access the column name is "key".
-    :param max_value: All elements of a column must be strictly smaller
-        than this. Must be a type comparable to the dtype of the
-        :class:`ibis.Column` to be validated.
-    """
-    value = _infer_interval_with_mixed_units(max_value)
-    return _across(data.table, data.key, _ < value)
+    """Ensure values are strictly less than a maximum value."""
+    max_value = _infer_interval_with_mixed_units(max_value)
+    return base_checks.less_than(data, max_value)
 
 
 @register_builtin_check(
@@ -122,15 +92,9 @@ def less_than(data: IbisData, max_value: Any) -> ibis.Table:
     error="less_than_or_equal_to({max_value})",
 )
 def less_than_or_equal_to(data: IbisData, max_value: Any) -> ibis.Table:
-    """Ensure all values are less than or equal to a maximum value.
-
-    :param data: NamedTuple IbisData contains the table and column name for the check. The key
-        to access the table is "table", and the key to access the column name is "key".
-    :param max_value: Upper bound not to be exceeded. Must be a type comparable to the dtype of the
-        :class:`ibis.Column` to be validated.
-    """
-    value = _infer_interval_with_mixed_units(max_value)
-    return _across(data.table, data.key, _ <= value)
+    """Ensure all values are less than or equal to a maximum value."""
+    max_value = _infer_interval_with_mixed_units(max_value)
+    return base_checks.less_than_or_equal_to(data, max_value)
 
 
 @register_builtin_check(
