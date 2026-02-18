@@ -398,6 +398,17 @@ def test_str_length_checks(chained, data, value_range):
 
 
 @hypothesis.given(st.data())
+def test_str_length_exact_value(data):
+    """Test str_length_strategy with exact_value parameter."""
+    exact_value = 5
+    str_length_st = strategies.str_length_strategy(
+        pa.String, exact_value=exact_value
+    )
+    example = data.draw(str_length_st)
+    assert len(example) == exact_value
+
+
+@hypothesis.given(st.data())
 def test_register_check_strategy(data) -> None:
     """Test registering check strategy on a custom check."""
 
