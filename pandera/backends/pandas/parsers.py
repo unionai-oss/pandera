@@ -9,6 +9,7 @@ from pandera.api.base.parsers import ParserResult
 from pandera.api.pandas.types import is_field, is_table
 from pandera.api.parsers import Parser
 from pandera.backends.base import BaseParserBackend
+from pandera.engines.pandas_engine import PANDAS_3_0_0_PLUS
 
 
 class PandasParserBackend(BaseParserBackend):
@@ -61,7 +62,10 @@ class PandasParserBackend(BaseParserBackend):
     def apply_table(self, parse_obj):
         if self.parser.element_wise:
             # pandas 3.0 removed applymap, use map instead
-            return parse_obj.map(self.parser_fn)
+            if PANDAS_3_0_0_PLUS:
+                return parse_obj.map(self.parser_fn)
+            else:
+                return parse_obj.applymap(self.parser_fn)  # type: ignore[attr-defined]
         return self.parser_fn(parse_obj)
 
     def postprocess(
