@@ -119,7 +119,12 @@ def _testing_requirements(
     pydantic: str | None = None,
     polars: str | None = None,
 ) -> list[str]:
-    pandas = pandas or PANDAS_VERSIONS[-1]
+    # pandas 3.0.0 requires Python >= 3.11, so use 2.3.3 for Python 3.10
+    if pandas is None:
+        if session.python == "3.10":
+            pandas = PANDAS_VERSIONS[0]  # Use 2.3.3 for Python 3.10
+        else:
+            pandas = PANDAS_VERSIONS[-1]  # Use 3.0.0 for Python >= 3.11
     pydantic = pydantic or PYDANTIC_VERSIONS[-1]
     polars = polars or POLARS_VERSIONS[-1]
 
@@ -294,7 +299,7 @@ def docs(session: Session) -> None:
 
     session.install("-e", ".")
     session.install(
-        *_testing_requirements(session, extra="all"),
+        *_testing_requirements(session, extra="all", pandas=PANDAS_VERSIONS[0]),
         *nox.project.dependency_groups(PYPROJECT, "dev", "testing", "docs"),
     )
     session.run("uv", "pip", "list")

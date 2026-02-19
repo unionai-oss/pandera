@@ -901,6 +901,7 @@ def from_frictionless_schema(
         parse.
     :returns: dataframe schema with frictionless field specs converted to
         pandera column checks and constraints for use as normal.
+    :rtype: :class:`~pandera.api.pandas.container.DataFrameSchema`
 
     :example:
 
