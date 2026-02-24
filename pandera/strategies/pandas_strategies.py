@@ -727,12 +727,12 @@ def str_length_strategy(
     if exact_value is not None:
         min_value = exact_value
         max_value = exact_value
-    
+
     if min_value is None or max_value is None:
         raise ValueError(
             "Must provide either 'exact_value' or both 'min_value' and 'max_value'"
         )
-    
+
     if strategy is None:
         return st.text(min_size=min_value, max_size=max_value).map(
             to_numpy_dtype(pandera_dtype).type
