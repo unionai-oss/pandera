@@ -68,7 +68,6 @@ NARWHALS_DTYPES = [
 ]
 
 
-@pytest.mark.xfail(reason="narwhals_engine.py not yet implemented (Plan 02)")
 def test_engine_dtype():
     """Engine.dtype(nw.Int64) returns a narwhals DataType instance."""
     from pandera.engines.narwhals_engine import Engine
@@ -77,7 +76,6 @@ def test_engine_dtype():
     assert isinstance(result, DataType)
 
 
-@pytest.mark.xfail(reason="narwhals_engine.py not yet implemented (Plan 02)")
 @pytest.mark.parametrize("nw_dtype", NARWHALS_DTYPES)
 def test_dtype_registration(nw_dtype):
     """All 11+ narwhals dtype classes resolve via Engine.dtype()."""
@@ -86,7 +84,6 @@ def test_dtype_registration(nw_dtype):
     assert isinstance(result, DataType)
 
 
-@pytest.mark.xfail(reason="narwhals_engine.py not yet implemented (Plan 02)")
 def test_coerce_returns_lazyframe():
     """coerce() returns a nw.LazyFrame (lazy — does not collect)."""
     from pandera.engines.narwhals_engine import Engine
@@ -99,7 +96,6 @@ def test_coerce_returns_lazyframe():
     assert hasattr(result, "collect")
 
 
-@pytest.mark.xfail(reason="narwhals_engine.py not yet implemented (Plan 02)")
 def test_try_coerce_raises_on_invalid_cast():
     """try_coerce() raises ParserError when cast fails; failure_cases is native."""
     from pandera.engines.narwhals_engine import Engine
@@ -116,7 +112,6 @@ def test_try_coerce_raises_on_invalid_cast():
         "failure_cases must be native, not a narwhals LazyFrame"
 
 
-@pytest.mark.xfail(reason="narwhals_engine.py not yet implemented (Plan 02)")
 def test_datetime_parameterized():
     """DateTime engine dtype accepts time_unit and time_zone parameters."""
     from pandera.engines.narwhals_engine import Engine
