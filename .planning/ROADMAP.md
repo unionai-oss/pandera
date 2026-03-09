@@ -30,7 +30,11 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. `narwhals_engine.py` exists with all core dtypes registered (`nw.Int8/16/32/64`, `nw.UInt*`, `nw.Float32/64`, `nw.String`, `nw.Boolean`, `nw.Date`, `nw.Datetime`, `nw.Duration`, `nw.Categorical`, `nw.List`, `nw.Struct`)
   4. `coerce()` and `try_coerce()` work via `nw.col(name).cast(nw_dtype)` and return native frames
   5. `_to_native()` helper exists and is used at every `SchemaError` construction site
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+- [ ] 01-01-PLAN.md — pyproject.toml narwhals extra, `pandera/api/narwhals/` package (types, utils), and test scaffold
+- [ ] 01-02-PLAN.md — `pandera/engines/narwhals_engine.py` with all 11 dtype registrations and coerce/try_coerce
 
 ### Phase 2: Check Backend
 **Goal**: All 14 builtin checks execute correctly through the narwhals Expr API, and the check dispatch chain is tested end-to-end
@@ -84,7 +88,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation | 0/TBD | Not started | - |
+| 1. Foundation | 0/2 | Not started | - |
 | 2. Check Backend | 0/TBD | Not started | - |
 | 3. Column Backend | 0/TBD | Not started | - |
 | 4. Container Backend and Polars Registration | 0/TBD | Not started | - |
