@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: planning
-stopped_at: Phase 1 context gathered
-last_updated: "2026-03-09T21:44:38.382Z"
+stopped_at: Completed 01-foundation-01-01-PLAN.md
+last_updated: "2026-03-09T22:50:43.907Z"
 last_activity: 2026-03-09 — Roadmap created
 progress:
   total_phases: 5
   completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
+  total_plans: 2
+  completed_plans: 1
   percent: 0
 ---
 
@@ -50,6 +50,7 @@ Progress: [░░░░░░░░░░] 0%
 - Trend: -
 
 *Updated after each plan completion*
+| Phase 01-foundation P01 | 2 | 2 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -61,6 +62,8 @@ Recent decisions affecting current work:
 - [Pre-Phase 1]: Use `narwhals.stable.v1` (not bare `narwhals`) to insulate from breaking API changes
 - [Pre-Phase 1]: Dtype engine (`narwhals_engine.py`) is the Phase 1 priority — it blocks all coercion and dtype-check code
 - [Pre-Phase 1]: Narwhals backend must be strictly opt-in; importing backend code must never side-effect native backend registrations
+- [Phase 01-foundation]: Use narwhals.stable.v1 imports in all narwhals API code
+- [Phase 01-foundation]: NarwhalsData uses field name frame (not lazyframe) to distinguish from Polars PolarsData
 
 ### Pending Todos
 
@@ -74,6 +77,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-09T21:44:38.379Z
-Stopped at: Phase 1 context gathered
-Resume file: .planning/phases/01-foundation/01-CONTEXT.md
+Last session: 2026-03-09T22:50:43.905Z
+Stopped at: Completed 01-foundation-01-01-PLAN.md
+Resume file: None

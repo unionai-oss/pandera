@@ -7,9 +7,9 @@
 
 ### Infrastructure
 
-- [ ] **INFRA-01**: `narwhals>=2.15.0` added as optional extra in `pyproject.toml` (`pandera[narwhals]`); all imports use `narwhals.stable.v1`
-- [ ] **INFRA-02**: `pandera/api/narwhals/types.py` exists with `NarwhalsData` named tuple (analogous to `PolarsData`) enabling `Dispatcher` routing to narwhals builtin checks
-- [ ] **INFRA-03**: `pandera/api/narwhals/utils.py` exists with `_to_native()` helper used at every `SchemaError` construction site to prevent narwhals wrappers leaking into error messages
+- [x] **INFRA-01**: `narwhals>=2.15.0` added as optional extra in `pyproject.toml` (`pandera[narwhals]`); all imports use `narwhals.stable.v1`
+- [x] **INFRA-02**: `pandera/api/narwhals/types.py` exists with `NarwhalsData` named tuple (analogous to `PolarsData`) enabling `Dispatcher` routing to narwhals builtin checks
+- [x] **INFRA-03**: `pandera/api/narwhals/utils.py` exists with `_to_native()` helper used at every `SchemaError` construction site to prevent narwhals wrappers leaking into error messages
 
 ### Dtype Engine
 
@@ -86,9 +86,9 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| INFRA-01 | Phase 1 | Pending |
-| INFRA-02 | Phase 1 | Pending |
-| INFRA-03 | Phase 1 | Pending |
+| INFRA-01 | Phase 1 | Complete |
+| INFRA-02 | Phase 1 | Complete |
+| INFRA-03 | Phase 1 | Complete |
 | ENGINE-01 | Phase 1 | Pending |
 | ENGINE-02 | Phase 1 | Pending |
 | ENGINE-03 | Phase 1 | Pending |
