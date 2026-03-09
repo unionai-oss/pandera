@@ -13,9 +13,9 @@
 
 ### Dtype Engine
 
-- [ ] **ENGINE-01**: `pandera/engines/narwhals_engine.py` exists with `Engine` metaclass following the existing `engine.Engine` pattern from `polars_engine.py`
-- [ ] **ENGINE-02**: Narwhals dtype objects (`nw.Int8/16/32/64`, `nw.UInt*`, `nw.Float32/64`, `nw.String`, `nw.Boolean`, `nw.Date`, `nw.Datetime`, `nw.Duration`, `nw.Categorical`, `nw.List`, `nw.Struct`) are registered via `@Engine.register_dtype` and map to pandera `DataType` subclasses
-- [ ] **ENGINE-03**: `coerce()` and `try_coerce()` are implemented via `nw.col(name).cast(nw_dtype)` and return native frames
+- [x] **ENGINE-01**: `pandera/engines/narwhals_engine.py` exists with `Engine` metaclass following the existing `engine.Engine` pattern from `polars_engine.py`
+- [x] **ENGINE-02**: Narwhals dtype objects (`nw.Int8/16/32/64`, `nw.UInt*`, `nw.Float32/64`, `nw.String`, `nw.Boolean`, `nw.Date`, `nw.Datetime`, `nw.Duration`, `nw.Categorical`, `nw.List`, `nw.Struct`) are registered via `@Engine.register_dtype` and map to pandera `DataType` subclasses
+- [x] **ENGINE-03**: `coerce()` and `try_coerce()` are implemented via `nw.col(name).cast(nw_dtype)` and return native frames
 
 ### Check Backend
 
@@ -89,9 +89,9 @@
 | INFRA-01 | Phase 1 | Complete |
 | INFRA-02 | Phase 1 | Complete |
 | INFRA-03 | Phase 1 | Complete |
-| ENGINE-01 | Phase 1 | Pending |
-| ENGINE-02 | Phase 1 | Pending |
-| ENGINE-03 | Phase 1 | Pending |
+| ENGINE-01 | Phase 1 | Complete |
+| ENGINE-02 | Phase 1 | Complete |
+| ENGINE-03 | Phase 1 | Complete |
 | CHECKS-01 | Phase 2 | Pending |
 | CHECKS-02 | Phase 2 | Pending |
 | CHECKS-03 | Phase 2 | Pending |

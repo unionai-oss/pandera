@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: planning
-stopped_at: Completed 01-foundation-01-01-PLAN.md
-last_updated: "2026-03-09T22:50:43.907Z"
+stopped_at: Completed 01-foundation-01-02-PLAN.md
+last_updated: "2026-03-09T22:55:52.093Z"
 last_activity: 2026-03-09 — Roadmap created
 progress:
   total_phases: 5
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 2
-  completed_plans: 1
+  completed_plans: 2
   percent: 0
 ---
 
@@ -51,6 +51,7 @@ Progress: [░░░░░░░░░░] 0%
 
 *Updated after each plan completion*
 | Phase 01-foundation P01 | 2 | 2 tasks | 7 files |
+| Phase 01-foundation P02 | 5 | 1 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -64,6 +65,9 @@ Recent decisions affecting current work:
 - [Pre-Phase 1]: Narwhals backend must be strictly opt-in; importing backend code must never side-effect native backend registrations
 - [Phase 01-foundation]: Use narwhals.stable.v1 imports in all narwhals API code
 - [Phase 01-foundation]: NarwhalsData uses field name frame (not lazyframe) to distinguish from Polars PolarsData
+- [Phase 01-foundation]: Lazy imports of NarwhalsData and _to_native inside coerce/try_coerce prevent circular imports
+- [Phase 01-foundation]: from_parametrized_dtype return type is Any (not forward ref string) to avoid NameError in get_type_hints
+- [Phase 01-foundation]: narwhals_engine.py NOT imported from any __init__.py — maintained strict opt-in isolation
 
 ### Pending Todos
 
@@ -77,6 +81,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-09T22:50:43.905Z
-Stopped at: Completed 01-foundation-01-01-PLAN.md
+Last session: 2026-03-09T22:55:52.091Z
+Stopped at: Completed 01-foundation-01-02-PLAN.md
 Resume file: None
