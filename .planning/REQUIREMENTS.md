@@ -95,6 +95,7 @@
 | CHECKS-01 | Phase 2 | Pending |
 | CHECKS-02 | Phase 2 | Pending |
 | CHECKS-03 | Phase 2 | Pending |
+| TEST-01 | Phase 2 | Pending |
 | COLUMN-01 | Phase 3 | Pending |
 | COLUMN-02 | Phase 3 | Pending |
 | CONTAINER-01 | Phase 4 | Pending |
@@ -103,11 +104,10 @@
 | CONTAINER-04 | Phase 4 | Pending |
 | REGISTER-01 | Phase 4 | Pending |
 | REGISTER-02 | Phase 4 | Pending |
-| REGISTER-03 | Phase 5 | Pending |
 | REGISTER-04 | Phase 4 | Pending |
-| TEST-01 | Phase 2 | Pending |
-| TEST-02 | Phase 2–5 | Pending |
 | TEST-03 | Phase 4 | Pending |
+| REGISTER-03 | Phase 5 | Pending |
+| TEST-02 | Phase 5 | Pending |
 
 **Coverage:**
 - v1 requirements: 21 total
@@ -116,4 +116,4 @@
 
 ---
 *Requirements defined: 2026-03-09*
-*Last updated: 2026-03-09 after initial definition*
+*Last updated: 2026-03-09 after roadmap creation*
