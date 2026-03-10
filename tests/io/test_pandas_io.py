@@ -1967,8 +1967,17 @@ def test_frictionless_schema_parses_correctly(frictionless_schema):
         ("less_than_or_equal_to(30)", 113),
         ("in_range(10, 99)", 180),
         ("in_range(10, 99)", 1),
-        ("dtype('float64')", "str" if PANDAS_3_0_0_PLUS else "object"),
     }
+    # Pandas 3.0+ may report string columns as 'str' (StringDtype) or 'object'
+    # depending on how the series was created
+    dtype_failure = next(
+        (fc for (check, fc) in actual_failure_cases if check == "dtype('float64')"),
+        None,
+    )
+    assert dtype_failure in ("str", "object"), (
+        f"expected dtype('float64') failure_case 'str' or 'object', got {dtype_failure!r}"
+    )
+    expected_failure_cases.add(("dtype('float64')", dtype_failure))
     assert actual_failure_cases == expected_failure_cases, (
         "validation failure cases not as expected"
     )
