@@ -175,10 +175,10 @@ PANDAS_SERIES_ERRORS_PLUGIN = [
         [
             "python_slice.py",
             "plugin_mypy.ini",
-            # Python 3.11-3.12 had issues where the plugin didn't suppress this
-            # false positive, but it's fixed in 3.13+
+            # Python 3.10-3.12: plugin doesn't suppress this false positive;
+            # fixed in 3.13+
             PYTHON_SLICE_ERRORS
-            if (3, 11) <= sys.version_info < (3, 13)
+            if (3, 10) <= sys.version_info < (3, 13)
             else [],
         ],
         ["pandas_index.py", "no_plugin.ini", []],
