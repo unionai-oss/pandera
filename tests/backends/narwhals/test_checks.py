@@ -133,7 +133,7 @@ BUILTIN_CHECK_CASES = [
 # CHECKS-01: builtin check routing — NarwhalsData dispatched
 # ---------------------------------------------------------------------------
 
-@pytest.mark.xfail(strict=True, reason="backend not yet implemented")
+@pytest.mark.xfail(strict=False, reason="requires builtin_checks.py from plan 02-03")
 def test_builtin_check_routing(make_narwhals_frame):
     """CHECKS-01: builtin check receives NarwhalsData (not native frame)."""
     from pandera.api.narwhals.types import NarwhalsData
@@ -158,7 +158,6 @@ def test_builtin_check_routing(make_narwhals_frame):
     assert received[0] is NarwhalsData
 
 
-@pytest.mark.xfail(strict=True, reason="backend not yet implemented")
 def test_user_defined_check_routing(make_narwhals_frame):
     """CHECKS-01: user-defined check (no NarwhalsData annotation) receives native frame."""
     import narwhals.stable.v1 as nw
@@ -258,7 +257,6 @@ def test_builtin_checks_fail(
 # CHECKS-03: element_wise on SQL-lazy backend raises NotImplementedError
 # ---------------------------------------------------------------------------
 
-@pytest.mark.xfail(strict=True, reason="backend not yet implemented")
 def test_element_wise_sql_lazy_raises(make_narwhals_frame):
     """CHECKS-03: element_wise=True on ibis backend raises NotImplementedError."""
     import narwhals.stable.v1 as nw
