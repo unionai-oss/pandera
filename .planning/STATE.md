@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: planning
-stopped_at: Completed 02-check-backend-02-PLAN.md
-last_updated: "2026-03-10T02:00:33.943Z"
+stopped_at: Completed 02-check-backend-03-PLAN.md
+last_updated: "2026-03-10T02:09:12.772Z"
 last_activity: 2026-03-09 — Roadmap created
 progress:
   total_phases: 5
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 5
-  completed_plans: 4
+  completed_plans: 5
   percent: 0
 ---
 
@@ -54,6 +54,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 01-foundation P02 | 5 | 1 tasks | 2 files |
 | Phase 02-check-backend P01 | 8min | 1 tasks | 3 files |
 | Phase 02-check-backend P02 | 2min | 1 tasks | 2 files |
+| Phase 02-check-backend P03 | 6min | 1 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -73,6 +74,9 @@ Recent decisions affecting current work:
 - [Phase 02-check-backend]: Both NarwhalsCheckBackend and builtin_checks imports in conftest fixture are guarded with try/except ImportError so autouse=True fixture does not break dtype tests before checks.py exists
 - [Phase 02-check-backend]: inspect.signature() on partial correctly resolves free params for builtin vs user-defined routing
 - [Phase 02-check-backend]: test_builtin_check_routing xfail changed to strict=False — depends on builtin_checks.py from Plan 02-03
+- [Phase 02-check-backend]: narwhals Expr uses Python comparison operators (==, !=, >, >=, <, <=) not .eq/.ne/.gt/.ge/.lt/.le methods
+- [Phase 02-check-backend]: NarwhalsCheckBackend.apply() detects builtins via Dispatcher._function_registry[NarwhalsData] lookup
+- [Phase 02-check-backend]: ibis narwhals backend returns nw.DataFrame (not LazyFrame); materialization uses nw.to_native().execute()
 
 ### Pending Todos
 
@@ -86,6 +90,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-10T02:00:33.940Z
-Stopped at: Completed 02-check-backend-02-PLAN.md
+Last session: 2026-03-10T02:09:12.769Z
+Stopped at: Completed 02-check-backend-03-PLAN.md
 Resume file: None

@@ -13,7 +13,7 @@ Build a Narwhals-backed validation backend for pandera in five ordered phases, e
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Foundation** - Utility types, narwhals dtype engine, and dependency scaffolding (completed 2026-03-09)
-- [ ] **Phase 2: Check Backend** - NarwhalsCheckBackend, all 14 builtin checks, and initial test harness
+- [x] **Phase 2: Check Backend** - NarwhalsCheckBackend, all 14 builtin checks, and initial test harness (completed 2026-03-10)
 - [ ] **Phase 3: Column Backend** - Per-column nullable/unique/dtype/run_checks pipeline
 - [ ] **Phase 4: Container Backend and Polars Registration** - Full validation pipeline, end-to-end Polars validation green
 - [ ] **Phase 5: Ibis Registration and Integration** - Ibis end-to-end, xfail gap closure, full test suite
@@ -94,7 +94,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation | 2/2 | Complete   | 2026-03-09 |
-| 2. Check Backend | 2/3 | In Progress|  |
+| 2. Check Backend | 3/3 | Complete   | 2026-03-10 |
 | 3. Column Backend | 0/TBD | Not started | - |
 | 4. Container Backend and Polars Registration | 0/TBD | Not started | - |
 | 5. Ibis Registration and Integration | 0/TBD | Not started | - |

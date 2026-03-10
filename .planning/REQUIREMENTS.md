@@ -20,7 +20,7 @@
 ### Check Backend
 
 - [x] **CHECKS-01**: `pandera/backends/narwhals/checks.py` exists with `NarwhalsCheckBackend` that routes builtin checks to `NarwhalsData` containers and user-defined checks to native containers
-- [ ] **CHECKS-02**: `pandera/backends/narwhals/builtin_checks.py` exists with all 14 builtin checks implemented via narwhals Expr API: `equal_to`, `not_equal_to`, `greater_than`, `greater_than_or_equal_to`, `less_than`, `less_than_or_equal_to`, `in_range`, `isin`, `notin`, `str_matches`, `str_contains`, `str_startswith`, `str_endswith`, `str_length`
+- [x] **CHECKS-02**: `pandera/backends/narwhals/builtin_checks.py` exists with all 14 builtin checks implemented via narwhals Expr API: `equal_to`, `not_equal_to`, `greater_than`, `greater_than_or_equal_to`, `less_than`, `less_than_or_equal_to`, `in_range`, `isin`, `notin`, `str_matches`, `str_contains`, `str_startswith`, `str_endswith`, `str_length`
 - [x] **CHECKS-03**: `element_wise=True` checks on SQL-lazy backends (Ibis, PySpark, DuckDB) raise `NotImplementedError` with a clear explanation rather than silently failing
 
 ### Column Backend
@@ -93,7 +93,7 @@
 | ENGINE-02 | Phase 1 | Complete |
 | ENGINE-03 | Phase 1 | Complete |
 | CHECKS-01 | Phase 2 | Complete |
-| CHECKS-02 | Phase 2 | Pending |
+| CHECKS-02 | Phase 2 | Complete |
 | CHECKS-03 | Phase 2 | Complete |
 | TEST-01 | Phase 2 | Complete |
 | COLUMN-01 | Phase 3 | Pending |
