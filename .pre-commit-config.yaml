@@ -2,7 +2,7 @@ exclude: (^asv_bench|setup.py|requirements-dev.txt)
 
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.1.0
+    rev: v6.0.0
     hooks:
       - id: check-ast
         description: Simply check whether files parse as valid python
@@ -28,25 +28,25 @@ repos:
         args: ["--line-length=79", "--skip=docs/source/conf.py", "--diff"]
 
   - repo: https://github.com/ikamensh/flynt
-    rev: "0.76"
+    rev: "1.0.6"
     hooks:
       - id: flynt
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.14.5
+    rev: v0.15.5
     hooks:
       - id: ruff-check
         args: [--fix]
       - id: ruff-format
 
   - repo: https://github.com/asottile/pyupgrade
-    rev: v3.20.0
+    rev: v3.21.2
     hooks:
       - id: pyupgrade
         args: [--py39-plus, --keep-runtime-typing]
 
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.10.0
+    rev: v1.19.1
     hooks:
       - id: mypy
         additional_dependencies:
@@ -63,7 +63,7 @@ repos:
         verbose: true
 
   - repo: https://github.com/codespell-project/codespell
-    rev: v2.4.1
+    rev: v2.4.2
     hooks:
       - id: codespell
         additional_dependencies:
