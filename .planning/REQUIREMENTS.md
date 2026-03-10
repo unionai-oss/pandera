@@ -44,7 +44,7 @@
 
 ### Testing
 
-- [ ] **TEST-01**: `tests/backends/narwhals/` directory exists with backend-agnostic test suite parameterized via pytest markers to run against each registered backend (Polars, Ibis at minimum)
+- [x] **TEST-01**: `tests/backends/narwhals/` directory exists with backend-agnostic test suite parameterized via pytest markers to run against each registered backend (Polars, Ibis at minimum)
 - [ ] **TEST-02**: Tests cover schema validation (column presence, dtype check, nullable, unique), all 14 builtin checks, lazy validation mode, dtype coercion, and error message correctness (native frame types in `failure_cases`)
 - [ ] **TEST-03**: Tests assert that `SchemaError.failure_cases` is always a native frame type (not a narwhals wrapper)
 
@@ -95,7 +95,7 @@
 | CHECKS-01 | Phase 2 | Pending |
 | CHECKS-02 | Phase 2 | Pending |
 | CHECKS-03 | Phase 2 | Pending |
-| TEST-01 | Phase 2 | Pending |
+| TEST-01 | Phase 2 | Complete |
 | COLUMN-01 | Phase 3 | Pending |
 | COLUMN-02 | Phase 3 | Pending |
 | CONTAINER-01 | Phase 4 | Pending |
