@@ -45,7 +45,12 @@ Plans:
   2. All 14 builtin checks (`equal_to`, `not_equal_to`, `greater_than`, `greater_than_or_equal_to`, `less_than`, `less_than_or_equal_to`, `in_range`, `isin`, `notin`, `str_matches`, `str_contains`, `str_startswith`, `str_endswith`, `str_length`) pass against a narwhals-wrapped frame
   3. `element_wise=True` checks on SQL-lazy backends raise `NotImplementedError` with a clear message rather than silently failing
   4. `tests/backends/narwhals/` exists with a parameterized test harness runnable against at least one backend
-**Plans**: TBD
+**Plans**: 3 plans
+
+Plans:
+- [ ] 02-01-PLAN.md — package init, test conftest with make_narwhals_frame fixture (polars+ibis), and xfail test stubs
+- [ ] 02-02-PLAN.md — `NarwhalsCheckBackend` with routing, element_wise guard, and postprocess (CHECKS-01, CHECKS-03)
+- [ ] 02-03-PLAN.md — all 14 narwhals builtin checks via Expr API (CHECKS-02)
 
 ### Phase 3: Column Backend
 **Goal**: Per-column validation (nullable, unique, dtype, run_checks) works correctly and is tested in isolation before being wired into the full container pipeline
@@ -89,7 +94,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation | 2/2 | Complete   | 2026-03-09 |
-| 2. Check Backend | 0/TBD | Not started | - |
+| 2. Check Backend | 0/3 | Not started | - |
 | 3. Column Backend | 0/TBD | Not started | - |
 | 4. Container Backend and Polars Registration | 0/TBD | Not started | - |
 | 5. Ibis Registration and Integration | 0/TBD | Not started | - |
