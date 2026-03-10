@@ -51,7 +51,7 @@ jobs:
             ${{ runner.os }}-pip-
       - name: Install dependencies
         run: |
-          python -m pip install 'uv<0.7.0' nox pre_commit \
+          python -m pip install uv nox prek \
             mypy==0.982 \
             types-click \
             types-pytz \
@@ -69,11 +69,11 @@ jobs:
         run: nox -db uv -r --non-interactive --python ${{ matrix.python-version }} --session requirements-${{ matrix.python-version }}
 
       - if: always()
-        run: pre-commit run ruff-check --all-files
+        run: prek run ruff-check --all-files
 
       - name: Mypy Type Checking
         if: always()
-        run: pre-commit run mypy --all-files
+        run: prek run mypy --all-files
 
   # test base functionality
   unit-tests-base:

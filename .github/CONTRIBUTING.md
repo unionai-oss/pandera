@@ -79,18 +79,18 @@ Moreover to add new extra dependencies in `pyproject.toml`, it is necessary to
 add it to the `dependencies` and `[project.optional-dependencies]` section.
 
 
-#### Set up `pre-commit`
+#### Set up `prek`
 
-This project uses [pre-commit](https://pre-commit.com/) to ensure that code
+This project uses [prek](https://prek.j178.dev/) to ensure that code
 standard checks pass locally before pushing to the remote project repo. Follow
-the [installation instructions](https://pre-commit.com/#installation), then
-set up hooks with `pre-commit install`. After, `black`, `pylint` and `mypy`
+the [installation instructions](https://prek.j178.dev/installation/), then
+set up hooks with `prek install`. After, `black`, `pylint` and `mypy`
 checks should be run with every commit.
 
 Make sure everything is working correctly by running
 
 ```bash
-pre-commit run --all
+prek run --all
 ```
 
 ### Making Changes
