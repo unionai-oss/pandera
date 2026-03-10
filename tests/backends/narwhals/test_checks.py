@@ -184,7 +184,6 @@ def test_user_defined_check_routing(make_narwhals_frame):
 # CHECKS-02: all 14 builtin checks — valid data passes
 # ---------------------------------------------------------------------------
 
-@pytest.mark.xfail(strict=True, reason="backend not yet implemented")
 @pytest.mark.parametrize(
     "check_name,check_kwargs,valid_data,invalid_data,col",
     BUILTIN_CHECK_CASES,
@@ -205,23 +204,24 @@ def test_builtin_checks_pass(
     backend = NarwhalsCheckBackend(check)
     result = backend(frame, key=col)
 
-    # check_passed may be a LazyFrame or bool
+    # check_passed may be a LazyFrame, DataFrame, or bool
+    import narwhals.stable.v1 as nw
+    from pandera.constants import CHECK_OUTPUT_KEY
     passed = result.check_passed
-    if hasattr(passed, "collect"):
-        import narwhals.stable.v1 as nw
-        from pandera.constants import CHECK_OUTPUT_KEY
+    if isinstance(passed, nw.LazyFrame):
         collected = passed.collect()
         val = collected[CHECK_OUTPUT_KEY][0]
+    elif isinstance(passed, nw.DataFrame):
+        val = passed[CHECK_OUTPUT_KEY][0]
     else:
         val = bool(passed)
-    assert val is True
+    assert val == True  # noqa: E712
 
 
 # ---------------------------------------------------------------------------
 # CHECKS-02: all 14 builtin checks — invalid data fails
 # ---------------------------------------------------------------------------
 
-@pytest.mark.xfail(strict=True, reason="backend not yet implemented")
 @pytest.mark.parametrize(
     "check_name,check_kwargs,valid_data,invalid_data,col",
     BUILTIN_CHECK_CASES,
@@ -242,15 +242,17 @@ def test_builtin_checks_fail(
     backend = NarwhalsCheckBackend(check)
     result = backend(frame, key=col)
 
+    import narwhals.stable.v1 as nw
+    from pandera.constants import CHECK_OUTPUT_KEY
     passed = result.check_passed
-    if hasattr(passed, "collect"):
-        import narwhals.stable.v1 as nw
-        from pandera.constants import CHECK_OUTPUT_KEY
+    if isinstance(passed, nw.LazyFrame):
         collected = passed.collect()
         val = collected[CHECK_OUTPUT_KEY][0]
+    elif isinstance(passed, nw.DataFrame):
+        val = passed[CHECK_OUTPUT_KEY][0]
     else:
         val = bool(passed)
-    assert val is False
+    assert val == False  # noqa: E712
 
 
 # ---------------------------------------------------------------------------

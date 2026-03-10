@@ -57,19 +57,29 @@ class NarwhalsCheckBackend(BaseCheckBackend):
                     "Use a vectorized check instead."
                 )
         else:
-            # Detect builtin vs user-defined via first-arg annotation.
-            # inspect.signature() on a partial correctly resolves remaining params.
+            # Detect builtin vs user-defined by checking whether the
+            # underlying function (Dispatcher or plain callable) has a
+            # NarwhalsData-annotated first argument or is a Dispatcher with
+            # NarwhalsData registered.
             check_fn = self.check_fn
-            sig = inspect.signature(
-                check_fn.func if hasattr(check_fn, "func") else check_fn
-            )
-            params = list(sig.parameters.values())
-            first_param = params[0] if params else None
+            # Unwrap partial to get the actual callable
+            inner_fn = check_fn.func if hasattr(check_fn, "func") else check_fn
 
-            if (
-                first_param is not None
-                and first_param.annotation is NarwhalsData
-            ):
+            is_builtin = False
+            from pandera.api.function_dispatch import Dispatcher
+            if isinstance(inner_fn, Dispatcher):
+                # Builtin check: Dispatcher has NarwhalsData in its registry
+                is_builtin = NarwhalsData in inner_fn._function_registry
+            else:
+                sig = inspect.signature(inner_fn)
+                params = list(sig.parameters.values())
+                first_param = params[0] if params else None
+                is_builtin = (
+                    first_param is not None
+                    and first_param.annotation is NarwhalsData
+                )
+
+            if is_builtin:
                 # Builtin check: pass NarwhalsData directly
                 out = check_fn(check_obj)
             else:
@@ -95,7 +105,7 @@ class NarwhalsCheckBackend(BaseCheckBackend):
 
     def postprocess(self, check_obj: NarwhalsData, check_output):
         """Postprocesses the result of applying the check function."""
-        if isinstance(check_output, nw.LazyFrame):
+        if isinstance(check_output, (nw.LazyFrame, nw.DataFrame)):
             return self.postprocess_lazyframe_output(check_obj, check_output)
         elif isinstance(check_output, bool):
             return self.postprocess_bool_output(check_obj, check_output)
@@ -103,20 +113,38 @@ class NarwhalsCheckBackend(BaseCheckBackend):
             f"output type of check_fn not recognized: {type(check_output)}"
         )
 
+    @staticmethod
+    def _materialize(frame) -> nw.DataFrame:
+        """Materialize a LazyFrame or SQL-lazy DataFrame to a narwhals DataFrame.
+
+        - nw.LazyFrame (Polars): call .collect()
+        - nw.DataFrame wrapping a SQL-lazy backend (Ibis): call
+          nw.to_native().execute() then wrap with nw.from_native()
+        """
+        if isinstance(frame, nw.LazyFrame):
+            return frame.collect()
+        # SQL-lazy (Ibis, DuckDB): the frame is already a nw.DataFrame but
+        # cannot be collected — execute via the native object instead.
+        native = nw.to_native(frame)
+        if hasattr(native, "execute"):
+            return nw.from_native(native.execute())
+        # Fallback: already an eager DataFrame
+        return frame
+
     def postprocess_lazyframe_output(
         self,
         check_obj: NarwhalsData,
-        check_output: nw.LazyFrame,
+        check_output,
     ) -> CheckResult:
         """Postprocesses LazyFrame check output into a CheckResult."""
-        # Collect both frames first — narwhals does NOT support lazy horizontal concat
-        results_df = check_output.collect()
+        # Materialize both frames — narwhals does NOT support lazy horizontal concat
+        results_df = self._materialize(check_output)
         if self.check.ignore_na:
             results_df = results_df.with_columns(
                 nw.col(CHECK_OUTPUT_KEY) | nw.col(CHECK_OUTPUT_KEY).is_null()
             )
         passed = results_df.select(nw.col(CHECK_OUTPUT_KEY).all())
-        data_df = check_obj.frame.collect()
+        data_df = self._materialize(check_obj.frame)
         combined = nw.concat([data_df, results_df], how="horizontal")
         failure_cases = combined.filter(~nw.col(CHECK_OUTPUT_KEY))
 
