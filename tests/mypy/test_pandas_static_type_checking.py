@@ -194,10 +194,14 @@ def test_pandas_stubs_false_positives(
     expected_errors,
 ) -> None:
     """Test pandas-stubs type stub false positives."""
-    # Slice false positive no longer reported by mypy on Python 3.13+ (or still
-    # reported depending on mypy/pandas-stubs); accept either outcome.
-    if module == "python_slice.py" and sys.version_info >= (3, 13):
-        expected_errors = []
+    # python_slice: parametrize is evaluated at collection time (host Python), but
+    # tests run in nox venv (session Python). Set expected_errors from runtime version.
+    if module == "python_slice.py":
+        if sys.version_info >= (3, 13):
+            expected_errors = []
+        else:
+            # 3.10-3.12: false positive is reported with or without plugin
+            expected_errors = PYTHON_SLICE_ERRORS
 
     xfail_modules = {
         "pandera_inheritance.py",
@@ -243,6 +247,20 @@ def test_pandas_stubs_false_positives(
         and "Slice index" in resulting_errors[0].get("msg", "")
     ):
         expected_errors = resulting_errors
+    # On 3.10-3.12 with plugin_mypy.ini, plugin may or may not suppress the slice error
+    elif (
+        module == "python_slice.py"
+        and (3, 10) <= sys.version_info < (3, 13)
+        and config == "plugin_mypy.ini"
+    ):
+        if len(resulting_errors) == 0:
+            expected_errors = []
+        elif (
+            len(resulting_errors) == 1
+            and resulting_errors[0].get("errcode") == "misc"
+            and "Slice index" in resulting_errors[0].get("msg", "")
+        ):
+            expected_errors = resulting_errors
     assert len(expected_errors) == len(resulting_errors)
     for expected, error in zip(expected_errors, resulting_errors):
         assert error["errcode"] == expected["errcode"]
