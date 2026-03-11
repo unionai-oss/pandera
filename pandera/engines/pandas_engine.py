@@ -66,9 +66,7 @@ except ImportError:
     TYPEGUARD_ERROR = TypeError
 
 
-PANDAS_1_2_0_PLUS = pandas_version().release >= (1, 2, 0)
-PANDAS_1_3_0_PLUS = pandas_version().release >= (1, 3, 0)
-PANDAS_2_0_0_PLUS = pandas_version().release >= (2, 0, 0)
+PANDAS_3_0_0_PLUS = pandas_version().release >= (3, 0, 0)
 
 
 # register different TypedDict type depending on python version
@@ -92,7 +90,7 @@ def is_pyarrow_dtype(
     pd_dtype: PandasDataType,
 ) -> Union[bool, Iterable[bool]]:
     """Check if a value is a pandas pyarrow type or instance of one."""
-    if not (PYARROW_INSTALLED and PANDAS_2_0_0_PLUS):
+    if not PYARROW_INSTALLED:
         return False
 
     return isinstance(pd_dtype, pd.ArrowDtype)
@@ -467,23 +465,23 @@ _register_numpy_numbers(
     sizes=[128, 64, 32, 16] if FLOAT_128_AVAILABLE else [64, 32, 16],
 )
 
-if PANDAS_1_2_0_PLUS:
 
-    @Engine.register_dtype(equivalents=[pd.Float64Dtype, pd.Float64Dtype()])
-    @immutable
-    class FLOAT64(DataType, dtypes.Float):
-        """Semantic representation of a :class:`pandas.Float64Dtype`."""
+@Engine.register_dtype(equivalents=[pd.Float64Dtype, pd.Float64Dtype()])
+@immutable
+class FLOAT64(DataType, dtypes.Float):
+    """Semantic representation of a :class:`pandas.Float64Dtype`."""
 
-        type = pd.Float64Dtype()
-        bit_width: int = 64
+    type = pd.Float64Dtype()
+    bit_width: int = 64
 
-    @Engine.register_dtype(equivalents=[pd.Float32Dtype, pd.Float32Dtype()])
-    @immutable
-    class FLOAT32(FLOAT64):
-        """Semantic representation of a :class:`pandas.Float32Dtype`."""
 
-        type = pd.Float32Dtype()  # type: ignore[assignment]
-        bit_width: int = 32
+@Engine.register_dtype(equivalents=[pd.Float32Dtype, pd.Float32Dtype()])
+@immutable
+class FLOAT32(FLOAT64):
+    """Semantic representation of a :class:`pandas.Float32Dtype`."""
+
+    type = pd.Float32Dtype()  # type: ignore[assignment]
+    bit_width: int = 32
 
 
 ###############################################################################
@@ -669,46 +667,40 @@ class Category(DataType, dtypes.Category):
         return cls(categories=cat.categories, ordered=cat.ordered)  # type: ignore
 
 
-if PANDAS_1_3_0_PLUS:
+@Engine.register_dtype(equivalents=["string", pd.StringDtype])
+@immutable(init=True)
+class STRING(DataType, dtypes.String):
+    """Semantic representation of a :class:`pandas.StringDtype`."""
 
-    @Engine.register_dtype(equivalents=["string", pd.StringDtype])
-    @immutable(init=True)
-    class STRING(DataType, dtypes.String):
-        """Semantic representation of a :class:`pandas.StringDtype`."""
+    type: pd.StringDtype = dataclasses.field(default=None, init=False)  # type: ignore[assignment]
+    # Use None to let pandas use its default storage (python for pandas <3, pyarrow for pandas 3+)
+    storage: Literal["python", "pyarrow"] | None = None
 
-        type: pd.StringDtype = dataclasses.field(default=None, init=False)  # type: ignore[assignment]
-        storage: Literal["python", "pyarrow"] | None = "python"
+    def __post_init__(self):
+        if self.storage == "pyarrow" and not PYARROW_INSTALLED:
+            raise ModuleNotFoundError(
+                "pyarrow needs to be installed when using the "
+                "string[pyarrow] pandas data type. Please "
+                "`pip install pyarrow` or "
+                "`conda install -c conda-forge pyarrow` before proceeding."
+            )
+        type_ = pd.StringDtype(self.storage)
+        object.__setattr__(self, "type", type_)
+        # Sync storage with the actual type's storage (pandas may override None)
+        object.__setattr__(self, "storage", type_.storage)
 
-        def __post_init__(self):
-            if self.storage == "pyarrow" and not PYARROW_INSTALLED:
-                raise ModuleNotFoundError(
-                    "pyarrow needs to be installed when using the "
-                    "string[pyarrow] pandas data type. Please "
-                    "`pip install pyarrow` or "
-                    "`conda install -c conda-forge pyarrow` before proceeding."
-                )
-            type_ = pd.StringDtype(self.storage)
-            object.__setattr__(self, "type", type_)
+    @classmethod
+    def from_parametrized_dtype(cls, pd_dtype: pd.StringDtype):
+        """Convert a :class:`pandas.StringDtype` to
+        a Pandera :class:`pandera.engines.pandas_engine.STRING`."""
+        return cls(pd_dtype.storage)  # type: ignore[attr-defined]
 
-        @classmethod
-        def from_parametrized_dtype(cls, pd_dtype: pd.StringDtype):
-            """Convert a :class:`pandas.StringDtype` to
-            a Pandera :class:`pandera.engines.pandas_engine.STRING`."""
-            return cls(pd_dtype.storage)  # type: ignore[attr-defined]
-
-        def __str__(self) -> str:
-            return repr(self.type)
-
-else:
-
-    @Engine.register_dtype(
-        equivalents=["string", pd.StringDtype, pd.StringDtype()]  # type: ignore
-    )  # type: ignore[no-redef] # python 3.7
-    @immutable
-    class STRING(DataType, dtypes.String):  # type: ignore[no-redef] # python 3.8+
-        """Semantic representation of a :class:`pandas.StringDtype`."""
-
-        type = pd.StringDtype()  # type: ignore
+    def __str__(self) -> str:
+        if self.storage == "pyarrow":
+            return "string[pyarrow]"
+        elif self.storage == "python":
+            return "string[python]"
+        return "string"
 
 
 @Engine.register_dtype(
@@ -726,6 +718,7 @@ class NpString(numpy_engine.String):
             # NOTE: this is a hack to handle the following case:
             # pyspark.pandas.Index doesn't support .where method yet, use numpy
             reverter = None
+
             if type(obj).__module__.startswith("pyspark.pandas"):
                 import pyspark.pandas as ps
 
@@ -740,6 +733,7 @@ class NpString(numpy_engine.String):
                 if obj.notna().all(axis=None)
                 else obj.where(obj.isna(), obj.astype(str))
             )
+
             return obj if reverter is None else reverter(obj)
 
         return _to_str(data_container)
@@ -750,6 +744,11 @@ class NpString(numpy_engine.String):
         data_container: PandasObject | None = None,
     ) -> Union[bool, Iterable[bool]]:
         if data_container is None:
+            # In pandas >= 3.0, str dtype is backed by StringDtype
+            if PANDAS_3_0_0_PLUS:
+                return isinstance(
+                    pandera_dtype, (numpy_engine.Object, type(self), STRING)
+                )
             return isinstance(pandera_dtype, (numpy_engine.Object, type(self)))
 
         # NOTE: this is a hack to handle the following case:
@@ -1533,7 +1532,7 @@ class PythonNamedTuple(PythonGenericType):
 # pyarrow types
 ###############################################################################
 
-if PYARROW_INSTALLED and PANDAS_2_0_0_PLUS:
+if PYARROW_INSTALLED:
 
     class ArrowDataType(DataType):
         """Base `DataType` for boxing Pandas Arrow data types."""

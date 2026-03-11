@@ -19,8 +19,8 @@ nox.options.sessions = (
     "docs",
 )
 
-PYTHON_VERSIONS = ["3.10", "3.11", "3.12", "3.13", "3.14.0"]
-PANDAS_VERSIONS = ["2.1.1", "2.3.3"]
+PYTHON_VERSIONS = ["3.10", "3.11", "3.12", "3.13", "3.14"]
+PANDAS_VERSIONS = ["2.3.3", "3.0.0"]
 PYDANTIC_VERSIONS = ["1.10.11", "2.12.3"]
 POLARS_VERSIONS = ["0.20.0", "1.33.1"]
 PACKAGE = "pandera"
@@ -119,7 +119,12 @@ def _testing_requirements(
     pydantic: str | None = None,
     polars: str | None = None,
 ) -> list[str]:
-    pandas = pandas or PANDAS_VERSIONS[-1]
+    # pandas 3.0.0 requires Python >= 3.11, so use 2.3.3 for Python 3.10
+    if pandas is None:
+        if session.python == "3.10":
+            pandas = PANDAS_VERSIONS[0]  # Use 2.3.3 for Python 3.10
+        else:
+            pandas = PANDAS_VERSIONS[-1]  # Use 3.0.0 for Python >= 3.11
     pydantic = pydantic or PYDANTIC_VERSIONS[-1]
     polars = polars or POLARS_VERSIONS[-1]
 
@@ -136,17 +141,18 @@ def _testing_requirements(
     _requirements = list(set(_requirements))
 
     _numpy: str | None = None
-    if pandas != "2.3.3" or (
-        extra == "pyspark" and session.python in ("3.10",)
-    ):
-        # constrain numpy < 2 for older versions of pandas and pyspark on py3.10
+    if extra == "pyspark" and session.python in ("3.10",):
+        # constrain numpy < 2 for older versions of pyspark on py3.10
+        # pandas 3.0.0 requires numpy >= 2.3.3, so don't apply this constraint
         _numpy = "< 2"
 
     _updated_requirements = []
+    _has_pandas = False
     for req in _requirements:
         req = req.strip()
         if req == "pandas" or req.startswith("pandas "):
             req = f"pandas=={pandas}"
+            _has_pandas = True
         if req == "pydantic" or req.startswith("pydantic "):
             req = f"pydantic=={pydantic}"
         if req.startswith("numpy") and _numpy is not None:
@@ -155,7 +161,7 @@ def _testing_requirements(
         if req == "pyarrow" or req.startswith("pyarrow "):
             req = "pyarrow >= 13"
         if req == "ibis-framework" or req.startswith("ibis-framework "):
-            req = "ibis-framework[duckdb,polars]"
+            req = "ibis-framework[duckdb] >= 11.0.0"
         if req == "polars":
             req = f"polars=={polars}"
 
@@ -168,6 +174,11 @@ def _testing_requirements(
 
         if req not in _updated_requirements:
             _updated_requirements.append(req)
+
+    # Ensure pandas is explicitly constrained if it's not already in requirements
+    # This prevents uv from resolving to the latest version when installing -e .
+    if not _has_pandas and pandas is not None:
+        _updated_requirements.append(f"pandas=={pandas}")
 
     return [
         *_updated_requirements,
@@ -204,15 +215,19 @@ for extra in OPTIONAL_DEPENDENCIES:
     elif extra == "polars":
         EXTRA_PYTHON_PYDANTIC.extend(
             [
-                (extra, PANDAS_VERSIONS[-1], PYDANTIC_VERSIONS[-1], polars)
+                (extra, pandas, PYDANTIC_VERSIONS[-1], polars)
                 for polars in POLARS_VERSIONS
+                for pandas in PANDAS_VERSIONS[:-1]
             ]
         )
     elif extra in DATAFRAME_EXTRAS:
-        EXTRA_PYTHON_PYDANTIC.append((extra, None, None, None))
+        EXTRA_PYTHON_PYDANTIC.append((extra, PANDAS_VERSIONS[0], None, None))
     else:
-        EXTRA_PYTHON_PYDANTIC.append(
-            (extra, PANDAS_VERSIONS[-1], PYDANTIC_VERSIONS[-1], None)
+        EXTRA_PYTHON_PYDANTIC.extend(
+            [
+                (extra, pandas, PYDANTIC_VERSIONS[-1], None)
+                for pandas in PANDAS_VERSIONS
+            ]
         )
 
 
@@ -283,7 +298,7 @@ def docs(session: Session) -> None:
 
     session.install("-e", ".")
     session.install(
-        *_testing_requirements(session, extra="all"),
+        *_testing_requirements(session, extra="all", pandas=PANDAS_VERSIONS[0]),
         *nox.project.dependency_groups(PYPROJECT, "dev", "testing", "docs"),
     )
     session.run("uv", "pip", "list")

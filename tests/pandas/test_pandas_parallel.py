@@ -12,7 +12,10 @@ def test_polars_parallel():
     def fn():
         return schema.validate(pd.DataFrame({"a": [1]}))
 
-    results = Parallel(2)([delayed(fn)() for _ in range(10)])
+    # Use threads to avoid loky process spawn issues on Windows CI (TerminatedWorkerError)
+    results = Parallel(2, prefer="threads")(
+        [delayed(fn)() for _ in range(10)]
+    )
     assert len(results) == 10
     for result in results:
         assert result.dtypes["a"] == "int64"
