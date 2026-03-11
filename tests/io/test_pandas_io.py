@@ -1971,7 +1971,11 @@ def test_frictionless_schema_parses_correctly(frictionless_schema):
     # Pandas 3.0+ may report string columns as 'str' (StringDtype) or 'object'
     # depending on how the series was created
     dtype_failure = next(
-        (fc for (check, fc) in actual_failure_cases if check == "dtype('float64')"),
+        (
+            fc
+            for (check, fc) in actual_failure_cases
+            if check == "dtype('float64')"
+        ),
         None,
     )
     assert dtype_failure in ("str", "object"), (

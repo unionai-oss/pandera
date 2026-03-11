@@ -22,7 +22,9 @@ def test_dataframe_schema_parse() -> None:
     schema_check_return_bool = DataFrameSchema(
         parsers=Parser(lambda df: df.transform("sqrt"))
     )
-    assert schema_check_return_bool.validate(data).equals(data.transform("sqrt"))
+    assert schema_check_return_bool.validate(data).equals(
+        data.transform("sqrt")
+    )
 
 
 def test_dataframe_schema_parse_with_element_wise() -> None:
@@ -33,9 +35,7 @@ def test_dataframe_schema_parse_with_element_wise() -> None:
     )
     # pandas 3.0 removed applymap, use map instead
     result = (
-        data.map(np.sqrt)
-        if PANDAS_3_0_0_PLUS
-        else data.applymap(np.sqrt)  # type: ignore[attr-defined]
+        data.map(np.sqrt) if PANDAS_3_0_0_PLUS else data.applymap(np.sqrt)  # type: ignore[attr-defined]
     )
     assert schema_check_return_bool.validate(data).equals(result)
 

@@ -81,7 +81,7 @@ dependencies:
   - asv >= 0.5.1
 
   # optional
-  - pre_commit
+  - prek
 
   - pip:
       # dask extra

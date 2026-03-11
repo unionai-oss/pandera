@@ -202,8 +202,9 @@ def parse_checks(checks) -> Union[list[dict[str, Any]], None]:
 
     incompatibile_checks_count = sum(
         map(
-            lambda check: check["options"]["check_name"]
-            in incompatibile_checks,
+            lambda check: (
+                check["options"]["check_name"] in incompatibile_checks
+            ),
             check_statistics,
         )
     )

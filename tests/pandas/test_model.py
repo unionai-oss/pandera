@@ -44,11 +44,13 @@ def test_idempotent_magics() -> None:
 
         # DataFrame-level check, used to populate __root_checks__
         @pa.dataframe_check
+        @classmethod
         def root_check_test(cls, df: pd.DataFrame) -> Iterable[bool]:
             return df["a"] >= 0
 
         # DataFrame-level parser, used to populate __root_parsers__
         @pa.dataframe_parser
+        @classmethod
         def root_parser_test(cls, df: pd.DataFrame) -> pd.DataFrame:
             df = df.copy()
             df["a"] = df["a"].abs()

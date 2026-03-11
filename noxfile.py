@@ -298,7 +298,9 @@ def docs(session: Session) -> None:
 
     session.install("-e", ".")
     session.install(
-        *_testing_requirements(session, extra="all", pandas=PANDAS_VERSIONS[0]),
+        *_testing_requirements(
+            session, extra="all", pandas=PANDAS_VERSIONS[0]
+        ),
         *nox.project.dependency_groups(PYPROJECT, "dev", "testing", "docs"),
     )
     session.run("uv", "pip", "list")

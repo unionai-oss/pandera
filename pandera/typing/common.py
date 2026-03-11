@@ -232,10 +232,11 @@ class AnnotationInfo:
 
         if metadata:
             self.is_annotated_type = True
-            try:
-                inspect.signature(self.arg)
-            except ValueError:
-                metadata = None
+            if self.arg is not None:
+                try:
+                    inspect.signature(self.arg)
+                except ValueError:
+                    metadata = None
 
         elif metadata := getattr(self.arg, "__metadata__", None):
             self.arg = get_args(self.arg)[0]
