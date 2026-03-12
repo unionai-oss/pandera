@@ -667,7 +667,28 @@ class Category(DataType, dtypes.Category):
         return cls(categories=cat.categories, ordered=cat.ordered)  # type: ignore
 
 
-@Engine.register_dtype(equivalents=["string", pd.StringDtype])
+if PANDAS_3_0_0_PLUS:
+    _STRING_EQUIVALENTS: list = [
+        "string",
+        pd.StringDtype,
+        "str",
+        str,
+        dtypes.String,
+        dtypes.String(),
+    ]
+    _NPSTRING_EQUIVALENTS: list = [np.str_]
+else:
+    _STRING_EQUIVALENTS = ["string", pd.StringDtype]
+    _NPSTRING_EQUIVALENTS = [
+        "str",
+        str,
+        dtypes.String,
+        dtypes.String(),
+        np.str_,
+    ]
+
+
+@Engine.register_dtype(equivalents=_STRING_EQUIVALENTS)
 @immutable(init=True)
 class STRING(DataType, dtypes.String):
     """Semantic representation of a :class:`pandas.StringDtype`."""
@@ -703,9 +724,7 @@ class STRING(DataType, dtypes.String):
         return "string"
 
 
-@Engine.register_dtype(
-    equivalents=["str", str, dtypes.String, dtypes.String(), np.str_]
-)
+@Engine.register_dtype(equivalents=_NPSTRING_EQUIVALENTS)
 @immutable
 class NpString(numpy_engine.String):
     """Specializes numpy_engine.String.coerce to handle pd.NA values."""
@@ -1615,6 +1634,7 @@ if PYARROW_INSTALLED:
 
     @Engine.register_dtype(
         equivalents=[
+            "arrow_string",
             pyarrow.string,
             pyarrow.utf8,
             # the `string[pyarrow]` string alias is overloaded: it can be either
@@ -1633,6 +1653,9 @@ if PYARROW_INSTALLED:
         """Semantic representation of a :class:`pyarrow.string`."""
 
         type = pd.ArrowDtype(pyarrow.string())
+
+        def __str__(self) -> str:
+            return "arrow_string"
 
     @Engine.register_dtype(
         equivalents=[

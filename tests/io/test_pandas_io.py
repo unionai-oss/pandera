@@ -37,6 +37,8 @@ SKIP_YAML_TESTS = PYYAML_VERSION is None or PYYAML_VERSION.release < (5, 1, 0)  
 
 PANDAS_3_0_0_PLUS = pandas_version().release >= (3, 0, 0)
 
+_PANDERA_STR_DTYPE = str(pandas_engine.Engine.dtype(pandera.String))
+
 
 # skip all tests in module if "io" depends aren't installed
 pytestmark = pytest.mark.skipif(
@@ -183,7 +185,7 @@ columns:
   str_column:
     title: null
     description: null
-    dtype: str
+    dtype: {_PANDERA_STR_DTYPE}
     nullable: false
     checks:
     - value:
@@ -249,7 +251,7 @@ columns:
   optional_props_column:
     title: null
     description: null
-    dtype: str
+    dtype: {_PANDERA_STR_DTYPE}
     nullable: true
     checks:
     - min_value: 1
@@ -368,7 +370,7 @@ columns:
   str_column:
     title: null
     description: null
-    dtype: str
+    dtype: {_PANDERA_STR_DTYPE}
     nullable: false
     checks:
       isin:
@@ -433,7 +435,7 @@ columns:
   optional_props_column:
     title: null
     description: null
-    dtype: str
+    dtype: {_PANDERA_STR_DTYPE}
     nullable: true
     checks:
       str_length:
@@ -533,7 +535,7 @@ columns:
       options:
         check_name: in_range
   str_column:
-    dtype: str
+    dtype: {_PANDERA_STR_DTYPE}
     nullable: false
     checks:
     - value:
@@ -572,7 +574,7 @@ columns:
         min_value: -10
         max_value: 20
   str_column:
-    dtype: str
+    dtype: {_PANDERA_STR_DTYPE}
     nullable: false
     checks:
       isin:
@@ -617,7 +619,7 @@ columns:
   float_column:
     dtype: float64
   str_column:
-    dtype: str
+    dtype: {_PANDERA_STR_DTYPE}
   object_column:
     dtype: object
 checks: null
@@ -636,7 +638,7 @@ columns:
   float_column:
     dtype: float64
   str_column:
-    dtype: str
+    dtype: {_PANDERA_STR_DTYPE}
   object_column:
     dtype: object
 checks:
@@ -658,7 +660,7 @@ columns:
   float_column:
     dtype: float64
   str_column:
-    dtype: str
+    dtype: {_PANDERA_STR_DTYPE}
   object_column:
     dtype: object
 checks:
@@ -684,7 +686,7 @@ columns:
   float_column:
     dtype: float64
   str_column:
-    dtype: str
+    dtype: {_PANDERA_STR_DTYPE}
   object_column:
     dtype: object
 index: null
@@ -705,7 +707,7 @@ columns:
   float_column:
     dtype: float64
   str_column:
-    dtype: str
+    dtype: {_PANDERA_STR_DTYPE}
   object_column:
     dtype: object
 index: null
@@ -777,7 +779,7 @@ columns:
   str_column:
     title: null
     description: null
-    dtype: str
+    dtype: {_PANDERA_STR_DTYPE}
     nullable: false
     checks:
     - value:
@@ -843,7 +845,7 @@ columns:
   optional_props_column:
     title: null
     description: null
-    dtype: str
+    dtype: {_PANDERA_STR_DTYPE}
     nullable: true
     checks:
     - min_value: 1
@@ -962,7 +964,7 @@ columns:
   str_column:
     title: null
     description: null
-    dtype: str
+    dtype: {_PANDERA_STR_DTYPE}
     nullable: false
     checks:
       isin:
@@ -1027,7 +1029,7 @@ columns:
   optional_props_column:
     title: null
     description: null
-    dtype: str
+    dtype: {_PANDERA_STR_DTYPE}
     nullable: true
     checks:
       str_length:
