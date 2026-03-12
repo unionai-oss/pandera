@@ -540,3 +540,28 @@ def test_datetime_time_zone_agnostic(dtype):
         dtype.type, "time_zone", None
     ):
         assert not tz_sensitive_utc.check(dtype)
+
+
+def test_polars_import_no_warnings():
+    """Regression test for https://github.com/unionai-oss/pandera/issues/2104.
+
+    Importing pandera.polars should not emit DeprecationWarning or
+    FutureWarning related to polars Categorical/Enum changes.
+    """
+    import subprocess
+    import sys
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-W",
+            "error::DeprecationWarning",
+            "-W",
+            "error::FutureWarning",
+            "-c",
+            "import pandera.polars",
+        ],
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0, f"Import raised a warning:\n{result.stderr}"

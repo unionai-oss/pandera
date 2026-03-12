@@ -724,24 +724,18 @@ class Categorical(DataType):
 
     type = pl.Categorical
 
-    ordering = None
-
-    def __init__(
-        self,
-        ordering: Literal["physical", "lexical"] | None = "lexical",
-    ) -> None:
-        object.__setattr__(self, "ordering", ordering)
+    def __init__(self) -> None:
         object.__setattr__(self, "type", pl.Categorical())
 
     def __deepcopy__(self, memo):
         """Custom deepcopy to avoid pickling issues with pl.Categorical()."""
-        return self.__class__(ordering=self.ordering)
+        return self.__class__()
 
     @classmethod
     def from_parametrized_dtype(cls, polars_dtype: pl.Categorical):
         """Convert a :class:`polars.Categorical` to
         a Pandera :class:`pandera.engines.polars_engine.Categorical`."""
-        return cls(ordering=polars_dtype.ordering)
+        return cls()
 
 
 @Engine.register_dtype(equivalents=[pl.Enum])
