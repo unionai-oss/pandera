@@ -167,9 +167,9 @@ The nox `tests` session maps extras to test directories: `extra=None` runs
 - **flynt:** f-string conversion.
 - **codespell:** Spell checking.
 
-Pre-commit hooks enforce all of the above. Run manually:
+`prek` hooks enforce all of the above. Run manually:
 ```bash
-pre-commit run --all-files
+prek run --all-files
 ```
 
 ### Style Guidelines
