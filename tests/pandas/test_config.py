@@ -53,6 +53,9 @@ from pandera.config import (
         ("cache_dataframe", False, False, False, False),
         ("keep_cached_dataframe", True, True, False, False),
         ("keep_cached_dataframe", False, False, False, False),
+        ("max_reported_failures", 10, 10, 100, 100),
+        ("max_reported_failures", 5, 5, 100, 100),
+        ("max_reported_failures", -1, -1, 100, 100),
     ],
 )
 def test_config_context(
@@ -107,6 +110,10 @@ def test_config_context(
         ("cache_dataframe", True, False),
         ("keep_cached_dataframe", False, True),
         ("keep_cached_dataframe", True, False),
+        ("max_reported_failures", 10, 20),
+        ("max_reported_failures", 5, 15),
+        ("max_reported_failures", -1, 10),
+        ("max_reported_failures", 10, -1),
     ],
 )
 def test_nested_config_context(setting, outer_value, inner_value):
@@ -142,3 +149,23 @@ def test_pandera_validation_enabled_from_env_vars():
     del os.environ["PANDERA_VALIDATION_ENABLED"]
     config = _config_from_env_vars()
     assert config.validation_enabled
+
+
+def test_pandera_max_reported_failures_from_env_vars():
+    """Test that max_reported_failures can be set from environment variables."""
+
+    os.environ["PANDERA_MAX_REPORTED_FAILURES"] = "10"
+    config = _config_from_env_vars()
+    assert config.max_reported_failures == 10
+
+    os.environ["PANDERA_MAX_REPORTED_FAILURES"] = "0"
+    config = _config_from_env_vars()
+    assert config.max_reported_failures == 0
+
+    os.environ["PANDERA_MAX_REPORTED_FAILURES"] = "invalid"
+    config = _config_from_env_vars()
+    assert config.max_reported_failures == 100
+
+    del os.environ["PANDERA_MAX_REPORTED_FAILURES"]
+    config = _config_from_env_vars()
+    assert config.max_reported_failures == 100
