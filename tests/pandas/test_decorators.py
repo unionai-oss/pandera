@@ -1417,6 +1417,162 @@ def test_check_types_non_dataframes() -> None:
     assert isinstance(str_val_pydantic, int)
 
 
+@pytest.mark.parametrize(
+    "test_value",
+    [
+        None,
+        [1.0, 2.0],
+    ],
+    ids=["explicit_none", "with_value"],
+)
+def test_check_types_optional_list_with_none(test_value: typing.Any) -> None:
+    """Test that @check_types handles None in list | None unions.
+
+    This tests the fix for the issue where passing None to parameters with
+    type hints like list[X] | None would cause TypeError: 'NoneType' object is not iterable.
+    """
+
+    @check_types
+    def test_func(param: list[float] | None) -> typing.Any:
+        return param
+
+    result = test_func(test_value)
+    assert result == test_value
+
+
+@pytest.mark.parametrize(
+    "test_value",
+    [
+        None,
+        {"a": 1},
+    ],
+    ids=["explicit_none", "with_value"],
+)
+def test_check_types_optional_dict_with_none(test_value: typing.Any) -> None:
+    """Test that @check_types handles None in dict | None unions.
+
+    This tests the fix for the issue where passing None to parameters with
+    type hints like dict[K, V] | None would cause AttributeError: 'NoneType' object has no attribute 'items'.
+    """
+
+    @check_types
+    def test_func(param: dict[str, int] | None) -> typing.Any:
+        return param
+
+    result = test_func(test_value)
+    assert result == test_value
+
+
+@pytest.mark.parametrize(
+    "test_value",
+    [
+        None,
+        ("hello", 42),
+    ],
+    ids=["explicit_none", "with_value"],
+)
+def test_check_types_optional_tuple_with_none(test_value: typing.Any) -> None:
+    """Test that @check_types handles None in tuple | None unions.
+
+    This tests the fix for the issue where passing None to parameters with
+    type hints like tuple[X, Y] | None would cause TypeError: 'NoneType' object is not iterable.
+    """
+
+    @check_types
+    def test_func(
+        param: tuple[str, int] | None,
+    ) -> typing.Any:
+        return param
+
+    result = test_func(test_value)
+    assert result == test_value
+
+
+@pytest.mark.parametrize(
+    "param_name,param_value",
+    [
+        ("optional_list", None),
+        ("optional_list", [1.0, 2.0, 3.0]),
+        ("optional_dict", None),
+        ("optional_dict", {"a": 1, "b": 2}),
+    ],
+    ids=[
+        "list-none",
+        "list-value",
+        "dict-none",
+        "dict-value",
+    ],
+)
+def test_check_types_union_with_none_in_class_init(
+    param_name: str, param_value: typing.Any
+) -> None:
+    """Test that @check_types works with __init__ methods having optional union types.
+
+    This is a common pattern for class constructors with optional parameters.
+    """
+
+    class MyClass:
+        @check_types
+        def __init__(
+            self,
+            required_param: str,
+            optional_list: list[float] | None = None,
+            optional_dict: dict[str, int] | None = None,
+        ) -> None:
+            self.required_param = required_param
+            self.optional_list = optional_list
+            self.optional_dict = optional_dict
+
+    # Create instance with the specified parameter
+    kwargs = {"required_param": "test", param_name: param_value}
+    obj = MyClass(**kwargs)
+
+    assert obj.required_param == "test"
+    assert getattr(obj, param_name) == param_value
+
+
+@pytest.mark.parametrize(
+    "test_value",
+    [
+        3.0,  # Scalar instead of list
+        "string",  # Scalar instead of list
+        42,  # Scalar instead of dict
+    ],
+    ids=["float_to_list", "str_to_list", "int_to_dict"],
+)
+def test_check_types_optional_collection_with_scalar(
+    test_value: typing.Any,
+) -> None:
+    """Test that @check_types handles type mismatches gracefully.
+
+    When a scalar is passed to a parameter annotated with collection | None,
+    @check_types should pass it through without validation since it only
+    validates DataFrame schemas, not Python type hints.
+    """
+
+    @check_types
+    def test_func_list(
+        param: list[float] | None,
+    ) -> typing.Any:
+        return param
+
+    @check_types
+    def test_func_dict(
+        param: dict[str, int] | None,
+    ) -> typing.Any:
+        return param
+
+    # Test depending on the type
+    if isinstance(test_value, int):
+        # Test dict parameter with scalar
+        result = test_func_dict(test_value)  # type: ignore [arg-type]
+        assert result == test_value
+    else:
+        # Test list parameter with scalar
+        result = test_func_list(test_value)  # type: ignore [arg-type]
+        assert result == test_value
+
+
 def test_check_types_star_args() -> None:
     """Test to check_types for functions with *args arguments"""
 
