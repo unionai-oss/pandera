@@ -22,6 +22,7 @@ from pandas import DatetimeTZDtype, to_datetime
 
 import pandera.pandas as pa
 from pandera.engines import pandas_engine
+from pandera.engines.pandas_engine import PANDAS_3_0_0_PLUS
 from pandera.engines.utils import pandas_version
 from pandera.system import FLOAT_128_AVAILABLE
 
@@ -108,12 +109,10 @@ if FLOAT_128_AVAILABLE:
         }
     )
 
-NULLABLE_FLOAT_DTYPES = None
-if pa.PANDAS_1_2_0_PLUS:
-    NULLABLE_FLOAT_DTYPES = {
-        pandas_engine.FLOAT32: "Float32",
-        pandas_engine.FLOAT64: "Float64",
-    }
+NULLABLE_FLOAT_DTYPES = {
+    pandas_engine.FLOAT32: "Float32",
+    pandas_engine.FLOAT64: "Float64",
+}
 
 boolean_dtypes = {bool: "bool", pa.Bool: "bool", np.bool_: "bool"}
 nullable_boolean_dtypes = {pd.BooleanDtype: "boolean", pa.BOOL: "boolean"}
@@ -125,7 +124,7 @@ string_dtypes = {
 }
 
 nullable_string_dtypes = {pd.StringDtype: "string"}
-if pa.PANDAS_1_3_0_PLUS and pandas_engine.PYARROW_INSTALLED:
+if pandas_engine.PYARROW_INSTALLED:
     nullable_string_dtypes.update(
         {pd.StringDtype(storage="pyarrow"): "string[pyarrow]"}  # type: ignore
     )
@@ -309,11 +308,7 @@ def test_invalid_pandas_extension_dtype():
 
 def test_check_equivalent(dtype: Any, pd_dtype: Any):
     """Test that a pandas-compatible dtype can be validated by check()."""
-    if (
-        pandas_engine.PYARROW_INSTALLED
-        and pandas_engine.PANDAS_2_0_0_PLUS
-        and dtype == "string[pyarrow]"
-    ):
+    if pandas_engine.PYARROW_INSTALLED and dtype == "string[pyarrow]":
         pytest.skip("`string[pyarrow]` gets parsed to type `string` by pandas")
     actual_dtype = pandas_engine.Engine.dtype(pd_dtype)
     expected_dtype = pandas_engine.Engine.dtype(dtype)
@@ -338,6 +333,11 @@ def test_coerce_no_cast(dtype: Any, pd_dtype: Any, data: list[Any]):
         # handle dtype case
         tz_match = re.match(r"datetime64\[ns, (.+)\]", pd_dtype)
         tz = None if not tz_match else tz_match.group(1)
+        # pandas 3.0 doesn't allow astype from timezone-naive to timezone-aware
+        if PANDAS_3_0_0_PLUS and tz is not None:
+            pytest.skip(
+                "pandas 3.0 doesn't allow astype from timezone-naive to timezone-aware"
+            )
         if pandas_version().release >= (2, 0, 0):
             series = pd.Series(data, dtype=pd_dtype).dt.tz_localize(tz)
         else:
@@ -595,8 +595,11 @@ def test_inferred_dtype(examples: pd.Series):
     alias = pd.api.types.infer_dtype(examples)
     if "mixed" in alias or alias == "string":
         # infer_dtype returns "string"
-        # whereas a Series will default to a "np.object_" dtype
-        inferred_datatype = pandas_engine.Engine.dtype(object)
+        # In pandas 3.0+, Series defaults to StringDtype, before it was object
+        if PANDAS_3_0_0_PLUS and alias == "string":
+            inferred_datatype = pandas_engine.Engine.dtype(pd.StringDtype())
+        else:
+            inferred_datatype = pandas_engine.Engine.dtype(object)
     else:
         inferred_datatype = pandas_engine.Engine.dtype(alias)
 

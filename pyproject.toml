@@ -123,7 +123,7 @@ dev = [
     "nox",
     "pip",
     "polars >= 0.20.0",
-    "pre_commit",
+    "prek",
     "pyarrow >= 13",
     "python-multipart",
     "pytz",
@@ -138,7 +138,7 @@ testing = [
     "pytest-xdist",
     "pytest-asyncio",
     "sphinx",
-    "ibis-framework[duckdb,sqlite] >= 11.0.0",
+    "numpy >= 1.24.4",
 ]
 docs = [
     "setuptools",
@@ -190,4 +190,4 @@ ignore = [
 ]
 
 [tool.codespell]
-ignore-words-list = ["notin", "splitted", "fo", "strat"]
+ignore-words-list = ["notin", "splitted", "fo", "strat", "ttest"]

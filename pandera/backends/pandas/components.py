@@ -23,6 +23,7 @@ from pandera.backends.pandas.array import (
 )
 from pandera.backends.pandas.base import PandasSchemaBackend
 from pandera.backends.pandas.error_formatters import reshape_failure_cases
+from pandera.engines.pandas_engine import Engine
 from pandera.errors import (
     SchemaDefinitionError,
     SchemaError,
@@ -117,6 +118,13 @@ class ColumnBackend(ArraySchemaBackend):
             if pd.notna(schema.default):
                 check_obj[column_name] = check_obj[column_name].fillna(
                     schema.default
+                )
+                # In pandas >= 3.0, fillna doesn't automatically coerce the dtype
+                # when filling an all-null column. Try to convert to the schema's
+                # dtype if the column is all non-null after fillna and the
+                # default value type is compatible with the schema dtype.
+                check_obj[column_name] = self._try_convert_dtype_after_fillna(
+                    check_obj[column_name], schema.dtype, schema.default
                 )
             if schema.coerce:
                 try:

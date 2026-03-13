@@ -564,6 +564,8 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
 
     def set_defaults(self, check_obj: pd.DataFrame, schema):
         """Sets default values for missing values."""
+        from pandera.backends.pandas.array import ArraySchemaBackend
+
         assert schema is not None, "The `schema` argument must be provided."
 
         for col_name, col_schema in schema.columns.items():
@@ -574,6 +576,14 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
                 continue
             check_obj[col_name] = check_obj[col_name].fillna(
                 col_schema.default
+            )
+            # In pandas >= 3.0, fillna doesn't automatically coerce the dtype
+            # when filling an all-null column. Try to convert to the schema's
+            # dtype if the column is all non-null after fillna.
+            check_obj[col_name] = (
+                ArraySchemaBackend._try_convert_dtype_after_fillna(
+                    check_obj[col_name], col_schema.dtype, col_schema.default
+                )
             )
 
         return check_obj

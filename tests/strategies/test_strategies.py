@@ -46,7 +46,7 @@ UNSUPPORTED_DTYPE_CLS: set[Any] = {
     pandas_engine.PythonNamedTuple,
 }
 
-if pandas_engine.PYARROW_INSTALLED and pandas_engine.PANDAS_2_0_0_PLUS:
+if pandas_engine.PYARROW_INSTALLED:
     UNSUPPORTED_DTYPE_CLS.update(
         [
             pandas_engine.ArrowBool,
@@ -897,7 +897,8 @@ def test_defined_check_strategy(
         """Custom range check."""
         if isinstance(pandas_obj, pd.Series):
             return pandas_obj.between(min_val, max_val)
-        return pandas_obj.applymap(lambda x: min_val <= x <= max_val)
+        # pandas 3.0 removed applymap, use map instead
+        return pandas_obj.map(lambda x: min_val <= x <= max_val)
 
     if register_check:
         check = Check.custom_check_with_strategy(0, 10)

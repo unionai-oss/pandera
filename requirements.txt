@@ -46,7 +46,7 @@ recommonmark
 myst-nb
 twine
 asv >= 0.5.1
-pre_commit
+prek
 dask[dataframe]
 distributed
 ibis-framework >= 9.0.0

@@ -25,6 +25,66 @@ from pandera.validation_depth import validate_scope, validation_type
 class ArraySchemaBackend(PandasSchemaBackend):
     """Backend for pandas arrays."""
 
+    @staticmethod
+    def _is_default_type_compatible(default_value, schema_dtype):
+        """Check if the default value type is compatible with schema dtype.
+
+        Returns True if the default value's type matches what the schema
+        dtype expects (e.g., bool default for bool dtype).
+        """
+        if schema_dtype is None:
+            return False
+
+        # Map of schema dtype to compatible Python/numpy types
+        dtype_str = str(schema_dtype).lower()
+
+        if "bool" in dtype_str:
+            return isinstance(default_value, bool)
+        elif "int" in dtype_str:
+            # int but not bool (bool is subclass of int in Python)
+            return isinstance(default_value, int) and not isinstance(
+                default_value, bool
+            )
+        elif "float" in dtype_str:
+            return isinstance(default_value, (int, float)) and not isinstance(
+                default_value, bool
+            )
+        elif "str" in dtype_str or dtype_str == "object":
+            return isinstance(default_value, str)
+        else:
+            # For other types, don't try automatic conversion
+            return False
+
+    @staticmethod
+    def _try_convert_dtype_after_fillna(series, schema_dtype, default_value):
+        """Try to convert dtype after fillna for pandas >= 3.0 compatibility.
+
+        In pandas >= 3.0, fillna doesn't automatically coerce the dtype
+        when filling an all-null column. This function attempts to convert
+        to the schema's dtype only if the default value type is compatible.
+        """
+        if (
+            schema_dtype is None
+            or not (
+                pd.api.types.is_object_dtype(series.dtype)
+                or pd.api.types.is_string_dtype(series.dtype)
+            )
+            or series.isna().any()
+        ):
+            return series
+
+        # Only convert if the default value type is compatible
+        if not ArraySchemaBackend._is_default_type_compatible(
+            default_value, schema_dtype
+        ):
+            return series
+
+        try:
+            target_dtype = Engine.dtype(schema_dtype).type
+            return series.astype(target_dtype)
+        except (ValueError, TypeError):
+            return series  # Conversion failed - keep original
+
     def preprocess(self, check_obj, inplace: bool = False):
         return check_obj if inplace else check_obj.copy()
 
@@ -350,11 +410,17 @@ class ArraySchemaBackend(PandasSchemaBackend):
             check_obj.dtype, pd.SparseDtype
         ):
             check_obj = check_obj.fillna(schema.default)
+            check_obj = self._try_convert_dtype_after_fillna(
+                check_obj, schema.dtype, schema.default
+            )
         elif not is_field(check_obj) and not isinstance(
             check_obj[schema.name].dtype, pd.SparseDtype
         ):
             check_obj[schema.name] = check_obj[schema.name].fillna(
                 schema.default
+            )
+            check_obj[schema.name] = self._try_convert_dtype_after_fillna(
+                check_obj[schema.name], schema.dtype, schema.default
             )
 
         return check_obj
