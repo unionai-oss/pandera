@@ -665,6 +665,9 @@ class Category(DataType, dtypes.Category):
         """Convert a categorical to
         a Pandera :class:`pandera.dtypes.pandas_engine.Category`."""
         return cls(categories=cat.categories, ordered=cat.ordered)  # type: ignore
+    
+    def __str__(self) -> str:
+        return repr(self.type)
 
 
 @Engine.register_dtype(equivalents=["string", pd.StringDtype])
