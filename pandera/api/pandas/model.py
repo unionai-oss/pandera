@@ -1,6 +1,5 @@
 """Class-based API for pandas models."""
 
-import copy
 import sys
 from typing import Any, Optional, Union, cast
 
@@ -235,21 +234,38 @@ class DataFrameModel(_DataFrameModel[pd.DataFrame, DataFrameSchema]):
     @classmethod
     def empty(cls: type[Self], *_args) -> DataFrame[Self]:
         """Create an empty DataFrame with the schema of this model."""
-        schema = copy.deepcopy(cls.to_schema())
-        schema.coerce = True
+        schema = cls.to_schema()
+
+        data = {}
+        for col_name, col_schema in schema.columns.items():
+            if col_schema.dtype is not None:
+                data[col_name] = pd.array([], dtype=col_schema.dtype.type)
+            else:
+                data[col_name] = pd.array([])
 
         if isinstance(schema.index, MultiIndex):
             index = pd.MultiIndex.from_arrays(
-                [pd.Index([], name=idx.name) for idx in schema.index.indexes]
+                [
+                    pd.Index(
+                        [],
+                        dtype=idx.dtype.type if idx.dtype is not None else None,
+                        name=idx.name,
+                    )
+                    for idx in schema.index.indexes
+                ]
             )
         elif isinstance(schema.index, Index):
-            index = pd.Index([], name=schema.index.name)
+            index = pd.Index(
+                [],
+                dtype=schema.index.dtype.type
+                if schema.index.dtype is not None
+                else None,
+                name=schema.index.name,
+            )
         else:
             index = None
 
-        empty_df = schema.coerce_dtype(
-            pd.DataFrame(columns=[*schema.columns], index=index)
-        )
+        empty_df = pd.DataFrame(data, index=index)
         return DataFrame[Self](empty_df)
 
 
