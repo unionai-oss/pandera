@@ -278,14 +278,25 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
         column_info: ColumnInfo,
     ):
         """Collects all schema components to use for validation."""
+        from pydantic import BaseModel
 
         from pandera.api.polars.components import Column
+        from pandera.engines import polars_engine
 
         columns: dict[str, Column] = schema.columns
 
-        if not schema.columns and schema.dtype is not None:
+        try:
+            is_pydantic = issubclass(
+                polars_engine.Engine.dtype(schema.dtype).type, BaseModel
+            )
+        except TypeError:
+            is_pydantic = False
+
+        if not schema.columns and schema.dtype is not None and not is_pydantic:
             # set schema components to dataframe dtype if columns are not
             # specified but the dataframe-level dtype is specified.
+            # PydanticModel applies row-wise, so per-column components
+            # are not created for it.
             columns = {}
             for col_name in get_lazyframe_column_names(check_obj):
                 columns[col_name] = Column(schema.dtype, name=str(col_name))

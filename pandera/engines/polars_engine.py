@@ -5,6 +5,7 @@ import dataclasses
 import datetime
 import decimal
 import inspect
+import logging
 import warnings
 from collections.abc import Iterable, Mapping, Sequence
 from typing import (
@@ -20,13 +21,16 @@ import polars as pl
 from packaging import version
 from polars._typing import ColumnNameOrSelector, PythonDataType
 from polars.datatypes import DataTypeClass
+from pydantic import BaseModel, ValidationError
 from typing_extensions import NotRequired
 
 from pandera import dtypes, errors
 from pandera.api.polars.types import PolarsData
 from pandera.constants import CHECK_OUTPUT_KEY
 from pandera.dtypes import immutable
-from pandera.engines import engine
+from pandera.engines import PYDANTIC_V2, engine
+
+logger = logging.getLogger(__name__)
 
 PolarsDataContainer = Union[pl.LazyFrame, PolarsData]
 PolarsDataType = Union[DataTypeClass, pl.DataType]
@@ -873,3 +877,116 @@ class Object(DataType):
     """Semantic representation of a :class:`numpy.object_`."""
 
     type = pl.Object
+
+
+###############################################################################
+# pydantic
+###############################################################################
+
+
+@Engine.register_dtype
+@dtypes.immutable(init=True)
+class PydanticModel(DataType):
+    """A pydantic model datatype applying to rows in a polars dataframe."""
+
+    type: builtins.type[BaseModel] = dataclasses.field(
+        default=None, init=False
+    )  # type: ignore[assignment]
+    auto_coerce = True
+
+    def __init__(self, model: builtins.type[BaseModel]) -> None:
+        object.__setattr__(self, "type", model)
+
+    def _get_column_names(self) -> list[str]:
+        if PYDANTIC_V2:
+            return list(self.type.model_fields.keys())  # type: ignore[attr-defined]
+        return list(self.type.__fields__.keys())  # type: ignore[attr-defined]
+
+    def _check_column_names(
+        self,
+        data_container: pl.LazyFrame,
+        column_names: list[str],
+    ) -> None:
+        lf_columns = data_container.collect_schema().names()
+        absent_columns = [col for col in column_names if col not in lf_columns]
+
+        if absent_columns:
+            raise errors.ParserError(
+                f"Missing columns in LazyFrame: {absent_columns}",
+                failure_cases=absent_columns,
+            )
+
+    def coerce(self, data_container: PolarsDataContainer) -> pl.LazyFrame:
+        """Coerce polars dataframe with pydantic record model."""
+        if isinstance(data_container, pl.LazyFrame):
+            data_container = PolarsData(data_container)
+
+        lf = data_container.lazyframe
+
+        from pandera.config import (
+            SILENCE_WARNING_PYDANTIC_MODEL,
+            get_config_context,
+        )
+
+        if not get_config_context().is_warning_silenced(
+            SILENCE_WARNING_PYDANTIC_MODEL
+        ):
+            logger.warning(
+                "PydanticModel will materialize a LazyFrame with a "
+                "collect() call, which may be slow for large "
+                "datasets. For better performance, define column "
+                "types and checks with native DataFrameModel field "
+                "annotations instead. Silence this warning with "
+                "export SILENCE_WARNING_PYDANTIC_MODEL=true"
+            )
+        df = lf.collect()
+
+        if df.is_empty():
+            warnings.warn(
+                "PydanticModel cannot validate an empty dataframe "
+                "because it requires at least one row of data to "
+                "coerce. The PydanticModel will perform no type "
+                "checking on the empty dataframe.",
+                UserWarning,
+            )
+            column_names = self._get_column_names()
+            self._check_column_names(lf, column_names)
+            return lf
+
+        coerced_rows: list[dict[str, Any]] = []
+        failure_cases: list[str] = []
+        row_passed: list[bool] = []
+
+        for row in df.iter_rows(named=True):
+            try:
+                if PYDANTIC_V2:
+                    coerced = self.type.model_validate(row).model_dump()
+                else:
+                    coerced = self.type.parse_obj(row).dict()
+                coerced_rows.append(coerced)
+                row_passed.append(True)
+            except ValidationError as exc:
+                failed_fields = {
+                    k: row.get(k, "<missing>")
+                    for k in (x["loc"][0] for x in exc.errors())
+                }
+                failure_cases.append(str(failed_fields))
+                coerced_rows.append(row)
+                row_passed.append(False)
+
+        if failure_cases:
+            check_output = pl.DataFrame({CHECK_OUTPUT_KEY: row_passed})
+            fc_df = pl.DataFrame(coerced_rows).filter(
+                pl.lit(pl.Series(row_passed)).not_()
+            )
+            raise errors.ParserError(
+                f"Could not coerce LazyFrame into type {self.type.__name__}",
+                failure_cases=fc_df,
+                parser_output=check_output,
+            )
+
+        return pl.DataFrame(coerced_rows).lazy()
+
+    def try_coerce(self, data_container: PolarsDataContainer) -> pl.LazyFrame:
+        """Coerce data container, raising ParserError on failure."""
+        return self.coerce(data_container)

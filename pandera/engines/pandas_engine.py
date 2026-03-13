@@ -8,6 +8,7 @@ import dataclasses
 import datetime
 import decimal
 import inspect
+import logging
 import sys
 import warnings
 from collections.abc import Callable, Iterable
@@ -35,6 +36,8 @@ from pandera.engines.type_aliases import (
 )
 from pandera.engines.utils import pandas_version
 from pandera.system import FLOAT_128_AVAILABLE
+
+logger = logging.getLogger(__name__)
 
 if PYDANTIC_V2:
     from pydantic import RootModel
@@ -1262,11 +1265,24 @@ class PydanticModel(DataType):
             self._check_column_names(data_container, column_names)
             return data_container
 
+        from pandera.config import (
+            SILENCE_WARNING_PYDANTIC_MODEL,
+            get_config_context,
+        )
+
+        if not get_config_context().is_warning_silenced(
+            SILENCE_WARNING_PYDANTIC_MODEL
+        ):
+            logger.warning(
+                "PydanticModel validates data by iterating over "
+                "each row in Python, which may be slow for large "
+                "datasets. For better performance, define column "
+                "types and checks with native DataFrameModel field "
+                "annotations instead. Silence this warning with "
+                "export SILENCE_WARNING_PYDANTIC_MODEL=true"
+            )
+
         def _coerce_row(row):
-            """
-            Coerce each row using pydantic model, keeping track of failure
-            cases.
-            """
             try:
                 if PYDANTIC_V2:
                     row = self.type.model_validate(row).model_dump()
