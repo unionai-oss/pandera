@@ -117,10 +117,11 @@ NULLABLE_FLOAT_DTYPES = {
 boolean_dtypes = {bool: "bool", pa.Bool: "bool", np.bool_: "bool"}
 nullable_boolean_dtypes = {pd.BooleanDtype: "boolean", pa.BOOL: "boolean"}
 
+_default_string_alias = str(pandas_engine.Engine.dtype(str))
 string_dtypes = {
-    str: "str",
-    pa.String: "str",
-    np.str_: "str",
+    str: _default_string_alias,
+    pa.String: _default_string_alias,
+    np.str_: np.str_,
 }
 
 nullable_string_dtypes = {pd.StringDtype: "string"}
@@ -347,7 +348,16 @@ def test_coerce_no_cast(dtype: Any, pd_dtype: Any, data: list[Any]):
 
     coerced_series = expected_dtype.coerce(series)
 
-    assert series.equals(coerced_series)
+    # pandas 3.0 uses StringDtype for str; .equals(object_series, string_series)
+    # can be False even when values are equal
+    if PANDAS_3_0_0_PLUS and dtype in (str, np.str_, pa.String):
+        pd.testing.assert_series_equal(
+            series.astype(object),
+            coerced_series.astype(object),
+            check_dtype=False,
+        )
+    else:
+        assert series.equals(coerced_series)
     assert expected_dtype.check(
         pandas_engine.Engine.dtype(coerced_series.dtype)
     )
@@ -355,7 +365,14 @@ def test_coerce_no_cast(dtype: Any, pd_dtype: Any, data: list[Any]):
     df = pd.DataFrame({"col": series})
     coerced_df = expected_dtype.coerce(df)
 
-    assert df.equals(coerced_df)
+    if PANDAS_3_0_0_PLUS and dtype in (str, np.str_, pa.String):
+        pd.testing.assert_frame_equal(
+            df.astype({"col": object}),
+            coerced_df.astype({"col": object}),
+            check_dtype=False,
+        )
+    else:
+        assert df.equals(coerced_df)
     assert expected_dtype.check(
         pandas_engine.Engine.dtype(coerced_df["col"].dtype)
     )
@@ -504,6 +521,153 @@ def test_coerce_string():
     assert pd.isna(coerced[1])
 
 
+class TestStringDtypeAlignment:
+    """Tests for issue #2227: Series[str] should resolve to the correct
+    string dtype depending on the pandas version."""
+
+    def test_str_resolves_by_pandas_version(self):
+        """str resolves to NpString for pandas < 3, STRING for pandas >= 3."""
+        resolved = pandas_engine.Engine.dtype(str)
+        if PANDAS_3_0_0_PLUS:
+            assert isinstance(resolved, pandas_engine.STRING)
+        else:
+            assert isinstance(resolved, pandas_engine.NpString)
+
+    def test_dtypes_string_resolves_by_pandas_version(self):
+        """pa.String resolves to NpString for pandas < 3, STRING for pandas >= 3."""
+        resolved = pandas_engine.Engine.dtype(pa.String)
+        if PANDAS_3_0_0_PLUS:
+            assert isinstance(resolved, pandas_engine.STRING)
+        else:
+            assert isinstance(resolved, pandas_engine.NpString)
+
+    def test_np_str_always_resolves_to_npstring(self):
+        """np.str_ should always resolve to NpString regardless of pandas
+        version, preserving explicit numpy string semantics."""
+        resolved = pandas_engine.Engine.dtype(np.str_)
+        assert isinstance(resolved, pandas_engine.NpString)
+
+    def test_str_alias_resolves_consistently(self):
+        """Engine.dtype(str) and Engine.dtype('str') should resolve to the
+        same type."""
+        from_builtin = pandas_engine.Engine.dtype(str)
+        from_string = pandas_engine.Engine.dtype("str")
+        assert type(from_builtin) is type(from_string)
+        assert from_builtin == from_string
+
+    def test_schema_str_matches_dataframe_dtype(self):
+        """Series[str] schema dtype should be compatible with the dtype
+        pandas assigns to string data."""
+        df = pd.DataFrame({"col": ["hello", "world"]})
+        inferred_dtype = pandas_engine.Engine.dtype(df.dtypes["col"])
+        schema_dtype = pandas_engine.Engine.dtype(str)
+        assert schema_dtype.check(inferred_dtype)
+
+    def test_dataframe_model_str_column(self):
+        """A DataFrameModel with Series[str] should validate a DataFrame
+        containing string data on any pandas version."""
+        from pandera.pandas import DataFrameModel
+        from pandera.typing import Series as TypedSeries
+
+        class StrModel(DataFrameModel):
+            col: TypedSeries[str]
+
+        df = pd.DataFrame({"col": ["foo", "bar"]})
+        StrModel.validate(df)
+
+    def test_dataframe_model_str_column_schema_dtype(self):
+        """Series[str] column dtype is NpString for pandas < 3, STRING for pandas >= 3."""
+        from pandera.pandas import DataFrameModel
+        from pandera.typing import Series as TypedSeries
+
+        class StrModel(DataFrameModel):
+            col: TypedSeries[str]
+
+        schema = StrModel.to_schema()
+        col_dtype = schema.columns["col"].dtype
+        if PANDAS_3_0_0_PLUS:
+            assert type(col_dtype) is pandas_engine.STRING
+        else:
+            assert type(col_dtype) is pandas_engine.NpString
+
+
+@pytest.mark.skipif(
+    not pandas_engine.PYARROW_INSTALLED,
+    reason="pyarrow required",
+)
+class TestArrowStringSerializationRoundTrip:
+    """ArrowString and STRING should be distinguishable after serialization round-trips."""
+
+    def test_arrow_string_str_is_unique(self):
+        """ArrowString's string representation should differ from STRING's
+        when both use pyarrow storage, so serialization can distinguish them."""
+        import pyarrow
+
+        arrow_str = pandas_engine.Engine.dtype(pd.ArrowDtype(pyarrow.string()))
+        pandas_str = pandas_engine.Engine.dtype(
+            pd.StringDtype(storage="pyarrow")
+        )
+        assert str(arrow_str) != str(pandas_str)
+
+    def test_arrow_string_roundtrip_via_alias(self):
+        """The 'arrow_string' alias should round-trip through Engine.dtype."""
+        resolved = pandas_engine.Engine.dtype("arrow_string")
+        assert isinstance(resolved, pandas_engine.ArrowString)
+        assert str(resolved) == "arrow_string"
+
+    def test_string_pyarrow_resolves_to_STRING(self):
+        """'string[pyarrow]' should resolve to STRING, not ArrowString."""
+        resolved = pandas_engine.Engine.dtype("string[pyarrow]")
+        assert isinstance(resolved, pandas_engine.STRING)
+
+    def test_arrow_dtype_resolves_to_ArrowString(self):
+        """pd.ArrowDtype(pyarrow.string()) should resolve to ArrowString."""
+        import pyarrow
+
+        resolved = pandas_engine.Engine.dtype(pd.ArrowDtype(pyarrow.string()))
+        assert isinstance(resolved, pandas_engine.ArrowString)
+
+    def test_schema_json_roundtrip_preserves_arrow_string(self):
+        """Serializing and deserializing a schema with ArrowString should
+        preserve the ArrowString dtype, not collapse it to STRING."""
+        import pyarrow
+
+        from pandera.pandas import DataFrameModel, DataFrameSchema
+        from pandera.typing import Series as TypedSeries
+
+        class ArrowModel(DataFrameModel):
+            col: TypedSeries[pyarrow.string]
+
+        original = ArrowModel.to_schema()
+        assert isinstance(
+            original.columns["col"].dtype, pandas_engine.ArrowString
+        )
+
+        roundtripped = DataFrameSchema.from_json(original.to_json())
+        assert isinstance(
+            roundtripped.columns["col"].dtype, pandas_engine.ArrowString
+        )
+
+    def test_schema_json_roundtrip_preserves_string_pyarrow(self):
+        """Serializing and deserializing a schema with STRING(pyarrow)
+        should preserve the STRING dtype, not turn into ArrowString."""
+        from typing import Annotated
+
+        from pandera.pandas import DataFrameModel, DataFrameSchema
+        from pandera.typing import Series as TypedSeries
+
+        class PandasArrowModel(DataFrameModel):
+            col: TypedSeries[Annotated[pd.StringDtype, "pyarrow", pd.NA]]
+
+        original = PandasArrowModel.to_schema()
+        assert isinstance(original.columns["col"].dtype, pandas_engine.STRING)
+
+        roundtripped = DataFrameSchema.from_json(original.to_json())
+        assert isinstance(
+            roundtripped.columns["col"].dtype, pandas_engine.STRING
+        )
+
+
 def test_default_numeric_dtypes():
     """
     Test that default numeric dtypes int, float and complex are consistent.
@@ -536,7 +700,8 @@ def test_default_numeric_dtypes():
         (alias, np_dtype)
         for alias, np_dtype in np.sctypeDict.items()
         # int, uint have different bitwidth under pandas and numpy.
-        if np_dtype != np.void and alias not in ("int", "uint")
+        # str is intentionally mapped to pandas StringDtype, not numpy str_.
+        if np_dtype != np.void and alias not in ("int", "uint", "str")
     ],
 )
 def test_numpy_dtypes(alias, np_dtype):

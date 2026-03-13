@@ -667,7 +667,34 @@ class Category(DataType, dtypes.Category):
         return cls(categories=cat.categories, ordered=cat.ordered)  # type: ignore
 
 
-@Engine.register_dtype(equivalents=["string", pd.StringDtype])
+if PANDAS_3_0_0_PLUS:
+    # pandas >= 3: str and dtypes.String resolve to STRING (pd.StringDtype)
+    _STRING_EQUIVALENTS: list = [
+        "string",
+        pd.StringDtype,
+        "str",
+        str,
+        dtypes.String,
+        dtypes.String(),
+    ]
+    _NPSTRING_EQUIVALENTS: list = [np.str_]
+else:
+    # pandas < 3: str and dtypes.String resolve to NpString; only explicit
+    # "string" / pd.StringDtype resolve to STRING (pd.StringDtype)
+    _STRING_EQUIVALENTS = [
+        "string",
+        pd.StringDtype,
+    ]
+    _NPSTRING_EQUIVALENTS = [
+        np.str_,
+        "str",
+        str,
+        dtypes.String,
+        dtypes.String(),
+    ]
+
+
+@Engine.register_dtype(equivalents=_STRING_EQUIVALENTS)
 @immutable(init=True)
 class STRING(DataType, dtypes.String):
     """Semantic representation of a :class:`pandas.StringDtype`."""
@@ -702,10 +729,37 @@ class STRING(DataType, dtypes.String):
             return "string[python]"
         return "string"
 
+    def check(
+        self,
+        pandera_dtype: dtypes.DataType,
+        data_container: PandasObject | None = None,
+    ) -> Union[bool, Iterable[bool]]:
+        # Resolve to compare types
+        try:
+            resolved = Engine.dtype(pandera_dtype)
+        except TypeError:
+            return False
+        # Accept pd.StringDtype (exact match)
+        if resolved.type == self.type:
+            if data_container is None:
+                return True
+            return np.full(len(data_container), True, dtype=bool)
+        # On pandas < 3, object dtype often holds strings; accept Object when
+        # data_container is None (e.g. schema inference) or when we have the series.
+        if not PANDAS_3_0_0_PLUS and isinstance(resolved, numpy_engine.Object):
+            if data_container is None:
+                return True
+            if type(data_container).__module__.startswith("pyspark.pandas"):
+                is_python_string = data_container.map(lambda x: str(type(x))).isin(  # type: ignore[operator]
+                    ["<class 'str'>", "<class 'numpy.str_'>"]
+                )
+            else:
+                is_python_string = data_container.map(lambda x: isinstance(x, str))  # type: ignore[operator]
+            return is_python_string.astype(bool) | data_container.isna()  # type: ignore[return-value]
+        return super().check(pandera_dtype, data_container)
 
-@Engine.register_dtype(
-    equivalents=["str", str, dtypes.String, dtypes.String(), np.str_]
-)
+
+@Engine.register_dtype(equivalents=_NPSTRING_EQUIVALENTS)
 @immutable
 class NpString(numpy_engine.String):
     """Specializes numpy_engine.String.coerce to handle pd.NA values."""
@@ -1615,6 +1669,7 @@ if PYARROW_INSTALLED:
 
     @Engine.register_dtype(
         equivalents=[
+            "arrow_string",
             pyarrow.string,
             pyarrow.utf8,
             # the `string[pyarrow]` string alias is overloaded: it can be either
@@ -1633,6 +1688,9 @@ if PYARROW_INSTALLED:
         """Semantic representation of a :class:`pyarrow.string`."""
 
         type = pd.ArrowDtype(pyarrow.string())
+
+        def __str__(self) -> str:
+            return "arrow_string"
 
     @Engine.register_dtype(
         equivalents=[
