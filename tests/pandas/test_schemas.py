@@ -2619,7 +2619,16 @@ def test_pandas_dataframe_subclass_validation():
             pd.DataFrame({"numbers": [3, 4, 5]}),
         ),
         (
-            DataFrameSchema({"numbers": Column(str)}, drop_invalid_rows=True),
+            DataFrameSchema(
+                {
+                    "numbers": Column(
+                        str,
+                        Check(lambda s: pd.Series(False, index=s.index)),
+                        coerce=True,
+                    )
+                },
+                drop_invalid_rows=True,
+            ),
             pd.DataFrame({"numbers": [1, 2, 3, 4, 5]}),
             pd.DataFrame({"numbers": []}),
         ),

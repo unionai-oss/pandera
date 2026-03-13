@@ -1512,10 +1512,17 @@ def test_check_types_star_args_kwargs() -> None:
     in_2 = pd.DataFrame({"a": [1]}, index=["1"])
     in_3 = pd.DataFrame({"a": [1]}, index=["1"])
 
-    expected_arg = in_1
-    expected_star_args = (in_2, in_3)
-    expected_kwarg = in_1
-    expected_star_kwargs = {"kwarg2": in_2, "kwarg3": in_3}
+    # With coerce=True, InSchema coerces index to str -> StringDtype (pandas 2+)
+    expected_arg = in_1.copy()
+    expected_arg.index = expected_arg.index.astype("string")
+    expected_star_args = (in_2.copy(), in_3.copy())
+    for df in expected_star_args:
+        df.index = df.index.astype("string")
+    expected_kwarg = in_1.copy()
+    expected_kwarg.index = expected_kwarg.index.astype("string")
+    expected_star_kwargs = {"kwarg2": in_2.copy(), "kwarg3": in_3.copy()}
+    for df in expected_star_kwargs.values():
+        df.index = df.index.astype("string")
 
     arg, star_args, kwarg, star_kwargs = star_args_kwargs(
         in_1, in_2, in_3, kwarg1=in_1, kwarg2=in_2, kwarg3=in_3

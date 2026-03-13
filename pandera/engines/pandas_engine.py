@@ -668,6 +668,7 @@ class Category(DataType, dtypes.Category):
 
 
 if PANDAS_3_0_0_PLUS:
+    # pandas >= 3: str and dtypes.String resolve to STRING (pd.StringDtype)
     _STRING_EQUIVALENTS: list = [
         "string",
         pd.StringDtype,
@@ -678,13 +679,18 @@ if PANDAS_3_0_0_PLUS:
     ]
     _NPSTRING_EQUIVALENTS: list = [np.str_]
 else:
-    _STRING_EQUIVALENTS = ["string", pd.StringDtype]
+    # pandas < 3: str and dtypes.String resolve to NpString; only explicit
+    # "string" / pd.StringDtype resolve to STRING (pd.StringDtype)
+    _STRING_EQUIVALENTS = [
+        "string",
+        pd.StringDtype,
+    ]
     _NPSTRING_EQUIVALENTS = [
+        np.str_,
         "str",
         str,
         dtypes.String,
         dtypes.String(),
-        np.str_,
     ]
 
 
@@ -722,6 +728,35 @@ class STRING(DataType, dtypes.String):
         elif self.storage == "python":
             return "string[python]"
         return "string"
+
+    def check(
+        self,
+        pandera_dtype: dtypes.DataType,
+        data_container: PandasObject | None = None,
+    ) -> Union[bool, Iterable[bool]]:
+        # Resolve to compare types
+        try:
+            resolved = Engine.dtype(pandera_dtype)
+        except TypeError:
+            return False
+        # Accept pd.StringDtype (exact match)
+        if resolved.type == self.type:
+            if data_container is None:
+                return True
+            return np.full(len(data_container), True, dtype=bool)
+        # On pandas < 3, object dtype often holds strings; accept Object when
+        # data_container is None (e.g. schema inference) or when we have the series.
+        if not PANDAS_3_0_0_PLUS and isinstance(resolved, numpy_engine.Object):
+            if data_container is None:
+                return True
+            if type(data_container).__module__.startswith("pyspark.pandas"):
+                is_python_string = data_container.map(lambda x: str(type(x))).isin(  # type: ignore[operator]
+                    ["<class 'str'>", "<class 'numpy.str_'>"]
+                )
+            else:
+                is_python_string = data_container.map(lambda x: isinstance(x, str))  # type: ignore[operator]
+            return is_python_string.astype(bool) | data_container.isna()  # type: ignore[return-value]
+        return super().check(pandera_dtype, data_container)
 
 
 @Engine.register_dtype(equivalents=_NPSTRING_EQUIVALENTS)

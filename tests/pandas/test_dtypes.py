@@ -509,15 +509,21 @@ class TestStringDtypeAlignment:
     """Tests for issue #2227: Series[str] should resolve to the correct
     string dtype depending on the pandas version."""
 
-    def test_str_resolves_to_STRING(self):
-        """str should always resolve to STRING (pd.StringDtype)."""
+    def test_str_resolves_by_pandas_version(self):
+        """str resolves to NpString for pandas < 3, STRING for pandas >= 3."""
         resolved = pandas_engine.Engine.dtype(str)
-        assert isinstance(resolved, pandas_engine.STRING)
+        if PANDAS_3_0_0_PLUS:
+            assert isinstance(resolved, pandas_engine.STRING)
+        else:
+            assert isinstance(resolved, pandas_engine.NpString)
 
-    def test_dtypes_string_resolves_to_STRING(self):
-        """pandera.dtypes.String (pa.String) should resolve to STRING."""
+    def test_dtypes_string_resolves_by_pandas_version(self):
+        """pa.String resolves to NpString for pandas < 3, STRING for pandas >= 3."""
         resolved = pandas_engine.Engine.dtype(pa.String)
-        assert isinstance(resolved, pandas_engine.STRING)
+        if PANDAS_3_0_0_PLUS:
+            assert isinstance(resolved, pandas_engine.STRING)
+        else:
+            assert isinstance(resolved, pandas_engine.NpString)
 
     def test_np_str_always_resolves_to_npstring(self):
         """np.str_ should always resolve to NpString regardless of pandas
@@ -552,6 +558,21 @@ class TestStringDtypeAlignment:
 
         df = pd.DataFrame({"col": ["foo", "bar"]})
         StrModel.validate(df)
+
+    def test_dataframe_model_str_column_schema_dtype(self):
+        """Series[str] column dtype is NpString for pandas < 3, STRING for pandas >= 3."""
+        from pandera.pandas import DataFrameModel
+        from pandera.typing import Series as TypedSeries
+
+        class StrModel(DataFrameModel):
+            col: TypedSeries[str]
+
+        schema = StrModel.to_schema()
+        col_dtype = schema.columns["col"].dtype
+        if PANDAS_3_0_0_PLUS:
+            assert type(col_dtype) is pandas_engine.STRING
+        else:
+            assert type(col_dtype) is pandas_engine.NpString
 
 
 @pytest.mark.skipif(
