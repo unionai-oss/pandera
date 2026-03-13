@@ -197,7 +197,9 @@ def test_parser_with_add_missing_columns():
 
     validated_df = Schema.validate(pd.DataFrame({"a": ["xxx"], "b": 0}))
     expected = pd.DataFrame({"a": ["xxx"], "b": 0, "c": 0})
-    expected["a"] = expected["a"].astype("string")
+    # With pandas < 3, str columns coerce to object (NpString); pandas >= 3 to StringDtype
+    if PANDAS_3_0_0_PLUS:
+        expected["a"] = expected["a"].astype("string")
     assert_frame_equal(validated_df, expected)
 
     with pytest.raises(pa.errors.SchemaError, match="No `b` or `c` in"):
