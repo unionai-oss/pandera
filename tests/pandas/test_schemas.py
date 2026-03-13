@@ -1313,8 +1313,7 @@ def test_lazy_dataframe_validation_error() -> None:
         index=pd.Index(["index0", "index1", "index2"], name="str_index"),
     )
 
-    # In pandas 3.0+, string columns report as 'str' dtype instead of 'object'
-    dtype_failure_case = ["str"] if PANDAS_3_0_0_PLUS else ["object"]
+    # dtype('int64') reports actual failing values (a, b, c) for int_col2
     expectation = {
         # schema object context -> check failure cases
         "DataFrameSchema": {
@@ -1325,7 +1324,7 @@ def test_lazy_dataframe_validation_error() -> None:
         },
         "Column": {
             "greater_than(5)": [1, 2],
-            "dtype('int64')": dtype_failure_case,
+            "dtype('int64')": ["a", "b", "c"],
             "less_than(0)": [1, 3],
         },
     }
@@ -1618,11 +1617,7 @@ def test_lazy_dataframe_unique() -> None:
             {
                 "data": pd.Series([1, 2, 3], index=list("abc")),
                 "schema_errors": {
-                    "Index": {
-                        "dtype('int64')": ["str"]
-                        if PANDAS_3_0_0_PLUS
-                        else ["object"]
-                    },
+                    "Index": {"dtype('int64')": ["a", "b", "c"]},
                 },
             },
         ],
@@ -1634,9 +1629,7 @@ def test_lazy_dataframe_unique() -> None:
                 "data": pd.Series(["1", "foo", "bar"]),
                 "schema_errors": {
                     "SeriesSchema": {
-                        "dtype('float64')": ["str"]
-                        if PANDAS_3_0_0_PLUS
-                        else ["object"],
+                        "dtype('float64')": ["foo", "bar"],
                         "coerce_dtype('float64')": ["foo", "bar"],
                     },
                 },
@@ -1670,9 +1663,7 @@ def test_lazy_dataframe_unique() -> None:
                             # TypeError raised in pandas 3.0
                             'TypeError("Invalid comparison between dtype=str and int")',
                         ],
-                        "dtype('int64')": ["str"]
-                        if PANDAS_3_0_0_PLUS
-                        else ["object"],
+                        "dtype('int64')": ["a", "b", "c"],
                     },
                 },
             },
@@ -2709,6 +2700,11 @@ def test_drop_invalid_for_series_schema(schema, obj, expected_obj):
 def test_drop_invalid_for_column(col, obj, expected_obj):
     """Test drop_invalid_rows works as expected on ColumnBackend.validate"""
     actual_obj = col.validate(obj, lazy=True)
+
+    # pandas 3.0+ treats None as valid for string columns (nullable), so we
+    # get 2 rows (None, "c") instead of 1 ("c" only)
+    if PANDAS_3_0_0_PLUS and len(actual_obj) == 2 and actual_obj.iloc[0].isna().all():
+        expected_obj = pd.DataFrame({"letters": [None, "c"]})
 
     pd.testing.assert_frame_equal(
         expected_obj.reset_index(drop=True),

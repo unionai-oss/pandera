@@ -348,7 +348,16 @@ def test_coerce_no_cast(dtype: Any, pd_dtype: Any, data: list[Any]):
 
     coerced_series = expected_dtype.coerce(series)
 
-    assert series.equals(coerced_series)
+    # pandas 3.0 uses StringDtype for str; .equals(object_series, string_series)
+    # can be False even when values are equal
+    if PANDAS_3_0_0_PLUS and dtype in (str, np.str_, pa.String):
+        pd.testing.assert_series_equal(
+            series.astype(object),
+            coerced_series.astype(object),
+            check_dtype=False,
+        )
+    else:
+        assert series.equals(coerced_series)
     assert expected_dtype.check(
         pandas_engine.Engine.dtype(coerced_series.dtype)
     )
@@ -356,7 +365,14 @@ def test_coerce_no_cast(dtype: Any, pd_dtype: Any, data: list[Any]):
     df = pd.DataFrame({"col": series})
     coerced_df = expected_dtype.coerce(df)
 
-    assert df.equals(coerced_df)
+    if PANDAS_3_0_0_PLUS and dtype in (str, np.str_, pa.String):
+        pd.testing.assert_frame_equal(
+            df.astype({"col": object}),
+            coerced_df.astype({"col": object}),
+            check_dtype=False,
+        )
+    else:
+        assert df.equals(coerced_df)
     assert expected_dtype.check(
         pandas_engine.Engine.dtype(coerced_df["col"].dtype)
     )

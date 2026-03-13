@@ -193,11 +193,23 @@ class PandasSchemaBackend(BaseSchemaBackend):
                 # if the failure cases are a string, it means the error is
                 # a schema-level error.
                 continue
-            if isinstance(check_obj.index, pd.MultiIndex):
+            # failure_cases may be a DataFrame (with "index" column) or a Series (use .index)
+            if isinstance(err.failure_cases, pd.Series):
+                # Series: use .index to get failing row indices
+                index_values = err.failure_cases.index
+            elif isinstance(check_obj.index, pd.MultiIndex):
                 index_tuples = err.failure_cases["index"].apply(eval)
                 index_values = pd.MultiIndex.from_tuples(index_tuples)
             else:
                 index_values = err.failure_cases["index"]
+                # align dtypes so isin() matches (e.g. "1" vs 1)
+                try:
+                    if hasattr(check_obj.index, "dtype") and hasattr(
+                        index_values, "astype"
+                    ):
+                        index_values = index_values.astype(check_obj.index.dtype)
+                except (TypeError, ValueError):
+                    pass
 
             mask = ~check_obj.index.isin(index_values)
             check_obj = check_obj.loc[mask]

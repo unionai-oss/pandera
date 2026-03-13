@@ -346,8 +346,42 @@ class ArraySchemaBackend(PandasSchemaBackend):
             )
             if isinstance(dtype_check_results, bool):
                 passed = dtype_check_results
-                # TODO: optimize this so we don't have to create a whole dataframe
-                failure_cases = str(check_obj.dtype)
+                # When whole-series dtype check fails, get element-level failure
+                # cases so drop_invalid_rows and error reporting show actual values.
+                if not passed and schema.dtype is not None:
+                    try:
+                        from pandera.engines import utils as engine_utils
+
+                        failure_cases = engine_utils.numpy_pandas_coerce_failure_cases(
+                            check_obj, schema.dtype
+                        )
+                    except Exception:
+                        failure_cases = None
+                    if failure_cases is None or (
+                        hasattr(failure_cases, "empty") and failure_cases.empty
+                    ):
+                        # For str/string dtype, coercion can succeed (e.g. 3 -> "3");
+                        # report elements that are not already strings as failure cases.
+                        try:
+                            expected_dtype = Engine.dtype(schema.dtype)
+                            if str(expected_dtype) in ("str", "string", "string[pyarrow]"):
+                                non_string = check_obj[
+                                    ~check_obj.map(
+                                        lambda x: isinstance(x, str) or pd.isna(x)
+                                    )
+                                ]
+                                if not non_string.empty:
+                                    failure_cases = reshape_failure_cases(
+                                        non_string, ignore_na=False
+                                    )
+                        except Exception:
+                            pass
+                        if failure_cases is None or (
+                            hasattr(failure_cases, "empty") and failure_cases.empty
+                        ):
+                            failure_cases = str(check_obj.dtype)
+                elif not passed:
+                    failure_cases = str(check_obj.dtype)
                 msg = (
                     f"expected series '{check_obj.name}' to have type "
                     f"{schema.dtype}, got {check_obj.dtype}"
