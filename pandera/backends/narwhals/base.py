@@ -1,14 +1,22 @@
 """Base schema backend for narwhals."""
 
 import warnings
+from collections import defaultdict
 
 import narwhals.stable.v1 as nw
+import polars as pl
 
+from pandera.api.base.error_handler import ErrorHandler
 from pandera.api.narwhals.utils import _to_native
 from pandera.backends.base import BaseSchemaBackend, CoreCheckResult
 from pandera.backends.narwhals.checks import NarwhalsCheckBackend
 from pandera.constants import CHECK_OUTPUT_KEY
-from pandera.errors import SchemaErrorReason, SchemaWarning
+from pandera.errors import (
+    FailureCaseMetadata,
+    SchemaError,
+    SchemaErrorReason,
+    SchemaWarning,
+)
 
 
 def _materialize(frame) -> nw.DataFrame:
@@ -127,3 +135,161 @@ class NarwhalsSchemaBackend(BaseSchemaBackend):
         :returns: True if the column dtype is a floating-point type.
         """
         return check_obj.collect_schema()[col_name].is_float()
+
+    def failure_cases_metadata(
+        self,
+        schema_name: str,
+        schema_errors: list[SchemaError],
+    ) -> FailureCaseMetadata:
+        """Create failure cases metadata required for SchemaErrors exception.
+
+        Ported from PolarsSchemaBackend.failure_cases_metadata(). By the time
+        failure_cases reach this method they are already native (pl.DataFrame
+        or scalar) — _to_native() was called at construction sites.
+
+        Note: pl.LazyFrame failure_cases are not supported (Phase 4 Polars-only
+        limitation).
+        """
+        error_counts: dict[str, int] = defaultdict(int)
+        failure_case_collection = []
+
+        for err in schema_errors:
+            error_counts[err.reason_code] += 1
+
+            check_identifier = (
+                None
+                if err.check is None
+                else (
+                    err.check
+                    if isinstance(err.check, str)
+                    else (
+                        err.check.error
+                        if err.check.error is not None
+                        else (
+                            err.check.name
+                            if err.check.name is not None
+                            else str(err.check)
+                        )
+                    )
+                )
+            )
+
+            if isinstance(err.failure_cases, pl.LazyFrame):
+                raise NotImplementedError
+
+            if isinstance(err.failure_cases, pl.DataFrame):
+                failure_cases_df = err.failure_cases
+
+                # get row number of the failure cases
+                if err.check_output is not None:
+                    if hasattr(err.check_output, "with_row_index"):
+                        _index_lf = err.check_output.with_row_index("index")
+                    else:
+                        _index_lf = err.check_output.with_row_count("index")
+                    index = _index_lf.filter(
+                        pl.col(CHECK_OUTPUT_KEY).eq(False)
+                    )["index"]
+                else:
+                    index = pl.Series("index", [None] * len(failure_cases_df), dtype=pl.Int32)
+
+                if len(err.failure_cases.columns) > 1:
+                    # for boolean dataframe check results, reduce failure cases
+                    # to a struct column
+                    failure_cases_df = err.failure_cases.with_columns(
+                        failure_case=pl.Series(
+                            err.failure_cases.rows(named=True)
+                        )
+                    ).select(pl.col.failure_case.struct.json_encode())
+                else:
+                    failure_cases_df = err.failure_cases.rename(
+                        {err.failure_cases.columns[0]: "failure_case"}
+                    )
+
+                failure_cases_df = failure_cases_df.with_columns(
+                    schema_context=pl.lit(err.schema.__class__.__name__),
+                    column=pl.lit(err.schema.name),
+                    check=pl.lit(check_identifier),
+                    check_number=pl.lit(err.check_index),
+                    index=index.limit(failure_cases_df.shape[0]),
+                ).cast(
+                    {
+                        "failure_case": pl.Utf8,
+                        "column": pl.String,
+                        "index": pl.Int32,
+                        "check_number": pl.Int32,
+                    }
+                )
+
+            else:
+                scalar_failure_cases = defaultdict(list)
+                scalar_failure_cases["failure_case"].append(err.failure_cases)
+                scalar_failure_cases["schema_context"].append(
+                    err.schema.__class__.__name__
+                )
+                scalar_failure_cases["column"].append(err.schema.name)
+                scalar_failure_cases["check"].append(check_identifier)
+                scalar_failure_cases["check_number"].append(err.check_index)
+                scalar_failure_cases["index"].append(None)
+                failure_cases_df = pl.DataFrame(scalar_failure_cases).cast(
+                    {
+                        "check_number": pl.Int32,
+                        "column": pl.String,
+                        "index": pl.Int32,
+                    }
+                )
+
+            failure_case_collection.append(failure_cases_df)
+
+        failure_cases = pl.concat(failure_case_collection)
+
+        error_handler = ErrorHandler()
+        # Only collect errors with a valid reason_code; errors without one
+        # (e.g. manually-constructed SchemaError stubs) are silently skipped.
+        valid_errors = [e for e in schema_errors if e.reason_code is not None]
+        error_handler.collect_errors(valid_errors)
+        error_dicts = {}
+
+        def defaultdict_to_dict(d):
+            if isinstance(d, defaultdict):
+                d = {k: defaultdict_to_dict(v) for k, v in d.items()}
+            return d
+
+        if error_handler.collected_errors:
+            error_dicts = error_handler.summarize(schema_name=schema_name)
+            error_dicts = defaultdict_to_dict(error_dicts)
+
+        error_counts = defaultdict(int)  # type: ignore
+        for error in error_handler.collected_errors:
+            error_counts[error["reason_code"].name] += 1
+
+        return FailureCaseMetadata(
+            failure_cases=failure_cases,
+            message=error_dicts,
+            error_counts=error_counts,
+        )
+
+    def drop_invalid_rows(self, check_obj, error_handler):
+        """Remove invalid rows in check_obj according to failures in error_handler.
+
+        Ported from PolarsSchemaBackend.drop_invalid_rows(). The check_obj at
+        this point is a native Polars frame or narwhals-wrapped frame that
+        supports .filter().
+
+        :param check_obj: The frame to filter.
+        :param error_handler: ErrorHandler whose schema_errors carry check_output.
+        :returns: Filtered frame with only rows where all checks passed.
+        """
+        errors = getattr(error_handler, "schema_errors", [])
+        if not errors:
+            return check_obj
+        check_outputs = pl.DataFrame(
+            {str(i): err.check_output for i, err in enumerate(errors)}
+        )
+        valid_rows = check_outputs.select(
+            valid_rows=pl.fold(
+                acc=pl.lit(True),
+                function=lambda acc, x: acc & x,
+                exprs=pl.col(pl.Boolean),
+            )
+        )["valid_rows"]
+        return check_obj.filter(valid_rows)
