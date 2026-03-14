@@ -40,6 +40,10 @@ def _register_narwhals_check_backend():
     try:
         from pandera.backends.narwhals.checks import NarwhalsCheckBackend
         Check.register_backend(nw.LazyFrame, NarwhalsCheckBackend)
+        # Also register for nw.DataFrame — Ibis tables are wrapped as nw.DataFrame
+        # (not nw.LazyFrame) by narwhals, so run_checks on Ibis frames requires
+        # a NarwhalsCheckBackend dispatch via DataFrame too.
+        Check.register_backend(nw.DataFrame, NarwhalsCheckBackend)
     except ImportError:
         pass
     # Import builtin_checks to trigger CHECK_FUNCTION_REGISTRY side-effect
