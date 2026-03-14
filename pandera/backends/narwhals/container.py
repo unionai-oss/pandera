@@ -57,11 +57,6 @@ class DataFrameSchemaBackend(NarwhalsSchemaBackend):
         # Capture the input type so we can return the same type
         return_type = type(check_obj)
 
-        # Lazy import to avoid circular import
-        if get_config_context().use_narwhals_backend:
-            from pandera.backends.narwhals.register import register_narwhals_backends
-            register_narwhals_backends()
-
         # Convert to narwhals LazyFrame — all parsers operate on LazyFrame
         check_lf = _to_lazy_nw(check_obj)
 
