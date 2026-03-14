@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: planning
-stopped_at: Completed 03-column-backend-01-PLAN.md
-last_updated: "2026-03-14T03:46:46.845Z"
+stopped_at: Completed 03-column-backend-02-PLAN.md
+last_updated: "2026-03-14T03:51:34.480Z"
 last_activity: 2026-03-09 — Roadmap created
 progress:
   total_phases: 5
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 7
-  completed_plans: 6
+  completed_plans: 7
   percent: 0
 ---
 
@@ -56,6 +56,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 02-check-backend P02 | 2min | 1 tasks | 2 files |
 | Phase 02-check-backend P03 | 6min | 1 tasks | 3 files |
 | Phase 03-column-backend P01 | 5min | 1 tasks | 1 files |
+| Phase 03-column-backend P02 | 3min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -79,6 +80,8 @@ Recent decisions affecting current work:
 - [Phase 02-check-backend]: NarwhalsCheckBackend.apply() detects builtins via Dispatcher._function_registry[NarwhalsData] lookup
 - [Phase 02-check-backend]: ibis narwhals backend returns nw.DataFrame (not LazyFrame); materialization uses nw.to_native().execute()
 - [Phase 03-column-backend]: SimpleNamespace schema stub used for tests — decouples test scaffold from Column API before it is stable
+- [Phase 03-column-backend]: NarwhalsCheckBackend registered for both nw.LazyFrame (Polars) and nw.DataFrame (Ibis) so run_checks dispatches correctly for both backends
+- [Phase 03-column-backend]: failure_cases in check_dtype is str(nw_dtype) scalar — consistent with Polars backend convention
 
 ### Pending Todos
 
@@ -92,6 +95,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-14T03:46:46.843Z
-Stopped at: Completed 03-column-backend-01-PLAN.md
+Last session: 2026-03-14T03:51:34.477Z
+Stopped at: Completed 03-column-backend-02-PLAN.md
 Resume file: None
