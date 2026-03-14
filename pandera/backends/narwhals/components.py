@@ -12,17 +12,94 @@ from pandera.backends.base import CoreCheckResult
 from pandera.backends.narwhals.base import NarwhalsSchemaBackend, _materialize
 from pandera.config import ValidationScope
 from pandera.constants import CHECK_OUTPUT_KEY
-from pandera.errors import SchemaError, SchemaErrorReason, SchemaWarning
+from pandera.errors import (
+    SchemaDefinitionError,
+    SchemaError,
+    SchemaErrorReason,
+    SchemaErrors,
+    SchemaWarning,
+)
 from pandera.validation_depth import validate_scope
 
 
 class ColumnBackend(NarwhalsSchemaBackend):
     """Per-column validation backend for narwhals-backed DataFrames.
 
-    Implements check_nullable, check_unique, check_dtype, run_checks, and
-    run_checks_and_handle_errors — mirroring pandera/backends/polars/components.py
+    Implements validate, check_nullable, check_unique, check_dtype, run_checks,
+    and run_checks_and_handle_errors — mirroring pandera/backends/polars/components.py
     but using narwhals APIs throughout.
     """
+
+    def validate(
+        self,
+        check_obj,
+        schema,
+        *,
+        head: int | None = None,
+        tail: int | None = None,
+        sample: int | None = None,
+        random_state: int | None = None,
+        lazy: bool = False,
+        inplace: bool = False,
+    ):
+        """Validate a narwhals-backed frame against a column schema.
+
+        :param check_obj: native pl.LazyFrame (or other narwhals-supported frame)
+        :param schema: Column schema with checks and constraints
+        :returns: validated frame (same type as input)
+        """
+        if inplace:
+            warnings.warn("setting inplace=True will have no effect.")
+
+        if schema.name is None:
+            raise SchemaDefinitionError(
+                "Column schema must have a name specified."
+            )
+
+        # Wrap to narwhals for uniform handling
+        check_lf = nw.from_native(check_obj, eager_or_interchange_only=False)
+        if isinstance(check_lf, nw.DataFrame):
+            check_lf = check_lf.lazy()
+
+        error_handler = ErrorHandler(lazy)
+
+        if getattr(schema, "drop_invalid_rows", False) and not lazy:
+            raise SchemaDefinitionError(
+                "When drop_invalid_rows is True, lazy must be set to True."
+            )
+
+        error_handler = self.run_checks_and_handle_errors(
+            error_handler,
+            schema,
+            check_lf,
+            head=head,
+            tail=tail,
+            sample=sample,
+            random_state=random_state,
+        )
+
+        if lazy and error_handler.collected_errors:
+            if getattr(schema, "drop_invalid_rows", False):
+                check_lf = self.drop_invalid_rows(check_lf, error_handler)
+            else:
+                # Use native frame for data in SchemaErrors — SchemaErrors.__init__
+                # calls schema.get_backend(data), which requires a registered native type.
+                raise SchemaErrors(
+                    schema=schema,
+                    schema_errors=error_handler.schema_errors,
+                    data=_to_native(check_lf),
+                )
+        elif not lazy and error_handler.collected_errors:
+            # Non-lazy mode: raise the first collected error
+            raise error_handler.schema_errors[0]
+
+        return check_lf
+
+    def get_regex_columns(self, schema, check_obj) -> Iterable:
+        """Get column names matching a regex pattern."""
+        frame_cols = check_obj.collect_schema().names()
+        import re
+        return [c for c in frame_cols if re.search(schema.selector, c)]
 
     @validate_scope(scope=ValidationScope.DATA)
     def check_nullable(self, check_obj, schema) -> list[CoreCheckResult]:
@@ -152,12 +229,27 @@ class ColumnBackend(NarwhalsSchemaBackend):
 
         results = []
         schema_obj = check_obj.select(schema.selector).collect_schema()
+        # Try to get native polars schema for polars_engine dtype compatibility.
+        # For ibis or other non-polars backends, fall back to None (use nw dtype only).
+        try:
+            native_obj = nw.to_native(check_obj)
+            # Polars LazyFrame has collect_schema(); ibis Table does not.
+            native_schema = native_obj.collect_schema() if hasattr(native_obj, "collect_schema") else None
+        except Exception:
+            native_schema = None
+
         for column, nw_dtype in zip(schema_obj.names(), schema_obj.dtypes()):
+            # Try narwhals engine first (for narwhals_engine dtypes in schema)
+            # Fall back to passing the nw_dtype or native dtype directly
             try:
                 col_pandera_dtype = narwhals_engine.Engine.dtype(nw_dtype)
             except TypeError:
                 col_pandera_dtype = nw_dtype  # fallback: .check() will return False
             passed = schema.dtype.check(col_pandera_dtype)
+            if not passed and native_schema is not None:
+                # Second attempt: pass native polars dtype (handles polars_engine schema dtypes)
+                native_dtype = native_schema.get(column, nw_dtype)
+                passed = schema.dtype.check(native_dtype)
             results.append(
                 CoreCheckResult(
                     passed=bool(passed),
