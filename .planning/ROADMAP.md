@@ -76,7 +76,13 @@ Plans:
   3. `strict=True` and `filter=True` column modes correctly reject or drop unexpected columns
   4. `lazy=True` validation collects all errors before raising `SchemaErrors` (not first-error-only)
   5. Narwhals backend is never registered by default; `pandera.use_backend("narwhals")` or `import pandera.narwhals` is required to activate it
-**Plans**: TBD
+**Plans**: 4 plans
+
+Plans:
+- [ ] 04-01-PLAN.md — container-level test scaffold: xfail stubs for all Phase 4 requirements
+- [ ] 04-02-PLAN.md — `pandera/backends/narwhals/base.py` (failure_cases_metadata, drop_invalid_rows) + `pandera/config.py` (use_narwhals_backend field)
+- [ ] 04-03-PLAN.md — `pandera/backends/narwhals/container.py` (DataFrameSchemaBackend: full validate() pipeline, strict modes, lazy error collection)
+- [ ] 04-04-PLAN.md — `pandera/backends/narwhals/register.py` (register_narwhals_backends() with lru_cache and direct BACKEND_REGISTRY writes)
 
 ### Phase 5: Ibis Registration and Integration
 **Goal**: End-to-end `schema.validate(table)` works for Ibis Tables, closing all known xfail gaps from the existing Ibis backend, and the full test suite passes against both Polars and Ibis
@@ -100,5 +106,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | 1. Foundation | 2/2 | Complete   | 2026-03-09 |
 | 2. Check Backend | 3/3 | Complete   | 2026-03-10 |
 | 3. Column Backend | 2/2 | Complete   | 2026-03-14 |
-| 4. Container Backend and Polars Registration | 0/TBD | Not started | - |
+| 4. Container Backend and Polars Registration | 0/4 | Not started | - |
 | 5. Ibis Registration and Integration | 0/TBD | Not started | - |
