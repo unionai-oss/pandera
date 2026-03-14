@@ -25,8 +25,8 @@
 
 ### Column Backend
 
-- [ ] **COLUMN-01**: `pandera/backends/narwhals/components.py` exists with `ColumnBackend` implementing `check_nullable` (handling float NaN via `is_nan()` in addition to `is_null()`), `check_unique`, `check_dtype` (via narwhals engine), and `run_checks`
-- [ ] **COLUMN-02**: `check_unique` forces collection via `.collect()` before calling `is_duplicated()`; the collect-first pattern is documented to prevent lazy evaluation bugs
+- [x] **COLUMN-01**: `pandera/backends/narwhals/components.py` exists with `ColumnBackend` implementing `check_nullable` (handling float NaN via `is_nan()` in addition to `is_null()`), `check_unique`, `check_dtype` (via narwhals engine), and `run_checks`
+- [x] **COLUMN-02**: `check_unique` forces collection via `.collect()` before calling `is_duplicated()`; the collect-first pattern is documented to prevent lazy evaluation bugs
 
 ### Container Backend
 
@@ -96,8 +96,8 @@
 | CHECKS-02 | Phase 2 | Complete |
 | CHECKS-03 | Phase 2 | Complete |
 | TEST-01 | Phase 2 | Complete |
-| COLUMN-01 | Phase 3 | Pending |
-| COLUMN-02 | Phase 3 | Pending |
+| COLUMN-01 | Phase 3 | Complete |
+| COLUMN-02 | Phase 3 | Complete |
 | CONTAINER-01 | Phase 4 | Pending |
 | CONTAINER-02 | Phase 4 | Pending |
 | CONTAINER-03 | Phase 4 | Pending |

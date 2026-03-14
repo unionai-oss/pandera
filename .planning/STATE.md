@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: planning
-stopped_at: Phase 3 context gathered
-last_updated: "2026-03-14T03:29:21.820Z"
+stopped_at: Completed 03-column-backend-01-PLAN.md
+last_updated: "2026-03-14T03:46:46.845Z"
 last_activity: 2026-03-09 — Roadmap created
 progress:
   total_phases: 5
   completed_phases: 2
-  total_plans: 5
-  completed_plans: 5
+  total_plans: 7
+  completed_plans: 6
   percent: 0
 ---
 
@@ -55,6 +55,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 02-check-backend P01 | 8min | 1 tasks | 3 files |
 | Phase 02-check-backend P02 | 2min | 1 tasks | 2 files |
 | Phase 02-check-backend P03 | 6min | 1 tasks | 3 files |
+| Phase 03-column-backend P01 | 5min | 1 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -77,6 +78,7 @@ Recent decisions affecting current work:
 - [Phase 02-check-backend]: narwhals Expr uses Python comparison operators (==, !=, >, >=, <, <=) not .eq/.ne/.gt/.ge/.lt/.le methods
 - [Phase 02-check-backend]: NarwhalsCheckBackend.apply() detects builtins via Dispatcher._function_registry[NarwhalsData] lookup
 - [Phase 02-check-backend]: ibis narwhals backend returns nw.DataFrame (not LazyFrame); materialization uses nw.to_native().execute()
+- [Phase 03-column-backend]: SimpleNamespace schema stub used for tests — decouples test scaffold from Column API before it is stable
 
 ### Pending Todos
 
@@ -90,6 +92,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-14T03:29:21.816Z
-Stopped at: Phase 3 context gathered
-Resume file: .planning/phases/03-column-backend/03-CONTEXT.md
+Last session: 2026-03-14T03:46:46.843Z
+Stopped at: Completed 03-column-backend-01-PLAN.md
+Resume file: None
