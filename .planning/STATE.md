@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: planning
-stopped_at: Phase 4 context gathered
-last_updated: "2026-03-14T04:52:00.533Z"
+stopped_at: Completed 04-container-backend-and-polars-registration-01-PLAN.md
+last_updated: "2026-03-14T13:20:30.533Z"
 last_activity: 2026-03-09 — Roadmap created
 progress:
   total_phases: 5
   completed_phases: 3
-  total_plans: 7
-  completed_plans: 7
+  total_plans: 11
+  completed_plans: 8
   percent: 0
 ---
 
@@ -57,6 +57,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 02-check-backend P03 | 6min | 1 tasks | 3 files |
 | Phase 03-column-backend P01 | 5min | 1 tasks | 1 files |
 | Phase 03-column-backend P02 | 3min | 2 tasks | 3 files |
+| Phase 04-container-backend-and-polars-registration P01 | 5min | 1 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -82,6 +83,8 @@ Recent decisions affecting current work:
 - [Phase 03-column-backend]: SimpleNamespace schema stub used for tests — decouples test scaffold from Column API before it is stable
 - [Phase 03-column-backend]: NarwhalsCheckBackend registered for both nw.LazyFrame (Polars) and nw.DataFrame (Ibis) so run_checks dispatches correctly for both backends
 - [Phase 03-column-backend]: failure_cases in check_dtype is str(nw_dtype) scalar — consistent with Polars backend convention
+- [Phase 04-container-backend-and-polars-registration]: Lazy imports inside test bodies prevent collection failure before modules exist — used in test_container.py for narwhals container/register imports
+- [Phase 04-container-backend-and-polars-registration]: All xfail stubs use strict=False so XPASS stubs don't break CI as implementation lands incrementally
 
 ### Pending Todos
 
@@ -95,6 +98,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-14T04:52:00.531Z
-Stopped at: Phase 4 context gathered
-Resume file: .planning/phases/04-container-backend-and-polars-registration/04-CONTEXT.md
+Last session: 2026-03-14T13:20:30.530Z
+Stopped at: Completed 04-container-backend-and-polars-registration-01-PLAN.md
+Resume file: None
