@@ -8,9 +8,21 @@ import narwhals.stable.v1 as nw
 
 @pytest.fixture(autouse=True, scope="module")
 def _suppress_narwhals_warning():
-    """Suppress the narwhals auto-activation UserWarning during tests."""
+    """Initialise narwhals backends and suppress the auto-activation UserWarning.
+
+    Calls register_polars_backends() once per module so that:
+    - builtin_checks side-effect runs (populates Dispatcher._function_registry)
+    - NarwhalsCheckBackend, ColumnBackend, DataFrameSchemaBackend are registered
+    - Tests that call NarwhalsCheckBackend directly do not need to trigger
+      schema.validate() first.
+
+    UserWarning is suppressed to keep test output clean.
+    """
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", UserWarning)
+        from pandera.backends.polars.register import register_polars_backends
+        register_polars_backends.cache_clear()
+        register_polars_backends()
         yield
 
 
