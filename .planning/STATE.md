@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: planning
-stopped_at: Completed 04-container-backend-and-polars-registration-01-PLAN.md
-last_updated: "2026-03-14T13:20:30.533Z"
+stopped_at: Completed 04-container-backend-and-polars-registration-02-PLAN.md
+last_updated: "2026-03-14T13:26:30.128Z"
 last_activity: 2026-03-09 — Roadmap created
 progress:
   total_phases: 5
   completed_phases: 3
   total_plans: 11
-  completed_plans: 8
+  completed_plans: 9
   percent: 0
 ---
 
@@ -58,6 +58,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 03-column-backend P01 | 5min | 1 tasks | 1 files |
 | Phase 03-column-backend P02 | 3min | 2 tasks | 3 files |
 | Phase 04-container-backend-and-polars-registration P01 | 5min | 1 tasks | 1 files |
+| Phase 04-container-backend-and-polars-registration P02 | 4min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -85,6 +86,8 @@ Recent decisions affecting current work:
 - [Phase 03-column-backend]: failure_cases in check_dtype is str(nw_dtype) scalar — consistent with Polars backend convention
 - [Phase 04-container-backend-and-polars-registration]: Lazy imports inside test bodies prevent collection failure before modules exist — used in test_container.py for narwhals container/register imports
 - [Phase 04-container-backend-and-polars-registration]: All xfail stubs use strict=False so XPASS stubs don't break CI as implementation lands incrementally
+- [Phase 04-container-backend-and-polars-registration]: failure_cases_metadata handles None check_output gracefully with null-filled index Series
+- [Phase 04-container-backend-and-polars-registration]: use_narwhals_backend is additive to PanderaConfig with opt-in env var PANDERA_USE_NARWHALS_BACKEND=True
 
 ### Pending Todos
 
@@ -98,6 +101,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-14T13:20:30.530Z
-Stopped at: Completed 04-container-backend-and-polars-registration-01-PLAN.md
+Last session: 2026-03-14T13:26:30.126Z
+Stopped at: Completed 04-container-backend-and-polars-registration-02-PLAN.md
 Resume file: None

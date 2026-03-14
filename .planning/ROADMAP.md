@@ -106,5 +106,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | 1. Foundation | 2/2 | Complete   | 2026-03-09 |
 | 2. Check Backend | 3/3 | Complete   | 2026-03-10 |
 | 3. Column Backend | 2/2 | Complete   | 2026-03-14 |
-| 4. Container Backend and Polars Registration | 1/4 | In Progress|  |
+| 4. Container Backend and Polars Registration | 2/4 | In Progress|  |
 | 5. Ibis Registration and Integration | 0/TBD | Not started | - |
