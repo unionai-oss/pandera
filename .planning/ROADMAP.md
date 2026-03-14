@@ -15,7 +15,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 1: Foundation** - Utility types, narwhals dtype engine, and dependency scaffolding (completed 2026-03-09)
 - [x] **Phase 2: Check Backend** - NarwhalsCheckBackend, all 14 builtin checks, and initial test harness (completed 2026-03-10)
 - [x] **Phase 3: Column Backend** - Per-column nullable/unique/dtype/run_checks pipeline (completed 2026-03-14)
-- [ ] **Phase 4: Container Backend and Polars Registration** - Full validation pipeline, end-to-end Polars validation green
+- [x] **Phase 4: Container Backend and Polars Registration** - Full validation pipeline, end-to-end Polars validation green (completed 2026-03-14)
 - [ ] **Phase 5: Ibis Registration and Integration** - Ibis end-to-end, xfail gap closure, full test suite
 
 ## Phase Details
@@ -106,5 +106,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | 1. Foundation | 2/2 | Complete   | 2026-03-09 |
 | 2. Check Backend | 3/3 | Complete   | 2026-03-10 |
 | 3. Column Backend | 2/2 | Complete   | 2026-03-14 |
-| 4. Container Backend and Polars Registration | 3/4 | In Progress|  |
+| 4. Container Backend and Polars Registration | 4/4 | Complete   | 2026-03-14 |
 | 5. Ibis Registration and Integration | 0/TBD | Not started | - |
