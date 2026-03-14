@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: planning
-stopped_at: Completed 04-container-backend-and-polars-registration-02-PLAN.md
-last_updated: "2026-03-14T13:26:30.128Z"
+stopped_at: Completed 04-container-backend-and-polars-registration-03-PLAN.md
+last_updated: "2026-03-14T13:35:59.667Z"
 last_activity: 2026-03-09 — Roadmap created
 progress:
   total_phases: 5
   completed_phases: 3
   total_plans: 11
-  completed_plans: 9
+  completed_plans: 10
   percent: 0
 ---
 
@@ -59,6 +59,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 03-column-backend P02 | 3min | 2 tasks | 3 files |
 | Phase 04-container-backend-and-polars-registration P01 | 5min | 1 tasks | 1 files |
 | Phase 04-container-backend-and-polars-registration P02 | 4min | 2 tasks | 2 files |
+| Phase 04-container-backend-and-polars-registration P03 | 8min | 1 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -88,6 +89,9 @@ Recent decisions affecting current work:
 - [Phase 04-container-backend-and-polars-registration]: All xfail stubs use strict=False so XPASS stubs don't break CI as implementation lands incrementally
 - [Phase 04-container-backend-and-polars-registration]: failure_cases_metadata handles None check_output gracefully with null-filled index Series
 - [Phase 04-container-backend-and-polars-registration]: use_narwhals_backend is additive to PanderaConfig with opt-in env var PANDERA_USE_NARWHALS_BACKEND=True
+- [Phase 04-container-backend-and-polars-registration]: Native pl.LazyFrame passed to schema_component.validate() via _to_native() — Column backend registered for pl.LazyFrame, not nw.LazyFrame
+- [Phase 04-container-backend-and-polars-registration]: Check registered for nw.LazyFrame and nw.DataFrame in register_narwhals_backends() — ColumnBackend wraps to narwhals internally requiring Check dispatch for nw types
+- [Phase 04-container-backend-and-polars-registration]: check_dtype two-pass strategy: narwhals_engine.Engine.dtype() first, then native polars dtype fallback — handles polars_engine Column schemas (e.g. Column(pl.Int64))
 
 ### Pending Todos
 
@@ -101,6 +105,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-14T13:26:30.126Z
-Stopped at: Completed 04-container-backend-and-polars-registration-02-PLAN.md
+Last session: 2026-03-14T13:35:59.664Z
+Stopped at: Completed 04-container-backend-and-polars-registration-03-PLAN.md
 Resume file: None
