@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: planning
-stopped_at: Completed 04-container-backend-and-polars-registration-04-PLAN.md
-last_updated: "2026-03-14T13:39:54.681Z"
+stopped_at: Completed 04-container-backend-and-polars-registration-05-PLAN.md
+last_updated: "2026-03-14T21:52:52.382Z"
 last_activity: 2026-03-09 — Roadmap created
 progress:
   total_phases: 5
   completed_phases: 4
-  total_plans: 11
-  completed_plans: 11
+  total_plans: 12
+  completed_plans: 12
   percent: 0
 ---
 
@@ -61,6 +61,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 04-container-backend-and-polars-registration P02 | 4min | 2 tasks | 2 files |
 | Phase 04-container-backend-and-polars-registration P03 | 8min | 1 tasks | 3 files |
 | Phase 04-container-backend-and-polars-registration P04 | 5min | 1 tasks | 1 files |
+| Phase 04-container-backend-and-polars-registration P05 | 4min | 4 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -95,6 +96,8 @@ Recent decisions affecting current work:
 - [Phase 04-container-backend-and-polars-registration]: check_dtype two-pass strategy: narwhals_engine.Engine.dtype() first, then native polars dtype fallback — handles polars_engine Column schemas (e.g. Column(pl.Int64))
 - [Phase 04-container-backend-and-polars-registration]: Direct BACKEND_REGISTRY writes required in register_narwhals_backends() — register_backend() guard silently no-ops if key already registered
 - [Phase 04-container-backend-and-polars-registration]: All imports inside try/except ImportError in register_narwhals_backends() for partial registration safety and opt-in isolation
+- [Phase 04-container-backend-and-polars-registration]: register_polars_backends() auto-detects narwhals via try/except — no config flag, no separate register_narwhals_backends() function
+- [Phase 04-container-backend-and-polars-registration]: conftest calls register_polars_backends() in autouse module fixture to populate Dispatcher registry for direct-backend tests that bypass schema.validate()
 
 ### Pending Todos
 
@@ -108,6 +111,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-14T13:39:54.676Z
-Stopped at: Completed 04-container-backend-and-polars-registration-04-PLAN.md
+Last session: 2026-03-14T21:52:52.379Z
+Stopped at: Completed 04-container-backend-and-polars-registration-05-PLAN.md
 Resume file: None

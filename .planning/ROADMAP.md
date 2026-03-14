@@ -79,7 +79,7 @@ Plans:
 **Plans**: 4 plans
 
 Plans:
-- [ ] 04-01-PLAN.md — container-level test scaffold: xfail stubs for all Phase 4 requirements
+- [x] 04-01-PLAN.md — container-level test scaffold: xfail stubs for all Phase 4 requirements (completed 2026-03-14)
 - [ ] 04-02-PLAN.md — `pandera/backends/narwhals/base.py` (failure_cases_metadata, drop_invalid_rows) + `pandera/config.py` (use_narwhals_backend field)
 - [ ] 04-03-PLAN.md — `pandera/backends/narwhals/container.py` (DataFrameSchemaBackend: full validate() pipeline, strict modes, lazy error collection)
 - [ ] 04-04-PLAN.md — `pandera/backends/narwhals/register.py` (register_narwhals_backends() with lru_cache and direct BACKEND_REGISTRY writes)
@@ -106,5 +106,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | 1. Foundation | 2/2 | Complete   | 2026-03-09 |
 | 2. Check Backend | 3/3 | Complete   | 2026-03-10 |
 | 3. Column Backend | 2/2 | Complete   | 2026-03-14 |
-| 4. Container Backend and Polars Registration | 4/4 | Complete   | 2026-03-14 |
+| 4. Container Backend and Polars Registration | 5/5 | Complete   | 2026-03-14 |
 | 5. Ibis Registration and Integration | 0/TBD | Not started | - |
