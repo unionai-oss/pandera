@@ -60,7 +60,11 @@ Plans:
   1. `check_nullable` correctly handles both `is_null()` and float `is_nan()` so nullable=False columns with NaN values fail validation
   2. `check_unique` forces `.collect()` before `is_duplicated()` and correctly detects duplicates on both eager and lazy frames
   3. `check_dtype` resolves column dtype through `narwhals_engine` and produces a `SchemaError` with a native frame in `failure_cases`
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+- [ ] 03-01-PLAN.md — test scaffold: `tests/backends/narwhals/test_components.py` with xfail stubs (COLUMN-01, COLUMN-02)
+- [ ] 03-02-PLAN.md — `pandera/backends/narwhals/base.py` (NarwhalsSchemaBackend) + `pandera/backends/narwhals/components.py` (ColumnBackend)
 
 ### Phase 4: Container Backend and Polars Registration
 **Goal**: End-to-end `schema.validate(df)` works for Polars DataFrames and LazyFrames — the full validation pipeline runs, errors surface correctly, and narwhals wrappers never appear in user-visible output
@@ -95,6 +99,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 |-------|----------------|--------|-----------|
 | 1. Foundation | 2/2 | Complete   | 2026-03-09 |
 | 2. Check Backend | 3/3 | Complete   | 2026-03-10 |
-| 3. Column Backend | 0/TBD | Not started | - |
+| 3. Column Backend | 0/2 | Not started | - |
 | 4. Container Backend and Polars Registration | 0/TBD | Not started | - |
 | 5. Ibis Registration and Integration | 0/TBD | Not started | - |
