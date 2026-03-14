@@ -42,8 +42,6 @@ class PanderaConfig:
     validation_depth: ValidationDepth | None = None
     cache_dataframe: bool = False
     keep_cached_dataframe: bool = False
-    # opt-in narwhals backend; PANDERA_USE_NARWHALS_BACKEND=True to activate
-    use_narwhals_backend: bool = False
 
 
 def _config_from_env_vars():
@@ -62,16 +60,12 @@ def _config_from_env_vars():
     keep_cached_dataframe = os.environ.get(
         "PANDERA_KEEP_CACHED_DATAFRAME", "False"
     ) in {"True", "1"}
-    use_narwhals_backend = os.environ.get(
-        "PANDERA_USE_NARWHALS_BACKEND", "False"
-    ) in {"True", "1"}
 
     return PanderaConfig(
         validation_enabled=validation_enabled,
         validation_depth=validation_depth,
         cache_dataframe=cache_dataframe,
         keep_cached_dataframe=keep_cached_dataframe,
-        use_narwhals_backend=use_narwhals_backend,
     )
 
 
@@ -86,7 +80,6 @@ def config_context(
     validation_depth: ValidationDepth | None = None,
     cache_dataframe: bool | None = None,
     keep_cached_dataframe: bool | None = None,
-    use_narwhals_backend: bool | None = None,
 ):
     """Temporarily set pandera config options to custom settings."""
     _outer_config_ctx = get_config_context(validation_depth_default=None)
@@ -100,8 +93,6 @@ def config_context(
             _CONTEXT_CONFIG.cache_dataframe = cache_dataframe
         if keep_cached_dataframe is not None:
             _CONTEXT_CONFIG.keep_cached_dataframe = keep_cached_dataframe
-        if use_narwhals_backend is not None:
-            _CONTEXT_CONFIG.use_narwhals_backend = use_narwhals_backend
 
         yield
     finally:
