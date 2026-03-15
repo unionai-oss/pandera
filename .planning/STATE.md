@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: planning
-stopped_at: Completed 05-ibis-registration-and-integration 05-02-PLAN.md
-last_updated: "2026-03-15T04:58:59.866Z"
+stopped_at: Completed 05-ibis-registration-and-integration 05-03-PLAN.md
+last_updated: "2026-03-15T05:07:03.643Z"
 last_activity: 2026-03-09 — Roadmap created
 progress:
   total_phases: 5
-  completed_phases: 4
+  completed_phases: 5
   total_plans: 15
-  completed_plans: 14
+  completed_plans: 15
   percent: 0
 ---
 
@@ -64,6 +64,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 04-container-backend-and-polars-registration P05 | 4min | 4 tasks | 6 files |
 | Phase 05-ibis-registration-and-integration PP01 | 5min | 2 tasks | 2 files |
 | Phase 05-ibis-registration-and-integration P02 | 15 | 2 tasks | 5 files |
+| Phase 05-ibis-registration-and-integration P03 | 15 | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -107,6 +108,8 @@ Recent decisions affecting current work:
 - [Phase 05-ibis-registration-and-integration]: ibis drop_invalid_rows delegates to IbisSchemaBackend (has positional-join / row_number logic) then wraps result back to narwhals
 - [Phase 05-ibis-registration-and-integration]: narwhals/register.py deleted — dead file with no imports; registration handled by polars/register.py and ibis/register.py
 - [Phase 05-ibis-registration-and-integration]: check_dtype ibis third pass uses ibis_table.schema().get(col) — direct ibis schema API after narwhals and polars passes
+- [Phase 05-ibis-registration-and-integration]: failure_cases for ibis validation is pyarrow.Table (not pandas) — ibis DuckDB backend returns pyarrow when narwhals LazyFrame.collect() is called via the ibis-backed LazyFrame path
+- [Phase 05-ibis-registration-and-integration]: element_wise=True SchemaError wraps NotImplementedError via run_checks exception catch — ibis parity tests assert SchemaError raised with NotImplementedError in message
 
 ### Pending Todos
 
@@ -120,6 +123,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-15T04:58:59.863Z
-Stopped at: Completed 05-ibis-registration-and-integration 05-02-PLAN.md
+Last session: 2026-03-15T05:07:03.640Z
+Stopped at: Completed 05-ibis-registration-and-integration 05-03-PLAN.md
 Resume file: None
