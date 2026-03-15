@@ -269,11 +269,11 @@ class NarwhalsSchemaBackend(BaseSchemaBackend):
         )
 
     def drop_invalid_rows(self, check_obj, error_handler):
-        """Remove invalid rows in check_obj according to failures in error_handler.
+        """Remove invalid rows according to failures in error_handler.
 
-        Ported from PolarsSchemaBackend.drop_invalid_rows(). The check_obj at
-        this point is a native Polars frame or narwhals-wrapped frame that
-        supports .filter().
+        For Ibis: delegates to IbisSchemaBackend.drop_invalid_rows() since
+        narwhals has no positional-join / row_number abstraction for ibis.
+        For Polars: uses nw.all_horizontal() to combine boolean check_outputs.
 
         :param check_obj: The frame to filter.
         :param error_handler: ErrorHandler whose schema_errors carry check_output.
@@ -282,14 +282,33 @@ class NarwhalsSchemaBackend(BaseSchemaBackend):
         errors = getattr(error_handler, "schema_errors", [])
         if not errors:
             return check_obj
-        check_outputs = pl.DataFrame(
-            {str(i): err.check_output for i, err in enumerate(errors)}
+
+        # Detect ibis path: unwrap to native and check type
+        native = nw.to_native(check_obj) if isinstance(check_obj, (nw.LazyFrame, nw.DataFrame)) else check_obj
+        try:
+            import ibis as _ibis
+            if isinstance(native, _ibis.Table):
+                from pandera.backends.ibis.base import IbisSchemaBackend
+                result = IbisSchemaBackend().drop_invalid_rows(native, error_handler)
+                return nw.from_native(result, eager_or_interchange_only=False)
+        except ImportError:
+            pass
+
+        # Polars path: use nw.all_horizontal() for boolean reduction (replaces pl.fold)
+        check_outputs = [
+            err.check_output for err in errors
+            if err.check_output is not None
+        ]
+        if not check_outputs:
+            return check_obj
+
+        # check_outputs are native pl.DataFrame with CHECK_OUTPUT_KEY boolean column
+        merged_pl = pl.DataFrame(
+            {str(i): co[CHECK_OUTPUT_KEY] for i, co in enumerate(check_outputs)}
         )
-        valid_rows = check_outputs.select(
-            valid_rows=pl.fold(
-                acc=pl.lit(True),
-                function=lambda acc, x: acc & x,
-                exprs=pl.col(pl.Boolean),
-            )
-        )["valid_rows"]
+        merged_nw = nw.from_native(merged_pl)
+        valid_rows_nw = merged_nw.select(
+            nw.all_horizontal(*[nw.col(c) for c in merged_pl.columns]).alias("valid_rows")
+        )
+        valid_rows = nw.to_native(valid_rows_nw)["valid_rows"]
         return check_obj.filter(valid_rows)

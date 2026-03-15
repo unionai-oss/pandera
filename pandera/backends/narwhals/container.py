@@ -12,7 +12,7 @@ import polars as pl
 from pandera.api.base.error_handler import ErrorHandler, get_error_category
 from pandera.api.polars.container import DataFrameSchema
 from pandera.backends.base import ColumnInfo, CoreCheckResult
-from pandera.backends.narwhals.base import NarwhalsSchemaBackend
+from pandera.backends.narwhals.base import NarwhalsSchemaBackend, _materialize
 from pandera.config import ValidationDepth, ValidationScope, get_config_context
 from pandera.errors import (
     ParserError,
@@ -450,20 +450,17 @@ class DataFrameSchemaBackend(NarwhalsSchemaBackend):
         check_output = None
         for lst in temp_unique:
             subset = [x for x in lst if x in frame_column_names]
-            # Polars-only in Phase 4; Phase 5 (Ibis) needs group_by().agg(count) strategy
-            subset_lf = check_obj.select(subset)
-            subset_native = nw.to_native(subset_lf).collect()
-            duplicates = subset_native.is_duplicated()
+            grouped = (
+                check_obj
+                .select(subset)
+                .group_by(*[nw.col(c) for c in subset])
+                .agg(nw.len().alias("_count"))
+            )
+            dup_rows = grouped.filter(nw.col("_count") > 1).drop("_count")
+            native_dups = nw.to_native(_materialize(dup_rows))
 
-            check_output = nw.to_native(
-                check_obj.with_columns(
-                    nw.lit(True).alias("check_output")
-                )
-            ).collect()
-
-            if duplicates.any():
-                failure_cases = subset_native.filter(duplicates)
-
+            if len(native_dups) > 0:
+                failure_cases = native_dups
                 passed = False
                 message = (
                     f"columns '{(*subset,)}' not unique:\n{failure_cases}"

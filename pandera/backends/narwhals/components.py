@@ -169,40 +169,36 @@ class ColumnBackend(NarwhalsSchemaBackend):
                 )
             ]
 
-        # COLUMN-02: force collection before is_duplicated() — is_duplicated() is a
-        # window function that requires full data visibility. _materialize() handles both
-        # Polars LazyFrame (.collect()) and Ibis nw.DataFrame (.execute()).
-        collected = _materialize(check_obj.select(schema.selector))
-        duplicates = collected.select(nw.col(schema.selector).is_duplicated())
+        # SQL-lazy safe: group_by().agg(nw.len()) works on ibis without materializing full frame.
+        # Supersedes COLUMN-02 collect()+is_duplicated() approach for SQL-lazy backends.
+        col = schema.selector
+        grouped = (
+            check_obj
+            .select(nw.col(col))
+            .group_by(nw.col(col))
+            .agg(nw.len().alias("_count"))
+        )
+        dup_values = grouped.filter(nw.col("_count") > 1).select(col)
+        native_dups = nw.to_native(_materialize(dup_values))
 
         results = []
-        for column in duplicates.collect_schema().names():
-            if not duplicates[column].any():
-                results.append(
-                    CoreCheckResult(
-                        passed=True,
-                        check=check_name,
-                        reason_code=SchemaErrorReason.SERIES_CONTAINS_DUPLICATES,
-                    )
+        if len(native_dups) == 0:
+            results.append(
+                CoreCheckResult(
+                    passed=True,
+                    check=check_name,
+                    reason_code=SchemaErrorReason.SERIES_CONTAINS_DUPLICATES,
                 )
-                continue
-            combined = nw.concat(
-                [collected, duplicates.rename({column: "_duplicated"})],
-                how="horizontal",
             )
-            failure_cases = _to_native(
-                combined.filter(nw.col("_duplicated")).select(column)
-            )
+        else:
             results.append(
                 CoreCheckResult(
                     passed=False,
                     check=check_name,
-                    check_output=duplicates.select(
-                        (~nw.col(column)).alias(CHECK_OUTPUT_KEY)
-                    ),
+                    check_output=None,  # group_by approach does not produce per-row booleans
                     reason_code=SchemaErrorReason.SERIES_CONTAINS_DUPLICATES,
-                    message=f"column '{schema.selector}' not unique:\n{failure_cases}",
-                    failure_cases=failure_cases,
+                    message=f"column '{col}' not unique:\n{native_dups}",
+                    failure_cases=native_dups,
                 )
             )
         return results
@@ -250,6 +246,17 @@ class ColumnBackend(NarwhalsSchemaBackend):
                 # Second attempt: pass native polars dtype (handles polars_engine schema dtypes)
                 native_dtype = native_schema.get(column, nw_dtype)
                 passed = schema.dtype.check(native_dtype)
+            if not passed:
+                try:
+                    import ibis as _ibis
+                    native_check_obj = nw.to_native(check_obj)
+                    if isinstance(native_check_obj, _ibis.Table):
+                        ibis_schema = native_check_obj.schema()
+                        ibis_native_dtype = ibis_schema.get(column)
+                        if ibis_native_dtype is not None:
+                            passed = schema.dtype.check(ibis_native_dtype)
+                except ImportError:
+                    pass
             results.append(
                 CoreCheckResult(
                     passed=bool(passed),
