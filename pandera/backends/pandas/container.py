@@ -77,13 +77,15 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
         # Collect status of columns against schema
         column_info = self.collect_column_info(check_obj, schema)
 
-        # Collect errors from core parsers, with special handling for drop_invalid_rows
         core_parsers: list[tuple[Callable[..., Any], tuple[Any, ...]]] = [
             (self.add_missing_columns, (schema, column_info)),
             (self.strict_filter_columns, (schema, column_info)),
             (self.set_defaults, (schema,)),
             (self.coerce_dtype, (schema,)),
         ]
+
+        # Run parsers first to get data ready for validation
+        check_obj = self.run_parsers(schema, check_obj)
 
         for parser, args in core_parsers:
             try:
