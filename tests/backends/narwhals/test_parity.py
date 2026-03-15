@@ -34,7 +34,6 @@ def _make_ibis_table(data: dict):
 # TEST-04: Container validation parity (Polars vs Ibis)
 # ---------------------------------------------------------------------------
 
-@pytest.mark.xfail(reason="TEST-04: ibis.Table not yet registered for narwhals backend", strict=False)
 def test_validate_ibis_valid():
     """schema.validate(ibis_table) succeeds for a valid ibis Table."""
     from pandera.api.ibis.container import DataFrameSchema as IbisSchema
@@ -47,7 +46,6 @@ def test_validate_ibis_valid():
     assert result is not None
 
 
-@pytest.mark.xfail(reason="TEST-04: ibis.Table not yet registered for narwhals backend", strict=False)
 def test_validate_ibis_invalid_raises():
     """schema.validate(ibis_table) raises SchemaError for an invalid ibis Table."""
     from pandera.api.ibis.container import DataFrameSchema as IbisSchema
@@ -60,7 +58,6 @@ def test_validate_ibis_invalid_raises():
         schema.validate(t)
 
 
-@pytest.mark.xfail(reason="TEST-04: ibis lazy validation not yet registered", strict=False)
 def test_lazy_mode_ibis_collects_all_errors():
     """schema.validate(ibis_table, lazy=True) collects multiple errors."""
     from pandera.api.ibis.container import DataFrameSchema as IbisSchema
@@ -77,7 +74,6 @@ def test_lazy_mode_ibis_collects_all_errors():
     assert len(exc_info.value.schema_errors) > 1
 
 
-@pytest.mark.xfail(reason="TEST-04: ibis strict mode not yet registered", strict=False)
 def test_strict_true_ibis_rejects_extra_columns():
     """schema.validate(ibis_table, strict=True) raises for extra columns."""
     from pandera.api.ibis.container import DataFrameSchema as IbisSchema
@@ -90,7 +86,6 @@ def test_strict_true_ibis_rejects_extra_columns():
         schema.validate(t)
 
 
-@pytest.mark.xfail(reason="TEST-04: ibis strict=filter not yet registered", strict=False)
 def test_strict_filter_ibis_drops_extra_columns():
     """schema.validate(ibis_table, strict='filter') drops extra columns."""
     from pandera.api.ibis.container import DataFrameSchema as IbisSchema
@@ -106,7 +101,6 @@ def test_strict_filter_ibis_drops_extra_columns():
     assert "a" in result_df.columns
 
 
-@pytest.mark.xfail(reason="TEST-04: ibis failure_cases native type not yet verified", strict=False)
 def test_failure_cases_native_ibis():
     """SchemaError.failure_cases on ibis validation is a native (non-narwhals) frame."""
     import pandas as pd
@@ -125,9 +119,16 @@ def test_failure_cases_native_ibis():
         assert not isinstance(fc, (nw.DataFrame, nw.LazyFrame)), (
             f"failure_cases must be native, got {type(fc)}"
         )
-        # Should be a native frame type (pandas for ibis)
-        assert isinstance(fc, (pd.DataFrame, pl.DataFrame)), (
-            f"Expected native frame, got {type(fc)}"
+        # Should be a native frame type — ibis DuckDB backend materializes to
+        # pyarrow when executing via narwhals LazyFrame.collect(); pandas is also
+        # acceptable for ibis backends that execute to pandas.
+        try:
+            import pyarrow as pa
+            native_types = (pd.DataFrame, pl.DataFrame, pa.Table)
+        except ImportError:
+            native_types = (pd.DataFrame, pl.DataFrame)
+        assert isinstance(fc, native_types), (
+            f"Expected native frame (pd.DataFrame, pl.DataFrame, or pyarrow.Table), got {type(fc)}"
         )
 
 
@@ -135,7 +136,6 @@ def test_failure_cases_native_ibis():
 # TEST-04: Decorator parity (Polars vs Ibis)
 # ---------------------------------------------------------------------------
 
-@pytest.mark.xfail(reason="TEST-04: ibis decorator parity not yet implemented", strict=False)
 def test_check_decorator_ibis():
     """@pa.check_input / @pa.check_output works with ibis Table."""
     import pandera.ibis as pa_ibis
@@ -156,7 +156,6 @@ def test_check_decorator_ibis():
 # TEST-04: DataFrameModel parity (Polars vs Ibis)
 # ---------------------------------------------------------------------------
 
-@pytest.mark.xfail(reason="TEST-04: ibis DataFrameModel parity not yet implemented", strict=False)
 def test_dataframe_model_ibis():
     """Ibis DataFrameModel schema validates an ibis Table correctly."""
     import pandera.ibis as pa_ibis
@@ -212,3 +211,29 @@ def test_lazy_mode_polars_parity():
     with pytest.raises(SchemaErrors) as exc_info:
         schema.validate(pl.DataFrame({"a": [1, 2], "b": [3, 4]}), lazy=True)
     assert len(exc_info.value.schema_errors) > 1
+
+
+# ---------------------------------------------------------------------------
+# TEST-02: element_wise=True check on ibis Table raises (not supported)
+# ---------------------------------------------------------------------------
+
+def test_element_wise_check_raises_not_implemented_ibis():
+    """element_wise=True on ibis Table raises SchemaError wrapping NotImplementedError.
+
+    SQL-lazy backends (Ibis, DuckDB, PySpark) cannot apply row-level Python
+    functions to lazy query plans. element_wise checks are rejected at check
+    application time. The NotImplementedError is captured by run_checks and
+    surfaced as a SchemaError with CHECK_ERROR reason_code. TEST-02.
+    """
+    from pandera.api.ibis.container import DataFrameSchema as IbisSchema
+    from pandera.api.ibis.components import Column as IbisColumn
+    import ibis.expr.datatypes as dt
+
+    schema = IbisSchema(
+        columns={"a": IbisColumn(dt.int64, checks=[Check(lambda x: x > 0, element_wise=True)])}
+    )
+    t = _make_ibis_table({"a": [1, 2, 3]})
+    with pytest.raises(SchemaError) as exc_info:
+        schema.validate(t)
+    # The SchemaError wraps the NotImplementedError from element_wise check rejection
+    assert "NotImplementedError" in str(exc_info.value) or "element_wise" in str(exc_info.value)
