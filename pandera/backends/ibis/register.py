@@ -46,6 +46,7 @@ def register_ibis_backends(
         Column.register_backend(ibis.Table, ColumnBackend)
         Check.register_backend(ibis.Table, NarwhalsCheckBackend)
         Check.register_backend(ibis.Column, NarwhalsCheckBackend)
+        Check.register_backend(nw.LazyFrame, NarwhalsCheckBackend)
     except ImportError:
         from pandera.backends.ibis import builtin_checks  # noqa
         from pandera.backends.ibis.checks import IbisCheckBackend
