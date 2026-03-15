@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: planning
-stopped_at: Completed 05-ibis-registration-and-integration 05-05-PLAN.md
-last_updated: "2026-03-15T06:10:18.712Z"
+stopped_at: Completed 05-ibis-registration-and-integration 05-06-PLAN.md
+last_updated: "2026-03-15T23:27:51.834Z"
 last_activity: 2026-03-09 — Roadmap created
 progress:
   total_phases: 5
   completed_phases: 5
-  total_plans: 17
-  completed_plans: 17
+  total_plans: 18
+  completed_plans: 18
   percent: 0
 ---
 
@@ -67,6 +67,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 05-ibis-registration-and-integration P03 | 15 | 2 tasks | 2 files |
 | Phase 05-ibis-registration-and-integration P04 | 4min | 2 tasks | 2 files |
 | Phase 05-ibis-registration-and-integration P05 | 4min | 1 tasks | 1 files |
+| Phase 05-ibis-registration-and-integration P06 | 5min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -117,6 +118,8 @@ Recent decisions affecting current work:
 - [Phase 05-ibis-registration-and-integration]: failure_cases returned as lazy ibis.Table from run_check ibis path — tests/ibis/ call .execute()/.to_pandas() and require the lazy contract
 - [Phase 05-ibis-registration-and-integration]: pyarrow.lib.Table also detected as ibis-originated failure_cases — narwhals collect() on ibis-backed LazyFrame materializes to pyarrow, not pandas
 - [Phase 05-ibis-registration-and-integration]: ibis.Table materialization uses .execute(); pyarrow.Table uses .to_pandas() — both dispatch on hasattr(_ibis_fc, 'execute')
+- [Phase 05-ibis-registration-and-integration]: ibis guard in _count_failure_cases uses try/except ImportError so ibis remains fully optional from shared base code
+- [Phase 05-ibis-registration-and-integration]: ibis.Table detection placed before try/len() block in _count_failure_cases to intercept ExpressionError before propagation
 
 ### Pending Todos
 
@@ -130,6 +133,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-15T06:10:18.709Z
-Stopped at: Completed 05-ibis-registration-and-integration 05-05-PLAN.md
+Last session: 2026-03-15T23:27:51.831Z
+Stopped at: Completed 05-ibis-registration-and-integration 05-06-PLAN.md
 Resume file: None
