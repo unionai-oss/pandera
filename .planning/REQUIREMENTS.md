@@ -39,7 +39,7 @@
 
 - [x] **REGISTER-01**: `pandera/backends/narwhals/register.py` exists with `register_narwhals_backends()` decorated with `lru_cache`, guarded by per-library `try/except ImportError`, writing directly into `BACKEND_REGISTRY` (not via `register_backend()`) to override existing entries when opt-in is active
 - [x] **REGISTER-02**: Narwhals backend registers for `pl.DataFrame` and `pl.LazyFrame` (Polars) — end-to-end `schema.validate(df)` works for Polars frames
-- [ ] **REGISTER-03**: Narwhals backend registers for `ibis.Table` — end-to-end `schema.validate(table)` works for Ibis frames, closing known xfail gaps (`coerce_dtype`, column `unique`)
+- [x] **REGISTER-03**: Narwhals backend registers for `ibis.Table` — end-to-end `schema.validate(table)` works for Ibis frames, closing known xfail gaps (`coerce_dtype`, column `unique`)
 - [x] **REGISTER-04**: Opt-in activation mechanism exists — narwhals backend is never registered by default; requires explicit `pandera.use_backend("narwhals")` or `import pandera.narwhals`
 
 ### Testing
@@ -47,7 +47,7 @@
 - [x] **TEST-01**: `tests/backends/narwhals/` directory exists with backend-agnostic test suite parameterized via pytest markers to run against each registered backend (Polars, Ibis at minimum)
 - [ ] **TEST-02**: Tests cover schema validation (column presence, dtype check, nullable, unique), all 14 builtin checks, lazy validation mode, dtype coercion, and error message correctness (native frame types in `failure_cases`)
 - [x] **TEST-03**: Tests assert that `SchemaError.failure_cases` is always a native frame type (not a narwhals wrapper)
-- [ ] **TEST-04**: A curated subset of `tests/polars/` and `tests/ibis/` end-to-end tests runs with the narwhals backend active to verify behavioral parity — covering validation depth semantics, `lazy=True` error collection, strict/filter column modes, and decorator behavior. The subset is limited to tests that exercise the full pipeline through the registered backend (where narwhals replaces polars/ibis under the hood) and excludes tests that exercise native polars/ibis internals directly.
+- [x] **TEST-04**: A curated subset of `tests/polars/` and `tests/ibis/` end-to-end tests runs with the narwhals backend active to verify behavioral parity — covering validation depth semantics, `lazy=True` error collection, strict/filter column modes, and decorator behavior. The subset is limited to tests that exercise the full pipeline through the registered backend (where narwhals replaces polars/ibis under the hood) and excludes tests that exercise native polars/ibis internals directly.
 
 ## v2 Requirements
 
@@ -107,9 +107,9 @@
 | REGISTER-02 | Phase 4 | Complete |
 | REGISTER-04 | Phase 4 | Complete |
 | TEST-03 | Phase 4 | Complete |
-| REGISTER-03 | Phase 5 | Pending |
+| REGISTER-03 | Phase 5 | Complete |
 | TEST-02 | Phase 5 | Pending |
-| TEST-04 | Phase 5 | Pending |
+| TEST-04 | Phase 5 | Complete |
 
 **Coverage:**
 - v1 requirements: 22 total

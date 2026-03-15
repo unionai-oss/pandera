@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: planning
-stopped_at: Phase 5 context gathered
-last_updated: "2026-03-15T04:29:04.942Z"
+stopped_at: Completed 05-ibis-registration-and-integration 05-01-PLAN.md
+last_updated: "2026-03-15T04:55:08.984Z"
 last_activity: 2026-03-09 — Roadmap created
 progress:
   total_phases: 5
   completed_phases: 4
-  total_plans: 12
-  completed_plans: 12
+  total_plans: 15
+  completed_plans: 13
   percent: 0
 ---
 
@@ -62,6 +62,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 04-container-backend-and-polars-registration P03 | 8min | 1 tasks | 3 files |
 | Phase 04-container-backend-and-polars-registration P04 | 5min | 1 tasks | 1 files |
 | Phase 04-container-backend-and-polars-registration P05 | 4min | 4 tasks | 6 files |
+| Phase 05-ibis-registration-and-integration PP01 | 5min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -98,6 +99,9 @@ Recent decisions affecting current work:
 - [Phase 04-container-backend-and-polars-registration]: All imports inside try/except ImportError in register_narwhals_backends() for partial registration safety and opt-in isolation
 - [Phase 04-container-backend-and-polars-registration]: register_polars_backends() auto-detects narwhals via try/except — no config flag, no separate register_narwhals_backends() function
 - [Phase 04-container-backend-and-polars-registration]: conftest calls register_polars_backends() in autouse module fixture to populate Dispatcher registry for direct-backend tests that bypass schema.validate()
+- [Phase 05-ibis-registration-and-integration]: xfail(strict=False) used for all ibis stubs — XPASS acceptable as ibis backend may already support behaviors
+- [Phase 05-ibis-registration-and-integration]: test_coerce_ibis uses xfail(strict=True) as v2 coerce feature gate — CI must break when coerce lands to force cleanup
+- [Phase 05-ibis-registration-and-integration]: Polars parity baseline tests run unconditionally (no xfail) — these serve as regression anchors for the narwhals backend
 
 ### Pending Todos
 
@@ -111,6 +115,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-15T04:29:04.939Z
-Stopped at: Phase 5 context gathered
-Resume file: .planning/phases/05-ibis-registration-and-integration/05-CONTEXT.md
+Last session: 2026-03-15T04:55:08.982Z
+Stopped at: Completed 05-ibis-registration-and-integration 05-01-PLAN.md
+Resume file: None
