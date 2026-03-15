@@ -11,7 +11,10 @@ import polars as pl
 from pandera.api.base.error_handler import ErrorHandler, get_error_category
 from pandera.api.polars.container import DataFrameSchema
 from pandera.api.polars.types import PolarsData, PolarsFrame
-from pandera.api.polars.utils import get_lazyframe_column_names
+from pandera.api.polars.utils import (
+    get_lazyframe_column_names,
+    get_lazyframe_schema,
+)
 from pandera.backends.base import ColumnInfo, CoreCheckResult
 from pandera.backends.polars.base import PolarsSchemaBackend
 from pandera.config import ValidationDepth, ValidationScope, get_config_context
@@ -249,14 +252,29 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
 
             if col_schema.regex:
                 try:
-                    column_names.extend(
-                        col_schema.get_backend(check_obj).get_regex_columns(
-                            col_schema, check_obj
-                        )
+                    matched_columns_schema = get_lazyframe_schema(
+                        check_obj.select(pl.col(col_schema.selector))
                     )
+
+                    if len(matched_columns_schema) == 0:
+                        raise SchemaError(
+                            schema=col_schema,
+                            data=check_obj,
+                            message=(
+                                f"Column regex name='{col_schema.selector}' did not match any "
+                                "columns in the dataframe. Update the regex pattern so "
+                                f"that it matches at least one column:\n"
+                                f"{get_lazyframe_column_names(check_obj)}",
+                            ),
+                            failure_cases=f"{col_schema.selector}",
+                            check=f"no_regex_column_match('{col_schema.selector}')",
+                            reason_code=SchemaErrorReason.INVALID_COLUMN_NAME,
+                        )
+
+                    column_names.extend(matched_columns_schema.keys())
                     regex_match_patterns.append(col_schema.selector)
                 except SchemaError:
-                    pass
+                    raise
             elif col_name in get_lazyframe_column_names(check_obj):
                 column_names.append(col_name)
 
