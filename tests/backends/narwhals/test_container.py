@@ -206,3 +206,35 @@ def test_failure_cases_is_native():
         assert isinstance(fc, pl.DataFrame), (
             f"failure_cases should be native pl.DataFrame, got {type(fc)}"
         )
+
+
+# ---------------------------------------------------------------------------
+# REGISTER-03: ibis.Table uses narwhals DataFrameSchemaBackend after registration
+# ---------------------------------------------------------------------------
+
+@pytest.mark.xfail(reason="REGISTER-03: register_ibis_backends() not yet lru_cached with narwhals", strict=False)
+def test_ibis_narwhals_auto_activated():
+    """register_ibis_backends() emits UserWarning when narwhals is installed."""
+    import warnings
+    from pandera.backends.ibis.register import register_ibis_backends
+    register_ibis_backends.cache_clear()
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        register_ibis_backends()
+        narwhals_warnings = [x for x in w if "Narwhals" in str(x.message)]
+        assert len(narwhals_warnings) == 1
+    register_ibis_backends.cache_clear()  # restore clean state
+
+
+@pytest.mark.xfail(reason="REGISTER-03: ibis.Table not yet registered for narwhals DataFrameSchemaBackend", strict=False)
+def test_ibis_backend_is_narwhals():
+    """After register_ibis_backends(), ibis.Table uses narwhals DataFrameSchemaBackend."""
+    import ibis
+    from pandera.backends.ibis.register import register_ibis_backends
+    from pandera.backends.narwhals.container import DataFrameSchemaBackend
+    from pandera.api.ibis.container import DataFrameSchema as IbisDataFrameSchema
+
+    register_ibis_backends()
+    t = ibis.memtable({"a": [1, 2, 3]})
+    backend = IbisDataFrameSchema.get_backend(t)
+    assert isinstance(backend, DataFrameSchemaBackend)
