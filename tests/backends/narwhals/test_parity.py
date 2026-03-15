@@ -237,3 +237,40 @@ def test_element_wise_check_raises_not_implemented_ibis():
         schema.validate(t)
     # The SchemaError wraps the NotImplementedError from element_wise check rejection
     assert "NotImplementedError" in str(exc_info.value) or "element_wise" in str(exc_info.value)
+
+
+# ---------------------------------------------------------------------------
+# Gap closure: lazy=True custom ibis check must not crash (UAT test 8)
+# ---------------------------------------------------------------------------
+
+def test_custom_check_ibis_lazy():
+    """schema.validate(ibis_table, lazy=True) with a custom check completes without crashing.
+
+    Regression test for _count_failure_cases calling len() on ibis.Table.
+    ibis raises ExpressionError('Use .count() instead') — not TypeError — so
+    the original except clause missed it. Fix: detect ibis.Table and use
+    .count().execute() instead.
+
+    The check must use IbisData wrapping to produce an ibis.Table as
+    failure_cases, which is what triggers the _count_failure_cases bug.
+    """
+    from pandera.api.ibis.container import DataFrameSchema as IbisSchema
+    from pandera.api.ibis.components import Column as IbisColumn
+    from pandera.api.ibis.types import IbisData
+    import ibis.expr.datatypes as dt
+    import ibis.selectors as s
+    from ibis import _ as ibis_deferred
+
+    # Custom check using IbisData — returns a column-selection ibis expression.
+    # Values [1, 2, 3] are not all == 0, so the check will fail.
+    # The failure produces an ibis.Table as failure_cases, which triggered the
+    # _count_failure_cases len() crash (ExpressionError, not TypeError).
+    def _check_all_zero(data: IbisData):
+        return data.table.select(s.across(s.all(), ibis_deferred == 0))
+
+    schema = IbisSchema(
+        columns={"a": IbisColumn(dt.int64, checks=[Check(_check_all_zero)])},
+    )
+    t = _make_ibis_table({"a": [1, 2, 3]})
+    with pytest.raises((SchemaError, SchemaErrors)):
+        schema.validate(t, lazy=True)
