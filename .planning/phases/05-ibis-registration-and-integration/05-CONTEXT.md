@@ -33,7 +33,7 @@ Register the narwhals backend for `ibis.Table`, close known xfail gaps (coerce_d
 - New file: `tests/backends/narwhals/test_parity.py`
 - Draw from: `test_polars_container.py`, `test_ibis_container.py`, `test_polars_decorators.py`, `test_ibis_decorators.py`, `test_polars_model.py`, `test_ibis_model.py`
 - Exclude: dtype-specific tests (test_polars_dtypes.py, test_ibis_dtypes.py), strategy tests (test_polars_strategies.py), pydantic/typing tests, builtin check tests (already covered by test_checks.py)
-- Coerce-dependent tests: include as `xfail(strict=False)` — placeholder until coerce is implemented (v2), consistent with existing narwhals test suite pattern
+- Coerce-dependent tests: include as `xfail(strict=True)` — coerce is a clearly bounded v2 feature; strict=True ensures CI breaks when coerce lands, forcing mark cleanup rather than letting stale xfails accumulate silently
 
 ### Claude's Discretion
 - Exact narwhals `group_by().agg()` expression for uniqueness checks
