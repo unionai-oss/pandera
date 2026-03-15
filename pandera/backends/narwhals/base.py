@@ -223,6 +223,27 @@ class NarwhalsSchemaBackend(BaseSchemaBackend):
                 )
             )
 
+            # Detect ibis-originated failure cases.
+            # After Plan 05-04, ibis check results may carry failure_cases as:
+            #   - ibis.Table (lazy ibis expression — from the ibis path in run_check)
+            #   - pyarrow.lib.Table (materialized — from narwhals collect() on ibis-backed frame)
+            # Both must be handled before the scalar else branch to avoid Object-dtype in pl.concat.
+            _ibis_fc = None
+            try:
+                import ibis as _ibis_mod
+                if isinstance(err.failure_cases, _ibis_mod.Table):
+                    _ibis_fc = err.failure_cases
+            except ImportError:
+                pass
+            if _ibis_fc is None:
+                try:
+                    import pyarrow as _pa
+                    if isinstance(err.failure_cases, _pa.Table):
+                        # pyarrow.Table is also ibis-originated; tag for ibis branch below
+                        _ibis_fc = err.failure_cases
+                except ImportError:
+                    pass
+
             if isinstance(err.failure_cases, pl.LazyFrame):
                 raise NotImplementedError
 
@@ -252,6 +273,71 @@ class NarwhalsSchemaBackend(BaseSchemaBackend):
                 else:
                     failure_cases_df = err.failure_cases.rename(
                         {err.failure_cases.columns[0]: "failure_case"}
+                    )
+
+                failure_cases_df = failure_cases_df.with_columns(
+                    schema_context=pl.lit(err.schema.__class__.__name__),
+                    column=pl.lit(err.schema.name),
+                    check=pl.lit(check_identifier),
+                    check_number=pl.lit(err.check_index),
+                    index=index.limit(failure_cases_df.shape[0]),
+                ).cast(
+                    {
+                        "failure_case": pl.Utf8,
+                        "column": pl.String,
+                        "index": pl.Int32,
+                        "check_number": pl.Int32,
+                    }
+                )
+
+            elif _ibis_fc is not None:
+                # Ibis path: materialize ibis.Table or pyarrow.Table to pandas,
+                # then convert to pl.DataFrame following the pl.DataFrame branch structure.
+                if hasattr(_ibis_fc, "execute"):
+                    # ibis.Table — execute() materializes to pandas
+                    pd_fc = _ibis_fc.execute()
+                else:
+                    # pyarrow.Table — to_pandas() materializes directly
+                    pd_fc = _ibis_fc.to_pandas()
+                pl_fc = pl.from_pandas(pd_fc)
+
+                # Compute index from check_output (may also be an ibis.Table)
+                if err.check_output is not None:
+                    try:
+                        import ibis as _ibis_co
+                        if isinstance(err.check_output, _ibis_co.Table):
+                            check_output_pd = err.check_output.execute()
+                            index = pl.Series(
+                                "index",
+                                [
+                                    i
+                                    for i, v in enumerate(
+                                        check_output_pd[CHECK_OUTPUT_KEY]
+                                    )
+                                    if not v
+                                ],
+                                dtype=pl.Int32,
+                            )
+                        else:
+                            index = pl.Series(
+                                "index", [None] * len(pl_fc), dtype=pl.Int32
+                            )
+                    except Exception:
+                        index = pl.Series(
+                            "index", [None] * len(pl_fc), dtype=pl.Int32
+                        )
+                else:
+                    index = pl.Series(
+                        "index", [None] * len(pl_fc), dtype=pl.Int32
+                    )
+
+                if len(pl_fc.columns) > 1:
+                    failure_cases_df = pl_fc.with_columns(
+                        failure_case=pl.Series(pl_fc.rows(named=True))
+                    ).select(pl.col.failure_case.struct.json_encode())
+                else:
+                    failure_cases_df = pl_fc.rename(
+                        {pl_fc.columns[0]: "failure_case"}
                     )
 
                 failure_cases_df = failure_cases_df.with_columns(
