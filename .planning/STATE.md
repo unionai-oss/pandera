@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: planning
-stopped_at: Completed 05-ibis-registration-and-integration 05-01-PLAN.md
-last_updated: "2026-03-15T04:55:08.984Z"
+stopped_at: Completed 05-ibis-registration-and-integration 05-02-PLAN.md
+last_updated: "2026-03-15T04:58:59.866Z"
 last_activity: 2026-03-09 — Roadmap created
 progress:
   total_phases: 5
   completed_phases: 4
   total_plans: 15
-  completed_plans: 13
+  completed_plans: 14
   percent: 0
 ---
 
@@ -63,6 +63,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 04-container-backend-and-polars-registration P04 | 5min | 1 tasks | 1 files |
 | Phase 04-container-backend-and-polars-registration P05 | 4min | 4 tasks | 6 files |
 | Phase 05-ibis-registration-and-integration PP01 | 5min | 2 tasks | 2 files |
+| Phase 05-ibis-registration-and-integration P02 | 15 | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -102,6 +103,10 @@ Recent decisions affecting current work:
 - [Phase 05-ibis-registration-and-integration]: xfail(strict=False) used for all ibis stubs — XPASS acceptable as ibis backend may already support behaviors
 - [Phase 05-ibis-registration-and-integration]: test_coerce_ibis uses xfail(strict=True) as v2 coerce feature gate — CI must break when coerce lands to force cleanup
 - [Phase 05-ibis-registration-and-integration]: Polars parity baseline tests run unconditionally (no xfail) — these serve as regression anchors for the narwhals backend
+- [Phase 05-ibis-registration-and-integration]: group_by().agg(nw.len()) replaces collect()+is_duplicated() for SQL-lazy backends — no per-row boolean output for uniqueness checks
+- [Phase 05-ibis-registration-and-integration]: ibis drop_invalid_rows delegates to IbisSchemaBackend (has positional-join / row_number logic) then wraps result back to narwhals
+- [Phase 05-ibis-registration-and-integration]: narwhals/register.py deleted — dead file with no imports; registration handled by polars/register.py and ibis/register.py
+- [Phase 05-ibis-registration-and-integration]: check_dtype ibis third pass uses ibis_table.schema().get(col) — direct ibis schema API after narwhals and polars passes
 
 ### Pending Todos
 
@@ -115,6 +120,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-15T04:55:08.982Z
-Stopped at: Completed 05-ibis-registration-and-integration 05-01-PLAN.md
+Last session: 2026-03-15T04:58:59.863Z
+Stopped at: Completed 05-ibis-registration-and-integration 05-02-PLAN.md
 Resume file: None
