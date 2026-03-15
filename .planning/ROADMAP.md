@@ -87,13 +87,14 @@ Plans:
 ### Phase 5: Ibis Registration and Integration
 **Goal**: End-to-end `schema.validate(table)` works for Ibis Tables, closing all known xfail gaps from the existing Ibis backend, and the full test suite passes against both Polars and Ibis
 **Depends on**: Phase 4
-**Requirements**: REGISTER-03, TEST-02
+**Requirements**: REGISTER-03, TEST-02, TEST-04
 **Success Criteria** (what must be TRUE):
   1. `schema.validate(ibis_table)` succeeds for a valid table and raises `SchemaError` for an invalid table
   2. Previously xfailing Ibis backend tests for `coerce_dtype` and column `unique` now pass via the narwhals backend
   3. `element_wise=True` checks on Ibis tables raise `NotImplementedError` with a clear explanation
   4. `SchemaError.failure_cases` on Ibis validation is always a native (non-narwhals) frame type — asserted by tests
   5. All 14 builtin checks, lazy validation, dtype coercion, and error message correctness tests pass against both Polars and Ibis backends
+  6. A curated subset of `tests/polars/` and `tests/ibis/` end-to-end tests passes with the narwhals backend active, covering validation depth semantics, `lazy=True` error collection, strict/filter modes, and decorator behavior — limited to tests that exercise the registered backend, not native polars/ibis internals
 **Plans**: TBD
 
 ## Progress

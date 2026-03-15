@@ -47,6 +47,7 @@
 - [x] **TEST-01**: `tests/backends/narwhals/` directory exists with backend-agnostic test suite parameterized via pytest markers to run against each registered backend (Polars, Ibis at minimum)
 - [ ] **TEST-02**: Tests cover schema validation (column presence, dtype check, nullable, unique), all 14 builtin checks, lazy validation mode, dtype coercion, and error message correctness (native frame types in `failure_cases`)
 - [x] **TEST-03**: Tests assert that `SchemaError.failure_cases` is always a native frame type (not a narwhals wrapper)
+- [ ] **TEST-04**: A curated subset of `tests/polars/` and `tests/ibis/` end-to-end tests runs with the narwhals backend active to verify behavioral parity — covering validation depth semantics, `lazy=True` error collection, strict/filter column modes, and decorator behavior. The subset is limited to tests that exercise the full pipeline through the registered backend (where narwhals replaces polars/ibis under the hood) and excludes tests that exercise native polars/ibis internals directly.
 
 ## v2 Requirements
 
@@ -108,9 +109,10 @@
 | TEST-03 | Phase 4 | Complete |
 | REGISTER-03 | Phase 5 | Pending |
 | TEST-02 | Phase 5 | Pending |
+| TEST-04 | Phase 5 | Pending |
 
 **Coverage:**
-- v1 requirements: 21 total
+- v1 requirements: 22 total
 - Mapped to phases: 21
 - Unmapped: 0 ✓
 
