@@ -72,16 +72,65 @@ class NarwhalsSchemaBackend(BaseSchemaBackend):
     def run_check(self, check_obj, schema, check, check_index, *args):
         """Execute a single Check object and return a CoreCheckResult.
 
-        :param check_obj: The narwhals LazyFrame or DataFrame to check.
-        :param schema: The schema object owning this check.
-        :param check: The Check instance to run.
-        :param check_index: Index of the check within schema.checks.
-        :param args: Extra arguments forwarded to the check callable.
-        :returns: CoreCheckResult with passed, failure_cases, etc.
+        For narwhals (Polars) inputs: materializes all frames to native types.
+        For ibis inputs: preserves ibis.Table laziness for failure_cases and
+        check_output — only evaluates the passed boolean via ibis .execute().
         """
         check_result = check(check_obj, *args)
 
-        # Materialize the passed frame
+        # Detect ibis check result: IbisCheckBackend returns ibis lazy types
+        # (ibis BooleanScalar for check_passed, ibis.Table for failure_cases).
+        # For ibis, evaluate passed via .execute() and preserve failure_cases as ibis.Table.
+        _is_ibis_result = False
+        try:
+            import ibis as _ibis
+            import ibis.expr.types as _ir
+            if isinstance(
+                check_result.check_passed,
+                (_ir.BooleanScalar, _ir.BooleanColumn),
+            ) or isinstance(check_result.failure_cases, _ibis.Table):
+                _is_ibis_result = True
+        except ImportError:
+            pass
+
+        if _is_ibis_result:
+            # Ibis path: evaluate passed via ibis .execute() (returns Python bool or Series)
+            passed_val = check_result.check_passed.execute()
+            passed = bool(passed_val) if not hasattr(passed_val, '__iter__') else bool(passed_val.all())
+
+            message = None
+            failure_cases = None
+
+            if not passed:
+                if check_result.failure_cases is None:
+                    failure_cases = passed
+                    message = f"Check '{check}' failed — no failure cases captured."
+                else:
+                    # Preserve ibis.Table as-is — tests/ibis/ call .execute()/.to_pandas() on it
+                    failure_cases = check_result.failure_cases
+                    message = f"Check '{check}' failed."
+
+                if check.raise_warning:
+                    warnings.warn(message, SchemaWarning)
+                    return CoreCheckResult(
+                        passed=True,
+                        check=check,
+                        reason_code=SchemaErrorReason.DATAFRAME_CHECK,
+                    )
+
+            # check_output: also ibis.Table — return as-is (ibis backend consumers expect it)
+            check_output = check_result.check_output
+            return CoreCheckResult(
+                passed=passed,
+                check=check,
+                check_index=check_index,
+                check_output=check_output,
+                reason_code=SchemaErrorReason.DATAFRAME_CHECK,
+                message=message,
+                failure_cases=failure_cases,
+            )
+
+        # Narwhals (Polars) path — materialize narwhals frames to native types
         passed_df = _materialize(check_result.check_passed)
         passed = bool(passed_df[CHECK_OUTPUT_KEY][0])
 
