@@ -77,6 +77,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
         # Collect status of columns against schema
         column_info = self.collect_column_info(check_obj, schema)
 
+        # Collect errors from core parsers, with special handling for drop_invalid_rows
         core_parsers: list[tuple[Callable[..., Any], tuple[Any, ...]]] = [
             (self.add_missing_columns, (schema, column_info)),
             (self.strict_filter_columns, (schema, column_info)),
@@ -88,11 +89,21 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
             try:
                 check_obj = parser(check_obj, *args)
             except SchemaError as exc:
-                error_handler.collect_error(
-                    get_error_category(exc.reason_code), exc.reason_code, exc
-                )
+                if getattr(schema, "drop_invalid_rows", False):
+                    # For drop_invalid_rows, collect errors even from strict='filter' mode
+                    error_handler.collect_error(
+                        get_error_category(exc.reason_code),
+                        exc.reason_code,
+                        exc,
+                    )
+                else:
+                    raise
             except SchemaErrors as exc:
-                error_handler.collect_errors(exc.schema_errors)
+                if getattr(schema, "drop_invalid_rows", False):
+                    # Collect all errors from SchemaErrors for drop_invalid_rows
+                    error_handler.collect_errors(exc.schema_errors)
+                else:
+                    raise
 
         # We may have modified columns, for example by
         # add_missing_columns, so regenerate column info
