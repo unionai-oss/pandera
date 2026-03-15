@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: planning
-stopped_at: Completed 05-ibis-registration-and-integration 05-03-PLAN.md
-last_updated: "2026-03-15T05:07:03.643Z"
+stopped_at: Completed 05-ibis-registration-and-integration 05-04-PLAN.md
+last_updated: "2026-03-15T06:03:15.644Z"
 last_activity: 2026-03-09 — Roadmap created
 progress:
   total_phases: 5
-  completed_phases: 5
-  total_plans: 15
-  completed_plans: 15
+  completed_phases: 4
+  total_plans: 17
+  completed_plans: 16
   percent: 0
 ---
 
@@ -65,6 +65,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 05-ibis-registration-and-integration PP01 | 5min | 2 tasks | 2 files |
 | Phase 05-ibis-registration-and-integration P02 | 15 | 2 tasks | 5 files |
 | Phase 05-ibis-registration-and-integration P03 | 15 | 2 tasks | 2 files |
+| Phase 05-ibis-registration-and-integration P04 | 4min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -110,6 +111,9 @@ Recent decisions affecting current work:
 - [Phase 05-ibis-registration-and-integration]: check_dtype ibis third pass uses ibis_table.schema().get(col) — direct ibis schema API after narwhals and polars passes
 - [Phase 05-ibis-registration-and-integration]: failure_cases for ibis validation is pyarrow.Table (not pandas) — ibis DuckDB backend returns pyarrow when narwhals LazyFrame.collect() is called via the ibis-backed LazyFrame path
 - [Phase 05-ibis-registration-and-integration]: element_wise=True SchemaError wraps NotImplementedError via run_checks exception catch — ibis parity tests assert SchemaError raised with NotImplementedError in message
+- [Phase 05-ibis-registration-and-integration]: element_wise=True checks skip ibis delegation in NarwhalsCheckBackend so apply() raises NotImplementedError for SQL-lazy backends (IbisCheckBackend would attempt UDF creation)
+- [Phase 05-ibis-registration-and-integration]: run_check ibis path evaluates check_passed via .execute() directly — _materialize() would lose BooleanScalar type through narwhals/polars conversion
+- [Phase 05-ibis-registration-and-integration]: failure_cases returned as lazy ibis.Table from run_check ibis path — tests/ibis/ call .execute()/.to_pandas() and require the lazy contract
 
 ### Pending Todos
 
@@ -123,6 +127,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-15T05:07:03.640Z
-Stopped at: Completed 05-ibis-registration-and-integration 05-03-PLAN.md
+Last session: 2026-03-15T06:03:15.642Z
+Stopped at: Completed 05-ibis-registration-and-integration 05-04-PLAN.md
 Resume file: None
