@@ -207,7 +207,9 @@ class PandasSchemaBackend(BaseSchemaBackend):
                     if hasattr(check_obj.index, "dtype") and hasattr(
                         index_values, "astype"
                     ):
-                        index_values = index_values.astype(check_obj.index.dtype)
+                        index_values = index_values.astype(
+                            check_obj.index.dtype
+                        )
                 except (TypeError, ValueError):
                     pass
 

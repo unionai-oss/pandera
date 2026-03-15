@@ -753,11 +753,15 @@ class STRING(DataType, dtypes.String):
             if data_container is None:
                 return True
             if type(data_container).__module__.startswith("pyspark.pandas"):
-                is_python_string = data_container.map(lambda x: str(type(x))).isin(  # type: ignore[operator]
+                is_python_string = data_container.map(
+                    lambda x: str(type(x))
+                ).isin(  # type: ignore[operator]
                     ["<class 'str'>", "<class 'numpy.str_'>"]
                 )
             else:
-                is_python_string = data_container.map(lambda x: isinstance(x, str))  # type: ignore[operator]
+                is_python_string = data_container.map(
+                    lambda x: isinstance(x, str)
+                )  # type: ignore[operator]
             return is_python_string.astype(bool) | data_container.isna()  # type: ignore[return-value]
         return super().check(pandera_dtype, data_container)
 

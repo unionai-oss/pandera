@@ -248,7 +248,9 @@ class DataFrameModel(_DataFrameModel[pd.DataFrame, DataFrameSchema]):
                 [
                     pd.Index(
                         [],
-                        dtype=idx.dtype.type if idx.dtype is not None else None,
+                        dtype=idx.dtype.type
+                        if idx.dtype is not None
+                        else None,
                         name=idx.name,
                     )
                     for idx in schema.index.indexes
