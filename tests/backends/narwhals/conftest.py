@@ -21,8 +21,11 @@ def _suppress_narwhals_warning():
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", UserWarning)
         from pandera.backends.polars.register import register_polars_backends
+        from pandera.backends.ibis.register import register_ibis_backends
         register_polars_backends.cache_clear()
+        register_ibis_backends.cache_clear()
         register_polars_backends()
+        register_ibis_backends()
         yield
 
 
