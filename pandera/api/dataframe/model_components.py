@@ -91,6 +91,7 @@ class FieldInfo(BaseFieldInfo):
             title=self.title,
             description=self.description,
             default=self.default,
+            metadata=self.metadata,
         )
 
     @property
