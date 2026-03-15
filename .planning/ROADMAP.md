@@ -95,7 +95,12 @@ Plans:
   4. `SchemaError.failure_cases` on Ibis validation is always a native (non-narwhals) frame type — asserted by tests
   5. All 14 builtin checks, lazy validation, dtype coercion, and error message correctness tests pass against both Polars and Ibis backends
   6. A curated subset of `tests/polars/` and `tests/ibis/` end-to-end tests passes with the narwhals backend active, covering validation depth semantics, `lazy=True` error collection, strict/filter modes, and decorator behavior — limited to tests that exercise the registered backend, not native polars/ibis internals
-**Plans**: TBD
+**Plans**: 3 plans
+
+Plans:
+- [ ] 05-01-PLAN.md — Wave 0 test scaffolds: test_parity.py (TEST-04 stubs) + test_ibis_narwhals_auto_activated in test_container.py (REGISTER-03 stub)
+- [ ] 05-02-PLAN.md — Backend fixes: register_ibis_backends() lru_cache + narwhals detection, check_unique/check_column_values_are_unique group_by, check_dtype ibis pass, drop_invalid_rows nw.all_horizontal + ibis delegation, delete dead register.py
+- [ ] 05-03-PLAN.md — Wire + verify: conftest ibis registration, test_parity.py stubs converted to passing tests, TEST-02 ibis coverage complete
 
 ## Progress
 
@@ -108,4 +113,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | 2. Check Backend | 3/3 | Complete   | 2026-03-10 |
 | 3. Column Backend | 2/2 | Complete   | 2026-03-14 |
 | 4. Container Backend and Polars Registration | 5/5 | Complete   | 2026-03-14 |
-| 5. Ibis Registration and Integration | 0/TBD | Not started | - |
+| 5. Ibis Registration and Integration | 0/3 | Not started | - |
