@@ -1,5 +1,5 @@
 ---
-status: complete
+status: diagnosed
 phase: 05-ibis-registration-and-integration
 source: [05-01-SUMMARY.md, 05-02-SUMMARY.md, 05-03-SUMMARY.md, 05-04-SUMMARY.md, 05-05-SUMMARY.md]
 started: 2026-03-15T06:30:00Z
@@ -65,5 +65,10 @@ skipped: 0
   reason: "User reported: If using lazy validation, there seems to be an error in _count_failure_cases. Non-lazy custom checks work; lazy=True triggers a crash when len() is called on an ibis.Table."
   severity: blocker
   test: 8
-  artifacts: []
-  missing: []
+  root_cause: "_count_failure_cases in pandera/api/base/error_handler.py:80 calls len(failure_cases) on ibis.Table. ibis raises ExpressionError('Use .count() instead') — not TypeError — so the except clause doesn't catch it. Fix: detect ibis.Table before the try block and use .count().execute() instead."
+  artifacts:
+    - path: "pandera/api/base/error_handler.py"
+      issue: "_count_failure_cases uses len() which ibis.Table rejects with ExpressionError; except only catches TypeError"
+  missing:
+    - "Add ibis.Table branch in _count_failure_cases to use .count().execute() — same detection pattern as failure_cases_metadata"
+  debug_session: ""
