@@ -2,9 +2,16 @@
 
 import warnings
 from collections import defaultdict
+from contextvars import ContextVar
 from typing import Optional, TypeVar, Union
 
 import pandas as pd
+
+# Context var to preserve parsed column values when drop_invalid_rows is used
+# with custom parsers (fixes #2216: parsed values otherwise lost after drop).
+_parsed_column_values: ContextVar[dict[str, pd.Series] | None] = ContextVar(
+    "pandera_parsed_column_values", default=None
+)
 
 from pandera.api.base.checks import CheckResult
 from pandera.api.base.error_handler import ErrorHandler
@@ -213,5 +220,19 @@ class PandasSchemaBackend(BaseSchemaBackend):
 
             mask = ~check_obj.index.isin(index_values)
             check_obj = check_obj.loc[mask]
+
+        # Restore parsed column values that may have been overwritten (e.g. custom
+        # parser + drop_invalid_rows returning None in parsed column, #2216).
+        parsed = _parsed_column_values.get()
+        if parsed:
+            for colname, series in parsed.items():
+                if colname not in check_obj.columns:
+                    continue
+                try:
+                    restored = series.reindex(check_obj.index)
+                    check_obj.loc[:, colname] = restored.values
+                except Exception:
+                    pass
+            _parsed_column_values.set(None)
 
         return check_obj

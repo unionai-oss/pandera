@@ -7,6 +7,7 @@ import pandas as pd
 from pandera.api.base.error_handler import ErrorHandler, get_error_category
 from pandera.api.pandas.types import is_field
 from pandera.backends.base import CoreCheckResult, CoreParserResult
+from pandera.backends.pandas.base import _parsed_column_values
 from pandera.backends.pandas.base import PandasSchemaBackend
 from pandera.backends.pandas.error_formatters import reshape_failure_cases
 from pandera.backends.utils import convert_uniquesettings
@@ -243,7 +244,19 @@ class ArraySchemaBackend(PandasSchemaBackend):
                 parser_index,
                 *parser_args,
             )
-            check_obj = result.parser_output
+            if is_field(check_obj):
+                check_obj = result.parser_output
+            else:
+                # Column parsed in DataFrame context: update column in place
+                # so the full DataFrame is preserved (fixes custom parser +
+                # drop_invalid_rows returning None in parsed column).
+                check_obj[schema.name] = result.parser_output
+                # Store for drop_invalid_rows to restore if column is overwritten
+                parsed = _parsed_column_values.get()
+                if parsed is None:
+                    parsed = {}
+                    _parsed_column_values.set(parsed)
+                parsed[schema.name] = result.parser_output
             parser_results.append(result)
         return check_obj
 

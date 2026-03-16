@@ -2742,6 +2742,164 @@ def test_drop_invalid_for_model_schema():
         MySchema.validate(actual_obj, lazy=False)
 
 
+def test_drop_invalid_rows_with_custom_parser_preserves_parsed_values():
+    """Test that custom parser + isin + drop_invalid_rows returns parsed column
+    values, not None (GitHub issue #2216)."""
+    import pandera.pandas as pa
+    from pandera.typing import Series
+
+    df = pd.DataFrame(
+        {
+            "id": [1, 2, 3, 4],
+            "channel": ["Google", "bing", "invalid_channel", "google"],
+            "value": [10.0, 20.0, 30.0, 40.0],
+        }
+    )
+    allowed_channels = ["google", "bing"]
+
+    class ChannelSchema(DataFrameModel):
+        """Schema with parser and isin check."""
+
+        id: Series[int]
+        channel: Series[str] = Field(coerce=True, isin=allowed_channels)
+        value: Series[float]
+
+        @pa.parser("channel")
+        @classmethod
+        def parse_channel(cls, series: Series[str]) -> Series[str]:
+            return series.astype(str).str.lower()  # type: ignore
+
+        class Config:
+            strict = "filter"
+            drop_invalid_rows = True
+
+    result = ChannelSchema.validate(df, lazy=True)
+
+    # Parsed channel values must be preserved (google, bing, google), not None
+    expected = pd.DataFrame(
+        {
+            "id": [1, 2, 4],
+            "channel": ["google", "bing", "google"],
+            "value": [10.0, 20.0, 40.0],
+        },
+        index=pd.Index([0, 1, 3]),
+    )
+    pd.testing.assert_frame_equal(result, expected)
+
+
+def test_drop_invalid_rows_with_custom_parser_dataframe_schema():
+    """
+    Parser + isin, invalid value dropped, parsed values preserved (not None).
+    """
+    df = pd.DataFrame(
+        {
+            "id": [1, 2, 3, 4],
+            "channel": ["Google", "bing", "invalid_channel", "google"],
+            "value": [10.0, 20.0, 30.0, 40.0],
+        }
+    )
+    allowed_channels = ["google", "bing"]
+    schema = DataFrameSchema(
+        columns={
+            "id": Column(int),
+            "channel": Column(
+                str,
+                coerce=True,
+                checks=Check.isin(allowed_channels),
+                parsers=Parser(lambda s: s.astype(str).str.lower()),
+            ),
+            "value": Column(float),
+        },
+        strict="filter",
+        drop_invalid_rows=True,
+    )
+    result = schema.validate(df, lazy=True)
+    expected = pd.DataFrame(
+        {
+            "id": [1, 2, 4],
+            "channel": ["google", "bing", "google"],
+            "value": [10.0, 20.0, 40.0],
+        },
+        index=pd.Index([0, 1, 3]),
+    )
+    pd.testing.assert_frame_equal(result, expected)
+
+
+def test_drop_invalid_rows_parser_all_values_valid():
+    """Parser + isin, all values valid (with capitals).
+    
+    Expect all rows kept and parsed to lowercase."""
+    import pandera.pandas as pa
+    from pandera.typing import Series
+
+    df = pd.DataFrame(
+        {
+            "id": [1, 2, 3, 4],
+            "channel": ["google", "bing", "Bing", "Google"],
+            "value": [10.0, 20.0, 30.0, 40.0],
+        }
+    )
+
+    class ChannelSchema(DataFrameModel):
+        id: int
+        channel: str = Field(coerce=True, isin=["google", "bing"])
+        value: float
+
+        @pa.parser("channel")
+        @classmethod
+        def parse_channel(cls, series: Series[str]) -> Series[str]:
+            return series.astype(str).str.lower()  # type: ignore
+
+        class Config:
+            strict = "filter"
+            drop_invalid_rows = True
+
+    result = ChannelSchema.validate(df, lazy=True)
+    expected = pd.DataFrame(
+        {
+            "id": [1, 2, 3, 4],
+            "channel": ["google", "bing", "bing", "google"],
+            "value": [10.0, 20.0, 30.0, 40.0],
+        },
+    )
+    pd.testing.assert_frame_equal(result, expected)
+
+
+def test_drop_invalid_rows_no_parser_invalid_value():
+    """Isin + drop_invalid_rows, no custom parser.
+    
+    Invalid row is dropped; valid rows keep their values (no None)."""
+    from pandera.typing import Series
+
+    df = pd.DataFrame(
+        {
+            "id": [1, 2, 3, 4],
+            "channel": ["google", "bing", "other", "google"],
+            "value": [10.0, 20.0, 30.0, 40.0],
+        }
+    )
+
+    class ChannelSchema(DataFrameModel):
+        id: int
+        channel: str = Field(coerce=True, isin=["google", "bing"])
+        value: float
+
+        class Config:
+            strict = "filter"
+            drop_invalid_rows = True
+
+    result = ChannelSchema.validate(df, lazy=True)
+    expected = pd.DataFrame(
+        {
+            "id": [1, 2, 4],
+            "channel": ["google", "bing", "google"],
+            "value": [10.0, 20.0, 40.0],
+        },
+        index=pd.Index([0, 1, 3]),
+    )
+    pd.testing.assert_frame_equal(result, expected)
+
+
 def test_schema_coerce() -> None:
     """Test that setting coerce=True for a DataFrameSchema is sufficient to coerce a column."""
 
