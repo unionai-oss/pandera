@@ -156,10 +156,7 @@ class ColumnBackend(ArraySchemaBackend):
                     column_name,
                     return_check_obj=True,
                 )
-                if schema.parsers:
-                    # When drop_invalid_rows ran, validated_column is a DataFrame;
-                    # assign only the column to avoid overwriting with wrong type
-                    # (fixes custom parser + drop_invalid_rows #2216).
+                if schema.parsers and validated_column is not None:
                     if is_table(validated_column):
                         check_obj[column_name] = validated_column[column_name]
                     else:
