@@ -1,138 +1,59 @@
 ---
 gsd_state_version: 1.0
 milestone: v1.0
-milestone_name: milestone
-status: planning
-stopped_at: Completed 05-ibis-registration-and-integration 05-06-PLAN.md
-last_updated: "2026-03-15T23:31:36.339Z"
-last_activity: 2026-03-09 — Roadmap created
+milestone_name: Narwhals Backend
+status: complete
+stopped_at: v1.0 milestone archived 2026-03-15
+last_updated: "2026-03-15"
+last_activity: 2026-03-15 — v1.0 milestone complete
 progress:
   total_phases: 5
   completed_phases: 5
   total_plans: 18
   completed_plans: 18
-  percent: 0
+  percent: 100
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-03-08)
+See: .planning/PROJECT.md (updated 2026-03-15 after v1.0 milestone)
 
 **Core value:** Users can validate any Narwhals-supported dataframe library through a single, consistent backend — reducing maintenance burden and unlocking lazy validation and future library support for free.
-**Current focus:** Phase 1 — Foundation
+**Current focus:** Planning next milestone (pandas + PySpark backends, extended features)
 
 ## Current Position
 
-Phase: 1 of 5 (Foundation)
-Plan: 0 of TBD in current phase
-Status: Ready to plan
-Last activity: 2026-03-09 — Roadmap created
+Phase: All 5 phases complete
+Status: v1.0 shipped — ready for next milestone planning
+Last activity: 2026-03-15 — v1.0 milestone archived
 
-Progress: [░░░░░░░░░░] 0%
-
-## Performance Metrics
-
-**Velocity:**
-- Total plans completed: 0
-- Average duration: -
-- Total execution time: 0 hours
-
-**By Phase:**
-
-| Phase | Plans | Total | Avg/Plan |
-|-------|-------|-------|----------|
-| - | - | - | - |
-
-**Recent Trend:**
-- Last 5 plans: -
-- Trend: -
-
-*Updated after each plan completion*
-| Phase 01-foundation P01 | 2 | 2 tasks | 7 files |
-| Phase 01-foundation P02 | 5 | 1 tasks | 2 files |
-| Phase 02-check-backend P01 | 8min | 1 tasks | 3 files |
-| Phase 02-check-backend P02 | 2min | 1 tasks | 2 files |
-| Phase 02-check-backend P03 | 6min | 1 tasks | 3 files |
-| Phase 03-column-backend P01 | 5min | 1 tasks | 1 files |
-| Phase 03-column-backend P02 | 3min | 2 tasks | 3 files |
-| Phase 04-container-backend-and-polars-registration P01 | 5min | 1 tasks | 1 files |
-| Phase 04-container-backend-and-polars-registration P02 | 4min | 2 tasks | 2 files |
-| Phase 04-container-backend-and-polars-registration P03 | 8min | 1 tasks | 3 files |
-| Phase 04-container-backend-and-polars-registration P04 | 5min | 1 tasks | 1 files |
-| Phase 04-container-backend-and-polars-registration P05 | 4min | 4 tasks | 6 files |
-| Phase 05-ibis-registration-and-integration PP01 | 5min | 2 tasks | 2 files |
-| Phase 05-ibis-registration-and-integration P02 | 15 | 2 tasks | 5 files |
-| Phase 05-ibis-registration-and-integration P03 | 15 | 2 tasks | 2 files |
-| Phase 05-ibis-registration-and-integration P04 | 4min | 2 tasks | 2 files |
-| Phase 05-ibis-registration-and-integration P05 | 4min | 1 tasks | 1 files |
-| Phase 05-ibis-registration-and-integration P06 | 5min | 2 tasks | 2 files |
+Progress: [██████████] 100%
 
 ## Accumulated Context
 
 ### Decisions
 
-Decisions are logged in PROJECT.md Key Decisions table.
-Recent decisions affecting current work:
+All decisions logged in PROJECT.md Key Decisions table. Key patterns established:
 
-- [Pre-Phase 1]: Use `narwhals.stable.v1` (not bare `narwhals`) to insulate from breaking API changes
-- [Pre-Phase 1]: Dtype engine (`narwhals_engine.py`) is the Phase 1 priority — it blocks all coercion and dtype-check code
-- [Pre-Phase 1]: Narwhals backend must be strictly opt-in; importing backend code must never side-effect native backend registrations
-- [Phase 01-foundation]: Use narwhals.stable.v1 imports in all narwhals API code
-- [Phase 01-foundation]: NarwhalsData uses field name frame (not lazyframe) to distinguish from Polars PolarsData
-- [Phase 01-foundation]: Lazy imports of NarwhalsData and _to_native inside coerce/try_coerce prevent circular imports
-- [Phase 01-foundation]: from_parametrized_dtype return type is Any (not forward ref string) to avoid NameError in get_type_hints
-- [Phase 01-foundation]: narwhals_engine.py NOT imported from any __init__.py — maintained strict opt-in isolation
-- [Phase 02-check-backend]: Both NarwhalsCheckBackend and builtin_checks imports in conftest fixture are guarded with try/except ImportError so autouse=True fixture does not break dtype tests before checks.py exists
-- [Phase 02-check-backend]: inspect.signature() on partial correctly resolves free params for builtin vs user-defined routing
-- [Phase 02-check-backend]: test_builtin_check_routing xfail changed to strict=False — depends on builtin_checks.py from Plan 02-03
-- [Phase 02-check-backend]: narwhals Expr uses Python comparison operators (==, !=, >, >=, <, <=) not .eq/.ne/.gt/.ge/.lt/.le methods
-- [Phase 02-check-backend]: NarwhalsCheckBackend.apply() detects builtins via Dispatcher._function_registry[NarwhalsData] lookup
-- [Phase 02-check-backend]: ibis narwhals backend returns nw.DataFrame (not LazyFrame); materialization uses nw.to_native().execute()
-- [Phase 03-column-backend]: SimpleNamespace schema stub used for tests — decouples test scaffold from Column API before it is stable
-- [Phase 03-column-backend]: NarwhalsCheckBackend registered for both nw.LazyFrame (Polars) and nw.DataFrame (Ibis) so run_checks dispatches correctly for both backends
-- [Phase 03-column-backend]: failure_cases in check_dtype is str(nw_dtype) scalar — consistent with Polars backend convention
-- [Phase 04-container-backend-and-polars-registration]: Lazy imports inside test bodies prevent collection failure before modules exist — used in test_container.py for narwhals container/register imports
-- [Phase 04-container-backend-and-polars-registration]: All xfail stubs use strict=False so XPASS stubs don't break CI as implementation lands incrementally
-- [Phase 04-container-backend-and-polars-registration]: failure_cases_metadata handles None check_output gracefully with null-filled index Series
-- [Phase 04-container-backend-and-polars-registration]: use_narwhals_backend is additive to PanderaConfig with opt-in env var PANDERA_USE_NARWHALS_BACKEND=True
-- [Phase 04-container-backend-and-polars-registration]: Native pl.LazyFrame passed to schema_component.validate() via _to_native() — Column backend registered for pl.LazyFrame, not nw.LazyFrame
-- [Phase 04-container-backend-and-polars-registration]: Check registered for nw.LazyFrame and nw.DataFrame in register_narwhals_backends() — ColumnBackend wraps to narwhals internally requiring Check dispatch for nw types
-- [Phase 04-container-backend-and-polars-registration]: check_dtype two-pass strategy: narwhals_engine.Engine.dtype() first, then native polars dtype fallback — handles polars_engine Column schemas (e.g. Column(pl.Int64))
-- [Phase 04-container-backend-and-polars-registration]: Direct BACKEND_REGISTRY writes required in register_narwhals_backends() — register_backend() guard silently no-ops if key already registered
-- [Phase 04-container-backend-and-polars-registration]: All imports inside try/except ImportError in register_narwhals_backends() for partial registration safety and opt-in isolation
-- [Phase 04-container-backend-and-polars-registration]: register_polars_backends() auto-detects narwhals via try/except — no config flag, no separate register_narwhals_backends() function
-- [Phase 04-container-backend-and-polars-registration]: conftest calls register_polars_backends() in autouse module fixture to populate Dispatcher registry for direct-backend tests that bypass schema.validate()
-- [Phase 05-ibis-registration-and-integration]: xfail(strict=False) used for all ibis stubs — XPASS acceptable as ibis backend may already support behaviors
-- [Phase 05-ibis-registration-and-integration]: test_coerce_ibis uses xfail(strict=True) as v2 coerce feature gate — CI must break when coerce lands to force cleanup
-- [Phase 05-ibis-registration-and-integration]: Polars parity baseline tests run unconditionally (no xfail) — these serve as regression anchors for the narwhals backend
-- [Phase 05-ibis-registration-and-integration]: group_by().agg(nw.len()) replaces collect()+is_duplicated() for SQL-lazy backends — no per-row boolean output for uniqueness checks
-- [Phase 05-ibis-registration-and-integration]: ibis drop_invalid_rows delegates to IbisSchemaBackend (has positional-join / row_number logic) then wraps result back to narwhals
-- [Phase 05-ibis-registration-and-integration]: narwhals/register.py deleted — dead file with no imports; registration handled by polars/register.py and ibis/register.py
-- [Phase 05-ibis-registration-and-integration]: check_dtype ibis third pass uses ibis_table.schema().get(col) — direct ibis schema API after narwhals and polars passes
-- [Phase 05-ibis-registration-and-integration]: failure_cases for ibis validation is pyarrow.Table (not pandas) — ibis DuckDB backend returns pyarrow when narwhals LazyFrame.collect() is called via the ibis-backed LazyFrame path
-- [Phase 05-ibis-registration-and-integration]: element_wise=True SchemaError wraps NotImplementedError via run_checks exception catch — ibis parity tests assert SchemaError raised with NotImplementedError in message
-- [Phase 05-ibis-registration-and-integration]: element_wise=True checks skip ibis delegation in NarwhalsCheckBackend so apply() raises NotImplementedError for SQL-lazy backends (IbisCheckBackend would attempt UDF creation)
-- [Phase 05-ibis-registration-and-integration]: run_check ibis path evaluates check_passed via .execute() directly — _materialize() would lose BooleanScalar type through narwhals/polars conversion
-- [Phase 05-ibis-registration-and-integration]: failure_cases returned as lazy ibis.Table from run_check ibis path — tests/ibis/ call .execute()/.to_pandas() and require the lazy contract
-- [Phase 05-ibis-registration-and-integration]: pyarrow.lib.Table also detected as ibis-originated failure_cases — narwhals collect() on ibis-backed LazyFrame materializes to pyarrow, not pandas
-- [Phase 05-ibis-registration-and-integration]: ibis.Table materialization uses .execute(); pyarrow.Table uses .to_pandas() — both dispatch on hasattr(_ibis_fc, 'execute')
-- [Phase 05-ibis-registration-and-integration]: ibis guard in _count_failure_cases uses try/except ImportError so ibis remains fully optional from shared base code
-- [Phase 05-ibis-registration-and-integration]: ibis.Table detection placed before try/len() block in _count_failure_cases to intercept ExpressionError before propagation
+- Auto-detection via try/except in `register_polars_backends()` / `register_ibis_backends()` (not config flags)
+- Direct BACKEND_REGISTRY writes required to override existing entries
+- `group_by().agg(nw.len())` for SQL-lazy uniqueness checks
+- Dual ibis.Table / pyarrow.Table detection in `failure_cases_metadata`
+- try/except ImportError guard for optional ibis in shared code
 
 ### Pending Todos
 
-None yet.
+None.
 
 ### Blockers/Concerns
 
-- [Phase 1]: `nw.Datetime` parameterized dtypes (`time_unit`, `time_zone`) need careful handling — verify during Phase 1
-- [Phase 2]: `unique_values_eq` forces materialization on lazy frames; confirm this does not conflict with `lazy=True` error handler
-- [Phase 5]: `drop_invalid_rows` for Ibis requires positional alignment strategy; no narwhals abstraction exists — needs explicit design
+- coerce for Ibis is xfail(strict=True) — intentional v2 feature gate
+- `drop_invalid_rows` for Ibis uses IbisSchemaBackend delegation — no narwhals abstraction
 
 ## Session Continuity
 
-Last session: 2026-03-15T23:27:51.831Z
-Stopped at: Completed 05-ibis-registration-and-integration 05-06-PLAN.md
+Last session: 2026-03-15
+Stopped at: v1.0 milestone complete
 Resume file: None
