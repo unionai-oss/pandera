@@ -521,19 +521,23 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
 
         filter_out_columns = []
         sorted_column_names = iter(column_info.sorted_column_names)
+        column_errors = []
+
         for column in column_info.destuttered_column_names:
             is_schema_col = column in column_info.expanded_column_names
             if schema.strict is True and not is_schema_col:
-                raise SchemaError(
-                    schema=schema,
-                    data=check_obj,
-                    message=(
-                        f"column '{column}' not in {schema.__class__.__name__}"
-                        f" {schema.columns}"
-                    ),
-                    failure_cases=column,
-                    check="column_in_schema",
-                    reason_code=SchemaErrorReason.COLUMN_NOT_IN_SCHEMA,
+                column_errors.append(
+                    SchemaError(
+                        schema=schema,
+                        data=check_obj,
+                        message=(
+                            f"column '{column}' not in {schema.__class__.__name__}"
+                            f" {schema.columns}"
+                        ),
+                        failure_cases=column,
+                        check="column_in_schema",
+                        reason_code=SchemaErrorReason.COLUMN_NOT_IN_SCHEMA,
+                    )
                 )
             if schema.strict == "filter" and not is_schema_col:
                 filter_out_columns.append(column)
@@ -543,14 +547,23 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
                 except StopIteration:
                     pass
                 if next_ordered_col != column:
-                    raise SchemaError(
-                        schema=schema,
-                        data=check_obj,
-                        message=f"column '{column}' out-of-order",
-                        failure_cases=column,
-                        check="column_ordered",
-                        reason_code=SchemaErrorReason.COLUMN_NOT_ORDERED,
+                    column_errors.append(
+                        SchemaError(
+                            schema=schema,
+                            data=check_obj,
+                            message=f"column '{column}' out-of-order",
+                            failure_cases=column,
+                            check="column_ordered",
+                            reason_code=SchemaErrorReason.COLUMN_NOT_ORDERED,
+                        )
                     )
+
+        if column_errors:
+            raise SchemaErrors(
+                schema=schema,
+                schema_errors=column_errors,
+                data=check_obj,
+            )
 
         if schema.strict == "filter":
             if type(check_obj).__module__.startswith("pyspark.pandas"):
