@@ -159,7 +159,12 @@ def test_parser_with_coercion():
     assert validated_df["col1"].dtype == pd.CategoricalDtype(
         categories=["category1", "category2"]
     )
-    assert validated_df["col2"].dtype == pd.StringDtype()
+    if PANDAS_3_0_0_PLUS:
+        import numpy as np
+
+        assert validated_df["col2"].dtype == pd.StringDtype(na_value=np.nan)
+    else:
+        assert validated_df["col2"].dtype == pd.StringDtype()
 
 
 def test_parser_with_add_missing_columns():
@@ -197,9 +202,9 @@ def test_parser_with_add_missing_columns():
 
     validated_df = Schema.validate(pd.DataFrame({"a": ["xxx"], "b": 0}))
     expected = pd.DataFrame({"a": ["xxx"], "b": 0, "c": 0})
-    # With pandas < 3, str columns coerce to object (NpString); pandas >= 3 to StringDtype
+    # With pandas < 3, str columns coerce to object (NpString); pandas >= 3 to str
     if PANDAS_3_0_0_PLUS:
-        expected["a"] = expected["a"].astype("string")
+        expected["a"] = expected["a"].astype("str")
     assert_frame_equal(validated_df, expected)
 
     with pytest.raises(pa.errors.SchemaError, match="No `b` or `c` in"):

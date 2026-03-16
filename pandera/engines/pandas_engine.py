@@ -714,7 +714,10 @@ class STRING(DataType, dtypes.String):
                 "`pip install pyarrow` or "
                 "`conda install -c conda-forge pyarrow` before proceeding."
             )
-        type_ = pd.StringDtype(self.storage)
+        if PANDAS_3_0_0_PLUS:
+            type_ = pd.StringDtype(self.storage, na_value=np.nan)
+        else:
+            type_ = pd.StringDtype(self.storage)
         object.__setattr__(self, "type", type_)
         # Sync storage with the actual type's storage (pandas may override None)
         object.__setattr__(self, "storage", type_.storage)
@@ -753,11 +756,15 @@ class STRING(DataType, dtypes.String):
             if data_container is None:
                 return True
             if type(data_container).__module__.startswith("pyspark.pandas"):
-                is_python_string = data_container.map(lambda x: str(type(x))).isin(  # type: ignore[operator]
+                is_python_string = data_container.map(
+                    lambda x: str(type(x))
+                ).isin(  # type: ignore[operator]
                     ["<class 'str'>", "<class 'numpy.str_'>"]
                 )
             else:
-                is_python_string = data_container.map(lambda x: isinstance(x, str))  # type: ignore[operator]
+                is_python_string = data_container.map(
+                    lambda x: isinstance(x, str)
+                )  # type: ignore[operator]
             return is_python_string.astype(bool) | data_container.isna()  # type: ignore[return-value]
         return super().check(pandera_dtype, data_container)
 

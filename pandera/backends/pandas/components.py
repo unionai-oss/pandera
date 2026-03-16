@@ -156,8 +156,11 @@ class ColumnBackend(ArraySchemaBackend):
                     column_name,
                     return_check_obj=True,
                 )
-                if schema.parsers:
-                    check_obj[column_name] = validated_column
+                if schema.parsers and validated_column is not None:
+                    if is_table(validated_column):
+                        check_obj[column_name] = validated_column[column_name]
+                    else:
+                        check_obj[column_name] = validated_column
 
         if lazy and error_handler.collected_errors:
             raise SchemaErrors(

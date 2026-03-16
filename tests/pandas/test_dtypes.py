@@ -124,11 +124,18 @@ string_dtypes = {
     np.str_: np.str_,
 }
 
-nullable_string_dtypes = {pd.StringDtype: "string"}
-if pandas_engine.PYARROW_INSTALLED:
-    nullable_string_dtypes.update(
-        {pd.StringDtype(storage="pyarrow"): "string[pyarrow]"}  # type: ignore
-    )
+if PANDAS_3_0_0_PLUS:
+    nullable_string_dtypes = {pd.StringDtype: "str"}
+    if pandas_engine.PYARROW_INSTALLED:
+        nullable_string_dtypes.update(
+            {pd.StringDtype(storage="pyarrow"): "str"}  # type: ignore
+        )
+else:
+    nullable_string_dtypes = {pd.StringDtype: "string"}
+    if pandas_engine.PYARROW_INSTALLED:
+        nullable_string_dtypes.update(
+            {pd.StringDtype(storage="pyarrow"): "string[pyarrow]"}  # type: ignore
+        )
 
 object_dtypes = {object: "object", np.object_: "object"}
 
@@ -348,9 +355,14 @@ def test_coerce_no_cast(dtype: Any, pd_dtype: Any, data: list[Any]):
 
     coerced_series = expected_dtype.coerce(series)
 
-    # pandas 3.0 uses StringDtype for str; .equals(object_series, string_series)
-    # can be False even when values are equal
-    if PANDAS_3_0_0_PLUS and dtype in (str, np.str_, pa.String):
+    # pandas 3.0 uses StringDtype(na_value=nan) for str; .equals() can be
+    # False when comparing old string vs new str dtype even with same values
+    if PANDAS_3_0_0_PLUS and dtype in (
+        str,
+        np.str_,
+        pa.String,
+        pd.StringDtype,
+    ):
         pd.testing.assert_series_equal(
             series.astype(object),
             coerced_series.astype(object),
@@ -365,7 +377,12 @@ def test_coerce_no_cast(dtype: Any, pd_dtype: Any, data: list[Any]):
     df = pd.DataFrame({"col": series})
     coerced_df = expected_dtype.coerce(df)
 
-    if PANDAS_3_0_0_PLUS and dtype in (str, np.str_, pa.String):
+    if PANDAS_3_0_0_PLUS and dtype in (
+        str,
+        np.str_,
+        pa.String,
+        pd.StringDtype,
+    ):
         pd.testing.assert_frame_equal(
             df.astype({"col": object}),
             coerced_df.astype({"col": object}),
