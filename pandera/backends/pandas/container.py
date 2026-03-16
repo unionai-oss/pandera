@@ -12,8 +12,10 @@ from pydantic import BaseModel
 from pandera.api.base.error_handler import ErrorHandler, get_error_category
 from pandera.api.pandas.types import is_table
 from pandera.backends.base import ColumnInfo, CoreCheckResult, CoreParserResult
-from pandera.backends.pandas.base import _parsed_column_values
-from pandera.backends.pandas.base import PandasSchemaBackend
+from pandera.backends.pandas.base import (
+    PandasSchemaBackend,
+    _parsed_column_values,
+)
 from pandera.backends.pandas.error_formatters import (
     reshape_failure_cases,
 )

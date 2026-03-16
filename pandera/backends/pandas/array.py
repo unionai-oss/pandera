@@ -7,8 +7,10 @@ import pandas as pd
 from pandera.api.base.error_handler import ErrorHandler, get_error_category
 from pandera.api.pandas.types import is_field
 from pandera.backends.base import CoreCheckResult, CoreParserResult
-from pandera.backends.pandas.base import _parsed_column_values
-from pandera.backends.pandas.base import PandasSchemaBackend
+from pandera.backends.pandas.base import (
+    PandasSchemaBackend,
+    _parsed_column_values,
+)
 from pandera.backends.pandas.error_formatters import reshape_failure_cases
 from pandera.backends.utils import convert_uniquesettings
 from pandera.config import ValidationScope
@@ -365,8 +367,10 @@ class ArraySchemaBackend(PandasSchemaBackend):
                     try:
                         from pandera.engines import utils as engine_utils
 
-                        failure_cases = engine_utils.numpy_pandas_coerce_failure_cases(
-                            check_obj, schema.dtype
+                        failure_cases = (
+                            engine_utils.numpy_pandas_coerce_failure_cases(
+                                check_obj, schema.dtype
+                            )
                         )
                     except Exception:
                         failure_cases = None
@@ -377,10 +381,16 @@ class ArraySchemaBackend(PandasSchemaBackend):
                         # report elements that are not already strings as failure cases.
                         try:
                             expected_dtype = Engine.dtype(schema.dtype)
-                            if str(expected_dtype) in ("str", "string", "string[pyarrow]"):
+                            if str(expected_dtype) in (
+                                "str",
+                                "string",
+                                "string[pyarrow]",
+                            ):
                                 non_string = check_obj[
                                     ~check_obj.map(
-                                        lambda x: isinstance(x, str) or pd.isna(x)
+                                        lambda x: (
+                                            isinstance(x, str) or pd.isna(x)
+                                        )
                                     )
                                 ]
                                 if not non_string.empty:
@@ -390,7 +400,8 @@ class ArraySchemaBackend(PandasSchemaBackend):
                         except Exception:
                             pass
                         if failure_cases is None or (
-                            hasattr(failure_cases, "empty") and failure_cases.empty
+                            hasattr(failure_cases, "empty")
+                            and failure_cases.empty
                         ):
                             failure_cases = str(check_obj.dtype)
                 elif not passed:

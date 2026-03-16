@@ -2703,7 +2703,11 @@ def test_drop_invalid_for_column(col, obj, expected_obj):
 
     # pandas 3.0+ treats None as valid for string columns (nullable), so we
     # get 2 rows (None, "c") instead of 1 ("c" only)
-    if PANDAS_3_0_0_PLUS and len(actual_obj) == 2 and actual_obj.iloc[0].isna().all():
+    if (
+        PANDAS_3_0_0_PLUS
+        and len(actual_obj) == 2
+        and actual_obj.iloc[0].isna().all()
+    ):
         expected_obj = pd.DataFrame({"letters": [None, "c"]})
 
     pd.testing.assert_frame_equal(
@@ -2827,7 +2831,7 @@ def test_drop_invalid_rows_with_custom_parser_dataframe_schema():
 
 def test_drop_invalid_rows_parser_all_values_valid():
     """Parser + isin, all values valid (with capitals).
-    
+
     Expect all rows kept and parsed to lowercase."""
     import pandera.pandas as pa
     from pandera.typing import Series
@@ -2867,7 +2871,7 @@ def test_drop_invalid_rows_parser_all_values_valid():
 
 def test_drop_invalid_rows_no_parser_invalid_value():
     """Isin + drop_invalid_rows, no custom parser.
-    
+
     Invalid row is dropped; valid rows keep their values (no None)."""
     from pandera.typing import Series
 
