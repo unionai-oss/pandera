@@ -768,8 +768,9 @@ def str_length_strategy(
     pandera_dtype: Union[numpy_engine.DataType, pandas_engine.DataType],
     strategy: SearchStrategy | None = None,
     *,
-    min_value: int,
-    max_value: int,
+    min_value: int | None = None,
+    max_value: int | None = None,
+    exact_value: int | None = None,
 ) -> SearchStrategy:
     """Strategy to generate strings of a particular length
 
@@ -778,8 +779,19 @@ def str_length_strategy(
         pandas dtype strategy will be chained onto this strategy.
     :param min_value: minimum string length.
     :param max_value: maximum string length.
+    :param exact_value: exact string length.
     :returns: ``hypothesis`` strategy
     """
+    # Handle exact_value by setting min and max to the same value
+    if exact_value is not None:
+        min_value = exact_value
+        max_value = exact_value
+
+    if min_value is None or max_value is None:
+        raise ValueError(
+            "Must provide either 'exact_value' or both 'min_value' and 'max_value'"
+        )
+
     if strategy is None:
         return st.text(min_size=min_value, max_size=max_value).map(
             to_numpy_dtype(pandera_dtype).type
