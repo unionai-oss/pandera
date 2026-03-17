@@ -3,6 +3,7 @@
 from typing import NamedTuple, TypeVar, Union
 
 import polars as pl
+from polars.datatypes.classes import DataTypeClass, DataType
 
 
 class PolarsData(NamedTuple):
@@ -25,5 +26,6 @@ PolarsFrame = TypeVar("PolarsFrame", pl.LazyFrame, pl.DataFrame)
 PolarsDtypeInputTypes = Union[
     str,
     type,
-    pl.datatypes.classes.DataTypeClass,
+    DataTypeClass,
+    DataType,
 ]

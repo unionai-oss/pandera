@@ -1,6 +1,7 @@
 """Unit tests for polars components."""
 
 from collections.abc import Iterable
+from datetime import datetime, timezone
 from typing import Optional, Union
 
 import numpy as np
@@ -26,15 +27,32 @@ DTYPES_AND_DATA = [
     (pl.Utf8, ["foo", "bar", "baz"]),
     (pl.Float64, [1.0, 2.0, 3.0]),
     (pl.Boolean, [True, False, True]),
+    (pl.List(pl.Int64), [[1], [2], [3]]),
+    (
+        pl.Datetime(time_unit="ns"),
+        [
+            datetime(2026, 1, 1),
+            datetime(2026, 1, 2),
+        ],
+    ),
+    (
+        pl.Datetime(time_zone="UTC"),
+        [
+            datetime(2026, 1, 1, tzinfo=timezone.utc),
+            datetime(2026, 1, 2, tzinfo=timezone.utc),
+        ],
+    ),
 ]
 
 
 @pytest.mark.parametrize("dtype,data", DTYPES_AND_DATA)
 def test_column_schema_simple_dtypes(dtype, data):
     schema = pa.Column(dtype, name="column")
-    data = pl.LazyFrame({"column": data})
-    validated_data = schema.validate(data).collect()
-    assert validated_data.equals(data.collect())
+    series_dtype = dtype.type if isinstance(dtype, DataType) else dtype
+    series = pl.Series("column", data).cast(series_dtype)
+    lazyframe = pl.LazyFrame({"column": series})
+    validated_data = schema.validate(lazyframe).collect()
+    assert validated_data.equals(lazyframe.collect())
 
 
 def test_column_schema_inplace():
