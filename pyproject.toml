@@ -190,4 +190,4 @@ ignore = [
 ]
 
 [tool.codespell]
-ignore-words-list = ["notin", "splitted", "fo", "strat", "ttest"]
+ignore-words-list = ["notin", "splitted", "fo", "strat", "ttest", "coo"]
