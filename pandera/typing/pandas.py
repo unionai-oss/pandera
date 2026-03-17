@@ -231,16 +231,7 @@ class DataFrame(DataFrameBase, pd.DataFrame, Generic[T]):
 
         args = [] if buffer is None else [buffer]
 
-        # Temporarily remove the pandera schema from attrs so that
-        # serialization formats like feather/parquet (which JSON-encode
-        # df.attrs via pyarrow) don't choke on the non-serializable object.
-        _schema_key = "__pandera_schema__"
-        _saved_schema = data.attrs.pop(_schema_key, None)
-        try:
-            out = writer(*args, **(config.to_format_kwargs or {}))  # type: ignore
-        finally:
-            if _saved_schema is not None:
-                data.attrs[_schema_key] = _saved_schema
+        out = writer(*args, **(config.to_format_kwargs or {}))  # type: ignore
         if buffer is None:
             return out
         elif buffer.closed:

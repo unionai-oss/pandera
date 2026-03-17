@@ -1,20 +1,20 @@
 """Register pandas accessor for pandera schema metadata."""
 
-from typing import Optional, Union
+from typing import Union
 
 import pandas as pd
 
+from pandera.accessors._schema_registry import get_schema, register_schema
 from pandera.api.pandas.array import SeriesSchema
 from pandera.api.pandas.container import DataFrameSchema
 
 Schemas = Union[DataFrameSchema, SeriesSchema]
 
+_ATTRS_SCHEMA_KEY = "__pandera_schema__"
+
 
 class PanderaAccessor:
     """Pandera accessor for pandas object."""
-
-    # Key used to store schema in pandas object's attrs
-    _PANDERA_SCHEMA_KEY = "__pandera_schema__"
 
     def __init__(self, pandas_obj):
         """Initialize the pandera accessor."""
@@ -28,18 +28,15 @@ class PanderaAccessor:
     def add_schema(self, schema):
         """Add a schema to the pandas object."""
         self.check_schema_type(schema)
-        # Store schema in the pandas object's attrs for persistence
-        # Some pandas-like objects (e.g., PySpark pandas) don't have attrs
         if hasattr(self._pandas_obj, "attrs"):
-            self._pandas_obj.attrs[self._PANDERA_SCHEMA_KEY] = schema
+            self._pandas_obj.attrs.pop(_ATTRS_SCHEMA_KEY, None)
+        register_schema(self._pandas_obj, schema)
         return self._pandas_obj
 
     @property
     def schema(self) -> Schemas | None:
         """Access schema metadata."""
-        if hasattr(self._pandas_obj, "attrs"):
-            return self._pandas_obj.attrs.get(self._PANDERA_SCHEMA_KEY)
-        return None
+        return get_schema(self._pandas_obj)
 
 
 @pd.api.extensions.register_dataframe_accessor("pandera")
