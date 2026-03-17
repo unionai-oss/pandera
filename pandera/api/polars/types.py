@@ -3,7 +3,7 @@
 from typing import NamedTuple, TypeVar, Union
 
 import polars as pl
-from polars.datatypes.classes import DataTypeClass, DataType
+from polars.datatypes.classes import DataType, DataTypeClass
 
 
 class PolarsData(NamedTuple):
