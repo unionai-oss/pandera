@@ -462,15 +462,63 @@ def test_regex_selector(
         for column in get_lazyframe_column_names(ldf_for_regex_match):
             # this should raise an error since columns are not nullable by default
             modified_data = transform_fn(ldf_for_regex_match, column)
-            with pytest.raises(pa.errors.SchemaError, match=exception_msg):
+            # Container wraps component errors in SchemaErrors; accept both
+            with pytest.raises(
+                (pa.errors.SchemaError, pa.errors.SchemaErrors),
+                match=exception_msg,
+            ) as exc_info:
                 modified_data.pipe(schema.validate).collect()
+            # Error must report the actual column name, not the regex pattern
+            # (see https://github.com/unionai-oss/pandera/issues/2221)
+            error_text = str(exc_info.value)
+            assert column in error_text, (
+                f"Expected error message to contain actual column name {column!r}, "
+                f"got: {error_text[:500]}"
+            )
 
         # dropping all columns should fail
         modified_data = ldf_for_regex_match.drop(
             get_lazyframe_column_names(ldf_for_regex_match)
         )
-        with pytest.raises(pa.errors.SchemaError):
+        with pytest.raises(
+            (pa.errors.SchemaError, pa.errors.SchemaErrors)
+        ):
             modified_data.pipe(schema.validate).collect()
+
+
+def test_regex_column_name_in_error_message():
+    """Regex column validation errors must report actual column name, not pattern."""
+    dataframe = pl.DataFrame(
+        {
+            "var_1": [0.4, 0.3, 0.9],
+            "var_2": [0.5, 0.7, 0.8],
+            "var_3": [1.2, 1.1, 0.2],  # out of range for in_range(0, 1)
+        }
+    )
+    schema = pa.DataFrameSchema(
+        {
+            "var_.+": pa.Column(
+                float,
+                regex=True,
+                checks=[pa.Check.in_range(0, 1)],
+            ),
+        }
+    )
+    with pytest.raises(pa.errors.SchemaErrors) as exc_info:
+        schema.validate(dataframe, lazy=True)
+    error_text = str(exc_info.value)
+    # Error must name the actual failing column (var_3), not only the regex pattern
+    assert "var_3" in error_text, (
+        f"Expected error to contain actual column name 'var_3', got: {error_text}"
+    )
+    # Check structured error reports the actual column name
+    err = exc_info.value
+    if hasattr(err, "schema_errors") and err.schema_errors:
+        first = err.schema_errors[0]
+        col = getattr(first, "column_name", None) or (
+            getattr(first, "schema", None) and getattr(first.schema, "name", None)
+        )
+        assert col == "var_3", f"First error should be for column 'var_3', got {col}"
 
 
 def test_regex_coerce(

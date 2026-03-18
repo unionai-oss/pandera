@@ -59,6 +59,33 @@ if GEOPANDAS_INSTALLED:
         A generic type for geopandas.GeoDataFrame.
         """
 
+        @property
+        def _constructor(self):
+            """Return the plain gpd.GeoDataFrame constructor.
+
+            Geopandas >= 1.1 uses a classmethod constructor that binds
+            to ``type(self)``. For pandera's GeoDataFrame subclass this
+            causes ``__class__`` assignment failures due to incompatible
+            C-level memory layouts. Binding to ``gpd.GeoDataFrame``
+            ensures derived objects are plain GeoDataFrames.
+            """
+            return gpd.GeoDataFrame._geodataframe_constructor_with_fallback
+
+        def copy(self, deep: bool = True) -> gpd.GeoDataFrame:
+            """Copy that avoids ``__class__`` reassignment to this subclass.
+
+            Geopandas >= 1.1 reassigns ``__class__`` to ``type(self)``
+            inside ``copy()``.  That fails for this pandera subclass
+            because its C-level layout is incompatible with
+            ``pd.DataFrame``.  We replicate the geopandas logic but
+            target ``gpd.GeoDataFrame`` instead.
+            """
+            copied = pd.DataFrame.copy(self, deep=deep)
+            if type(copied) is pd.DataFrame:
+                copied.__class__ = gpd.GeoDataFrame
+                copied._geometry_column_name = self._geometry_column_name
+            return copied
+
         if hasattr(gpd.GeoDataFrame, "__class_getitem__") and _GenericAlias:
 
             def __class_getitem__(cls, item):

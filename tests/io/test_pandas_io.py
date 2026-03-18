@@ -1711,7 +1711,7 @@ FRICTIONLESS_JSON = {
 
 # pandas dtype aliases to support testing across multiple pandas versions:
 STR_DTYPE = pandas_engine.Engine.dtype("string")
-STR_DTYPE_ALIAS = str(pandas_engine.Engine.dtype("string"))
+STR_DTYPE_ALIAS = pandas_engine.Engine.dtype("string").type
 INT_DTYPE = pandas_engine.Engine.dtype("int")
 INT_DTYPE_ALIAS = str(pandas_engine.Engine.dtype("int"))
 

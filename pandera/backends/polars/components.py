@@ -80,25 +80,68 @@ class ColumnBackend(PolarsSchemaBackend):
             except SchemaErrors as exc:
                 error_handler.collect_errors(exc.schema_errors)
 
-        error_handler = self.run_checks_and_handle_errors(
-            error_handler,
-            schema,
-            check_obj,
-            head=head,
-            tail=tail,
-            sample=sample,
-            random_state=random_state,
-        )
-
-        if lazy and error_handler.collected_errors:
-            if getattr(schema, "drop_invalid_rows", False):
-                check_obj = self.drop_invalid_rows(check_obj, error_handler)
-            else:
-                raise SchemaErrors(
+        if getattr(schema, "regex", False):
+            # Validate each regex-matched column separately so errors report
+            # the actual column name (e.g. "var_3") instead of the pattern
+            # (e.g. "var_.+").
+            column_keys_to_check = list(
+                self.get_regex_columns(schema, check_obj)
+            )
+            if not column_keys_to_check:
+                raise SchemaError(
                     schema=schema,
-                    schema_errors=error_handler.schema_errors,
                     data=check_obj,
+                    message=(
+                        f"Column regex name='{schema.selector}' did not match "
+                        "any columns in the dataframe. Update the regex "
+                        "pattern so that it matches at least one column."
+                    ),
+                    failure_cases=get_lazyframe_column_names(check_obj),
+                    check=f"no_regex_column_match('{schema.selector}')",
+                    reason_code=SchemaErrorReason.INVALID_COLUMN_NAME,
                 )
+            _orig_name = schema.name
+            _orig_regex = schema.regex
+            for column_name in column_keys_to_check:
+                single_col_obj = check_obj.select(pl.col(column_name))
+                schema.name = column_name
+                schema.regex = False
+                try:
+                    error_handler = self.run_checks_and_handle_errors(
+                        error_handler,
+                        schema,
+                        single_col_obj,
+                        head=head,
+                        tail=tail,
+                        sample=sample,
+                        random_state=random_state,
+                    )
+                finally:
+                    schema.name = _orig_name
+                    schema.regex = _orig_regex
+        else:
+            error_handler = self.run_checks_and_handle_errors(
+                error_handler,
+                schema,
+                check_obj,
+                head=head,
+                tail=tail,
+                sample=sample,
+                random_state=random_state,
+            )
+
+        if error_handler.collected_errors:
+            if lazy:
+                if getattr(schema, "drop_invalid_rows", False):
+                    check_obj = self.drop_invalid_rows(check_obj, error_handler)
+                else:
+                    raise SchemaErrors(
+                        schema=schema,
+                        schema_errors=error_handler.schema_errors,
+                        data=check_obj,
+                    )
+            else:
+                raise error_handler.schema_errors[0]
 
         return check_obj
 
@@ -145,6 +188,7 @@ class ColumnBackend(PolarsSchemaBackend):
                         check_index=result.check_index,
                         check_output=result.check_output,
                         reason_code=result.reason_code,
+                        column_name=schema.name,
                     )
                     error_handler.collect_error(
                         get_error_category(result.reason_code),

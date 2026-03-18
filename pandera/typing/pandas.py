@@ -230,6 +230,7 @@ class DataFrame(DataFrameBase, pd.DataFrame, Generic[T]):
             }[Formats(config.to_format)]
 
         args = [] if buffer is None else [buffer]
+
         out = writer(*args, **(config.to_format_kwargs or {}))  # type: ignore
         if buffer is None:
             return out

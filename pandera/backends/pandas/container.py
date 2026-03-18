@@ -12,7 +12,10 @@ from pydantic import BaseModel
 from pandera.api.base.error_handler import ErrorHandler, get_error_category
 from pandera.api.pandas.types import is_table
 from pandera.backends.base import ColumnInfo, CoreCheckResult, CoreParserResult
-from pandera.backends.pandas.base import PandasSchemaBackend
+from pandera.backends.pandas.base import (
+    PandasSchemaBackend,
+    _parsed_column_values,
+)
 from pandera.backends.pandas.error_formatters import (
     reshape_failure_cases,
 )
@@ -66,6 +69,9 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
             )
 
         error_handler = ErrorHandler(lazy)
+
+        # Clear parsed-column context so drop_invalid_rows restores only this run
+        _parsed_column_values.set(None)
 
         check_obj = self.preprocess(check_obj, inplace=inplace)
         if hasattr(check_obj, "pandera"):
@@ -548,8 +554,8 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
                 try:
                     next_ordered_col = next(sorted_column_names)
                 except StopIteration:
-                    next_ordered_col = None
-                if next_ordered_col is not None and next_ordered_col != column:
+                    pass
+                if next_ordered_col != column:
                     column_errors.append(
                         SchemaError(
                             schema=schema,
