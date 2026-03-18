@@ -89,7 +89,10 @@ dask = [
     "dask[dataframe]",
     "distributed",
 ]
-ibis = ["ibis-framework >= 9.0.0"]
+ibis = [
+    "ibis-framework >= 9.0.0",
+    "pyarrow-hotfix",
+]
 polars = ["polars >= 0.20.0"]
 all = [
     "hypothesis >= 6.92.7",
@@ -108,6 +111,7 @@ all = [
     "geopandas < 1.1.0",
     "shapely",
     "ibis-framework >= 9.0.0",
+    "pyarrow-hotfix",
     "polars >= 0.20.0",
 ]
 
@@ -142,6 +146,7 @@ testing = [
 ]
 docs = [
     "setuptools",
+    "pyarrow-hotfix",
     "sphinx<9",
     "sphinx-design",
     "sphinx-autodoc-typehints <= 1.14.1",

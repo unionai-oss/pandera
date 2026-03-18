@@ -147,7 +147,7 @@ schema = pa.DataFrameSchema({
 
 try:
     schema.validate(df)
-except pa.errors.SchemaError as exc:
+except (pa.errors.SchemaError, pa.errors.SchemaErrors) as exc:
     print(exc)
 ```
 
