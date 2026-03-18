@@ -92,7 +92,10 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
                     get_error_category(exc.reason_code), exc.reason_code, exc
                 )
             except SchemaErrors as exc:
-                error_handler.collect_errors(exc.schema_errors)
+                if lazy:
+                    error_handler.collect_errors(exc.schema_errors)
+                else:
+                    raise
 
         # We may have modified columns, for example by
         # add_missing_columns, so regenerate column info

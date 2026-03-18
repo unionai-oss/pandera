@@ -372,7 +372,9 @@ def test_dt_time_zone_agnostic(examples, tz, coerce, expected_output, raises):
     data = pd.DataFrame({"datetime_column": examples})
 
     if raises:
-        with pytest.raises((SchemaError, errors.ParserError)):
+        with pytest.raises(
+            (SchemaError, errors.SchemaErrors, errors.ParserError)
+        ):
             SimpleSchema.validate(data)
     else:
         validated_df = SimpleSchema.validate(data)

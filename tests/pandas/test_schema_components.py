@@ -709,7 +709,7 @@ def test_column_regex_strict() -> None:
 
     # adding an extra column in the dataframe should cause error
     data = data.assign(bar=[1, 2, 3])
-    with pytest.raises(errors.SchemaError):
+    with pytest.raises(errors.SchemaErrors):
         schema.validate(data)
 
     # adding an extra regex column to the schema should pass the strictness
