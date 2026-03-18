@@ -548,8 +548,8 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
                 try:
                     next_ordered_col = next(sorted_column_names)
                 except StopIteration:
-                    pass
-                if next_ordered_col != column:
+                    next_ordered_col = None
+                if next_ordered_col is not None and next_ordered_col != column:
                     column_errors.append(
                         SchemaError(
                             schema=schema,
