@@ -98,7 +98,10 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
                     get_error_category(exc.reason_code), exc.reason_code, exc
                 )
             except SchemaErrors as exc:
-                error_handler.collect_errors(exc.schema_errors)
+                if lazy:
+                    error_handler.collect_errors(exc.schema_errors)
+                else:
+                    raise
 
         # We may have modified columns, for example by
         # add_missing_columns, so regenerate column info
@@ -551,8 +554,8 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
                 try:
                     next_ordered_col = next(sorted_column_names)
                 except StopIteration:
-                    pass
-                if next_ordered_col != column:
+                    # Schema column appears again after the ordered run of
+                    # expected columns (e.g. ... a, b, c, a with schema a, b).
                     column_errors.append(
                         SchemaError(
                             schema=schema,
@@ -563,6 +566,18 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
                             reason_code=SchemaErrorReason.COLUMN_NOT_ORDERED,
                         )
                     )
+                else:
+                    if next_ordered_col != column:
+                        column_errors.append(
+                            SchemaError(
+                                schema=schema,
+                                data=check_obj,
+                                message=f"column '{column}' out-of-order",
+                                failure_cases=column,
+                                check="column_ordered",
+                                reason_code=SchemaErrorReason.COLUMN_NOT_ORDERED,
+                            )
+                        )
 
         if column_errors:
             raise SchemaErrors(

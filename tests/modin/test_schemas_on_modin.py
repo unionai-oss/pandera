@@ -255,8 +255,13 @@ def test_dtype_coercion(from_dtype, to_dtype, data):
         try:
             result = to_schema(sample)
             assert result["field"].dtype == to_dtype
-        except pa.errors.SchemaError as err:
-            for x in err.failure_cases.failure_case:
+        except (pa.errors.SchemaError, pa.errors.SchemaErrors) as err:
+            if isinstance(err, pa.errors.SchemaErrors):
+                failure_series = err.failure_cases["failure_case"]
+            else:
+                failure_series = err.failure_cases.failure_case
+            for x in failure_series:
+                x = getattr(x, "item", lambda: x)()
                 with pytest.raises(ValueError):
                     to_dtype(x)
         return
@@ -276,7 +281,8 @@ def test_strict_schema():
     non_strict_schema(strict_df)
 
     with pytest.raises(
-        pa.errors.SchemaError, match="column 'foo' not in DataFrameSchema"
+        (pa.errors.SchemaError, pa.errors.SchemaErrors),
+        match="column 'foo' not in DataFrameSchema",
     ):
         strict_schema(non_strict_df)
 

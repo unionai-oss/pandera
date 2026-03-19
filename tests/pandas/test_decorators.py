@@ -927,11 +927,11 @@ def test_check_types_method_args() -> None:
         out, instance.regular_method(df1=in1, df2=in2)
     )
 
-    with pytest.raises(errors.SchemaError):
+    with pytest.raises(errors.SchemaErrors):
         instance.regular_method(in2, in1)  # type: ignore
-    with pytest.raises(errors.SchemaError):
+    with pytest.raises(errors.SchemaErrors):
         instance.regular_method(in2, df2=in1)  # type: ignore
-    with pytest.raises(errors.SchemaError):
+    with pytest.raises(errors.SchemaErrors):
         instance.regular_method(df1=in2, df2=in1)  # type: ignore
 
     pd.testing.assert_frame_equal(out, SomeClass.class_method(in1, in2))
@@ -940,11 +940,11 @@ def test_check_types_method_args() -> None:
         out, SomeClass.class_method(df1=in1, df2=in2)
     )
 
-    with pytest.raises(errors.SchemaError):
+    with pytest.raises(errors.SchemaErrors):
         instance.class_method(in2, in1)  # type: ignore
-    with pytest.raises(errors.SchemaError):
+    with pytest.raises(errors.SchemaErrors):
         instance.class_method(in2, df2=in1)  # type: ignore
-    with pytest.raises(errors.SchemaError):
+    with pytest.raises(errors.SchemaErrors):
         instance.class_method(df1=in2, df2=in1)  # type: ignore
 
     pd.testing.assert_frame_equal(out, instance.static_method(in1, in2))
@@ -955,11 +955,11 @@ def test_check_types_method_args() -> None:
         out, instance.static_method(df1=in1, df2=in2)
     )
 
-    with pytest.raises(errors.SchemaError):
+    with pytest.raises(errors.SchemaErrors):
         instance.static_method(in2, in1)  # type: ignore
-    with pytest.raises(errors.SchemaError):
+    with pytest.raises(errors.SchemaErrors):
         instance.static_method(in2, df2=in1)  # type: ignore
-    with pytest.raises(errors.SchemaError):
+    with pytest.raises(errors.SchemaErrors):
         instance.static_method(df1=in2, df2=in1)  # type: ignore
 
 
@@ -1801,7 +1801,7 @@ def test_coroutines() -> None:
             res = await coro(good_df)
             pd.testing.assert_frame_equal(good_df, res)
 
-            with pytest.raises(errors.SchemaError):
+            with pytest.raises(errors.SchemaErrors):
                 await coro(bad_df)
 
     asyncio.get_event_loop().run_until_complete(check_coros())

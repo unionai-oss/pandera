@@ -14,6 +14,7 @@ dependencies:
   - typing_inspect >= 0.6.0
   - frictionless <= 4.40.8  # v5.* introduces breaking changes
   - pyarrow >= 13 # https://github.com/apache/arrow/pull/35113
+  - pyarrow-hotfix
   - pydantic
 
   # hypotheses extra

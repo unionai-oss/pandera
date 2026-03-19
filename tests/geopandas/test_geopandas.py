@@ -285,7 +285,9 @@ def test_schema_from_dataframe(data, invalid: bool):
 
     # create a geodataframe that's validated on object initialization
     if invalid:
-        with pytest.raises(pa.errors.SchemaError):
+        with pytest.raises(
+            (pa.errors.SchemaError, pa.errors.SchemaErrors)
+        ):
             GeoDataFrame[Schema](data)
         return
 

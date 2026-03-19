@@ -120,11 +120,12 @@ def test_dataframe_single_element_coerce() -> None:
     """Test that coercing a single element dataframe works correctly."""
     schema = DataFrameSchema({"x": Column(int, coerce=True)})
     assert isinstance(schema(pd.DataFrame({"x": [1]})), pd.DataFrame)
-    with pytest.raises(
-        errors.SchemaError,
-        match="Error while coercing 'x' to type int64",
-    ):
+    with pytest.raises(errors.SchemaErrors) as exc_info:
         schema(pd.DataFrame({"x": [None]}))
+    assert any(
+        "Error while coercing 'x' to type int64" in str(e.args[0])
+        for e in exc_info.value.schema_errors
+    )
 
 
 def test_dataframe_empty_coerce() -> None:
@@ -158,7 +159,7 @@ def test_dataframe_schema_strict() -> None:
     df = pd.DataFrame({"a": [1, 2, 3], "b": [1, 2, 3], "c": [1, 2, 3]})
 
     assert isinstance(schema.validate(df.loc[:, ["a", "b"]]), pd.DataFrame)
-    with pytest.raises(errors.SchemaError):
+    with pytest.raises(errors.SchemaErrors):
         schema.validate(df)
 
     schema.strict = "filter"
@@ -180,6 +181,30 @@ def test_dataframe_schema_strict() -> None:
         schema.validate(df.loc[:, ["a", "c"]])
 
 
+def test_dataframe_schema_strict_and_ordered_raises_both_errors() -> None:
+    """Regression test for #2213: strict=True and ordered=True raise both
+    COLUMN_NOT_ORDERED and COLUMN_NOT_IN_SCHEMA when dataframe has both."""
+    schema = DataFrameSchema(
+        columns={
+            "id": Column(int, nullable=False),
+            "name": Column(str, nullable=True),
+        },
+        strict=True,
+        ordered=True,
+    )
+    # Wrong order (name before id) and extra column
+    df = pd.DataFrame({
+        "name": ["Alice", "Bob", "Charlie"],
+        "id": [1, 2, 3],
+        "extra_column": ["extra1", "extra2", "extra3"],
+    })
+    with pytest.raises(errors.SchemaErrors) as exc_info:
+        schema.validate(df)
+    reason_codes = {e.reason_code for e in exc_info.value.schema_errors}
+    assert errors.SchemaErrorReason.COLUMN_NOT_ORDERED in reason_codes
+    assert errors.SchemaErrorReason.COLUMN_NOT_IN_SCHEMA in reason_codes
+
+
 def test_dataframe_schema_strict_regex() -> None:
     """Test that strict dataframe schema checks for regex matches."""
     schema = DataFrameSchema(
@@ -190,9 +215,9 @@ def test_dataframe_schema_strict_regex() -> None:
 
     assert isinstance(schema.validate(df), pd.DataFrame)
 
-    # Raise a SchemaError if schema is strict and a regex pattern yields
+    # Raise SchemaErrors if schema is strict and a regex pattern yields
     # no matches
-    with pytest.raises(errors.SchemaError):
+    with pytest.raises(errors.SchemaErrors):
         schema.validate(
             pd.DataFrame({f"bar_{i}": range(10) for i in range(5)})
         )
@@ -448,7 +473,7 @@ def test_add_missing_columns_order():
         data=[[1, 2, 3]], columns=["a", "missing", "c"]
     )
     with pytest.raises(
-        errors.SchemaError,
+        errors.SchemaErrors,
         match="column 'missing' not in DataFrameSchema",
     ):
         schema.validate(frame_unknown_col)
@@ -786,12 +811,11 @@ def test_coerce_dtype_in_dataframe():
     # make sure that correct error is raised when null values are present
     # in a float column that's coerced to an int
     schema = DataFrameSchema({"column4": Column(int, coerce=True)})
-    with pytest.raises(
-        errors.SchemaError,
-        match=r"^Error while coercing .+ to type u{0,1}int[0-9]{1,2}: "
-        r"Could not coerce .+ data_container into type",
-    ):
+    with pytest.raises(errors.SchemaErrors) as exc_info:
         schema.validate(df)
+    assert len(exc_info.value.schema_errors) == 1
+    assert "Error while coercing" in str(exc_info.value.schema_errors[0].args[0])
+    assert "Could not coerce" in str(exc_info.value.schema_errors[0].args[0])
 
 
 def test_no_dtype_dataframe():
@@ -2063,7 +2087,7 @@ def test_series_schema_dtype(dtype):
             pd.DataFrame(
                 [[1, 2, 3], list("xyz"), [7, 8, 9]], columns=["a", "a", "b"]
             ),
-            errors.SchemaError,
+            (errors.SchemaError, errors.SchemaErrors),
         ],
     ],
 )

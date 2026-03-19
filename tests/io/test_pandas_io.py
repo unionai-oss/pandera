@@ -1262,7 +1262,7 @@ def test_from_yaml_load_required_fields():
 @pytest.mark.parametrize(
     "is_ordered,test_data,expected",
     [
-        (True, {"b": [1], "a": [1]}, pandera.errors.SchemaError),
+        (True, {"b": [1], "a": [1]}, pandera.errors.SchemaErrors),
         (True, {"a": [1], "b": [1]}, pd.DataFrame(data={"a": [1], "b": [1]})),
         (False, {"b": [1], "a": [1]}, pd.DataFrame(data={"b": [1], "a": [1]})),
         (False, {"a": [1], "b": [1]}, pd.DataFrame(data={"a": [1], "b": [1]})),
@@ -1563,7 +1563,7 @@ def test_to_yaml_bugfix_warn_unregistered_global_checks():
 @pytest.mark.parametrize(
     "is_ordered,test_data,expected",
     [
-        (True, {"b": [1], "a": [1]}, pandera.errors.SchemaError),
+        (True, {"b": [1], "a": [1]}, pandera.errors.SchemaErrors),
         (True, {"a": [1], "b": [1]}, pd.DataFrame(data={"a": [1], "b": [1]})),
         (False, {"b": [1], "a": [1]}, pd.DataFrame(data={"b": [1], "a": [1]})),
         (False, {"a": [1], "b": [1]}, pd.DataFrame(data={"a": [1], "b": [1]})),

@@ -16,6 +16,7 @@ import logging as pylogging
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -26,6 +27,55 @@ from sphinx.util import logging
 import pandera
 
 sys.path.insert(0, os.path.abspath("../.."))
+
+
+def _java_specification_major() -> int | None:
+    """Return Java major version, or None if java is missing or unparsable."""
+    try:
+        proc = subprocess.run(
+            ["java", "-XshowSettings:properties", "-version"],
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        err = proc.stderr or ""
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    for line in err.splitlines():
+        line = line.strip()
+        if not line.startswith("java.specification.version"):
+            continue
+        parts = line.split("=", 1)
+        if len(parts) != 2:
+            continue
+        raw = parts[1].strip()
+        try:
+            if raw.startswith("1."):
+                return int(raw.split(".", 1)[1])
+            return int(re.match(r"(\d+)", raw).group(1))
+        except (ValueError, AttributeError):
+            return None
+    return None
+
+
+def _ensure_pyspark_jdk24_jvm_opts() -> None:
+    """Let local Spark start on JDK 24+ (Hadoop UGI / Subject.getSubject).
+
+    See JEP 486. Notebook kernels inherit this process env. No-op on JDK < 24.
+    """
+    flag = "-Djava.security.manager=allow"
+    if flag in os.environ.get("JAVA_TOOL_OPTIONS", ""):
+        return
+    major = _java_specification_major()
+    if major is None or major < 24:
+        return
+    prev = os.environ.get("JAVA_TOOL_OPTIONS", "").strip()
+    os.environ["JAVA_TOOL_OPTIONS"] = (
+        f"{prev} {flag}".strip() if prev else flag
+    )
+
+
+_ensure_pyspark_jdk24_jvm_opts()
 
 
 # -- Project information -----------------------------------------------------

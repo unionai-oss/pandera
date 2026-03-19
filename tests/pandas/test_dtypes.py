@@ -673,8 +673,14 @@ class TestArrowStringSerializationRoundTrip:
         from pandera.pandas import DataFrameModel, DataFrameSchema
         from pandera.typing import Series as TypedSeries
 
+        # pandas >= 2.3 adds na_value; older versions only accept storage.
+        if len(inspect.signature(pd.StringDtype).parameters) >= 2:
+            str_dtype_ann = Annotated[pd.StringDtype, "pyarrow", pd.NA]
+        else:
+            str_dtype_ann = Annotated[pd.StringDtype, "pyarrow"]
+
         class PandasArrowModel(DataFrameModel):
-            col: TypedSeries[Annotated[pd.StringDtype, "pyarrow", pd.NA]]
+            col: TypedSeries[str_dtype_ann]
 
         original = PandasArrowModel.to_schema()
         assert isinstance(original.columns["col"].dtype, pandas_engine.STRING)
