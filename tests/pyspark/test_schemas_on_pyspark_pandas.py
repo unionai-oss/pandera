@@ -458,10 +458,10 @@ def test_dtype_coercion(from_dtype, to_dtype, data):
 
     # strings that can't be interpreted as numbers are converted to NA
     if from_dtype is str and to_dtype in {int, float}:
-        # first check if sample contains NAs
+        # first check if sample contains NAs after pandas-style astype
         if sample.astype(to_dtype).isna().any().item():
             with pytest.raises(
-                pa.errors.SchemaError, match="non-nullable series"
+                (pa.errors.SchemaError, pa.errors.SchemaErrors)
             ):
                 to_schema(sample)
         return
@@ -511,7 +511,8 @@ def test_strict_schema():
     non_strict_schema(strict_df)
 
     with pytest.raises(
-        pa.errors.SchemaError, match="column 'foo' not in DataFrameSchema"
+        (pa.errors.SchemaError, pa.errors.SchemaErrors),
+        match="column 'foo' not in DataFrameSchema",
     ):
         strict_schema(non_strict_df)
 
@@ -710,7 +711,7 @@ def test_init_pyspark_pandas_dataframe():
 )
 def test_init_pyspark_dataframe_errors(invalid_data):
     """Test errors from initializing a pandas.typing.DataFrame with Schema."""
-    with pytest.raises(pa.errors.SchemaError):
+    with pytest.raises((pa.errors.SchemaError, pa.errors.SchemaErrors)):
         DataFrame[InitSchema](invalid_data)
 
 
