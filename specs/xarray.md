@@ -132,7 +132,7 @@ The community feedback on #705 is clear:
 [exposing many low-level components](https://github.com/unionai-oss/pandera/issues/705#issuecomment-3888722278)
 like `DTypeSchema`, `DimsSchema`, `ShapeSchema`, etc. is too heavy.
 Instead, the public API consists of **three schema classes**, **three
-model classes**, and one **component class**:
+model classes**, and two **component classes**:
 
 | Schema class | Model class | Validates |
 |---|---|---|
@@ -142,6 +142,7 @@ model classes**, and one **component class**:
 
 | Component class | Analogous to (pandas) | Purpose |
 |---|---|---|
+| `DataVar` | `Column` | One `Dataset` data variable: array-level checks + container-only flags (`alias`, `regex`, `default`, alignment with peers, optional presence) |
 | `Coordinate` | `Index` | Validates a single coordinate array |
 
 All other validation concerns (dims, shape, attrs, chunks) are expressed
@@ -166,11 +167,16 @@ the polars and pandas backends.
 
 In the pandas world, `Column` and `Index` are the schema components that
 describe parts of a `DataFrameSchema`. In the xarray world, the analogous
-components are `DataArraySchema` (for data variables) and `Coordinate`
-(for coordinate arrays):
+components are `DataVar` (for data variables) and `Coordinate` (for
+coordinate arrays):
 
-- `DataArraySchema` → analogous to `Column` (component of a dataset) AND
-  a standalone schema (like `SeriesSchema`)
+- `DataArraySchema` → standalone schema for a single `xr.DataArray`
+  (primary use: `schema.validate(da)`), analogous to `SeriesSchema` for
+  one column’s worth of data without the surrounding `DataFrame`.
+- `DataVar` → analogous to `Column`: declares one entry in
+  `DatasetSchema.data_vars`, including the same per-array constraints as
+  `DataArraySchema` plus **dataset-only** options (`required`, `alias`,
+  `regex`, `default`, `aligned_with`, `broadcastable_with`, etc.—see §4.4).
 - `Coordinate` → analogous to `Index` (labels that accompany the data).
   Validates dimension coordinates (1-D, name matches a dim) and
   non-dimension coordinates (auxiliary, possibly multi-dimensional).
@@ -201,6 +207,7 @@ This module exposes:
 __all__ = [
     "Check",
     "Coordinate",
+    "DataVar",
     "DataArraySchema",
     "DatasetSchema",
     "DataTreeSchema",
@@ -347,6 +354,7 @@ class Coordinate:
         self,
         dtype: DTypeLike | None = None,
         dims: tuple[str, ...] | None = None,
+        dimension: bool | None = None,
         checks: Check | list[Check] | None = None,
         parsers: Parser | list[Parser] | None = None,
         nullable: bool = False,
@@ -366,6 +374,7 @@ class Coordinate:
 |---|---|---|
 | `dtype` | numpy dtype, type, or string | Expected dtype of the coordinate values. |
 | `dims` | `tuple[str, ...]` | Expected dimensions of the coordinate array. For dimension coordinates this is always `(name,)` and can be omitted. Required for non-dimension (auxiliary) coordinates that span multiple dims (e.g. 2-D `lat`/`lon` on a projected grid). |
+| `dimension` | `bool \| None` | If `True`, require the coordinate to be a dimension coordinate (1-D, name in parent object's `dims`, and `dims=(name,)`). If `False`, require an auxiliary/non-dimension coordinate (name not in parent object's `dims`). If `None` (default), don't enforce coordinate kind. |
 | `checks` | `Check` or list | Data-level checks on coordinate values (e.g. `Check.in_range(-90, 90)` for latitude). |
 | `parsers` | `Parser` or list | Parsers/transformations applied before validation. |
 | `nullable` | `bool` | If `False` (default), NaN/null coordinate values raise a validation error. |
@@ -383,22 +392,102 @@ lat_coord = pa.Coordinate(
 time_coord = pa.Coordinate(dtype="datetime64[ns]")
 ```
 
-### 4.4 `DatasetSchema`
+### 4.4 `DataVar`
+
+`DataVar` is the schema component for one **data variable** inside a
+`Dataset`, analogous to pandas pandera’s `Column` inside a
+`DataFrameSchema`. It takes the same structural and data-level parameters
+as `DataArraySchema` (dtype, dims, sizes/shape, per-variable coords,
+attrs, checks, etc.) and adds **dataset-context** options that only make
+sense when the variable is declared inside `DatasetSchema.data_vars`.
+
+`DataArraySchema` stays focused on **standalone** `xr.DataArray`
+validation (`schema.validate(da)`). `DatasetSchema.data_vars` accepts
+`DataVar` (or `None` for “must exist, no value-level validation”), not a
+bare `DataArraySchema`, so container semantics (`required`, alias,
+defaults, cross-variable alignment, key patterns) are not overloaded onto
+the standalone schema.
+
+```python
+class DataVar:
+    def __init__(
+        self,
+        *,
+        required: bool = True,
+        alias: str | None = None,
+        regex: bool = False,
+        default: Any | xr.DataArray | None = None,
+        aligned_with: tuple[str, ...] | None = None,
+        broadcastable_with: tuple[str, ...] | None = None,
+        dtype: DTypeLike | None = None,
+        dims: tuple[str | None, ...] | None = None,
+        sizes: dict[str, int | None] | None = None,
+        shape: tuple[int | None, ...] | None = None,
+        coords: dict[str, Coordinate] | list[str] | None = None,
+        attrs: dict[str, Any] | None = None,
+        name: str | None = None,
+        checks: Check | list[Check] | None = None,
+        parsers: Parser | list[Parser] | None = None,
+        coerce: bool = False,
+        nullable: bool = False,
+        chunked: bool | None = None,
+        array_type: type | None = None,
+        strict_coords: bool = False,
+        strict_attrs: bool = False,
+        title: str | None = None,
+        description: str | None = None,
+        metadata: dict | None = None,
+    ):
+        ...
+
+    def to_data_array_schema(self) -> DataArraySchema:
+        """Materialize array-level validation (no dataset-only fields)."""
+        ...
+```
+
+**Shared with `DataArraySchema` (§4.2):** All parameters from `dtype`
+through `metadata` in the signature above behave like `DataArraySchema`.
+See §4.2 for `strict_coords` / `strict_attrs` on the **slice**
+`ds[...]`; that is independent of `DatasetSchema.strict_coords`, which
+concerns **dataset-level** coordinate keys (see below and §4.5).
+
+**`DataVar`-only / dataset-context parameters:**
+
+| Parameter | Type | Description |
+|---|---|---|
+| `required` | `bool` | If `True` (default), the variable must exist (under the resolved name—see `alias`). If `False`, it may be omitted; when present, array-level constraints apply. |
+| `alias` | `str \| None` | Actual `Dataset` data variable **name** on disk (e.g. `"temp"`) when it differs from the **`data_vars` dict key** (the logical/schema name, e.g. `"temperature"`). Default `None` means the dict key is the dataset name. Mirrors `Column.alias` / `Field(alias=...)` in pandas pandera. |
+| `regex` | `bool` | If `True`, the dict key is treated as a **regex** (or glob—implementation choice documented at ship time) matching one or more variables in the dataset, and this `DataVar` spec is **reused** for each match—pandas `Column(regex=True)` pattern. Meaningless without a `Dataset` key space. |
+| `default` | `Any \| xr.DataArray \| None` | When `required=False` and the variable is **missing**, validation may **insert** a default: broadcast scalar, fill value, or template `DataArray` aligned to dataset coords/dims. `None` means “do not synthesize.” Applies only in `DatasetSchema.validate()`; standalone `DataArraySchema` never runs on a missing object. |
+| `aligned_with` | `tuple[str, ...] \| None` | Other **logical** `data_vars` keys (after resolving `alias` to know which arrays exist) whose dimension names and sizes must **match** this variable’s grid. Purely multi-variable / `Dataset` semantics. |
+| `broadcastable_with` | `tuple[str, ...] \| None` | Weaker than `aligned_with`: referenced variables must be **broadcast-compatible** with this one under xarray’s rules (e.g. `(time,)` vs `(time, 1)`). If both `aligned_with` and `broadcastable_with` are set, implementations should validate both; overlapping names should be an init error. |
+
+**Implementation note:** Resolve each slot’s **dataset variable name**
+(`alias or dict_key`), expand `regex` entries to concrete names (if
+any), then for each present variable build `DataArraySchema` via
+`to_data_array_schema()` and delegate. Apply `default` only after
+**structural** checks if inserting missing optional variables is enabled
+(policy TBD: strict vs “repair” mode). Enforce `aligned_with` /
+`broadcastable_with` **after** per-variable validation so referenced
+arrays exist or are explicitly optional.
+
+### 4.5 `DatasetSchema`
 
 `DatasetSchema` validates an `xr.Dataset`. It contains a dict of
-`DataArraySchema` objects — one per data variable — plus optional
+`DataVar` specs — one per declared data variable — plus optional
 dataset-level coordinate, attribute, and check specifications.
 
 A `Dataset`'s dimensions are the union of the dimensions across all its
 data variables. The `sizes` parameter on `DatasetSchema` validates
-dataset-level dimension sizes, while per-variable dimensions are validated
-via the `DataArraySchema` in `data_vars`.
+dataset-level dimension sizes, while per-variable structure is validated
+via each `DataVar` (which delegates to `DataArraySchema` semantics for the
+corresponding `ds[var_name]`).
 
 ```python
 class DatasetSchema(BaseSchema):
     def __init__(
         self,
-        data_vars: dict[str, DataArraySchema | None] | None = None,
+        data_vars: dict[str, DataVar | None] | None = None,
         coords: dict[str, Coordinate] | list[str] | None = None,
         dims: tuple[str, ...] | None = None,
         sizes: dict[str, int | None] | None = None,
@@ -428,30 +517,44 @@ class DatasetSchema(BaseSchema):
 
 | Parameter | Type | Description |
 |---|---|---|
-| `data_vars` | `dict[str, DataArraySchema \| None]` | Mapping of variable names to their `DataArraySchema`. A `None` value means "must exist, but no further validation". |
+| `data_vars` | `dict[str, DataVar \| None]` | Logical name → spec. Lookup uses `DataVar.alias` when set (see §4.4). Keys paired with `DataVar(..., regex=True)` are patterns matching one or more dataset variables. `DataVar(...)` applies constraints when the variable is present; `required=True` (default) requires existence under the resolved name; `required=False` allows omission and optional `default` fill. `None` means required presence, no value-level validation. |
 | `coords` | `dict[str, Coordinate] \| list[str]` | Dataset-level coordinate schemas. If a dict, validates coordinate values. If a list, only checks coordinate existence. |
 | `dims` | `tuple[str, ...]` | Expected dataset-level dimension names (the union of all variable dims). |
 | `sizes` | `dict[str, int \| None]` | Expected dataset-level dimension sizes as a name→length mapping. |
 | `attrs` | `dict[str, Any]` | Expected dataset-level attributes. |
 | `checks` | `Check` or list | Dataset-wide checks (receive the full `xr.Dataset`). |
 | `strict` | `bool \| "filter"` | If `True`, fail on unexpected data variables. If `"filter"`, drop them. |
-| `strict_coords` | `bool` | If `True`, fail on unexpected coordinates. |
+| `strict_coords` | `bool` | If `True`, fail on unexpected **dataset-level** coordinate keys. Distinct from per-variable `DataVar.strict_coords` on each `ds[var]` slice (§4.4 / §4.2). |
 | `strict_attrs` | `bool` | If `True`, fail on unexpected attributes. |
+
+**Cross-variable and disjunctive rules:** Constraints that reference
+**several** data variables at once (“exactly one of”, “at least one of”,
+mutually exclusive sets) do **not** belong on a single `DataVar`. Express
+them as **`DatasetSchema` checks** (`checks=` receiving the full
+`xr.Dataset`) or as small **helper checks** / a future
+`data_var_groups`-style API (Phase 2+ design). Keep `DataVar` focused on
+one slot (plus `aligned_with` / `broadcastable_with` ties to named peers).
 
 **Example — imperative API:**
 
 ```python
 schema = pa.DatasetSchema(
     data_vars={
-        "temperature": pa.DataArraySchema(
+        "temperature": pa.DataVar(
             dtype=np.float64,
             dims=("time", "lat", "lon"),
             checks=pa.Check.in_range(150, 350),
         ),
-        "precipitation": pa.DataArraySchema(
+        "precipitation": pa.DataVar(
             dtype=np.float64,
             dims=("time", "lat", "lon"),
             checks=pa.Check.ge(0),
+        ),
+        # optional variable: validate if present, allow if missing
+        "uncertainty": pa.DataVar(
+            dtype=np.float64,
+            dims=("time", "lat", "lon"),
+            required=False,
         ),
     },
     coords={
@@ -471,7 +574,7 @@ ds = xr.Dataset({...})
 validated = schema.validate(ds)
 ```
 
-### 4.5 `DataTreeSchema`
+### 4.6 `DataTreeSchema`
 
 `DataTreeSchema` validates an `xr.DataTree` — a hierarchical tree of
 datasets. Since `DataTree` is relatively new (xarray >= 2024.10), this is
@@ -527,21 +630,21 @@ schema = pa.DataTreeSchema(
     children={
         "surface": pa.DatasetSchema(
             data_vars={
-                "temperature": pa.DataArraySchema(
+                "temperature": pa.DataVar(
                     dtype=np.float64,
                     dims=("time", "lat", "lon"),
                 ),
             },
         ),
         "surface/diagnostics": pa.DatasetSchema(
-            data_vars={"rmse": pa.DataArraySchema(dtype=np.float64)},
+            data_vars={"rmse": pa.DataVar(dtype=np.float64)},
         ),
     },
     strict=True,
 )
 ```
 
-### 4.6 Class-Based Models (Declarative API)
+### 4.7 Class-Based Models (Declarative API)
 
 Following pandera's `DataFrameModel` pattern, class-based models use type
 annotations and `Field()` descriptors to declare schemas.
@@ -622,7 +725,7 @@ print(RateConstant.y)  # "y"
 
 A `Dataset` contains multiple data variables and coordinates — both are
 sub-components, so both become class attributes. Plain type annotations
-map to data variables (`DataArraySchema` under the hood), while
+map to data variables (`DataVar` under the hood), while
 `Coordinate[dtype]` annotations map to coordinate schemas. This directly
 parallels `Series` vs `Index` in a pandas `DataFrameModel`.
 
@@ -669,6 +772,7 @@ class ClimateDataWithFields(pa.DatasetModel):
         dims=("time", "lat", "lon"),
         ge=0,
     )
+    humidity: np.float64 | None = pa.Field(ge=0)  # Optional variable
 
     # Coordinates (like Index in DataFrameModel)
     time: Coordinate["datetime64[ns]"]
@@ -690,7 +794,13 @@ This maps 1:1 to the imperative API:
 
 | Imperative (`DatasetSchema`) | Declarative (`DatasetModel`) |
 |---|---|
-| `data_vars={"temperature": pa.DataArraySchema(dtype=np.float64, ...)}` | `temperature: np.float64 = pa.Field(...)` |
+| `data_vars={"temperature": pa.DataVar(dtype=np.float64, ...)}` | `temperature: np.float64 = pa.Field(...)` |
+| `data_vars={"humidity": pa.DataVar(..., required=False)}` | `humidity: np.float64 = pa.Field(..., required=False)` or `humidity: np.float64 \| None = pa.Field(...)` |
+| `DataVar(alias="temp", ...)` (key `temperature`) | `temperature: ... = pa.Field(..., alias="temp")` |
+| Pattern entry + `DataVar(..., regex=True)` | `pa.Field(..., regex=True)` on model field (Phase 2 model support) |
+| `DataVar(..., default=0.0, required=False)` | `pa.Field(..., default=0.0, required=False)` |
+| `DataVar(..., aligned_with=("precipitation",))` | `pa.Field(..., aligned_with=("precipitation",))` |
+| `DatasetSchema(checks=...)` for XOR / exactly-one | `@pa.check` / `Config` dataset checks (see §4.5) |
 | `coords={"time": pa.Coordinate(dtype="datetime64[ns]")}` | `time: Coordinate["datetime64[ns]"]` |
 | `strict=True` | `Config.strict = True` |
 | `checks=pa.Check(...)` | `@pa.dataframe_check` method or Config attribute |
@@ -708,10 +818,12 @@ class ClimateTree(pa.DataTreeModel):
 ClimateTree.validate(dt)
 ```
 
-### 4.7 `Field` Descriptor
+### 4.8 `Field` Descriptor
 
 `Field()` provides per-variable configuration in model classes, similar to
-its role in `DataFrameModel`:
+its role in `DataFrameModel`. On `DatasetModel`, non-coordinate fields
+compile to `DataVar` (including `required`, `alias`, `regex`, `default`,
+`aligned_with`, and `broadcastable_with` where applicable).
 
 ```python
 def Field(
@@ -730,9 +842,14 @@ def Field(
     dims: tuple[str, ...] | None = None,
     sizes: dict[str, int | None] | None = None,
     shape: tuple[int | None, ...] | None = None,
+    aligned_with: tuple[str, ...] | None = None,
+    broadcastable_with: tuple[str, ...] | None = None,
     # common field config
+    required: bool = True,
     nullable: bool = False,
     coerce: bool = False,
+    regex: bool = False,
+    default: Any | None = None,
     alias: str | None = None,
     title: str | None = None,
     description: str | None = None,
@@ -742,7 +859,11 @@ def Field(
     ...
 ```
 
-### 4.8 Decorator Support
+On `DatasetModel` **data-variable** fields, **`default`** may be a scalar,
+array-like, or `xr.DataArray` template, consistent with `DataVar.default`
+(§4.4).
+
+### 4.9 Decorator Support
 
 The existing `@check_types`, `@check_input`, `@check_output`, and
 `@check_io` decorators should work with xarray type annotations:
@@ -769,7 +890,7 @@ pandera/
 │   └── xarray/
 │       ├── __init__.py
 │       ├── container.py        # DataArraySchema, DatasetSchema, DataTreeSchema
-│       ├── components.py       # Coordinate
+│       ├── components.py       # Coordinate, DataVar
 │       ├── model.py            # DataArrayModel, DatasetModel, DataTreeModel
 │       ├── model_config.py     # BaseConfig for xarray models
 │       ├── model_components.py # FieldInfo for xarray
@@ -831,12 +952,22 @@ class DataTreeSchema(BaseSchema):
 
 #### `pandera/api/xarray/components.py`
 
-`Coordinate` is the schema component for validating xarray coordinates,
-analogous to `Index` for pandas:
+`Coordinate` and `DataVar` are the schema components for validating
+xarray coordinates and dataset data variables, analogous to `Index` and
+`Column` for pandas:
 
 ```python
 class Coordinate:
     """Schema component for validating xarray coordinates."""
+    ...
+
+class DataVar:
+    """Schema component for one `Dataset` data variable.
+
+    Carries array-level options (mirroring `DataArraySchema`) plus
+    dataset-only flags: `required`, `alias`, `regex`, `default`,
+    `aligned_with`, `broadcastable_with`, etc.
+    """
     ...
 ```
 
@@ -907,11 +1038,12 @@ def register_xarray_backends():
    with wildcard support for `None` values
 5. Check coords — for each entry in the `coords` schema:
    - Verify the coordinate exists on the DataArray
-   - If the coord schema is a `DataArraySchema`, delegate to
-     `DataArraySchemaBackend.validate()` on `da.coords[name]`
+   - If the coord spec is a `Coordinate`, validate `da.coords[name]`
+     (value/shape/dtype checks mirror the `DataArray`-shaped validation path)
    - Distinguish dimension coordinates (name in `da.dims`) from
      non-dimension/auxiliary coordinates (name not in `da.dims`) for
      error reporting
+   - If `Coordinate.dimension` is set, enforce dimension-vs-auxiliary kind
 6. Check strict_coords (reject unexpected coordinates)
 7. Check attrs (equality matching) and strict_attrs
 8. Check chunked status (`da.chunks is not None`)
@@ -924,13 +1056,22 @@ def register_xarray_backends():
 
 1. Check dataset-level dims (the union of all variable dims)
 2. Check dataset-level sizes
-3. Check data variable presence; enforce strict mode
-4. For each data variable schema, delegate to
-   `DataArraySchemaBackend.validate()` on `ds[var_name]`
-5. Check dataset-level coords (shared across variables)
-6. Check dataset-level attrs and strict_attrs
-7. Run dataset-level checks
-8. Collect errors or raise
+3. Expand `data_vars` keys with `DataVar.regex=True` to concrete variable
+   names; build a logical-name → spec map (handle collisions per init
+   rules)
+4. Check data variable presence using resolved names (`alias` or dict
+   key); enforce `DatasetSchema.strict` on unexpected data vars
+5. For missing `required=False` slots with a non-`None` `default`, insert
+   variables per documented policy (broadcast / align to coords)
+6. For each present variable, materialize `DataArraySchema` from `DataVar`
+   and delegate to `DataArraySchemaBackend.validate()` on `ds[resolved]`
+7. Validate `aligned_with` / `broadcastable_with` between the resolved
+   arrays (after optional variables are handled)
+8. Check dataset-level coords (shared across variables) and
+   `DatasetSchema.strict_coords`
+9. Check dataset-level attrs and `strict_attrs`
+10. Run dataset-level checks (including disjunctive / multi-var logic)
+11. Collect errors or raise
 
 **`DataTreeSchemaBackend.validate()`:**
 
@@ -1169,27 +1310,33 @@ namespace); this is handled as a runtime feature check, not a hard minimum.
 
 ### Phase 1: Core DataArray + Dataset (MVP)
 
-**Goal:** Ship `DataArraySchema`, `DatasetSchema`, and their backends.
+**Goal:** Ship `DataArraySchema`, `DataVar`, `DatasetSchema`, and their
+backends.
 
 | Task | Details |
 |---|---|
-| API layer | `pandera/api/xarray/` — `DataArraySchema`, `DatasetSchema`, types, utils |
+| API layer | `pandera/api/xarray/` — `DataArraySchema`, `DataVar`, `DatasetSchema`, types, utils |
 | Backend layer | `pandera/backends/xarray/` — `DataArraySchemaBackend`, `DatasetSchemaBackend`, `XarrayCheckBackend`, built-in checks, `register.py` |
 | Engine layer | `pandera/engines/xarray_engine.py` — NumPy-based dtype registry |
 | Entry point | `pandera/xarray.py` |
 | Type stubs | `pandera/typing/xarray.py` |
+| Coordinate kind checks | `Coordinate(dimension=True/False)` to distinguish dimension vs auxiliary coordinates |
+| `DataVar` container semantics | `required=False`, `alias`, `default`, `aligned_with`, `broadcastable_with` (Core); `regex` paired with Phase 2 pattern keys (§10 Phase 2) |
+| Lazy data check policy | One config switch for running data-level checks on lazy arrays, defaulting to disabled |
 | Tests | `tests/xarray/` — structural validation, data checks, lazy mode, coercion, error reporting |
 | Dependencies | `pyproject.toml` — add `xarray` extra |
 
-### Phase 2: Class-Based Models
+### Phase 2: Class-Based Models + Pattern Matching
 
-**Goal:** Ship `DataArrayModel` and `DatasetModel`.
+**Goal:** Ship `DataArrayModel`, `DatasetModel`, and pattern-based key
+matching for coordinates/data variables.
 
 | Task | Details |
 |---|---|
 | Model classes | `pandera/api/xarray/model.py` — `DataArrayModel`, `DatasetModel` |
 | `Field` descriptor | `pandera/api/xarray/model_components.py` — xarray-specific `FieldInfo` |
 | Decorator support | `@check_types` with `DataArray[T]` and `Dataset[T]` |
+| Pattern matching | `DataVar(..., regex=True)` and pattern keys in `data_vars` / `coords` for variable families (e.g. `"^band_[0-9]+$"`); document regex vs glob choice |
 | Tests | Model-based validation, `@check_types` integration |
 
 ### Phase 3: DataTree Support
@@ -1200,6 +1347,7 @@ namespace); this is handled as a runtime feature check, not a hard minimum.
 |---|---|
 | API | `DataTreeSchema`, `DataTreeModel` |
 | Backend | `DataTreeSchemaBackend` |
+| MultiIndex coordinates | Add MultiIndex/virtual-level coordinate support for advanced xarray indexing use cases |
 | Tests | Tree-structured validation, nested schemas |
 
 ### Phase 4: Advanced Features
@@ -1211,7 +1359,6 @@ namespace); this is handled as a runtime feature check, not a hard minimum.
 | Hypothesis strategies | Data synthesis for property-based testing (generate conforming DataArrays/Datasets) |
 | Dask integration | Validate Dask-backed xarray objects: structural checks without `.compute()`, configurable data-level check behavior |
 | Encoding validation | Validate `encoding` dicts on Variables/DataArrays/Datasets (useful for netCDF/Zarr pipeline correctness) |
-| Regex/glob coord and variable matching | Pattern-based keys in `data_vars` and `coords` (e.g. `"x_*"` matches `x_0`, `x_1`) |
 | `cf_xarray` integration | Optional CF convention awareness for standard name-based validation |
 
 ---
@@ -1224,7 +1371,7 @@ the nox test matrix.
 | Test category | Coverage |
 |---|---|
 | `test_data_array_schema.py` | `DataArraySchema` — dtype, dims, sizes, shape, coords (dimension and non-dimension), attrs, name, checks, nullable, coerce, strict_coords, strict_attrs, lazy |
-| `test_dataset_schema.py` | `DatasetSchema` — data_vars, dims, sizes, coords, attrs, strict, checks, lazy |
+| `test_dataset_schema.py` | `DatasetSchema` — `DataVar` (`required`, `alias`, `regex`, `default`, `aligned_with`, `broadcastable_with`, per-var `strict_coords` vs dataset `strict_coords`), data_vars, dims, sizes, coords, attrs, strict, checks, lazy, disjunctive rules via dataset checks |
 | `test_data_tree_schema.py` | `DataTreeSchema` — nested structure, path-based children, recursive validation, coordinate inheritance, strict child nodes |
 | `test_data_array_model.py` | `DataArrayModel` — class-based definition, `to_schema()`, `validate()`, coordinate name access |
 | `test_dataset_model.py` | `DatasetModel` — class-based definition, field access, `@check_types` |
@@ -1237,21 +1384,16 @@ the nox test matrix.
 
 ---
 
-## 12. Open Questions
+## 12. Open Questions and Decisions
 
-1. **Dimension coordinates vs. auxiliary coordinates.** xarray formally
-   distinguishes dimension coordinates (1-D, name matches a dim name,
-   usually indexed) from non-dimension/auxiliary coordinates (can be
-   multi-dimensional, name not in `dims`). The `Coordinate` component's
-   `dims` parameter partially addresses this — a dimension coordinate
-   has `dims=(name,)` while an auxiliary coordinate can have arbitrary
-   dims. Should the schema also provide an explicit boolean flag (e.g.
-   `dimension=True`) to enforce this, or is `dims` sufficient?
+1. **Dimension coordinates vs. auxiliary coordinates (resolved).**
+   Community feedback indicates this distinction is important in practice.
+   The API will expose `Coordinate(dimension=True/False)` in Phase 1,
+   with `None` as the default for backward-compatible permissiveness.
 
-2. **MultiIndex coordinates.** xarray supports `pandas.MultiIndex` as
-   coordinates, which expose "virtual" level coordinates. Should
-   `Coordinate` be able to express MultiIndex structures, or is that too
-   niche for Phase 1?
+2. **MultiIndex coordinates (deferred).** This is important for a smaller
+   but significant subset of users. It is explicitly deferred to Phase 3
+   to keep Phase 1 focused.
 
 3. **Indexed vs. non-indexed coordinates.** The `Coordinate` component
    now includes an `indexed` parameter for this. Remaining question: is
@@ -1259,10 +1401,11 @@ the nox test matrix.
    `Index` class (e.g. `PandasIndex` vs a custom xarray `Index`
    subclass)?
 
-4. **Regex/glob patterns for variable and coordinate names.**
-   `xarray-validate` supports glob and regex patterns in `data_vars` and
-   `coords` keys (e.g. `"x_*"` to match `x_0`, `x_1`, ...). Is this a
-   Phase 1 requirement or a later addition?
+4. **Regex/glob patterns for variable and coordinate names (prioritized).**
+   Feedback identifies this as high-value and often required for real
+   datasets with variable families. Phase 2 will pair pattern keys with
+   `DataVar(..., regex=True)` (and coordinate-side analogue); exact
+   regex-vs-glob behavior is finalized at implementation time.
 
 5. **Encoding validation.** xarray objects carry an `encoding` dict that
    controls serialization (netCDF `_FillValue`, `scale_factor`,
@@ -1277,12 +1420,10 @@ the nox test matrix.
    `ds.cf["temperature"]`). Should pandera's xarray support be aware of
    CF conventions, or is that a separate extension?
 
-7. **Duck array validation depth.** When the underlying array is lazy
-   (e.g. Dask), should data-level checks trigger computation? The
-   current design validates dtype and structural properties without
-   materializing, but element-wise checks (e.g. `Check.in_range`) would
-   require `.compute()`. Should this be configurable, or should lazy
-   arrays skip data-level checks by default?
+7. **Duck array validation depth (resolved).** Provide a single config
+   option controlling whether data-level checks on lazy arrays trigger
+   computation. Default is **disabled** for lazy arrays to avoid surprise
+   compute costs; schema-only checks still run.
 
 8. **Narwhals integration.** The narwhals effort
    ([#2081](https://github.com/unionai-oss/pandera/pull/2081)) is
@@ -1291,8 +1432,11 @@ the nox test matrix.
    However, the engine layer should be designed so that any future
    convergence is not blocked.
 
-9. **`sizes` vs. `shape` precedence.** The spec offers both `sizes`
-   (name→length dict) and `shape` (positional tuple) for dimension size
-   validation, marked as mutually exclusive. Should we deprecate `shape`
-   entirely in favor of `sizes` (which is more idiomatic in xarray), or
-   keep both for users coming from NumPy?
+9. **`sizes` vs. `shape` precedence (resolved).** Mirror xarray semantics:
+   `DataArraySchema` keeps both `sizes` and `shape` (mutually exclusive),
+   while `DatasetSchema` exposes `sizes` only.
+
+10. **Disjunctive data-variable groups.** “Exactly one of / at least one of /
+    XOR” involves multiple keys and is modeled via `DatasetSchema.checks`
+    or a future `data_var_groups` helper—not duplicated on each `DataVar`.
+    Final helper API shape TBD in Phase 2+.
