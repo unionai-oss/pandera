@@ -88,7 +88,7 @@ class TestPanderaConfig:
                 "COLUMN_NOT_IN_DATAFRAME": [
                     {
                         "check": "column_in_dataframe",
-                        "column": None,
+                        "column": "price_val",
                         "error": "column "
                         "'price_val' not "
                         "in dataframe "
@@ -125,7 +125,7 @@ class TestPanderaConfig:
                 "COLUMN_NOT_IN_DATAFRAME": [
                     {
                         "check": "column_in_dataframe",
-                        "column": "TestSchema",
+                        "column": "price_val",
                         "error": "column "
                         "'price_val' not "
                         "in dataframe "
@@ -270,7 +270,7 @@ class TestPanderaConfig:
                 "COLUMN_NOT_IN_DATAFRAME": [
                     {
                         "check": "column_in_dataframe",
-                        "column": None,
+                        "column": "price_val",
                         "error": "column 'price_val' not in dataframe Row(product='Bread', price=9)",
                         "schema": None,
                     }
@@ -314,7 +314,7 @@ class TestPanderaConfig:
                 "COLUMN_NOT_IN_DATAFRAME": [
                     {
                         "check": "column_in_dataframe",
-                        "column": "TestSchema",
+                        "column": "price_val",
                         "error": "column "
                         "'price_val' "
                         "not "
