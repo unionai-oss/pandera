@@ -76,15 +76,6 @@ class ErrorHandler:
         if isinstance(failure_cases, str):  # Avoid returning str length
             return 1
 
-        # ibis.Table raises ExpressionError for len(); use .count().execute() instead.
-        # Import is guarded so ibis remains an optional dependency.
-        try:
-            import ibis as _ibis
-            if isinstance(failure_cases, _ibis.Table):
-                return int(failure_cases.count().execute())
-        except ImportError:
-            pass
-
         try:
             return len(failure_cases)
         except TypeError:
