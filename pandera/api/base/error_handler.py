@@ -70,6 +70,26 @@ class ErrorHandler:
         return self._lazy
 
     @staticmethod
+    def _get_column(schema_error: SchemaError) -> Any:
+        """Get the column name from a schema error."""
+        if schema_error.column_name is not None:
+            return schema_error.column_name
+        if (
+            schema_error.reason_code
+            == SchemaErrorReason.COLUMN_NOT_IN_DATAFRAME
+        ):
+            fc = schema_error.failure_cases
+            if isinstance(fc, str) and fc:
+                return fc
+            if isinstance(fc, dict):
+                cases = fc.get("failure_case")
+                if isinstance(cases, list) and cases:
+                    first = cases[0]
+                    if first is not None:
+                        return first
+        return schema_error.schema.name
+
+    @staticmethod
     def _count_failure_cases(failure_cases: Any) -> int:
         # Failure cases can be a dataframe-like object or a scalar value. Try
         # getting the number of elements in failure cases or set to one.
@@ -116,7 +136,7 @@ class ErrorHandler:
         self._collected_errors.append(
             {
                 "type": error_type,
-                "column": schema_error.schema.name,
+                "column": self._get_column(schema_error),
                 "check": schema_error.check,
                 "reason_code": reason_code,
                 "error": schema_error,
