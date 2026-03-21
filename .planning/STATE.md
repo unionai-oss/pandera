@@ -2,16 +2,17 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: PR Review Architecture Fixes
+current_plan: 03 of 4
 status: in-progress
-stopped_at: "01-pr-review-architecture-fixes / Plan 01 complete"
+stopped_at: 01-pr-review-architecture-fixes / Plan 01-02 complete
 last_updated: "2026-03-21"
-last_activity: "2026-03-21 — Plan 01-01 complete: NarwhalsErrorHandler class hierarchy"
+last_activity: 2026-03-21 — Plan 01-02 complete
 progress:
   total_phases: 1
   completed_phases: 0
   total_plans: 4
-  completed_plans: 1
-  percent: 25
+  completed_plans: 2
+  percent: 50
 ---
 
 # Project State
@@ -26,11 +27,11 @@ See: .planning/PROJECT.md (updated 2026-03-15 after v1.0 milestone)
 ## Current Position
 
 Phase: 01-pr-review-architecture-fixes
-Current Plan: 02 of 4
-Status: In progress — Plan 01 complete, continuing with Plan 02
-Last activity: 2026-03-21 — Plan 01-01 complete
+Current Plan: 03 of 4
+Status: In progress — Plan 02 complete, continuing with Plan 03
+Last activity: 2026-03-21 — Plan 01-02 complete
 
-Progress: [██░░░░░░░░] 25%
+Progress: [█████░░░░░] 50%
 
 ## Accumulated Context
 
@@ -47,6 +48,8 @@ Phase 01 decisions:
 - NarwhalsErrorHandler uses guarded try/except ImportError for ibis — ibis remains optional dependency
 - Fallback to _ErrorHandler._count_failure_cases() in NarwhalsErrorHandler avoids duplicating len()/None logic
 - Base ErrorHandler must have zero knowledge of ibis — all backend-specific logic lives in subclasses
+- hasattr(return_type, "collect") on the class (not instance) correctly distinguishes lazy (pl.LazyFrame) from eager (pl.DataFrame/ibis.Table) return types without importing polars
+- Dynamic Column import via schema.__class__.__module__ check avoids hardcoding polars in a backend-agnostic method
 
 ### Roadmap Evolution
 
@@ -66,5 +69,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-03-21
-Stopped at: 01-pr-review-architecture-fixes / Plan 01-01 complete
+Stopped at: 01-pr-review-architecture-fixes / Plan 01-02 complete
 Resume file: None
