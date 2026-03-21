@@ -81,6 +81,12 @@ class ErrorHandler:
             fc = schema_error.failure_cases
             if isinstance(fc, str) and fc:
                 return fc
+            if isinstance(fc, dict):
+                cases = fc.get("failure_case")
+                if isinstance(cases, list) and cases:
+                    first = cases[0]
+                    if first is not None:
+                        return first
         return schema_error.schema.name
 
     @staticmethod
