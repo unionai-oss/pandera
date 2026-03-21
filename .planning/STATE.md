@@ -1,17 +1,17 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.0
-milestone_name: Narwhals Backend
-status: complete
-stopped_at: v1.0 milestone archived 2026-03-15
-last_updated: "2026-03-15"
-last_activity: 2026-03-15 — v1.0 milestone complete
+milestone: v1.1
+milestone_name: PR Review Architecture Fixes
+status: in-progress
+stopped_at: "01-pr-review-architecture-fixes / Plan 01 complete"
+last_updated: "2026-03-21"
+last_activity: "2026-03-21 — Plan 01-01 complete: NarwhalsErrorHandler class hierarchy"
 progress:
-  total_phases: 5
-  completed_phases: 5
-  total_plans: 18
-  completed_plans: 18
-  percent: 100
+  total_phases: 1
+  completed_phases: 0
+  total_plans: 4
+  completed_plans: 1
+  percent: 25
 ---
 
 # Project State
@@ -21,27 +21,37 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-15 after v1.0 milestone)
 
 **Core value:** Users can validate any Narwhals-supported dataframe library through a single, consistent backend — reducing maintenance burden and unlocking lazy validation and future library support for free.
-**Current focus:** Planning next milestone (pandas + PySpark backends, extended features)
+**Current focus:** PR Review Architecture Fixes (Phase 01) — cleaning up class hierarchy and architectural issues found during PR review.
 
 ## Current Position
 
-Phase: All 5 phases complete
-Status: v1.0 shipped — ready for next milestone planning
-Last activity: 2026-03-15 — v1.0 milestone archived
+Phase: 01-pr-review-architecture-fixes
+Current Plan: 02 of 4
+Status: In progress — Plan 01 complete, continuing with Plan 02
+Last activity: 2026-03-21 — Plan 01-01 complete
 
-Progress: [██████████] 100%
+Progress: [██░░░░░░░░] 25%
 
 ## Accumulated Context
 
 ### Decisions
 
-All decisions logged in PROJECT.md Key Decisions table. Key patterns established:
-
+Previous milestone decisions (v1.0):
 - Auto-detection via try/except in `register_polars_backends()` / `register_ibis_backends()` (not config flags)
 - Direct BACKEND_REGISTRY writes required to override existing entries
 - `group_by().agg(nw.len())` for SQL-lazy uniqueness checks
 - Dual ibis.Table / pyarrow.Table detection in `failure_cases_metadata`
 - try/except ImportError guard for optional ibis in shared code
+
+Phase 01 decisions:
+- NarwhalsErrorHandler uses guarded try/except ImportError for ibis — ibis remains optional dependency
+- Fallback to _ErrorHandler._count_failure_cases() in NarwhalsErrorHandler avoids duplicating len()/None logic
+- Base ErrorHandler must have zero knowledge of ibis — all backend-specific logic lives in subclasses
+
+### Roadmap Evolution
+
+- Phase 01 added: PR Review Architecture Fixes (4 plans)
+- v1.0 milestone complete (5 phases, 18 plans)
 
 ### Pending Todos
 
@@ -51,9 +61,10 @@ None.
 
 - coerce for Ibis is xfail(strict=True) — intentional v2 feature gate
 - `drop_invalid_rows` for Ibis uses IbisSchemaBackend delegation — no narwhals abstraction
+- 95 pre-existing ibis test failures unrelated to ErrorHandler changes (ibis backend integration issues)
 
 ## Session Continuity
 
-Last session: 2026-03-15
-Stopped at: v1.0 milestone complete
+Last session: 2026-03-21
+Stopped at: 01-pr-review-architecture-fixes / Plan 01-01 complete
 Resume file: None

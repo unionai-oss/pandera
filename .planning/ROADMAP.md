@@ -37,5 +37,5 @@ See `.planning/milestones/v1.0-ROADMAP.md` for full phase details.
 **Plans:** 2 plans
 
 Plans:
-- [ ] 01-01-PLAN.md — ErrorHandler architecture: strip ibis from base, create NarwhalsErrorHandler
+- [x] 01-01-PLAN.md — ErrorHandler architecture: strip ibis from base, create NarwhalsErrorHandler (1/1 complete)
 - [ ] 01-02-PLAN.md — Wire NarwhalsErrorHandler into backends, fix container polars coupling, fix comment, fix capitalization
