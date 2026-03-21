@@ -1,4 +1,4 @@
-"""Validation backend for narwhals DataFrameSchema."""
+"""Validation backend for Narwhals DataFrameSchema."""
 
 import copy
 import traceback
@@ -7,9 +7,9 @@ from collections.abc import Callable
 from typing import Any, Optional
 
 import narwhals.stable.v1 as nw
-import polars as pl
 
-from pandera.api.base.error_handler import ErrorHandler, get_error_category
+from pandera.api.base.error_handler import get_error_category
+from pandera.api.narwhals.error_handler import ErrorHandler
 from pandera.api.polars.container import DataFrameSchema
 from pandera.backends.base import ColumnInfo, CoreCheckResult
 from pandera.backends.narwhals.base import NarwhalsSchemaBackend, _materialize
@@ -36,7 +36,9 @@ def _to_lazy_nw(check_obj) -> nw.LazyFrame:
 def _to_frame_kind_nw(lf: nw.LazyFrame, return_type: type):
     """Unwrap narwhals LazyFrame to the original native frame type."""
     native = nw.to_native(lf)
-    if issubclass(return_type, pl.DataFrame):
+    # Polars LazyFrame exposes .collect(); eager frames and ibis.Table do not.
+    # Use duck-typing rather than importing polars directly.
+    if hasattr(native, "collect"):
         return native.collect()
     return native
 
@@ -209,8 +211,9 @@ class DataFrameSchemaBackend(NarwhalsSchemaBackend):
 
         check_results = []
         check_passed = []
-        # Convert to native pl.LazyFrame for column component dispatch.
-        # Column.validate() calls get_backend(check_obj) which looks up by native type.
+        # Convert to native frame for column component dispatch.
+        # Column.validate() calls get_backend(check_obj) which looks up by native
+        # type — native polars LazyFrame for polars schemas, ibis.Table for ibis schemas.
         native_obj = _to_native(check_obj)
         # schema-component-level checks
         for schema_component in schema_components:
@@ -293,7 +296,13 @@ class DataFrameSchemaBackend(NarwhalsSchemaBackend):
     ):
         """Collects all schema components to use for validation."""
 
-        from pandera.api.polars.components import Column
+        # Determine the Column class from the schema's own module to avoid
+        # hardcoding a polars-specific import in a backend-agnostic method.
+        _schema_module = schema.__class__.__module__
+        if "ibis" in _schema_module:
+            from pandera.api.ibis.components import Column
+        else:
+            from pandera.api.polars.components import Column
 
         columns: dict[str, Column] = schema.columns
         frame_column_names = check_obj.collect_schema().names()
