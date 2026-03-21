@@ -1,4 +1,4 @@
-"""Base schema backend for narwhals."""
+"""Base schema backend for Narwhals."""
 
 import warnings
 from collections import defaultdict
@@ -6,7 +6,7 @@ from collections import defaultdict
 import narwhals.stable.v1 as nw
 import polars as pl
 
-from pandera.api.base.error_handler import ErrorHandler
+from pandera.api.narwhals.error_handler import ErrorHandler
 from pandera.api.narwhals.utils import _to_native
 from pandera.backends.base import BaseSchemaBackend, CoreCheckResult
 from pandera.backends.narwhals.checks import NarwhalsCheckBackend
@@ -20,7 +20,7 @@ from pandera.errors import (
 
 
 def _materialize(frame) -> nw.DataFrame:
-    """Materialize a LazyFrame or SQL-lazy DataFrame to a narwhals DataFrame.
+    """Materialize a LazyFrame or SQL-lazy DataFrame to a Narwhals DataFrame.
 
     Delegates to NarwhalsCheckBackend._materialize — single implementation,
     no duplication. _materialize stays in checks.py per locked design decision.
@@ -29,7 +29,7 @@ def _materialize(frame) -> nw.DataFrame:
 
 
 class NarwhalsSchemaBackend(BaseSchemaBackend):
-    """Base schema backend for narwhals-backed DataFrames.
+    """Base schema backend for Narwhals-backed DataFrames.
 
     Provides shared helpers used by ColumnBackend (components.py) and
     future container-level backends (Phase 4).
@@ -53,7 +53,7 @@ class NarwhalsSchemaBackend(BaseSchemaBackend):
         """
         if sample is not None:
             raise NotImplementedError(
-                "sample= is not supported in the narwhals backend. "
+                "sample= is not supported in the Narwhals backend. "
                 "Use head= or tail= instead."
             )
 
@@ -72,7 +72,7 @@ class NarwhalsSchemaBackend(BaseSchemaBackend):
     def run_check(self, check_obj, schema, check, check_index, *args):
         """Execute a single Check object and return a CoreCheckResult.
 
-        For narwhals (Polars) inputs: materializes all frames to native types.
+        For Narwhals (Polars) inputs: materializes all frames to native types.
         For ibis inputs: preserves ibis.Table laziness for failure_cases and
         check_output — only evaluates the passed boolean via ibis .execute().
         """
@@ -130,7 +130,7 @@ class NarwhalsSchemaBackend(BaseSchemaBackend):
                 failure_cases=failure_cases,
             )
 
-        # Narwhals (Polars) path — materialize narwhals frames to native types
+        # Narwhals (Polars) path — materialize Narwhals frames to native types
         passed_df = _materialize(check_result.check_passed)
         passed = bool(passed_df[CHECK_OUTPUT_KEY][0])
 
@@ -179,7 +179,7 @@ class NarwhalsSchemaBackend(BaseSchemaBackend):
         Uses collect_schema() so it works on both LazyFrame and DataFrame
         without triggering full materialization.
 
-        :param check_obj: narwhals LazyFrame or DataFrame.
+        :param check_obj: Narwhals LazyFrame or DataFrame.
         :param col_name: Name of the column to inspect.
         :returns: True if the column dtype is a floating-point type.
         """
@@ -407,7 +407,7 @@ class NarwhalsSchemaBackend(BaseSchemaBackend):
         """Remove invalid rows according to failures in error_handler.
 
         For Ibis: delegates to IbisSchemaBackend.drop_invalid_rows() since
-        narwhals has no positional-join / row_number abstraction for ibis.
+        Narwhals has no positional-join / row_number abstraction for ibis.
         For Polars: uses nw.all_horizontal() to combine boolean check_outputs.
 
         :param check_obj: The frame to filter.

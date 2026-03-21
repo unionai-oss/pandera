@@ -1,4 +1,4 @@
-"""Check backend for narwhals."""
+"""Check backend for Narwhals."""
 
 import inspect
 from functools import partial
@@ -14,7 +14,7 @@ from pandera.constants import CHECK_OUTPUT_KEY
 
 
 class NarwhalsCheckBackend(BaseCheckBackend):
-    """Check backend for narwhals."""
+    """Check backend for Narwhals."""
 
     def __init__(self, check: Check):
         """Initializes a check backend object."""
@@ -115,7 +115,7 @@ class NarwhalsCheckBackend(BaseCheckBackend):
 
     @staticmethod
     def _materialize(frame) -> nw.DataFrame:
-        """Materialize a LazyFrame or SQL-lazy DataFrame to a narwhals DataFrame.
+        """Materialize a LazyFrame or SQL-lazy DataFrame to a Narwhals DataFrame.
 
         - nw.LazyFrame (Polars): call .collect()
         - nw.DataFrame wrapping a SQL-lazy backend (Ibis): call
@@ -137,7 +137,7 @@ class NarwhalsCheckBackend(BaseCheckBackend):
         check_output,
     ) -> CheckResult:
         """Postprocesses LazyFrame check output into a CheckResult."""
-        # Materialize both frames — narwhals does NOT support lazy horizontal concat
+        # Materialize both frames — Narwhals does NOT support lazy horizontal concat
         results_df = self._materialize(check_output)
         if self.check.ignore_na:
             results_df = results_df.with_columns(
@@ -188,7 +188,7 @@ class NarwhalsCheckBackend(BaseCheckBackend):
 
         # Ibis delegation: for user-defined (non-builtin) checks on ibis-backed frames,
         # delegate to IbisCheckBackend so ibis check functions receive IbisData(table, key)
-        # rather than a raw ibis.Table. Builtin checks go through the narwhals path because
+        # rather than a raw ibis.Table. Builtin checks go through the Narwhals path because
         # they are implemented against NarwhalsData and do not need IbisData wrapping.
         native = (
             nw.to_native(check_obj)
@@ -209,7 +209,7 @@ class NarwhalsCheckBackend(BaseCheckBackend):
                     isinstance(inner_fn, Dispatcher)
                     and NarwhalsData in inner_fn._function_registry
                 )
-                # element_wise checks must go through the narwhals path so
+                # element_wise checks must go through the Narwhals path so
                 # apply() can raise the NotImplementedError for SQL-lazy backends
                 # (IbisCheckBackend would attempt to create a UDF instead).
                 if not is_builtin and not self.check.element_wise:

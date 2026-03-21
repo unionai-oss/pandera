@@ -1,4 +1,4 @@
-"""Built-in checks for narwhals."""
+"""Built-in checks for Narwhals."""
 
 import re
 from collections.abc import Collection

@@ -1,4 +1,4 @@
-"""Column backend for narwhals — per-column validation layer."""
+"""Column backend for Narwhals — per-column validation layer."""
 
 import warnings
 from collections.abc import Iterable
@@ -6,7 +6,8 @@ from typing import cast
 
 import narwhals.stable.v1 as nw
 
-from pandera.api.base.error_handler import ErrorHandler, get_error_category
+from pandera.api.base.error_handler import get_error_category
+from pandera.api.narwhals.error_handler import ErrorHandler
 from pandera.api.narwhals.utils import _to_native
 from pandera.backends.base import CoreCheckResult
 from pandera.backends.narwhals.base import NarwhalsSchemaBackend, _materialize
@@ -23,7 +24,7 @@ from pandera.validation_depth import validate_scope
 
 
 class ColumnBackend(NarwhalsSchemaBackend):
-    """Per-column validation backend for narwhals-backed DataFrames.
+    """Per-column validation backend for Narwhals-backed DataFrames.
 
     Implements validate, check_nullable, check_unique, check_dtype, run_checks,
     and run_checks_and_handle_errors — mirroring pandera/backends/polars/components.py
@@ -42,9 +43,9 @@ class ColumnBackend(NarwhalsSchemaBackend):
         lazy: bool = False,
         inplace: bool = False,
     ):
-        """Validate a narwhals-backed frame against a column schema.
+        """Validate a Narwhals-backed frame against a column schema.
 
-        :param check_obj: native pl.LazyFrame (or other narwhals-supported frame)
+        :param check_obj: native pl.LazyFrame (or other Narwhals-supported frame)
         :param schema: Column schema with checks and constraints
         :returns: validated frame (same type as input)
         """
@@ -56,7 +57,7 @@ class ColumnBackend(NarwhalsSchemaBackend):
                 "Column schema must have a name specified."
             )
 
-        # Wrap to narwhals for uniform handling
+        # Wrap to Narwhals for uniform handling
         check_lf = nw.from_native(check_obj, eager_or_interchange_only=False)
         if isinstance(check_lf, nw.DataFrame):
             check_lf = check_lf.lazy()
@@ -105,7 +106,7 @@ class ColumnBackend(NarwhalsSchemaBackend):
     def check_nullable(self, check_obj, schema) -> list[CoreCheckResult]:
         """Check that no null (or NaN for float columns) values exist.
 
-        :param check_obj: narwhals LazyFrame containing the column.
+        :param check_obj: Narwhals LazyFrame containing the column.
         :param schema: Schema object with .nullable and .selector attributes.
         :returns: List of CoreCheckResult — one entry per column selector.
         """
@@ -124,7 +125,7 @@ class ColumnBackend(NarwhalsSchemaBackend):
             null_expr = null_expr | nw.col(col).is_nan()
 
         is_null_lf = check_obj.select(null_expr)
-        # Materialize both — narwhals does NOT support lazy horizontal concat
+        # Materialize both — Narwhals does NOT support lazy horizontal concat
         data_df = _materialize(check_obj)
         is_null_df = _materialize(is_null_lf)
 
@@ -155,7 +156,7 @@ class ColumnBackend(NarwhalsSchemaBackend):
     def check_unique(self, check_obj, schema) -> list[CoreCheckResult]:
         """Check that column values are unique (no duplicates).
 
-        :param check_obj: narwhals LazyFrame containing the column.
+        :param check_obj: Narwhals LazyFrame containing the column.
         :param schema: Schema object with .unique and .selector attributes.
         :returns: List of CoreCheckResult — one entry per column selector.
         """
@@ -207,7 +208,7 @@ class ColumnBackend(NarwhalsSchemaBackend):
     def check_dtype(self, check_obj, schema) -> list[CoreCheckResult]:
         """Check that column dtype matches schema.dtype.
 
-        :param check_obj: narwhals LazyFrame containing the column.
+        :param check_obj: Narwhals LazyFrame containing the column.
         :param schema: Schema object with .dtype and .selector attributes.
         :returns: List of CoreCheckResult — one entry per column selector.
         """
@@ -277,7 +278,7 @@ class ColumnBackend(NarwhalsSchemaBackend):
     def run_checks(self, check_obj, schema) -> list[CoreCheckResult]:
         """Execute all Check objects attached to schema and return results.
 
-        :param check_obj: narwhals LazyFrame containing the column.
+        :param check_obj: Narwhals LazyFrame containing the column.
         :param schema: Schema object with .checks list and .selector attribute.
         :returns: List of CoreCheckResult, one per check.
         """
@@ -312,7 +313,7 @@ class ColumnBackend(NarwhalsSchemaBackend):
 
         :param error_handler: ErrorHandler instance to collect schema errors.
         :param schema: Schema object defining column constraints.
-        :param check_obj: narwhals LazyFrame containing the column.
+        :param check_obj: Narwhals LazyFrame containing the column.
         :param subsample_kwargs: Keyword arguments forwarded to subsample().
         :returns: The error_handler with all errors collected.
         """
