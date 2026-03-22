@@ -28,7 +28,7 @@ class ColumnBackend(NarwhalsSchemaBackend):
 
     Implements validate, check_nullable, check_unique, check_dtype, run_checks,
     and run_checks_and_handle_errors — mirroring pandera/backends/polars/components.py
-    but using narwhals APIs throughout.
+    but using Narwhals APIs throughout.
     """
 
     def validate(

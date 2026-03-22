@@ -226,7 +226,7 @@ class NarwhalsSchemaBackend(BaseSchemaBackend):
             # Detect ibis-originated failure cases.
             # After Plan 05-04, ibis check results may carry failure_cases as:
             #   - ibis.Table (lazy ibis expression — from the ibis path in run_check)
-            #   - pyarrow.lib.Table (materialized — from narwhals collect() on ibis-backed frame)
+            #   - pyarrow.lib.Table (materialized — from Narwhals collect() on ibis-backed frame)
             # Both must be handled before the scalar else branch to avoid Object-dtype in pl.concat.
             _ibis_fc = None
             try:

@@ -26,7 +26,7 @@ from pandera.validation_depth import validate_scope, validation_type
 
 
 def _to_lazy_nw(check_obj) -> nw.LazyFrame:
-    """Wrap any supported native frame as a narwhals LazyFrame."""
+    """Wrap any supported native frame as a Narwhals LazyFrame."""
     wrapped = nw.from_native(check_obj, eager_or_interchange_only=False)
     if isinstance(wrapped, nw.DataFrame):
         return wrapped.lazy()
@@ -34,7 +34,7 @@ def _to_lazy_nw(check_obj) -> nw.LazyFrame:
 
 
 def _to_frame_kind_nw(lf: nw.LazyFrame, return_type: type):
-    """Unwrap narwhals LazyFrame to the original native frame type."""
+    """Unwrap Narwhals LazyFrame to the original native frame type."""
     native = nw.to_native(lf)
     # If the caller originally passed an eager frame, materialise by calling
     # .collect() on the native lazy result.  Use duck-typing on the *return_type
@@ -62,7 +62,7 @@ class DataFrameSchemaBackend(NarwhalsSchemaBackend):
         # Capture the input type so we can return the same type
         return_type = type(check_obj)
 
-        # Convert to narwhals LazyFrame — all parsers operate on LazyFrame
+        # Convert to Narwhals LazyFrame — all parsers operate on LazyFrame
         check_lf = _to_lazy_nw(check_obj)
 
         if inplace:
@@ -256,7 +256,7 @@ class DataFrameSchemaBackend(NarwhalsSchemaBackend):
 
     def collect_column_info(self, check_obj, schema):
         """Collect column metadata for the dataframe."""
-        # Use collect_schema().names() — lazy-safe narwhals equivalent of
+        # Use collect_schema().names() — lazy-safe Narwhals equivalent of
         # get_lazyframe_column_names()
         frame_column_names = check_obj.collect_schema().names()
 
