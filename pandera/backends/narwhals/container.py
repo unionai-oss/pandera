@@ -36,10 +36,13 @@ def _to_lazy_nw(check_obj) -> nw.LazyFrame:
 def _to_frame_kind_nw(lf: nw.LazyFrame, return_type: type):
     """Unwrap narwhals LazyFrame to the original native frame type."""
     native = nw.to_native(lf)
-    # Polars LazyFrame exposes .collect(); eager frames and ibis.Table do not.
-    # Use duck-typing rather than importing polars directly.
-    if hasattr(native, "collect"):
-        return native.collect()
+    # If the caller originally passed an eager frame, materialise by calling
+    # .collect() on the native lazy result.  Use duck-typing on the *return_type
+    # class* rather than importing polars: a lazy class exposes .collect on the
+    # type itself, an eager class or ibis.Table does not.
+    if not hasattr(return_type, "collect"):
+        if hasattr(native, "collect"):
+            return native.collect()
     return native
 
 
@@ -96,18 +99,21 @@ class DataFrameSchemaBackend(NarwhalsSchemaBackend):
         components = self.collect_schema_components(
             check_lf, schema, column_info
         )
-        check_obj_parsed = _to_frame_kind_nw(check_lf, return_type)
 
-        # subsample the check object if head, tail, or sample are specified
+        # subsample on the Narwhals LazyFrame — no native round-trip before checks
         sample_obj = self.subsample(
-            check_obj_parsed,
+            check_lf,
             head,
             tail,
             sample,
             random_state,
         )
-        # all checks after subsampling are run on lazyframe
-        sample_lf = _to_lazy_nw(sample_obj)
+        # subsample() returns nw.LazyFrame (unchanged) or nw.DataFrame (if head/tail used);
+        # normalize to LazyFrame for uniform check execution
+        if isinstance(sample_obj, nw.DataFrame):
+            sample_lf = sample_obj.lazy()
+        else:
+            sample_lf = sample_obj  # already nw.LazyFrame
 
         core_checks = [
             (self.check_column_presence, (check_lf, schema, column_info)),
@@ -150,17 +156,19 @@ class DataFrameSchemaBackend(NarwhalsSchemaBackend):
 
         if error_handler.collected_errors:
             if getattr(schema, "drop_invalid_rows", False):
+                check_obj_parsed = _to_frame_kind_nw(check_lf, return_type)
                 check_obj_parsed = self.drop_invalid_rows(
                     check_obj_parsed, error_handler
                 )
+                return check_obj_parsed
             else:
                 raise SchemaErrors(
                     schema=schema,
                     schema_errors=error_handler.schema_errors,
-                    data=check_obj_parsed,
+                    data=_to_frame_kind_nw(check_lf, return_type),
                 )
 
-        return check_obj_parsed
+        return _to_frame_kind_nw(check_lf, return_type)
 
     @validate_scope(scope=ValidationScope.DATA)
     def run_checks(
