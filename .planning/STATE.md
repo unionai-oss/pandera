@@ -1,18 +1,18 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.1
-milestone_name: PR Review Architecture Fixes
-current_plan: 03 of 4
-status: in-progress
-stopped_at: 01-pr-review-architecture-fixes / Plan 01-02 complete
-last_updated: "2026-03-21"
-last_activity: 2026-03-21 — Plan 01-02 complete
+milestone: v1.0
+milestone_name: milestone
+current_plan: complete
+status: complete
+stopped_at: Completed 01-pr-review-architecture-fixes / Plan 01-03 complete (phase complete)
+last_updated: "2026-03-22T01:49:32.298Z"
+last_activity: 2026-03-22 — Plan 01-03 complete (phase complete)
 progress:
   total_phases: 1
-  completed_phases: 0
-  total_plans: 4
-  completed_plans: 2
-  percent: 50
+  completed_phases: 1
+  total_plans: 3
+  completed_plans: 3
+  percent: 100
 ---
 
 # Project State
@@ -27,11 +27,11 @@ See: .planning/PROJECT.md (updated 2026-03-15 after v1.0 milestone)
 ## Current Position
 
 Phase: 01-pr-review-architecture-fixes
-Current Plan: 03 of 4
-Status: In progress — Plan 02 complete, continuing with Plan 03
-Last activity: 2026-03-21 — Plan 01-02 complete
+Current Plan: complete (3 of 3)
+Status: Phase 01 complete — all 3 plans executed
+Last activity: 2026-03-22 — Plan 01-03 complete (phase complete)
 
-Progress: [█████░░░░░] 50%
+Progress: [██████████] 100%
 
 ## Accumulated Context
 
@@ -50,6 +50,8 @@ Phase 01 decisions:
 - Base ErrorHandler must have zero knowledge of ibis — all backend-specific logic lives in subclasses
 - hasattr(return_type, "collect") on the class (not instance) correctly distinguishes lazy (pl.LazyFrame) from eager (pl.DataFrame/ibis.Table) return types without importing polars
 - Dynamic Column import via schema.__class__.__module__ check avoids hardcoding polars in a backend-agnostic method
+- [Phase 01-pr-review-architecture-fixes]: subsample() receives nw.LazyFrame directly; _to_frame_kind_nw deferred to return statements only — no native round-trips before checks
+- [Phase 01-pr-review-architecture-fixes]: drop_invalid_rows branch creates check_obj_parsed locally via _to_frame_kind_nw and returns immediately
 
 ### Roadmap Evolution
 
@@ -68,6 +70,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-21
-Stopped at: 01-pr-review-architecture-fixes / Plan 01-02 complete
+Last session: 2026-03-22T01:49:32.296Z
+Stopped at: Completed 01-pr-review-architecture-fixes / Plan 01-03 complete (phase complete)
 Resume file: None

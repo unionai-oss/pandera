@@ -39,4 +39,4 @@ See `.planning/milestones/v1.0-ROADMAP.md` for full phase details.
 Plans:
 - [x] 01-01-PLAN.md — ErrorHandler architecture: strip ibis from base, create NarwhalsErrorHandler (1/1 complete)
 - [x] 01-02-PLAN.md — Wire NarwhalsErrorHandler into backends, fix container polars coupling, fix comment, fix capitalization
-- [ ] 01-03-PLAN.md — Gap closure: fix validate() premature materialization, remaining capitalization nits, ROADMAP marker
+- [x] 01-03-PLAN.md — Gap closure: fix validate() premature materialization, remaining capitalization nits, ROADMAP marker
