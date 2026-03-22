@@ -34,8 +34,9 @@ See `.planning/milestones/v1.0-ROADMAP.md` for full phase details.
 **Goal:** Address architectural feedback from PR Review #2223 — separate ibis logic from base ErrorHandler, create NarwhalsErrorHandler, remove polars-specific coupling from narwhals container backend, fix misleading comments, and fix Narwhals capitalization.
 **Requirements**: ARCH-01, ARCH-02, ARCH-03, ARCH-04
 **Depends on:** v1.0 Narwhals Backend
-**Plans:** 2 plans
+**Plans:** 3 plans
 
 Plans:
 - [x] 01-01-PLAN.md — ErrorHandler architecture: strip ibis from base, create NarwhalsErrorHandler (1/1 complete)
-- [ ] 01-02-PLAN.md — Wire NarwhalsErrorHandler into backends, fix container polars coupling, fix comment, fix capitalization
+- [x] 01-02-PLAN.md — Wire NarwhalsErrorHandler into backends, fix container polars coupling, fix comment, fix capitalization
+- [ ] 01-03-PLAN.md — Gap closure: fix validate() premature materialization, remaining capitalization nits, ROADMAP marker
