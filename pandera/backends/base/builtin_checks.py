@@ -100,3 +100,42 @@ def str_length(
 @Check.register_builtin_check_fn
 def unique_values_eq(data: Any, values: Iterable) -> Any:
     raise NotImplementedError
+
+
+@Check.register_builtin_check_fn
+def has_dims(data: Any, dims: tuple[str, ...]) -> Any:
+    raise NotImplementedError
+
+
+@Check.register_builtin_check_fn
+def has_coords(data: Any, coords: tuple[str, ...]) -> Any:
+    raise NotImplementedError
+
+
+@Check.register_builtin_check_fn
+def has_attrs(data: Any, attrs: dict[str, Any]) -> Any:
+    raise NotImplementedError
+
+
+@Check.register_builtin_check_fn
+def ndim(data: Any, n: int) -> Any:
+    raise NotImplementedError
+
+
+@Check.register_builtin_check_fn
+def dim_size(data: Any, dim: str, size: int) -> Any:
+    raise NotImplementedError
+
+
+@Check.register_builtin_check_fn
+def is_monotonic(
+    data: Any,
+    dim: str,
+    increasing: bool = True,
+) -> Any:
+    raise NotImplementedError
+
+
+@Check.register_builtin_check_fn
+def no_duplicates_in_coord(data: Any, coord: str) -> Any:
+    raise NotImplementedError
