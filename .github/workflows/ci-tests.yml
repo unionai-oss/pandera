@@ -179,6 +179,7 @@ jobs:
         - strategies
         - fastapi
         - geopandas
+        - xarray
         exclude:
         - extra: mypy
           os: windows-latest

@@ -94,6 +94,10 @@ ibis = [
     "pyarrow-hotfix",
 ]
 polars = ["polars >= 0.20.0"]
+xarray = [
+    "xarray >= 2024.10.0",
+    "numpy >= 1.24.4",
+]
 all = [
     "hypothesis >= 6.92.7",
     "scipy",
@@ -113,6 +117,8 @@ all = [
     "ibis-framework >= 9.0.0",
     "pyarrow-hotfix",
     "polars >= 0.20.0",
+    "xarray >= 2024.10.0",
+    "numpy >= 1.24.4",
 ]
 
 [dependency-groups]
