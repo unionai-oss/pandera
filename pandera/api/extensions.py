@@ -9,6 +9,7 @@ from inspect import signature
 from typing import Optional, Union, get_args, get_origin
 
 from pandera.api.checks import Check
+from pandera.api.function_dispatch import get_first_arg_type
 from pandera.api.hypotheses import Hypothesis
 
 

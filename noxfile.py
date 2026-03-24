@@ -197,6 +197,7 @@ DATAFRAME_EXTRAS = {
     "polars",
     "dask",
     "ibis",
+    "xarray",
 }
 for extra in OPTIONAL_DEPENDENCIES:
     if extra == "pandas":

@@ -1288,6 +1288,11 @@ The xarray backend respects pandera's global configuration:
 `SCHEMA_ONLY` skips data-level `Check` execution and only validates
 structural properties (dims, shape, dtype, coords, attrs).
 
+When `PANDERA_VALIDATION_DEPTH` is unset, chunked (Dask-backed) DataArrays and
+Datasets default to `SCHEMA_ONLY` for data-level checks (Polars LazyFrame
+behavior). Set `SCHEMA_AND_DATA` or `DATA_ONLY` to run checks that would
+compute lazy arrays. Eager arrays default to `SCHEMA_AND_DATA`.
+
 ---
 
 ## 9. Optional Dependencies

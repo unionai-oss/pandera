@@ -30,6 +30,9 @@ dependencies:
   # polars extra
   - polars >= 0.20.0
 
+  # xarray extra
+  - xarray >= 2024.10.0
+
   # modin extra
   - modin
   - protobuf
