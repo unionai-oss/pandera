@@ -25,6 +25,7 @@ class Check(BaseCheck):
         groupby: Union[str, list[str], Callable] | None = None,
         ignore_na: bool = True,
         element_wise: bool = False,
+        native: bool = True,
         name: str | None = None,
         error: str | None = None,
         raise_warning: bool = False,
@@ -82,6 +83,12 @@ class Check(BaseCheck):
             element-wise fashion. If bool, assumes that all checks should be
             applied to the column element-wise. If list, should be the same
             number of elements as checks.
+        :param native: If True (default), the check function receives the raw
+            native frame and the column key as positional args:
+            ``check_fn(native_frame, key)``. If False, the check function
+            receives a narwhals expression ``nw.col(key)`` (a ``nw.Expr``)
+            as its sole argument: ``check_fn(nw.col(key))``. Builtin checks
+            use ``native=False``.
         :param name: optional name for the check.
         :param error: custom error message if series fails validation
             check.
@@ -175,6 +182,7 @@ class Check(BaseCheck):
         self._check_fn = check_fn
         self._check_kwargs = check_kwargs
         self.element_wise = element_wise
+        self.native = native
         self.name = name or getattr(
             self._check_fn, "__name__", self._check_fn.__class__.__name__
         )
