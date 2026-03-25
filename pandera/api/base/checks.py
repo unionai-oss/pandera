@@ -140,6 +140,7 @@ class BaseCheck(metaclass=MetaCheck):
         return cls(
             cls.get_builtin_check_fn(name),
             statistics=statistics,
+            native=False,
             **kws,
         )
 
