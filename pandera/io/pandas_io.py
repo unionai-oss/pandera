@@ -200,6 +200,7 @@ def serialize_schema(dataframe_schema):
         "add_missing_columns": dataframe_schema.add_missing_columns,
         "title": dataframe_schema.title,
         "description": dataframe_schema.description,
+        "drop_invalid_rows": dataframe_schema.drop_invalid_rows,
     }
 
 
@@ -379,6 +380,7 @@ def deserialize_schema(serialized_schema):
         ),
         title=serialized_schema.get("title", None),
         description=serialized_schema.get("description", None),
+        drop_invalid_rows=serialized_schema.get("drop_invalid_rows", False),
     )
 
 
