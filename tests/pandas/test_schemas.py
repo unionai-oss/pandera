@@ -193,11 +193,13 @@ def test_dataframe_schema_strict_and_ordered_raises_both_errors() -> None:
         ordered=True,
     )
     # Wrong order (name before id) and extra column
-    df = pd.DataFrame({
-        "name": ["Alice", "Bob", "Charlie"],
-        "id": [1, 2, 3],
-        "extra_column": ["extra1", "extra2", "extra3"],
-    })
+    df = pd.DataFrame(
+        {
+            "name": ["Alice", "Bob", "Charlie"],
+            "id": [1, 2, 3],
+            "extra_column": ["extra1", "extra2", "extra3"],
+        }
+    )
     with pytest.raises(errors.SchemaErrors) as exc_info:
         schema.validate(df)
     reason_codes = {e.reason_code for e in exc_info.value.schema_errors}
@@ -814,7 +816,9 @@ def test_coerce_dtype_in_dataframe():
     with pytest.raises(errors.SchemaErrors) as exc_info:
         schema.validate(df)
     assert len(exc_info.value.schema_errors) == 1
-    assert "Error while coercing" in str(exc_info.value.schema_errors[0].args[0])
+    assert "Error while coercing" in str(
+        exc_info.value.schema_errors[0].args[0]
+    )
     assert "Could not coerce" in str(exc_info.value.schema_errors[0].args[0])
 
 

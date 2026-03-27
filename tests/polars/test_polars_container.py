@@ -480,9 +480,7 @@ def test_regex_selector(
         modified_data = ldf_for_regex_match.drop(
             get_lazyframe_column_names(ldf_for_regex_match)
         )
-        with pytest.raises(
-            (pa.errors.SchemaError, pa.errors.SchemaErrors)
-        ):
+        with pytest.raises((pa.errors.SchemaError, pa.errors.SchemaErrors)):
             modified_data.pipe(schema.validate).collect()
 
 
@@ -516,9 +514,12 @@ def test_regex_column_name_in_error_message():
     if hasattr(err, "schema_errors") and err.schema_errors:
         first = err.schema_errors[0]
         col = getattr(first, "column_name", None) or (
-            getattr(first, "schema", None) and getattr(first.schema, "name", None)
+            getattr(first, "schema", None)
+            and getattr(first.schema, "name", None)
         )
-        assert col == "var_3", f"First error should be for column 'var_3', got {col}"
+        assert col == "var_3", (
+            f"First error should be for column 'var_3', got {col}"
+        )
 
 
 def test_regex_coerce(

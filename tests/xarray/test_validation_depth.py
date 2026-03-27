@@ -46,7 +46,9 @@ def test_get_depth_dataset_any_chunked_defaults_schema_only(
     pytest.importorskip("dask.array")
     import dask.array as dda
 
-    ds = xr.Dataset({"a": ("x", np.ones(2)), "b": ("x", dda.ones(2, chunks=1))})
+    ds = xr.Dataset(
+        {"a": ("x", np.ones(2)), "b": ("x", dda.ones(2, chunks=1))}
+    )
     assert get_validation_depth(ds) == ValidationDepth.SCHEMA_ONLY
 
 

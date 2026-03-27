@@ -65,7 +65,9 @@ def _isin_test_elements(values: Iterable) -> Iterable:
     return values
 
 
-def _dataset_reduce_bool(ds: xr.Dataset, per_da: Callable[[xr.DataArray], Any]) -> bool:
+def _dataset_reduce_bool(
+    ds: xr.Dataset, per_da: Callable[[xr.DataArray], Any]
+) -> bool:
     """Whether ``per_da`` yields an all-True boolean array for every data var."""
     for _name, da in ds.data_vars.items():
         out = per_da(da)
@@ -98,6 +100,7 @@ def _str_mask_predicate(
     Uses :func:`numpy.frompyfunc` so object-dtype arrays (e.g. mixed strings)
     are handled without assuming a vectorized string ufunc exists on the dtype.
     """
+
     def _scalar(x: Any) -> bool:
         if _str_element_unusable(x):
             return False
@@ -157,7 +160,9 @@ def greater_than(data: XrLike, min_value: Any) -> bool | xr.DataArray:
     aliases=["ge"],
     error="greater_than_or_equal_to({min_value})",
 )
-def greater_than_or_equal_to(data: XrLike, min_value: Any) -> bool | xr.DataArray:
+def greater_than_or_equal_to(
+    data: XrLike, min_value: Any
+) -> bool | xr.DataArray:
     """Element-wise ``data >= min_value``."""
     if isinstance(data, xr.DataArray):
         return data >= min_value
@@ -218,7 +223,9 @@ def notin(data: XrLike, forbidden_values: Iterable) -> bool | xr.DataArray:
 @register_builtin_check(
     error="str_matches('{pattern}')",
 )
-def str_matches(data: XrLike, pattern: str | re.Pattern) -> bool | xr.DataArray:
+def str_matches(
+    data: XrLike, pattern: str | re.Pattern
+) -> bool | xr.DataArray:
     """Regex match at the start of each string (``re.match`` semantics)."""
     pat = pattern
 
@@ -235,7 +242,9 @@ def str_matches(data: XrLike, pattern: str | re.Pattern) -> bool | xr.DataArray:
 @register_builtin_check(
     error="str_contains('{pattern}')",
 )
-def str_contains(data: XrLike, pattern: str | re.Pattern) -> bool | xr.DataArray:
+def str_contains(
+    data: XrLike, pattern: str | re.Pattern
+) -> bool | xr.DataArray:
     """Regex search anywhere in each string (``re.search`` semantics)."""
     pat = pattern
 

@@ -3,11 +3,10 @@
 from typing import Any
 
 import numpy as np
+import xarray as xr
 
 from pandera.engines import engine
 from pandera.engines.numpy_engine import DataType as NumpyDataType
-
-import xarray as xr
 
 
 class DataType(NumpyDataType):
