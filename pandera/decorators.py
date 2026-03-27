@@ -367,8 +367,7 @@ def check_output(
     if callable(obj_getter) and (
         getattr(schema, "coerce", False)
         or (
-            getattr(schema, "index", None) is not None
-            and schema.index.coerce  # type: ignore[union-attr]
+            getattr(schema, "index", None) is not None and schema.index.coerce  # type: ignore[union-attr]
         )
         or (
             isinstance(schema, DataFrameSchema)
@@ -600,8 +599,7 @@ def check_types(
         def __init__(
             self,
             annotation_info: AnnotationInfo,
-            children: list["_AnnotationInfoWithModelTree"]
-            | None = None,
+            children: list["_AnnotationInfoWithModelTree"] | None = None,
             schema_model: BaseModel | None = None,
         ) -> None:
             if children and schema_model:
@@ -654,9 +652,7 @@ def check_types(
                 return _AnnotationInfoWithModelTree(
                     annotation_info=annotation_info,
                     children=[
-                        _AnnotationInfoWithModelTree.from_annotation(
-                            arg
-                        )
+                        _AnnotationInfoWithModelTree.from_annotation(arg)
                         for arg in annotation_info.args
                     ],
                 )
@@ -674,9 +670,7 @@ def check_types(
         _AnnotationInfoWithModelTree,
     ]:
         return {
-            arg_name: _AnnotationInfoWithModelTree.from_annotation(
-                annotation
-            )
+            arg_name: _AnnotationInfoWithModelTree.from_annotation(annotation)
             for arg_name, annotation in get_type_hints(
                 wrapped, include_extras=True
             ).items()
