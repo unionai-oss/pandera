@@ -80,7 +80,7 @@ class _ClassDescriptor:
 
 class _FieldsDescriptor(_ClassDescriptor):
     def __get__(
-        self, obj: Any, cls: type
+        self, obj: Any, cls: type[_XarrayModelBase]
     ) -> dict[str, tuple[AnnotationInfo, Any]]:
         if self.cache.get(cls) is None:
             self.cache[cls] = cls._collect_fields()
@@ -91,7 +91,7 @@ MODEL_CACHE: dict[tuple[type, int], Any] = {}
 
 
 class _SchemaDescriptor:
-    def __get__(self, obj: Any, cls: type) -> Any:
+    def __get__(self, obj: Any, cls: type[_XarrayModelBase]) -> Any:
         tid = threading.get_ident()
         key = (cls, tid)
         if MODEL_CACHE.get(key) is None:
@@ -100,7 +100,9 @@ class _SchemaDescriptor:
 
 
 class _ChecksDescriptor(_ClassDescriptor):
-    def __get__(self, obj: Any, cls: type) -> dict[str, list[Check]]:
+    def __get__(
+        self, obj: Any, cls: type[_XarrayModelBase]
+    ) -> dict[str, list[Check]]:
         if self.cache.get(cls) is None:
             infos = typing.cast(
                 list[FieldCheckInfo],
@@ -113,7 +115,9 @@ class _ChecksDescriptor(_ClassDescriptor):
 
 
 class _RootCheckDescriptor(_ClassDescriptor):
-    def __get__(self, obj: Any, cls: type) -> list[Check]:
+    def __get__(
+        self, obj: Any, cls: type[_XarrayModelBase]
+    ) -> list[Check]:
         if self.cache.get(cls) is None:
             infos = cls._collect_check_infos(DATAFRAME_CHECK_KEY)
             custom = cls._extract_df_checks(infos)
@@ -125,7 +129,9 @@ class _RootCheckDescriptor(_ClassDescriptor):
 
 
 class _ParsersDescriptor(_ClassDescriptor):
-    def __get__(self, obj: Any, cls: type) -> dict[str, list[Parser]]:
+    def __get__(
+        self, obj: Any, cls: type[_XarrayModelBase]
+    ) -> dict[str, list[Parser]]:
         if self.cache.get(cls) is None:
             infos = typing.cast(
                 list[FieldParserInfo],
@@ -138,7 +144,9 @@ class _ParsersDescriptor(_ClassDescriptor):
 
 
 class _RootParsersDescriptor(_ClassDescriptor):
-    def __get__(self, obj: Any, cls: type) -> list[Parser]:
+    def __get__(
+        self, obj: Any, cls: type[_XarrayModelBase]
+    ) -> list[Parser]:
         if self.cache.get(cls) is None:
             infos = cls._collect_parser_infos(DATAFRAME_PARSER_KEY)
             self.cache[cls] = cls._extract_df_parsers(infos)
@@ -367,6 +375,10 @@ class _XarrayModelBase(BaseModel):
         return [pi.to_parser(cls) for pi in parser_infos]
 
     @classmethod
+    def build_schema_(cls) -> Any:
+        raise NotImplementedError
+
+    @classmethod
     def to_schema(cls) -> Any:
         return cls.__schema__
 
@@ -545,7 +557,7 @@ class DatasetModel(_XarrayModelBase):
     def build_schema_(cls) -> DatasetSchema:
         cfg = cls.__config__
         fields = cls.__fields__
-        data_vars: dict[str, DataVar | DataArraySchema] = {}
+        data_vars: dict[str, DataVar | DataArraySchema | None] = {}
         coords: dict[str, Coordinate] = {}
 
         for fname, (ann, fi) in fields.items():
@@ -565,7 +577,14 @@ class DatasetModel(_XarrayModelBase):
                 continue
 
             if fi.nested_data_array_model is not None:
-                data_vars[fi.name] = fi.nested_data_array_model.to_schema()
+                nested_cls = fi.nested_data_array_model
+                if hasattr(nested_cls, "to_schema"):
+                    data_vars[fi.name] = nested_cls.to_schema()
+                else:
+                    raise SchemaInitError(
+                        f"nested_data_array_model {nested_cls!r} "
+                        "must have a to_schema() method."
+                    )
                 continue
 
             dtype = ann.arg

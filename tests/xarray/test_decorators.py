@@ -243,7 +243,7 @@ class TestCheckTypesDataArray:
             da: DataArray[GridModel],
             factor: int,
         ) -> DataArray[GridModel]:
-            return da * factor
+            return da * factor  # type: ignore[return-value]
 
         out = process(grid_da, 1)
         assert out.identical(grid_da)
@@ -399,7 +399,7 @@ class TestCheckTypesOptional:
         def process(
             da: DataArray[GridModel] | None,
         ) -> DataArray[GridModel]:
-            return da
+            return da  # type: ignore[return-value]
 
         out = process(grid_da)
         assert out.identical(grid_da)
