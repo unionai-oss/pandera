@@ -17,7 +17,7 @@ Pandera supports validation of the following DataFrame libraries:
 :widths: 25 75
 
 * - {ref}`Pandas <dataframeschemas>`
-  - Validate pandas dataframes. This is the original dataframe library supported
+  - Validate pandas dataframes. This is the original datafra me library supported
     by pandera.
 * - {ref}`Polars <polars>`
   - Validate Polars dataframes. Polars is a blazingly fast dataframe library.

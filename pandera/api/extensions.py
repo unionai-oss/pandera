@@ -1,6 +1,7 @@
 """Extensions module."""
 
 import inspect
+import types
 import warnings
 from collections.abc import Callable
 from enum import Enum
@@ -59,7 +60,8 @@ def register_builtin_check(
     if get_origin(data_type) is tuple:
         data_type, *_ = get_args(data_type)
 
-    if get_origin(data_type) is Union:
+    origin = get_origin(data_type)
+    if origin is Union or origin is types.UnionType:
         data_types = get_args(data_type)
     else:
         data_types = (data_type,)

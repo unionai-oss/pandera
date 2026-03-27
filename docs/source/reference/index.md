@@ -6,6 +6,8 @@
 
 # API
 
+## DataFrames
+
 ```{eval-rst}
 .. list-table::
    :widths: 30 70
@@ -30,6 +32,16 @@
      - Pandera-specific exceptions
 ```
 
+## Multi-dimensional arrays
+
+```{eval-rst}
+.. list-table::
+   :widths: 30 70
+
+   * - :ref:`Xarray <api-xarray>`
+     - Schemas for labelled N-dimensional :mod:`xarray` arrays, datasets, and datatrees
+```
+
 ```{toctree}
 :hidden: true
 
@@ -42,4 +54,5 @@ io
 strategies
 extensions
 errors
+xarray
 ```

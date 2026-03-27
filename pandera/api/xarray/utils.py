@@ -27,9 +27,9 @@ def _is_chunked_xarray(check_obj: Any) -> bool:
 
 
 def get_validation_depth(check_obj: Any) -> ValidationDepth:
-    """Resolve :class:`ValidationDepth` for an xarray object (Polars-style).
+    """Resolve :class:`ValidationDepth` for an xarray object.
 
-    Precedence matches :func:`pandera.api.polars.utils.get_validation_depth`:
+    Precedence matches :func:`pandera.api.xarray.utils.get_validation_depth`:
     context ``validation_depth``, then global config, then defaults — chunked
     (Dask-backed) objects default to :attr:`ValidationDepth.SCHEMA_ONLY` so
     data-level checks do not compute lazy storage unless the user sets
