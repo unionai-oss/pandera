@@ -9,9 +9,7 @@ xr = pytest.importorskip("xarray")
 import pandera.errors  # noqa: E402
 import pandera.xarray as pa  # noqa: E402
 from pandera.typing.xarray import Coordinate, DataArray, Dataset  # noqa: E402
-
 from tests.xarray.conftest import GridModel, SurfaceModel  # noqa: E402
-
 
 # ===================================================================
 # check_input / check_output with imperative schemas
@@ -81,9 +79,7 @@ class TestCheckInputOutput:
     def test_check_input_dataset(self, surface_ds):
         schema = pa.DatasetSchema(
             data_vars={
-                "temperature": pa.DataVar(
-                    dtype=np.float64, dims=("x",)
-                ),
+                "temperature": pa.DataVar(dtype=np.float64, dims=("x",)),
             },
         )
 
@@ -97,9 +93,7 @@ class TestCheckInputOutput:
     def test_check_output_dataset(self, surface_ds):
         schema = pa.DatasetSchema(
             data_vars={
-                "temperature": pa.DataVar(
-                    dtype=np.float64, dims=("x",)
-                ),
+                "temperature": pa.DataVar(dtype=np.float64, dims=("x",)),
             },
         )
 
@@ -158,9 +152,7 @@ class TestCheckIO:
     def test_check_io_dataset(self, surface_ds):
         schema = pa.DatasetSchema(
             data_vars={
-                "temperature": pa.DataVar(
-                    dtype=np.float64, dims=("x",)
-                ),
+                "temperature": pa.DataVar(dtype=np.float64, dims=("x",)),
             },
         )
 
@@ -229,9 +221,7 @@ class TestCheckTypesDataArray:
         def process(
             da: DataArray[GridModel],
         ) -> DataArray[GridModel]:
-            return xr.DataArray(
-                np.ones(3), dims=("z",), name="bad"
-            )
+            return xr.DataArray(np.ones(3), dims=("z",), name="bad")
 
         with pytest.raises(pandera.errors.SchemaError):
             process(grid_da)
@@ -283,9 +273,7 @@ class TestCheckTypesDataArray:
         def process(
             da: DataArray[GridModel],
         ) -> DataArray[GridModel]:
-            return xr.DataArray(
-                np.ones(3), dims=("z",), name="bad"
-            )
+            return xr.DataArray(np.ones(3), dims=("z",), name="bad")
 
         with pytest.raises(pandera.errors.SchemaErrors):
             process(grid_da)
@@ -326,9 +314,7 @@ class TestCheckTypesDataset:
         def process(
             ds: Dataset[SurfaceModel],
         ) -> Dataset[SurfaceModel]:
-            return xr.Dataset(
-                {"wrong_var": (("z",), np.ones(3))}
-            )
+            return xr.Dataset({"wrong_var": (("z",), np.ones(3))})
 
         with pytest.raises(pandera.errors.SchemaError):
             process(surface_ds)
@@ -400,7 +386,7 @@ class TestCheckTypesOptional:
 
         @pa.check_types
         def process(
-            da: Optional[DataArray[GridModel]],
+            da: DataArray[GridModel] | None,
         ) -> int:
             return 42
 
@@ -411,7 +397,7 @@ class TestCheckTypesOptional:
 
         @pa.check_types
         def process(
-            da: Optional[DataArray[GridModel]],
+            da: DataArray[GridModel] | None,
         ) -> DataArray[GridModel]:
             return da
 

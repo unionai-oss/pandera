@@ -8,7 +8,6 @@ xr = pytest.importorskip("xarray")
 import pandera.errors  # noqa: E402
 import pandera.xarray as pa  # noqa: E402
 from pandera.typing.xarray import Coordinate  # noqa: E402
-
 from tests.xarray.conftest import GridModel  # noqa: E402
 
 

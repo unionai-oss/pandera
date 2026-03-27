@@ -682,7 +682,9 @@ class DatasetSchemaBackend(XarraySchemaBackend):
             if d in ds.coords:
                 coords[d] = ds.coords[d]
         arr = np.full(shape, spec.default)
-        da = xr.DataArray(arr, dims=[d for d in spec.dims if d is not None], coords=coords)
+        da = xr.DataArray(
+            arr, dims=[d for d in spec.dims if d is not None], coords=coords
+        )
         return ds.assign(**{actual_name: da})
 
     def validate(
@@ -735,8 +737,8 @@ class DatasetSchemaBackend(XarraySchemaBackend):
                 exc,
             )
 
-        collect_fn: Callable[..., None] = (
-            lambda res: _collect(error_handler, schema, ds, res)
+        collect_fn: Callable[..., None] = lambda res: _collect(
+            error_handler, schema, ds, res
         )
         collect_fn(self._dataset_level_structural(schema, ds))
 
@@ -774,9 +776,7 @@ class DatasetSchemaBackend(XarraySchemaBackend):
                         continue
                     if spec.default is not None:
                         try:
-                            ds = self._apply_default(
-                                ds, actual, spec, schema
-                            )
+                            ds = self._apply_default(ds, actual, spec, schema)
                         except SchemaError as exc:
                             error_handler.collect_error(
                                 get_error_category(exc.reason_code),

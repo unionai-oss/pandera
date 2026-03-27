@@ -194,7 +194,9 @@ class XarraySchemaBackend(BaseSchemaBackend):
             if rc is not None:
                 counts[rc.name] += 1
         return FailureCaseMetadata(
-            failure_cases=[e["error"].__str__() for e in handler.collected_errors],
+            failure_cases=[
+                e["error"].__str__() for e in handler.collected_errors
+            ],
             message=summary,
             error_counts=dict(counts),
         )
