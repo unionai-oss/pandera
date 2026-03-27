@@ -343,30 +343,21 @@ class DataFrameModel(Generic[TDataFrame, TSchema], BaseModel):
             ),
         )
 
-    # TODO: add docstring_substitution using generic class
     @classmethod
+    @docstring_substitution(strategy_doc=BaseSchema.strategy.__doc__)
     @strategy_import_error
     def strategy(cls: type[Self], **kwargs):
-        """Create a ``hypothesis`` strategy for generating a DataFrame.
-
-        :param size: number of elements to generate
-        :param n_regex_columns: number of regex columns to generate.
-        :returns: a strategy that generates DataFrame objects.
-        """
+        """%(strategy_doc)s"""
         return cls.__schema__.strategy(**kwargs)
 
-    # TODO: add docstring_substitution using generic class
     @classmethod
+    @docstring_substitution(example_doc=BaseSchema.example.__doc__)
     @strategy_import_error
     def example(
         cls: type[Self],
         **kwargs,
     ) -> DataFrameBase[Self]:
-        """Generate an example of a particular size.
-
-        :param size: number of elements in the generated DataFrame.
-        :returns: DataFrame object.
-        """
+        """%(example_doc)s"""
         return cast(DataFrameBase[Self], cls.to_schema().example(**kwargs))
 
     @classmethod
