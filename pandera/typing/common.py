@@ -210,6 +210,23 @@ class AnnotationInfo:
         except TypeError:
             return False
 
+    @property
+    def is_generic_xarray(self) -> bool:
+        """True if the annotation is an xarray model container."""
+        try:
+            from pandera.typing.xarray import XarrayAnnotationBase
+
+            if self.origin is None:
+                return False
+            return issubclass(self.origin, XarrayAnnotationBase)
+        except (TypeError, ImportError):
+            return False
+
+    @property
+    def is_generic_model(self) -> bool:
+        """True if the annotation wraps a pandera model class."""
+        return self.is_generic_df or self.is_generic_xarray
+
     def _parse_annotation(self, raw_annotation: type) -> None:
         """Parse key information from annotation.
 

@@ -11,6 +11,7 @@ on:
       - main
       - dev
       - ibis-dev
+      - dev/xarray
       - bugfix
       - "release/*"
 

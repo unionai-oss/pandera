@@ -39,8 +39,6 @@ and are not redundant with typical ``dims`` / ``sizes`` fields (unless you encod
 the same rule elsewhere, e.g. on a :class:`~pandera.api.xarray.components.Coordinate`).
 """
 
-from __future__ import annotations
-
 import operator
 import re
 from collections.abc import Callable, Iterable

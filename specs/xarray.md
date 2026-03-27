@@ -9,6 +9,22 @@
 
 ---
 
+## User-facing documentation
+
+End-user guides (installation, `DataArraySchema` / `DatasetSchema`, checks, and
+validation depth for Dask-backed data) live in the Sphinx source tree:
+
+- [`docs/source/xarray_guide/index.md`](../docs/source/xarray_guide/index.md)
+  — landing page and toctree
+- Subpages: `data_array_schema.md`, `dataset_schema.md`,
+  `xarray_models.md` (`DataArrayModel` / `DatasetModel`),
+  `checks_configuration.md`
+
+The built site lists this under **Integrations → Xarray**. This spec remains the
+design and roadmap document; the guide targets library users, not implementers.
+
+---
+
 ## 1. Motivation
 
 [xarray](https://docs.xarray.dev) is the dominant Python library for
