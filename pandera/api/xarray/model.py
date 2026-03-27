@@ -115,9 +115,7 @@ class _ChecksDescriptor(_ClassDescriptor):
 
 
 class _RootCheckDescriptor(_ClassDescriptor):
-    def __get__(
-        self, obj: Any, cls: type[_XarrayModelBase]
-    ) -> list[Check]:
+    def __get__(self, obj: Any, cls: type[_XarrayModelBase]) -> list[Check]:
         if self.cache.get(cls) is None:
             infos = cls._collect_check_infos(DATAFRAME_CHECK_KEY)
             custom = cls._extract_df_checks(infos)
@@ -144,9 +142,7 @@ class _ParsersDescriptor(_ClassDescriptor):
 
 
 class _RootParsersDescriptor(_ClassDescriptor):
-    def __get__(
-        self, obj: Any, cls: type[_XarrayModelBase]
-    ) -> list[Parser]:
+    def __get__(self, obj: Any, cls: type[_XarrayModelBase]) -> list[Parser]:
         if self.cache.get(cls) is None:
             infos = cls._collect_parser_infos(DATAFRAME_PARSER_KEY)
             self.cache[cls] = cls._extract_df_parsers(infos)
