@@ -11,6 +11,7 @@ backends. Typical entry points:
 
 from pandera import errors
 from pandera.api.checks import Check
+from pandera.api.parsers import Parser
 from pandera.api.xarray import (
     Coordinate,
     DataArrayModel,
@@ -43,4 +44,5 @@ __all__ = [
     "errors",
     "get_validation_depth",
     "XarrayData",
+    "Parser",
 ]

@@ -17,6 +17,10 @@ class DataType(NumpyDataType):
     are typically backed by NumPy or duck arrays with NumPy-like dtypes.
     """
 
+    def __init__(self, dtype: Any):
+        super(NumpyDataType, self).__init__()
+        object.__setattr__(self, "type", np.dtype(dtype))
+
     def coerce(self, data_container: "xr.DataArray") -> "xr.DataArray":
         """Coerce a DataArray to the specified dtype."""
         return data_container.astype(self.type)

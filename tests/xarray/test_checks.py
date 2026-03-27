@@ -172,14 +172,14 @@ def test_str_length_factory_requires_bounds():
 
 def test_has_dims():
     da = xr.DataArray(np.zeros((2, 3)), dims=("a", "b"))
-    DataArraySchema(checks=Check.has_dims("a", "b")).validate(da)
+    DataArraySchema(checks=Check.has_dims(("a", "b"))).validate(da)
     with pytest.raises(pandera.errors.SchemaError):
-        DataArraySchema(checks=Check.has_dims("a", "missing")).validate(da)
+        DataArraySchema(checks=Check.has_dims(("a", "missing"))).validate(da)
 
 
 def test_has_dims_empty_tuple_is_vacuous():
     da = xr.DataArray(np.zeros((2, 3)), dims=("a", "b"))
-    DataArraySchema(checks=Check.has_dims()).validate(da)
+    DataArraySchema(checks=Check.has_dims(())).validate(da)
 
 
 def test_builtin_str_length_raises_without_constraints():
@@ -196,16 +196,16 @@ def test_has_coords():
         dims="x",
         coords={"x": ("x", [0, 1]), "meta": ("x", [3, 4])},
     )
-    DataArraySchema(checks=Check.has_coords("x", "meta")).validate(da)
+    DataArraySchema(checks=Check.has_coords(("x", "meta"))).validate(da)
     with pytest.raises(pandera.errors.SchemaError):
-        DataArraySchema(checks=Check.has_coords("x", "missing")).validate(da)
+        DataArraySchema(checks=Check.has_coords(("x", "missing"))).validate(da)
 
 
 def test_has_attrs():
     da = xr.DataArray(np.zeros(2), dims="x", attrs={"units": "m"})
-    DataArraySchema(checks=Check.has_attrs(units="m")).validate(da)
+    DataArraySchema(checks=Check.has_attrs({"units": "m"})).validate(da)
     with pytest.raises(pandera.errors.SchemaError):
-        DataArraySchema(checks=Check.has_attrs(units="s")).validate(da)
+        DataArraySchema(checks=Check.has_attrs({"units": "s"})).validate(da)
 
 
 def test_ndim_dataarray():
@@ -318,9 +318,9 @@ def test_builtin_on_dataset():
     DatasetSchema(
         data_vars={"a": DataVar()},
         checks=[
-            Check.has_dims("x"),
-            Check.has_coords("x"),
-            Check.has_attrs(source="test"),
+            Check.has_dims(("x",)),
+            Check.has_coords(("x",)),
+            Check.has_attrs({"source": "test"}),
             Check.no_duplicates_in_coord("x"),
         ],
     ).validate(ds)

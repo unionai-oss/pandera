@@ -26,13 +26,19 @@ class XarrayAnnotationBase:
     decorator-based validation (e.g. :func:`~pandera.decorators.check_types`).
     """
 
+    __slots__ = ()
+
 
 class DataArray(XarrayAnnotationBase, xr.DataArray, Generic[T]):
     """Annotation-only generic for :class:`xarray.DataArray`."""
 
+    __slots__ = ()
+
 
 class Dataset(XarrayAnnotationBase, xr.Dataset, Generic[T]):
     """Annotation-only generic for :class:`xarray.Dataset`."""
+
+    __slots__ = ()
 
 
 __all__ = [
