@@ -1,5 +1,5 @@
 ---
-file_format: myst
+file_format: mystnb
 ---
 
 (xarray-data-models)=
@@ -21,14 +21,12 @@ The imperative counterparts are {ref}`xarray-data-array-schema` and
 
 Two objects share the name "Coordinate":
 
-- **{class}`~pandera.typing.xarray.Coordinate`** (from
-  `pandera.typing.xarray`) — a *typing marker* used in model annotations, like
-  `Index` in a `DataFrameModel`.
-- **{class}`~pandera.api.xarray.components.Coordinate`** (from
-  `pandera.xarray`) — the schema *component* you pass to
-  `DataArraySchema(coords=...)`.
+- **{class}`~pandera.typing.xarray.Coordinate`** — a *typing marker* used in
+  model annotations, like `Index` in a `DataFrameModel`.
+- **{class}`~pandera.api.xarray.components.Coordinate`** — the schema
+  *component* you pass to `DataArraySchema(coords=...)`.
 
-```python
+```{code-cell} python
 from pandera.typing.xarray import Coordinate  # annotation marker
 import pandera.xarray as pa
 
@@ -43,11 +41,9 @@ Every `DataArrayModel` must define a **`data`** field whose type annotation is
 the array dtype. Other fields use `Coordinate[dtype]` to declare coordinate
 schemas. Schema-level options live on a nested `Config` class.
 
-```python
+```{code-cell} python
 import numpy as np
 import xarray as xr
-import pandera.xarray as pa
-from pandera.typing.xarray import Coordinate
 
 class Temperature(pa.DataArrayModel):
     data: np.float64 = pa.Field()
@@ -77,9 +73,9 @@ Temperature.validate(da)
 Accessing a class attribute on the model returns the coordinate or variable
 name as a string, useful for programmatic indexing:
 
-```python
-print(Temperature.time)  # "time"
-print(Temperature.lat)   # "lat"
+```{code-cell} python
+print(Temperature.time)
+print(Temperature.lat)
 ```
 
 ### `Config` options
@@ -97,17 +93,28 @@ These mirror the keyword arguments on
 The `data` field can carry the same per-field structural constraints that
 you would pass as `DataArraySchema` constructor arguments:
 
-```python
+```{code-cell} python
 class Grid(pa.DataArrayModel):
     data: np.float64 = pa.Field(
         dims=("x", "y"),
-        sizes={"x": 100, "y": 200},
+        sizes={"x": 3, "y": 4},
     )
     x: Coordinate[np.float64]
     y: Coordinate[np.float64]
 
     class Config:
         name = "grid"
+
+da_grid = xr.DataArray(
+    np.random.rand(3, 4),
+    dims=("x", "y"),
+    coords={
+        "x": np.arange(3, dtype=np.float64),
+        "y": np.arange(4, dtype=np.float64),
+    },
+    name="grid",
+)
+Grid.validate(da_grid)
 ```
 
 When both `Field(dims=...)` and `Config.dims` are set, the `Field` value
@@ -119,7 +126,7 @@ Coordinate fields accept the same built-in check keywords as
 {func}`~pandera.api.dataframe.model_components.Field`: `eq`, `ge`, `le`,
 `in_range`, `isin`, etc. Plus `nullable` and `coerce`.
 
-```python
+```{code-cell} python
 class Geo(pa.DataArrayModel):
     data: np.float64 = pa.Field()
     lat: Coordinate[np.float64] = pa.Field(ge=-90, le=90)
@@ -127,14 +134,25 @@ class Geo(pa.DataArrayModel):
 
     class Config:
         dims = ("lat", "lon")
+
+da_geo = xr.DataArray(
+    np.ones((5, 10)),
+    dims=("lat", "lon"),
+    coords={
+        "lat": np.linspace(-45, 45, 5),
+        "lon": np.linspace(-90, 90, 10),
+    },
+)
+Geo.validate(da_geo)
 ```
 
 ### `to_schema()` and `validate()`
 
-```python
-schema = Temperature.to_schema()   # returns DataArraySchema
-Temperature.validate(da)           # equivalent to schema.validate(da)
-Temperature(da)                    # syntactic sugar
+```{code-cell} python
+schema = Temperature.to_schema()
+print(type(schema))
+
+Temperature.validate(da)
 ```
 
 ### Error on missing `data` field
@@ -142,14 +160,17 @@ Temperature(da)                    # syntactic sugar
 If the `data` field is omitted, calling `to_schema()` raises
 {class}`~pandera.errors.SchemaInitError`:
 
-```python
+```{code-cell} python
 class Bad(pa.DataArrayModel):
     x: Coordinate[np.float64]
 
     class Config:
         dims = ("x",)
 
-# Bad.to_schema()  ->  SchemaInitError: DataArrayModel requires a 'data' field.
+try:
+    Bad.to_schema()
+except pa.errors.SchemaInitError as exc:
+    print(exc)
 ```
 
 ## `DatasetModel`
@@ -159,7 +180,7 @@ class Bad(pa.DataArrayModel):
 Data variable fields are annotated with a dtype, and coordinate fields use
 `Coordinate[dtype]`:
 
-```python
+```{code-cell} python
 class Surface(pa.DatasetModel):
     temperature: np.float64 = pa.Field(dims=("x", "y"))
     pressure: np.float64 = pa.Field(dims=("x", "y"))
@@ -195,15 +216,20 @@ common `name`, `title`, `description`, `coerce`.
 `aligned_with`, `broadcastable_with`, `required`, and all the built-in check
 keywords:
 
-```python
-class Grid(pa.DatasetModel):
-    temperature: np.float64 = pa.Field(
-        dims=("x", "y"),
-        ge=150,
-        le=350,
-    )
+```{code-cell} python
+class BoundedGrid(pa.DatasetModel):
+    temperature: np.float64 = pa.Field(dims=("x", "y"), ge=150, le=350)
     x: Coordinate[np.float64]
     y: Coordinate[np.float64]
+
+ds_bounded = xr.Dataset(
+    {"temperature": (("x", "y"), np.full((3, 4), 273.15))},
+    coords={
+        "x": np.arange(3, dtype=np.float64),
+        "y": np.arange(4, dtype=np.float64),
+    },
+)
+BoundedGrid.validate(ds_bounded)
 ```
 
 ### Nested `DataArrayModel`
@@ -211,7 +237,7 @@ class Grid(pa.DatasetModel):
 Instead of a bare dtype, annotate a data variable with a `DataArrayModel`
 subclass to reuse a full array schema:
 
-```python
+```{code-cell} python
 class TemperatureArray(pa.DataArrayModel):
     data: np.float64 = pa.Field()
     time: Coordinate[np.float64]
@@ -223,6 +249,12 @@ class TemperatureArray(pa.DataArrayModel):
 class Climate(pa.DatasetModel):
     temperature: TemperatureArray
     time: Coordinate[np.float64]
+
+ds_climate = xr.Dataset(
+    {"temperature": (("time",), np.ones(12))},
+    coords={"time": np.arange(12, dtype=np.float64)},
+)
+Climate.validate(ds_climate)
 ```
 
 The nested model compiles to a
@@ -233,19 +265,26 @@ The nested model compiles to a
 
 Use `T | None` with `Field(required=False)`:
 
-```python
+```{code-cell} python
 class Flexible(pa.DatasetModel):
     required_var: np.float64 = pa.Field(dims=("x",))
     optional_var: np.float64 | None = pa.Field(dims=("x",), required=False)
     x: Coordinate[np.float64]
+
+ds_minimal = xr.Dataset(
+    {"required_var": (("x",), np.ones(3))},
+    coords={"x": np.arange(3, dtype=np.float64)},
+)
+Flexible.validate(ds_minimal)
 ```
 
 ### `to_schema()` and `validate()`
 
-```python
-schema = Surface.to_schema()   # returns DatasetSchema
+```{code-cell} python
+schema = Surface.to_schema()
+print(type(schema))
+
 Surface.validate(ds)
-Surface(ds)
 ```
 
 ## Schema inheritance
@@ -253,7 +292,7 @@ Surface(ds)
 Models support regular Python inheritance. Child classes inherit fields and
 `Config` options, and can override them:
 
-```python
+```{code-cell} python
 class BaseGrid(pa.DataArrayModel):
     data: np.float64 = pa.Field()
     x: Coordinate[np.float64]
@@ -267,6 +306,17 @@ class DetailedGrid(BaseGrid):
     class Config:
         dims = ("x", "y")
         name = "detailed"
+
+da_detailed = xr.DataArray(
+    np.ones((3, 4)),
+    dims=("x", "y"),
+    coords={
+        "x": np.arange(3, dtype=np.float64),
+        "y": np.arange(4, dtype=np.float64),
+    },
+    name="detailed",
+)
+DetailedGrid.validate(da_detailed)
 ```
 
 ## Excluded attributes

@@ -408,13 +408,10 @@ class DataArrayModel(_XarrayModelBase):
 
     def __init_subclass__(cls, **kwargs: Any) -> None:
         if _CONFIG_KEY in cls.__dict__:
-            cls.Config.name = (
-                cls.Config.name
-                if hasattr(cls.Config, "name")
-                else cls.__name__
-            )
+            if not hasattr(cls.Config, "name"):
+                cls.Config.name = None
         else:
-            cls.Config = type("Config", (cls.Config,), {"name": cls.__name__})
+            cls.Config = type("Config", (cls.Config,), {})
         super().__init_subclass__(**kwargs)
         hints = typing.get_type_hints(cls, include_extras=True)
         for fname in hints:
@@ -512,13 +509,10 @@ class DatasetModel(_XarrayModelBase):
 
     def __init_subclass__(cls, **kwargs: Any) -> None:
         if _CONFIG_KEY in cls.__dict__:
-            cls.Config.name = (
-                cls.Config.name
-                if hasattr(cls.Config, "name")
-                else cls.__name__
-            )
+            if not hasattr(cls.Config, "name"):
+                cls.Config.name = None
         else:
-            cls.Config = type("Config", (cls.Config,), {"name": cls.__name__})
+            cls.Config = type("Config", (cls.Config,), {})
         super().__init_subclass__(**kwargs)
         hints = typing.get_type_hints(cls, include_extras=True)
         for fname in hints:

@@ -139,7 +139,7 @@ def Field(
     aligned_with: tuple[str, ...] | None = None,
     broadcastable_with: tuple[str, ...] | None = None,
     **kwargs: Any,
-) -> XarrayFieldInfo:
+) -> Any:
     """Field specification for xarray models (mirrors dataframe :func:`Field`)."""
     check_kwargs = {
         "ignore_na": ignore_na,

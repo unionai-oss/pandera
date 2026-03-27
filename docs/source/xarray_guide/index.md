@@ -1,5 +1,5 @@
 ---
-file_format: myst
+file_format: mystnb
 ---
 
 (xarray-guide)=
@@ -22,7 +22,7 @@ pip install 'pandera[xarray]'
 
 ## Quick start
 
-```python
+```{code-cell} python
 import numpy as np
 import xarray as xr
 import pandera.xarray as pa
@@ -47,7 +47,7 @@ schema.validate(ds)
 
 ## Dataset Model
 
-```python
+```{code-cell} python
 from pandera.typing.xarray import Coordinate
 
 class Surface(pa.DatasetModel):
