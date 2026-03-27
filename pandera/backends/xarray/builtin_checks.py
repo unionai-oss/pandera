@@ -42,14 +42,14 @@ the same rule elsewhere, e.g. on a :class:`~pandera.api.xarray.components.Coordi
 import operator
 import re
 from collections.abc import Callable, Iterable
-from typing import Any, TypeVar
+from typing import Any, TypeAlias, TypeVar
 
 import numpy as np
 import xarray as xr
 
 from pandera.api.extensions import register_builtin_check
 
-XrLike = xr.DataArray | xr.Dataset
+XrLike: TypeAlias = xr.DataArray | xr.Dataset
 
 T = TypeVar("T")
 
@@ -386,7 +386,7 @@ def in_range(
     def _mask(arr: xr.DataArray) -> xr.DataArray:
         vals = np.asarray(arr.values)
         with np.errstate(invalid="ignore"):
-            ok = left_op(min_value, vals) & right_op(max_value, vals)
+            ok = left_op(min_value, vals) & right_op(max_value, vals)  # type: ignore[arg-type]
         return xr.DataArray(ok, dims=arr.dims, coords=arr.coords)
 
     if isinstance(data, xr.DataArray):

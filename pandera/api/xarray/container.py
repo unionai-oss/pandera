@@ -22,7 +22,12 @@ import xarray as xr
 
 
 def _normalize_dims(
-    dims: Union[tuple[str | None, ...], list[str | None], dict[str, str]]
+    dims: Union[
+        tuple[str | None, ...],
+        list[str | None],
+        list[str],
+        dict[str, str],
+    ]
     | None,
 ):
     if dims is None:
@@ -44,7 +49,7 @@ class DataArraySchema(_BaseDataArraySchema):
         | None = None,
         sizes: dict[str, int | None] | None = None,
         shape: tuple[int | None, ...] | None = None,
-        coords: dict[str, Any] | None = None,
+        coords: dict[str, Any] | list[str] | None = None,
         attrs: dict[str, Any] | None = None,
         name: str | None = None,
         checks: CheckList | None = None,

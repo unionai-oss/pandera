@@ -638,7 +638,9 @@ class DatasetSchemaBackend(XarraySchemaBackend):
 
         return results
 
-    def _resolve_var_name(self, logical: str, spec: DataVar | None) -> str:
+    def _resolve_var_name(
+        self, logical: str, spec: DataVar | DataArraySchema | None
+    ) -> str:
         if spec is None or not isinstance(spec, DataVar):
             return logical
         return spec.alias or logical
