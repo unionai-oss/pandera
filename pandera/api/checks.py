@@ -14,25 +14,6 @@ from pandera.api.base.checks import BaseCheck, CheckResult
 
 T = TypeVar("T")
 
-# Split :meth:`Check.has_attrs` kwargs into Check() options vs. attrs dict.
-_ATTR_CHECK_OPTS = frozenset(
-    {
-        "groups",
-        "groupby",
-        "ignore_na",
-        "element_wise",
-        "name",
-        "error",
-        "raise_warning",
-        "n_failure_cases",
-        "title",
-        "description",
-        "statistics",
-        "strategy",
-        "determined_by_unique",
-    }
-)
-
 
 class Check(BaseCheck):
     """Check a data object for certain properties."""
@@ -749,8 +730,14 @@ class Check(BaseCheck):
         )
 
     @classmethod
-    def has_dims(cls, *dims: str, **kwargs) -> "Check":
+    def has_dims(
+        cls,
+        dims: Union[tuple[str, ...], list[str]],
+        **kwargs,
+    ) -> "Check":
         """Require dimension names (order-independent) on an xarray object.
+
+        :param dims: Tuple or list of dimension name strings.
 
         Prefer :class:`~pandera.api.xarray.container.DataArraySchema` /
         :class:`~pandera.api.xarray.container.DatasetSchema` ``dims=`` when
@@ -766,8 +753,14 @@ class Check(BaseCheck):
         )
 
     @classmethod
-    def has_coords(cls, *coords: str, **kwargs) -> "Check":
+    def has_coords(
+        cls,
+        coords: Union[tuple[str, ...], list[str]],
+        **kwargs,
+    ) -> "Check":
         """Require coordinate names on an xarray object.
+
+        :param coords: Tuple or list of coordinate name strings.
 
         Prefer schema ``coords=`` when declaring a full
         :class:`~pandera.api.xarray.container.DataArraySchema` /
@@ -783,27 +776,23 @@ class Check(BaseCheck):
         )
 
     @classmethod
-    def has_attrs(cls, **kwargs) -> "Check":
+    def has_attrs(
+        cls,
+        attrs: dict[str, Any],
+        **kwargs,
+    ) -> "Check":
         """Match key-value pairs on ``.attrs`` (xarray).
+
+        :param attrs: Dictionary of attribute name-value pairs to require.
 
         Prefer schema ``attrs=`` on
         :class:`~pandera.api.xarray.container.DataArraySchema` /
         :class:`~pandera.api.xarray.container.DatasetSchema` when that is the
         primary contract.
-
-        Arguments also accepted by :class:`Check` (``error``, ``name``, etc.)
-        are interpreted as check options; all others are attribute matches.
         """
-        opts: dict[str, Any] = {}
-        attrs: dict[str, Any] = {}
-        for key, val in kwargs.items():
-            if key in _ATTR_CHECK_OPTS:
-                opts[key] = val
-            else:
-                attrs[key] = val
         return cls.from_builtin_check_name(
             "has_attrs",
-            opts,
+            kwargs,
             error=f"has_attrs({attrs})",
             statistics={"attrs": attrs},
             attrs=attrs,

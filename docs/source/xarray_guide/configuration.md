@@ -1,5 +1,5 @@
 ---
-file_format: myst
+file_format: mystnb
 ---
 
 (xarray-configuration)=
@@ -27,11 +27,22 @@ is set. Eager (NumPy-backed) arrays default to `SCHEMA_AND_DATA`.
 
 Set the validation depth explicitly:
 
-```python
+```{code-cell} python
+import numpy as np
+import xarray as xr
+import pandera.xarray as pa
 from pandera.config import ValidationDepth, config_context
 
+schema = pa.DataArraySchema(
+    dtype=np.float64,
+    dims=("x",),
+    checks=pa.Check(lambda da: float(da.min()) >= 0),
+)
+
+da = xr.DataArray(np.ones(5), dims="x")
+
 with config_context(validation_depth=ValidationDepth.SCHEMA_AND_DATA):
-    schema.validate(dask_backed_da)
+    schema.validate(da)
 ```
 
 Or set the environment variable before running your program:
@@ -55,7 +66,14 @@ in this order:
 
 Set `PANDERA_VALIDATION_ENABLED=false` (env var) or use
 `config_context(validation_enabled=False)` to make `validate()` a no-op that
-returns the input unchanged.
+returns the input unchanged:
+
+```{code-cell} python
+with config_context(validation_enabled=False):
+    bad_da = xr.DataArray([-999], dims="z", name="wrong")
+    result = schema.validate(bad_da)
+    print(f"Validation skipped, returned: {result.values}")
+```
 
 ## See also
 
