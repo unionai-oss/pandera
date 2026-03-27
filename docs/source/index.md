@@ -159,6 +159,7 @@ pip install 'pandera[modin-dask]'   # validate modin dataframes with dask
 pip install 'pandera[geopandas]'    # validate geopandas geodataframes
 pip install 'pandera[polars]'       # validate polars dataframes
 pip install 'pandera[ibis]'         # validate ibis tables
+pip install 'pandera[xarray']       # validate xarray data structures
 ```
 :::
 
@@ -426,7 +427,7 @@ Official Website <https://union.ai/pandera>
 ```
 
 ```{toctree}
-:caption: User Guide
+:caption: Basics
 :hidden: true
 :maxdepth: 6
 
@@ -435,20 +436,35 @@ dataframe_models
 series_schemas
 dtype_validation
 checks
+dtypes
+lazy_validation
+error_report
+```
+
+```{toctree}
+:caption: Advanced
+:hidden: true
+:maxdepth: 6
+
 hypothesis
 parsers
-dtypes
 decorators
 drop_invalid_rows
 schema_inference
-lazy_validation
-error_report
 data_synthesis_strategies
-extensions
 data_format_conversion
-supported_libraries
-integrations
+extensions
 configuration
+```
+
+```{toctree}
+:caption: Integrations
+:hidden: true
+:maxdepth: 6
+
+supported_libraries
+xarray_guide/index
+integrations
 ```
 
 ```{toctree}

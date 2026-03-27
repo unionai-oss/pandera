@@ -1,0 +1,93 @@
+---
+file_format: myst
+---
+
+(xarray-guide)=
+
+# Xarray Data Validation
+
+[xarray](https://docs.xarray.dev/) provides labelled multi-dimensional arrays
+{class}`~xarray.DataArray`, collections of aligned arrays
+{class}`~xarray.Dataset`, and collections of datasets with {class}`~xarray.DataTree`.
+
+Pandera validates them with the same patterns as the other dataframe backends:
+schema objects, optional {class}`~pandera.api.checks.Check`
+instances, and global {ref}`configuration <configuration>`.
+
+## Installation
+
+```bash
+pip install 'pandera[xarray]'
+```
+
+## Quick start
+
+```python
+import numpy as np
+import xarray as xr
+import pandera.xarray as pa
+
+schema = pa.DatasetSchema(
+    data_vars={
+        "temperature": pa.DataVar(dtype=np.float64, dims=("x", "y")),
+        "pressure": pa.DataVar(dtype=np.float64, dims=("x", "y")),
+    },
+    coords={"x": pa.Coordinate(dtype=np.float64)},
+)
+
+ds = xr.Dataset(
+    {
+        "temperature": (("x", "y"), np.random.rand(3, 4)),
+        "pressure": (("x", "y"), np.random.rand(3, 4)),
+    },
+    coords={"x": np.arange(3, dtype=np.float64)},
+)
+schema.validate(ds)
+```
+
+## Dataset Model
+
+```python
+from pandera.typing.xarray import Coordinate
+
+class Surface(pa.DatasetModel):
+    temperature: np.float64 = pa.Field(dims=("x", "y"))
+    pressure: np.float64 = pa.Field(dims=("x", "y"))
+    x: Coordinate[np.float64]
+
+Surface.validate(ds)
+```
+
+## Guide contents
+
+```{toctree}
+:maxdepth: 2
+:hidden:
+
+data_array_schema
+dataset_schema
+data_models
+checks_and_parsers
+decorators
+configuration
+```
+
+- {ref}`xarray-data-array-schema` — validating a single {class}`~xarray.DataArray`
+- {ref}`xarray-dataset-schema` — validating a {class}`~xarray.Dataset` with `DataVar` and `Coordinate`
+- {ref}`xarray-data-models` — class-based `DataArrayModel` and `DatasetModel`
+- {ref}`xarray-checks-parsers` — checks, parsers, and lazy validation
+- {ref}`xarray-decorators` — `check_input`, `check_output`, `check_io`, and `check_types`
+- {ref}`xarray-configuration` — validation depth, Dask, and environment variables
+
+## Design note
+
+The [xarray integration spec](https://github.com/pandera-dev/pandera/blob/main/specs/xarray.md)
+(`specs/xarray.md` in the repository) describes motivation, data-model mapping,
+and roadmap (including future `DataTree` support).
+
+## See also
+
+- {ref}`supported-dataframe-libraries` — other backends
+- {ref}`checks` — general `Check` behaviour
+- {ref}`lazy-validation` — `lazy=True` and `SchemaErrors`
+- {ref}`configuration` — `ValidationDepth` and environment variables

@@ -13,9 +13,12 @@ from pandera import errors
 from pandera.api.checks import Check
 from pandera.api.xarray import (
     Coordinate,
+    DataArrayModel,
     DataArraySchema,
+    DatasetModel,
     DatasetSchema,
     DataVar,
+    Field,
     XarrayData,
     get_validation_depth,
 )
@@ -31,9 +34,12 @@ __all__ = [
     "check_types",
     "Check",
     "Coordinate",
+    "DataArrayModel",
     "DataArraySchema",
-    "DataVar",
+    "DatasetModel",
     "DatasetSchema",
+    "DataVar",
+    "Field",
     "errors",
     "get_validation_depth",
     "XarrayData",

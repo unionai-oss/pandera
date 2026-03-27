@@ -266,6 +266,7 @@ intersphinx_mapping = {
     "modin": ("https://modin.readthedocs.io/en/latest/", None),
     "polars": ("https://docs.pola.rs/py-polars/html/", None),
     "typeguard": ("https://typeguard.readthedocs.io/en/stable/", None),
+    "xarray": ("https://docs.xarray.dev/en/stable/", None),
 }
 
 # strip prompts
