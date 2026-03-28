@@ -211,3 +211,238 @@ def test_chunked_data_checks_when_validation_depth_includes_data():
     with config_context(validation_depth=ValidationDepth.SCHEMA_AND_DATA):
         with pytest.raises(pandera.errors.SchemaErrors):
             schema.validate(da, lazy=True)
+
+
+# -------------------------------------------------------------------
+# Unit tests for individual @validate_scope check methods
+# -------------------------------------------------------------------
+
+
+class TestDataArrayCheckMethods:
+    """Test individual check methods on the backend."""
+
+    @pytest.fixture()
+    def backend(self):
+        from pandera.backends.xarray.container import (
+            DataArraySchemaBackend,
+        )
+
+        return DataArraySchemaBackend()
+
+    def test_check_name_pass(self, backend):
+        da = xr.DataArray(np.zeros(2), dims="x", name="a")
+        schema = DataArraySchema(name="a")
+        result = backend.check_name(da, schema)
+        assert result.passed
+
+    def test_check_name_fail(self, backend):
+        da = xr.DataArray(np.zeros(2), dims="x", name="b")
+        schema = DataArraySchema(name="a")
+        result = backend.check_name(da, schema)
+        assert not result.passed
+        assert "expected name" in result.message
+
+    def test_check_name_none_passes(self, backend):
+        da = xr.DataArray(np.zeros(2), dims="x", name="b")
+        schema = DataArraySchema(name=None)
+        result = backend.check_name(da, schema)
+        assert result.passed
+
+    def test_check_dims_pass(self, backend):
+        da = xr.DataArray(np.zeros((2, 3)), dims=("x", "y"))
+        schema = DataArraySchema(dims=("x", "y"))
+        results = backend.check_dims(da, schema)
+        assert all(r.passed for r in results) or len(results) == 0
+
+    def test_check_dims_wrong_name(self, backend):
+        da = xr.DataArray(np.zeros((2, 3)), dims=("x", "y"))
+        schema = DataArraySchema(dims=("x", "z"))
+        results = backend.check_dims(da, schema)
+        assert any(not r.passed for r in results)
+
+    def test_check_dims_wrong_length(self, backend):
+        da = xr.DataArray(np.zeros((2, 3)), dims=("x", "y"))
+        schema = DataArraySchema(dims=("x",))
+        results = backend.check_dims(da, schema)
+        assert any(not r.passed for r in results)
+        assert "ndim/dims length" in results[0].message
+
+    def test_check_sizes_pass(self, backend):
+        da = xr.DataArray(np.zeros((2, 3)), dims=("x", "y"))
+        schema = DataArraySchema(sizes={"x": 2, "y": 3})
+        results = backend.check_sizes(da, schema)
+        assert len(results) == 0
+
+    def test_check_sizes_fail(self, backend):
+        da = xr.DataArray(np.zeros((2, 3)), dims=("x", "y"))
+        schema = DataArraySchema(sizes={"x": 99})
+        results = backend.check_sizes(da, schema)
+        assert len(results) == 1
+        assert not results[0].passed
+
+    def test_check_shape_pass(self, backend):
+        da = xr.DataArray(np.zeros((2, 3)), dims=("x", "y"))
+        schema = DataArraySchema(shape=(2, 3))
+        results = backend.check_shape(da, schema)
+        assert len(results) == 0
+
+    def test_check_shape_fail(self, backend):
+        da = xr.DataArray(np.zeros((2, 3)), dims=("x", "y"))
+        schema = DataArraySchema(shape=(2, 99))
+        results = backend.check_shape(da, schema)
+        assert len(results) == 1
+        assert not results[0].passed
+
+    def test_check_dtype_pass(self, backend):
+        da = xr.DataArray(np.zeros(2), dims="x")
+        schema = DataArraySchema(dtype=np.float64)
+        result = backend.check_dtype(da, schema)
+        assert result.passed
+
+    def test_check_dtype_fail(self, backend):
+        da = xr.DataArray(np.zeros(2), dims="x")
+        schema = DataArraySchema(dtype=np.int64)
+        result = backend.check_dtype(da, schema)
+        assert not result.passed
+        assert "expected dtype" in result.message
+
+    def test_check_chunked_eager_pass(self, backend):
+        da = xr.DataArray(np.zeros(2), dims="x")
+        schema = DataArraySchema(chunked=False)
+        result = backend.check_chunked(da, schema)
+        assert result.passed
+
+    def test_check_chunked_eager_fail(self, backend):
+        da = xr.DataArray(np.zeros(2), dims="x")
+        schema = DataArraySchema(chunked=True)
+        result = backend.check_chunked(da, schema)
+        assert not result.passed
+
+    def test_check_array_type_pass(self, backend):
+        da = xr.DataArray(np.zeros(2), dims="x")
+        schema = DataArraySchema(array_type=np.ndarray)
+        result = backend.check_array_type(da, schema)
+        assert result.passed
+
+    def test_check_array_type_fail(self, backend):
+        da = xr.DataArray(np.zeros(2), dims="x")
+        schema = DataArraySchema(array_type=list)
+        result = backend.check_array_type(da, schema)
+        assert not result.passed
+
+    def test_check_nullable_pass(self, backend):
+        da = xr.DataArray(np.array([1.0, 2.0]), dims="x")
+        schema = DataArraySchema(nullable=False)
+        result = backend.check_nullable(da, schema)
+        assert result.passed
+
+    def test_check_nullable_fail(self, backend):
+        da = xr.DataArray(
+            np.array([1.0, np.nan]), dims="x"
+        )
+        schema = DataArraySchema(nullable=False)
+        result = backend.check_nullable(da, schema)
+        assert not result.passed
+
+    def test_check_attrs_pass(self, backend):
+        da = xr.DataArray(
+            np.zeros(2), dims="x", attrs={"a": 1}
+        )
+        schema = DataArraySchema(attrs={"a": 1})
+        results = backend.check_attrs(da, schema)
+        assert len(results) == 0
+
+    def test_check_attrs_fail(self, backend):
+        da = xr.DataArray(
+            np.zeros(2), dims="x", attrs={"a": 2}
+        )
+        schema = DataArraySchema(attrs={"a": 1})
+        results = backend.check_attrs(da, schema)
+        assert len(results) == 1
+        assert not results[0].passed
+
+    def test_check_strict_attrs_pass(self, backend):
+        da = xr.DataArray(
+            np.zeros(2), dims="x", attrs={"a": 1}
+        )
+        schema = DataArraySchema(
+            attrs={"a": 1}, strict_attrs=True
+        )
+        results = backend.check_strict_attrs(da, schema)
+        assert len(results) == 0
+
+    def test_check_strict_attrs_fail(self, backend):
+        da = xr.DataArray(
+            np.zeros(2),
+            dims="x",
+            attrs={"a": 1, "extra": 2},
+        )
+        schema = DataArraySchema(
+            attrs={"a": 1}, strict_attrs=True
+        )
+        results = backend.check_strict_attrs(da, schema)
+        assert len(results) == 1
+        assert "unexpected attribute" in results[0].message
+
+    def test_check_coords_pass(self, backend):
+        da = xr.DataArray(
+            np.zeros(2),
+            dims="x",
+            coords={"x": ("x", np.arange(2))},
+        )
+        schema = DataArraySchema(coords=["x"])
+        results = backend.check_coords(da, schema)
+        assert len(results) == 0
+
+    def test_check_coords_missing(self, backend):
+        da = xr.DataArray(np.zeros(2), dims="x")
+        schema = DataArraySchema(
+            coords={"y": Coordinate()}
+        )
+        results = backend.check_coords(da, schema)
+        assert any(not r.passed for r in results)
+
+    def test_check_strict_coords_pass(self, backend):
+        da = xr.DataArray(
+            np.zeros(2),
+            dims="x",
+            coords={"x": ("x", np.arange(2))},
+        )
+        schema = DataArraySchema(
+            coords=["x"], strict_coords=True
+        )
+        results = backend.check_strict_coords(da, schema)
+        assert len(results) == 0
+
+    def test_check_strict_coords_fail(self, backend):
+        da = xr.DataArray(
+            np.zeros(2),
+            dims="x",
+            coords={
+                "x": ("x", np.arange(2)),
+                "extra": ("x", np.zeros(2)),
+            },
+        )
+        schema = DataArraySchema(
+            coords=["x"], strict_coords=True
+        )
+        results = backend.check_strict_coords(da, schema)
+        assert any(not r.passed for r in results)
+
+    def test_schema_scope_checks_skipped_with_data_only(
+        self, backend
+    ):
+        from pandera.config import (
+            ValidationDepth,
+            config_context,
+        )
+
+        da = xr.DataArray(
+            np.zeros(2), dims="x", name="wrong"
+        )
+        schema = DataArraySchema(name="correct")
+        with config_context(
+            validation_depth=ValidationDepth.DATA_ONLY
+        ):
+            result = backend.check_name(da, schema)
+        assert result.passed
