@@ -33,6 +33,7 @@ EXTRAS_REQUIRING_PANDAS = frozenset(
         "fastapi",
         "hypotheses",
         "strategies",
+        "xarray",
     ]
 )
 
