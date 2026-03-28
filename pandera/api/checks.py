@@ -729,6 +729,143 @@ class Check(BaseCheck):
             values=values_mod,
         )
 
+    @classmethod
+    def has_dims(
+        cls,
+        dims: Union[tuple[str, ...], list[str]],
+        **kwargs,
+    ) -> "Check":
+        """Require dimension names (order-independent) on an xarray object.
+
+        :param dims: Tuple or list of dimension name strings.
+
+        Prefer :class:`~pandera.api.xarray.container.DataArraySchema` /
+        :class:`~pandera.api.xarray.container.DatasetSchema` ``dims=`` when
+        defining a schema; use this for dataset-level or ad hoc checks.
+        """
+        d_t = tuple(dims)
+        return cls.from_builtin_check_name(
+            "has_dims",
+            kwargs,
+            error=f"has_dims{d_t}",
+            statistics={"dims": d_t},
+            dims=d_t,
+        )
+
+    @classmethod
+    def has_coords(
+        cls,
+        coords: Union[tuple[str, ...], list[str]],
+        **kwargs,
+    ) -> "Check":
+        """Require coordinate names on an xarray object.
+
+        :param coords: Tuple or list of coordinate name strings.
+
+        Prefer schema ``coords=`` when declaring a full
+        :class:`~pandera.api.xarray.container.DataArraySchema` /
+        :class:`~pandera.api.xarray.container.DatasetSchema`.
+        """
+        c_t = tuple(coords)
+        return cls.from_builtin_check_name(
+            "has_coords",
+            kwargs,
+            error=f"has_coords{c_t}",
+            statistics={"coords": c_t},
+            coords=c_t,
+        )
+
+    @classmethod
+    def has_attrs(
+        cls,
+        attrs: dict[str, Any],
+        **kwargs,
+    ) -> "Check":
+        """Match key-value pairs on ``.attrs`` (xarray).
+
+        :param attrs: Dictionary of attribute name-value pairs to require.
+
+        Prefer schema ``attrs=`` on
+        :class:`~pandera.api.xarray.container.DataArraySchema` /
+        :class:`~pandera.api.xarray.container.DatasetSchema` when that is the
+        primary contract.
+        """
+        return cls.from_builtin_check_name(
+            "has_attrs",
+            kwargs,
+            error=f"has_attrs({attrs})",
+            statistics={"attrs": attrs},
+            attrs=attrs,
+        )
+
+    @classmethod
+    def ndim(cls, n: int, **kwargs) -> "Check":
+        """Assert dimensionality (``DataArray.ndim`` or ``len(Dataset.dims)``).
+
+        Often redundant with an explicit ``dims=`` tuple on the schema; kept for
+        dataset-level checks and parity with a single scalar constraint.
+        """
+        return cls.from_builtin_check_name(
+            "ndim",
+            kwargs,
+            error=f"ndim({n})",
+            statistics={"n": n},
+            n=n,
+        )
+
+    @classmethod
+    def dim_size(cls, dim: str, size: int, **kwargs) -> "Check":
+        """Assert ``data.sizes[dim] == size``.
+
+        Prefer schema ``sizes={dim: size}`` when defining a
+        :class:`~pandera.api.xarray.container.DataArraySchema` or
+        :class:`~pandera.api.xarray.container.DatasetSchema`.
+        """
+        return cls.from_builtin_check_name(
+            "dim_size",
+            kwargs,
+            error=f"dim_size({dim!r}, {size})",
+            statistics={"dim": dim, "size": size},
+            dim=dim,
+            size=size,
+        )
+
+    @classmethod
+    def is_monotonic(
+        cls,
+        dim: str,
+        increasing: bool = True,
+        **kwargs,
+    ) -> "Check":
+        """Assert a 1-D coordinate is strictly monotonic along ``dim``.
+
+        This is a **value** constraint on coordinate labels, not usually expressed
+        by ``dims`` / ``sizes`` alone.
+        """
+        return cls.from_builtin_check_name(
+            "is_monotonic",
+            kwargs,
+            error=f"is_monotonic({dim!r}, increasing={increasing})",
+            statistics={"dim": dim, "increasing": increasing},
+            dim=dim,
+            increasing=increasing,
+        )
+
+    @classmethod
+    def no_duplicates_in_coord(cls, coord: str, **kwargs) -> "Check":
+        """Assert coordinate values are unique.
+
+        A **value**-level constraint on the coordinate index; not implied by
+        schema ``dims`` or ``coords`` presence alone.
+        """
+        return cls.from_builtin_check_name(
+            "no_duplicates_in_coord",
+            kwargs,
+            error=f"no_duplicates_in_coord({coord!r})",
+            statistics={"coord": coord},
+            coord=coord,
+        )
+
     # Aliases
     # -------
 

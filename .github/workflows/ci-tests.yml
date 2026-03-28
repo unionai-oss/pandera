@@ -11,6 +11,7 @@ on:
       - main
       - dev
       - ibis-dev
+      - dev/xarray
       - bugfix
       - "release/*"
 
@@ -231,6 +232,7 @@ jobs:
         - modin-dask
         - modin-ray
         - ibis
+        - xarray
         include:
         - extra: polars
           polars-version: "0.20.0"

@@ -133,7 +133,9 @@ class ColumnBackend(PolarsSchemaBackend):
         if error_handler.collected_errors:
             if lazy:
                 if getattr(schema, "drop_invalid_rows", False):
-                    check_obj = self.drop_invalid_rows(check_obj, error_handler)
+                    check_obj = self.drop_invalid_rows(
+                        check_obj, error_handler
+                    )
                 else:
                     raise SchemaErrors(
                         schema=schema,

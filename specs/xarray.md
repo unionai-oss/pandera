@@ -9,6 +9,22 @@
 
 ---
 
+## User-facing documentation
+
+End-user guides (installation, `DataArraySchema` / `DatasetSchema`, checks, and
+validation depth for Dask-backed data) live in the Sphinx source tree:
+
+- [`docs/source/xarray_guide/index.md`](../docs/source/xarray_guide/index.md)
+  — landing page and toctree
+- Subpages: `data_array_schema.md`, `dataset_schema.md`,
+  `xarray_models.md` (`DataArrayModel` / `DatasetModel`),
+  `checks_configuration.md`
+
+The built site lists this under **Integrations → Xarray**. This spec remains the
+design and roadmap document; the guide targets library users, not implementers.
+
+---
+
 ## 1. Motivation
 
 [xarray](https://docs.xarray.dev) is the dominant Python library for
@@ -1287,6 +1303,11 @@ The xarray backend respects pandera's global configuration:
 
 `SCHEMA_ONLY` skips data-level `Check` execution and only validates
 structural properties (dims, shape, dtype, coords, attrs).
+
+When `PANDERA_VALIDATION_DEPTH` is unset, chunked (Dask-backed) DataArrays and
+Datasets default to `SCHEMA_ONLY` for data-level checks (Polars LazyFrame
+behavior). Set `SCHEMA_AND_DATA` or `DATA_ONLY` to run checks that would
+compute lazy arrays. Eager arrays default to `SCHEMA_AND_DATA`.
 
 ---
 
