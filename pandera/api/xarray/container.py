@@ -214,7 +214,7 @@ class DatasetSchema(_BaseDatasetSchema):
         self,
         data_vars: dict[str, Union[DataVar, DataArraySchema, None]]
         | None = None,
-        coords: dict[str, Any] | None = None,
+        coords: dict[str, Any] | list[str] | None = None,
         dims: Union[tuple[str, ...], list[str], dict[str, str]] | None = None,
         sizes: dict[str, int | None] | None = None,
         attrs: dict[str, Any] | None = None,
