@@ -180,7 +180,6 @@ jobs:
         - strategies
         - fastapi
         - geopandas
-        - xarray
         exclude:
         - extra: mypy
           os: windows-latest
@@ -233,6 +232,7 @@ jobs:
         - modin-dask
         - modin-ray
         - ibis
+        - xarray
         include:
         - extra: polars
           polars-version: "0.20.0"

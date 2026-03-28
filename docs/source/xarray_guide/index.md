@@ -79,12 +79,6 @@ configuration
 - {ref}`xarray-decorators` — `check_input`, `check_output`, `check_io`, and `check_types`
 - {ref}`xarray-configuration` — validation depth, Dask, and environment variables
 
-## Design note
-
-The [xarray integration spec](https://github.com/pandera-dev/pandera/blob/main/specs/xarray.md)
-(`specs/xarray.md` in the repository) describes motivation, data-model mapping,
-and roadmap (including future `DataTree` support).
-
 ## See also
 
 - {ref}`supported-dataframe-libraries` — other backends
