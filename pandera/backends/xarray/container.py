@@ -709,7 +709,30 @@ class DatasetSchemaBackend(XarraySchemaBackend):
 
         logical_to_actual: dict[str, str] = {}
         for logical, spec in schema.data_vars.items():
-            logical_to_actual[logical] = self._resolve_var_name(logical, spec)  # noqa: E501
+            actual = self._resolve_var_name(logical, spec)
+            logical_to_actual[logical] = actual
+
+        actual_to_logicals: dict[str, list[str]] = {}
+        for logical, actual in logical_to_actual.items():
+            actual_to_logicals.setdefault(actual, []).append(logical)
+        dupes = {
+            a: lgs
+            for a, lgs in actual_to_logicals.items()
+            if len(lgs) > 1
+        }
+        if dupes:
+            detail = ", ".join(
+                f"{a!r} <- {lgs}" for a, lgs in dupes.items()
+            )
+            raise SchemaError(
+                schema,
+                data=ds,
+                message=(
+                    "multiple data_vars resolve to the same "
+                    f"actual variable name: {detail}"
+                ),
+                reason_code=SchemaErrorReason.DUPLICATES,
+            )
 
         planned = {logical_to_actual[k] for k in schema.data_vars}
         extras = [v for v in ds.data_vars if v not in planned]
