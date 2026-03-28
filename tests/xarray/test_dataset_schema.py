@@ -99,6 +99,55 @@ def test_alias():
     schema.validate(ds)
 
 
+def test_duplicate_alias_raises():
+    """Two logical data_vars that resolve to the same actual name."""
+    ds = xr.Dataset({"temp_c": (["x"], np.zeros(2))})
+    schema = DatasetSchema(
+        data_vars={
+            "temperature": DataVar(alias="temp_c", dims=("x",)),
+            "temp_alias": DataVar(alias="temp_c", dims=("x",)),
+        },
+    )
+    with pytest.raises(
+        pandera.errors.SchemaError,
+        match="multiple data_vars resolve to the same actual variable name",
+    ):
+        schema.validate(ds)
+
+
+def test_alias_collides_with_logical_name_raises():
+    """An alias that matches another logical key's resolved name."""
+    ds = xr.Dataset({"temp_c": (["x"], np.zeros(2))})
+    schema = DatasetSchema(
+        data_vars={
+            "temp_c": DataVar(dims=("x",)),
+            "temperature": DataVar(alias="temp_c", dims=("x",)),
+        },
+    )
+    with pytest.raises(
+        pandera.errors.SchemaError,
+        match="multiple data_vars resolve to the same actual variable name",
+    ):
+        schema.validate(ds)
+
+
+def test_distinct_aliases_pass():
+    """Different aliases should not trigger the duplicate check."""
+    ds = xr.Dataset(
+        {
+            "temp_c": (["x"], np.zeros(2)),
+            "pres_hpa": (["x"], np.ones(2)),
+        }
+    )
+    schema = DatasetSchema(
+        data_vars={
+            "temperature": DataVar(alias="temp_c", dims=("x",)),
+            "pressure": DataVar(alias="pres_hpa", dims=("x",)),
+        },
+    )
+    schema.validate(ds)
+
+
 def test_validate_leaves_shared_datavar_spec_unmutated():
     dv = DataVar(dtype=np.float64, dims=("x",))
     schema = DatasetSchema(
