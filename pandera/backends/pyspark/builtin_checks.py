@@ -1,7 +1,8 @@
 """Built-in checks for PySpark."""
 
+import re
 from collections.abc import Iterable
-from typing import Any, TypeVar
+from typing import Any, TypeVar, Union
 
 import pyspark.sql.types as pst
 from pyspark.sql.functions import col
@@ -266,6 +267,33 @@ def notin(
         data.dataframe.filter(
             col(data.column_name).isin(list(forbidden_values))
         )
+        .limit(1)
+        .count()
+        == 0
+    )
+
+
+@register_builtin_check(
+    error="str_matches('{pattern}')",
+)
+@register_input_datatypes(acceptable_datatypes=convert_to_list(STRING_TYPE))
+def str_matches(
+    data: PysparkDataframeColumnObject,
+    pattern: Union[str, re.Pattern],
+) -> bool:
+    """Ensure that all values start with a match of a regular expression pattern.
+
+    Remember it can be a compute intensive check on large dataset. So, use it with caution.
+
+    :param data: NamedTuple PysparkDataframeColumnObject contains the dataframe and column name for the check. The key
+        to access the dataframe is "dataframe", and the key to access the column name is "column_name".
+    :param pattern: Regular expression pattern to use for matching.
+    """
+    pattern = pattern.pattern if isinstance(pattern, re.Pattern) else pattern
+    if not pattern.startswith("^"):
+        pattern = f"^{pattern}"
+    return (
+        data.dataframe.filter(~col(data.column_name).rlike(pattern))
         .limit(1)
         .count()
         == 0
