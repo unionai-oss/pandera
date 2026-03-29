@@ -12,6 +12,7 @@ from pandera.api.hypotheses import Hypothesis
 from pandera.api.parsers import Parser
 from pandera.api.xarray.base import BaseDataArraySchema as _BaseDataArraySchema
 from pandera.api.xarray.base import BaseDatasetSchema as _BaseDatasetSchema
+from pandera.api.xarray.base import BaseDataTreeSchema as _BaseDataTreeSchema
 from pandera.api.xarray.utils import get_validation_depth
 from pandera.config import config_context, get_config_context
 from pandera.errors import BackendNotFoundError, SchemaDefinitionError
@@ -191,6 +192,129 @@ class DataArraySchema(_BaseDataArraySchema):
         lazy: bool = False,
         inplace: bool = False,
     ) -> xr.DataArray:
+        return self.get_backend(check_obj).validate(
+            check_obj,
+            schema=self,
+            head=head,
+            tail=tail,
+            sample=sample,
+            random_state=random_state,
+            lazy=lazy,
+            inplace=inplace,
+        )
+
+    @staticmethod
+    def register_default_backends(check_obj_cls: type):
+        from pandera.backends.xarray.register import register_xarray_backends
+
+        _cls = check_obj_cls
+        try:
+            register_xarray_backends(f"{_cls.__module__}.{_cls.__name__}")
+        except BackendNotFoundError:
+            for base_cls in _cls.__bases__:
+                base_cls_name = f"{base_cls.__module__}.{base_cls.__name__}"
+                try:
+                    register_xarray_backends(base_cls_name)
+                except BackendNotFoundError:
+                    pass
+
+
+class DataTreeSchema(_BaseDataTreeSchema):
+    """Validate an :class:`xarray.DataTree`.
+
+    A ``DataTree`` is a hierarchical tree of datasets.  This schema
+    validates both the node-level dataset (via ``dataset``) and the child
+    nodes (via ``children``).  Children can be specified by direct name
+    or ``/``-separated paths.
+    """
+
+    def __init__(
+        self,
+        children: dict[str, "DatasetSchema | DataTreeSchema"]
+        | None = None,
+        dataset: Optional["DatasetSchema"] = None,
+        attrs: dict[str, Any] | None = None,
+        checks: CheckList | None = None,
+        strict: bool = False,
+        name: str | None = None,
+        title: str | None = None,
+        description: str | None = None,
+        metadata: dict | None = None,
+    ):
+        """Initialize a DataTreeSchema.
+
+        :param children: mapping of child node names (or ``/``-separated
+            paths) to :class:`DatasetSchema` or :class:`DataTreeSchema`.
+        :param dataset: schema for the dataset at this node.
+        :param attrs: expected node-level attributes.
+        :param checks: checks applied to the tree node.
+        :param strict: if True, fail on unexpected child nodes.
+        :param name: schema name.
+        :param title: A human-readable label for the schema.
+        :param description: An arbitrary textual description of the schema.
+        :param metadata: An optional key-value data.
+        """
+        if checks is None:
+            checks = []
+        if isinstance(checks, (Check, Hypothesis)):
+            checks = [checks]
+
+        super().__init__(
+            dtype=None,
+            checks=checks,
+            parsers=[],
+            coerce=False,
+            name=name,
+            title=title,
+            description=description,
+            metadata=metadata,
+        )
+
+        self.children = children or {}
+        self.dataset = dataset
+        self.attrs = attrs
+        self.strict = strict
+
+    def validate(
+        self,
+        check_obj: xr.DataTree,
+        head: int | None = None,
+        tail: int | None = None,
+        sample: int | None = None,
+        random_state: int | None = None,
+        lazy: bool = False,
+        inplace: bool = False,
+    ) -> xr.DataTree:
+        """Validate a DataTree.
+
+        :param check_obj: the DataTree to validate.
+        :param lazy: if True, collect all errors before raising.
+        :returns: validated DataTree.
+        """
+        if not get_config_context().validation_enabled:
+            return check_obj
+
+        with config_context(validation_depth=get_validation_depth(check_obj)):
+            return self._validate(
+                check_obj=check_obj,
+                head=head,
+                tail=tail,
+                sample=sample,
+                random_state=random_state,
+                lazy=lazy,
+                inplace=inplace,
+            )
+
+    def _validate(
+        self,
+        check_obj: xr.DataTree,
+        head: int | None = None,
+        tail: int | None = None,
+        sample: int | None = None,
+        random_state: int | None = None,
+        lazy: bool = False,
+        inplace: bool = False,
+    ) -> xr.DataTree:
         return self.get_backend(check_obj).validate(
             check_obj,
             schema=self,

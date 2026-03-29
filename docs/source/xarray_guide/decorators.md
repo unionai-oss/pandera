@@ -140,12 +140,39 @@ except pa.errors.SchemaErrors as exc:
     print(exc)
 ```
 
+For `DataTree` models:
+
+```{code-cell} python
+from pandera.typing.xarray import DataTree
+
+class SurfaceDS(pa.DatasetModel):
+    temperature: np.float64 = pa.Field(dims=("x",))
+    x: Coordinate[np.float64]
+
+class MyTree(pa.DataTreeModel):
+    surface: SurfaceDS
+
+@pa.check_types
+def process_tree(dt: DataTree[MyTree]) -> DataTree[MyTree]:
+    return dt
+
+dt = xr.DataTree.from_dict({
+    "/": xr.Dataset(),
+    "/surface": xr.Dataset(
+        {"temperature": (("x",), np.ones(3))},
+        coords={"x": np.arange(3, dtype=np.float64)},
+    ),
+})
+process_tree(dt)
+```
+
 See {ref}`decorators` for the full decorator API.
 
 ## See also
 
 - {ref}`xarray-checks-parsers` — checks, parsers, and lazy validation
 - {ref}`xarray-data-models` — class-based {class}`~pandera.api.xarray.model.DataArrayModel` / {class}`~pandera.api.xarray.model.DatasetModel`
+- {ref}`xarray-data-tree` — `DataTreeSchema` and `DataTreeModel`
 - {ref}`xarray-configuration` — {class}`~pandera.config.ValidationDepth`,
   {class}`~pandera.config.ValidationScope`, Dask, and environment variables
 - {ref}`api-xarray` — full API reference for all xarray classes
