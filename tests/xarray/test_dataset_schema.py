@@ -6,7 +6,12 @@ import pytest
 xr = pytest.importorskip("xarray")
 
 import pandera.errors
-from pandera.xarray import Check, Coordinate, DatasetSchema, DataVar
+from pandera.xarray import (
+    Check,
+    Coordinate,
+    DatasetSchema,
+    DataVar,
+)
 
 
 def test_data_vars_and_coords():
@@ -651,3 +656,108 @@ class TestDatasetCheckMethods:
         results = backend.check_strict_attrs(ds, schema)
         assert len(results) == 1
         assert "extra" in results[0].message
+# ===================================================================
+# DataVar(regex=True) pattern matching
+# ===================================================================
+
+
+class TestRegexDataVars:
+    """Tests for regex-based data variable matching."""
+
+    def test_regex_matches_multiple_vars(self):
+        ds = xr.Dataset(
+            {
+                "band_1": (["x"], np.zeros(3)),
+                "band_2": (["x"], np.ones(3)),
+                "band_3": (["x"], np.full(3, 2.0)),
+                "quality": (["x"], np.zeros(3)),
+            }
+        )
+        schema = DatasetSchema(
+            data_vars={
+                r"^band_\d+$": DataVar(
+                    dtype=np.float64,
+                    dims=("x",),
+                    regex=True,
+                ),
+                "quality": DataVar(dtype=np.float64, dims=("x",)),
+            },
+        )
+        schema.validate(ds)
+
+    def test_regex_no_match_optional(self):
+        ds = xr.Dataset({"a": (["x"], np.zeros(2))})
+        schema = DatasetSchema(
+            data_vars={
+                "a": DataVar(dims=("x",)),
+                r"^band_\d+$": DataVar(
+                    dims=("x",),
+                    regex=True,
+                    required=False,
+                ),
+            },
+        )
+        schema.validate(ds)
+
+    def test_regex_validates_matched_vars(self):
+        ds = xr.Dataset(
+            {
+                "temp_a": (["x"], np.zeros(3)),
+                "temp_b": (["x"], np.ones(3)),
+            }
+        )
+        schema = DatasetSchema(
+            data_vars={
+                r"^temp_": DataVar(
+                    dtype=np.float64,
+                    dims=("x",),
+                    checks=Check.ge(0),
+                    regex=True,
+                ),
+            },
+        )
+        schema.validate(ds)
+
+    def test_regex_validation_error(self):
+        ds = xr.Dataset(
+            {
+                "temp_a": (["x"], np.array([-1.0, 0.0, 1.0])),
+            }
+        )
+        schema = DatasetSchema(
+            data_vars={
+                r"^temp_": DataVar(
+                    dtype=np.float64,
+                    dims=("x",),
+                    checks=Check.ge(0),
+                    regex=True,
+                ),
+            },
+        )
+        with pytest.raises(pandera.errors.SchemaError):
+            schema.validate(ds)
+
+    def test_regex_with_alias_raises(self):
+        from pandera.errors import SchemaDefinitionError
+
+        with pytest.raises(SchemaDefinitionError):
+            DataVar(regex=True, alias="something")
+
+    def test_regex_strict_allows_only_matched(self):
+        ds = xr.Dataset(
+            {
+                "band_1": (["x"], np.zeros(2)),
+                "band_2": (["x"], np.ones(2)),
+                "extra": (["x"], np.zeros(2)),
+            }
+        )
+        schema = DatasetSchema(
+            data_vars={
+                r"^band_\d+$": DataVar(
+                    dims=("x",), regex=True
+                ),
+            },
+            strict=True,
+        )
+        with pytest.raises(pandera.errors.SchemaError):
+            schema.validate(ds)

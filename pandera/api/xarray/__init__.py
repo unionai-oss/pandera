@@ -6,8 +6,17 @@ from pandera.api.xarray.base import (
     BaseDataTreeSchema,
 )
 from pandera.api.xarray.components import Coordinate, DataVar
-from pandera.api.xarray.container import DataArraySchema, DatasetSchema
-from pandera.api.xarray.model import DataArrayModel, DatasetModel, Field
+from pandera.api.xarray.container import (
+    DataArraySchema,
+    DatasetSchema,
+    DataTreeSchema,
+)
+from pandera.api.xarray.model import (
+    DataArrayModel,
+    DatasetModel,
+    DataTreeModel,
+    Field,
+)
 from pandera.api.xarray.types import (
     XARRAY_CHECK_OBJECT_TYPES,
     XarrayCheckObjects,
@@ -22,6 +31,8 @@ __all__ = [
     "Coordinate",
     "DataArrayModel",
     "DataArraySchema",
+    "DataTreeModel",
+    "DataTreeSchema",
     "DataVar",
     "DatasetModel",
     "DatasetSchema",

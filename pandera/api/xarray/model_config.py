@@ -37,3 +37,11 @@ class DatasetConfig(BaseModelConfig):
     dims: tuple[str | None, ...] | None = None
     ordered_dims: bool = True
     sizes: dict[str, int | None] | None = None
+    attrs: dict[str, Any] | None = None
+
+
+class DataTreeConfig(BaseModelConfig):
+    """Options for :class:`~pandera.api.xarray.model.DataTreeModel`."""
+
+    strict: bool = False
+    attrs: dict[str, Any] | None = None

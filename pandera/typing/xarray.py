@@ -41,9 +41,16 @@ class Dataset(XarrayAnnotationBase, xr.Dataset, Generic[T]):
     __slots__ = ()
 
 
+class DataTree(XarrayAnnotationBase, xr.DataTree, Generic[T]):
+    """Annotation-only generic for :class:`xarray.DataTree`."""
+
+    __slots__ = ()
+
+
 __all__ = [
     "Coordinate",
     "DataArray",
     "Dataset",
+    "DataTree",
     "XarrayAnnotationBase",
 ]

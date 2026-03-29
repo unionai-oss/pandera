@@ -1,4 +1,4 @@
-"""Declarative :class:`DataArrayModel` and :class:`DatasetModel`."""
+"""Declarative xarray models."""
 
 from __future__ import annotations
 
@@ -25,10 +25,18 @@ from pandera.api.dataframe.model_components import (
 )
 from pandera.api.parsers import Parser
 from pandera.api.xarray.components import Coordinate, DataVar
-from pandera.api.xarray.container import DataArraySchema, DatasetSchema
+from pandera.api.xarray.container import (
+    DataArraySchema,
+    DatasetSchema,
+    DataTreeSchema,
+)
 from pandera.api.xarray.model_components import Field as XarrayField
 from pandera.api.xarray.model_components import XarrayFieldInfo
-from pandera.api.xarray.model_config import DataArrayConfig, DatasetConfig
+from pandera.api.xarray.model_config import (
+    DataArrayConfig,
+    DatasetConfig,
+    DataTreeConfig,
+)
 from pandera.errors import SchemaInitError
 from pandera.typing import AnnotationInfo
 from pandera.utils import docstring_substitution
@@ -71,6 +79,7 @@ def _all_config_keys(config_cls: type) -> frozenset[str]:
 
 _DA_KEYS = _all_config_keys(DataArrayConfig)
 _DS_KEYS = _all_config_keys(DatasetConfig)
+_DT_KEYS = _all_config_keys(DataTreeConfig)
 
 
 class _ClassDescriptor:
@@ -216,11 +225,13 @@ class _XarrayModelBase(BaseModel):
     ) -> tuple[dict[str, Any], dict[str, Any]]:
         opts: dict[str, Any] = {}
         extras: dict[str, Any] = {}
-        config_keys = (
-            _DA_KEYS
-            if getattr(cls, "_config_keys", None) == "da"
-            else _DS_KEYS
-        )
+        ck = getattr(cls, "_config_keys", None)
+        if ck == "da":
+            config_keys = _DA_KEYS
+        elif ck == "dt":
+            config_keys = _DT_KEYS
+        else:
+            config_keys = _DS_KEYS
         for name, value in vars(config).items():
             if name in config_keys:
                 opts[name] = value
@@ -604,7 +615,7 @@ class DatasetModel(_XarrayModelBase):
             dims=cfg.dims,
             ordered_dims=cfg.ordered_dims,
             sizes=cfg.sizes,
-            attrs=None,
+            attrs=cfg.attrs,
             checks=cls.__root_checks__,
             parsers=cls.__root_parsers__,
             strict=cfg.strict,
@@ -614,6 +625,80 @@ class DatasetModel(_XarrayModelBase):
         )
 
 
+def _is_dataset_model(cls: type) -> bool:
+    return isinstance(cls, type) and issubclass(cls, DatasetModel)
+
+
+class DataTreeModel(_XarrayModelBase):
+    """Declarative schema for an :class:`xarray.DataTree`.
+
+    Define child node schemas as class attributes annotated with
+    :class:`DatasetModel` subclasses.  A nested :class:`Config` provides
+    tree-level options like ``strict``.
+    """
+
+    _config_keys = "dt"
+    Config: type[DataTreeConfig] = DataTreeConfig
+
+    def __init_subclass__(cls, **kwargs: Any) -> None:
+        if _CONFIG_KEY in cls.__dict__:
+            if not hasattr(cls.Config, "name"):
+                cls.Config.name = None
+        else:
+            cls.Config = type("Config", (cls.Config,), {})
+        super().__init_subclass__(**kwargs)
+        hints = typing.get_type_hints(cls, include_extras=True)
+        for fname in hints:
+            if not _is_field(fname):
+                continue
+            if fname in cls.__dict__:
+                continue
+            ann = hints[fname]
+            ann_info = AnnotationInfo(ann)
+            inner = ann_info.arg
+            if _is_dataset_model(inner):
+                nfi = XarrayFieldInfo(nested_data_array_model=inner)
+                nfi.__set_name__(cls, fname)
+                setattr(cls, fname, nfi)
+                continue
+            field = XarrayField()
+            field.__set_name__(cls, fname)
+            setattr(cls, fname, field)
+        cls.__config__, cls.__extras__ = cls._collect_config_and_extras()
+
+    def __new__(cls, *args: Any, **kwargs: Any) -> Any:
+        return cls.validate(*args, **kwargs)
+
+    @classmethod
+    def build_schema_(cls) -> DataTreeSchema:
+        cfg = cls.__config__
+        fields = cls.__fields__
+        children: dict[str, DatasetSchema | DataTreeSchema] = {}
+        dataset_schema: DatasetSchema | None = None
+
+        for fname, (ann, fi) in fields.items():
+            inner = ann.arg
+            if _is_dataset_model(inner):
+                children[fi.name] = inner.to_schema()
+            elif isinstance(inner, type) and issubclass(
+                inner, DataTreeModel
+            ):
+                children[fi.name] = inner.to_schema()
+
+        return DataTreeSchema(
+            children=children or None,
+            dataset=dataset_schema,
+            attrs=cfg.attrs,
+            strict=cfg.strict,
+            name=cfg.name,
+        )
+
+
 Field = XarrayField
 
-__all__ = ["DataArrayModel", "DatasetModel", "Field"]
+__all__ = [
+    "DataArrayModel",
+    "DatasetModel",
+    "DataTreeModel",
+    "Field",
+]

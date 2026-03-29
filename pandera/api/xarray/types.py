@@ -12,7 +12,11 @@ class XarrayData(NamedTuple):
     key: str | None = None
 
 
-XARRAY_CHECK_OBJECT_TYPES: tuple[type, ...] = (xr.DataArray, xr.Dataset)
+XARRAY_CHECK_OBJECT_TYPES: tuple[type, ...] = (
+    xr.DataArray,
+    xr.Dataset,
+    xr.DataTree,
+)
 
 # Backwards-compatible alias (tuple of concrete types, not a Union).
 XarrayCheckObjects = XARRAY_CHECK_OBJECT_TYPES
