@@ -1,17 +1,21 @@
 """Register xarray backends."""
 
 from functools import lru_cache
-from typing import Optional
 
 from pandera.api.checks import Check
 from pandera.api.hypotheses import Hypothesis
 from pandera.api.parsers import Parser
-from pandera.api.xarray.container import DataArraySchema, DatasetSchema
+from pandera.api.xarray.container import (
+    DataArraySchema,
+    DatasetSchema,
+    DataTreeSchema,
+)
 from pandera.backends.xarray.checks import XarrayCheckBackend
 from pandera.backends.xarray.container import (
     DataArraySchemaBackend,
     DatasetSchemaBackend,
 )
+from pandera.backends.xarray.data_tree import DataTreeSchemaBackend
 from pandera.backends.xarray.hypotheses import XarrayHypothesisBackend
 from pandera.backends.xarray.parsers import XarrayParserBackend
 
@@ -46,5 +50,9 @@ def register_xarray_backends(
                 Hypothesis.register_backend(obj_type, XarrayHypothesisBackend)
                 Parser.register_backend(obj_type, XarrayParserBackend)
                 DatasetSchema.register_backend(obj_type, DatasetSchemaBackend)
+            elif obj_type is xr.DataTree:
+                DataTreeSchema.register_backend(
+                    obj_type, DataTreeSchemaBackend
+                )
         except ImportError:
             pass

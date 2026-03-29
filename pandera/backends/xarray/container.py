@@ -1200,6 +1200,56 @@ class DatasetSchemaBackend(XarraySchemaBackend):
             return logical
         return spec.alias or logical
 
+    @staticmethod
+    def _expand_regex_data_vars(
+        schema: DatasetSchema,
+        ds_var_names: list[str],
+    ) -> dict[str, DataVar | DataArraySchema | None]:
+        """Expand ``DataVar(regex=True)`` entries against *ds_var_names*.
+
+        Non-regex entries are passed through unchanged.  Each regex key
+        is compiled and matched against *ds_var_names*; for every hit a
+        concrete ``DataVar`` is inserted into the result dict with
+        ``regex=False``.
+        """
+        expanded: dict[str, DataVar | DataArraySchema | None] = {}
+        for key, spec in schema.data_vars.items():
+            if isinstance(spec, DataVar) and spec.regex:
+                pattern = re.compile(key)
+                matched = [v for v in ds_var_names if pattern.search(v)]
+                for m in matched:
+                    if m in expanded:
+                        continue
+                    expanded[m] = DataVar(
+                        required=spec.required,
+                        alias=None,
+                        regex=False,
+                        default=spec.default,
+                        aligned_with=spec.aligned_with,
+                        broadcastable_with=spec.broadcastable_with,
+                        dtype=spec.dtype,
+                        dims=spec.dims,
+                        sizes=spec.sizes,
+                        shape=spec.shape,
+                        coords=spec.coords,
+                        attrs=spec.attrs,
+                        name=m,
+                        checks=list(spec.checks),
+                        parsers=list(spec.parsers),
+                        coerce=spec.coerce,
+                        nullable=spec.nullable,
+                        chunked=spec.chunked,
+                        array_type=spec.array_type,
+                        strict_coords=spec.strict_coords,
+                        strict_attrs=spec.strict_attrs,
+                        title=spec.title,
+                        description=spec.description,
+                        metadata=spec.metadata,
+                    )
+            else:
+                expanded[key] = spec
+        return expanded
+
     def _apply_default(
         self,
         ds: Any,
@@ -1292,6 +1342,13 @@ class DatasetSchemaBackend(XarraySchemaBackend):
 
         error_handler = ErrorHandler(lazy)
         ds = self.preprocess(check_obj, inplace=inplace)
+
+        # --- expand regex data_vars patterns ---
+        expanded = self._expand_regex_data_vars(
+            schema, list(ds.data_vars)
+        )
+        schema = copy.copy(schema)
+        schema.data_vars = expanded
 
         # --- resolve logical → actual var names ---
         logical_to_actual: dict[str, str] = {}

@@ -66,6 +66,7 @@ Surface.validate(ds)
 
 data_array_schema
 dataset_schema
+data_tree
 data_models
 checks_and_parsers
 decorators
@@ -74,7 +75,8 @@ configuration
 
 - {ref}`xarray-data-array-schema` — validating a single {class}`~xarray.DataArray`
 - {ref}`xarray-dataset-schema` — validating a {class}`~xarray.Dataset` with `DataVar` and `Coordinate`
-- {ref}`xarray-data-models` — class-based `DataArrayModel` and `DatasetModel`
+- {ref}`xarray-data-tree` — validating a {class}`~xarray.DataTree` hierarchy
+- {ref}`xarray-data-models` — class-based `DataArrayModel`, `DatasetModel`, and `DataTreeModel`
 - {ref}`xarray-checks-parsers` — checks, parsers, and lazy validation
 - {ref}`xarray-decorators` — `check_input`, `check_output`, `check_io`, and `check_types`
 - {ref}`xarray-configuration` — validation depth, Dask, and environment variables

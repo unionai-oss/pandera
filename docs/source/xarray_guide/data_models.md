@@ -331,6 +331,7 @@ model. `Config` is a reserved name.
 ## See also
 
 - {ref}`xarray-data-array-schema` / {ref}`xarray-dataset-schema` — imperative API
+- {ref}`xarray-data-tree` — `DataTreeSchema` and `DataTreeModel`
 - {ref}`xarray-checks-parsers` — checks, parsers, lazy validation
 - {ref}`xarray-decorators` — `check_input`, `check_output`, `check_io`, and `check_types`
 - {ref}`xarray-configuration` — {class}`~pandera.config.ValidationDepth`,

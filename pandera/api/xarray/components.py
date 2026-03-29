@@ -169,10 +169,9 @@ class DataVar:
         description: str | None = None,
         metadata: dict | None = None,
     ):
-        if regex:
+        if regex and alias is not None:
             raise SchemaDefinitionError(
-                "DataVar(regex=True) is reserved for Phase 2 "
-                "(pattern keys in DatasetSchema)."
+                "DataVar(regex=True) cannot be combined with alias."
             )
         if aligned_with and broadcastable_with:
             overlap = set(aligned_with) & set(broadcastable_with)

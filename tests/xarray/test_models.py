@@ -88,3 +88,39 @@ def test_data_array_model_requires_data_field():
 
     with pytest.raises(pandera.errors.SchemaInitError, match="data"):
         Bad.to_schema()
+
+
+def test_dataset_model_config_attrs():
+    class DS(pa.DatasetModel):
+        a: np.float64 = pa.Field(dims=("x",))
+        x: Coordinate[np.float64]
+
+        class Config:
+            attrs = {"source": "test", "version": 1}
+
+    s = DS.to_schema()
+    assert s.attrs == {"source": "test", "version": 1}
+
+    ds = xr.Dataset(
+        {"a": (("x",), np.ones(2, dtype=np.float64))},
+        coords={"x": np.arange(2, dtype=np.float64)},
+        attrs={"source": "test", "version": 1},
+    )
+    DS.validate(ds)
+
+
+def test_dataset_model_config_attrs_fail():
+    class DS(pa.DatasetModel):
+        a: np.float64 = pa.Field(dims=("x",))
+        x: Coordinate[np.float64]
+
+        class Config:
+            attrs = {"source": "test"}
+
+    ds = xr.Dataset(
+        {"a": (("x",), np.ones(2, dtype=np.float64))},
+        coords={"x": np.arange(2, dtype=np.float64)},
+        attrs={"source": "wrong"},
+    )
+    with pytest.raises(pandera.errors.SchemaError):
+        DS.validate(ds)
