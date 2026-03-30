@@ -482,12 +482,23 @@ class InitSchema(pa.DataFrameModel):
     index: Index[int]
 
 
+class EmptyBoolSchema(pa.DataFrameModel):
+    blah_not_foo: Series[bool]
+
+
 def test_init_pandas_dataframe():
     """Test initialization of pandas.typing.DataFrame with Schema."""
     assert isinstance(
         DataFrame[InitSchema]({"col1": [1], "col2": [1.0], "col3": ["1"]}),
         DataFrame,
     )
+
+
+def test_init_pandas_dataframe_empty_dict_data():
+    """Ensure empty list inputs don't fail due to pandas float64 inference."""
+    data = DataFrame[EmptyBoolSchema]({"blah_not_foo": []})
+
+    assert isinstance(data, DataFrame)
 
 
 @pytest.mark.parametrize(

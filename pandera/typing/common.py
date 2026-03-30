@@ -125,6 +125,9 @@ class DataFrameBase(Generic[T]):
 
     default_dtype: type | None = None
 
+    def _before_schema_validate(self, schema):
+        return self
+
     def __setattr__(self, name: str, value: Any) -> None:
         object.__setattr__(self, name, value)
         if name == "__orig_class__":
@@ -148,7 +151,8 @@ class DataFrameBase(Generic[T]):
                 or pandera_accessor.schema is None
                 or pandera_accessor.schema != schema
             ):
-                self.__dict__.update(schema.validate(self).__dict__)
+                check_obj = self._before_schema_validate(schema)
+                self.__dict__.update(schema.validate(check_obj).__dict__)
                 if pandera_accessor is None:
                     pandera_accessor = getattr(self, "pandera")
                 pandera_accessor.add_schema(schema)
