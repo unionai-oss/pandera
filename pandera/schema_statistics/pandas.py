@@ -158,6 +158,24 @@ def get_series_schema_statistics(series_schema):
 
 def parse_checks(checks) -> Union[list[dict[str, Any]], None]:
     """Convert Check object to check statistics including options."""
+
+    def _has_custom_error(check: Check) -> bool:
+        """Determine whether a check has a user-defined error message."""
+        if check.error is None:
+            return False
+
+        if check.name is None or not Check.is_builtin_check(check.name):
+            return True
+
+        try:
+            default_check = getattr(Check, check.name)(
+                **(check.statistics or {})
+            )
+        except (AttributeError, TypeError, ValueError):
+            return True
+
+        return check.error != default_check.error
+
     check_statistics = []
 
     for check in checks:
@@ -179,6 +197,8 @@ def parse_checks(checks) -> Union[list[dict[str, Any]], None]:
             "n_failure_cases": check.n_failure_cases,
             "ignore_na": check.ignore_na,
         }
+        if _has_custom_error(check):
+            check_options["error"] = check.error
 
         # Filter out None values from options
         check_options = {
