@@ -254,7 +254,16 @@ schema.validate(ds_sized)
 
 ## Attributes
 
-`attrs` validates the Dataset's `.attrs` dict by key and value equality.
+`attrs` validates the Dataset's `.attrs` dict. Each value in the schema's
+`attrs` dict determines how the corresponding attribute is checked:
+
+- **Literal values** — matched by equality (`==`).
+- **Regex patterns** — strings that start with `^` are treated as regular
+  expressions and matched against `str(actual_value)` via `re.fullmatch`.
+- **Callable predicates** — any callable `(value) -> bool` is invoked with the
+  actual attribute value; validation passes when the function returns `True`.
+
+### Equality matching
 
 ```{code-cell} python
 schema = pa.DatasetSchema(
@@ -268,6 +277,71 @@ ds_attrs = xr.Dataset(
 )
 schema.validate(ds_attrs)
 ```
+
+### Regex matching
+
+Use a regex pattern (starting with `^`) to validate an attribute against a
+set of acceptable values:
+
+```{code-cell} python
+schema = pa.DatasetSchema(
+    data_vars={"temperature": pa.DataVar(dtype=float)},
+    attrs={"units": "^(K|degC|degF)$"},
+)
+
+ds_units = xr.Dataset(
+    {"temperature": (("x",), np.ones(3))},
+    attrs={"units": "K"},
+)
+schema.validate(ds_units)
+```
+
+```{code-cell} python
+ds_bad_units = xr.Dataset(
+    {"temperature": (("x",), np.ones(3))},
+    attrs={"units": "meters"},
+)
+
+try:
+    schema.validate(ds_bad_units)
+except pa.errors.SchemaError as exc:
+    print(exc)
+```
+
+### Callable predicates
+
+Pass a function that receives the attribute value and returns a boolean:
+
+```{code-cell} python
+schema = pa.DatasetSchema(
+    data_vars={"temperature": pa.DataVar(dtype=float)},
+    attrs={
+        "version": lambda v: isinstance(v, int) and v >= 2,
+    },
+)
+
+ds_v3 = xr.Dataset(
+    {"temperature": (("x",), np.ones(3))},
+    attrs={"version": 3},
+)
+schema.validate(ds_v3)
+```
+
+```{code-cell} python
+ds_v1 = xr.Dataset(
+    {"temperature": (("x",), np.ones(3))},
+    attrs={"version": 1},
+)
+
+try:
+    schema.validate(ds_v1)
+except pa.errors.SchemaError as exc:
+    print(exc)
+```
+
+All three modes also work on
+{class}`~pandera.api.xarray.container.DataArraySchema` — see
+{ref}`xarray-data-array-schema`.
 
 ## Strict mode
 
