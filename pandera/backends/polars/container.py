@@ -305,7 +305,7 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
         for col_name, col in columns.items():
             if (
                 col.required  # type: ignore
-                or col_name in check_obj
+                or col_name in check_obj.collect_schema().names()
                 or (
                     column_info.regex_match_patterns is not None
                     and col.selector in column_info.regex_match_patterns
