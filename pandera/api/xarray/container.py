@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Optional, Union
 
+from pydantic import BaseModel
+
 from pandera.api.base.types import CheckList, ParserList, StrictType
 from pandera.api.checks import Check
 from pandera.api.hypotheses import Hypothesis
@@ -12,7 +14,6 @@ from pandera.api.xarray.base import BaseDataArraySchema as _BaseDataArraySchema
 from pandera.api.xarray.base import BaseDatasetSchema as _BaseDatasetSchema
 from pandera.api.xarray.utils import get_validation_depth
 from pandera.config import config_context, get_config_context
-from pydantic import BaseModel
 from pandera.errors import BackendNotFoundError, SchemaDefinitionError
 
 if TYPE_CHECKING:
