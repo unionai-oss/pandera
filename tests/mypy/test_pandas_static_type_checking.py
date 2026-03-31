@@ -155,6 +155,17 @@ PANDAS_SERIES_ERRORS_PLUGIN = [
     },
 ]
 
+PANDERA_MODEL_COLUMN_ATTRS_ERRORS = [
+    {
+        "msg": 'List item 0 has incompatible type "int"; expected "str"',
+        "errcode": "list-item",
+    },
+    {
+        "msg": 'List item 1 has incompatible type "float"; expected "str"',
+        "errcode": "list-item",
+    },
+]
+
 
 @pytest.mark.parametrize(
     "module,config,expected_errors",
@@ -185,6 +196,12 @@ PANDAS_SERIES_ERRORS_PLUGIN = [
         ["pandas_index.py", "plugin_mypy.ini", []],
         ["pandas_series.py", "no_plugin.ini", PANDAS_SERIES_ERRORS_NO_PLUGIN],
         ["pandas_series.py", "plugin_mypy.ini", PANDAS_SERIES_ERRORS_PLUGIN],
+        [
+            "pandera_model_column_attrs.py",
+            "no_plugin.ini",
+            PANDERA_MODEL_COLUMN_ATTRS_ERRORS,
+        ],
+        ["pandera_model_column_attrs.py", "plugin_mypy_silent.ini", []],
     ],
 )
 def test_pandas_stubs_false_positives(
@@ -280,6 +297,7 @@ def test_pandas_stubs_false_positives(
         "pandas_index",
         "pandera_types",
         "pandas_series",
+        "pandera_model_column_attrs",
     ],
 )
 def test_pandas_modules_importable(module):
