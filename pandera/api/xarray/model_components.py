@@ -20,6 +20,7 @@ class XarrayFieldInfo(FieldInfo):
         self,
         *,
         dims: tuple[str, ...] | None = None,
+        ordered_dims: bool = True,
         sizes: dict[str, int | None] | None = None,
         shape: tuple[int | None, ...] | None = None,
         required: bool = True,
@@ -56,6 +57,7 @@ class XarrayFieldInfo(FieldInfo):
             metadata=metadata,
         )
         self.dims = dims
+        self.ordered_dims = ordered_dims
         self.sizes = sizes
         self.shape = shape
         self.required = required
@@ -75,6 +77,7 @@ class XarrayFieldInfo(FieldInfo):
             dtype,
             required=req,
             dims=self.dims,
+            ordered_dims=self.ordered_dims,
             sizes=self.sizes,
             shape=self.shape,
             aligned_with=self.aligned_with,
@@ -134,6 +137,7 @@ def Field(
     metadata: dict[str, Any] | None = None,
     required: bool = True,
     dims: tuple[str, ...] | None = None,
+    ordered_dims: bool = True,
     sizes: dict[str, int | None] | None = None,
     shape: tuple[int | None, ...] | None = None,
     aligned_with: tuple[str, ...] | None = None,
@@ -185,6 +189,7 @@ def Field(
         metadata=metadata,
         required=required,
         dims=dims,
+        ordered_dims=ordered_dims,
         sizes=sizes,
         shape=shape,
         aligned_with=aligned_with,

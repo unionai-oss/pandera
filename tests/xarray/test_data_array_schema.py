@@ -337,37 +337,27 @@ class TestDataArrayCheckMethods:
         assert result.passed
 
     def test_check_nullable_fail(self, backend):
-        da = xr.DataArray(
-            np.array([1.0, np.nan]), dims="x"
-        )
+        da = xr.DataArray(np.array([1.0, np.nan]), dims="x")
         schema = DataArraySchema(nullable=False)
         result = backend.check_nullable(da, schema)
         assert not result.passed
 
     def test_check_attrs_pass(self, backend):
-        da = xr.DataArray(
-            np.zeros(2), dims="x", attrs={"a": 1}
-        )
+        da = xr.DataArray(np.zeros(2), dims="x", attrs={"a": 1})
         schema = DataArraySchema(attrs={"a": 1})
         results = backend.check_attrs(da, schema)
         assert len(results) == 0
 
     def test_check_attrs_fail(self, backend):
-        da = xr.DataArray(
-            np.zeros(2), dims="x", attrs={"a": 2}
-        )
+        da = xr.DataArray(np.zeros(2), dims="x", attrs={"a": 2})
         schema = DataArraySchema(attrs={"a": 1})
         results = backend.check_attrs(da, schema)
         assert len(results) == 1
         assert not results[0].passed
 
     def test_check_strict_attrs_pass(self, backend):
-        da = xr.DataArray(
-            np.zeros(2), dims="x", attrs={"a": 1}
-        )
-        schema = DataArraySchema(
-            attrs={"a": 1}, strict_attrs=True
-        )
+        da = xr.DataArray(np.zeros(2), dims="x", attrs={"a": 1})
+        schema = DataArraySchema(attrs={"a": 1}, strict_attrs=True)
         results = backend.check_strict_attrs(da, schema)
         assert len(results) == 0
 
@@ -377,9 +367,7 @@ class TestDataArrayCheckMethods:
             dims="x",
             attrs={"a": 1, "extra": 2},
         )
-        schema = DataArraySchema(
-            attrs={"a": 1}, strict_attrs=True
-        )
+        schema = DataArraySchema(attrs={"a": 1}, strict_attrs=True)
         results = backend.check_strict_attrs(da, schema)
         assert len(results) == 1
         assert "unexpected attribute" in results[0].message
@@ -396,9 +384,7 @@ class TestDataArrayCheckMethods:
 
     def test_check_coords_missing(self, backend):
         da = xr.DataArray(np.zeros(2), dims="x")
-        schema = DataArraySchema(
-            coords={"y": Coordinate()}
-        )
+        schema = DataArraySchema(coords={"y": Coordinate()})
         results = backend.check_coords(da, schema)
         assert any(not r.passed for r in results)
 
@@ -408,9 +394,7 @@ class TestDataArrayCheckMethods:
             dims="x",
             coords={"x": ("x", np.arange(2))},
         )
-        schema = DataArraySchema(
-            coords=["x"], strict_coords=True
-        )
+        schema = DataArraySchema(coords=["x"], strict_coords=True)
         results = backend.check_strict_coords(da, schema)
         assert len(results) == 0
 
@@ -423,26 +407,141 @@ class TestDataArrayCheckMethods:
                 "extra": ("x", np.zeros(2)),
             },
         )
-        schema = DataArraySchema(
-            coords=["x"], strict_coords=True
-        )
+        schema = DataArraySchema(coords=["x"], strict_coords=True)
         results = backend.check_strict_coords(da, schema)
         assert any(not r.passed for r in results)
 
-    def test_schema_scope_checks_skipped_with_data_only(
-        self, backend
-    ):
+    def test_schema_scope_checks_skipped_with_data_only(self, backend):
         from pandera.config import (
             ValidationDepth,
             config_context,
         )
 
-        da = xr.DataArray(
-            np.zeros(2), dims="x", name="wrong"
-        )
+        da = xr.DataArray(np.zeros(2), dims="x", name="wrong")
         schema = DataArraySchema(name="correct")
-        with config_context(
-            validation_depth=ValidationDepth.DATA_ONLY
-        ):
+        with config_context(validation_depth=ValidationDepth.DATA_ONLY):
             result = backend.check_name(da, schema)
         assert result.passed
+
+    # --- ordered_dims tests ---
+
+    def test_check_dims_ordered_pass(self, backend):
+        da = xr.DataArray(
+            np.zeros((2, 3)),
+            dims=("x", "y"),
+        )
+        schema = DataArraySchema(dims=("x", "y"), ordered_dims=True)
+        results = backend.check_dims(da, schema)
+        assert len(results) == 0
+
+    def test_check_dims_ordered_fail(self, backend):
+        da = xr.DataArray(
+            np.zeros((3, 2)),
+            dims=("y", "x"),
+        )
+        schema = DataArraySchema(dims=("x", "y"), ordered_dims=True)
+        results = backend.check_dims(da, schema)
+        assert len(results) == 1
+        assert not results[0].passed
+
+    def test_check_dims_unordered_pass(self, backend):
+        da = xr.DataArray(
+            np.zeros((3, 2)),
+            dims=("y", "x"),
+        )
+        schema = DataArraySchema(dims=("x", "y"), ordered_dims=False)
+        results = backend.check_dims(da, schema)
+        assert len(results) == 0
+
+    def test_check_dims_unordered_fail(self, backend):
+        da = xr.DataArray(
+            np.zeros((3, 2)),
+            dims=("y", "x"),
+        )
+        schema = DataArraySchema(dims=("x", "z"), ordered_dims=False)
+        results = backend.check_dims(da, schema)
+        assert len(results) == 1
+        assert not results[0].passed
+
+    # --- attrs regex / callable tests ---
+
+    def test_check_attrs_regex_pass(self, backend):
+        da = xr.DataArray(
+            np.zeros(2),
+            dims="x",
+            attrs={"units": "K"},
+        )
+        schema = DataArraySchema(attrs={"units": "^(K|°C|°F)$"})
+        results = backend.check_attrs(da, schema)
+        assert len(results) == 0
+
+    def test_check_attrs_regex_fail(self, backend):
+        da = xr.DataArray(
+            np.zeros(2),
+            dims="x",
+            attrs={"units": "meters"},
+        )
+        schema = DataArraySchema(attrs={"units": "^(K|°C|°F)$"})
+        results = backend.check_attrs(da, schema)
+        assert len(results) == 1
+        assert not results[0].passed
+
+    def test_check_attrs_callable_pass(self, backend):
+        da = xr.DataArray(
+            np.zeros(2),
+            dims="x",
+            attrs={"version": 3},
+        )
+        schema = DataArraySchema(
+            attrs={"version": lambda v: isinstance(v, int) and v >= 2}
+        )
+        results = backend.check_attrs(da, schema)
+        assert len(results) == 0
+
+    def test_check_attrs_callable_fail(self, backend):
+        da = xr.DataArray(
+            np.zeros(2),
+            dims="x",
+            attrs={"version": 1},
+        )
+        schema = DataArraySchema(
+            attrs={"version": lambda v: isinstance(v, int) and v >= 2}
+        )
+        results = backend.check_attrs(da, schema)
+        assert len(results) == 1
+        assert not results[0].passed
+
+    def test_check_attrs_missing_key(self, backend):
+        da = xr.DataArray(np.zeros(2), dims="x", attrs={})
+        schema = DataArraySchema(attrs={"a": 1})
+        results = backend.check_attrs(da, schema)
+        assert len(results) == 1
+        assert "missing" in results[0].message.lower()
+
+    # --- Coordinate required tests ---
+
+    def test_check_coords_optional_absent(self, backend):
+        da = xr.DataArray(np.zeros(2), dims="x")
+        schema = DataArraySchema(coords={"label": Coordinate(required=False)})
+        results = backend.check_coords(da, schema)
+        assert len(results) == 0
+
+    def test_check_coords_optional_present(self, backend):
+        da = xr.DataArray(
+            np.zeros(2),
+            dims="x",
+            coords={
+                "label": ("x", ["a", "b"]),
+            },
+        )
+        schema = DataArraySchema(
+            coords={"label": Coordinate(required=False, dtype=str)}
+        )
+        results = backend.check_coords(da, schema)
+        assert len(results) == 0
+
+    def test_check_coords_required_missing(self, backend):
+        da = xr.DataArray(np.zeros(2), dims="x")
+        schema = DataArraySchema(coords={"label": Coordinate(required=True)})
+        results = backend.check_coords(da, schema)
+        assert any(not r.passed for r in results)

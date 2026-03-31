@@ -202,17 +202,13 @@ class TestDatasetCheckMethods:
             {"a": (["x"], np.zeros(2))},
             coords={"x": np.arange(2)},
         )
-        schema = DatasetSchema(
-            data_vars={"a": DataVar()}, dims=("x",)
-        )
+        schema = DatasetSchema(data_vars={"a": DataVar()}, dims=("x",))
         results = backend.check_dims(ds, schema)
         assert all(r.passed for r in results) or not results
 
     def test_check_dims_fail(self, backend):
         ds = xr.Dataset({"a": (["x"], np.zeros(2))})
-        schema = DatasetSchema(
-            data_vars={"a": DataVar()}, dims=("y",)
-        )
+        schema = DatasetSchema(data_vars={"a": DataVar()}, dims=("y",))
         results = backend.check_dims(ds, schema)
         assert any(not r.passed for r in results)
 
@@ -340,48 +336,28 @@ class TestDatasetCheckMethods:
     # -- data-var level checks --
 
     def test_check_strict_data_vars_pass(self, backend):
-        schema = DatasetSchema(
-            data_vars={"a": DataVar()}, strict=True
-        )
-        result = backend.check_strict_data_vars(
-            schema, extras=[]
-        )
+        schema = DatasetSchema(data_vars={"a": DataVar()}, strict=True)
+        result = backend.check_strict_data_vars(schema, extras=[])
         assert result.passed
 
     def test_check_strict_data_vars_fail(self, backend):
-        schema = DatasetSchema(
-            data_vars={"a": DataVar()}, strict=True
-        )
-        result = backend.check_strict_data_vars(
-            schema, extras=["extra"]
-        )
+        schema = DatasetSchema(data_vars={"a": DataVar()}, strict=True)
+        result = backend.check_strict_data_vars(schema, extras=["extra"])
         assert not result.passed
         assert "unexpected data variables" in result.message
 
-    def test_check_strict_data_vars_filter_noop(
-        self, backend
-    ):
-        schema = DatasetSchema(
-            data_vars={"a": DataVar()}, strict="filter"
-        )
-        result = backend.check_strict_data_vars(
-            schema, extras=["extra"]
-        )
+    def test_check_strict_data_vars_filter_noop(self, backend):
+        schema = DatasetSchema(data_vars={"a": DataVar()}, strict="filter")
+        result = backend.check_strict_data_vars(schema, extras=["extra"])
         assert result.passed
 
     def test_check_data_var_presence_pass(self, backend):
         ds = xr.Dataset({"a": (["x"], np.zeros(2))})
-        schema = DatasetSchema(
-            data_vars={"a": DataVar(dims=("x",))}
-        )
-        results = backend.check_data_var_presence(
-            ds, schema, {"a": "a"}
-        )
+        schema = DatasetSchema(data_vars={"a": DataVar(dims=("x",))})
+        results = backend.check_data_var_presence(ds, schema, {"a": "a"})
         assert not results
 
-    def test_check_data_var_presence_missing_required(
-        self, backend
-    ):
+    def test_check_data_var_presence_missing_required(self, backend):
         ds = xr.Dataset({"a": (["x"], np.zeros(2))})
         schema = DatasetSchema(
             data_vars={
@@ -395,16 +371,12 @@ class TestDatasetCheckMethods:
         assert len(results) == 1
         assert "missing required" in results[0].message
 
-    def test_check_data_var_presence_optional_ok(
-        self, backend
-    ):
+    def test_check_data_var_presence_optional_ok(self, backend):
         ds = xr.Dataset({"a": (["x"], np.zeros(2))})
         schema = DatasetSchema(
             data_vars={
                 "a": DataVar(),
-                "b": DataVar(
-                    dims=("x",), required=False
-                ),
+                "b": DataVar(dims=("x",), required=False),
             }
         )
         results = backend.check_data_var_presence(
@@ -421,9 +393,7 @@ class TestDatasetCheckMethods:
         )
         schema = DatasetSchema(
             data_vars={
-                "u": DataVar(
-                    dims=("x", "y"), aligned_with=("v",)
-                ),
+                "u": DataVar(dims=("x", "y"), aligned_with=("v",)),
                 "v": DataVar(dims=("x", "y")),
             }
         )
@@ -441,9 +411,7 @@ class TestDatasetCheckMethods:
         )
         schema = DatasetSchema(
             data_vars={
-                "u": DataVar(
-                    dims=("x",), aligned_with=("v",)
-                ),
+                "u": DataVar(dims=("x",), aligned_with=("v",)),
                 "v": DataVar(dims=("x", "y")),
             }
         )
@@ -452,27 +420,18 @@ class TestDatasetCheckMethods:
         )
         assert any(not r.passed for r in results)
 
-    def test_check_data_var_alignment_missing_peer(
-        self, backend
-    ):
-        ds = xr.Dataset(
-            {"u": (["x"], np.zeros(2))}
-        )
+    def test_check_data_var_alignment_missing_peer(self, backend):
+        ds = xr.Dataset({"u": (["x"], np.zeros(2))})
         schema = DatasetSchema(
             data_vars={
-                "u": DataVar(
-                    dims=("x",), aligned_with=("v",)
-                ),
+                "u": DataVar(dims=("x",), aligned_with=("v",)),
                 "v": DataVar(dims=("x",)),
             }
         )
         results = backend.check_data_var_alignment(
             ds, schema, {"u": "u", "v": "v"}
         )
-        assert any(
-            "missing" in (r.message or "")
-            for r in results
-        )
+        assert any("missing" in (r.message or "") for r in results)
 
     def test_check_broadcastable_with_fail(self, backend):
         ds = xr.Dataset(
@@ -493,24 +452,123 @@ class TestDatasetCheckMethods:
         results = backend.check_data_var_alignment(
             ds, schema, {"u": "u", "v": "v"}
         )
-        assert not results or all(
-            r.passed for r in results
-        )
+        assert not results or all(r.passed for r in results)
 
-    def test_schema_scope_checks_skipped_with_data_only(
-        self, backend
-    ):
+    def test_schema_scope_checks_skipped_with_data_only(self, backend):
         from pandera.config import (
             ValidationDepth,
             config_context,
         )
 
         ds = xr.Dataset({"a": (["x"], np.zeros(2))})
-        schema = DatasetSchema(
-            data_vars={"a": DataVar()}, dims=("y",)
-        )
-        with config_context(
-            validation_depth=ValidationDepth.DATA_ONLY
-        ):
+        schema = DatasetSchema(data_vars={"a": DataVar()}, dims=("y",))
+        with config_context(validation_depth=ValidationDepth.DATA_ONLY):
             result = backend.check_dims(ds, schema)
         assert result.passed
+
+    # --- ordered_dims tests ---
+
+    def test_check_dims_unordered_pass(self, backend):
+        ds = xr.Dataset(
+            {
+                "a": (["y", "x"], np.zeros((3, 2))),
+            }
+        )
+        schema = DatasetSchema(
+            data_vars={"a": DataVar()},
+            dims=("x", "y"),
+            ordered_dims=False,
+        )
+        results = backend.check_dims(ds, schema)
+        assert not results or all(r.passed for r in results)
+
+    def test_check_dims_ordered_fail(self, backend):
+        ds = xr.Dataset(
+            {
+                "a": (["y", "x"], np.zeros((3, 2))),
+            }
+        )
+        schema = DatasetSchema(
+            data_vars={"a": DataVar()},
+            dims=("x", "y"),
+            ordered_dims=True,
+        )
+        results = backend.check_dims(ds, schema)
+        assert any(not r.passed for r in results)
+
+    # --- attrs regex / callable tests ---
+
+    def test_check_attrs_regex_pass(self, backend):
+        ds = xr.Dataset(
+            {"a": (["x"], np.zeros(2))},
+            attrs={"source": "ERA5"},
+        )
+        schema = DatasetSchema(
+            data_vars={"a": DataVar()},
+            attrs={"source": "^ERA\\d$"},
+        )
+        results = backend.check_attrs(ds, schema)
+        assert not results
+
+    def test_check_attrs_regex_fail(self, backend):
+        ds = xr.Dataset(
+            {"a": (["x"], np.zeros(2))},
+            attrs={"source": "MERRA"},
+        )
+        schema = DatasetSchema(
+            data_vars={"a": DataVar()},
+            attrs={"source": "^ERA\\d$"},
+        )
+        results = backend.check_attrs(ds, schema)
+        assert len(results) == 1
+        assert not results[0].passed
+
+    def test_check_attrs_callable_pass(self, backend):
+        ds = xr.Dataset(
+            {"a": (["x"], np.zeros(2))},
+            attrs={"version": 3},
+        )
+        schema = DatasetSchema(
+            data_vars={"a": DataVar()},
+            attrs={"version": lambda v: isinstance(v, int) and v >= 2},
+        )
+        results = backend.check_attrs(ds, schema)
+        assert not results
+
+    def test_check_attrs_callable_fail(self, backend):
+        ds = xr.Dataset(
+            {"a": (["x"], np.zeros(2))},
+            attrs={"version": 1},
+        )
+        schema = DatasetSchema(
+            data_vars={"a": DataVar()},
+            attrs={"version": lambda v: isinstance(v, int) and v >= 2},
+        )
+        results = backend.check_attrs(ds, schema)
+        assert len(results) == 1
+        assert not results[0].passed
+
+    # --- Coordinate required tests ---
+
+    def test_check_coords_optional_absent(self, backend):
+        ds = xr.Dataset({"a": (["x"], np.zeros(2))})
+        schema = DatasetSchema(
+            data_vars={"a": DataVar()},
+            coords={"label": Coordinate(required=False)},
+        )
+        results = backend.check_coords(ds, schema)
+        assert not results or all(r.passed for r in results)
+
+    def test_check_coords_optional_present(self, backend):
+        ds = xr.Dataset(
+            {"a": (["x"], np.zeros(2))},
+            coords={
+                "label": ("x", ["a", "b"]),
+            },
+        )
+        schema = DatasetSchema(
+            data_vars={"a": DataVar()},
+            coords={"label": Coordinate(required=False, dtype=str)},
+        )
+        results = backend.check_coords(ds, schema)
+        assert not results or all(r.passed for r in results)

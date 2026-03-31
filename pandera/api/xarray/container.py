@@ -47,6 +47,7 @@ class DataArraySchema(_BaseDataArraySchema):
         dtype: Any | None = None,
         dims: Union[tuple[str | None, ...], list[str | None], dict[str, str]]
         | None = None,
+        ordered_dims: bool = True,
         sizes: dict[str, int | None] | None = None,
         shape: tuple[int | None, ...] | None = None,
         coords: dict[str, Any] | list[str] | None = None,
@@ -69,10 +70,15 @@ class DataArraySchema(_BaseDataArraySchema):
         :param dtype: datatype of the DataArray.
         :param dims: dimension names. Can be a list of dimension names or a
             dict mapping dimension names to dimension types.
+        :param ordered_dims: if True (default), ``dims`` validation is
+            positional — order must match. If False, only the set of dim
+            names is checked.
         :param sizes: size requirements for dimensions.
         :param shape: shape requirements for the DataArray.
         :param coords: coordinate specifications.
-        :param attrs: attribute specifications.
+        :param attrs: attribute specifications. Values can be literal
+            (equality check), regex strings starting with ``^`` (pattern
+            match via ``re.fullmatch``), or callables ``(value) -> bool``.
         :param name: name of the DataArray.
         :param checks: checks applied to the whole DataArray (after structure).
         :param parsers: parsers applied to the whole DataArray before checks.
@@ -113,6 +119,7 @@ class DataArraySchema(_BaseDataArraySchema):
         )
 
         self.dims = _normalize_dims(dims)
+        self.ordered_dims = ordered_dims
         self.sizes = sizes
         self.shape = shape
         self.coords = coords
@@ -216,6 +223,7 @@ class DatasetSchema(_BaseDatasetSchema):
         | None = None,
         coords: dict[str, Any] | list[str] | None = None,
         dims: Union[tuple[str, ...], list[str], dict[str, str]] | None = None,
+        ordered_dims: bool = True,
         sizes: dict[str, int | None] | None = None,
         attrs: dict[str, Any] | None = None,
         checks: CheckList | None = None,
@@ -286,6 +294,7 @@ class DatasetSchema(_BaseDatasetSchema):
         self.data_vars = data_vars
         self.coords = coords
         self.dims = _normalize_dims(dims)
+        self.ordered_dims = ordered_dims
         self.sizes = sizes
         self.attrs = attrs
         self.strict = strict

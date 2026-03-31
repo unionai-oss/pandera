@@ -83,6 +83,19 @@ Abstract base classes
    pandera.api.xarray.base.BaseDatasetSchema
    pandera.api.xarray.base.BaseDataTreeSchema
 
+Configuration
+-------------
+
+See also :ref:`api-core` for the full configuration API.
+
+.. autosummary::
+   :toctree: generated
+   :template: class.rst
+   :nosignatures:
+
+   pandera.config.ValidationDepth
+   pandera.config.ValidationScope
+
 Types and helpers
 -----------------
 

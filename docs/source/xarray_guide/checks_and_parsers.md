@@ -171,14 +171,52 @@ except pa.errors.SchemaErrors as exc:
     print(exc)
 ```
 
-This works the same way as {ref}`lazy-validation` for pandas.
+### Understanding the lazy validation report
+
+The {class}`~pandera.errors.SchemaErrors` exception collects every failure into
+a structured report. Each entry in the report corresponds to one failed
+validation check and contains these fields:
+
+- **`schema_context`** — the type of schema that raised the error (e.g.
+  `DataArraySchema`, `DatasetSchema`). For per-variable errors inside a
+  `DatasetSchema`, this shows the inner `DataArraySchema` that validated the
+  individual variable.
+- **`column`** — the name of the data variable, coordinate, or array that
+  failed. For a standalone `DataArraySchema`, this is the array's `name`
+  attribute. For a `DatasetSchema`, it is the `data_var` or `coord` key.
+- **`check`** — the name or description of the check that failed. Structural
+  checks use names like `"dims"`, `"dtype"`, `"name"`, `"attrs"`,
+  `"strict_coords"`. Data-level checks show the check function description
+  (e.g. `"in_range(0, 100)"` or `"<lambda>"`).
+- **`check_number`** — the index of the check in the schema's check list
+  (starting from 0). `None` for structural checks.
+- **`failure_case`** — a summary of what went wrong. For structural checks this
+  is the actual value that didn't match (e.g. the actual dims tuple or dtype
+  string). For data-level checks this contains the failing values.
+- **`index`** — for element-wise data checks, the N-dimensional coordinate
+  context of each failing element (flattened into a dict of dimension → value
+  pairs). `None` for aggregate and structural checks.
+
+The report is formatted as a JSON list. You can access the underlying data
+programmatically via `exc.schema_errors` (a list of
+{class}`~pandera.errors.SchemaError` objects) or `exc.message` (the formatted
+string).
+
+This works the same way as {ref}`lazy-validation` for pandas, but adapted for
+xarray's N-dimensional data model where indices are multi-dimensional coordinate
+labels rather than flat row indices.
 
 ## See also
 
-- {ref}`xarray-data-array-schema` — `DataArraySchema` details
-- {ref}`xarray-dataset-schema` — `DatasetSchema` details
-- {ref}`xarray-data-models` — class-based models
+- {ref}`xarray-data-array-schema` — {class}`~pandera.api.xarray.container.DataArraySchema` details
+- {ref}`xarray-dataset-schema` — {class}`~pandera.api.xarray.container.DatasetSchema` details
+- {ref}`xarray-data-models` — class-based {class}`~pandera.api.xarray.model.DataArrayModel` / {class}`~pandera.api.xarray.model.DatasetModel`
 - {ref}`xarray-decorators` — `check_input`, `check_output`, `check_io`, and `check_types`
-- {ref}`xarray-configuration` — validation depth, Dask, and environment variables
-- {ref}`checks` — general `Check` behaviour (pandas-oriented)
+- {ref}`xarray-configuration` — {class}`~pandera.config.ValidationDepth`,
+  {class}`~pandera.config.ValidationScope`, Dask, and environment variables
+- {ref}`api-xarray` — full API reference for all xarray classes
+- {ref}`api-core` — {class}`~pandera.config.PanderaConfig`,
+  {class}`~pandera.config.ValidationDepth`,
+  {class}`~pandera.config.ValidationScope`
+- {ref}`checks` — general {class}`~pandera.api.checks.Check` behaviour (pandas-oriented)
 - {ref}`lazy-validation` — detailed lazy validation docs

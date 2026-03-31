@@ -145,5 +145,8 @@ See {ref}`decorators` for the full decorator API.
 ## See also
 
 - {ref}`xarray-checks-parsers` — checks, parsers, and lazy validation
-- {ref}`xarray-data-models` — class-based models
-- {ref}`xarray-configuration` — validation depth, Dask, and environment variables
+- {ref}`xarray-data-models` — class-based {class}`~pandera.api.xarray.model.DataArrayModel` / {class}`~pandera.api.xarray.model.DatasetModel`
+- {ref}`xarray-configuration` — {class}`~pandera.config.ValidationDepth`,
+  {class}`~pandera.config.ValidationScope`, Dask, and environment variables
+- {ref}`api-xarray` — full API reference for all xarray classes
+- {ref}`decorators` — general decorator API (pandas-oriented)
