@@ -149,15 +149,18 @@ except pa.errors.SchemaError as exc:
 
 ## Attribute validation
 
-`attrs` checks the DataArray's `.attrs` dict. Each value determines how the
-corresponding attribute is checked:
+`attrs` validates the DataArray's `.attrs` dict. Each value in the schema's
+`attrs` dict determines how the corresponding attribute is checked:
 
 - **Literal values** — matched by equality (`==`).
-- **Regex patterns** — strings starting with `^` are matched via
-  `re.fullmatch`.
-- **Callable predicates** — any callable `(value) -> bool`.
-- **Pydantic model** — pass a {class}`pydantic.BaseModel` class to validate
-  the entire attrs dict using pydantic's type system.
+- **Regex patterns** — strings that start with `^` are treated as regular
+  expressions and matched against `str(actual_value)` via `re.fullmatch`.
+- **Callable predicates** — any callable `(value) -> bool` is invoked with the
+  actual attribute value; validation passes when the function returns `True`.
+- **Pydantic model** — pass a {class}`pydantic.BaseModel` **class** to validate
+  the full attrs dict using pydantic's type system.
+
+### Equality matching
 
 ```{code-cell} python
 da_attrs = xr.DataArray(
@@ -170,21 +173,128 @@ pa.DataArraySchema(
 ).validate(da_attrs)
 ```
 
-Using a pydantic model:
+### Regex matching
+
+Use a regex pattern (starting with `^`) to validate an attribute against a
+set of acceptable values:
 
 ```{code-cell} python
-from pydantic import BaseModel
+schema = pa.DataArraySchema(
+    attrs={"units": "^(K|degC|degF)$"},
+)
+
+da_units = xr.DataArray(
+    np.ones(3), dims="x",
+    attrs={"units": "K"},
+)
+schema.validate(da_units)
+```
+
+```{code-cell} python
+da_bad_units = xr.DataArray(
+    np.ones(3), dims="x",
+    attrs={"units": "meters"},
+)
+
+try:
+    schema.validate(da_bad_units)
+except pa.errors.SchemaError as exc:
+    print(exc)
+```
+
+### Callable predicates
+
+Pass a function that receives the attribute value and returns a boolean:
+
+```{code-cell} python
+schema = pa.DataArraySchema(
+    attrs={
+        "version": lambda v: isinstance(v, int) and v >= 2,
+    },
+)
+
+da_v3 = xr.DataArray(
+    np.ones(3), dims="x",
+    attrs={"version": 3},
+)
+schema.validate(da_v3)
+```
+
+```{code-cell} python
+da_v1 = xr.DataArray(
+    np.ones(3), dims="x",
+    attrs={"version": 1},
+)
+
+try:
+    schema.validate(da_v1)
+except pa.errors.SchemaError as exc:
+    print(exc)
+```
+
+### Pydantic model
+
+For complex attribute schemas you can pass a {class}`pydantic.BaseModel`
+**class** instead of a dict. Pandera delegates validation to pydantic and
+converts every pydantic error into a pandera `SchemaError`, so error
+collection during lazy validation works seamlessly:
+
+```{code-cell} python
+from pydantic import BaseModel, Field as PydanticField
 
 class ArrayAttrs(BaseModel):
     units: str
     standard_name: str
-
-pa.DataArraySchema(attrs=ArrayAttrs).validate(da_attrs)
+    version: int = PydanticField(ge=2)
 ```
+
+```{code-cell} python
+schema = pa.DataArraySchema(attrs=ArrayAttrs)
+
+da_ok = xr.DataArray(
+    np.ones(3), dims="x",
+    attrs={"units": "K", "standard_name": "air_temperature", "version": 3},
+)
+schema.validate(da_ok)
+```
+
+When validation fails, the error messages surface the pydantic error details:
+
+```{code-cell} python
+da_bad = xr.DataArray(
+    np.ones(3), dims="x",
+    attrs={"units": "K", "version": 1},  # version < 2, standard_name missing
+)
+
+try:
+    schema.validate(da_bad, lazy=True)
+except pa.errors.SchemaErrors as exc:
+    print(exc)
+```
+
+All four modes also work on
+{class}`~pandera.api.xarray.container.DatasetSchema` — see
+{ref}`xarray-dataset-schema`.
+
+### Strict attributes
 
 With `strict_attrs=True`, extra attributes cause a validation error.
 When `attrs` is a pydantic model class, the set of allowed keys is derived
 from the model's fields.
+
+```{code-cell} python
+da_extra = xr.DataArray(
+    np.ones(3), dims="x",
+    attrs={"units": "K", "extra_key": 42},
+)
+
+try:
+    pa.DataArraySchema(
+        attrs={"units": "K"}, strict_attrs=True
+    ).validate(da_extra)
+except pa.errors.SchemaError as exc:
+    print(exc)
+```
 
 ## Name validation
 
