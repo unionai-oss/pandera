@@ -149,8 +149,15 @@ except pa.errors.SchemaError as exc:
 
 ## Attribute validation
 
-`attrs` checks the DataArray's `.attrs` dict for key existence and value
-equality:
+`attrs` checks the DataArray's `.attrs` dict. Each value determines how the
+corresponding attribute is checked:
+
+- **Literal values** — matched by equality (`==`).
+- **Regex patterns** — strings starting with `^` are matched via
+  `re.fullmatch`.
+- **Callable predicates** — any callable `(value) -> bool`.
+- **Pydantic model** — pass a {class}`pydantic.BaseModel` class to validate
+  the entire attrs dict using pydantic's type system.
 
 ```{code-cell} python
 da_attrs = xr.DataArray(
@@ -163,7 +170,21 @@ pa.DataArraySchema(
 ).validate(da_attrs)
 ```
 
+Using a pydantic model:
+
+```{code-cell} python
+from pydantic import BaseModel
+
+class ArrayAttrs(BaseModel):
+    units: str
+    standard_name: str
+
+pa.DataArraySchema(attrs=ArrayAttrs).validate(da_attrs)
+```
+
 With `strict_attrs=True`, extra attributes cause a validation error.
+When `attrs` is a pydantic model class, the set of allowed keys is derived
+from the model's fields.
 
 ## Name validation
 
