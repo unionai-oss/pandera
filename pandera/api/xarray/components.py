@@ -29,6 +29,9 @@ class Coordinate:
         Expected dimension names of the coordinate variable.
     dimension
         If True, the coordinate is a dimension coordinate (indexes its dim).
+    required
+        If True (default), the coordinate must exist. If False, the
+        coordinate is optional; when present all other constraints apply.
     indexed
         If True, coordinate values must match the dimension index (see backend).
     checks, parsers
@@ -47,6 +50,7 @@ class Coordinate:
         dtype: Any | None = None,
         dims: tuple[str, ...] | None = None,
         dimension: bool | None = None,
+        required: bool = True,
         checks: CheckList | None = None,
         parsers: ParserList | None = None,
         nullable: bool = False,
@@ -70,6 +74,7 @@ class Coordinate:
         self.dtype = dtype
         self.dims = dims
         self.dimension = dimension
+        self.required = required
         self.checks = checks
         self.parsers = parsers
         self.nullable = nullable
@@ -146,6 +151,7 @@ class DataVar:
         broadcastable_with: tuple[str, ...] | None = None,
         dtype: Any | None = None,
         dims: tuple[str | None, ...] | list[str | None] | None = None,
+        ordered_dims: bool = True,
         sizes: dict[str, int | None] | None = None,
         shape: tuple[int | None, ...] | None = None,
         coords: dict[str, Any] | list[str] | None = None,
@@ -196,6 +202,7 @@ class DataVar:
         self.broadcastable_with = broadcastable_with
         self.dtype = dtype
         self.dims = tuple(dims) if dims is not None else None
+        self.ordered_dims = ordered_dims
         self.sizes = sizes
         self.shape = shape
         self.coords = coords
@@ -220,6 +227,7 @@ class DataVar:
         return DataArraySchema(
             dtype=self.dtype,
             dims=self.dims,
+            ordered_dims=self.ordered_dims,
             sizes=self.sizes,
             shape=self.shape,
             coords=self.coords,

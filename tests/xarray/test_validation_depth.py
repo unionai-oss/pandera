@@ -99,16 +99,12 @@ class TestDataArrayValidationDepth:
     @staticmethod
     def _da_with_nulls():
         """DataArray that has NaN values (for nullable tests)."""
-        return xr.DataArray(
-            [1.0, np.nan, 3.0], dims="x", name="arr"
-        )
+        return xr.DataArray([1.0, np.nan, 3.0], dims="x", name="arr")
 
     @staticmethod
     def _da_clean():
         """DataArray with no NaN values."""
-        return xr.DataArray(
-            [1.0, 2.0, 3.0], dims="x", name="arr"
-        )
+        return xr.DataArray([1.0, 2.0, 3.0], dims="x", name="arr")
 
     # --- SCHEMA_ONLY -------------------------------------------------
 
@@ -116,33 +112,30 @@ class TestDataArrayValidationDepth:
         """nullable=False is DATA-scoped; it should be skipped."""
         da = self._da_with_nulls()
         schema = DataArraySchema(
-            dtype=np.float64, dims=("x",), name="arr",
+            dtype=np.float64,
+            dims=("x",),
+            name="arr",
             nullable=False,
         )
-        with config_context(
-            validation_depth=ValidationDepth.SCHEMA_ONLY
-        ):
+        with config_context(validation_depth=ValidationDepth.SCHEMA_ONLY):
             schema.validate(da)
 
     def test_schema_only_skips_user_checks(self):
         """User-defined Checks are DATA-scoped; they should be skipped."""
         da = self._da_clean()
         schema = DataArraySchema(
-            dims=("x",), name="arr",
+            dims=("x",),
+            name="arr",
             checks=Check(lambda x: False, error="always fails"),
         )
-        with config_context(
-            validation_depth=ValidationDepth.SCHEMA_ONLY
-        ):
+        with config_context(validation_depth=ValidationDepth.SCHEMA_ONLY):
             schema.validate(da)
 
     def test_schema_only_catches_wrong_dims(self):
         """SCHEMA check_dims should still fire under SCHEMA_ONLY."""
         da = self._da_clean()
         schema = DataArraySchema(dims=("y",), name="arr")
-        with config_context(
-            validation_depth=ValidationDepth.SCHEMA_ONLY
-        ):
+        with config_context(validation_depth=ValidationDepth.SCHEMA_ONLY):
             with pytest.raises(
                 (pandera.errors.SchemaError, pandera.errors.SchemaErrors)
             ):
@@ -152,9 +145,7 @@ class TestDataArrayValidationDepth:
         """SCHEMA check_name should still fire under SCHEMA_ONLY."""
         da = self._da_clean()
         schema = DataArraySchema(dims=("x",), name="wrong")
-        with config_context(
-            validation_depth=ValidationDepth.SCHEMA_ONLY
-        ):
+        with config_context(validation_depth=ValidationDepth.SCHEMA_ONLY):
             with pytest.raises(
                 (pandera.errors.SchemaError, pandera.errors.SchemaErrors)
             ):
@@ -164,11 +155,11 @@ class TestDataArrayValidationDepth:
         """SCHEMA check_dtype should still fire under SCHEMA_ONLY."""
         da = self._da_clean()
         schema = DataArraySchema(
-            dtype=np.int32, dims=("x",), name="arr",
+            dtype=np.int32,
+            dims=("x",),
+            name="arr",
         )
-        with config_context(
-            validation_depth=ValidationDepth.SCHEMA_ONLY
-        ):
+        with config_context(validation_depth=ValidationDepth.SCHEMA_ONLY):
             with pytest.raises(
                 (pandera.errors.SchemaError, pandera.errors.SchemaErrors)
             ):
@@ -178,11 +169,11 @@ class TestDataArrayValidationDepth:
         """SCHEMA check_sizes should still fire under SCHEMA_ONLY."""
         da = self._da_clean()
         schema = DataArraySchema(
-            dims=("x",), name="arr", sizes={"x": 99},
+            dims=("x",),
+            name="arr",
+            sizes={"x": 99},
         )
-        with config_context(
-            validation_depth=ValidationDepth.SCHEMA_ONLY
-        ):
+        with config_context(validation_depth=ValidationDepth.SCHEMA_ONLY):
             with pytest.raises(
                 (pandera.errors.SchemaError, pandera.errors.SchemaErrors)
             ):
@@ -194,47 +185,38 @@ class TestDataArrayValidationDepth:
         """SCHEMA check_name should be skipped under DATA_ONLY."""
         da = self._da_clean()
         schema = DataArraySchema(name="wrong")
-        with config_context(
-            validation_depth=ValidationDepth.DATA_ONLY
-        ):
+        with config_context(validation_depth=ValidationDepth.DATA_ONLY):
             schema.validate(da)
 
     def test_data_only_skips_wrong_dims(self):
         """SCHEMA check_dims should be skipped under DATA_ONLY."""
         da = self._da_clean()
         schema = DataArraySchema(dims=("a", "b"))
-        with config_context(
-            validation_depth=ValidationDepth.DATA_ONLY
-        ):
+        with config_context(validation_depth=ValidationDepth.DATA_ONLY):
             schema.validate(da)
 
     def test_data_only_skips_wrong_dtype(self):
         """SCHEMA check_dtype should be skipped under DATA_ONLY."""
         da = self._da_clean()
         schema = DataArraySchema(dtype=np.int32)
-        with config_context(
-            validation_depth=ValidationDepth.DATA_ONLY
-        ):
+        with config_context(validation_depth=ValidationDepth.DATA_ONLY):
             schema.validate(da)
 
     def test_data_only_skips_wrong_sizes(self):
         """SCHEMA check_sizes should be skipped under DATA_ONLY."""
         da = self._da_clean()
         schema = DataArraySchema(
-            dims=("x",), sizes={"x": 99},
+            dims=("x",),
+            sizes={"x": 99},
         )
-        with config_context(
-            validation_depth=ValidationDepth.DATA_ONLY
-        ):
+        with config_context(validation_depth=ValidationDepth.DATA_ONLY):
             schema.validate(da)
 
     def test_data_only_catches_nullable(self):
         """DATA check_nullable should still fire under DATA_ONLY."""
         da = self._da_with_nulls()
         schema = DataArraySchema(nullable=False)
-        with config_context(
-            validation_depth=ValidationDepth.DATA_ONLY
-        ):
+        with config_context(validation_depth=ValidationDepth.DATA_ONLY):
             with pytest.raises(
                 (pandera.errors.SchemaError, pandera.errors.SchemaErrors)
             ):
@@ -246,9 +228,7 @@ class TestDataArrayValidationDepth:
         schema = DataArraySchema(
             checks=Check(lambda x: False, error="always fails"),
         )
-        with config_context(
-            validation_depth=ValidationDepth.DATA_ONLY
-        ):
+        with config_context(validation_depth=ValidationDepth.DATA_ONLY):
             with pytest.raises(
                 (pandera.errors.SchemaError, pandera.errors.SchemaErrors)
             ):
@@ -259,9 +239,7 @@ class TestDataArrayValidationDepth:
     def test_schema_and_data_catches_schema_error(self):
         da = self._da_clean()
         schema = DataArraySchema(dims=("y",), name="arr")
-        with config_context(
-            validation_depth=ValidationDepth.SCHEMA_AND_DATA
-        ):
+        with config_context(validation_depth=ValidationDepth.SCHEMA_AND_DATA):
             with pytest.raises(
                 (pandera.errors.SchemaError, pandera.errors.SchemaErrors)
             ):
@@ -270,11 +248,11 @@ class TestDataArrayValidationDepth:
     def test_schema_and_data_catches_data_error(self):
         da = self._da_with_nulls()
         schema = DataArraySchema(
-            dims=("x",), name="arr", nullable=False,
+            dims=("x",),
+            name="arr",
+            nullable=False,
         )
-        with config_context(
-            validation_depth=ValidationDepth.SCHEMA_AND_DATA
-        ):
+        with config_context(validation_depth=ValidationDepth.SCHEMA_AND_DATA):
             with pytest.raises(
                 (pandera.errors.SchemaError, pandera.errors.SchemaErrors)
             ):
@@ -284,17 +262,14 @@ class TestDataArrayValidationDepth:
         """Both SCHEMA and DATA errors collected in lazy mode."""
         da = self._da_with_nulls()
         schema = DataArraySchema(
-            dims=("y",), name="arr", nullable=False,
+            dims=("y",),
+            name="arr",
+            nullable=False,
         )
-        with config_context(
-            validation_depth=ValidationDepth.SCHEMA_AND_DATA
-        ):
+        with config_context(validation_depth=ValidationDepth.SCHEMA_AND_DATA):
             with pytest.raises(pandera.errors.SchemaErrors) as exc_info:
                 schema.validate(da, lazy=True)
-            reasons = {
-                e.reason_code
-                for e in exc_info.value.schema_errors
-            }
+            reasons = {e.reason_code for e in exc_info.value.schema_errors}
             assert pandera.errors.SchemaErrorReason.MISMATCH_INDEX in reasons
             assert (
                 pandera.errors.SchemaErrorReason.SERIES_CONTAINS_NULLS
@@ -307,18 +282,16 @@ class TestDataArrayValidationDepth:
         """No explicit depth → eager data uses SCHEMA_AND_DATA."""
         da = self._da_with_nulls()
         schema = DataArraySchema(
-            dims=("y",), name="arr", nullable=False,
+            dims=("y",),
+            name="arr",
+            nullable=False,
         )
         with pytest.raises(pandera.errors.SchemaErrors) as exc_info:
             schema.validate(da, lazy=True)
-        reasons = {
-            e.reason_code
-            for e in exc_info.value.schema_errors
-        }
+        reasons = {e.reason_code for e in exc_info.value.schema_errors}
         assert pandera.errors.SchemaErrorReason.MISMATCH_INDEX in reasons
         assert (
-            pandera.errors.SchemaErrorReason.SERIES_CONTAINS_NULLS
-            in reasons
+            pandera.errors.SchemaErrorReason.SERIES_CONTAINS_NULLS in reasons
         )
 
 
@@ -354,15 +327,14 @@ class TestDatasetValidationDepth:
         schema = DatasetSchema(
             data_vars={
                 "a": DataVar(
-                    dtype=np.float64, dims=("x",),
+                    dtype=np.float64,
+                    dims=("x",),
                     nullable=False,
                 ),
             },
             dims=("x",),
         )
-        with config_context(
-            validation_depth=ValidationDepth.SCHEMA_ONLY
-        ):
+        with config_context(validation_depth=ValidationDepth.SCHEMA_ONLY):
             schema.validate(ds)
 
     def test_schema_only_skips_per_var_user_check(self):
@@ -371,16 +343,13 @@ class TestDatasetValidationDepth:
         schema = DatasetSchema(
             data_vars={
                 "a": DataVar(
-                    dtype=np.float64, dims=("x",),
-                    checks=Check(
-                        lambda x: False, error="always fails"
-                    ),
+                    dtype=np.float64,
+                    dims=("x",),
+                    checks=Check(lambda x: False, error="always fails"),
                 ),
             },
         )
-        with config_context(
-            validation_depth=ValidationDepth.SCHEMA_ONLY
-        ):
+        with config_context(validation_depth=ValidationDepth.SCHEMA_ONLY):
             schema.validate(ds)
 
     def test_schema_only_skips_dataset_user_check(self):
@@ -390,9 +359,7 @@ class TestDatasetValidationDepth:
             data_vars={"a": DataVar(dtype=np.float64, dims=("x",))},
             checks=Check(lambda x: False, error="always fails"),
         )
-        with config_context(
-            validation_depth=ValidationDepth.SCHEMA_ONLY
-        ):
+        with config_context(validation_depth=ValidationDepth.SCHEMA_ONLY):
             schema.validate(ds)
 
     def test_schema_only_catches_wrong_dims(self):
@@ -402,9 +369,7 @@ class TestDatasetValidationDepth:
             data_vars={"a": DataVar(dims=("x",))},
             dims=("y",),
         )
-        with config_context(
-            validation_depth=ValidationDepth.SCHEMA_ONLY
-        ):
+        with config_context(validation_depth=ValidationDepth.SCHEMA_ONLY):
             with pytest.raises(
                 (pandera.errors.SchemaError, pandera.errors.SchemaErrors)
             ):
@@ -417,9 +382,7 @@ class TestDatasetValidationDepth:
             data_vars={"a": DataVar(dims=("x",))},
             sizes={"x": 99},
         )
-        with config_context(
-            validation_depth=ValidationDepth.SCHEMA_ONLY
-        ):
+        with config_context(validation_depth=ValidationDepth.SCHEMA_ONLY):
             with pytest.raises(
                 (pandera.errors.SchemaError, pandera.errors.SchemaErrors)
             ):
@@ -434,9 +397,7 @@ class TestDatasetValidationDepth:
                 "missing": DataVar(dims=("x",), required=True),
             },
         )
-        with config_context(
-            validation_depth=ValidationDepth.SCHEMA_ONLY
-        ):
+        with config_context(validation_depth=ValidationDepth.SCHEMA_ONLY):
             with pytest.raises(
                 (pandera.errors.SchemaError, pandera.errors.SchemaErrors)
             ):
@@ -444,17 +405,17 @@ class TestDatasetValidationDepth:
 
     def test_schema_only_catches_strict_extra_var(self):
         """SCHEMA check_strict_data_vars should still fire."""
-        ds = xr.Dataset({
-            "a": ("x", [1.0, 2.0]),
-            "extra": ("x", [3.0, 4.0]),
-        })
+        ds = xr.Dataset(
+            {
+                "a": ("x", [1.0, 2.0]),
+                "extra": ("x", [3.0, 4.0]),
+            }
+        )
         schema = DatasetSchema(
             data_vars={"a": DataVar(dims=("x",))},
             strict=True,
         )
-        with config_context(
-            validation_depth=ValidationDepth.SCHEMA_ONLY
-        ):
+        with config_context(validation_depth=ValidationDepth.SCHEMA_ONLY):
             with pytest.raises(
                 (pandera.errors.SchemaError, pandera.errors.SchemaErrors)
             ):
@@ -469,9 +430,7 @@ class TestDatasetValidationDepth:
             data_vars={"a": DataVar(dims=("x",))},
             dims=("y",),
         )
-        with config_context(
-            validation_depth=ValidationDepth.DATA_ONLY
-        ):
+        with config_context(validation_depth=ValidationDepth.DATA_ONLY):
             schema.validate(ds)
 
     def test_data_only_skips_wrong_sizes(self):
@@ -481,9 +440,7 @@ class TestDatasetValidationDepth:
             data_vars={"a": DataVar(dims=("x",))},
             sizes={"x": 99},
         )
-        with config_context(
-            validation_depth=ValidationDepth.DATA_ONLY
-        ):
+        with config_context(validation_depth=ValidationDepth.DATA_ONLY):
             schema.validate(ds)
 
     def test_data_only_skips_missing_data_var(self):
@@ -495,24 +452,22 @@ class TestDatasetValidationDepth:
                 "missing": DataVar(dims=("x",), required=True),
             },
         )
-        with config_context(
-            validation_depth=ValidationDepth.DATA_ONLY
-        ):
+        with config_context(validation_depth=ValidationDepth.DATA_ONLY):
             schema.validate(ds)
 
     def test_data_only_skips_strict_extra_var(self):
         """SCHEMA check_strict_data_vars should be skipped."""
-        ds = xr.Dataset({
-            "a": ("x", [1.0, 2.0]),
-            "extra": ("x", [3.0, 4.0]),
-        })
+        ds = xr.Dataset(
+            {
+                "a": ("x", [1.0, 2.0]),
+                "extra": ("x", [3.0, 4.0]),
+            }
+        )
         schema = DatasetSchema(
             data_vars={"a": DataVar(dims=("x",))},
             strict=True,
         )
-        with config_context(
-            validation_depth=ValidationDepth.DATA_ONLY
-        ):
+        with config_context(validation_depth=ValidationDepth.DATA_ONLY):
             schema.validate(ds)
 
     def test_data_only_skips_per_var_schema_checks(self):
@@ -523,9 +478,7 @@ class TestDatasetValidationDepth:
                 "a": DataVar(dtype=np.float64, dims=("y",)),
             },
         )
-        with config_context(
-            validation_depth=ValidationDepth.DATA_ONLY
-        ):
+        with config_context(validation_depth=ValidationDepth.DATA_ONLY):
             schema.validate(ds)
 
     def test_data_only_catches_per_var_nullable(self):
@@ -534,14 +487,13 @@ class TestDatasetValidationDepth:
         schema = DatasetSchema(
             data_vars={
                 "a": DataVar(
-                    dtype=np.float64, dims=("x",),
+                    dtype=np.float64,
+                    dims=("x",),
                     nullable=False,
                 ),
             },
         )
-        with config_context(
-            validation_depth=ValidationDepth.DATA_ONLY
-        ):
+        with config_context(validation_depth=ValidationDepth.DATA_ONLY):
             with pytest.raises(
                 (pandera.errors.SchemaError, pandera.errors.SchemaErrors)
             ):
@@ -554,15 +506,11 @@ class TestDatasetValidationDepth:
             data_vars={
                 "a": DataVar(
                     dims=("x",),
-                    checks=Check(
-                        lambda x: False, error="always fails"
-                    ),
+                    checks=Check(lambda x: False, error="always fails"),
                 ),
             },
         )
-        with config_context(
-            validation_depth=ValidationDepth.DATA_ONLY
-        ):
+        with config_context(validation_depth=ValidationDepth.DATA_ONLY):
             with pytest.raises(
                 (pandera.errors.SchemaError, pandera.errors.SchemaErrors)
             ):
@@ -575,9 +523,7 @@ class TestDatasetValidationDepth:
             data_vars={"a": DataVar(dims=("x",))},
             checks=Check(lambda x: False, error="always fails"),
         )
-        with config_context(
-            validation_depth=ValidationDepth.DATA_ONLY
-        ):
+        with config_context(validation_depth=ValidationDepth.DATA_ONLY):
             with pytest.raises(
                 (pandera.errors.SchemaError, pandera.errors.SchemaErrors)
             ):
@@ -591,9 +537,7 @@ class TestDatasetValidationDepth:
             data_vars={"a": DataVar(dims=("x",))},
             dims=("y",),
         )
-        with config_context(
-            validation_depth=ValidationDepth.SCHEMA_AND_DATA
-        ):
+        with config_context(validation_depth=ValidationDepth.SCHEMA_AND_DATA):
             with pytest.raises(
                 (pandera.errors.SchemaError, pandera.errors.SchemaErrors)
             ):
@@ -604,14 +548,13 @@ class TestDatasetValidationDepth:
         schema = DatasetSchema(
             data_vars={
                 "a": DataVar(
-                    dtype=np.float64, dims=("x",),
+                    dtype=np.float64,
+                    dims=("x",),
                     nullable=False,
                 ),
             },
         )
-        with config_context(
-            validation_depth=ValidationDepth.SCHEMA_AND_DATA
-        ):
+        with config_context(validation_depth=ValidationDepth.SCHEMA_AND_DATA):
             with pytest.raises(
                 (pandera.errors.SchemaError, pandera.errors.SchemaErrors)
             ):
@@ -623,21 +566,17 @@ class TestDatasetValidationDepth:
         schema = DatasetSchema(
             data_vars={
                 "a": DataVar(
-                    dtype=np.float64, dims=("x",),
+                    dtype=np.float64,
+                    dims=("x",),
                     nullable=False,
                 ),
             },
             dims=("y",),
         )
-        with config_context(
-            validation_depth=ValidationDepth.SCHEMA_AND_DATA
-        ):
+        with config_context(validation_depth=ValidationDepth.SCHEMA_AND_DATA):
             with pytest.raises(pandera.errors.SchemaErrors) as exc_info:
                 schema.validate(ds, lazy=True)
-            reasons = {
-                e.reason_code
-                for e in exc_info.value.schema_errors
-            }
+            reasons = {e.reason_code for e in exc_info.value.schema_errors}
             assert pandera.errors.SchemaErrorReason.MISMATCH_INDEX in reasons
             assert (
                 pandera.errors.SchemaErrorReason.SERIES_CONTAINS_NULLS
@@ -651,7 +590,8 @@ class TestDatasetValidationDepth:
         schema = DatasetSchema(
             data_vars={
                 "a": DataVar(
-                    dtype=np.float64, dims=("x",),
+                    dtype=np.float64,
+                    dims=("x",),
                     nullable=False,
                 ),
             },
@@ -659,12 +599,8 @@ class TestDatasetValidationDepth:
         )
         with pytest.raises(pandera.errors.SchemaErrors) as exc_info:
             schema.validate(ds, lazy=True)
-        reasons = {
-            e.reason_code
-            for e in exc_info.value.schema_errors
-        }
+        reasons = {e.reason_code for e in exc_info.value.schema_errors}
         assert pandera.errors.SchemaErrorReason.MISMATCH_INDEX in reasons
         assert (
-            pandera.errors.SchemaErrorReason.SERIES_CONTAINS_NULLS
-            in reasons
+            pandera.errors.SchemaErrorReason.SERIES_CONTAINS_NULLS in reasons
         )
