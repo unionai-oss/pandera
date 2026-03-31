@@ -613,9 +613,7 @@ class TestDatasetCheckMethods:
         assert not results[0].passed
         assert "version" in results[0].message
 
-    def test_check_attrs_pydantic_missing_field(
-        self, backend
-    ):
+    def test_check_attrs_pydantic_missing_field(self, backend):
         from pydantic import BaseModel
 
         class DsAttrs(BaseModel):

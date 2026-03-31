@@ -106,12 +106,9 @@ def _validate_attrs_with_pydantic(
                     check="attrs",
                     reason_code=SchemaErrorReason.SCHEMA_COMPONENT_CHECK,
                     message=(
-                        f"{attr_label}: {err['msg']} "
-                        f"[type={err['type']}]"
+                        f"{attr_label}: {err['msg']} [type={err['type']}]"
                     ),
-                    failure_cases=str(
-                        _nested_get(attrs_dict, err["loc"])
-                    ),
+                    failure_cases=str(_nested_get(attrs_dict, err["loc"])),
                 )
             )
     return results

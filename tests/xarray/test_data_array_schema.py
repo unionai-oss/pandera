@@ -652,7 +652,8 @@ class TestDataArrayCheckMethods:
         assert "version" in results[0].message
 
     def test_check_attrs_pydantic_constrained(self, backend):
-        from pydantic import BaseModel, Field as PydanticField
+        from pydantic import BaseModel
+        from pydantic import Field as PydanticField
 
         class Attrs(BaseModel):
             version: int = PydanticField(ge=2)
@@ -678,11 +679,7 @@ class TestDataArrayCheckMethods:
             dims="x",
             attrs={"units": "K", "extra": 42},
         )
-        schema = DataArraySchema(
-            attrs=Attrs, strict_attrs=True
-        )
-        results = backend.check_strict_attrs(
-            da, schema
-        )
+        schema = DataArraySchema(attrs=Attrs, strict_attrs=True)
+        results = backend.check_strict_attrs(da, schema)
         assert len(results) == 1
         assert "extra" in results[0].message
