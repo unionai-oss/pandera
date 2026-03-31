@@ -16,6 +16,7 @@ class DataArrayConfig(BaseModelConfig):
 
     dtype: Any | None = None
     dims: tuple[str | None, ...] | None = None
+    ordered_dims: bool = True
     sizes: dict[str, int | None] | None = None
     shape: tuple[int | None, ...] | None = None
     coerce: bool = False
@@ -34,4 +35,5 @@ class DatasetConfig(BaseModelConfig):
     strict_coords: StrictType = False
     strict_attrs: StrictType = False
     dims: tuple[str | None, ...] | None = None
+    ordered_dims: bool = True
     sizes: dict[str, int | None] | None = None

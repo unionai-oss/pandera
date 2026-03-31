@@ -369,7 +369,13 @@ except pa.errors.SchemaErrors as exc:
 
 ## See also
 
-- {ref}`xarray-data-array-schema` — single-array validation
-- {ref}`xarray-data-models` — class-based `DatasetModel`
+- {ref}`xarray-data-array-schema` — single-array {class}`~pandera.api.xarray.container.DataArraySchema` validation
+- {ref}`xarray-data-models` — class-based {class}`~pandera.api.xarray.model.DatasetModel`
 - {ref}`xarray-checks-parsers` — checks, parsers, lazy validation
-- {ref}`xarray-configuration` — validation depth, Dask, environment variables
+- {ref}`xarray-decorators` — `check_input`, `check_output`, `check_io`, and `check_types`
+- {ref}`xarray-configuration` — {class}`~pandera.config.ValidationDepth`,
+  {class}`~pandera.config.ValidationScope`, Dask, environment variables
+- {ref}`api-xarray` — full API reference for all xarray classes
+- {ref}`api-core` — {class}`~pandera.config.PanderaConfig`,
+  {class}`~pandera.config.ValidationDepth`,
+  {class}`~pandera.config.ValidationScope`

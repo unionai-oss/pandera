@@ -17,14 +17,18 @@ descriptors define the schema; call `validate()` or `to_schema()` to use it.
 The imperative counterparts are {ref}`xarray-data-array-schema` and
 {ref}`xarray-dataset-schema`.
 
-## Annotation vs component `Coordinate`
+## Annotation `Coordinate` vs component `Coordinate`
 
-Two objects share the name "Coordinate":
+Two objects share the name "Coordinate". To avoid confusion, the convention in
+this guide is to prefix with the module path when context is ambiguous:
 
-- **{class}`~pandera.typing.xarray.Coordinate`** — a *typing marker* used in
-  model annotations, like `Index` in a `DataFrameModel`.
-- **{class}`~pandera.api.xarray.components.Coordinate`** — the schema
-  *component* you pass to `DataArraySchema(coords=...)`.
+- **{class}`~pandera.typing.xarray.Coordinate`**
+  (`pandera.typing.xarray.Coordinate`) — a *typing marker* used in model
+  annotations, analogous to `Index` in a `DataFrameModel`.
+- **{class}`~pandera.api.xarray.components.Coordinate`**
+  (`pandera.api.xarray.components.Coordinate`, also available as
+  `pa.Coordinate`) — the schema *component* you pass to
+  `DataArraySchema(coords=...)` or `DatasetSchema(coords=...)`.
 
 ```{code-cell} python
 from pandera.typing.xarray import Coordinate  # annotation marker
@@ -328,5 +332,11 @@ model. `Config` is a reserved name.
 
 - {ref}`xarray-data-array-schema` / {ref}`xarray-dataset-schema` — imperative API
 - {ref}`xarray-checks-parsers` — checks, parsers, lazy validation
-- {ref}`xarray-configuration` — validation depth, Dask, environment variables
+- {ref}`xarray-decorators` — `check_input`, `check_output`, `check_io`, and `check_types`
+- {ref}`xarray-configuration` — {class}`~pandera.config.ValidationDepth`,
+  {class}`~pandera.config.ValidationScope`, Dask, environment variables
 - {ref}`dataframe-models` — dataframe class-based API (same patterns)
+- {ref}`api-xarray` — full API reference for all xarray classes
+- {ref}`api-core` — {class}`~pandera.config.PanderaConfig`,
+  {class}`~pandera.config.ValidationDepth`,
+  {class}`~pandera.config.ValidationScope`

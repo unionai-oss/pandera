@@ -493,6 +493,7 @@ class DataArrayModel(_XarrayModelBase):
         return DataArraySchema(
             dtype=dtype,
             dims=dims,
+            ordered_dims=cfg.ordered_dims,
             sizes=sizes,
             shape=shape,
             coords=coords or None,
@@ -601,6 +602,7 @@ class DatasetModel(_XarrayModelBase):
             data_vars=data_vars,
             coords=coords or None,
             dims=cfg.dims,
+            ordered_dims=cfg.ordered_dims,
             sizes=cfg.sizes,
             attrs=None,
             checks=cls.__root_checks__,

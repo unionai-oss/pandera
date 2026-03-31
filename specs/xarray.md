@@ -250,6 +250,7 @@ class DataArraySchema(BaseSchema):
         self,
         dtype: DTypeLike | None = None,
         dims: tuple[str | None, ...] | None = None,
+        ordered_dims: bool = True,
         sizes: dict[str, int | None] | None = None,
         shape: tuple[int | None, ...] | None = None,
         coords: dict[str, Coordinate] | list[str] | None = None,
@@ -283,11 +284,12 @@ class DataArraySchema(BaseSchema):
 | Parameter | Type | Description |
 |---|---|---|
 | `dtype` | numpy dtype, type, or string | Expected dtype of the underlying data (resolved via `np.issubdtype`). Coerced if `coerce=True`. |
-| `dims` | `tuple[str \| None, ...]` | Expected dimension names, in order. `None` entries act as wildcards (match any dim name). Length of the tuple also constrains `ndim`. |
+| `dims` | `tuple[str \| None, ...]` | Expected dimension names. When `ordered_dims=True` (default), the order must match exactly. When `ordered_dims=False`, only the set of names is checked. `None` entries act as wildcards (match any dim name at that position); wildcards are only meaningful with `ordered_dims=True`. Length of the tuple also constrains `ndim` (when `ordered_dims=True`). |
+| `ordered_dims` | `bool` | If `True` (default), `dims` validation is positional — the order of dimension names must match the schema. If `False`, only the set of dim names is checked, regardless of order. This is useful for datasets where dimension order is not semantically meaningful. |
 | `sizes` | `dict[str, int \| None]` | Expected dimension sizes as a name→length mapping (e.g. `{"lat": 180, "lon": 360}`). More idiomatic than positional `shape` for xarray. `None` values act as wildcards. Mutually exclusive with `shape`. |
 | `shape` | `tuple[int \| None, ...]` | Expected positional shape. `None` entries act as wildcards for that axis. Mutually exclusive with `sizes`. |
 | `coords` | `dict[str, Coordinate] \| list[str]` | If a dict, mapping of coordinate name to a `Coordinate` that validates the coordinate's values. If a list of strings, shorthand for "these coordinate names must exist" (no value validation). |
-| `attrs` | `dict[str, Any]` | Expected attributes. Values are matched for equality; use `Check` for complex attr validation. |
+| `attrs` | `dict[str, Any]` | Expected attributes. Each value determines how validation is performed: (1) **literal values** are matched by equality, (2) **strings starting with `^`** are treated as regex patterns and matched against `str(actual_value)` via `re.fullmatch`, and (3) **callables** `(value) -> bool` are invoked with the actual attribute value and must return `True` for the check to pass. |
 | `name` | `str` | Expected `.name` attribute. |
 | `checks` | `Check` or list | Pandera `Check` objects for data-level validation. |
 | `parsers` | `Parser` or list | Pandera `Parser` objects for data transformation. |
@@ -338,6 +340,22 @@ da = xr.DataArray(
 validated = schema.validate(da)
 ```
 
+**Attribute validation modes** — the `attrs` dict supports three matching
+strategies per value:
+
+```python
+schema = pa.DataArraySchema(
+    attrs={
+        # 1. Equality: literal value must match exactly
+        "source": "ERA5",
+        # 2. Regex: string starting with "^" is a regex pattern
+        "units": "^(K|°C|°F)$",
+        # 3. Callable: function(value) -> bool
+        "version": lambda v: isinstance(v, int) and v >= 2,
+    },
+)
+```
+
 ### 4.3 `Coordinate`
 
 `Coordinate` is a schema component for validating individual xarray
@@ -371,6 +389,7 @@ class Coordinate:
         dtype: DTypeLike | None = None,
         dims: tuple[str, ...] | None = None,
         dimension: bool | None = None,
+        required: bool = True,
         checks: Check | list[Check] | None = None,
         parsers: Parser | list[Parser] | None = None,
         nullable: bool = False,
@@ -391,6 +410,7 @@ class Coordinate:
 | `dtype` | numpy dtype, type, or string | Expected dtype of the coordinate values. |
 | `dims` | `tuple[str, ...]` | Expected dimensions of the coordinate array. For dimension coordinates this is always `(name,)` and can be omitted. Required for non-dimension (auxiliary) coordinates that span multiple dims (e.g. 2-D `lat`/`lon` on a projected grid). |
 | `dimension` | `bool \| None` | If `True`, require the coordinate to be a dimension coordinate (1-D, name in parent object's `dims`, and `dims=(name,)`). If `False`, require an auxiliary/non-dimension coordinate (name not in parent object's `dims`). If `None` (default), don't enforce coordinate kind. |
+| `required` | `bool` | If `True` (default), the coordinate must exist on the data object. If `False`, the coordinate is optional; when present all other constraints apply, when absent no error is raised. Note: when `strict_coords=True` on the parent schema, all coordinates on the data object must appear in the schema, but coordinates with `required=False` need not appear on the data object. |
 | `checks` | `Check` or list | Data-level checks on coordinate values (e.g. `Check.in_range(-90, 90)` for latitude). |
 | `parsers` | `Parser` or list | Parsers/transformations applied before validation. |
 | `nullable` | `bool` | If `False` (default), NaN/null coordinate values raise a validation error. |
@@ -437,6 +457,7 @@ class DataVar:
         broadcastable_with: tuple[str, ...] | None = None,
         dtype: DTypeLike | None = None,
         dims: tuple[str | None, ...] | None = None,
+        ordered_dims: bool = True,
         sizes: dict[str, int | None] | None = None,
         shape: tuple[int | None, ...] | None = None,
         coords: dict[str, Coordinate] | list[str] | None = None,
@@ -506,6 +527,7 @@ class DatasetSchema(BaseSchema):
         data_vars: dict[str, DataVar | None] | None = None,
         coords: dict[str, Coordinate] | list[str] | None = None,
         dims: tuple[str, ...] | None = None,
+        ordered_dims: bool = True,
         sizes: dict[str, int | None] | None = None,
         attrs: dict[str, Any] | None = None,
         checks: Check | list[Check] | None = None,
@@ -535,9 +557,10 @@ class DatasetSchema(BaseSchema):
 |---|---|---|
 | `data_vars` | `dict[str, DataVar \| None]` | Logical name → spec. Lookup uses `DataVar.alias` when set (see §4.4). Keys paired with `DataVar(..., regex=True)` are patterns matching one or more dataset variables. `DataVar(...)` applies constraints when the variable is present; `required=True` (default) requires existence under the resolved name; `required=False` allows omission and optional `default` fill. `None` means required presence, no value-level validation. |
 | `coords` | `dict[str, Coordinate] \| list[str]` | Dataset-level coordinate schemas. If a dict, validates coordinate values. If a list, only checks coordinate existence. |
-| `dims` | `tuple[str, ...]` | Expected dataset-level dimension names (the union of all variable dims). |
+| `dims` | `tuple[str, ...]` | Expected dataset-level dimension names (the union of all variable dims). When `ordered_dims=False`, only the set of names is checked. |
+| `ordered_dims` | `bool` | If `True` (default), dataset-level `dims` validation checks names in order. If `False`, only the set of names is compared. For `DatasetSchema` this is less commonly needed than for `DataArraySchema`, since dataset-level dims are the union of all variable dims and order is often uncontrolled. |
 | `sizes` | `dict[str, int \| None]` | Expected dataset-level dimension sizes as a name→length mapping. |
-| `attrs` | `dict[str, Any]` | Expected dataset-level attributes. |
+| `attrs` | `dict[str, Any]` | Expected dataset-level attributes. Each value determines how validation is performed: (1) **literal values** are matched by equality, (2) **strings starting with `^`** are treated as regex patterns and matched against `str(actual_value)` via `re.fullmatch`, and (3) **callables** `(value) -> bool` are invoked with the actual attribute value and must return `True` for the check to pass. |
 | `checks` | `Check` or list | Dataset-wide checks (receive the full `xr.Dataset`). |
 | `strict` | `bool \| "filter"` | If `True`, fail on unexpected data variables. If `"filter"`, drop them. |
 | `strict_coords` | `bool` | If `True`, fail on unexpected **dataset-level** coordinate keys. Distinct from per-variable `DataVar.strict_coords` on each `ds[var]` slice (§4.4 / §4.2). |
@@ -635,7 +658,7 @@ class DataTreeSchema(BaseSchema):
 |---|---|---|
 | `children` | `dict[str, DatasetSchema \| DataTreeSchema]` | Mapping of child node names (or `/`-separated paths) to their schemas. Nesting allows recursive tree validation. |
 | `dataset` | `DatasetSchema` | Schema for the dataset attached to this node (its own `data_vars`, `coords`, `attrs`). |
-| `attrs` | `dict[str, Any]` | Expected node-level attributes. |
+| `attrs` | `dict[str, Any]` | Expected node-level attributes. Values support equality, regex patterns (`^...`), and callables `(value) -> bool` (same semantics as `DataArraySchema.attrs`). |
 | `strict` | `bool` | If `True`, fail on unexpected child nodes. |
 
 **Example — path-based tree schema:**
@@ -710,6 +733,7 @@ This maps 1:1 to the imperative API:
 |---|---|
 | `dtype=np.float64` | `Config.dtype = np.float64` |
 | `dims=("time", "lat", "lon")` | `Config.dims = (...)` |
+| `ordered_dims=False` | `Config.ordered_dims = False` |
 | `name="temperature"` | `Config.name = "temperature"` |
 | `data: np.float64 = pa.Field(in_range={"min_value": 150, "max_value": 350}, dims=("time", "lat", "lon"))` | `data: np.float64 = pa.Field(...)` |
 | `coords={"lat": pa.Coordinate(...)}` | `lat: Coordinate[np.float64] = pa.Field(...)` |
@@ -856,6 +880,7 @@ def Field(
     notin: Iterable[Any] | None = None,
     # xarray-specific per-field config
     dims: tuple[str, ...] | None = None,
+    ordered_dims: bool = True,
     sizes: dict[str, int | None] | None = None,
     shape: tuple[int | None, ...] | None = None,
     aligned_with: tuple[str, ...] | None = None,
@@ -1049,19 +1074,23 @@ def register_xarray_backends():
 
 1. Check dtype (coerce if needed via `da.astype()`)
 2. Check name
-3. Check dims (names and order)
+3. Check dims (names and, when `ordered_dims=True`, order)
 4. Check sizes (named dimension lengths) OR shape (positional lengths),
    with wildcard support for `None` values
 5. Check coords — for each entry in the `coords` schema:
-   - Verify the coordinate exists on the DataArray
+   - If `Coordinate.required` is `True` (default), verify the coordinate
+     exists on the DataArray; if `required=False` and the coordinate is
+     absent, skip it
    - If the coord spec is a `Coordinate`, validate `da.coords[name]`
      (value/shape/dtype checks mirror the `DataArray`-shaped validation path)
    - Distinguish dimension coordinates (name in `da.dims`) from
      non-dimension/auxiliary coordinates (name not in `da.dims`) for
      error reporting
    - If `Coordinate.dimension` is set, enforce dimension-vs-auxiliary kind
-6. Check strict_coords (reject unexpected coordinates)
-7. Check attrs (equality matching) and strict_attrs
+6. Check strict_coords (reject unexpected coordinates; coordinates with
+   `required=False` are still allowed entries in the schema for
+   `strict_coords` purposes)
+7. Check attrs (equality, regex, or callable matching) and strict_attrs
 8. Check chunked status (`da.chunks is not None`)
 9. Check array_type (`isinstance(da.data, array_type)`)
 10. Check nullable (scan for NaN/null via `da.isnull().any()`)
@@ -1391,8 +1420,9 @@ the nox test matrix.
 
 | Test category | Coverage |
 |---|---|
-| `test_data_array_schema.py` | `DataArraySchema` — dtype, dims, sizes, shape, coords (dimension and non-dimension), attrs, name, checks, nullable, coerce, strict_coords, strict_attrs, lazy |
-| `test_dataset_schema.py` | `DatasetSchema` — `DataVar` (`required`, `alias`, `regex`, `default`, `aligned_with`, `broadcastable_with`, per-var `strict_coords` vs dataset `strict_coords`), data_vars, dims, sizes, coords, attrs, strict, checks, lazy, disjunctive rules via dataset checks |
+| `test_data_array_schema.py` | `DataArraySchema` — dtype, dims, `ordered_dims`, sizes, shape, coords (dimension and non-dimension), attrs (equality, regex, callable), name, checks, nullable, coerce, strict_coords, strict_attrs, lazy |
+| `test_dataset_schema.py` | `DatasetSchema` — `DataVar` (`required`, `alias`, `regex`, `default`, `aligned_with`, `broadcastable_with`, per-var `strict_coords` vs dataset `strict_coords`), data_vars, dims, `ordered_dims`, sizes, coords, attrs (equality, regex, callable), strict, checks, lazy, disjunctive rules via dataset checks |
+| `test_coordinate.py` | `Coordinate` — `required=True/False`, interaction with `strict_coords`, dtype, dimension, indexed, checks |
 | `test_data_tree_schema.py` | `DataTreeSchema` — nested structure, path-based children, recursive validation, coordinate inheritance, strict child nodes |
 | `test_data_array_model.py` | `DataArrayModel` — class-based definition, `to_schema()`, `validate()`, coordinate name access |
 | `test_dataset_model.py` | `DatasetModel` — class-based definition, field access, `@check_types` |
@@ -1461,3 +1491,24 @@ the nox test matrix.
     XOR” involves multiple keys and is modeled via `DatasetSchema.checks`
     or a future `data_var_groups` helper—not duplicated on each `DataVar`.
     Final helper API shape TBD in Phase 2+.
+
+11. **Dimension ordering (resolved).** Community feedback requests the ability
+    to make dimension ordering checks optional. The `ordered_dims` parameter
+    (default `True` for backward compatibility) is added to
+    `DataArraySchema`, `DataVar`, `DatasetSchema`, and `Field`. When
+    `ordered_dims=False`, dims are validated as a set (names only, no
+    positional check), and wildcards (`None`) in the `dims` tuple are
+    ignored.
+
+12. **Attribute validation beyond equality (resolved).** The `attrs` dict
+    now supports three matching modes per value: (1) literal equality, (2)
+    regex pattern matching for string values starting with `^`, and (3)
+    callable predicates `(value) -> bool`. This covers common use cases
+    like validating that a `units` attribute matches a set of accepted
+    strings or checking semantic version constraints.
+
+13. **Optional coordinates (resolved).** `Coordinate` now accepts
+    `required=True/False` (default `True`), paralleling `DataVar.required`.
+    When `required=False` the coordinate may be absent without error; when
+    present, all constraints apply. This is independent of `strict_coords`,
+    which governs *extra* coordinates on the data object.

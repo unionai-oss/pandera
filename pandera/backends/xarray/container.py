@@ -12,6 +12,7 @@ pattern as Polars LazyFrame).
 from __future__ import annotations
 
 import copy
+import re
 from typing import Any
 
 import numpy as np
@@ -63,13 +64,18 @@ def _broadcast_compatible(da1: Any, da2: Any) -> bool:
     sizes1 = dict(zip(da1.dims, da1.shape))
     sizes2 = dict(zip(da2.dims, da2.shape))
     for d in set(sizes1) & set(sizes2):
-        if (
-            sizes1[d] != sizes2[d]
-            and sizes1[d] != 1
-            and sizes2[d] != 1
-        ):
+        if sizes1[d] != sizes2[d] and sizes1[d] != 1 and sizes2[d] != 1:
             return False
     return True
+
+
+def _match_attr_value(expected: Any, actual: Any) -> bool:
+    """Match an attribute value using equality, regex, or callable."""
+    if callable(expected) and not isinstance(expected, type):
+        return bool(expected(actual))
+    if isinstance(expected, str) and expected.startswith("^"):
+        return re.fullmatch(expected, str(actual)) is not None
+    return actual == expected
 
 
 def _run_core_checks(
@@ -111,21 +117,13 @@ class DataArraySchemaBackend(XarraySchemaBackend):
         self, check_obj, schema: DataArraySchema
     ) -> CoreCheckResult:
         """Check that the DataArray name matches the schema."""
-        if (
-            schema.name is None
-            or check_obj.name == schema.name
-        ):
-            return CoreCheckResult(
-                passed=True, check="name"
-            )
+        if schema.name is None or check_obj.name == schema.name:
+            return CoreCheckResult(passed=True, check="name")
         return CoreCheckResult(
             passed=False,
             check="name",
             reason_code=SchemaErrorReason.WRONG_FIELD_NAME,
-            message=(
-                f"expected name {schema.name!r}, "
-                f"got {check_obj.name!r}"
-            ),
+            message=(f"expected name {schema.name!r}, got {check_obj.name!r}"),
             failure_cases=check_obj.name,
         )
 
@@ -133,47 +131,64 @@ class DataArraySchemaBackend(XarraySchemaBackend):
     def check_dims(
         self, check_obj, schema: DataArraySchema
     ) -> list[CoreCheckResult]:
-        """Check dimension names and order."""
+        """Check dimension names (and order when ordered)."""
         results: list[CoreCheckResult] = []
         if schema.dims is None:
             return results
         exp = schema.dims
         got = check_obj.dims
-        if len(exp) != len(got):
-            results.append(
-                CoreCheckResult(
-                    passed=False,
-                    check="dims",
-                    reason_code=(
-                        SchemaErrorReason.MISMATCH_INDEX
-                    ),
-                    message=(
-                        f"expected ndim/dims length "
-                        f"{len(exp)} {exp!r}, "
-                        f"got {len(got)} {got!r}"
-                    ),
-                    failure_cases=str(got),
-                )
-            )
-        else:
-            for i, (e, g) in enumerate(zip(exp, got)):
-                if e is not None and e != g:
-                    results.append(
-                        CoreCheckResult(
-                            passed=False,
-                            check="dims",
-                            reason_code=(
-                                SchemaErrorReason.MISMATCH_INDEX
-                            ),
-                            message=(
-                                f"dim position {i}: "
-                                f"expected {e!r}, "
-                                f"got {g!r}"
-                            ),
-                            failure_cases=str(got),
-                        )
+        ordered = getattr(schema, "ordered_dims", True)
+        if ordered:
+            if len(exp) != len(got):
+                results.append(
+                    CoreCheckResult(
+                        passed=False,
+                        check="dims",
+                        reason_code=(SchemaErrorReason.MISMATCH_INDEX),
+                        message=(
+                            f"expected ndim/dims length "
+                            f"{len(exp)} {exp!r}, "
+                            f"got {len(got)} {got!r}"
+                        ),
+                        failure_cases=str(got),
                     )
-                    break
+                )
+            else:
+                for i, (e, g) in enumerate(zip(exp, got)):
+                    if e is not None and e != g:
+                        results.append(
+                            CoreCheckResult(
+                                passed=False,
+                                check="dims",
+                                reason_code=(SchemaErrorReason.MISMATCH_INDEX),
+                                message=(
+                                    f"dim position {i}: "
+                                    f"expected {e!r}, "
+                                    f"got {g!r}"
+                                ),
+                                failure_cases=str(got),
+                            )
+                        )
+                        break
+        else:
+            exp_names = {e for e in exp if e is not None}
+            got_names = set(got)
+            missing = exp_names - got_names
+            if missing:
+                results.append(
+                    CoreCheckResult(
+                        passed=False,
+                        check="dims",
+                        reason_code=(SchemaErrorReason.MISMATCH_INDEX),
+                        message=(
+                            f"missing dims "
+                            f"{sorted(missing)!r} "
+                            f"(expected {exp!r}, "
+                            f"got {got!r})"
+                        ),
+                        failure_cases=str(got),
+                    )
+                )
         return results
 
     @validate_scope(scope=ValidationScope.SCHEMA)
@@ -187,24 +202,17 @@ class DataArraySchemaBackend(XarraySchemaBackend):
         for d, sz in schema.sizes.items():
             if sz is None:
                 continue
-            if (
-                d not in check_obj.sizes
-                or check_obj.sizes[d] != sz
-            ):
+            if d not in check_obj.sizes or check_obj.sizes[d] != sz:
                 results.append(
                     CoreCheckResult(
                         passed=False,
                         check="sizes",
-                        reason_code=(
-                            SchemaErrorReason.MISMATCH_INDEX
-                        ),
+                        reason_code=(SchemaErrorReason.MISMATCH_INDEX),
                         message=(
                             f"expected size {d}={sz}, "
                             f"got {check_obj.sizes.get(d)}"
                         ),
-                        failure_cases=str(
-                            check_obj.sizes
-                        ),
+                        failure_cases=str(check_obj.sizes),
                     )
                 )
         return results
@@ -220,25 +228,18 @@ class DataArraySchemaBackend(XarraySchemaBackend):
         for i, sh in enumerate(schema.shape):
             if sh is None:
                 continue
-            if (
-                i >= len(check_obj.shape)
-                or check_obj.shape[i] != sh
-            ):
+            if i >= len(check_obj.shape) or check_obj.shape[i] != sh:
                 results.append(
                     CoreCheckResult(
                         passed=False,
                         check="shape",
-                        reason_code=(
-                            SchemaErrorReason.MISMATCH_INDEX
-                        ),
+                        reason_code=(SchemaErrorReason.MISMATCH_INDEX),
                         message=(
                             f"expected shape[{i}]={sh}, "
                             f"got shape "
                             f"{check_obj.shape}"
                         ),
-                        failure_cases=str(
-                            check_obj.shape
-                        ),
+                        failure_cases=str(check_obj.shape),
                     )
                 )
         return results
@@ -249,9 +250,7 @@ class DataArraySchemaBackend(XarraySchemaBackend):
     ) -> CoreCheckResult:
         """Check the data type."""
         if schema.dtype is None:
-            return CoreCheckResult(
-                passed=True, check="dtype"
-            )
+            return CoreCheckResult(passed=True, check="dtype")
         from pandera.engines import xarray_engine
 
         pdt = xarray_engine.Engine.dtype(schema.dtype)
@@ -264,10 +263,7 @@ class DataArraySchemaBackend(XarraySchemaBackend):
             passed=False,
             check=f"dtype({schema.dtype})",
             reason_code=SchemaErrorReason.WRONG_DATATYPE,
-            message=(
-                f"expected dtype {schema.dtype}, "
-                f"got {check_obj.dtype}"
-            ),
+            message=(f"expected dtype {schema.dtype}, got {check_obj.dtype}"),
             failure_cases=str(check_obj.dtype),
         )
 
@@ -276,10 +272,7 @@ class DataArraySchemaBackend(XarraySchemaBackend):
         self, check_obj, schema: DataArraySchema
     ) -> CoreCheckResult:
         """Check chunked / eager expectation."""
-        if (
-            schema.chunked is True
-            and check_obj.chunks is None
-        ):
+        if schema.chunked is True and check_obj.chunks is None:
             return CoreCheckResult(
                 passed=False,
                 check="chunked",
@@ -287,22 +280,15 @@ class DataArraySchemaBackend(XarraySchemaBackend):
                 message="expected chunked (Dask) DataArray",
                 failure_cases="eager",
             )
-        if (
-            schema.chunked is False
-            and check_obj.chunks is not None
-        ):
+        if schema.chunked is False and check_obj.chunks is not None:
             return CoreCheckResult(
                 passed=False,
                 check="chunked",
                 reason_code=SchemaErrorReason.INVALID_TYPE,
-                message=(
-                    "expected eager DataArray, got chunked"
-                ),
+                message=("expected eager DataArray, got chunked"),
                 failure_cases="chunked",
             )
-        return CoreCheckResult(
-            passed=True, check="chunked"
-        )
+        return CoreCheckResult(passed=True, check="chunked")
 
     @validate_scope(scope=ValidationScope.SCHEMA)
     def check_array_type(
@@ -312,9 +298,7 @@ class DataArraySchemaBackend(XarraySchemaBackend):
         if schema.array_type is None or isinstance(
             check_obj.data, schema.array_type
         ):
-            return CoreCheckResult(
-                passed=True, check="array_type"
-            )
+            return CoreCheckResult(passed=True, check="array_type")
         return CoreCheckResult(
             passed=False,
             check="array_type",
@@ -333,19 +317,12 @@ class DataArraySchemaBackend(XarraySchemaBackend):
     ) -> CoreCheckResult:
         """Check for null values when nullable is False."""
         if schema.nullable or not check_obj.isnull().any():
-            return CoreCheckResult(
-                passed=True, check="nullable"
-            )
+            return CoreCheckResult(passed=True, check="nullable")
         return CoreCheckResult(
             passed=False,
             check="nullable",
-            reason_code=(
-                SchemaErrorReason.SERIES_CONTAINS_NULLS
-            ),
-            message=(
-                "non-nullable DataArray contains "
-                "null values"
-            ),
+            reason_code=(SchemaErrorReason.SERIES_CONTAINS_NULLS),
+            message=("non-nullable DataArray contains null values"),
             failure_cases="null",
         )
 
@@ -353,32 +330,34 @@ class DataArraySchemaBackend(XarraySchemaBackend):
     def check_attrs(
         self, check_obj, schema: DataArraySchema
     ) -> list[CoreCheckResult]:
-        """Check attribute values."""
+        """Check attribute values (equality, regex, or callable)."""
         results: list[CoreCheckResult] = []
         if not schema.attrs:
             return results
         for ak, av in schema.attrs.items():
-            if (
-                ak not in check_obj.attrs
-                or check_obj.attrs[ak] != av
-            ):
+            if ak not in check_obj.attrs:
                 results.append(
                     CoreCheckResult(
                         passed=False,
                         check="attrs",
-                        reason_code=(
-                            SchemaErrorReason
-                            .SCHEMA_COMPONENT_CHECK
-                        ),
+                        reason_code=(SchemaErrorReason.SCHEMA_COMPONENT_CHECK),
+                        message=(f"missing attribute {ak!r}: expected {av!r}"),
+                        failure_cases="<missing>",
+                    )
+                )
+            elif not _match_attr_value(av, check_obj.attrs[ak]):
+                results.append(
+                    CoreCheckResult(
+                        passed=False,
+                        check="attrs",
+                        reason_code=(SchemaErrorReason.SCHEMA_COMPONENT_CHECK),
                         message=(
                             f"attribute mismatch "
                             f"{ak!r}: expected {av!r}"
                             f", got "
-                            f"{check_obj.attrs.get(ak)!r}"
+                            f"{check_obj.attrs[ak]!r}"
                         ),
-                        failure_cases=str(
-                            check_obj.attrs.get(ak)
-                        ),
+                        failure_cases=str(check_obj.attrs[ak]),
                     )
                 )
         return results
@@ -389,10 +368,7 @@ class DataArraySchemaBackend(XarraySchemaBackend):
     ) -> list[CoreCheckResult]:
         """Check for unexpected attributes."""
         results: list[CoreCheckResult] = []
-        if not (
-            schema.strict_attrs
-            and schema.attrs is not None
-        ):
+        if not (schema.strict_attrs and schema.attrs is not None):
             return results
         allowed = set(schema.attrs.keys())
         for k in check_obj.attrs:
@@ -401,13 +377,8 @@ class DataArraySchemaBackend(XarraySchemaBackend):
                     CoreCheckResult(
                         passed=False,
                         check="strict_attrs",
-                        reason_code=(
-                            SchemaErrorReason
-                            .SCHEMA_COMPONENT_CHECK
-                        ),
-                        message=(
-                            f"unexpected attribute {k!r}"
-                        ),
+                        reason_code=(SchemaErrorReason.SCHEMA_COMPONENT_CHECK),
+                        message=(f"unexpected attribute {k!r}"),
                         failure_cases=k,
                     )
                 )
@@ -429,34 +400,28 @@ class DataArraySchemaBackend(XarraySchemaBackend):
                             passed=False,
                             check="coords",
                             reason_code=(
-                                SchemaErrorReason
-                                .COLUMN_NOT_IN_DATAFRAME
+                                SchemaErrorReason.COLUMN_NOT_IN_DATAFRAME
                             ),
-                            message=(
-                                f"missing coordinate "
-                                f"{cn!r}"
-                            ),
+                            message=(f"missing coordinate {cn!r}"),
                             failure_cases=cn,
                         )
                     )
         else:
             for cn, cspec in schema.coords.items():
+                coord_required = getattr(cspec, "required", True)
                 if cn not in check_obj.coords:
-                    results.append(
-                        CoreCheckResult(
-                            passed=False,
-                            check="coords",
-                            reason_code=(
-                                SchemaErrorReason
-                                .COLUMN_NOT_IN_DATAFRAME
-                            ),
-                            message=(
-                                f"missing coordinate "
-                                f"{cn!r}"
-                            ),
-                            failure_cases=cn,
+                    if coord_required:
+                        results.append(
+                            CoreCheckResult(
+                                passed=False,
+                                check="coords",
+                                reason_code=(
+                                    SchemaErrorReason.COLUMN_NOT_IN_DATAFRAME
+                                ),
+                                message=(f"missing coordinate {cn!r}"),
+                                failure_cases=cn,
+                            )
                         )
-                    )
                 else:
                     results.extend(
                         self._validate_coord_on_parent(
@@ -474,10 +439,7 @@ class DataArraySchemaBackend(XarraySchemaBackend):
     ) -> list[CoreCheckResult]:
         """Check for unexpected coordinates."""
         results: list[CoreCheckResult] = []
-        if not (
-            schema.strict_coords
-            and schema.coords is not None
-        ):
+        if not (schema.strict_coords and schema.coords is not None):
             return results
         if isinstance(schema.coords, list):
             expected: set[str] = set(schema.coords)
@@ -489,14 +451,8 @@ class DataArraySchemaBackend(XarraySchemaBackend):
                     CoreCheckResult(
                         passed=False,
                         check="strict_coords",
-                        reason_code=(
-                            SchemaErrorReason
-                            .COLUMN_NOT_IN_SCHEMA
-                        ),
-                        message=(
-                            f"unexpected coordinate "
-                            f"{ck!r}"
-                        ),
+                        reason_code=(SchemaErrorReason.COLUMN_NOT_IN_SCHEMA),
+                        message=(f"unexpected coordinate {ck!r}"),
                         failure_cases=ck,
                     )
                 )
@@ -519,18 +475,12 @@ class DataArraySchemaBackend(XarraySchemaBackend):
 
         if isinstance(spec, Coordinate):
             c = spec
-            if (
-                c.dimension is True
-                and coord_name not in parent_dims
-            ):
+            if c.dimension is True and coord_name not in parent_dims:
                 results.append(
                     CoreCheckResult(
                         passed=False,
                         check="dimension_coord",
-                        reason_code=(
-                            SchemaErrorReason
-                            .SCHEMA_COMPONENT_CHECK
-                        ),
+                        reason_code=(SchemaErrorReason.SCHEMA_COMPONENT_CHECK),
                         message=(
                             f"coordinate {coord_name!r} "
                             f"must be a dimension "
@@ -539,18 +489,12 @@ class DataArraySchemaBackend(XarraySchemaBackend):
                         failure_cases=coord_name,
                     )
                 )
-            if (
-                c.dimension is False
-                and coord_name in parent_dims
-            ):
+            if c.dimension is False and coord_name in parent_dims:
                 results.append(
                     CoreCheckResult(
                         passed=False,
                         check="aux_coord",
-                        reason_code=(
-                            SchemaErrorReason
-                            .SCHEMA_COMPONENT_CHECK
-                        ),
+                        reason_code=(SchemaErrorReason.SCHEMA_COMPONENT_CHECK),
                         message=(
                             f"coordinate {coord_name!r} "
                             f"must not be a "
@@ -559,18 +503,12 @@ class DataArraySchemaBackend(XarraySchemaBackend):
                         failure_cases=coord_name,
                     )
                 )
-            if (
-                c.indexed is True
-                and coord_name not in parent.xindexes
-            ):
+            if c.indexed is True and coord_name not in parent.xindexes:
                 results.append(
                     CoreCheckResult(
                         passed=False,
                         check="indexed",
-                        reason_code=(
-                            SchemaErrorReason
-                            .SCHEMA_COMPONENT_CHECK
-                        ),
+                        reason_code=(SchemaErrorReason.SCHEMA_COMPONENT_CHECK),
                         message=(
                             f"coordinate {coord_name!r} "
                             f"expected indexed on "
@@ -579,18 +517,12 @@ class DataArraySchemaBackend(XarraySchemaBackend):
                         failure_cases=coord_name,
                     )
                 )
-            if (
-                c.indexed is False
-                and coord_name in parent.xindexes
-            ):
+            if c.indexed is False and coord_name in parent.xindexes:
                 results.append(
                     CoreCheckResult(
                         passed=False,
                         check="indexed",
-                        reason_code=(
-                            SchemaErrorReason
-                            .SCHEMA_COMPONENT_CHECK
-                        ),
+                        reason_code=(SchemaErrorReason.SCHEMA_COMPONENT_CHECK),
                         message=(
                             f"coordinate {coord_name!r} "
                             f"expected non-indexed "
@@ -635,14 +567,8 @@ class DataArraySchemaBackend(XarraySchemaBackend):
                 CoreCheckResult(
                     passed=False,
                     check="coord_spec",
-                    reason_code=(
-                        SchemaErrorReason
-                        .SCHEMA_COMPONENT_CHECK
-                    ),
-                    message=(
-                        f"invalid coordinate spec "
-                        f"type: {type(spec)!r}"
-                    ),
+                    reason_code=(SchemaErrorReason.SCHEMA_COMPONENT_CHECK),
+                    message=(f"invalid coordinate spec type: {type(spec)!r}"),
                     failure_cases=str(spec),
                 )
             )
@@ -666,14 +592,10 @@ class DataArraySchemaBackend(XarraySchemaBackend):
         inplace: bool = False,
     ):
         error_handler = ErrorHandler(lazy)
-        check_obj = self.preprocess(
-            check_obj, inplace=inplace
-        )
+        check_obj = self.preprocess(check_obj, inplace=inplace)
 
         try:
-            check_obj = self.run_parsers(
-                schema, check_obj
-            )
+            check_obj = self.run_parsers(schema, check_obj)
         except SchemaError as exc:
             error_handler.collect_error(
                 get_error_category(exc.reason_code),
@@ -683,9 +605,7 @@ class DataArraySchemaBackend(XarraySchemaBackend):
 
         if schema.coerce and schema.dtype is not None:
             try:
-                check_obj = self.coerce_dtype(
-                    check_obj, schema
-                )
+                check_obj = self.coerce_dtype(check_obj, schema)
             except SchemaError as exc:
                 error_handler.collect_error(
                     get_error_category(exc.reason_code),
@@ -784,36 +704,46 @@ class DatasetSchemaBackend(XarraySchemaBackend):
     # ------------------------------------------------------------------
 
     @validate_scope(scope=ValidationScope.SCHEMA)
-    def check_dims(
-        self, ds, schema: DatasetSchema
-    ) -> list[CoreCheckResult]:
+    def check_dims(self, ds, schema: DatasetSchema) -> list[CoreCheckResult]:
         """Check dataset-level dimension names."""
         results: list[CoreCheckResult] = []
         if schema.dims is None:
             return results
-        exp = set(schema.dims)
-        got = set(ds.dims)
-        if exp != got:
-            results.append(
-                CoreCheckResult(
-                    passed=False,
-                    check="dims",
-                    reason_code=(
-                        SchemaErrorReason.MISMATCH_INDEX
-                    ),
-                    message=(
-                        f"expected dims {exp!r}, "
-                        f"got {got!r}"
-                    ),
-                    failure_cases=str(got),
+        ordered = getattr(schema, "ordered_dims", True)
+        if ordered:
+            exp_tuple = schema.dims
+            got_tuple = tuple(ds.dims)
+            if exp_tuple != got_tuple:
+                results.append(
+                    CoreCheckResult(
+                        passed=False,
+                        check="dims",
+                        reason_code=(SchemaErrorReason.MISMATCH_INDEX),
+                        message=(
+                            f"expected dims {exp_tuple!r}, got {got_tuple!r}"
+                        ),
+                        failure_cases=str(got_tuple),
+                    )
                 )
-            )
+        else:
+            exp_set = set(schema.dims)
+            got_set = set(ds.dims)
+            if exp_set != got_set:
+                results.append(
+                    CoreCheckResult(
+                        passed=False,
+                        check="dims",
+                        reason_code=(SchemaErrorReason.MISMATCH_INDEX),
+                        message=(
+                            f"expected dims {exp_set!r}, got {got_set!r}"
+                        ),
+                        failure_cases=str(got_set),
+                    )
+                )
         return results
 
     @validate_scope(scope=ValidationScope.SCHEMA)
-    def check_sizes(
-        self, ds, schema: DatasetSchema
-    ) -> list[CoreCheckResult]:
+    def check_sizes(self, ds, schema: DatasetSchema) -> list[CoreCheckResult]:
         """Check dataset-level dimension sizes."""
         results: list[CoreCheckResult] = []
         if not schema.sizes:
@@ -826,9 +756,7 @@ class DatasetSchemaBackend(XarraySchemaBackend):
                     CoreCheckResult(
                         passed=False,
                         check="sizes",
-                        reason_code=(
-                            SchemaErrorReason.MISMATCH_INDEX
-                        ),
+                        reason_code=(SchemaErrorReason.MISMATCH_INDEX),
                         message=(
                             f"dataset size {d!r} "
                             f"expected {sz}, "
@@ -840,35 +768,38 @@ class DatasetSchemaBackend(XarraySchemaBackend):
         return results
 
     @validate_scope(scope=ValidationScope.SCHEMA)
-    def check_attrs(
-        self, ds, schema: DatasetSchema
-    ) -> list[CoreCheckResult]:
+    def check_attrs(self, ds, schema: DatasetSchema) -> list[CoreCheckResult]:
         """Check dataset-level attribute values."""
         results: list[CoreCheckResult] = []
         if not schema.attrs:
             return results
         for ak, av in schema.attrs.items():
-            if (
-                ak not in ds.attrs
-                or ds.attrs[ak] != av
-            ):
+            if ak not in ds.attrs:
                 results.append(
                     CoreCheckResult(
                         passed=False,
                         check="attrs",
-                        reason_code=(
-                            SchemaErrorReason
-                            .SCHEMA_COMPONENT_CHECK
+                        reason_code=(SchemaErrorReason.SCHEMA_COMPONENT_CHECK),
+                        message=(
+                            f"missing dataset attribute "
+                            f"{ak!r}: expected {av!r}"
                         ),
+                        failure_cases="<missing>",
+                    )
+                )
+            elif not _match_attr_value(av, ds.attrs[ak]):
+                results.append(
+                    CoreCheckResult(
+                        passed=False,
+                        check="attrs",
+                        reason_code=(SchemaErrorReason.SCHEMA_COMPONENT_CHECK),
                         message=(
                             f"dataset attribute "
                             f"{ak!r}: expected {av!r}"
                             f", got "
-                            f"{ds.attrs.get(ak)!r}"
+                            f"{ds.attrs[ak]!r}"
                         ),
-                        failure_cases=str(
-                            ds.attrs.get(ak)
-                        ),
+                        failure_cases=str(ds.attrs[ak]),
                     )
                 )
         return results
@@ -879,10 +810,7 @@ class DatasetSchemaBackend(XarraySchemaBackend):
     ) -> list[CoreCheckResult]:
         """Check for unexpected dataset attributes."""
         results: list[CoreCheckResult] = []
-        if not (
-            schema.strict_attrs
-            and schema.attrs is not None
-        ):
+        if not (schema.strict_attrs and schema.attrs is not None):
             return results
         allowed = set(schema.attrs.keys())
         for k in ds.attrs:
@@ -891,23 +819,15 @@ class DatasetSchemaBackend(XarraySchemaBackend):
                     CoreCheckResult(
                         passed=False,
                         check="strict_attrs",
-                        reason_code=(
-                            SchemaErrorReason
-                            .SCHEMA_COMPONENT_CHECK
-                        ),
-                        message=(
-                            f"unexpected attribute "
-                            f"{k!r}"
-                        ),
+                        reason_code=(SchemaErrorReason.SCHEMA_COMPONENT_CHECK),
+                        message=(f"unexpected attribute {k!r}"),
                         failure_cases=k,
                     )
                 )
         return results
 
     @validate_scope(scope=ValidationScope.SCHEMA)
-    def check_coords(
-        self, ds, schema: DatasetSchema
-    ) -> list[CoreCheckResult]:
+    def check_coords(self, ds, schema: DatasetSchema) -> list[CoreCheckResult]:
         """Check coordinate presence and sub-schemas."""
         results: list[CoreCheckResult] = []
         if schema.coords is None:
@@ -920,39 +840,32 @@ class DatasetSchemaBackend(XarraySchemaBackend):
                             passed=False,
                             check="coords",
                             reason_code=(
-                                SchemaErrorReason
-                                .COLUMN_NOT_IN_DATAFRAME
+                                SchemaErrorReason.COLUMN_NOT_IN_DATAFRAME
                             ),
-                            message=(
-                                f"missing coordinate "
-                                f"{cn!r}"
-                            ),
+                            message=(f"missing coordinate {cn!r}"),
                             failure_cases=cn,
                         )
                     )
         else:
             da_backend = DataArraySchemaBackend()
             for cn, cspec in schema.coords.items():
+                coord_required = getattr(cspec, "required", True)
                 if cn not in ds.coords:
-                    results.append(
-                        CoreCheckResult(
-                            passed=False,
-                            check="coords",
-                            reason_code=(
-                                SchemaErrorReason
-                                .COLUMN_NOT_IN_DATAFRAME
-                            ),
-                            message=(
-                                f"missing coordinate "
-                                f"{cn!r}"
-                            ),
-                            failure_cases=cn,
+                    if coord_required:
+                        results.append(
+                            CoreCheckResult(
+                                passed=False,
+                                check="coords",
+                                reason_code=(
+                                    SchemaErrorReason.COLUMN_NOT_IN_DATAFRAME
+                                ),
+                                message=(f"missing coordinate {cn!r}"),
+                                failure_cases=cn,
+                            )
                         )
-                    )
                 elif isinstance(cspec, Coordinate):
                     results.extend(
-                        da_backend
-                        ._validate_coord_on_parent(
+                        da_backend._validate_coord_on_parent(
                             ds,
                             cn,
                             cspec,
@@ -965,13 +878,9 @@ class DatasetSchemaBackend(XarraySchemaBackend):
                             passed=False,
                             check="coords",
                             reason_code=(
-                                SchemaErrorReason
-                                .SCHEMA_COMPONENT_CHECK
+                                SchemaErrorReason.SCHEMA_COMPONENT_CHECK
                             ),
-                            message=(
-                                f"invalid coord spec: "
-                                f"{type(cspec)!r}"
-                            ),
+                            message=(f"invalid coord spec: {type(cspec)!r}"),
                             failure_cases=str(cspec),
                         )
                     )
@@ -983,10 +892,7 @@ class DatasetSchemaBackend(XarraySchemaBackend):
     ) -> list[CoreCheckResult]:
         """Check for unexpected coordinates."""
         results: list[CoreCheckResult] = []
-        if not (
-            schema.coords is not None
-            and schema.strict_coords
-        ):
+        if not (schema.coords is not None and schema.strict_coords):
             return results
         if isinstance(schema.coords, dict):
             allowed = set(schema.coords.keys())
@@ -998,14 +904,8 @@ class DatasetSchemaBackend(XarraySchemaBackend):
                     CoreCheckResult(
                         passed=False,
                         check="strict_coords",
-                        reason_code=(
-                            SchemaErrorReason
-                            .COLUMN_NOT_IN_SCHEMA
-                        ),
-                        message=(
-                            f"unexpected coordinate "
-                            f"{ck!r}"
-                        ),
+                        reason_code=(SchemaErrorReason.COLUMN_NOT_IN_SCHEMA),
+                        message=(f"unexpected coordinate {ck!r}"),
                         failure_cases=ck,
                     )
                 )
@@ -1027,18 +927,12 @@ class DatasetSchemaBackend(XarraySchemaBackend):
         ``strict="filter"`` and ``strict=True`` see the same set.
         """
         if schema.strict is not True or not extras:
-            return CoreCheckResult(
-                passed=True, check="strict_data_vars"
-            )
+            return CoreCheckResult(passed=True, check="strict_data_vars")
         return CoreCheckResult(
             passed=False,
             check="strict_data_vars",
-            reason_code=(
-                SchemaErrorReason.COLUMN_NOT_IN_SCHEMA
-            ),
-            message=(
-                f"unexpected data variables: {extras}"
-            ),
+            reason_code=(SchemaErrorReason.COLUMN_NOT_IN_SCHEMA),
+            message=(f"unexpected data variables: {extras}"),
             failure_cases=str(extras),
         )
 
@@ -1064,19 +958,15 @@ class DatasetSchemaBackend(XarraySchemaBackend):
                         passed=False,
                         check="data_var_presence",
                         reason_code=(
-                            SchemaErrorReason
-                            .COLUMN_NOT_IN_DATAFRAME
+                            SchemaErrorReason.COLUMN_NOT_IN_DATAFRAME
                         ),
-                        message=(
-                            f"missing required "
-                            f"data_var {actual!r}"
-                        ),
+                        message=(f"missing required data_var {actual!r}"),
                         failure_cases=actual,
                     )
                 )
         return results
 
-    def run_schema_component_checks(
+    def run_schema_component_checks(  # type: ignore[override]
         self,
         ds,
         schema: DatasetSchema,
@@ -1098,17 +988,12 @@ class DatasetSchemaBackend(XarraySchemaBackend):
         da_backend = DataArraySchemaBackend()
         for logical, spec in schema.data_vars.items():
             actual = logical_to_actual[logical]
-            if (
-                actual not in ds.data_vars
-                or spec is None
-            ):
+            if actual not in ds.data_vars or spec is None:
                 continue
             if isinstance(spec, DataArraySchema):
                 sub = copy.copy(spec)
             else:
-                sub = copy.copy(
-                    spec.to_data_array_schema(logical)
-                )
+                sub = copy.copy(spec.to_data_array_schema(logical))
             sub = sub.set_name(actual)
             try:
                 da_backend.validate(
@@ -1159,17 +1044,14 @@ class DatasetSchemaBackend(XarraySchemaBackend):
                 continue
             da_self = ds[actual]
             for other_log in spec.aligned_with or ():
-                other = logical_to_actual.get(
-                    other_log, other_log
-                )
+                other = logical_to_actual.get(other_log, other_log)
                 if other not in ds.data_vars:
                     results.append(
                         CoreCheckResult(
                             passed=False,
                             check="aligned_with",
                             reason_code=(
-                                SchemaErrorReason
-                                .SCHEMA_COMPONENT_CHECK
+                                SchemaErrorReason.SCHEMA_COMPONENT_CHECK
                             ),
                             message=(
                                 f"aligned_with: peer "
@@ -1179,17 +1061,12 @@ class DatasetSchemaBackend(XarraySchemaBackend):
                         )
                     )
                     continue
-                if not _aligned_dims_sizes(
-                    da_self, ds[other]
-                ):
+                if not _aligned_dims_sizes(da_self, ds[other]):
                     results.append(
                         CoreCheckResult(
                             passed=False,
                             check="aligned_with",
-                            reason_code=(
-                                SchemaErrorReason
-                                .MISMATCH_INDEX
-                            ),
+                            reason_code=(SchemaErrorReason.MISMATCH_INDEX),
                             message=(
                                 f"{actual!r} not aligned"
                                 f" with {other!r} "
@@ -1197,20 +1074,15 @@ class DatasetSchemaBackend(XarraySchemaBackend):
                             ),
                         )
                     )
-            for other_log in (
-                spec.broadcastable_with or ()
-            ):
-                other = logical_to_actual.get(
-                    other_log, other_log
-                )
+            for other_log in spec.broadcastable_with or ():
+                other = logical_to_actual.get(other_log, other_log)
                 if other not in ds.data_vars:
                     results.append(
                         CoreCheckResult(
                             passed=False,
                             check="broadcastable_with",
                             reason_code=(
-                                SchemaErrorReason
-                                .SCHEMA_COMPONENT_CHECK
+                                SchemaErrorReason.SCHEMA_COMPONENT_CHECK
                             ),
                             message=(
                                 f"broadcastable_with: "
@@ -1220,17 +1092,12 @@ class DatasetSchemaBackend(XarraySchemaBackend):
                         )
                     )
                     continue
-                if not _broadcast_compatible(
-                    da_self, ds[other]
-                ):
+                if not _broadcast_compatible(da_self, ds[other]):
                     results.append(
                         CoreCheckResult(
                             passed=False,
                             check="broadcastable_with",
-                            reason_code=(
-                                SchemaErrorReason
-                                .MISMATCH_INDEX
-                            ),
+                            reason_code=(SchemaErrorReason.MISMATCH_INDEX),
                             message=(
                                 f"{actual!r} not "
                                 f"broadcast-compatible "
@@ -1265,9 +1132,7 @@ class DatasetSchemaBackend(XarraySchemaBackend):
         if spec.default is None:
             return ds
         if isinstance(spec.default, xr.DataArray):
-            return ds.assign(
-                **{actual_name: spec.default}
-            )
+            return ds.assign(**{actual_name: spec.default})
         if spec.dims is None:
             raise SchemaError(
                 dataset_schema,
@@ -1276,9 +1141,7 @@ class DatasetSchemaBackend(XarraySchemaBackend):
                     "inserting scalar default requires "
                     f"DataVar.dims for {actual_name!r}"
                 ),
-                reason_code=(
-                    SchemaErrorReason.SCHEMA_COMPONENT_CHECK
-                ),
+                reason_code=(SchemaErrorReason.SCHEMA_COMPONENT_CHECK),
             )
         shape = []
         coords = {}
@@ -1289,14 +1152,8 @@ class DatasetSchemaBackend(XarraySchemaBackend):
                 raise SchemaError(
                     dataset_schema,
                     data=ds,
-                    message=(
-                        f"cannot fill default: dim "
-                        f"{d!r} not on dataset"
-                    ),
-                    reason_code=(
-                        SchemaErrorReason
-                        .SCHEMA_COMPONENT_CHECK
-                    ),
+                    message=(f"cannot fill default: dim {d!r} not on dataset"),
+                    reason_code=(SchemaErrorReason.SCHEMA_COMPONENT_CHECK),
                 )
             shape.append(ds.sizes[d])
             if d in ds.coords:
@@ -1304,9 +1161,7 @@ class DatasetSchemaBackend(XarraySchemaBackend):
         arr = np.full(shape, spec.default)
         da = xr.DataArray(
             arr,
-            dims=[
-                d for d in spec.dims if d is not None
-            ],
+            dims=[d for d in spec.dims if d is not None],
             coords=coords,
         )
         return ds.assign(**{actual_name: da})
@@ -1328,9 +1183,7 @@ class DatasetSchemaBackend(XarraySchemaBackend):
             if spec.required or spec.default is None:
                 continue
             try:
-                ds = self._apply_default(
-                    ds, actual, spec, schema
-                )
+                ds = self._apply_default(ds, actual, spec, schema)
             except SchemaError as exc:
                 error_handler.collect_error(
                     get_error_category(exc.reason_code),
@@ -1358,33 +1211,22 @@ class DatasetSchemaBackend(XarraySchemaBackend):
         import xarray as xr
 
         error_handler = ErrorHandler(lazy)
-        ds = self.preprocess(
-            check_obj, inplace=inplace
-        )
+        ds = self.preprocess(check_obj, inplace=inplace)
 
         # --- resolve logical → actual var names ---
         logical_to_actual: dict[str, str] = {}
         for logical, spec in schema.data_vars.items():
-            logical_to_actual[logical] = (
-                self._resolve_var_name(logical, spec)
-            )
+            logical_to_actual[logical] = self._resolve_var_name(logical, spec)
 
         # --- fail fast: duplicate alias resolution ---
         actual_to_logicals: dict[str, list[str]] = {}
         for logical, actual in logical_to_actual.items():
-            actual_to_logicals.setdefault(
-                actual, []
-            ).append(logical)
+            actual_to_logicals.setdefault(actual, []).append(logical)
         dupes = {
-            a: lgs
-            for a, lgs in actual_to_logicals.items()
-            if len(lgs) > 1
+            a: lgs for a, lgs in actual_to_logicals.items() if len(lgs) > 1
         }
         if dupes:
-            detail = ", ".join(
-                f"{a!r} <- {lgs}"
-                for a, lgs in dupes.items()
-            )
+            detail = ", ".join(f"{a!r} <- {lgs}" for a, lgs in dupes.items())
             raise SchemaError(
                 schema,
                 data=ds,
@@ -1397,13 +1239,8 @@ class DatasetSchemaBackend(XarraySchemaBackend):
             )
 
         # --- strict filter (preprocessing) ---
-        planned = {
-            logical_to_actual[k]
-            for k in schema.data_vars
-        }
-        extras = [
-            v for v in ds.data_vars if v not in planned
-        ]
+        planned = {logical_to_actual[k] for k in schema.data_vars}
+        extras = [v for v in ds.data_vars if v not in planned]
         if schema.strict == "filter" and extras:
             ds = ds.drop_vars(extras)
 
@@ -1476,7 +1313,5 @@ class DatasetSchemaBackend(XarraySchemaBackend):
                 data=ds,
             )
         if not isinstance(ds, xr.Dataset):
-            raise TypeError(
-                f"expected Dataset, got {type(ds)}"
-            )
+            raise TypeError(f"expected Dataset, got {type(ds)}")
         return ds

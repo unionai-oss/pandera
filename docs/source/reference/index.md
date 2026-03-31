@@ -32,6 +32,30 @@
      - Pandera-specific exceptions
 ```
 
+## Configuration
+
+```{eval-rst}
+.. list-table::
+   :widths: 30 70
+
+   * - :class:`~pandera.config.PanderaConfig`
+     - Global configuration (validation enabled, depth, caching)
+   * - :class:`~pandera.config.ValidationDepth`
+     - Whether to apply checks at schema-level, data-level, or both
+   * - :class:`~pandera.config.ValidationScope`
+     - Indicates whether a check operates at schema or data level
+   * - :func:`~pandera.config.config_context`
+     - Context manager to temporarily override config settings
+   * - :func:`~pandera.config.get_config_context`
+     - Get the current configuration context
+   * - :func:`~pandera.config.get_config_global`
+     - Get the global configuration
+   * - :func:`~pandera.config.reset_config_context`
+     - Reset context configuration to the global default
+```
+
+See :ref:`api-core` for full details.
+
 ## Multi-dimensional arrays
 
 ```{eval-rst}

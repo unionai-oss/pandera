@@ -79,7 +79,11 @@ with config_context(validation_enabled=False):
 
 - {ref}`xarray-checks-parsers` — checks, parsers, and lazy validation
 - {ref}`xarray-decorators` — `check_input`, `check_output`, `check_io`, and `check_types`
-- {ref}`xarray-data-array-schema` — `DataArraySchema` details
-- {ref}`xarray-dataset-schema` — `DatasetSchema` details
-- {ref}`xarray-data-models` — class-based models
-- {ref}`configuration` — global `ValidationDepth`, `ValidationScope`, env vars
+- {ref}`xarray-data-array-schema` — {class}`~pandera.api.xarray.container.DataArraySchema` details
+- {ref}`xarray-dataset-schema` — {class}`~pandera.api.xarray.container.DatasetSchema` details
+- {ref}`xarray-data-models` — class-based {class}`~pandera.api.xarray.model.DataArrayModel` / {class}`~pandera.api.xarray.model.DatasetModel`
+- {ref}`api-xarray` — full API reference for all xarray classes
+- {ref}`api-core` — {class}`~pandera.config.PanderaConfig`,
+  {class}`~pandera.config.ValidationDepth`,
+  {class}`~pandera.config.ValidationScope`
+- {ref}`configuration` — global {class}`~pandera.config.ValidationDepth`, {class}`~pandera.config.ValidationScope`, env vars

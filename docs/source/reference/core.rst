@@ -65,5 +65,12 @@ Configuration
    pandera.config.PanderaConfig
    pandera.config.ValidationDepth
    pandera.config.ValidationScope
+
+.. autosummary::
+   :toctree: generated
+   :nosignatures:
+
    pandera.config.config_context
    pandera.config.get_config_context
+   pandera.config.get_config_global
+   pandera.config.reset_config_context
