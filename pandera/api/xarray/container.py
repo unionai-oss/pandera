@@ -12,6 +12,7 @@ from pandera.api.xarray.base import BaseDataArraySchema as _BaseDataArraySchema
 from pandera.api.xarray.base import BaseDatasetSchema as _BaseDatasetSchema
 from pandera.api.xarray.utils import get_validation_depth
 from pandera.config import config_context, get_config_context
+from pydantic import BaseModel
 from pandera.errors import BackendNotFoundError, SchemaDefinitionError
 
 if TYPE_CHECKING:
@@ -51,7 +52,7 @@ class DataArraySchema(_BaseDataArraySchema):
         sizes: dict[str, int | None] | None = None,
         shape: tuple[int | None, ...] | None = None,
         coords: dict[str, Any] | list[str] | None = None,
-        attrs: dict[str, Any] | None = None,
+        attrs: dict[str, Any] | type[BaseModel] | None = None,
         name: str | None = None,
         checks: CheckList | None = None,
         parsers: ParserList | None = None,
@@ -76,9 +77,11 @@ class DataArraySchema(_BaseDataArraySchema):
         :param sizes: size requirements for dimensions.
         :param shape: shape requirements for the DataArray.
         :param coords: coordinate specifications.
-        :param attrs: attribute specifications. Values can be literal
-            (equality check), regex strings starting with ``^`` (pattern
-            match via ``re.fullmatch``), or callables ``(value) -> bool``.
+        :param attrs: attribute specifications. Can be a ``dict[str, Any]``
+            where values are literal (equality), regex strings starting
+            with ``^`` (pattern match), or callables ``(value) -> bool``.
+            Alternatively, pass a :class:`pydantic.BaseModel` **class** to
+            validate the full attrs dict against the model's schema.
         :param name: name of the DataArray.
         :param checks: checks applied to the whole DataArray (after structure).
         :param parsers: parsers applied to the whole DataArray before checks.
@@ -225,7 +228,7 @@ class DatasetSchema(_BaseDatasetSchema):
         dims: Union[tuple[str, ...], list[str], dict[str, str]] | None = None,
         ordered_dims: bool = True,
         sizes: dict[str, int | None] | None = None,
-        attrs: dict[str, Any] | None = None,
+        attrs: dict[str, Any] | type[BaseModel] | None = None,
         checks: CheckList | None = None,
         parsers: ParserList | None = None,
         strict: StrictType | str = False,

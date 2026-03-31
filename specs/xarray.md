@@ -289,7 +289,7 @@ class DataArraySchema(BaseSchema):
 | `sizes` | `dict[str, int \| None]` | Expected dimension sizes as a name→length mapping (e.g. `{"lat": 180, "lon": 360}`). More idiomatic than positional `shape` for xarray. `None` values act as wildcards. Mutually exclusive with `shape`. |
 | `shape` | `tuple[int \| None, ...]` | Expected positional shape. `None` entries act as wildcards for that axis. Mutually exclusive with `sizes`. |
 | `coords` | `dict[str, Coordinate] \| list[str]` | If a dict, mapping of coordinate name to a `Coordinate` that validates the coordinate's values. If a list of strings, shorthand for "these coordinate names must exist" (no value validation). |
-| `attrs` | `dict[str, Any]` | Expected attributes. Each value determines how validation is performed: (1) **literal values** are matched by equality, (2) **strings starting with `^`** are treated as regex patterns and matched against `str(actual_value)` via `re.fullmatch`, and (3) **callables** `(value) -> bool` are invoked with the actual attribute value and must return `True` for the check to pass. |
+| `attrs` | `dict[str, Any] \| type[BaseModel]` | Expected attributes. When a dict: (1) **literal values** are matched by equality, (2) **strings starting with `^`** are treated as regex patterns and matched against `str(actual_value)` via `re.fullmatch`, and (3) **callables** `(value) -> bool` are invoked with the actual attribute value and must return `True` for the check to pass. Alternatively, pass a `pydantic.BaseModel` **class** to validate the full attrs dict against the model's schema; each pydantic error is translated into a `CoreCheckResult`. |
 | `name` | `str` | Expected `.name` attribute. |
 | `checks` | `Check` or list | Pandera `Check` objects for data-level validation. |
 | `parsers` | `Parser` or list | Pandera `Parser` objects for data transformation. |
@@ -560,7 +560,7 @@ class DatasetSchema(BaseSchema):
 | `dims` | `tuple[str, ...]` | Expected dataset-level dimension names (the union of all variable dims). When `ordered_dims=False`, only the set of names is checked. |
 | `ordered_dims` | `bool` | If `True` (default), dataset-level `dims` validation checks names in order. If `False`, only the set of names is compared. For `DatasetSchema` this is less commonly needed than for `DataArraySchema`, since dataset-level dims are the union of all variable dims and order is often uncontrolled. |
 | `sizes` | `dict[str, int \| None]` | Expected dataset-level dimension sizes as a name→length mapping. |
-| `attrs` | `dict[str, Any]` | Expected dataset-level attributes. Each value determines how validation is performed: (1) **literal values** are matched by equality, (2) **strings starting with `^`** are treated as regex patterns and matched against `str(actual_value)` via `re.fullmatch`, and (3) **callables** `(value) -> bool` are invoked with the actual attribute value and must return `True` for the check to pass. |
+| `attrs` | `dict[str, Any] \| type[BaseModel]` | Expected dataset-level attributes. When a dict: (1) **literal values** are matched by equality, (2) **strings starting with `^`** are treated as regex patterns and matched against `str(actual_value)` via `re.fullmatch`, and (3) **callables** `(value) -> bool` are invoked with the actual attribute value and must return `True` for the check to pass. Alternatively, pass a `pydantic.BaseModel` **class** to validate the full attrs dict against the model's schema; each pydantic error is translated into a `CoreCheckResult`. |
 | `checks` | `Check` or list | Dataset-wide checks (receive the full `xr.Dataset`). |
 | `strict` | `bool \| "filter"` | If `True`, fail on unexpected data variables. If `"filter"`, drop them. |
 | `strict_coords` | `bool` | If `True`, fail on unexpected **dataset-level** coordinate keys. Distinct from per-variable `DataVar.strict_coords` on each `ds[var]` slice (§4.4 / §4.2). |
@@ -658,7 +658,7 @@ class DataTreeSchema(BaseSchema):
 |---|---|---|
 | `children` | `dict[str, DatasetSchema \| DataTreeSchema]` | Mapping of child node names (or `/`-separated paths) to their schemas. Nesting allows recursive tree validation. |
 | `dataset` | `DatasetSchema` | Schema for the dataset attached to this node (its own `data_vars`, `coords`, `attrs`). |
-| `attrs` | `dict[str, Any]` | Expected node-level attributes. Values support equality, regex patterns (`^...`), and callables `(value) -> bool` (same semantics as `DataArraySchema.attrs`). |
+| `attrs` | `dict[str, Any] \| type[BaseModel]` | Expected node-level attributes. When a dict, values support equality, regex patterns (`^...`), and callables `(value) -> bool`. Alternatively, pass a `pydantic.BaseModel` class for full model-based validation (same semantics as `DataArraySchema.attrs`). |
 | `strict` | `bool` | If `True`, fail on unexpected child nodes. |
 
 **Example — path-based tree schema:**
@@ -1090,7 +1090,7 @@ def register_xarray_backends():
 6. Check strict_coords (reject unexpected coordinates; coordinates with
    `required=False` are still allowed entries in the schema for
    `strict_coords` purposes)
-7. Check attrs (equality, regex, or callable matching) and strict_attrs
+7. Check attrs (equality, regex, callable, or pydantic model) and strict_attrs
 8. Check chunked status (`da.chunks is not None`)
 9. Check array_type (`isinstance(da.data, array_type)`)
 10. Check nullable (scan for NaN/null via `da.isnull().any()`)
@@ -1420,8 +1420,8 @@ the nox test matrix.
 
 | Test category | Coverage |
 |---|---|
-| `test_data_array_schema.py` | `DataArraySchema` — dtype, dims, `ordered_dims`, sizes, shape, coords (dimension and non-dimension), attrs (equality, regex, callable), name, checks, nullable, coerce, strict_coords, strict_attrs, lazy |
-| `test_dataset_schema.py` | `DatasetSchema` — `DataVar` (`required`, `alias`, `regex`, `default`, `aligned_with`, `broadcastable_with`, per-var `strict_coords` vs dataset `strict_coords`), data_vars, dims, `ordered_dims`, sizes, coords, attrs (equality, regex, callable), strict, checks, lazy, disjunctive rules via dataset checks |
+| `test_data_array_schema.py` | `DataArraySchema` — dtype, dims, `ordered_dims`, sizes, shape, coords (dimension and non-dimension), attrs (equality, regex, callable, pydantic), name, checks, nullable, coerce, strict_coords, strict_attrs, lazy |
+| `test_dataset_schema.py` | `DatasetSchema` — `DataVar` (`required`, `alias`, `regex`, `default`, `aligned_with`, `broadcastable_with`, per-var `strict_coords` vs dataset `strict_coords`), data_vars, dims, `ordered_dims`, sizes, coords, attrs (equality, regex, callable, pydantic), strict, checks, lazy, disjunctive rules via dataset checks |
 | `test_coordinate.py` | `Coordinate` — `required=True/False`, interaction with `strict_coords`, dtype, dimension, indexed, checks |
 | `test_data_tree_schema.py` | `DataTreeSchema` — nested structure, path-based children, recursive validation, coordinate inheritance, strict child nodes |
 | `test_data_array_model.py` | `DataArrayModel` — class-based definition, `to_schema()`, `validate()`, coordinate name access |
