@@ -69,6 +69,64 @@ def _broadcast_compatible(da1: Any, da2: Any) -> bool:
     return True
 
 
+def _is_pydantic_model_class(obj: Any) -> bool:
+    """True if *obj* is a pydantic BaseModel **class** (not an instance)."""
+    try:
+        from pydantic import BaseModel
+
+        return isinstance(obj, type) and issubclass(obj, BaseModel)
+    except ImportError:
+        return False
+
+
+def _validate_attrs_with_pydantic(
+    attrs_model: type,
+    attrs_dict: dict[str, Any],
+    *,
+    prefix: str = "",
+) -> list[CoreCheckResult]:
+    """Validate *attrs_dict* against a pydantic BaseModel class.
+
+    Returns one :class:`CoreCheckResult` per pydantic validation error,
+    with error messages formatted consistently with pandera's attr
+    reporting style.
+    """
+    from pydantic import ValidationError
+
+    results: list[CoreCheckResult] = []
+    try:
+        attrs_model(**attrs_dict)
+    except ValidationError as exc:
+        for err in exc.errors():
+            loc = ".".join(str(p) for p in err["loc"])
+            attr_label = f"{prefix}{loc}" if loc else prefix or "attrs"
+            results.append(
+                CoreCheckResult(
+                    passed=False,
+                    check="attrs",
+                    reason_code=SchemaErrorReason.SCHEMA_COMPONENT_CHECK,
+                    message=(
+                        f"{attr_label}: {err['msg']} "
+                        f"[type={err['type']}]"
+                    ),
+                    failure_cases=str(
+                        _nested_get(attrs_dict, err["loc"])
+                    ),
+                )
+            )
+    return results
+
+
+def _nested_get(d: Any, loc: tuple) -> Any:
+    """Traverse *d* following pydantic error ``loc`` path."""
+    for key in loc:
+        try:
+            d = d[key]
+        except (KeyError, IndexError, TypeError):
+            return "<missing>"
+    return d
+
+
 def _match_attr_value(expected: Any, actual: Any) -> bool:
     """Match an attribute value using equality, regex, or callable."""
     if callable(expected) and not isinstance(expected, type):
@@ -330,10 +388,17 @@ class DataArraySchemaBackend(XarraySchemaBackend):
     def check_attrs(
         self, check_obj, schema: DataArraySchema
     ) -> list[CoreCheckResult]:
-        """Check attribute values (equality, regex, or callable)."""
+        """Check attribute values (equality, regex, callable, or pydantic)."""
         results: list[CoreCheckResult] = []
         if not schema.attrs:
             return results
+
+        if _is_pydantic_model_class(schema.attrs):
+            return _validate_attrs_with_pydantic(
+                schema.attrs,  # type: ignore[arg-type]
+                dict(check_obj.attrs),
+            )
+
         for ak, av in schema.attrs.items():
             if ak not in check_obj.attrs:
                 results.append(
@@ -370,7 +435,12 @@ class DataArraySchemaBackend(XarraySchemaBackend):
         results: list[CoreCheckResult] = []
         if not (schema.strict_attrs and schema.attrs is not None):
             return results
-        allowed = set(schema.attrs.keys())
+        if _is_pydantic_model_class(schema.attrs):
+            allowed = set(
+                schema.attrs.model_fields.keys()  # type: ignore[union-attr]
+            )
+        else:
+            allowed = set(schema.attrs.keys())
         for k in check_obj.attrs:
             if k not in allowed:
                 results.append(
@@ -773,6 +843,14 @@ class DatasetSchemaBackend(XarraySchemaBackend):
         results: list[CoreCheckResult] = []
         if not schema.attrs:
             return results
+
+        if _is_pydantic_model_class(schema.attrs):
+            return _validate_attrs_with_pydantic(
+                schema.attrs,  # type: ignore[arg-type]
+                dict(ds.attrs),
+                prefix="dataset ",
+            )
+
         for ak, av in schema.attrs.items():
             if ak not in ds.attrs:
                 results.append(
@@ -812,7 +890,12 @@ class DatasetSchemaBackend(XarraySchemaBackend):
         results: list[CoreCheckResult] = []
         if not (schema.strict_attrs and schema.attrs is not None):
             return results
-        allowed = set(schema.attrs.keys())
+        if _is_pydantic_model_class(schema.attrs):
+            allowed = set(
+                schema.attrs.model_fields.keys()  # type: ignore[union-attr]
+            )
+        else:
+            allowed = set(schema.attrs.keys())
         for k in ds.attrs:
             if k not in allowed:
                 results.append(

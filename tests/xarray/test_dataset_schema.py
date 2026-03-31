@@ -572,3 +572,84 @@ class TestDatasetCheckMethods:
         )
         results = backend.check_coords(ds, schema)
         assert not results or all(r.passed for r in results)
+
+    # --- pydantic BaseModel attrs tests ---
+
+    def test_check_attrs_pydantic_pass(self, backend):
+        from pydantic import BaseModel
+
+        class DsAttrs(BaseModel):
+            source: str
+            version: int
+
+        ds = xr.Dataset(
+            {"a": (["x"], np.zeros(2))},
+            attrs={"source": "ERA5", "version": 5},
+        )
+        schema = DatasetSchema(
+            data_vars={"a": DataVar()},
+            attrs=DsAttrs,
+        )
+        results = backend.check_attrs(ds, schema)
+        assert not results
+
+    def test_check_attrs_pydantic_wrong_type(self, backend):
+        from pydantic import BaseModel
+
+        class DsAttrs(BaseModel):
+            source: str
+            version: int
+
+        ds = xr.Dataset(
+            {"a": (["x"], np.zeros(2))},
+            attrs={"source": "ERA5", "version": "bad"},
+        )
+        schema = DatasetSchema(
+            data_vars={"a": DataVar()},
+            attrs=DsAttrs,
+        )
+        results = backend.check_attrs(ds, schema)
+        assert len(results) >= 1
+        assert not results[0].passed
+        assert "version" in results[0].message
+
+    def test_check_attrs_pydantic_missing_field(
+        self, backend
+    ):
+        from pydantic import BaseModel
+
+        class DsAttrs(BaseModel):
+            source: str
+            version: int
+
+        ds = xr.Dataset(
+            {"a": (["x"], np.zeros(2))},
+            attrs={"source": "ERA5"},
+        )
+        schema = DatasetSchema(
+            data_vars={"a": DataVar()},
+            attrs=DsAttrs,
+        )
+        results = backend.check_attrs(ds, schema)
+        assert len(results) >= 1
+        assert not results[0].passed
+        assert "version" in results[0].message
+
+    def test_check_strict_attrs_pydantic(self, backend):
+        from pydantic import BaseModel
+
+        class DsAttrs(BaseModel):
+            source: str
+
+        ds = xr.Dataset(
+            {"a": (["x"], np.zeros(2))},
+            attrs={"source": "ERA5", "extra": 42},
+        )
+        schema = DatasetSchema(
+            data_vars={"a": DataVar()},
+            attrs=DsAttrs,
+            strict_attrs=True,
+        )
+        results = backend.check_strict_attrs(ds, schema)
+        assert len(results) == 1
+        assert "extra" in results[0].message

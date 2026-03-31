@@ -143,6 +143,57 @@ def test_strict_attrs():
         schema.validate(da)
 
 
+def test_pydantic_attrs_pass():
+    from pydantic import BaseModel
+
+    class Attrs(BaseModel):
+        units: str
+        version: int
+
+    da = xr.DataArray(
+        np.zeros(2),
+        dims="x",
+        attrs={"units": "K", "version": 3},
+    )
+    schema = DataArraySchema(attrs=Attrs)
+    schema.validate(da)
+
+
+def test_pydantic_attrs_fail():
+    from pydantic import BaseModel
+
+    class Attrs(BaseModel):
+        units: str
+        version: int
+
+    da = xr.DataArray(
+        np.zeros(2),
+        dims="x",
+        attrs={"units": "K", "version": "bad"},
+    )
+    schema = DataArraySchema(attrs=Attrs)
+    with pytest.raises(pandera.errors.SchemaError):
+        schema.validate(da)
+
+
+def test_pydantic_attrs_lazy_collects_all():
+    from pydantic import BaseModel
+
+    class Attrs(BaseModel):
+        units: str
+        version: int
+
+    da = xr.DataArray(
+        np.zeros(2),
+        dims="x",
+        attrs={"units": 999, "version": "bad"},
+    )
+    schema = DataArraySchema(attrs=Attrs)
+    with pytest.raises(pandera.errors.SchemaErrors) as exc_info:
+        schema.validate(da, lazy=True)
+    assert len(exc_info.value.schema_errors) >= 2
+
+
 def test_head_subsample_runs_checks_on_subset():
     da = xr.DataArray(np.arange(10.0), dims=("x",))
     schema = DataArraySchema(
@@ -545,3 +596,93 @@ class TestDataArrayCheckMethods:
         schema = DataArraySchema(coords={"label": Coordinate(required=True)})
         results = backend.check_coords(da, schema)
         assert any(not r.passed for r in results)
+
+    # --- pydantic BaseModel attrs tests ---
+
+    def test_check_attrs_pydantic_pass(self, backend):
+        from pydantic import BaseModel
+
+        class Attrs(BaseModel):
+            units: str
+            version: int
+
+        da = xr.DataArray(
+            np.zeros(2),
+            dims="x",
+            attrs={"units": "K", "version": 3},
+        )
+        schema = DataArraySchema(attrs=Attrs)
+        results = backend.check_attrs(da, schema)
+        assert len(results) == 0
+
+    def test_check_attrs_pydantic_wrong_type(self, backend):
+        from pydantic import BaseModel
+
+        class Attrs(BaseModel):
+            units: str
+            version: int
+
+        da = xr.DataArray(
+            np.zeros(2),
+            dims="x",
+            attrs={"units": "K", "version": "not_int"},
+        )
+        schema = DataArraySchema(attrs=Attrs)
+        results = backend.check_attrs(da, schema)
+        assert len(results) >= 1
+        assert not results[0].passed
+        assert "version" in results[0].message
+
+    def test_check_attrs_pydantic_missing_field(self, backend):
+        from pydantic import BaseModel
+
+        class Attrs(BaseModel):
+            units: str
+            version: int
+
+        da = xr.DataArray(
+            np.zeros(2),
+            dims="x",
+            attrs={"units": "K"},
+        )
+        schema = DataArraySchema(attrs=Attrs)
+        results = backend.check_attrs(da, schema)
+        assert len(results) >= 1
+        assert not results[0].passed
+        assert "version" in results[0].message
+
+    def test_check_attrs_pydantic_constrained(self, backend):
+        from pydantic import BaseModel, Field as PydanticField
+
+        class Attrs(BaseModel):
+            version: int = PydanticField(ge=2)
+
+        da = xr.DataArray(
+            np.zeros(2),
+            dims="x",
+            attrs={"version": 1},
+        )
+        schema = DataArraySchema(attrs=Attrs)
+        results = backend.check_attrs(da, schema)
+        assert len(results) >= 1
+        assert not results[0].passed
+
+    def test_check_strict_attrs_pydantic(self, backend):
+        from pydantic import BaseModel
+
+        class Attrs(BaseModel):
+            units: str
+
+        da = xr.DataArray(
+            np.zeros(2),
+            dims="x",
+            attrs={"units": "K", "extra": 42},
+        )
+        schema = DataArraySchema(
+            attrs=Attrs, strict_attrs=True
+        )
+        results = backend.check_strict_attrs(
+            da, schema
+        )
+        assert len(results) == 1
+        assert "extra" in results[0].message

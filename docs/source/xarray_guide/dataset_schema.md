@@ -339,7 +339,50 @@ except pa.errors.SchemaError as exc:
     print(exc)
 ```
 
-All three modes also work on
+### Pydantic model
+
+For complex attribute schemas you can pass a {class}`pydantic.BaseModel`
+**class** instead of a dict. Pandera delegates validation to pydantic and
+converts every pydantic error into a pandera `SchemaError`, so error
+collection during lazy validation works seamlessly:
+
+```{code-cell} python
+from pydantic import BaseModel, Field as PydanticField
+
+class DatasetAttrs(BaseModel):
+    source: str
+    version: int = PydanticField(ge=2)
+    units: str
+```
+
+```{code-cell} python
+schema = pa.DatasetSchema(
+    data_vars={"temperature": pa.DataVar(dtype=float)},
+    attrs=DatasetAttrs,
+)
+
+ds_ok = xr.Dataset(
+    {"temperature": (("x",), np.ones(3))},
+    attrs={"source": "ERA5", "version": 5, "units": "K"},
+)
+schema.validate(ds_ok)
+```
+
+When validation fails, the error messages surface the pydantic error details:
+
+```{code-cell} python
+ds_bad = xr.Dataset(
+    {"temperature": (("x",), np.ones(3))},
+    attrs={"source": "ERA5", "version": 1},  # version < 2, units missing
+)
+
+try:
+    schema.validate(ds_bad, lazy=True)
+except pa.errors.SchemaErrors as exc:
+    print(exc)
+```
+
+All four modes (equality, regex, callable, pydantic) also work on
 {class}`~pandera.api.xarray.container.DataArraySchema` — see
 {ref}`xarray-data-array-schema`.
 
