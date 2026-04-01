@@ -28,19 +28,6 @@ pip install 'pandera[polars]'
 As of `pandera >= 0.21.0`, only `polars >= 1.0.0` is supported.
 :::
 
-:::{important}
-If you're on an Apple Silicon machine, you'll need to install polars via
-`pip install polars-lts-cpu`.
-
-You may have to delete `polars` if it's already installed:
-
-```
-pip uninstall polars
-pip install polars-lts-cpu
-```
-
-:::
-
 Then you can use pandera schemas to validate polars dataframes. In the example
 below we'll use the {ref}`class-based API <dataframe-models>` to define a
 {py:class}`~pandera.api.polars.model.DataFrameModel`, which we then use to

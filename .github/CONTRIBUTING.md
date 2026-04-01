@@ -44,16 +44,10 @@ uv sync --all-extras
 source .venv/bin/activate
 ```
 
-If you're on an Apple Silicon machine, you'll need to install polars via
-
-```bash
-uv pip install polars-lts-cpu
-```
-
 #### Run Tests
 
 ```bash
-pytest tests/core tests/pandas
+uv run pytest tests/ --ignore=tests/pyspark  # remove the `ignore` flag to test pyspark as well
 ```
 
 #### Build Documentation Locally
@@ -90,7 +84,7 @@ checks should be run with every commit.
 Make sure everything is working correctly by running
 
 ```bash
-prek run --all
+prek run --all-files
 ```
 
 ### Making Changes
