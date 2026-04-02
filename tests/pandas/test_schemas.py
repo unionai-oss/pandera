@@ -6,16 +6,19 @@ import copy
 from collections.abc import Callable
 from datetime import datetime, timedelta
 from functools import partial
+from types import SimpleNamespace
 from typing import Any, Union
 
 import numpy as np
 import pandas as pd
 import pytest
 
+from pandera.backends.pandas.array import ArraySchemaBackend
 from pandera.api.pandas.array import ArraySchema
 from pandera.dtypes import UniqueSettings
 from pandera.engines.pandas_engine import Engine
 from pandera.engines.utils import pandas_version
+from pandera.errors import SchemaErrorReason
 from pandera.pandas import (
     Category,
     Check,
@@ -628,6 +631,138 @@ def test_series_schema() -> None:
         match="Error while coercing",
     ):
         SeriesSchema(float, coerce=True).validate(pd.Series(list("abcdefg")))
+
+
+class _FakePysparkSeries(pd.Series):
+    __module__ = "pyspark.pandas.series"
+
+    @property
+    def _constructor(self):
+        return _FakePysparkSeries
+
+
+class _DummyDtype:
+    def __init__(self, coerced):
+        self._coerced = coerced
+
+    def try_coerce(self, _check_obj):
+        return self._coerced
+
+    def __str__(self) -> str:
+        return "float64"
+
+
+class _BrokenMask:
+    def __and__(self, _other):
+        return self
+
+    def any(self):
+        raise RuntimeError("boom")
+
+
+class _CoercedWithBrokenMask:
+    def isna(self):
+        return _BrokenMask()
+
+
+def test_array_backend_coerce_detects_introduced_nulls() -> None:
+    """Raised error should include introduced-null failure cases."""
+
+    backend = ArraySchemaBackend()
+    check_obj = _FakePysparkSeries(["1.0", "bad"], name="distance")
+    coerced = _FakePysparkSeries([1.0, pd.NA], name="distance")
+    schema = SimpleNamespace(
+        dtype=_DummyDtype(coerced), coerce=True, name="distance"
+    )
+
+    with pytest.raises(errors.SchemaError) as exc_info:
+        backend.coerce_dtype(check_obj, schema=schema)
+
+    err = exc_info.value
+    assert err.reason_code == SchemaErrorReason.DATATYPE_COERCION
+    assert "coercion introduced null values" in str(err)
+    assert set(err.failure_cases["failure_case"].astype(str).tolist()) == {
+        "bad"
+    }
+
+
+def test_array_backend_coerce_returns_value_without_new_nulls() -> None:
+    """Successful coercion should return the coerced object."""
+
+    backend = ArraySchemaBackend()
+    check_obj = _FakePysparkSeries(["1.0", "2.0"], name="distance")
+    coerced = _FakePysparkSeries([1.0, 2.0], name="distance")
+    schema = SimpleNamespace(
+        dtype=_DummyDtype(coerced), coerce=True, name="distance"
+    )
+
+    result = backend.coerce_dtype(check_obj, schema=schema)
+
+    assert result is coerced
+
+
+def test_array_backend_coerce_wraps_inner_exception(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Unexpected errors are wrapped in SchemaError with failure cases."""
+
+    backend = ArraySchemaBackend()
+    check_obj = _FakePysparkSeries(["a"], name="distance")
+    schema = SimpleNamespace(
+        dtype=_DummyDtype(_CoercedWithBrokenMask()),
+        coerce=True,
+        name="distance",
+    )
+    failure_cases = pd.DataFrame(
+        {
+            "index": [0],
+            "failure_case": ["a"],
+            "column": ["distance"],
+        }
+    )
+
+    monkeypatch.setattr(
+        "pandera.engines.utils.numpy_pandas_coerce_failure_cases",
+        lambda *_args, **_kwargs: failure_cases,
+    )
+
+    with pytest.raises(errors.SchemaError) as exc_info:
+        backend.coerce_dtype(check_obj, schema=schema)
+
+    err = exc_info.value
+    assert err.reason_code == SchemaErrorReason.DATATYPE_COERCION
+    assert "boom" in str(err)
+    assert err.failure_cases is failure_cases
+
+
+def test_array_backend_coerce_handles_failure_case_extraction_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Failure-case extraction errors should not mask SchemaError."""
+
+    backend = ArraySchemaBackend()
+    check_obj = _FakePysparkSeries(["a"], name="distance")
+    schema = SimpleNamespace(
+        dtype=_DummyDtype(_CoercedWithBrokenMask()),
+        coerce=True,
+        name="distance",
+    )
+
+    def _raise(*_args, **_kwargs):
+        raise ValueError("cannot extract")
+
+    monkeypatch.setattr(
+        "pandera.engines.utils.numpy_pandas_coerce_failure_cases",
+        _raise,
+    )
+
+    with pytest.raises(errors.SchemaError) as exc_info:
+        backend.coerce_dtype(check_obj, schema=schema)
+
+    err = exc_info.value
+    assert err.reason_code == SchemaErrorReason.DATATYPE_COERCION
+    assert "boom" in str(err)
+    assert err.failure_cases is None
 
 
 def test_series_schema_checks() -> None:
