@@ -73,6 +73,7 @@ decorators
 configuration
 duck_arrays
 encoding
+error_reporting
 cf_conventions
 schema_inference
 io_serialization
@@ -88,6 +89,7 @@ hypothesis_strategies
 - {ref}`xarray-configuration` — validation depth, Dask, and environment variables
 - {ref}`xarray-duck-arrays` — `chunked`, `array_type`, validation depth, and lazy data checks
 - {ref}`xarray-encoding` — validate `.encoding` dicts on DataArrays, DataVars, and Datasets
+- {ref}`xarray-error-reporting` — `SchemaError` / `SchemaErrors`, lazy validation, and failure cases
 - {ref}`xarray-cf-conventions` — CF standard name, units, and `cf_xarray` checks
 - {ref}`xarray-schema-inference` — automatically infer schemas from data
 - {ref}`xarray-io-serialization` — save and load schemas as YAML or JSON

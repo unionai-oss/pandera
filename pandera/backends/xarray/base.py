@@ -13,6 +13,12 @@ from pandera.backends.base import (
     CoreCheckResult,
     CoreParserResult,
 )
+from pandera.backends.pandas.error_formatters import (
+    format_generic_error_message,
+)
+from pandera.backends.xarray.error_formatters import (
+    format_xarray_vectorized_error_message,
+)
 from pandera.config import ValidationScope
 from pandera.errors import (
     FailureCaseMetadata,
@@ -111,11 +117,21 @@ class XarraySchemaBackend(BaseSchemaBackend):
         message = None
         failure_cases = check_result.failure_cases
         if not passed:
-            message = (
-                check.error
-                if check.error is not None
-                else f"Check failed: {check.name or check_index}"
-            )
+            if failure_cases is None:
+                message = format_generic_error_message(
+                    schema, check, check_index
+                )
+            else:
+                import xarray as xr
+
+                if isinstance(failure_cases, xr.DataArray):
+                    message = format_xarray_vectorized_error_message(
+                        schema, check, check_index, failure_cases
+                    )
+                else:
+                    message = format_generic_error_message(
+                        schema, check, check_index
+                    )
         return CoreCheckResult(
             passed=passed,
             check=check,

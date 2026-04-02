@@ -154,14 +154,20 @@ Lazy validation (`lazy=True`) works with Dask arrays. Structural errors are
 collected without triggering computation:
 
 ```{code-cell} python
+import numpy as np
+import xarray as xr
+import pandera.xarray as pa
+from pandera.config import ValidationDepth, config_context
+
 bad_ds = xr.Dataset({
-    "temperature": (("z",), np.ones(3)),
+    "temperature": (("z",), np.ones(3) * -1),
 }).chunk({"z": 2})
 
 schema = pa.DatasetSchema(
     data_vars={
         "temperature": pa.DataVar(
             dtype=np.float64, dims=("x", "y"), chunked=True,
+            checks=pa.Check.ge(0),
         ),
         "pressure": pa.DataVar(
             dtype=np.float64, dims=("x", "y"), chunked=True,
@@ -173,6 +179,7 @@ try:
     schema.validate(bad_ds, lazy=True)
 except pa.errors.SchemaErrors as exc:
     print(exc)
+
 ```
 
 Validating both schema- and data-level checks triggers computation on the Dask array.
