@@ -27,6 +27,8 @@ from pandera.api.xarray import (
 )
 from pandera.backends.xarray.register import register_xarray_backends
 from pandera.decorators import check_input, check_io, check_output, check_types
+from pandera.io.xarray_io import from_json, from_yaml, to_json, to_yaml
+from pandera.schema_inference.xarray import infer_schema
 
 register_xarray_backends()
 
@@ -46,7 +48,12 @@ __all__ = [
     "DataVar",
     "Field",
     "errors",
+    "from_json",
+    "from_yaml",
     "get_validation_depth",
-    "XarrayData",
+    "infer_schema",
     "Parser",
+    "to_json",
+    "to_yaml",
+    "XarrayData",
 ]

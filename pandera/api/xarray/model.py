@@ -166,7 +166,9 @@ TParsers = dict[str, list[Parser]]
 class _XarrayModelBase(BaseModel):
     """Shared machinery for xarray declarative models."""
 
-    Config: type[DataArrayConfig] | type[DatasetConfig] = DataArrayConfig
+    Config: (
+        type[DataArrayConfig] | type[DatasetConfig] | type[DataTreeConfig]
+    ) = DataArrayConfig
     __extras__: dict[str, Any] | None = None
     __schema__ = _SchemaDescriptor()
     __config__: Any = None
@@ -625,7 +627,7 @@ class DatasetModel(_XarrayModelBase):
         )
 
 
-def _is_dataset_model(cls: type) -> bool:
+def _is_dataset_model(cls: Any) -> bool:
     return isinstance(cls, type) and issubclass(cls, DatasetModel)
 
 
@@ -678,11 +680,9 @@ class DataTreeModel(_XarrayModelBase):
 
         for fname, (ann, fi) in fields.items():
             inner = ann.arg
-            if _is_dataset_model(inner):
+            if inner is not None and _is_dataset_model(inner):
                 children[fi.name] = inner.to_schema()
-            elif isinstance(inner, type) and issubclass(
-                inner, DataTreeModel
-            ):
+            elif isinstance(inner, type) and issubclass(inner, DataTreeModel):
                 children[fi.name] = inner.to_schema()
 
         return DataTreeSchema(
