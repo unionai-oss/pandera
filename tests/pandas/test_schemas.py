@@ -13,8 +13,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from pandera.backends.pandas.array import ArraySchemaBackend
 from pandera.api.pandas.array import ArraySchema
+from pandera.backends.pandas.array import ArraySchemaBackend
 from pandera.dtypes import UniqueSettings
 from pandera.engines.pandas_engine import Engine
 from pandera.engines.utils import pandas_version
