@@ -160,6 +160,20 @@ class DataFrame(DataFrameBase, pd.DataFrame, Generic[T]):
         _type_check(item, "Parameters to generic types must be types.")
         return _GenericAlias(cls, item)
 
+    def _before_schema_validate(self, schema):
+        if self.empty:
+            dtype_map = {}
+            for column_name, dtype in schema.dtypes.items():
+                if (
+                    dtype is not None
+                    and column_name in self.columns
+                    and self[column_name].dtype == np.dtype("float64")
+                ):
+                    dtype_map[column_name] = dtype.type
+            if dtype_map:
+                return self.astype(dtype_map)
+        return self
+
     @classmethod
     def from_format(cls, obj: Any, config) -> pd.DataFrame:
         """
