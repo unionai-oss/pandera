@@ -31,6 +31,7 @@ def register_xarray_backends(
 
     :param check_cls_fqn: name of the check class to register backends for.
     """
+    import pandera.backends.base.builtin_checks  # noqa: F401
     import pandera.backends.xarray.builtin_checks  # noqa: F401
     from pandera.api.xarray.types import XARRAY_CHECK_OBJECT_TYPES
 

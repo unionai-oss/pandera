@@ -458,3 +458,81 @@ def no_duplicates_in_coord(data: XrLike, coord: str) -> bool:
     if flat.size <= 1:
         return True
     return int(flat.size) == int(np.unique(flat).size)
+
+
+@register_builtin_check(error="has_encoding({encoding})")
+def has_encoding(data: XrLike, encoding: dict[str, Any]) -> bool:
+    """Encoding dict must contain each key with an equal value."""
+    actual = getattr(data, "encoding", {}) or {}
+    for key, val in encoding.items():
+        if actual.get(key) != val:
+            return False
+    return True
+
+
+# -------------------------------------------------------------------
+# CF (Climate & Forecast) convention checks
+# -------------------------------------------------------------------
+
+
+@register_builtin_check(
+    error="cf_standard_name({expected_name})",
+)
+def cf_standard_name(data: XrLike, expected_name: str) -> bool:
+    """Require ``standard_name`` in ``.attrs`` to equal *expected_name*.
+
+    Lightweight CF check that does **not** require ``cf_xarray``;
+    it simply inspects ``.attrs["standard_name"]``.
+    """
+    return data.attrs.get("standard_name") == expected_name
+
+
+@register_builtin_check(
+    error="cf_units({expected_units})",
+)
+def cf_units(data: XrLike, expected_units: str) -> bool:
+    """Require ``units`` in ``.attrs`` to equal *expected_units*.
+
+    Lightweight CF check inspecting ``.attrs["units"]``.
+    """
+    return data.attrs.get("units") == expected_units
+
+
+@register_builtin_check(
+    error="cf_has_standard_names({names})",
+)
+def cf_has_standard_names(data: XrLike, names: tuple[str, ...]) -> bool:
+    """Require that ``cf_xarray`` can resolve each standard name.
+
+    Needs ``cf_xarray`` installed (``import cf_xarray``); fails
+    with a clear message if missing.
+
+    :param data: DataArray or Dataset with ``cf_xarray`` accessor.
+    :param names: Tuple of CF standard names that must be
+        resolvable via ``data.cf[name]``.
+    """
+    try:
+        import cf_xarray  # noqa: F401
+    except ImportError as exc:
+        raise ImportError(
+            "cf_xarray is required for the "
+            "cf_has_standard_names check. "
+            "Install it with: pip install cf_xarray"
+        ) from exc
+    for name in names:
+        try:
+            data.cf[name]
+        except KeyError:
+            return False
+    return True
+
+
+@register_builtin_check(
+    error="cf_has_cell_methods({expected})",
+)
+def cf_has_cell_methods(data: XrLike, expected: str) -> bool:
+    """Require ``cell_methods`` in ``.attrs`` to equal *expected*.
+
+    Lightweight CF check inspecting ``.attrs["cell_methods"]``.
+    """
+    return data.attrs.get("cell_methods") == expected

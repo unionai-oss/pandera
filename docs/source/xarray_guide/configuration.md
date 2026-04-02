@@ -77,6 +77,8 @@ with config_context(validation_enabled=False):
 
 ## See also
 
+- {ref}`xarray-duck-arrays` — Dask integration, `chunked`, `array_type`, and
+  lazy validation
 - {ref}`xarray-checks-parsers` — checks, parsers, and lazy validation
 - {ref}`xarray-decorators` — `check_input`, `check_output`, `check_io`, and `check_types`
 - {ref}`xarray-data-array-schema` — {class}`~pandera.api.xarray.container.DataArraySchema` details

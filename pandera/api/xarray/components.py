@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
+from pydantic import BaseModel
+
 from pandera.api.base.types import CheckList, ParserList, StrictType
 from pandera.api.checks import Check
 from pandera.api.hypotheses import Hypothesis
@@ -134,6 +136,14 @@ class DataVar:
         Structural constraints (``sizes`` and ``shape`` are mutually exclusive).
     checks, parsers, coerce, nullable, chunked, array_type
         Same roles as on :class:`DataArraySchema`.
+    encoding
+        Expected per-variable encoding key-value pairs (e.g.
+        ``_FillValue``, ``scale_factor``, ``add_offset``, ``dtype``,
+        ``zlib``, ``complevel``).  Validated against
+        ``ds[var_name].encoding``, which is populated when reading
+        from netCDF/Zarr.  Can be a ``dict[str, Any]`` or a
+        :class:`pydantic.BaseModel` **class** for structured
+        validation.
     strict_coords, strict_attrs
         Coordinate / attribute strictness for the variable array.
     name, title, description, metadata
@@ -163,6 +173,7 @@ class DataVar:
         nullable: bool = False,
         chunked: bool | None = None,
         array_type: Any | None = None,
+        encoding: dict[str, Any] | type[BaseModel] | None = None,
         strict_coords: StrictType = False,
         strict_attrs: StrictType = False,
         title: str | None = None,
@@ -213,6 +224,7 @@ class DataVar:
         self.nullable = nullable
         self.chunked = chunked
         self.array_type = array_type
+        self.encoding = encoding
         self.strict_coords = strict_coords
         self.strict_attrs = strict_attrs
         self.title = title
@@ -238,6 +250,7 @@ class DataVar:
             nullable=self.nullable,
             chunked=self.chunked,
             array_type=self.array_type,
+            encoding=self.encoding,
             strict_coords=self.strict_coords,
             strict_attrs=self.strict_attrs,
             title=self.title,
