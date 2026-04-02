@@ -210,32 +210,6 @@ def parse_checks(checks) -> Union[list[dict[str, Any]], None]:
             base_stats["options"] = check_options
             check_statistics.append(base_stats)
 
-    # Check for incompatible checks
-    incompatibile_checks = {
-        "equal_to": "eq",
-        "greater_than": "gt",
-        "less_than": "lt",
-        "greater_than_or_equal_to": "lt",
-        "less_than_or_equal_to": "le",
-        "in_range": "between",
-    }
-
-    incompatibile_checks_count = sum(
-        map(
-            lambda check: (
-                check["options"]["check_name"] in incompatibile_checks
-            ),
-            check_statistics,
-        )
-    )
-    if incompatibile_checks_count > 1:
-        error_message = ", ".join(
-            [f"{key} ({value})" for key, value in incompatibile_checks.items()]
-        )
-        warnings.warn(
-            f"You do not need more than one check out of {error_message}."
-        )
-
     return check_statistics if check_statistics else None
 
 

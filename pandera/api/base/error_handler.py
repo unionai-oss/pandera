@@ -7,7 +7,6 @@ from typing import Any, Optional, Union
 from pandera.api.checks import Check
 from pandera.config import ValidationDepth, get_config_context
 from pandera.errors import SchemaError, SchemaErrorReason
-from pandera.validation_depth import ValidationScope, validation_type
 
 
 class ErrorCategory(Enum):
@@ -36,7 +35,7 @@ ERROR_CATEGORY_MAP = {
     SchemaErrorReason.NO_ERROR: ErrorCategory.SCHEMA,
     SchemaErrorReason.ADD_MISSING_COLUMN_NO_DEFAULT: ErrorCategory.DATA,
     SchemaErrorReason.INVALID_COLUMN_NAME: ErrorCategory.SCHEMA,
-    SchemaErrorReason.MISMATCH_INDEX: ErrorCategory.DATA,
+    SchemaErrorReason.MISMATCH_INDEX: ErrorCategory.SCHEMA,
     SchemaErrorReason.PARSER_ERROR: ErrorCategory.DATA,
 }
 
@@ -222,12 +221,12 @@ class ErrorHandler:
             return False
         elif (
             config.validation_depth == ValidationDepth.DATA_ONLY
-            and category == ValidationScope.DATA.name
+            and category == ErrorCategory.DATA.name
         ):
             return False
         elif (
             config.validation_depth == ValidationDepth.SCHEMA_ONLY
-            and category == ValidationScope.SCHEMA.name
+            and category == ErrorCategory.SCHEMA.name
         ):
             return False
 

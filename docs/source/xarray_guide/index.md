@@ -71,6 +71,9 @@ data_models
 checks_and_parsers
 decorators
 configuration
+duck_arrays
+encoding
+cf_conventions
 schema_inference
 io_serialization
 hypothesis_strategies
@@ -83,6 +86,9 @@ hypothesis_strategies
 - {ref}`xarray-checks-parsers` — checks, parsers, and lazy validation
 - {ref}`xarray-decorators` — `check_input`, `check_output`, `check_io`, and `check_types`
 - {ref}`xarray-configuration` — validation depth, Dask, and environment variables
+- {ref}`xarray-duck-arrays` — `chunked`, `array_type`, validation depth, and lazy data checks
+- {ref}`xarray-encoding` — validate `.encoding` dicts on DataArrays, DataVars, and Datasets
+- {ref}`xarray-cf-conventions` — CF standard name, units, and `cf_xarray` checks
 - {ref}`xarray-schema-inference` — automatically infer schemas from data
 - {ref}`xarray-io-serialization` — save and load schemas as YAML or JSON
 - {ref}`xarray-hypothesis-strategies` — generate synthetic data with Hypothesis
