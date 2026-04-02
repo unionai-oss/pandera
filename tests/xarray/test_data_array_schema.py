@@ -229,6 +229,58 @@ def test_lazy_schema_errors_multi_message():
     assert len(excinfo.value.schema_errors) >= 2
 
 
+def test_lazy_validation_reports_failure_cases_for_builtin_check():
+    """Data-level builtin checks include failure values in lazy error summary."""
+    da = xr.DataArray(
+        np.array([-1.0, 2.0, 3.0]),
+        dims="x",
+        name="arr",
+    )
+    schema = DataArraySchema(
+        dtype=np.float64,
+        dims=("x",),
+        name="arr",
+        checks=Check.ge(0),
+    )
+    with pytest.raises(pandera.errors.SchemaErrors) as excinfo:
+        schema.validate(da, lazy=True)
+    msg = excinfo.value.message
+    data_errors = msg["DATA"]["DATAFRAME_CHECK"]
+    assert len(data_errors) == 1
+    entry = data_errors[0]
+    assert entry["check"] == "greater_than_or_equal_to(0)"
+    assert "failure cases:" in entry["error"]
+    assert "-1.0" in entry["error"]
+    assert entry["error"] != entry["check"]
+
+
+def test_lazy_validation_failure_cases_list_unique_values():
+    """Lazy summary lists distinct failing values (order of first appearance)."""
+    da = xr.DataArray(np.array([1, 3, 4, 2]), dims="x")
+    schema = DataArraySchema(checks=Check.isin([1, 2]))
+    with pytest.raises(pandera.errors.SchemaErrors) as excinfo:
+        schema.validate(da, lazy=True)
+    entry = excinfo.value.message["DATA"]["DATAFRAME_CHECK"][0]
+    assert "isin" in entry["check"]
+    assert "failure cases:" in entry["error"]
+    assert "3" in entry["error"] and "4" in entry["error"]
+
+
+def test_lazy_validation_respects_n_failure_cases_in_error_message():
+    """``n_failure_cases`` limits how many values appear in the error string."""
+    da = xr.DataArray(np.arange(5, 15), dims="x")
+    schema = DataArraySchema(
+        checks=Check.lt(5, n_failure_cases=2),
+    )
+    with pytest.raises(pandera.errors.SchemaErrors) as excinfo:
+        schema.validate(da, lazy=True)
+    err = excinfo.value.message["DATA"]["DATAFRAME_CHECK"][0]["error"]
+    assert "failure cases:" in err
+    # First two unique failing values along the flat array: 5, 6
+    assert "5" in err and "6" in err
+    assert "7" not in err
+
+
 def test_parser_runs():
     from pandera.api.parsers import Parser
 
