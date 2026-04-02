@@ -79,6 +79,37 @@ pa.DataArraySchema(checks=pa.Check.is_monotonic("time")).validate(da_3d)
 pa.DataArraySchema(checks=pa.Check.no_duplicates_in_coord("time")).validate(da_3d)
 ```
 
+#### Encoding check
+
+```{code-cell} python
+da_enc = xr.DataArray(np.ones(3), dims="x")
+da_enc.encoding = {"_FillValue": -999.0, "dtype": "float32"}
+
+pa.DataArraySchema(
+    checks=pa.Check.has_encoding({"_FillValue": -999.0}),
+).validate(da_enc)
+```
+
+See {ref}`xarray-encoding` for the richer schema-level `encoding=` parameter.
+
+#### CF convention checks
+
+```{code-cell} python
+da_cf = xr.DataArray(
+    np.ones(3), dims="x",
+    attrs={"standard_name": "air_temperature", "units": "K"},
+)
+
+pa.DataArraySchema(
+    checks=[
+        pa.Check.cf_standard_name("air_temperature"),
+        pa.Check.cf_units("K"),
+    ],
+).validate(da_cf)
+```
+
+See {ref}`xarray-cf-conventions` for all available CF checks.
+
 :::{note}
 Structural rules (`dims`, `coords`, `sizes`, `attrs`, …) are best expressed
 as schema keyword arguments — they are validated first and produce clearer
@@ -211,6 +242,9 @@ labels rather than flat row indices.
 - {ref}`xarray-data-array-schema` — {class}`~pandera.api.xarray.container.DataArraySchema` details
 - {ref}`xarray-dataset-schema` — {class}`~pandera.api.xarray.container.DatasetSchema` details
 - {ref}`xarray-data-models` — class-based {class}`~pandera.api.xarray.model.DataArrayModel` / {class}`~pandera.api.xarray.model.DatasetModel`
+- {ref}`xarray-encoding` — encoding validation (netCDF/Zarr metadata)
+- {ref}`xarray-cf-conventions` — CF convention checks
+- {ref}`xarray-duck-arrays` — Dask integration and validation depth
 - {ref}`xarray-decorators` — `check_input`, `check_output`, `check_io`, and `check_types`
 - {ref}`xarray-configuration` — {class}`~pandera.config.ValidationDepth`,
   {class}`~pandera.config.ValidationScope`, Dask, and environment variables

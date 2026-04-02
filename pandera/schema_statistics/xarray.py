@@ -215,8 +215,6 @@ def parse_checks(checks) -> Union[list[dict[str, Any]], None]:
             base_stats["options"] = check_options
             check_statistics.append(base_stats)
 
-    _warn_incompatible_checks(check_statistics)
-
     return check_statistics if check_statistics else None
 
 
@@ -262,28 +260,6 @@ def parse_check_statistics(
             checks.append(check_fn(stats))
 
     return checks if checks else None
-
-
-def _warn_incompatible_checks(
-    check_statistics: list[dict[str, Any]],
-) -> None:
-    """Warn when multiple mutually-exclusive bound checks are present."""
-    incompatible_checks = {
-        "equal_to": "eq",
-        "greater_than": "gt",
-        "less_than": "lt",
-        "greater_than_or_equal_to": "ge",
-        "less_than_or_equal_to": "le",
-        "in_range": "between",
-    }
-    count = sum(
-        1
-        for cs in check_statistics
-        if cs.get("options", {}).get("check_name") in incompatible_checks
-    )
-    if count > 1:
-        msg = ", ".join(f"{k} ({v})" for k, v in incompatible_checks.items())
-        warnings.warn(f"You do not need more than one check out of {msg}.")
 
 
 def _get_dtype_string(da: xr.DataArray) -> str:

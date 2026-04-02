@@ -139,3 +139,28 @@ def is_monotonic(
 @Check.register_builtin_check_fn
 def no_duplicates_in_coord(data: Any, coord: str) -> Any:
     raise NotImplementedError
+
+
+@Check.register_builtin_check_fn
+def has_encoding(data: Any, encoding: dict[str, Any]) -> Any:
+    raise NotImplementedError
+
+
+@Check.register_builtin_check_fn
+def cf_standard_name(data: Any, expected_name: str) -> Any:
+    raise NotImplementedError
+
+
+@Check.register_builtin_check_fn
+def cf_units(data: Any, expected_units: str) -> Any:
+    raise NotImplementedError
+
+
+@Check.register_builtin_check_fn
+def cf_has_standard_names(data: Any, names: tuple[str, ...]) -> Any:
+    raise NotImplementedError
+
+
+@Check.register_builtin_check_fn
+def cf_has_cell_methods(data: Any, expected: str) -> Any:
+    raise NotImplementedError

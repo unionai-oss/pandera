@@ -64,6 +64,7 @@ class DataArraySchema(_BaseDataArraySchema):
         array_type: Any | None = None,
         strict_coords: StrictType = False,
         strict_attrs: StrictType = False,
+        encoding: dict[str, Any] | type[BaseModel] | None = None,
         title: str | None = None,
         description: str | None = None,
         metadata: dict | None = None,
@@ -94,6 +95,16 @@ class DataArraySchema(_BaseDataArraySchema):
         :param array_type: expected type of underlying array (e.g. ``numpy.ndarray``).
         :param strict_coords: whether to enforce strict coordinate validation.
         :param strict_attrs: whether to enforce strict attribute validation.
+        :param encoding: expected per-variable encoding key-value pairs.
+            Validated against ``da.encoding``, which is populated when
+            reading from netCDF/Zarr (common keys: ``_FillValue``,
+            ``dtype``, ``scale_factor``, ``add_offset``, ``zlib``,
+            ``complevel``, ``units``, ``calendar``).  Can be a
+            ``dict[str, Any]`` where values are literal (equality),
+            regex strings starting with ``^``, or callables
+            ``(value) -> bool``.  Alternatively, pass a
+            :class:`pydantic.BaseModel` **class** to validate the full
+            encoding dict against the model's schema.
         :param title: A human-readable label for the schema.
         :param description: An arbitrary textual description of the schema.
         :param metadata: An optional key-value data.
@@ -134,6 +145,7 @@ class DataArraySchema(_BaseDataArraySchema):
         self.array_type = array_type
         self.strict_coords = strict_coords
         self.strict_attrs = strict_attrs
+        self.encoding = encoding
 
     def validate(
         self,
@@ -230,9 +242,8 @@ class DataTreeSchema(_BaseDataTreeSchema):
 
     def __init__(
         self,
-        children: dict[str, "DatasetSchema | DataTreeSchema"]
-        | None = None,
-        dataset: Optional["DatasetSchema"] = None,
+        children: dict[str, DatasetSchema | DataTreeSchema] | None = None,
+        dataset: DatasetSchema | None = None,
         attrs: dict[str, Any] | None = None,
         checks: CheckList | None = None,
         strict: bool = False,
@@ -359,6 +370,7 @@ class DatasetSchema(_BaseDatasetSchema):
         strict: StrictType | str = False,
         strict_coords: StrictType = False,
         strict_attrs: StrictType = False,
+        encoding: dict[str, Any] | type[BaseModel] | None = None,
         name: str | None = None,
         title: str | None = None,
         description: str | None = None,
@@ -381,6 +393,16 @@ class DatasetSchema(_BaseDatasetSchema):
         :param strict: whether to enforce strict validation.
         :param strict_coords: whether to enforce strict coordinate validation.
         :param strict_attrs: whether to enforce strict attribute validation.
+        :param encoding: expected **dataset-level** encoding key-value
+            pairs.  Validated against ``ds.encoding`` (common keys:
+            ``unlimited_dims``, ``source``).  For per-variable encoding
+            (``_FillValue``, ``dtype``, ``scale_factor``, etc.) use
+            :class:`~pandera.api.xarray.components.DataVar` ``encoding``.
+            Can be a ``dict[str, Any]`` where values are literal
+            (equality), regex strings starting with ``^``, or callables
+            ``(value) -> bool``.  Alternatively, pass a
+            :class:`pydantic.BaseModel` **class** to validate the full
+            encoding dict against the model's schema.
         :param title: A human-readable label for the schema.
         :param description: An arbitrary textual description of the schema.
         :param metadata: An optional key-value data.
@@ -428,6 +450,7 @@ class DatasetSchema(_BaseDatasetSchema):
         self.strict = strict
         self.strict_coords = strict_coords
         self.strict_attrs = strict_attrs
+        self.encoding = encoding
 
     def validate(
         self,

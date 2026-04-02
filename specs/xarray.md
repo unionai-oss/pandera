@@ -17,8 +17,8 @@ validation depth for Dask-backed data) live in the Sphinx source tree:
 - [`docs/source/xarray_guide/index.md`](../docs/source/xarray_guide/index.md)
   — landing page and toctree
 - Subpages: `data_array_schema.md`, `dataset_schema.md`,
-  `xarray_models.md` (`DataArrayModel` / `DatasetModel`),
-  `checks_configuration.md`
+  `data_models.md`, `data_tree.md`, `checks_and_parsers.md`,
+  `configuration.md`, `duck_arrays.md`, `encoding.md`, `cf_conventions.md`, …
 
 The built site lists this under **Integrations → Xarray**. This spec remains the
 design and roadmap document; the guide targets library users, not implementers.
@@ -1225,10 +1225,15 @@ Additional xarray-specific built-in checks:
 | `Check.has_dims(*dims)` | Assert that specific dims exist (order-independent) |
 | `Check.has_coords(*coords)` | Assert that specific coordinates exist |
 | `Check.has_attrs(**attrs)` | Assert specific attribute key-value pairs |
+| `Check.has_encoding(encoding)` | Assert key-value pairs on `.encoding` (DataArray or Dataset); prefer schema `encoding=` when that is the primary contract |
 | `Check.ndim(n)` | Assert number of dimensions |
 | `Check.dim_size(dim, size)` | Assert a specific dimension has a given size |
 | `Check.is_monotonic(dim, increasing=True)` | Assert that a dimension coordinate is monotonically increasing or decreasing (common for time, lat, lon) |
 | `Check.no_duplicates_in_coord(coord)` | Assert that a coordinate has no duplicate values |
+| `Check.cf_standard_name(name)` | Require `.attrs["standard_name"]` to equal *name* (no `cf_xarray` dependency) |
+| `Check.cf_units(units)` | Require `.attrs["units"]` to equal *units* |
+| `Check.cf_has_cell_methods(expected)` | Require `.attrs["cell_methods"]` to equal *expected* |
+| `Check.cf_has_standard_names(names)` | Require each standard name to resolve via `data.cf[name]` (needs `cf_xarray`) |
 
 ### 6.2 Custom Checks
 
@@ -1430,6 +1435,8 @@ the nox test matrix.
 | `test_checks.py` | Built-in checks (`has_dims`, `is_monotonic`, etc.) and custom checks on xarray objects |
 | `test_engine.py` | Dtype resolution, coercion, abstract dtype hierarchy (`np.floating`), datetime dtypes |
 | `test_duck_arrays.py` | Validation with Dask-backed, sparse, and other duck arrays; `chunked` and `array_type` parameters |
+| `test_encoding.py` | Schema `encoding=` on DataArray/Dataset/DataVar; `Check.has_encoding`; pydantic encoding models |
+| `test_cf_xarray.py` | CF metadata checks (`cf_standard_name`, `cf_units`, `cf_has_cell_methods`, `cf_has_standard_names` with optional `cf_xarray`) |
 | `test_decorators.py` | `@check_types`, `@check_input`, `@check_output` |
 | `test_error_reporting.py` | Error messages, failure case formatting with N-D coordinate context, lazy vs eager, DataTree path errors |
 

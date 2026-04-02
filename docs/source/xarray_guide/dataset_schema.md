@@ -440,6 +440,16 @@ ds_one_coord = xr.Dataset(
 schema.validate(ds_one_coord)
 ```
 
+## Encoding validation
+
+Encoding can be validated at two levels in a `DatasetSchema`:
+
+- **Per-variable** — `DataVar(encoding=...)` validates `ds[var].encoding`
+- **Dataset-level** — `DatasetSchema(encoding=...)` validates `ds.encoding`
+
+Both support dict-based matching (equality, regex, callable) and pydantic
+models. See {ref}`xarray-encoding` for full details and examples.
+
 ## Dataset-level checks
 
 Checks on the `DatasetSchema` receive the entire {class}`~xarray.Dataset`:
@@ -489,6 +499,9 @@ except pa.errors.SchemaErrors as exc:
 - {ref}`xarray-data-array-schema` — single-array {class}`~pandera.api.xarray.container.DataArraySchema` validation
 - {ref}`xarray-data-models` — class-based {class}`~pandera.api.xarray.model.DatasetModel`
 - {ref}`xarray-checks-parsers` — checks, parsers, lazy validation
+- {ref}`xarray-encoding` — encoding validation (per-variable and dataset-level)
+- {ref}`xarray-duck-arrays` — Dask integration, `chunked`, and `array_type`
+- {ref}`xarray-cf-conventions` — CF convention checks
 - {ref}`xarray-decorators` — `check_input`, `check_output`, `check_io`, and `check_types`
 - {ref}`xarray-configuration` — {class}`~pandera.config.ValidationDepth`,
   {class}`~pandera.config.ValidationScope`, Dask, environment variables

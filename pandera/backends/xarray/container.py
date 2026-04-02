@@ -84,6 +84,7 @@ def _validate_attrs_with_pydantic(
     attrs_dict: dict[str, Any],
     *,
     prefix: str = "",
+    check_label: str = "attrs",
 ) -> list[CoreCheckResult]:
     """Validate *attrs_dict* against a pydantic BaseModel class.
 
@@ -99,11 +100,11 @@ def _validate_attrs_with_pydantic(
     except ValidationError as exc:
         for err in exc.errors():
             loc = ".".join(str(p) for p in err["loc"])
-            attr_label = f"{prefix}{loc}" if loc else prefix or "attrs"
+            attr_label = f"{prefix}{loc}" if loc else prefix or check_label
             results.append(
                 CoreCheckResult(
                     passed=False,
-                    check="attrs",
+                    check=check_label,
                     reason_code=SchemaErrorReason.SCHEMA_COMPONENT_CHECK,
                     message=(
                         f"{attr_label}: {err['msg']} [type={err['type']}]"
@@ -452,6 +453,53 @@ class DataArraySchemaBackend(XarraySchemaBackend):
         return results
 
     @validate_scope(scope=ValidationScope.SCHEMA)
+    def check_encoding(
+        self, check_obj, schema: DataArraySchema
+    ) -> list[CoreCheckResult]:
+        """Check encoding values (equality, regex, callable, pydantic)."""
+        results: list[CoreCheckResult] = []
+        if not schema.encoding:
+            return results
+
+        actual_enc = getattr(check_obj, "encoding", {}) or {}
+
+        if _is_pydantic_model_class(schema.encoding):
+            return _validate_attrs_with_pydantic(
+                schema.encoding,  # type: ignore[arg-type]
+                dict(actual_enc),
+                check_label="encoding",
+            )
+
+        for ek, ev in schema.encoding.items():
+            if ek not in actual_enc:
+                results.append(
+                    CoreCheckResult(
+                        passed=False,
+                        check="encoding",
+                        reason_code=(SchemaErrorReason.SCHEMA_COMPONENT_CHECK),
+                        message=(
+                            f"missing encoding key {ek!r}: expected {ev!r}"
+                        ),
+                        failure_cases="<missing>",
+                    )
+                )
+            elif not _match_attr_value(ev, actual_enc[ek]):
+                results.append(
+                    CoreCheckResult(
+                        passed=False,
+                        check="encoding",
+                        reason_code=(SchemaErrorReason.SCHEMA_COMPONENT_CHECK),
+                        message=(
+                            f"encoding {ek!r}: "
+                            f"expected {ev!r}, "
+                            f"got {actual_enc[ek]!r}"
+                        ),
+                        failure_cases=actual_enc[ek],
+                    )
+                )
+        return results
+
+    @validate_scope(scope=ValidationScope.SCHEMA)
     def check_coords(
         self, check_obj, schema: DataArraySchema
     ) -> list[CoreCheckResult]:
@@ -734,6 +782,10 @@ class DataArraySchemaBackend(XarraySchemaBackend):
                     (check_obj, schema),
                 ),
                 (
+                    self.check_encoding,
+                    (check_obj, schema),
+                ),
+                (
                     self.check_coords,
                     (check_obj, schema),
                 ),
@@ -902,6 +954,54 @@ class DatasetSchemaBackend(XarraySchemaBackend):
                         reason_code=(SchemaErrorReason.SCHEMA_COMPONENT_CHECK),
                         message=(f"unexpected attribute {k!r}"),
                         failure_cases=k,
+                    )
+                )
+        return results
+
+    @validate_scope(scope=ValidationScope.SCHEMA)
+    def check_encoding(
+        self, ds, schema: DatasetSchema
+    ) -> list[CoreCheckResult]:
+        """Check encoding values (equality, regex, callable, pydantic)."""
+        results: list[CoreCheckResult] = []
+        if not schema.encoding:
+            return results
+
+        actual_enc = getattr(ds, "encoding", {}) or {}
+
+        if _is_pydantic_model_class(schema.encoding):
+            return _validate_attrs_with_pydantic(
+                schema.encoding,  # type: ignore[arg-type]
+                dict(actual_enc),
+                prefix="dataset ",
+                check_label="encoding",
+            )
+
+        for ek, ev in schema.encoding.items():
+            if ek not in actual_enc:
+                results.append(
+                    CoreCheckResult(
+                        passed=False,
+                        check="encoding",
+                        reason_code=(SchemaErrorReason.SCHEMA_COMPONENT_CHECK),
+                        message=(
+                            f"missing encoding key {ek!r}: expected {ev!r}"
+                        ),
+                        failure_cases="<missing>",
+                    )
+                )
+            elif not _match_attr_value(ev, actual_enc[ek]):
+                results.append(
+                    CoreCheckResult(
+                        passed=False,
+                        check="encoding",
+                        reason_code=(SchemaErrorReason.SCHEMA_COMPONENT_CHECK),
+                        message=(
+                            f"encoding {ek!r}: "
+                            f"expected {ev!r}, "
+                            f"got {actual_enc[ek]!r}"
+                        ),
+                        failure_cases=actual_enc[ek],
                     )
                 )
         return results
@@ -1344,9 +1444,7 @@ class DatasetSchemaBackend(XarraySchemaBackend):
         ds = self.preprocess(check_obj, inplace=inplace)
 
         # --- expand regex data_vars patterns ---
-        expanded = self._expand_regex_data_vars(
-            schema, list(ds.data_vars)
-        )
+        expanded = self._expand_regex_data_vars(schema, list(ds.data_vars))
         schema = copy.copy(schema)
         schema.data_vars = expanded
 
@@ -1411,6 +1509,10 @@ class DatasetSchemaBackend(XarraySchemaBackend):
                 (self.check_attrs, (ds, schema)),
                 (
                     self.check_strict_attrs,
+                    (ds, schema),
+                ),
+                (
+                    self.check_encoding,
                     (ds, schema),
                 ),
                 (self.check_coords, (ds, schema)),

@@ -341,6 +341,23 @@ validated = schema.validate(da_int)
 print(f"original: {da_int.dtype} -> coerced: {validated.dtype}")
 ```
 
+## Encoding validation
+
+The `encoding` parameter validates the DataArray's `.encoding` dict, which is
+populated when reading from netCDF or Zarr:
+
+```{code-cell} python
+da_encoded = xr.DataArray(np.ones(3), dims="x")
+da_encoded.encoding = {"_FillValue": -999.0, "dtype": "float32"}
+
+pa.DataArraySchema(
+    encoding={"_FillValue": -999.0, "dtype": "^float.*"},
+).validate(da_encoded)
+```
+
+Encoding supports the same matching modes as `attrs` (equality, regex,
+callable) plus pydantic models. See {ref}`xarray-encoding` for full details.
+
 ## Chunked / array type
 
 Control whether the underlying storage is lazy (Dask) or eager (NumPy):
@@ -351,8 +368,9 @@ pa.DataArraySchema(chunked=False)      # must be eager
 pa.DataArraySchema(array_type=np.ndarray)  # must be a numpy array
 ```
 
-See {ref}`xarray-configuration` for how `chunked` interacts with
-validation depth.
+See {ref}`xarray-duck-arrays` for comprehensive Dask integration
+documentation, and {ref}`xarray-configuration` for how `chunked` interacts
+with validation depth.
 
 ## Data-level checks
 
@@ -421,6 +439,9 @@ except pa.errors.SchemaErrors as exc:
 - {ref}`xarray-dataset-schema` — {class}`~pandera.api.xarray.container.DatasetSchema` for multi-variable data
 - {ref}`xarray-data-models` — class-based {class}`~pandera.api.xarray.model.DataArrayModel`
 - {ref}`xarray-checks-parsers` — checks, parsers, lazy validation
+- {ref}`xarray-encoding` — encoding validation (netCDF/Zarr metadata)
+- {ref}`xarray-duck-arrays` — Dask integration, `chunked`, and `array_type`
+- {ref}`xarray-cf-conventions` — CF convention checks
 - {ref}`xarray-decorators` — `check_input`, `check_output`, `check_io`, and `check_types`
 - {ref}`xarray-configuration` — {class}`~pandera.config.ValidationDepth`,
   {class}`~pandera.config.ValidationScope`, Dask, environment variables
