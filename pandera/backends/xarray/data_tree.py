@@ -60,25 +60,18 @@ class DataTreeSchemaBackend(XarraySchemaBackend):
         if not schema.attrs:
             return results
         for ak, av in schema.attrs.items():
-            if (
-                ak not in check_obj.attrs
-                or check_obj.attrs[ak] != av
-            ):
+            if ak not in check_obj.attrs or check_obj.attrs[ak] != av:
                 results.append(
                     CoreCheckResult(
                         passed=False,
                         check="attrs",
-                        reason_code=(
-                            SchemaErrorReason.SCHEMA_COMPONENT_CHECK
-                        ),
+                        reason_code=(SchemaErrorReason.SCHEMA_COMPONENT_CHECK),
                         message=(
                             f"attribute mismatch {ak!r}: "
                             f"expected {av!r}, "
                             f"got {check_obj.attrs.get(ak)!r}"
                         ),
-                        failure_cases=str(
-                            check_obj.attrs.get(ak)
-                        ),
+                        failure_cases=str(check_obj.attrs.get(ak)),
                     )
                 )
         return results
@@ -100,21 +93,14 @@ class DataTreeSchemaBackend(XarraySchemaBackend):
                     CoreCheckResult(
                         passed=False,
                         check="strict_children",
-                        reason_code=(
-                            SchemaErrorReason.COLUMN_NOT_IN_SCHEMA
-                        ),
-                        message=(
-                            f"unexpected child node "
-                            f"{child_name!r}"
-                        ),
+                        reason_code=(SchemaErrorReason.COLUMN_NOT_IN_SCHEMA),
+                        message=(f"unexpected child node {child_name!r}"),
                         failure_cases=child_name,
                     )
                 )
         return results
 
-    def _resolve_node(
-        self, tree, path: str
-    ):
+    def _resolve_node(self, tree, path: str):
         """Resolve a path to a DataTree node."""
         path = path.strip("/")
         if not path:
@@ -144,13 +130,8 @@ class DataTreeSchemaBackend(XarraySchemaBackend):
                 CoreCheckResult(
                     passed=False,
                     check=f"child[{path!r}]",
-                    reason_code=(
-                        SchemaErrorReason.COLUMN_NOT_IN_DATAFRAME
-                    ),
-                    message=(
-                        f"missing child node at path "
-                        f"{path!r}"
-                    ),
+                    reason_code=(SchemaErrorReason.COLUMN_NOT_IN_DATAFRAME),
+                    message=(f"missing child node at path {path!r}"),
                     failure_cases=path,
                 )
             )
@@ -169,21 +150,21 @@ class DataTreeSchemaBackend(XarraySchemaBackend):
                     inplace=True,
                 )
             except SchemaErrors as exc:
-                for e in exc.schema_errors:
+                for schema_err in exc.schema_errors:
                     results.append(
                         CoreCheckResult(
                             passed=False,
                             check=f"child[{path!r}]",
-                            reason_code=e.reason_code,
+                            reason_code=schema_err.reason_code,
                             schema_error=SchemaError(
                                 child_schema,
                                 data=node,
                                 message=(
                                     f"DataTreeSchema failed "
                                     f"at path {path!r}: "
-                                    f"{e.args[0] if e.args else ''}"
+                                    f"{schema_err.args[0] if schema_err.args else ''}"
                                 ),
-                                reason_code=e.reason_code,
+                                reason_code=schema_err.reason_code,
                             ),
                         )
                     )
@@ -220,21 +201,21 @@ class DataTreeSchemaBackend(XarraySchemaBackend):
                     inplace=True,
                 )
             except SchemaErrors as exc:
-                for e in exc.schema_errors:
+                for schema_err in exc.schema_errors:
                     results.append(
                         CoreCheckResult(
                             passed=False,
                             check=f"child[{path!r}]",
-                            reason_code=e.reason_code,
+                            reason_code=schema_err.reason_code,
                             schema_error=SchemaError(
                                 child_schema,
                                 data=node_ds,
                                 message=(
                                     f"DataTreeSchema failed "
                                     f"at path {path!r}: "
-                                    f"{e.args[0] if e.args else ''}"
+                                    f"{schema_err.args[0] if schema_err.args else ''}"
                                 ),
-                                reason_code=e.reason_code,
+                                reason_code=schema_err.reason_code,
                             ),
                         )
                     )
@@ -324,9 +305,7 @@ class DataTreeSchemaBackend(XarraySchemaBackend):
             )
             results.extend(child_results)
 
-        results.extend(
-            self.check_strict_children(check_obj, schema)
-        )
+        results.extend(self.check_strict_children(check_obj, schema))
 
         _collect(error_handler, schema, check_obj, results)
 
