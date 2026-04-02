@@ -71,6 +71,9 @@ data_models
 checks_and_parsers
 decorators
 configuration
+schema_inference
+io_serialization
+hypothesis_strategies
 ```
 
 - {ref}`xarray-data-array-schema` — validating a single {class}`~xarray.DataArray`
@@ -80,6 +83,9 @@ configuration
 - {ref}`xarray-checks-parsers` — checks, parsers, and lazy validation
 - {ref}`xarray-decorators` — `check_input`, `check_output`, `check_io`, and `check_types`
 - {ref}`xarray-configuration` — validation depth, Dask, and environment variables
+- {ref}`xarray-schema-inference` — automatically infer schemas from data
+- {ref}`xarray-io-serialization` — save and load schemas as YAML or JSON
+- {ref}`xarray-hypothesis-strategies` — generate synthetic data with Hypothesis
 
 ## See also
 
