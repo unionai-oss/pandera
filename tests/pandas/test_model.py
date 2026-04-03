@@ -18,6 +18,7 @@ import pandera.pandas as pa
 from pandera.api.base.model import MetaModel
 from pandera.errors import SchemaError, SchemaInitError
 from pandera.typing import DataFrame, Index, Series, String
+from pandera.typing import pandas as pandas_typing
 
 
 def test_idempotent_magics() -> None:
@@ -200,6 +201,18 @@ def test_optional_column() -> None:
     assert not schema.columns["b"].required
     assert not schema.columns["c"].required
     assert not schema.columns["d"].required
+
+
+def test_optional_column_with_typing_module_alias() -> None:
+    """Test optional column annotations with pandera.typing.pandas alias."""
+
+    class Schema(pa.DataFrameModel):
+        size: pandas_typing.Series[int]
+        label: pandas_typing.Series[str]
+        note: pandas_typing.Series[str] | None
+
+    schema = Schema.to_schema()
+    assert not schema.columns["note"].required
 
 
 def test_optional_index() -> None:
