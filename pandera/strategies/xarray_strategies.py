@@ -48,6 +48,15 @@ def _strategy_import_error(fn: F) -> F:
             )
         return fn(*args, **kwargs)
 
+    # @composite sets __qualname__ to accept.<locals>.<name>. Sphinx autodoc
+    # uses inspect.unwrap() and then treats those as local functions. Normalize
+    # every function in the __wrapped__ chain (including the wrapper from @wraps).
+    _cur: Any = _wrapper
+    while _cur is not None:
+        if "<locals>" in getattr(_cur, "__qualname__", ""):
+            _cur.__qualname__ = _cur.__name__
+        _cur = getattr(_cur, "__wrapped__", None)
+
     return cast(F, _wrapper)
 
 

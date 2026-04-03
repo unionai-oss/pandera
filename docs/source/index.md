@@ -4,7 +4,7 @@ file_format: mystnb
 
 % pandera documentation entrypoint
 
-# The Open-source Framework for Validating DataFrame-like Objects
+# The Open-source Framework for Dataset Validation
 
 > *Data validation for scientists, engineers, and analysts seeking correctness.*
 
