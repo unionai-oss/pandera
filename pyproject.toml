@@ -124,6 +124,7 @@ all = [
 [dependency-groups]
 dev = [
     "black",
+    "cf_xarray",
     "frictionless <= 4.40.8",
     "duckdb",
     "hypothesis >= 6.92.7",
