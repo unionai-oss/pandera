@@ -56,8 +56,122 @@ class IbisCheckBackend(BaseCheckBackend):
         # a Table with a single column. Table inputs are unaffected.
         return check_obj.as_table()
 
-    def apply(self, check_obj: IbisData):
-        """Apply the check function to a check object."""
+    def apply(
+        self,
+        check_obj: IbisData,
+        wide_table: ibis.Table | None = None,
+        check_index: int | None = None,
+    ) -> ibis.Table:
+        """Apply the check function to a check object.
+
+        If wide_table is provided, add check result columns to it for lazy
+        wide table execution. If not provided, return the check results
+        in the original format (current behavior for backwards compatibility).
+
+        :param check_obj: The IbisData object containing the table and key.
+        :param wide_table: Optional wide table to add check result columns to.
+        :param check_index: Index of the check for unique column naming.
+        :returns: Table with check result columns, or scalar/column for
+            backwards compatibility when wide_table is None.
+        """
+        # Wide table mode: build a wide table with all check results
+        if wide_table is not None:
+            return self._apply_wide_table(check_obj, wide_table, check_index)
+
+        # Original behavior: return check results in their native format
+        return self._apply_original(check_obj)
+
+    def _apply_wide_table(
+        self,
+        check_obj: IbisData,
+        wide_table: ibis.Table,
+        check_index: int | None,
+    ) -> ibis.Table:
+        """Apply check and add result columns to the wide table.
+
+        :param check_obj: The IbisData object containing the table and key.
+        :param wide_table: Wide table to add check result columns to.
+        :param check_index: Index of the check for unique column naming.
+        :returns: Wide table with check result columns added.
+        """
+        prefix = f"{check_index}_" if check_index is not None else ""
+
+        if self.check.element_wise:
+            selector = (
+                select_column(check_obj.key)
+                if check_obj.key is not None
+                else s.all()
+            )
+            out = wide_table.mutate(
+                s.across(
+                    selector,
+                    self.check_fn,
+                    f"{prefix}{{col}}{CHECK_OUTPUT_SUFFIX}",
+                )
+            )
+        else:
+            check_output = self.check_fn(check_obj)
+
+            if isinstance(check_output, dict):
+                out = wide_table.mutate(
+                    **{
+                        f"{prefix}{k}{CHECK_OUTPUT_SUFFIX}": v
+                        for k, v in check_output.items()
+                    }
+                )
+            elif isinstance(check_output, ibis.Table):
+                # Rename columns with prefix and suffix
+                check_output = check_output.rename(
+                    f"{prefix}{{name}}{CHECK_OUTPUT_SUFFIX}"
+                )
+                # Join check output to wide table
+                if wide_table.get_backend().name in POSITIONAL_JOIN_BACKENDS:
+                    out = wide_table.join(check_output, how="positional")
+                else:
+                    # For backends that do not support positional joins:
+                    # https://github.com/ibis-project/ibis/issues/9486
+                    index_col = "__idx__"
+                    out = (
+                        wide_table.mutate(
+                            **{index_col: ibis.row_number().over()}
+                        )
+                        .join(
+                            check_output.mutate(
+                                **{index_col: ibis.row_number().over()}
+                            ),
+                            index_col,
+                        )
+                        .drop(index_col)
+                    )
+            elif isinstance(check_output, bool):
+                col_name = f"{prefix}{self.check.name or 'check'}{CHECK_OUTPUT_SUFFIX}"
+                out = wide_table.mutate(
+                    **{col_name: ibis.literal(check_output)}
+                )
+            elif check_output.type().is_boolean():
+                col_name = f"{prefix}{self.check.name or 'check'}{CHECK_OUTPUT_SUFFIX}"
+                out = wide_table.mutate(**{col_name: check_output})
+            else:
+                raise TypeError(
+                    f"output type of check_fn not recognized: {type(check_output)}"
+                )
+
+        # Validate that check output columns are boolean
+        for col in out.columns:
+            if col.startswith(prefix) and col.endswith(CHECK_OUTPUT_SUFFIX):
+                assert out[col].type().is_boolean(), (
+                    f"column '{col}' is not boolean. If check function "
+                    "returns a table, it must contain only boolean columns."
+                )
+
+        return out
+
+    def _apply_original(self, check_obj: IbisData):
+        """Apply check using original behavior (backwards compatibility).
+
+        :param check_obj: The IbisData object containing the table and key.
+        :returns: Check result in native format (table, column, or scalar).
+        """
         if self.check.element_wise:
             selector = (
                 select_column(check_obj.key)
