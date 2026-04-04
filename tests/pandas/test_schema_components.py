@@ -3,7 +3,6 @@
 import copy
 from typing import Any, Optional
 from unittest.mock import MagicMock, patch
-from zoneinfo import ZoneInfo
 
 import numpy as np
 import pandas as pd
@@ -11,7 +10,6 @@ import pytest
 
 from pandera.api.base.error_handler import ErrorHandler
 from pandera.backends.pandas.components import MultiIndexBackend
-from pandera.engines import pandas_engine
 from pandera.engines.pandas_engine import Engine, pandas_version
 from pandera.pandas import (
     Check,
@@ -1398,7 +1396,7 @@ def test_multiindex_optimized_vs_full_validation(
 
 def test_multiindex_tz_aware_level_full_materialization_validation() -> None:
     """Validate tz-aware MultiIndex levels in the full materialization path."""
-    timezone = ZoneInfo("America/New_York")
+    timezone = "America/New_York"
     level_one = pd.DatetimeIndex(
         ["2024-01-01 00:00", "2024-01-01 01:00"],
         tz=timezone,
@@ -1415,7 +1413,7 @@ def test_multiindex_tz_aware_level_full_materialization_validation() -> None:
         index=MultiIndex(
             [
                 Index(
-                    pandas_engine.DateTime(tz=timezone),  # type: ignore[call-arg]
+                    level_one.dtype,
                     name="LEVEL_ONE",
                     checks=Check(
                         lambda s: s.notna(),
@@ -1436,7 +1434,7 @@ def test_multiindex_tz_aware_level_full_materialization_validation() -> None:
 
 def test_multiindex_tz_aware_level_optimized_validation() -> None:
     """Validate tz-aware MultiIndex levels in the optimized path."""
-    timezone = ZoneInfo("America/New_York")
+    timezone = "America/New_York"
     level_one = pd.DatetimeIndex(
         [
             "2024-01-01 00:00",
@@ -1458,7 +1456,7 @@ def test_multiindex_tz_aware_level_optimized_validation() -> None:
         index=MultiIndex(
             [
                 Index(
-                    pandas_engine.DateTime(tz=timezone),  # type: ignore[call-arg]
+                    level_one.dtype,
                     name="LEVEL_ONE",
                     checks=Check.isin(level_one.unique()),
                 ),
