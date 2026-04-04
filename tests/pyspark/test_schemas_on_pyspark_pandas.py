@@ -469,6 +469,24 @@ def test_dtype_coercion(from_dtype, to_dtype, data):
     assert isinstance(to_schema(sample), ps.DataFrame)
 
 
+def test_dtype_coercion_nullable_reports_invalid_values():
+    """Ensure coerce dtype errors are reported even when nullable=True."""
+
+    schema = pa.DataFrameSchema(
+        {"distance": pa.Column(float, nullable=True, coerce=True)}
+    )
+    sample = ps.DataFrame({"distance": ["15.2", "test", "13", "NY"]})
+
+    with pytest.raises(pa.errors.SchemaErrors) as exc_info:
+        schema.validate(sample, lazy=True)
+
+    failure_cases = exc_info.value.failure_cases
+    assert set(failure_cases["failure_case"].astype(str).tolist()) == {
+        "test",
+        "NY",
+    }
+
+
 @pytest.mark.parametrize("dtype", [float, int, str, bool])
 @hypothesis.given(st.data())
 def test_failure_cases(dtype, data):

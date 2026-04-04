@@ -222,7 +222,55 @@ class ArraySchemaBackend(PandasSchemaBackend):
             return check_obj
 
         try:
-            return schema.dtype.try_coerce(check_obj)
+            coerced = schema.dtype.try_coerce(check_obj)
+
+            # pyspark.pandas can coerce invalid values to null without
+            # raising, which masks dtype errors when nullable=True.
+            if type(check_obj).__module__.startswith("pyspark.pandas"):
+                try:
+                    introduced_na = coerced.isna() & check_obj.notna()
+                    if introduced_na.any():
+                        failure_cases = reshape_failure_cases(
+                            check_obj[introduced_na], ignore_na=False
+                        )
+                        raise SchemaError(
+                            schema=schema,
+                            data=check_obj,
+                            message=(
+                                f"Error while coercing '{schema.name}' to type "
+                                f"{schema.dtype}: coercion introduced null values"
+                            ),
+                            failure_cases=failure_cases,
+                            check=f"coerce_dtype('{schema.dtype}')",
+                            reason_code=SchemaErrorReason.DATATYPE_COERCION,
+                        )
+                except SchemaError:
+                    raise
+                except Exception as exc:
+                    from pandera.engines import utils as engine_utils
+
+                    try:
+                        failure_cases = (
+                            engine_utils.numpy_pandas_coerce_failure_cases(
+                                check_obj, schema.dtype
+                            )
+                        )
+                    except Exception:
+                        failure_cases = None
+
+                    raise SchemaError(
+                        schema=schema,
+                        data=check_obj,
+                        message=(
+                            f"Error while coercing '{schema.name}' to type "
+                            f"{schema.dtype}: {exc}"
+                        ),
+                        failure_cases=failure_cases,
+                        check=f"coerce_dtype('{schema.dtype}')",
+                        reason_code=SchemaErrorReason.DATATYPE_COERCION,
+                    ) from exc
+
+            return coerced
         except ParserError as exc:
             raise SchemaError(
                 schema=schema,
