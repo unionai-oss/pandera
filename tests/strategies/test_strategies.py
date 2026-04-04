@@ -397,6 +397,16 @@ def test_str_length_checks(chained, data, value_range):
     assert min_value <= len(example) <= max_value
 
 
+def test_str_length_exact_value_example() -> None:
+    """Ensure example generation supports Check.str_length(exact_value=...)."""
+    schema = pa.DataFrameSchema(
+        {"colA": pa.Column(str, checks=[Check.str_length(exact_value=3)])}
+    )
+
+    example = schema.example(size=5)
+    assert example["colA"].map(len).eq(3).all()
+
+
 @hypothesis.given(st.data())
 def test_register_check_strategy(data) -> None:
     """Test registering check strategy on a custom check."""
