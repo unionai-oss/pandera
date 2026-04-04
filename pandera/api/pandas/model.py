@@ -14,6 +14,7 @@ from pandera.api.pandas.components import Column, Index, MultiIndex
 from pandera.api.pandas.container import DataFrameSchema
 from pandera.api.pandas.model_config import BaseConfig
 from pandera.api.parsers import Parser
+from pandera.engines import numpy_engine, pandas_engine
 from pandera.engines.pandas_engine import Engine
 from pandera.errors import SchemaInitError
 from pandera.typing import (
@@ -31,6 +32,40 @@ else:
     from typing import Self
 
 SchemaIndex = Union[Index, MultiIndex]
+
+
+def _get_nullable_coercion_dtype(
+    dtype: Any,
+    *,
+    nullable: bool,
+    coerce: bool,
+) -> Any:
+    """Use nullable pandas dtypes for nullable fields when coercing."""
+    if dtype is None or not nullable or not coerce:
+        return dtype
+
+    try:
+        pandera_dtype = Engine.dtype(dtype)
+    except (TypeError, ValueError):
+        return dtype
+
+    nullable_dtype_map = {
+        numpy_engine.Bool: pandas_engine.BOOL,
+        numpy_engine.Int8: pandas_engine.INT8,
+        numpy_engine.Int16: pandas_engine.INT16,
+        numpy_engine.Int32: pandas_engine.INT32,
+        numpy_engine.Int64: pandas_engine.INT64,
+        numpy_engine.UInt8: pandas_engine.UINT8,
+        numpy_engine.UInt16: pandas_engine.UINT16,
+        numpy_engine.UInt32: pandas_engine.UINT32,
+        numpy_engine.UInt64: pandas_engine.UINT64,
+    }
+
+    for numpy_dtype, nullable_dtype in nullable_dtype_map.items():
+        if isinstance(pandera_dtype, numpy_dtype):
+            return nullable_dtype
+
+    return dtype
 
 
 class DataFrameModel(_DataFrameModel[pd.DataFrame, DataFrameSchema]):
@@ -124,6 +159,13 @@ class DataFrameModel(_DataFrameModel[pd.DataFrame, DataFrameSchema]):
                     raise SchemaInitError(
                         f"'check_name' is not supported for {field_name}."
                     )
+
+                dtype = _get_nullable_coercion_dtype(
+                    dtype,
+                    nullable=field.nullable,
+                    coerce=field.coerce
+                    or bool(getattr(cls.__config__, "coerce", False)),
+                )
 
                 column_kwargs = (
                     field.column_properties(
