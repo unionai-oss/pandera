@@ -1401,6 +1401,88 @@ def test_io_json(index):
         assert schema_from_json == schema
 
 
+def test_check_custom_error_json_serialization_roundtrip():
+    """Test that custom check errors are serialized and deserialized via JSON."""
+    import json
+
+    schema = pandera.DataFrameSchema(
+        {
+            "default_error": pandera.Column(
+                pandera.Int,
+                checks=[pandera.Check.greater_than(10)],
+            ),
+            "custom_error": pandera.Column(
+                pandera.Int,
+                checks=[
+                    pandera.Check.greater_than(
+                        10,
+                        error="column must be greater than 10",
+                    )
+                ],
+            ),
+        }
+    )
+
+    schema_dict = json.loads(schema.to_json())
+    default_options = schema_dict["columns"]["default_error"]["checks"][0][
+        "options"
+    ]
+    custom_options = schema_dict["columns"]["custom_error"]["checks"][0][
+        "options"
+    ]
+
+    assert "error" not in default_options
+    assert custom_options["error"] == "column must be greater than 10"
+
+    restored = io.from_json(json.dumps(schema_dict))
+    restored_checks = restored.columns["custom_error"].checks
+    assert restored_checks is not None
+    assert restored_checks[0].error == "column must be greater than 10"
+
+
+@pytest.mark.skipif(
+    SKIP_YAML_TESTS,
+    reason="pyyaml >= 5.1.0 required",
+)
+def test_check_custom_error_yaml_serialization_roundtrip():
+    """Test that custom check errors are serialized and deserialized via YAML."""
+    schema = pandera.DataFrameSchema(
+        {
+            "default_error": pandera.Column(
+                pandera.Int,
+                checks=[pandera.Check.greater_than(10)],
+            ),
+            "custom_error": pandera.Column(
+                pandera.Int,
+                checks=[
+                    pandera.Check.greater_than(
+                        10,
+                        error="column must be greater than 10",
+                    )
+                ],
+            ),
+        }
+    )
+
+    yaml_str = schema.to_yaml()
+    schema_dict = yaml.safe_load(yaml_str)
+
+    default_options = schema_dict["columns"]["default_error"]["checks"][0][
+        "options"
+    ]
+    custom_options = schema_dict["columns"]["custom_error"]["checks"][0][
+        "options"
+    ]
+
+    assert "error" not in default_options
+    assert custom_options["error"] == "column must be greater than 10"
+
+    restored = io.from_yaml(yaml_str)
+    restored_checks = restored.columns["custom_error"].checks
+    assert restored_checks is not None
+    assert restored_checks[0].error == "column must be greater than 10"
+
+
 @pytest.mark.skipif(
     platform.system() == "Windows",
     reason="skipping due to issues with opening file names for temp files.",

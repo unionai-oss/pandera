@@ -815,3 +815,42 @@ def test_parse_checks_and_statistics_no_param(extra_registered_checks):
             sorted(check_list, key=lambda x: x.name),
         )
     )
+
+
+def test_parse_checks_custom_error_for_registered_custom_check(
+    extra_registered_checks,
+):
+    """Ensure custom check errors are serialized for registered checks."""
+    checks = [pa.Check.no_param_check(error="custom check error")]
+    expectation = [
+        {
+            "options": {
+                "check_name": "no_param_check",
+                "ignore_na": True,
+                "raise_warning": False,
+                "error": "custom check error",
+            }
+        }
+    ]
+
+    assert schema_statistics.parse_checks(checks) == expectation
+
+
+def test_parse_checks_invalid_builtin_stats_keeps_custom_error():
+    """Ensure invalid built-in stats do not drop custom error messages."""
+    check = pa.Check.greater_than(1, error="custom gt error")
+    check.statistics = {"bad_key": 1}
+
+    expectation = [
+        {
+            "bad_key": 1,
+            "options": {
+                "check_name": "greater_than",
+                "ignore_na": True,
+                "raise_warning": False,
+                "error": "custom gt error",
+            },
+        }
+    ]
+
+    assert schema_statistics.parse_checks([check]) == expectation
