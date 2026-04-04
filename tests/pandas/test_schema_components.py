@@ -3,6 +3,7 @@
 import copy
 from typing import Any, Optional
 from unittest.mock import MagicMock, patch
+from zoneinfo import ZoneInfo
 
 import numpy as np
 import pandas as pd
@@ -10,6 +11,7 @@ import pytest
 
 from pandera.api.base.error_handler import ErrorHandler
 from pandera.backends.pandas.components import MultiIndexBackend
+from pandera.engines import pandas_engine
 from pandera.engines.pandas_engine import Engine, pandas_version
 from pandera.pandas import (
     Check,
@@ -1391,6 +1393,84 @@ def test_multiindex_optimized_vs_full_validation(
         full_fc.sort_values(by="index").reset_index(drop=True),
         check_like=True,
         check_dtype=False,  # pandas 3.0 uses StringDtype for strings
+    )
+
+
+def test_multiindex_tz_aware_level_full_materialization_validation() -> None:
+    """Validate tz-aware MultiIndex levels in the full materialization path."""
+    timezone = ZoneInfo("America/New_York")
+    level_one = pd.DatetimeIndex(
+        ["2024-01-01 00:00", "2024-01-01 01:00"],
+        tz=timezone,
+        name="LEVEL_ONE",
+    )
+    level_two = pd.Index(["A", "B"], name="LEVEL_TWO")
+    data = pd.DataFrame(
+        {"value": [1, 2]},
+        index=pd.MultiIndex.from_arrays([level_one, level_two]),
+    )
+
+    schema = DataFrameSchema(
+        columns={"value": Column(int)},
+        index=MultiIndex(
+            [
+                Index(
+                    pandas_engine.DateTime(tz=timezone),  # type: ignore[call-arg]
+                    name="LEVEL_ONE",
+                    checks=Check(
+                        lambda s: s.notna(),
+                        determined_by_unique=False,
+                    ),
+                ),
+                Index(String, name="LEVEL_TWO"),
+            ]
+        ),
+    )
+
+    validated = schema.validate(data)
+    pd.testing.assert_index_equal(
+        validated.index.get_level_values("LEVEL_ONE"),
+        level_one,
+    )
+
+
+def test_multiindex_tz_aware_level_optimized_validation() -> None:
+    """Validate tz-aware MultiIndex levels in the optimized path."""
+    timezone = ZoneInfo("America/New_York")
+    level_one = pd.DatetimeIndex(
+        [
+            "2024-01-01 00:00",
+            "2024-01-01 01:00",
+            "2024-01-01 00:00",
+            "2024-01-01 01:00",
+        ],
+        tz=timezone,
+        name="LEVEL_ONE",
+    )
+    level_two = pd.Index(["A", "B", "C", "D"], name="LEVEL_TWO")
+    data = pd.DataFrame(
+        {"value": [1, 2, 3, 4]},
+        index=pd.MultiIndex.from_arrays([level_one, level_two]),
+    )
+
+    schema = DataFrameSchema(
+        columns={"value": Column(int)},
+        index=MultiIndex(
+            [
+                Index(
+                    pandas_engine.DateTime(tz=timezone),  # type: ignore[call-arg]
+                    name="LEVEL_ONE",
+                    checks=Check.isin(level_one.unique()),
+                ),
+                Index(String, name="LEVEL_TWO"),
+            ]
+        ),
+    )
+
+    validated = schema.validate(data)
+    pd.testing.assert_index_equal(
+        validated.index.get_level_values("LEVEL_ONE"),
+        level_one,
     )
 
 

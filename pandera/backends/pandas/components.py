@@ -647,7 +647,7 @@ class MultiIndexBackend(PandasSchemaBackend):
         # Create a Series with unique values as data, similar to full materialization.
         # This ensures error reporting is consistent between optimized and full paths.
         unique_series = pd.Series(
-            unique_values.values,
+            unique_values,
             name=index_schema.name,
             dtype=multiindex.levels[level_pos].dtype,
         )
@@ -817,7 +817,7 @@ class MultiIndexBackend(PandasSchemaBackend):
 
         # Create a Series with level values as data, indexed by the full MultiIndex
         level_series = pd.Series(
-            full_values.values, index=multiindex, name=index_schema.name
+            full_values, index=multiindex, name=index_schema.name
         )
 
         # Validate as a column (Series), rather than as an index
