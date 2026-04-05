@@ -8,6 +8,7 @@ import pandas as pd
 import pytest
 
 import pandera.pandas as pa
+from pandera.api.pandas.model import _get_nullable_coercion_dtype
 from pandera.dtypes import DataType
 from pandera.typing import DataFrame, Index, Series
 
@@ -563,3 +564,31 @@ def test_nullable_coerce_uses_nullable_pandas_dtypes(
 
     assert str(validated["col"].dtype) == expected_dtype
     assert validated["col"].isna().tolist() == [False, True, False]
+
+
+def test_nullable_coerce_dtype_passthrough_for_non_nullable_mapping() -> None:
+    """Unmapped dtypes should be returned unchanged."""
+    assert (
+        _get_nullable_coercion_dtype(
+            pa.String,
+            nullable=True,
+            coerce=True,
+        )
+        is pa.String
+    )
+
+
+def test_nullable_coerce_dtype_passthrough_for_unknown_dtype() -> None:
+    """Unknown dtypes should be returned unchanged on engine resolution error."""
+
+    class UnknownType:
+        """Dummy dtype used to exercise fallback behavior."""
+
+    assert (
+        _get_nullable_coercion_dtype(
+            UnknownType,
+            nullable=True,
+            coerce=True,
+        )
+        is UnknownType
+    )
