@@ -5,7 +5,7 @@ import datetime
 import operator
 import re
 from collections.abc import Callable
-from typing import Any, Optional
+from typing import Any, Optional, cast
 from unittest.mock import MagicMock
 from warnings import catch_warnings
 
@@ -405,6 +405,15 @@ def test_str_length_exact_value_example() -> None:
 
     example = schema.example(size=5)
     assert example["colA"].map(len).eq(3).all()
+
+
+def test_str_length_requires_bounds_or_exact_value() -> None:
+    """Ensure strategy errors when no length constraints are provided."""
+    with pytest.raises(
+        ValueError,
+        match="At least one of min_value/max_value or exact_value",
+    ):
+        strategies.str_length_strategy(cast(Any, pa.String))
 
 
 @hypothesis.given(st.data())
