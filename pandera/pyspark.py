@@ -47,7 +47,10 @@ from pandera.dtypes import (
     UInt64,
 )
 from pandera.errors import PysparkSchemaError, SchemaInitError
-from pandera.schema_inference.pandas import infer_schema
+from pandera.schema_inference.pyspark import (
+    infer_dataframe_schema,
+    infer_schema,
+)
 from pandera.typing import pyspark_sql
 from pandera.typing import pyspark_sql as typing
 
@@ -97,6 +100,7 @@ __all__ = [
     # schema_components
     "Column",
     # schema_inference
+    "infer_dataframe_schema",
     "infer_schema",
     # schemas
     "DataFrameSchema",

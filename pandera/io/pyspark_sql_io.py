@@ -16,6 +16,7 @@ from pandera.engines import pyspark_engine
 from pandera.errors import SchemaDefinitionError
 from pandera.io._check_io import checks_dict_to_list
 from pandera.io._constants import DATETIME_FORMAT, MISSING_PYYAML_MESSAGE
+from pandera.io._minimal import apply_minimal_dataframe_container
 from pandera.schema_statistics.pyspark import get_dataframe_schema_statistics
 
 
@@ -98,8 +99,13 @@ def _serialize_component_stats(component_stats):
     }
 
 
-def serialize_schema(dataframe_schema) -> dict[str, Any]:
-    """Serialize a PySpark SQL dataframe schema to a JSON/YAML-compatible dict."""
+def serialize_schema(
+    dataframe_schema, *, minimal: bool = True
+) -> dict[str, Any]:
+    """Serialize a PySpark SQL dataframe schema to a JSON/YAML-compatible dict.
+
+    :param minimal: If True (default), omit keys equal to constructor defaults.
+    """
     from pandera import __version__
 
     statistics = get_dataframe_schema_statistics(dataframe_schema)
@@ -114,7 +120,7 @@ def serialize_schema(dataframe_schema) -> dict[str, Any]:
     if statistics["checks"] is not None:
         checks = _serialize_dataframe_stats(statistics["checks"])
 
-    return {
+    out = {
         "schema_type": "pyspark_sql_dataframe",
         "version": __version__,
         "columns": columns,
@@ -132,6 +138,9 @@ def serialize_schema(dataframe_schema) -> dict[str, Any]:
         "title": dataframe_schema.title,
         "description": dataframe_schema.description,
     }
+    if minimal:
+        apply_minimal_dataframe_container(out, dataframe_schema)
+    return out
 
 
 def _deserialize_check_stats(check, serialized_check_stats, dtype=None):
@@ -276,14 +285,14 @@ def from_yaml(yaml_schema):
     return deserialize_schema(serialized_schema)
 
 
-def to_yaml(dataframe_schema, stream=None):
+def to_yaml(dataframe_schema, stream=None, *, minimal: bool = True):
     """Write a PySpark :class:`DataFrameSchema` to YAML."""
     try:
         import yaml
     except ImportError as exc:  # pragma: no cover
         raise ImportError(MISSING_PYYAML_MESSAGE) from exc
 
-    statistics = serialize_schema(dataframe_schema)
+    statistics = serialize_schema(dataframe_schema, minimal=minimal)
 
     def _write_yaml(obj, stream):
         return yaml.safe_dump(obj, stream=stream, sort_keys=False)
@@ -312,9 +321,9 @@ def from_json(source):
     return deserialize_schema(serialized_schema)
 
 
-def to_json(dataframe_schema, target=None, **kwargs):
+def to_json(dataframe_schema, target=None, *, minimal: bool = True, **kwargs):
     """Write a PySpark :class:`DataFrameSchema` to JSON."""
-    serialized_schema = serialize_schema(dataframe_schema)
+    serialized_schema = serialize_schema(dataframe_schema, minimal=minimal)
 
     if target is None:
         return json.dumps(serialized_schema, sort_keys=False, **kwargs)

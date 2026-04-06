@@ -13,6 +13,10 @@ from pandera.api.polars.model import DataFrameModel
 from pandera.api.polars.types import PolarsData
 from pandera.backends.polars.register import register_polars_backends
 from pandera.decorators import check_input, check_io, check_output, check_types
+from pandera.schema_inference.polars import (
+    infer_dataframe_schema,
+    infer_schema,
+)
 from pandera.typing import polars as typing
 
 register_polars_backends()
@@ -31,5 +35,7 @@ __all__ = [
     "DataFrameSchema",
     "errors",
     "Field",
+    "infer_dataframe_schema",
+    "infer_schema",
     "PolarsData",
 ]

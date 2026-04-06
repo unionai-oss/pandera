@@ -119,11 +119,13 @@ class DataFrameSchema(_DataFrameSchema[PolarsCheckObjects]):
 
         return polars_io.from_yaml(yaml_schema)
 
-    def to_yaml(self, stream: os.PathLike | None = None) -> str | None:
+    def to_yaml(
+        self, stream: os.PathLike | None = None, *, minimal: bool = True
+    ) -> str | None:
         """Write schema to YAML (see :mod:`pandera.io.polars_io`)."""
         from pandera.io import polars_io
 
-        return polars_io.to_yaml(self, stream=stream)
+        return polars_io.to_yaml(self, stream=stream, minimal=minimal)
 
     @classmethod
     def from_json(cls, source) -> Self:
@@ -134,20 +136,24 @@ class DataFrameSchema(_DataFrameSchema[PolarsCheckObjects]):
 
     @overload
     def to_json(
-        self, target: None = None, **kwargs
+        self, target: None = None, *, minimal: bool = True, **kwargs
     ) -> str:  # pragma: no cover
         ...
 
     @overload
     def to_json(
-        self, target: os.PathLike, **kwargs
+        self, target: os.PathLike, *, minimal: bool = True, **kwargs
     ) -> None:  # pragma: no cover
         ...
 
     def to_json(
-        self, target: os.PathLike | None = None, **kwargs
+        self,
+        target: os.PathLike | None = None,
+        *,
+        minimal: bool = True,
+        **kwargs,
     ) -> str | None:
         """Write schema to JSON (see :mod:`pandera.io.polars_io`)."""
         from pandera.io import polars_io
 
-        return polars_io.to_json(self, target, **kwargs)
+        return polars_io.to_json(self, target, minimal=minimal, **kwargs)

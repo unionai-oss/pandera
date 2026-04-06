@@ -139,10 +139,19 @@ def _testing_requirements(
             PYPROJECT["project"]["optional-dependencies"]["pandas"]
         )
 
+    # tests/io/ also runs ibis and pyspark SQL IO tests. Polars is already pulled
+    # in via the dev dependency group; ibis and pyspark are not, so add them
+    # here—otherwise those tests are skipped (importorskip).
+    if extra == "io":
+        for _io_backend in ("ibis", "pyspark"):
+            _requirements.extend(
+                PYPROJECT["project"]["optional-dependencies"][_io_backend]
+            )
+
     _requirements = list(set(_requirements))
 
     _numpy: str | None = None
-    if extra == "pyspark" and session.python in ("3.10",):
+    if extra in ("io", "pyspark") and session.python in ("3.10",):
         # constrain numpy < 2 for older versions of pyspark on py3.10
         # pandas 3.0.0 requires numpy >= 2.3.3, so don't apply this constraint
         _numpy = "< 2"

@@ -1180,14 +1180,14 @@ def test_inferred_schema_io():
 def test_to_yaml():
     """Test that to_yaml writes to yaml string."""
     schema = _create_schema()
-    yaml_str = io.to_yaml(schema)
+    yaml_str = io.to_yaml(schema, minimal=False)
     with tempfile.NamedTemporaryFile("w+") as f:
         f.write(yaml_str)
     with tempfile.NamedTemporaryFile("w+") as f:
         f.write(YAML_SCHEMA)
     assert yaml_str.strip() == YAML_SCHEMA.strip()
 
-    yaml_str_schema_method = schema.to_yaml()
+    yaml_str_schema_method = schema.to_yaml(minimal=False)
     assert yaml_str_schema_method.strip() == YAML_SCHEMA.strip()
 
 
@@ -1488,7 +1488,10 @@ def test_to_script(index):
     """Test writing DataFrameSchema to a script."""
     schema_to_write = _create_schema(index)
 
-    for script in [io.to_script(schema_to_write), schema_to_write.to_script()]:
+    for script in [
+        io.to_script(schema_to_write, minimal=False),
+        schema_to_write.to_script(minimal=False),
+    ]:
         local_dict = {}
         # pylint: disable=exec-used
         exec(script, globals(), local_dict)
@@ -1499,7 +1502,7 @@ def test_to_script(index):
         assert schema == schema_to_write
 
     with tempfile.NamedTemporaryFile("w+") as f:
-        schema_to_write.to_script(Path(f.name))
+        schema_to_write.to_script(Path(f.name), minimal=False)
         # pylint: disable=exec-used
         exec(f.read(), globals(), local_dict)
         schema = local_dict["schema"]
@@ -1658,7 +1661,7 @@ def test_to_yaml_retains_ordered_keyword(is_ordered, test_data, expected):
     )
 
     # make sure the schema contains the ordered key word
-    yaml_schema = schema.to_yaml()
+    yaml_schema = schema.to_yaml(minimal=False)
     assert "ordered" in yaml_schema  # pylint: disable=E1135
 
     # raise the error only when the ordered condition is violated
@@ -1996,7 +1999,10 @@ def test_frictionless_schema_parses_correctly(frictionless_schema):
     """Test parsing frictionless schema from yaml and json."""
     schema = io.from_frictionless_schema(frictionless_schema)
 
-    assert str(schema.to_yaml()).strip() == YAML_FROM_FRICTIONLESS.strip()
+    assert (
+        str(schema.to_yaml(minimal=False)).strip()
+        == YAML_FROM_FRICTIONLESS.strip()
+    )
 
     assert isinstance(schema, DataFrameSchema), (
         "schema object not loaded successfully"

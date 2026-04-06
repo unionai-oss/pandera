@@ -218,11 +218,13 @@ class DataFrameSchema(_DataFrameSchema[pd.DataFrame]):
     # Schema IO Methods #
     #####################
 
-    def to_script(self, fp: str | Path | None = None) -> str | None:
+    def to_script(
+        self, fp: str | Path | None = None, *, minimal: bool = True
+    ) -> str | None:
         """Write :class:`DataFrameSchema` to a Python script via ``pandas_io``."""
         from pandera.io import pandas_io
 
-        return pandas_io.to_script(self, fp)
+        return pandas_io.to_script(self, fp, minimal=minimal)
 
     @classmethod
     def from_yaml(cls, yaml_schema) -> Self:
@@ -235,12 +237,17 @@ class DataFrameSchema(_DataFrameSchema[pd.DataFrame]):
         self,
         stream: os.PathLike | None = None,
         dataframe_library: str | None = None,
+        *,
+        minimal: bool = True,
     ) -> str | None:
         """Write schema to YAML (see :mod:`pandera.io.pandas_io`)."""
         from pandera.io import pandas_io
 
         return pandas_io.to_yaml(
-            self, stream=stream, dataframe_library=dataframe_library
+            self,
+            stream=stream,
+            dataframe_library=dataframe_library,
+            minimal=minimal,
         )
 
     @classmethod
@@ -255,6 +262,8 @@ class DataFrameSchema(_DataFrameSchema[pd.DataFrame]):
         self,
         target: None = None,
         dataframe_library: str | None = None,
+        *,
+        minimal: bool = True,
         **kwargs,
     ) -> str:  # pragma: no cover
         ...
@@ -264,6 +273,8 @@ class DataFrameSchema(_DataFrameSchema[pd.DataFrame]):
         self,
         target: os.PathLike,
         dataframe_library: str | None = None,
+        *,
+        minimal: bool = True,
         **kwargs,
     ) -> None:  # pragma: no cover
         ...
@@ -272,11 +283,17 @@ class DataFrameSchema(_DataFrameSchema[pd.DataFrame]):
         self,
         target: os.PathLike | None = None,
         dataframe_library: str | None = None,
+        *,
+        minimal: bool = True,
         **kwargs,
     ) -> str | None:
         """Write schema to JSON (see :mod:`pandera.io.pandas_io`)."""
         from pandera.io import pandas_io
 
         return pandas_io.to_json(
-            self, target, dataframe_library=dataframe_library, **kwargs
+            self,
+            target,
+            dataframe_library=dataframe_library,
+            minimal=minimal,
+            **kwargs,
         )
