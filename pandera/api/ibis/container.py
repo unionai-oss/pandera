@@ -1,13 +1,20 @@
 """Core Ibis table container specification."""
 
+import os
+import sys
 import warnings
-from typing import Optional
+from typing import overload
 
 import ibis
 
 from pandera.api.dataframe.container import DataFrameSchema as _DataFrameSchema
 from pandera.backends.ibis.register import register_ibis_backends
 from pandera.engines import ibis_engine
+
+if sys.version_info < (3, 11):
+    from typing_extensions import Self
+else:
+    from typing import Self
 
 
 class DataFrameSchema(_DataFrameSchema[ibis.Table]):
@@ -111,3 +118,47 @@ class DataFrameSchema(_DataFrameSchema[ibis.Table]):
     def dtype(self, value) -> None:
         """Set the dtype property."""
         self._dtype = ibis_engine.Engine.dtype(value) if value else None
+
+    #####################
+    # Schema IO Methods #
+    #####################
+
+    @classmethod
+    def from_yaml(cls, yaml_schema) -> Self:
+        """Load schema from YAML (see :mod:`pandera.io.ibis_io`)."""
+        from pandera.io import ibis_io
+
+        return ibis_io.from_yaml(yaml_schema)
+
+    def to_yaml(self, stream: os.PathLike | None = None) -> str | None:
+        """Write schema to YAML (see :mod:`pandera.io.ibis_io`)."""
+        from pandera.io import ibis_io
+
+        return ibis_io.to_yaml(self, stream=stream)
+
+    @classmethod
+    def from_json(cls, source) -> Self:
+        """Load schema from JSON (see :mod:`pandera.io.ibis_io`)."""
+        from pandera.io import ibis_io
+
+        return ibis_io.from_json(source)
+
+    @overload
+    def to_json(
+        self, target: None = None, **kwargs
+    ) -> str:  # pragma: no cover
+        ...
+
+    @overload
+    def to_json(
+        self, target: os.PathLike, **kwargs
+    ) -> None:  # pragma: no cover
+        ...
+
+    def to_json(
+        self, target: os.PathLike | None = None, **kwargs
+    ) -> str | None:
+        """Write schema to JSON (see :mod:`pandera.io.ibis_io`)."""
+        from pandera.io import ibis_io
+
+        return ibis_io.to_json(self, target, **kwargs)

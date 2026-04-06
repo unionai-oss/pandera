@@ -43,7 +43,7 @@ pandera/                  # Main package
 ├── strategies/           # Hypothesis strategies: import ``pandera.strategies.pandas_strategies`` etc. (``strategies`` package does not import backends)
 ├── schema_inference/     # Infer schemas from data
 ├── schema_statistics/    # Statistical validation helpers
-├── io/                   # Serialization: import e.g. ``pandera.io.pandas_io`` (package ``pandera.io`` has no imports)
+├── io/                   # Serialization: ``pandera.io.pandas_io``, ``polars_io``, ``pyspark_sql_io``, ``ibis_io``, ``xarray_io`` (``pandera.io`` package has no imports)
 ├── accessors/            # Pandas/PySpark accessor extensions (.pandera)
 ├── config.py             # PanderaConfig, ValidationDepth, ValidationScope
 ├── decorators.py         # @check_input, @check_output, @check_io, @check_types

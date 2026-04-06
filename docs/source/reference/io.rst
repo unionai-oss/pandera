@@ -24,3 +24,7 @@ imported from ``pandera.io`` itself. Install extras as needed; see
    pandera.io.pyspark_sql_io.to_yaml
    pandera.io.pyspark_sql_io.from_json
    pandera.io.pyspark_sql_io.to_json
+   pandera.io.ibis_io.from_yaml
+   pandera.io.ibis_io.to_yaml
+   pandera.io.ibis_io.from_json
+   pandera.io.ibis_io.to_json
