@@ -20,6 +20,11 @@ from pandera.api.pandas.container import DataFrameSchema
 from pandera.engines import pandas_engine
 from pandera.io._check_io import checks_dict_to_list
 from pandera.io._constants import DATETIME_FORMAT, MISSING_PYYAML_MESSAGE
+from pandera.io._minimal import (
+    COLUMN_DEFAULTS,
+    DF_SCHEMA_DEFAULTS,
+    apply_minimal_dataframe_container,
+)
 from pandera.schema_statistics import get_dataframe_schema_statistics
 
 if TYPE_CHECKING:
@@ -160,13 +165,20 @@ _DATAFRAME_LIBRARY_CHOICES = frozenset(
 )
 
 
-def serialize_schema(dataframe_schema, dataframe_library: str | None = None):
+def serialize_schema(
+    dataframe_schema,
+    dataframe_library: str | None = None,
+    *,
+    minimal: bool = True,
+):
     """Serialize dataframe schema into json/yaml-compatible format.
 
     :param dataframe_schema: pandas API :class:`~pandera.api.pandas.container.DataFrameSchema`.
     :param dataframe_library: Target dataframe implementation for metadata
         (``pandas``, ``modin``, ``dask``, or ``pyspark.pandas``). Defaults to
         ``pandas``.
+    :param minimal: If True (default), omit keys equal to schema constructor
+        defaults so output only contains user-meaningful options.
     """
     from pandera import __version__
 
@@ -215,6 +227,8 @@ def serialize_schema(dataframe_schema, dataframe_library: str | None = None):
     }
     if lib != "pandas":
         out["dataframe_library"] = lib
+    if minimal:
+        apply_minimal_dataframe_container(out, dataframe_schema)
     return out
 
 
@@ -406,13 +420,20 @@ def from_yaml(yaml_schema):
     return deserialize_schema(serialized_schema)
 
 
-def to_yaml(dataframe_schema, stream=None, dataframe_library=None):
+def to_yaml(
+    dataframe_schema,
+    stream=None,
+    dataframe_library=None,
+    *,
+    minimal: bool = True,
+):
     """Write :class:`~pandera.api.pandas.container.DataFrameSchema` to yaml file.
 
     :param dataframe_schema: schema to write to file or dump to string.
     :param stream: file stream to write to. If None, dumps to string.
     :param dataframe_library: optional ``dataframe_library`` tag; see
         :func:`serialize_schema`.
+    :param minimal: passed to :func:`serialize_schema`.
     :returns: yaml string if stream is None, otherwise returns None.
     """
     try:
@@ -421,7 +442,9 @@ def to_yaml(dataframe_schema, stream=None, dataframe_library=None):
         raise ImportError(MISSING_PYYAML_MESSAGE) from exc
 
     statistics = serialize_schema(
-        dataframe_schema, dataframe_library=dataframe_library
+        dataframe_schema,
+        dataframe_library=dataframe_library,
+        minimal=minimal,
     )
 
     def _write_yaml(obj, stream):
@@ -463,7 +486,14 @@ def from_json(source):
     return deserialize_schema(serialized_schema)
 
 
-def to_json(dataframe_schema, target=None, dataframe_library=None, **kwargs):
+def to_json(
+    dataframe_schema,
+    target=None,
+    dataframe_library=None,
+    *,
+    minimal: bool = True,
+    **kwargs,
+):
     """
     Write :class:`~pandera.api.pandas.container.DataFrameSchema` to json file.
 
@@ -472,11 +502,14 @@ def to_json(dataframe_schema, target=None, dataframe_library=None, **kwargs):
         dump to string.
     :param dataframe_library: optional ``dataframe_library`` tag; see
         :func:`serialize_schema`.
+    :param minimal: passed to :func:`serialize_schema`.
     :param kwargs: keyword arguments to pass into :func:`json.dump`
     :returns: json string if stream is None, otherwise returns None.
     """
     serialized_schema = serialize_schema(
-        dataframe_schema, dataframe_library=dataframe_library
+        dataframe_schema,
+        dataframe_library=dataframe_library,
+        minimal=minimal,
     )
 
     if target is None:
@@ -623,6 +656,73 @@ def _format_index(index_statistics):
     return MULTIINDEX_TEMPLATE.format(indexes=",".join(index)).strip()
 
 
+def _format_column_minimal(column):
+    """Build ``Column(...)`` source with only non-default kwargs."""
+    from pandera.schema_statistics.pandas import parse_checks
+
+    parts = []
+    if column.dtype is not None:
+        parts.append(f"dtype={_get_dtype_string_alias(column.dtype)}")
+    pc = parse_checks(column.checks)
+    if pc:
+        parts.append(f"checks={_format_checks(pc)}")
+    for attr in COLUMN_DEFAULTS:
+        if attr == "name":
+            continue
+        if not hasattr(column, attr):
+            continue
+        val = getattr(column, attr)
+        if val == COLUMN_DEFAULTS[attr]:
+            continue
+        parts.append(f"{attr}={val!r}")
+    if column.metadata:
+        parts.append(f"metadata={column.metadata!r}")
+    if not parts:
+        return "Column()"
+    inner = ",\n    ".join(parts)
+    return f"Column(\n    {inner}\n)"
+
+
+def _to_script_minimal(dataframe_schema):
+    """Build ``DataFrameSchema(...)`` source with only non-default kwargs."""
+    from pandera.schema_statistics.pandas import parse_checks
+
+    columns = {
+        name: _format_column_minimal(column)
+        for name, column in dataframe_schema.columns.items()
+    }
+    column_str = ", ".join(f"{k!r}: {v}" for k, v in columns.items())
+    parts = [f"columns={{{column_str}}}"]
+    pc = parse_checks(dataframe_schema.checks)
+    if pc:
+        parts.append(f"checks={_format_checks(pc)}")
+    stats = get_dataframe_schema_statistics(dataframe_schema)
+    if stats["index"] is not None:
+        parts.append(f"index={_format_index(stats['index'])}")
+    for key in DF_SCHEMA_DEFAULTS:
+        val = getattr(dataframe_schema, key)
+        if val == DF_SCHEMA_DEFAULTS[key]:
+            continue
+        if key == "dtype" and val is not None:
+            parts.append(f"dtype={_get_dtype_string_alias(val)}")
+        else:
+            parts.append(f"{key}={val!r}")
+    if getattr(dataframe_schema, "metadata", None):
+        parts.append(f"metadata={dataframe_schema.metadata!r}")
+    if getattr(dataframe_schema, "drop_invalid_rows", False):
+        parts.append(
+            f"drop_invalid_rows={dataframe_schema.drop_invalid_rows!r}"
+        )
+    inner = ",\n    ".join(parts)
+    body = f"schema = DataFrameSchema(\n    {inner}\n)"
+    return (
+        "from pandera import (\n"
+        "    DataFrameSchema, Column, Check, Index, MultiIndex\n"
+        ")\n\n"
+        f"{body}"
+    )
+
+
 def _format_script(script):
     try:
         import black
@@ -633,14 +733,29 @@ def _format_script(script):
     return formatter(script)
 
 
-def to_script(dataframe_schema, path_or_buf=None):
+def to_script(dataframe_schema, path_or_buf=None, *, minimal: bool = True):
     """Write :class:`~pandera.api.pandas.container.DataFrameSchema` to a python script.
 
     :param dataframe_schema: schema to write to file or dump to string.
     :param path_or_buf: filepath or buf stream to write to. If None, outputs
         string representation of the script.
+    :param minimal: If True (default), omit constructor-default kwargs in the
+        generated ``Column`` and ``DataFrameSchema`` calls.
     :returns: yaml string if stream is None, otherwise returns None.
     """
+    if minimal:
+        script = _to_script_minimal(dataframe_schema).strip()
+        if "Timedelta" in script:
+            script = "from pandas import Timedelta\n" + script
+        if "Timestamp" in script:
+            script = "from pandas import Timestamp\n" + script
+        formatted_script = _format_script(script)
+        if path_or_buf is None:
+            return formatted_script
+        with Path(path_or_buf).open("w", encoding="utf-8") as f:
+            f.write(formatted_script)
+        return None
+
     statistics = get_dataframe_schema_statistics(dataframe_schema)
 
     columns = {}

@@ -33,7 +33,7 @@ class TestSerializeDataArraySchema:
             dims=("x", "y"),
             name="temperature",
         )
-        serialized = serialize_data_array_schema(schema)
+        serialized = serialize_data_array_schema(schema, minimal=False)
         assert serialized["schema_type"] == "data_array"
         assert serialized["dims"] == ["x", "y"]
         assert serialized["name"] == "temperature"

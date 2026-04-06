@@ -12,6 +12,7 @@ import numpy as np
 
 from pandera.api.checks import Check
 from pandera.io._constants import DATETIME_FORMAT, MISSING_PYYAML_MESSAGE
+from pandera.io._minimal import apply_minimal_data_array, apply_minimal_dataset
 
 # ---------------------------------------------------------------------------
 # Serialization helpers
@@ -186,10 +187,13 @@ def _serialize_coord_stats(coord_stats):
 # ---------------------------------------------------------------------------
 
 
-def serialize_data_array_schema(data_array_schema) -> dict[str, Any]:
+def serialize_data_array_schema(
+    data_array_schema, *, minimal: bool = True
+) -> dict[str, Any]:
     """Serialize a DataArraySchema into a json/yaml-compatible dict.
 
     :param data_array_schema: the schema to serialize.
+    :param minimal: If True (default), omit keys equal to constructor defaults.
     :returns: dict representation of the schema.
     """
     from pandera import __version__
@@ -199,7 +203,7 @@ def serialize_data_array_schema(data_array_schema) -> dict[str, Any]:
 
     stats = get_data_array_schema_statistics(data_array_schema)
 
-    return {
+    out = {
         "schema_type": "data_array",
         "version": __version__,
         "dtype": stats["dtype"],
@@ -215,12 +219,18 @@ def serialize_data_array_schema(data_array_schema) -> dict[str, Any]:
         "title": stats.get("title"),
         "description": stats.get("description"),
     }
+    if minimal:
+        apply_minimal_data_array(out, data_array_schema)
+    return out
 
 
-def serialize_dataset_schema(dataset_schema) -> dict[str, Any]:
+def serialize_dataset_schema(
+    dataset_schema, *, minimal: bool = True
+) -> dict[str, Any]:
     """Serialize a DatasetSchema into a json/yaml-compatible dict.
 
     :param dataset_schema: the schema to serialize.
+    :param minimal: If True (default), omit keys equal to constructor defaults.
     :returns: dict representation of the schema.
     """
     from pandera import __version__
@@ -236,7 +246,7 @@ def serialize_dataset_schema(dataset_schema) -> dict[str, Any]:
         for key, var_stats in stats["data_vars"].items():
             data_vars[key] = _serialize_component_stats(var_stats)
 
-    return {
+    out = {
         "schema_type": "dataset",
         "version": __version__,
         "data_vars": data_vars,
@@ -251,20 +261,24 @@ def serialize_dataset_schema(dataset_schema) -> dict[str, Any]:
         "title": stats.get("title"),
         "description": stats.get("description"),
     }
+    if minimal:
+        apply_minimal_dataset(out, dataset_schema)
+    return out
 
 
-def serialize_schema(schema) -> dict[str, Any]:
+def serialize_schema(schema, *, minimal: bool = True) -> dict[str, Any]:
     """Serialize a DataArraySchema or DatasetSchema.
 
     :param schema: the schema to serialize.
+    :param minimal: passed to ``serialize_*_schema`` functions.
     :returns: dict representation of the schema.
     """
     from pandera.api.xarray.container import DataArraySchema, DatasetSchema
 
     if isinstance(schema, DataArraySchema):
-        return serialize_data_array_schema(schema)
+        return serialize_data_array_schema(schema, minimal=minimal)
     elif isinstance(schema, DatasetSchema):
-        return serialize_dataset_schema(schema)
+        return serialize_dataset_schema(schema, minimal=minimal)
     else:
         raise TypeError(
             f"Expected DataArraySchema or DatasetSchema, got {type(schema)}"
@@ -504,11 +518,12 @@ def deserialize_schema(serialized_schema):
 # ---------------------------------------------------------------------------
 
 
-def to_yaml(schema, stream=None):
+def to_yaml(schema, stream=None, *, minimal: bool = True):
     """Write a DataArraySchema or DatasetSchema to yaml.
 
     :param schema: schema to write.
     :param stream: file stream to write to. If None, dumps to string.
+    :param minimal: passed to :func:`serialize_schema`.
     :returns: yaml string if stream is None, otherwise None.
     """
     try:
@@ -516,7 +531,7 @@ def to_yaml(schema, stream=None):
     except ImportError as exc:
         raise ImportError(MISSING_PYYAML_MESSAGE) from exc
 
-    serialized = serialize_schema(schema)
+    serialized = serialize_schema(schema, minimal=minimal)
 
     def _write_yaml(obj, stream):
         return yaml.safe_dump(obj, stream=stream, sort_keys=False)
@@ -548,15 +563,16 @@ def from_yaml(yaml_schema):
     return deserialize_schema(serialized_schema)
 
 
-def to_json(schema, target=None, **kwargs):
+def to_json(schema, target=None, *, minimal: bool = True, **kwargs):
     """Write a DataArraySchema or DatasetSchema to json.
 
     :param schema: schema to write.
     :param target: file path or stream. If None, returns json string.
+    :param minimal: passed to :func:`serialize_schema`.
     :param kwargs: passed to :func:`json.dump`.
     :returns: json string if target is None, otherwise None.
     """
-    serialized = serialize_schema(schema)
+    serialized = serialize_schema(schema, minimal=minimal)
 
     if target is None:
         return json.dumps(serialized, sort_keys=False, **kwargs)
