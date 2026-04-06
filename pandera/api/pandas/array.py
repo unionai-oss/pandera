@@ -68,7 +68,7 @@ class ArraySchema(ComponentSchema[TDataObject]):
         :param size: number of elements to generate
         :returns: a strategy that generates pandas Series objects.
         """
-        from pandera import strategies as st
+        import pandera.strategies.pandas_strategies as st
 
         self.register_default_backends(pd.DataFrame)
 

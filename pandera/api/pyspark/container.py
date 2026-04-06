@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+import os
+import sys
+from typing import TYPE_CHECKING, overload
 
 from pyspark.sql import SparkSession
 from pyspark.sql.types import StructField, StructType
@@ -22,6 +24,11 @@ from .types import (
 
 if TYPE_CHECKING:
     import pandera.api.pyspark.components
+
+if sys.version_info < (3, 11):
+    from typing_extensions import Self
+else:
+    from typing import Self
 
 N_INDENT_SPACES = 4
 
@@ -177,3 +184,47 @@ class DataFrameSchema(_DataFrameSchema[PySparkDataFrameTypes]):
         empty_df_with_schema = spark.createDataFrame([], self.to_structtype())
 
         return empty_df_with_schema._jdf.schema().toDDL()
+
+    #####################
+    # Schema IO Methods #
+    #####################
+
+    @classmethod
+    def from_yaml(cls, yaml_schema) -> Self:
+        """Load schema from YAML (see :mod:`pandera.io.pyspark_sql_io`)."""
+        from pandera.io import pyspark_sql_io
+
+        return pyspark_sql_io.from_yaml(yaml_schema)
+
+    def to_yaml(self, stream: os.PathLike | None = None) -> str | None:
+        """Write schema to YAML (see :mod:`pandera.io.pyspark_sql_io`)."""
+        from pandera.io import pyspark_sql_io
+
+        return pyspark_sql_io.to_yaml(self, stream=stream)
+
+    @classmethod
+    def from_json(cls, source) -> Self:
+        """Load schema from JSON (see :mod:`pandera.io.pyspark_sql_io`)."""
+        from pandera.io import pyspark_sql_io
+
+        return pyspark_sql_io.from_json(source)
+
+    @overload
+    def to_json(
+        self, target: None = None, **kwargs
+    ) -> str:  # pragma: no cover
+        ...
+
+    @overload
+    def to_json(
+        self, target: os.PathLike, **kwargs
+    ) -> None:  # pragma: no cover
+        ...
+
+    def to_json(
+        self, target: os.PathLike | None = None, **kwargs
+    ) -> str | None:
+        """Write schema to JSON (see :mod:`pandera.io.pyspark_sql_io`)."""
+        from pandera.io import pyspark_sql_io
+
+        return pyspark_sql_io.to_json(self, target, **kwargs)

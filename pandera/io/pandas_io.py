@@ -18,18 +18,12 @@ from pandera.api.checks import Check
 from pandera.api.pandas.components import Column
 from pandera.api.pandas.container import DataFrameSchema
 from pandera.engines import pandas_engine
+from pandera.io._check_io import checks_dict_to_list
+from pandera.io._constants import DATETIME_FORMAT, MISSING_PYYAML_MESSAGE
 from pandera.schema_statistics import get_dataframe_schema_statistics
 
 if TYPE_CHECKING:
     from frictionless import Schema as FrictionlessSchema
-
-
-DATETIME_FORMAT = "%Y-%m-%d %H:%M:%S"
-_MISSING_PYYAML_IMPORT_ERROR_MESSAGE = (
-    "IO and formatting requires 'pyyaml to be installed.\n"
-    "You can install pandera together with the IO dependencies with:\n"
-    "pip install pandera[io]\n"
-)
 _FORMAT_SCRIPT_WARNING_MESSAGE = (
     "Schema script formatting requires 'black' to be installed. "
     "Please install 'black' to use this feature."
@@ -161,9 +155,27 @@ def _serialize_component_stats(component_stats):
     }
 
 
-def serialize_schema(dataframe_schema):
-    """Serialize dataframe schema into into json/yaml-compatible format."""
+_DATAFRAME_LIBRARY_CHOICES = frozenset(
+    ("pandas", "modin", "dask", "pyspark.pandas")
+)
+
+
+def serialize_schema(dataframe_schema, dataframe_library: str | None = None):
+    """Serialize dataframe schema into json/yaml-compatible format.
+
+    :param dataframe_schema: pandas API :class:`~pandera.api.pandas.container.DataFrameSchema`.
+    :param dataframe_library: Target dataframe implementation for metadata
+        (``pandas``, ``modin``, ``dask``, or ``pyspark.pandas``). Defaults to
+        ``pandas``.
+    """
     from pandera import __version__
+
+    lib = dataframe_library or "pandas"
+    if lib not in _DATAFRAME_LIBRARY_CHOICES:
+        raise ValueError(
+            "dataframe_library must be one of "
+            f"{sorted(_DATAFRAME_LIBRARY_CHOICES)}, got {lib!r}"
+        )
 
     statistics = get_dataframe_schema_statistics(dataframe_schema)
 
@@ -183,7 +195,7 @@ def serialize_schema(dataframe_schema):
     if statistics["checks"] is not None:
         checks = _serialize_dataframe_stats(statistics["checks"])
 
-    return {
+    out = {
         "schema_type": "dataframe",
         "version": __version__,
         "columns": columns,
@@ -201,6 +213,9 @@ def serialize_schema(dataframe_schema):
         "title": dataframe_schema.title,
         "description": dataframe_schema.description,
     }
+    if lib != "pandas":
+        out["dataframe_library"] = lib
+    return out
 
 
 def _deserialize_check_stats(check, serialized_check_stats, dtype=None):
@@ -257,18 +272,7 @@ def _deserialize_component_stats(serialized_component_stats):
     description = serialized_component_stats.get("description")
     title = serialized_component_stats.get("title")
 
-    checks = serialized_component_stats.get("checks")
-    # For compatibility with previous versions convert checks in dictionary to list
-    if isinstance(checks, dict):
-        checks_list = []
-        for check_name, check in checks.items():
-            if not isinstance(check, dict):
-                check = {"value": check}
-            if "options" not in check:
-                check["options"] = {}
-            check["options"]["check_name"] = check_name
-            checks_list.append(check)
-        checks = checks_list
+    checks = checks_dict_to_list(serialized_component_stats.get("checks"))
     if checks is not None:
         checks = [
             _deserialize_check_stats(
@@ -317,7 +321,7 @@ def deserialize_schema(serialized_schema):
 
     columns = serialized_schema.get("columns")
     index = serialized_schema.get("index")
-    checks = serialized_schema.get("checks")
+    checks = checks_dict_to_list(serialized_schema.get("checks"))
 
     if columns is not None:
         columns = {
@@ -330,18 +334,6 @@ def deserialize_schema(serialized_schema):
             _deserialize_component_stats(index_component)
             for index_component in index
         ]
-
-    # For compatibility with previous versions convert checks in dictionary to list
-    if isinstance(checks, dict):
-        checks_list = []
-        for check_name, check in checks.items():
-            if not isinstance(check, dict):
-                check = {"value": check}
-            if "options" not in check:
-                check["options"] = {}
-            check["options"]["check_name"] = check_name
-            checks_list.append(check)
-        checks = checks_list
 
     if checks is not None:
         # handles unregistered checks by raising AttributeErrors from getattr
@@ -360,6 +352,18 @@ def deserialize_schema(serialized_schema):
         index = MultiIndex(
             indexes=[Index(**index_properties) for index_properties in index]
         )
+
+    metadata = None
+    if serialized_schema.get("metadata"):
+        metadata = dict(serialized_schema["metadata"])
+    if "dataframe_library" in serialized_schema:
+        lib = serialized_schema.get("dataframe_library", "pandas")
+        if lib not in _DATAFRAME_LIBRARY_CHOICES:
+            lib = "pandas"
+        if metadata is None:
+            metadata = {}
+        metadata["dataframe_library"] = lib
+
     return DataFrameSchema(
         columns=columns,
         checks=checks,
@@ -379,6 +383,7 @@ def deserialize_schema(serialized_schema):
         ),
         title=serialized_schema.get("title", None),
         description=serialized_schema.get("description", None),
+        metadata=metadata,
     )
 
 
@@ -391,7 +396,7 @@ def from_yaml(yaml_schema):
     try:
         import yaml
     except ImportError as exc:  # pragma: no cover
-        raise ImportError(_MISSING_PYYAML_IMPORT_ERROR_MESSAGE) from exc
+        raise ImportError(MISSING_PYYAML_MESSAGE) from exc
 
     try:
         with Path(yaml_schema).open("r", encoding="utf-8") as f:
@@ -401,19 +406,23 @@ def from_yaml(yaml_schema):
     return deserialize_schema(serialized_schema)
 
 
-def to_yaml(dataframe_schema, stream=None):
+def to_yaml(dataframe_schema, stream=None, dataframe_library=None):
     """Write :class:`~pandera.api.pandas.container.DataFrameSchema` to yaml file.
 
     :param dataframe_schema: schema to write to file or dump to string.
     :param stream: file stream to write to. If None, dumps to string.
+    :param dataframe_library: optional ``dataframe_library`` tag; see
+        :func:`serialize_schema`.
     :returns: yaml string if stream is None, otherwise returns None.
     """
     try:
         import yaml
     except ImportError as exc:  # pragma: no cover
-        raise ImportError(_MISSING_PYYAML_IMPORT_ERROR_MESSAGE) from exc
+        raise ImportError(MISSING_PYYAML_MESSAGE) from exc
 
-    statistics = serialize_schema(dataframe_schema)
+    statistics = serialize_schema(
+        dataframe_schema, dataframe_library=dataframe_library
+    )
 
     def _write_yaml(obj, stream):
         return yaml.safe_dump(obj, stream=stream, sort_keys=False)
@@ -454,17 +463,21 @@ def from_json(source):
     return deserialize_schema(serialized_schema)
 
 
-def to_json(dataframe_schema, target=None, **kwargs):
+def to_json(dataframe_schema, target=None, dataframe_library=None, **kwargs):
     """
     Write :class:`~pandera.api.pandas.container.DataFrameSchema` to json file.
 
     :param dataframe_schema: schema to write to file or dump to string.
     :param target: file path or stream to write to. If None, returns a
         dump to string.
+    :param dataframe_library: optional ``dataframe_library`` tag; see
+        :func:`serialize_schema`.
     :param kwargs: keyword arguments to pass into :func:`json.dump`
     :returns: json string if stream is None, otherwise returns None.
     """
-    serialized_schema = serialize_schema(dataframe_schema)
+    serialized_schema = serialize_schema(
+        dataframe_schema, dataframe_library=dataframe_library
+    )
 
     if target is None:
         return json.dumps(serialized_schema, sort_keys=False, **kwargs)
@@ -913,7 +926,7 @@ def from_frictionless_schema(
     .. doctest::
         :skipif: SKIP_FRICTIONLESS_TESTS
 
-        >>> from pandera.io import from_frictionless_schema
+        >>> from pandera.io.pandas_io import from_frictionless_schema
         >>>
         >>> FRICTIONLESS_SCHEMA = {
         ...     "fields": [
