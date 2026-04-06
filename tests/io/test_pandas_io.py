@@ -16,13 +16,9 @@ import pandera.typing as pat
 from pandera.api.pandas.container import DataFrameSchema
 from pandera.engines import pandas_engine
 from pandera.engines.utils import pandas_version
+from pandera.io import pandas_io as io
 
-try:
-    from pandera import io
-except ImportError:
-    HAS_IO = False
-else:
-    HAS_IO = True
+HAS_IO = True
 
 
 try:
@@ -1524,7 +1520,7 @@ def test_to_script_lambda_check():
     )
 
     with pytest.warns(UserWarning):
-        pandera.io.to_script(schema1)
+        io.to_script(schema1)
 
     schema2 = pandera.DataFrameSchema(
         {
@@ -1536,7 +1532,7 @@ def test_to_script_lambda_check():
     )
 
     with pytest.warns(UserWarning, match=".*registered checks.*"):
-        pandera.io.to_script(schema2)
+        io.to_script(schema2)
 
 
 def test_to_yaml_lambda_check():
@@ -1553,7 +1549,7 @@ def test_to_yaml_lambda_check():
     )
 
     with pytest.warns(UserWarning):
-        pandera.io.to_yaml(schema)
+        io.to_yaml(schema)
 
 
 def test_format_checks_warning():
@@ -1595,8 +1591,8 @@ def test_to_yaml_registered_dataframe_check(_):
         checks=[pandera.Check.ncols_gt(column_count=5)],
     )
 
-    serialized = pandera.io.to_yaml(schema)
-    loaded = pandera.io.from_yaml(serialized)
+    serialized = io.to_yaml(schema)
+    loaded = io.from_yaml(serialized)
 
     assert len(loaded.checks) == 1, "global check was stripped"
 
@@ -1619,7 +1615,7 @@ def test_to_yaml_custom_dataframe_check():
     )
 
     with pytest.warns(UserWarning, match=".*registered checks.*"):
-        pandera.io.to_yaml(schema)
+        io.to_yaml(schema)
 
     # the unregistered column check case is tested in
     # `test_to_yaml_lambda_check`
@@ -1998,7 +1994,7 @@ INVALID_FRICTIONLESS_DF = pd.DataFrame(
 )
 def test_frictionless_schema_parses_correctly(frictionless_schema):
     """Test parsing frictionless schema from yaml and json."""
-    schema = pandera.io.from_frictionless_schema(frictionless_schema)
+    schema = io.from_frictionless_schema(frictionless_schema)
 
     assert str(schema.to_yaml()).strip() == YAML_FROM_FRICTIONLESS.strip()
 
@@ -2083,7 +2079,7 @@ def test_frictionless_schema_primary_key(frictionless_schema):
     If the primary key is only one field, the unique field should be in the
     column level and not the dataframe level.
     """
-    schema = pandera.io.from_frictionless_schema(frictionless_schema)
+    schema = io.from_frictionless_schema(frictionless_schema)
     if len(frictionless_schema["primaryKey"]) == 1:
         assert schema.columns[frictionless_schema["primaryKey"][0]].unique
         assert schema.unique is None
@@ -2129,7 +2125,7 @@ def test_frictionless_schema_primary_key(frictionless_schema):
 def test_frictionless_schema_with_description_and_title(
     frictionless_schema: dict[str, str],
 ):
-    schema = pandera.io.from_frictionless_schema(frictionless_schema)
+    schema = io.from_frictionless_schema(frictionless_schema)
     assert schema.columns["street_id"].description == "Id of the street"
     assert schema.columns["street_id"].title == "street identifier"
 
@@ -2255,3 +2251,23 @@ def test_enum_isin_dataframe_model_json_serialization():
         # The enum should be serialized as a list of values
         assert "value" in isin_check
         assert set(isin_check["value"]) == {"red", "green", "blue"}
+
+
+def test_dataframe_library_metadata_roundtrip():
+    """Non-default dataframe_library is stored on disk and restored on load."""
+    import json
+
+    import pandera as pd
+
+    schema = pd.DataFrameSchema({"x": pd.Column(int)})
+    from pandera.io import pandas_io
+
+    payload = pandas_io.serialize_schema(schema, dataframe_library="dask")
+    assert payload["dataframe_library"] == "dask"
+
+    restored = pandas_io.deserialize_schema(payload)
+    assert restored.metadata is not None
+    assert restored.metadata.get("dataframe_library") == "dask"
+
+    as_json = json.loads(pandas_io.to_json(schema, dataframe_library="modin"))
+    assert as_json["dataframe_library"] == "modin"

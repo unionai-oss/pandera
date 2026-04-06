@@ -40,10 +40,10 @@ pandera/                  # Main package
 │   ├── pyarrow_engine.py # PyArrow dtype definitions
 │   └── geopandas_engine.py
 ├── typing/               # Type stubs for mypy integration
-├── strategies/           # Hypothesis strategy generation for property-based testing
+├── strategies/           # Hypothesis strategies: import ``pandera.strategies.pandas_strategies`` etc. (``strategies`` package does not import backends)
 ├── schema_inference/     # Infer schemas from data
 ├── schema_statistics/    # Statistical validation helpers
-├── io/                   # Serialization (YAML, frictionless)
+├── io/                   # Serialization: import e.g. ``pandera.io.pandas_io`` (package ``pandera.io`` has no imports)
 ├── accessors/            # Pandas/PySpark accessor extensions (.pandera)
 ├── config.py             # PanderaConfig, ValidationDepth, ValidationScope
 ├── decorators.py         # @check_input, @check_output, @check_io, @check_types

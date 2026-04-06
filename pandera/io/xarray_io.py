@@ -11,14 +11,7 @@ from typing import Any
 import numpy as np
 
 from pandera.api.checks import Check
-
-DATETIME_FORMAT = "%Y-%m-%d %H:%M:%S"
-_MISSING_PYYAML_IMPORT_ERROR_MESSAGE = (
-    "IO and formatting requires 'pyyaml' to be installed.\n"
-    "You can install pandera together with the IO dependencies with:\n"
-    "pip install pandera[io]\n"
-)
-
+from pandera.io._constants import DATETIME_FORMAT, MISSING_PYYAML_MESSAGE
 
 # ---------------------------------------------------------------------------
 # Serialization helpers
@@ -521,7 +514,7 @@ def to_yaml(schema, stream=None):
     try:
         import yaml
     except ImportError as exc:
-        raise ImportError(_MISSING_PYYAML_IMPORT_ERROR_MESSAGE) from exc
+        raise ImportError(MISSING_PYYAML_MESSAGE) from exc
 
     serialized = serialize_schema(schema)
 
@@ -544,7 +537,7 @@ def from_yaml(yaml_schema):
     try:
         import yaml
     except ImportError as exc:
-        raise ImportError(_MISSING_PYYAML_IMPORT_ERROR_MESSAGE) from exc
+        raise ImportError(MISSING_PYYAML_MESSAGE) from exc
 
     try:
         with Path(yaml_schema).open("r", encoding="utf-8") as f:

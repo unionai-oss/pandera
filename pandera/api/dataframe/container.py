@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import copy
-import os
 import sys
 import warnings
 from pathlib import Path
@@ -14,7 +13,6 @@ from typing import (
     TypeVar,
     Union,
     cast,
-    overload,
 )
 
 from pandera import errors
@@ -1285,83 +1283,6 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
         new_schema.index = new_index
 
         return new_schema
-
-    #####################
-    # Schema IO Methods #
-    #####################
-
-    def to_script(self, fp: Union[str, Path] | None = None) -> Self:
-        """Write DataFrameSchema to python script.
-
-        :param path: str, Path to write script
-        :returns: dataframe schema.
-        """
-
-        import pandera.io
-
-        return pandera.io.to_script(self, fp)
-
-    @classmethod
-    def from_yaml(cls, yaml_schema) -> Self:
-        """Create DataFrameSchema from yaml file.
-
-        :param yaml_schema: str, Path to yaml schema, or serialized yaml
-            string.
-        :returns: dataframe schema.
-        """
-
-        import pandera.io
-
-        return pandera.io.from_yaml(yaml_schema)
-
-    def to_yaml(self, stream: os.PathLike | None = None) -> str | None:
-        """Write DataFrameSchema to yaml file.
-
-        :param stream: file stream to write to. If None, dumps to string.
-        :returns: yaml string if stream is None, otherwise returns None.
-        """
-
-        import pandera.io
-
-        return pandera.io.to_yaml(self, stream=stream)
-
-    @classmethod
-    def from_json(cls, source) -> Self:
-        """Create DataFrameSchema from json file.
-
-        :param source: str, Path to json schema, or serialized yaml
-            string.
-        :returns: dataframe schema.
-        """
-
-        import pandera.io
-
-        return pandera.io.from_json(source)
-
-    @overload
-    def to_json(
-        self, target: None = None, **kwargs
-    ) -> str:  # pragma: no cover
-        ...
-
-    @overload
-    def to_json(
-        self, target: os.PathLike, **kwargs
-    ) -> None:  # pragma: no cover
-        ...
-
-    def to_json(
-        self, target: os.PathLike | None = None, **kwargs
-    ) -> str | None:
-        """Write DataFrameSchema to json file.
-
-        :param target: file target to write to. If None, dumps to string.
-        :returns: json string if target is None, otherwise returns None.
-        """
-
-        import pandera.io
-
-        return pandera.io.to_json(self, target, **kwargs)
 
 
 def _validate_columns(
