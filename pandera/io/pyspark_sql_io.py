@@ -16,6 +16,10 @@ from pandera.engines import pyspark_engine
 from pandera.errors import SchemaDefinitionError
 from pandera.io._check_io import checks_dict_to_list
 from pandera.io._constants import DATETIME_FORMAT, MISSING_PYYAML_MESSAGE
+from pandera.io._flat_checks import (
+    apply_flat_checks_to_dataframe_serialized,
+    unflatten_component_checks_dict,
+)
 from pandera.io._minimal import apply_minimal_dataframe_container
 from pandera.schema_statistics.pyspark import get_dataframe_schema_statistics
 
@@ -140,6 +144,7 @@ def serialize_schema(
     }
     if minimal:
         apply_minimal_dataframe_container(out, dataframe_schema)
+    apply_flat_checks_to_dataframe_serialized(out)
     return out
 
 
@@ -186,6 +191,9 @@ def _deserialize_check_stats(check, serialized_check_stats, dtype=None):
 
 
 def _deserialize_component_stats(serialized_component_stats):
+    serialized_component_stats = dict(serialized_component_stats)
+    unflatten_component_checks_dict(serialized_component_stats)
+
     dtype = serialized_component_stats.get("dtype")
     if dtype:
         dtype = pyspark_engine.Engine.dtype(dtype)

@@ -12,6 +12,10 @@ import numpy as np
 
 from pandera.api.checks import Check
 from pandera.io._constants import DATETIME_FORMAT, MISSING_PYYAML_MESSAGE
+from pandera.io._flat_checks import (
+    apply_flat_checks_to_xarray_serialized,
+    unflatten_component_checks_dict,
+)
 from pandera.io._minimal import apply_minimal_data_array, apply_minimal_dataset
 
 # ---------------------------------------------------------------------------
@@ -221,6 +225,7 @@ def serialize_data_array_schema(
     }
     if minimal:
         apply_minimal_data_array(out, data_array_schema)
+    apply_flat_checks_to_xarray_serialized(out)
     return out
 
 
@@ -263,6 +268,7 @@ def serialize_dataset_schema(
     }
     if minimal:
         apply_minimal_dataset(out, dataset_schema)
+    apply_flat_checks_to_xarray_serialized(out)
     return out
 
 
@@ -367,6 +373,9 @@ def _deserialize_component_stats(serialized_component_stats):
 
     Parallels :func:`pandera.io.pandas_io._deserialize_component_stats`.
     """
+    serialized_component_stats = dict(serialized_component_stats)
+    unflatten_component_checks_dict(serialized_component_stats)
+
     dtype = serialized_component_stats.get("dtype")
     checks = _deserialize_checks(
         serialized_component_stats.get("checks"), dtype

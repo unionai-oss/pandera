@@ -127,159 +127,100 @@ columns:
     description: Integer column with title
     dtype: int64
     nullable: false
-    checks:
-    - value: 0
-      options:
-        check_name: greater_than
-        raise_warning: false
-        ignore_na: true
-    - value: 10
-      options:
-        check_name: less_than
-        raise_warning: false
-        ignore_na: true
-    - min_value: 0
-      max_value: 10
-      include_min: true
-      include_max: true
-      options:
-        check_name: in_range
-        raise_warning: false
-        ignore_na: true
     unique: false
     coerce: false
     required: true
     regex: false
+    greater_than: 0
+    less_than: 10
+    in_range:
+      min_value: 0
+      max_value: 10
+      include_min: true
+      include_max: true
   float_column:
     title: null
     description: Float col no title
     dtype: float64
     nullable: false
-    checks:
-    - value: -10
-      options:
-        check_name: greater_than
-        raise_warning: false
-        ignore_na: true
-    - value: 20
-      options:
-        check_name: less_than
-        raise_warning: false
-        ignore_na: true
-    - min_value: -10
-      max_value: 20
-      include_min: true
-      include_max: true
-      options:
-        check_name: in_range
-        raise_warning: false
-        ignore_na: true
     unique: false
     coerce: false
     required: true
     regex: false
+    greater_than: -10
+    less_than: 20
+    in_range:
+      min_value: -10
+      max_value: 20
+      include_min: true
+      include_max: true
   str_column:
     title: null
     description: null
     dtype: {_PANDERA_STR_DTYPE}
     nullable: false
-    checks:
-    - value:
-      - foo
-      - bar
-      - x
-      - xy
-      options:
-        check_name: isin
-        raise_warning: false
-        ignore_na: true
-    - min_value: 1
-      max_value: 3
-      exact_value: null
-      options:
-        check_name: str_length
-        raise_warning: false
-        ignore_na: true
     unique: false
     coerce: false
     required: true
     regex: false
+    isin:
+    - foo
+    - bar
+    - x
+    - xy
+    str_length:
+      min_value: 1
+      max_value: 3
+      exact_value: null
   datetime_column:
     title: null
     description: null
     dtype: datetime64[ns]
     nullable: false
-    checks:
-    - value: '2010-01-01 00:00:00'
-      options:
-        check_name: greater_than
-        raise_warning: false
-        ignore_na: true
-    - value: '2020-01-01 00:00:00'
-      options:
-        check_name: less_than
-        raise_warning: false
-        ignore_na: true
     unique: false
     coerce: false
     required: true
     regex: false
+    greater_than: '2010-01-01 00:00:00'
+    less_than: '2020-01-01 00:00:00'
   timedelta_column:
     title: null
     description: null
     dtype: timedelta64[ns]
     nullable: false
-    checks:
-    - value: 1000
-      options:
-        check_name: greater_than
-        raise_warning: false
-        ignore_na: true
-    - value: 10000
-      options:
-        check_name: less_than
-        raise_warning: false
-        ignore_na: true
     unique: false
     coerce: false
     required: true
     regex: false
+    greater_than: 1000
+    less_than: 10000
   optional_props_column:
     title: null
     description: null
     dtype: {_PANDERA_STR_DTYPE}
     nullable: true
-    checks:
-    - min_value: 1
-      max_value: 3
-      exact_value: null
-      options:
-        check_name: str_length
-        raise_warning: false
-        ignore_na: true
     unique: false
     coerce: true
     required: false
     regex: true
+    str_length:
+      min_value: 1
+      max_value: 3
+      exact_value: null
   notype_column:
     title: null
     description: null
     dtype: null
     nullable: false
-    checks:
-    - value:
-      - foo
-      - bar
-      - x
-      - xy
-      options:
-        check_name: isin
-        raise_warning: false
-        ignore_na: true
     unique: false
     coerce: false
     required: true
     regex: false
+    isin:
+    - foo
+    - bar
+    - x
+    - xy
 checks: null
 index:
 - title: null
@@ -1805,118 +1746,87 @@ columns:
     description: null
     dtype: {INT_DTYPE}
     nullable: false
-    checks:
-    - min_value: 10
-      max_value: 99
-      include_min: true
-      include_max: true
-      options:
-        check_name: in_range
-        raise_warning: false
-        ignore_na: true
     unique: true
     coerce: true
     required: true
     regex: false
+    in_range:
+      min_value: 10
+      max_value: 99
+      include_min: true
+      include_max: true
   integer_col_2:
     title: null
     description: null
     dtype: {INT_DTYPE}
     nullable: true
-    checks:
-    - value: 30
-      options:
-        check_name: less_than_or_equal_to
-        raise_warning: false
-        ignore_na: true
     unique: false
     coerce: true
     required: true
     regex: false
+    less_than_or_equal_to: 30
   string_col:
     title: null
     description: null
     dtype: {STR_DTYPE}
     nullable: true
-    checks:
-    - min_value: 3
-      max_value: 80
-      exact_value: null
-      options:
-        check_name: str_length
-        raise_warning: false
-        ignore_na: true
     unique: false
     coerce: true
     required: true
     regex: false
+    str_length:
+      min_value: 3
+      max_value: 80
+      exact_value: null
   string_col_2:
     title: null
     description: null
     dtype: {STR_DTYPE}
     nullable: true
-    checks:
-    - value: ^\\d{{3}}[A-Z]$
-      options:
-        check_name: str_matches
-        raise_warning: false
-        ignore_na: true
     unique: false
     coerce: true
     required: true
     regex: false
+    str_matches: ^\\d{{3}}[A-Z]$
   string_col_3:
     title: null
     description: null
     dtype: {STR_DTYPE}
     nullable: true
-    checks:
-    - min_value: 3
-      max_value: null
-      exact_value: null
-      options:
-        check_name: str_length
-        raise_warning: false
-        ignore_na: true
     unique: false
     coerce: true
     required: true
     regex: false
+    str_length:
+      min_value: 3
+      max_value: null
+      exact_value: null
   string_col_4:
     title: null
     description: null
     dtype: {STR_DTYPE}
     nullable: true
-    checks:
-    - min_value: null
-      max_value: 3
-      exact_value: null
-      options:
-        check_name: str_length
-        raise_warning: false
-        ignore_na: true
     unique: false
     coerce: true
     required: true
     regex: false
+    str_length:
+      min_value: null
+      max_value: 3
+      exact_value: null
   float_col:
     title: null
     description: null
     dtype: category
     nullable: false
-    checks:
-    - value:
-      - 1.0
-      - 2.0
-      - 3.0
-      options:
-        check_name: isin
-        raise_warning: false
-        ignore_na: true
     unique: false
     coerce: true
     required: true
     regex: false
+    isin:
+    - 1.0
+    - 2.0
+    - 3.0
   float_col_2:
     title: null
     description: null
@@ -1932,16 +1842,11 @@ columns:
     description: null
     dtype: {STR_DTYPE}
     nullable: true
-    checks:
-    - value: '20201231'
-      options:
-        check_name: greater_than_or_equal_to
-        raise_warning: false
-        ignore_na: true
     unique: false
     coerce: true
     required: true
     regex: false
+    greater_than_or_equal_to: '20201231'
 checks: null
 index: null
 dtype: null
@@ -2158,25 +2063,13 @@ def test_enum_isin_json_serialization():
         # Should not raise TypeError
         json_output = schema.to_json()
 
-        # Verify the enum values are properly serialized
+        # Verify the enum values are properly serialized (flat ``isin`` key)
         schema_dict = json.loads(json_output)
         assert "columns" in schema_dict
         assert "status" in schema_dict["columns"]
-        status_checks = schema_dict["columns"]["status"]["checks"]
-        assert len(status_checks) > 0
-
-        # Find the isin check
-        isin_check = None
-        for check in status_checks:
-            if isinstance(check, dict) and "options" in check:
-                if check["options"]["check_name"] == "isin":
-                    isin_check = check
-                    break
-
-        assert isin_check is not None
-        # The enum should be serialized as a list of values
-        assert "value" in isin_check
-        assert set(isin_check["value"]) == {"active", "inactive", "pending"}
+        status_col = schema_dict["columns"]["status"]
+        assert "isin" in status_col
+        assert set(status_col["isin"]) == {"active", "inactive", "pending"}
 
     # Test with regular Enum (available in all Python versions)
     from enum import Enum
@@ -2193,25 +2086,13 @@ def test_enum_isin_json_serialization():
     # Should not raise TypeError
     json_output = schema.to_json()
 
-    # Verify the enum values are properly serialized
+    # Verify the enum values are properly serialized (flat ``isin`` key)
     schema_dict = json.loads(json_output)
     assert "columns" in schema_dict
     assert "priority" in schema_dict["columns"]
-    priority_checks = schema_dict["columns"]["priority"]["checks"]
-    assert len(priority_checks) > 0
-
-    # Find the isin check
-    isin_check = None
-    for check in priority_checks:
-        if isinstance(check, dict) and "options" in check:
-            if check["options"]["check_name"] == "isin":
-                isin_check = check
-                break
-
-    assert isin_check is not None
-    # The enum should be serialized as a list of values
-    assert "value" in isin_check
-    assert set(isin_check["value"]) == {"high", "medium", "low"}
+    priority_col = schema_dict["columns"]["priority"]
+    assert "isin" in priority_col
+    assert set(priority_col["isin"]) == {"high", "medium", "low"}
 
 
 def test_enum_isin_dataframe_model_json_serialization():
@@ -2238,25 +2119,13 @@ def test_enum_isin_dataframe_model_json_serialization():
         schema = ColorTable.to_schema()
         json_output = schema.to_json()  # Should not raise TypeError
 
-        # Verify the enum values are in the JSON
+        # Verify the enum values are in the JSON (flat ``isin`` key)
         schema_dict = json.loads(json_output)
         assert "columns" in schema_dict
         assert "color" in schema_dict["columns"]
-        color_checks = schema_dict["columns"]["color"]["checks"]
-        assert len(color_checks) > 0
-
-        # Find the isin check
-        isin_check = None
-        for check in color_checks:
-            if isinstance(check, dict) and "options" in check:
-                if check["options"]["check_name"] == "isin":
-                    isin_check = check
-                    break
-
-        assert isin_check is not None
-        # The enum should be serialized as a list of values
-        assert "value" in isin_check
-        assert set(isin_check["value"]) == {"red", "green", "blue"}
+        color_col = schema_dict["columns"]["color"]
+        assert "isin" in color_col
+        assert set(color_col["isin"]) == {"red", "green", "blue"}
 
 
 def test_dataframe_library_metadata_roundtrip():

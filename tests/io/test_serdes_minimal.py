@@ -100,6 +100,39 @@ class TestPandasSerdesMinimal:
         assert "raise_warning" not in y
         assert pandas_io.from_yaml(y) == schema
 
+    def test_flat_check_keys_in_serialized_dict(self) -> None:
+        """Checks serialize as Field-style keys, not a ``checks:`` list."""
+        schema = pa.DataFrameSchema(
+            {"a": pa.Column(int, checks=[pa.Check.ge(1), pa.Check.le(10)])},
+        )
+        d = pandas_io.serialize_schema(schema, minimal=True)
+        col = d["columns"]["a"]
+        assert "checks" not in col
+        assert col["greater_than_or_equal_to"] == 1
+        assert col["less_than_or_equal_to"] == 10
+
+    def test_legacy_checks_list_yaml_still_loads(self) -> None:
+        """YAML using the previous ``checks:`` list shape still deserializes."""
+        legacy = """
+schema_type: dataframe
+columns:
+  a:
+    dtype: int64
+    nullable: false
+    checks:
+    - value: 1
+      options:
+        check_name: greater_than_or_equal_to
+    - value: 10
+      options:
+        check_name: less_than_or_equal_to
+coerce: false
+strict: false
+"""
+        loaded = pandas_io.from_yaml(legacy)
+        checks = loaded.columns["a"].checks
+        assert checks is not None and len(checks) == 2
+
 
 class TestPolarsSerdesMinimal:
     """Polars IO roundtrip and minimal key omission."""
