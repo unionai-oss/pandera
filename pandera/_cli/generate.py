@@ -8,6 +8,7 @@ from typing import Any
 
 import typer
 
+from . import rich_report
 from .common import load_raw_schema
 
 __all__ = ["GenerateDataFormat", "generate"]
@@ -318,4 +319,12 @@ def generate(
         typer.secho(f"Could not write {output}:\n{exc}", err=True)
         raise typer.Exit(1) from exc
 
-    typer.echo(f"Wrote generated data to {output}")
+    rich_report.print_generate_summary(
+        schema_path=schema_path,
+        schema_kind=schema_kind,
+        schema_obj=schema_obj,
+        size=size,
+        output=output,
+        writer_key=writer_key,
+        data_obj=data_obj,
+    )

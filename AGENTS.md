@@ -61,7 +61,7 @@ pandera/                  # Main package
 
 tests/                    # Test suite (mirrors backend structure)
 ├── base/                 # Core tests (no backend-specific deps)
-├── cli/                  # CLI tests (``pandera validate``, ``infer``, ``generate``)
+├── cli/                  # CLI tests (format/backend matrices; PySpark combos need ``PANDERA_RUN_SPARK_CLI=1``)
 ├── pandas/               # Pandas backend tests (~38 files)
 ├── polars/               # Polars backend tests
 ├── pyspark/              # PySpark backend tests

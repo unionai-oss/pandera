@@ -8,6 +8,7 @@ from typing import Any, Literal
 
 import typer
 
+from . import rich_report
 from .common import BackendName, load_dataset, load_raw_schema
 
 __all__ = ["InferFormat", "ScriptType", "infer"]
@@ -338,4 +339,11 @@ def infer(
         typer.secho(f"Could not write {output}:\n{exc}", err=True)
         raise typer.Exit(1) from exc
 
-    typer.echo(f"Wrote inferred schema to {output}")
+    rich_report.print_infer_summary(
+        data_path=data,
+        backend=chosen,
+        obj=obj,
+        schema=schema_obj,
+        output=output,
+        fmt=resolved_fmt.value,
+    )

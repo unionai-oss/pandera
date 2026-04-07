@@ -19,6 +19,9 @@ def test_infer_dataframe_schema_basic() -> None:
     assert isinstance(schema, pa.DataFrameSchema)
     assert schema.coerce is True
     assert set(schema.columns) == {"a", "b"}
+    b_checks = schema.columns["b"].checks
+    assert b_checks is not None
+    assert any(c.name == "str_length" for c in b_checks)
 
 
 def test_infer_schema_lazyframe() -> None:

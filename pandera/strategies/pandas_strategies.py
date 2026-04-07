@@ -1171,35 +1171,46 @@ def str_length_strategy(
     max_value: int | None = None,
     exact_value: int | None = None,
 ) -> SearchStrategy:
-    """Strategy to generate strings of a particular length
+    """Strategy to generate strings with constrained length.
+
+    Accepts the same keyword statistics as
+    :meth:`~pandera.api.checks.Check.str_length` (``exact_value`` and/or
+    ``min_value`` / ``max_value``).
 
     :param pandera_dtype: :class:`pandera.dtypes.DataType` instance.
     :param strategy: an optional hypothesis strategy. If specified, the
         pandas dtype strategy will be chained onto this strategy.
-    :param min_value: minimum string length.
-    :param max_value: maximum string length.
-    :param exact_value: exact string length.
+    :param min_value: minimum string length (inclusive), if set.
+    :param max_value: maximum string length (inclusive), if set.
+    :param exact_value: if set, string length must equal this value.
     :returns: ``hypothesis`` strategy
     """
     if exact_value is not None:
-        min_value = exact_value
-        max_value = exact_value
+        min_v, max_v = exact_value, exact_value
+    else:
+        min_v, max_v = min_value, max_value  # type: ignore[assignment]
 
-    if min_value is None and max_value is None:
+    if min_v is None and max_v is None:
         raise ValueError(
-            "At least one of min_value/max_value or exact_value must be set"
+            "str_length_strategy requires exact_value and/or min_value "
+            "and/or max_value (after resolving exact_value)."
         )
+
+    text_kw: dict[str, Any] = {}
+    if min_v is not None:
+        text_kw["min_size"] = min_v
+    if max_v is not None:
+        text_kw["max_size"] = max_v
 
     if strategy is None:
-        return st.text(min_size=min_value, max_size=max_value).map(
-            to_numpy_dtype(pandera_dtype).type
-        )
+        return st.text(**text_kw).map(to_numpy_dtype(pandera_dtype).type)
 
-    if min_value is not None:
-        strategy = strategy.filter(partial(min_len, min_value))
-    if max_value is not None:
-        strategy = strategy.filter(partial(max_len, max_value))
-    return strategy
+    out = strategy
+    if min_v is not None:
+        out = out.filter(partial(min_len, min_v))
+    if max_v is not None:
+        out = out.filter(partial(max_len, max_v))
+    return out
 
 
 def _timestamp_to_datetime64_strategy(

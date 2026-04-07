@@ -1,1 +1,0 @@
-{"schema_type": "dataframe", "columns": {"id": {"dtype": "int64", "greater_than_or_equal_to": 0}, "name": {"dtype": "str", "isin": ["a", "b", "c"]}}}

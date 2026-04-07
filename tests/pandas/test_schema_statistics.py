@@ -182,6 +182,10 @@ def test_infer_dataframe_statistics(multi_index: bool, nullable: bool) -> None:
                 pa.Check.less_than_or_equal_to(10),
             ],
         ],
+        [
+            {"str_length": {"min_value": 1, "max_value": 5}},
+            [pa.Check.str_length(1, 5)],
+        ],
         [{}, None],
     ],
 )
@@ -243,7 +247,7 @@ def _test_statistics(statistics, expectations):
             {
                 "dtype": pandas_engine.Engine.dtype("string"),
                 "nullable": False,
-                "checks": None,
+                "checks": {"str_length": {"min_value": 1, "max_value": 1}},
                 "name": "str_series",
             },
         ],
@@ -319,7 +323,7 @@ def test_infer_series_schema_statistics(series, expectation) -> None:
             {
                 "dtype": pandas_engine.Engine.dtype(str),
                 "nullable": True,
-                "checks": None,
+                "checks": {"str_length": {"min_value": 1, "max_value": 1}},
                 "name": "str_series",
             },
         ],
@@ -415,7 +419,9 @@ def test_empty_series_schema_statistics(null_values, dtype):
                         else pandas_engine.Engine.dtype("object")
                     ),
                     "nullable": False,
-                    "checks": None,
+                    "checks": {
+                        "str_length": {"min_value": 3, "max_value": 3},
+                    },
                 },
             ],
         ],

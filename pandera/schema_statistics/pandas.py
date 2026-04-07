@@ -227,6 +227,50 @@ def _get_array_type(x):
     return data_type
 
 
+def _should_infer_str_length(x: pd.Series, data_type: dtypes.DataType) -> bool:
+    """True if the series is string-like (not categorical or numeric, etc.)."""
+    if dtypes.is_category(data_type):
+        return False
+    if dtypes.is_numeric(data_type) or dtypes.is_bool(data_type):
+        return False
+    if dtypes.is_datetime(data_type) or dtypes.is_timedelta(data_type):
+        return False
+    if dtypes.is_binary(data_type):
+        return False
+    if dtypes.is_string(data_type):
+        return True
+    inferred = pd.api.types.infer_dtype(x, skipna=True)
+    return inferred == "string"
+
+
+def _string_length_bounds(x: pd.Series) -> tuple[int, int] | None:
+    """Min and max string length over non-null values."""
+    vals = x.dropna()
+    if vals.empty:
+        return None
+    try:
+        lens = vals.str.len()
+    except (AttributeError, TypeError):
+        return None
+    if lens.isna().any():
+        return None
+    return int(lens.min()), int(lens.max())
+
+
+def string_length_check_statistics(
+    min_len: int, max_len: int
+) -> dict[str, Any]:
+    """Build ``parse_check_statistics``-compatible stats for
+    :meth:`~pandera.api.checks.Check.str_length`.
+    """
+    return {
+        "str_length": {
+            "min_value": min_len,
+            "max_value": max_len,
+        },
+    }
+
+
 def _get_array_check_statistics(
     x, data_type: dtypes.DataType
 ) -> Union[dict[str, Any], None]:
@@ -251,6 +295,12 @@ def _get_array_check_statistics(
         check_stats = {
             "isin": categories.tolist(),
         }
+    elif _should_infer_str_length(x, data_type):
+        bounds = _string_length_bounds(x)
+        if bounds is None:
+            check_stats = {}
+        else:
+            check_stats = string_length_check_statistics(*bounds)
     else:
         check_stats = {}
     return check_stats if check_stats else None

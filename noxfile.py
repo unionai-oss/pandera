@@ -325,7 +325,18 @@ def tests(
         ]
         if not CI_RUN:
             cov_args.append("--cov-report=html")
-        args = [*cov_args, path]
+        if extra == "all":
+            paths = ["tests"]
+        elif extra is None:
+            paths = ["tests/base/", "tests/cli/"]
+        elif extra == "pyspark":
+            paths = [path, "tests/cli/"]
+        else:
+            paths = [path]
+        args = [*cov_args, *paths]
+
+    if not session.posargs and extra == "pyspark":
+        env = {**env, "PANDERA_RUN_SPARK_CLI": "1"}
 
     session.run("pytest", *args, env=env)
     # tests/common/ has no pyspark marker — pytest -m pyspark would deselect every test there.

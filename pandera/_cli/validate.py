@@ -6,6 +6,9 @@ from pathlib import Path
 
 import typer
 
+from pandera.errors import SchemaError, SchemaErrors
+
+from . import rich_report
 from .common import (
     BackendName,
     deserialize_schema,
@@ -43,8 +46,9 @@ def validate(
 ) -> None:
     """Validate a file against a serialized schema (YAML/JSON).
 
-    On success, prints "Validation succeeded." and exits 0. On failure, prints
-    the error and exits with a non-zero code.
+    On success, prints a summary of schema- and data-level checks (Rich
+    tables when Rich is installed). On failure, prints which checks passed or
+    failed plus failure details, then exits with a non-zero code.
 
     Examples:
 
@@ -93,9 +97,17 @@ def validate(
     obj = load_dataset(data, chosen)
 
     try:
-        schema_obj.validate(obj)
+        schema_obj.validate(obj, lazy=True)
+    except SchemaErrors as exc:
+        typer.secho("Validation failed.", err=True)
+        rich_report.print_validation_failure(schema_obj, exc)
+        raise typer.Exit(1) from exc
+    except SchemaError as exc:
+        typer.secho("Validation failed.", err=True)
+        rich_report.print_validation_failure(schema_obj, exc)
+        raise typer.Exit(1) from exc
     except Exception as exc:
         typer.secho(f"Validation failed:\n{exc}", err=True)
         raise typer.Exit(1) from exc
 
-    typer.echo("Validation succeeded.")
+    rich_report.print_validation_success(schema_obj)
