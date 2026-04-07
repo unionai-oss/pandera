@@ -100,6 +100,7 @@ extensions = [
     "sphinx.ext.linkcode",  # link to github, see linkcode_resolve() below
     "sphinx_copybutton",
     "sphinx_design",
+    "sphinxcontrib.typer",
     "myst_nb",
 ]
 

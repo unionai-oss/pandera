@@ -6,6 +6,9 @@
 
 # API
 
+The command-line interface (installation, usage, generated help, and Python
+entry points) is documented on the dedicated :doc:`cli` page.
+
 ## DataFrames
 
 ```{eval-rst}
@@ -60,7 +63,7 @@
      - Reset context configuration to the global default
 ```
 
-See :ref:`api-core` for full details.
+See {ref}`api-core` for full details.
 
 ## Multi-dimensional arrays
 

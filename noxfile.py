@@ -142,7 +142,10 @@ def _testing_requirements(
     pydantic = pydantic or PYDANTIC_VERSIONS[-1]
     polars = polars or POLARS_VERSIONS[-1]
 
-    _requirements = PYPROJECT["project"]["dependencies"]
+    _requirements = [
+        *PYPROJECT["project"]["dependencies"],
+        *PYPROJECT["project"]["optional-dependencies"]["cli"],
+    ]
     if extra is not None:
         _requirements += PYPROJECT["project"]["optional-dependencies"][extra]
     # narwhals backend tests run with polars+ibis co-installed (TEST-03).
@@ -224,6 +227,10 @@ DATAFRAME_EXTRAS = {
     "pyarrow",  # pyarrow.Table validation, served by the narwhals backends
 }
 for extra in OPTIONAL_DEPENDENCIES:
+    if extra == "cli":
+        # Typer is merged into every test env via _testing_requirements; no
+        # separate tests/cli matrix session.
+        continue
     if extra == "pandas":
         # Only test upper and lower bounds of pandas and pydantic with the
         # pandas extra. The other dataframe library intregations assume either

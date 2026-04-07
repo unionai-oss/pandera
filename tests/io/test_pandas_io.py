@@ -1598,6 +1598,23 @@ def test_to_script_lambda_check():
         io.to_script(schema2)
 
 
+def test_to_script_model_roundtrip():
+    """``script_type='model'`` emits an executable :class:`DataFrameModel`."""
+    schema = pandera.DataFrameSchema(
+        {"a": pandera.Column(int, checks=pandera.Check.ge(0))},
+        strict=True,
+    )
+    script = io.to_script(schema, script_type="model", minimal=True)
+    # Single-namespace exec: class bodies resolve names from the global dict
+    # passed to exec; a separate locals dict leaves imports invisible there.
+    ns: dict = {"__builtins__": __builtins__}
+    exec(script, ns)
+    model_cls = ns["GeneratedModel"]
+    restored = model_cls.to_schema()
+    assert restored.columns["a"].checks is not None
+    assert restored.strict is True
+
+
 def test_to_yaml_lambda_check():
     """Test writing DataFrameSchema to a yaml with lambda check."""
     schema = pandera.DataFrameSchema(
@@ -1617,8 +1634,10 @@ def test_to_yaml_lambda_check():
 
 def test_format_checks_warning():
     """Test that unregistered checks raise a warning when formatting checks."""
+    from pandera.io import common_io
+
     with pytest.warns(UserWarning):
-        io._format_checks({"my_check": None})
+        common_io._format_checks({"my_check": None})
 
 
 @mock.patch("pandera.Check.REGISTERED_CUSTOM_CHECKS", new_callable=dict)

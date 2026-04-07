@@ -4,7 +4,7 @@ import os
 import sys
 import warnings
 from pathlib import Path
-from typing import Optional, overload
+from typing import Literal, Optional, overload
 
 import pandas as pd
 
@@ -281,12 +281,18 @@ class DataFrameSchema(_DataFrameSchema[pd.DataFrame]):
     #####################
 
     def to_script(
-        self, fp: str | Path | None = None, *, minimal: bool = True
+        self,
+        fp: str | Path | None = None,
+        *,
+        minimal: bool = True,
+        script_type: Literal["schema", "model"] = "schema",
     ) -> str | None:
-        """Write :class:`DataFrameSchema` to a Python script via ``pandas_io``."""
+        """Write :class:`DataFrameSchema` or a model script via ``pandas_io``."""
         from pandera.io import pandas_io
 
-        return pandas_io.to_script(self, fp, minimal=minimal)
+        return pandas_io.to_script(
+            self, fp, minimal=minimal, script_type=script_type
+        )
 
     @classmethod
     def from_yaml(cls, yaml_schema) -> Self:

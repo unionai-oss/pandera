@@ -54,6 +54,7 @@ dask[dataframe]
 distributed
 ibis-framework >= 9.0.0
 furo
+sphinxcontrib-typer >= 0.8.0
 sphinx-docsearch
 grpcio
 ray
@@ -63,3 +64,4 @@ types-pytz
 types-pyyaml
 types-requests
 types-setuptools
+typer >= 0.12.3
