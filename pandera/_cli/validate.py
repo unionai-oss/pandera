@@ -1,0 +1,101 @@
+"""``pandera validate`` — validate data against a serialized schema."""
+
+from __future__ import annotations
+
+from pathlib import Path
+
+import typer
+
+from .common import (
+    BackendName,
+    deserialize_schema,
+    infer_backend_from_schema,
+    load_dataset,
+    load_raw_schema,
+)
+
+__all__ = ["validate"]
+
+
+def validate(
+    schema: Path = typer.Option(
+        ...,
+        "--schema",
+        "-s",
+        help="Path to schema file (.yaml, .yml, or .json).",
+    ),
+    data: Path = typer.Option(
+        ...,
+        "--data",
+        "-d",
+        help="Path to the dataset (format must match backend).",
+    ),
+    backend: BackendName | None = typer.Option(
+        None,
+        "--backend",
+        "-b",
+        help=(
+            "Dataframe library to use. Default: inferred from schema_type "
+            "(and dataframe_library for pandas-API schemas) in the schema "
+            "file."
+        ),
+    ),
+) -> None:
+    """Validate a file against a serialized schema (YAML/JSON).
+
+    On success, prints "Validation succeeded." and exits 0. On failure, prints
+    the error and exits with a non-zero code.
+
+    Examples:
+
+    Validate CSV file with YAML schema with long form option names
+
+    ```bash
+    pandera validate --schema schema.yaml --data data.csv
+    ```
+
+    Validate Parquet file with YAML schema with short form option names
+    ```
+    pandera validate -s schema.yml -d data.parquet
+    ```
+
+    Validate JSON file with JSON schema with short form option names
+    ```
+    python -m pandera validate -s schema.json -d records.json
+    ```
+
+    Validate CSV file with YAML schema with Polars backend with long form option
+    names
+    ```
+    pandera validate -s schema.yaml -d data.csv --backend polars
+    ```
+    """
+    if not schema.is_file():
+        typer.secho(f"Schema file not found: {schema}", err=True)
+        raise typer.Exit(1)
+    if not data.is_file():
+        typer.secho(f"Data file not found: {data}", err=True)
+        raise typer.Exit(1)
+
+    raw = load_raw_schema(schema)
+    inferred = infer_backend_from_schema(raw)
+    if backend is not None and backend.value != inferred:
+        typer.secho(
+            f"--backend {backend.value!r} does not match schema "
+            f"(schema_type implies {inferred!r}). Omit --backend to use "
+            "the schema file, or fix the mismatch.",
+            err=True,
+        )
+        raise typer.Exit(1)
+    chosen = backend.value if backend is not None else inferred
+
+    schema_obj = deserialize_schema(raw)
+    obj = load_dataset(data, chosen)
+
+    try:
+        schema_obj.validate(obj)
+    except Exception as exc:
+        typer.secho(f"Validation failed:\n{exc}", err=True)
+        raise typer.Exit(1) from exc
+
+    typer.echo("Validation succeeded.")
