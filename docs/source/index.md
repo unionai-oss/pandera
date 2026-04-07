@@ -511,8 +511,8 @@ integrations
 :hidden: true
 :maxdepth: 6
 
-reference/index
 cli
+reference/index
 ```
 
 ```{toctree}

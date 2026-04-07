@@ -4,8 +4,10 @@
 CLI
 ===
 
-The Pandera CLI validates on-disk datasets against a serialized schema (YAML or
-JSON). It is useful in scripts and CI without writing Python glue code.
+The Pandera CLI can **validate** on-disk datasets against a serialized schema
+(YAML or JSON), **infer** a schema from data and write YAML, JSON, or a Python
+module, or **generate** synthetic tabular or xarray data from a pandas or
+xarray schema. It is useful in scripts and CI without writing Python glue code.
 
 Installation
 ----------
@@ -21,55 +23,54 @@ You still need the appropriate dataframe library for the schema you validate
 (for example ``pandas`` for the default pandas-API schema). YAML schemas require
 ``pandera[io]`` (PyYAML).
 
-``validate`` subcommand
------------------------
+Commands
+--------
 
-Run validation with the ``validate`` subcommand, passing a schema path and a data
-file path:
+The command tree below is generated from the Typer application with
+`sphinxcontrib-typer <https://github.com/sphinx-contrib/typer>`_ (see
+`its documentation <https://sphinxcontrib-typer.readthedocs.io/>`__).
+The application object is ``pandera._cli.app`` (it is not rendered with
+autodoc because inherited Typer docstrings confuse Sphinx).
+HTML output uses a fixed ``iframe-height`` so builds do not need Selenium
+(dynamic height would otherwise require ``selenium`` and ``webdriver-manager``,
+see `typer_get_iframe_height
+<https://sphinxcontrib-typer.readthedocs.io/en/latest/reference/configuration.html>`__).
+
+.. typer:: pandera._cli.app
+    :prog: pandera
+    :show-nested:
+    :make-sections:
+    :width: 79
+    :preferred: text
+
+``infer`` subcommand
+~~~~~~~~~~~~~~~~~~~~
+
+Infer a schema from a dataset using the same file extensions as ``validate``
+for the chosen ``--backend``. The output format is taken from the output path
+(``.yaml``/``.yml``, ``.json``, or ``.py``), or set explicitly with
+``--format``. For ``.py`` output, use ``--script-type schema`` (default) or
+``model``; formatting requires `black <https://black.readthedocs.io/>`__.
 
 .. code-block:: bash
 
-   pandera validate --schema path/to/schema.yaml --data path/to/data.csv
+   pandera infer -d sample_data.csv -o sample_schema.yaml
 
-Short form:
+``generate`` subcommand
+~~~~~~~~~~~~~~~~~~~~~~~
+
+Produce example data that satisfies a serialized schema using `hypothesis
+<https://hypothesis.readthedocs.io/>`__ strategies (install ``pandera[strategies]``).
+Only **pandas** dataframe schemas and **xarray** ``data_array`` / ``dataset``
+schemas are supported for now.
+
+* **Pandas**: write ``.csv``, ``.json``, ``.parquet``, or ``.feather``.
+* **Xarray**: write NetCDF (``.nc``) or, when the object can be represented as
+  a table, the same tabular formats as above.
 
 .. code-block:: bash
 
-   pandera validate -s schema.yaml -d data.csv
-
-The same entry point works with ``python -m pandera``:
-
-.. code-block:: bash
-
-   python -m pandera validate -s schema.yaml -d data.csv
-
-On success the process exits with code ``0`` and prints
-``Validation succeeded.`` On validation failure it exits with a non-zero code
-and prints an error message.
-
-Options
-~~~~~~~
-
-.. list-table::
-   :widths: 18 12 70
-   :header-rows: 1
-
-   * - Option
-     - Shorthand
-     - Description
-   * - ``--schema``
-     - ``-s``
-     - Path to a ``.yaml``, ``.yml``, or ``.json`` schema file.
-   * - ``--data``
-     - ``-d``
-     - Path to the dataset; allowed extensions depend on the inferred backend
-       (see below).
-   * - ``--backend``
-     - ``-b``
-     - Optional. Force a dataframe library (``pandas``, ``polars``, ``dask``,
-       ``modin``, ``pyspark.pandas``, ``pyspark.sql``, ``ibis``). Must match what
-       the schema implies; if omitted, the backend is inferred from the schema
-       file.
+   pandera generate -s sample_schema.yaml -o synthetic.csv
 
 Backend inference
 ~~~~~~~~~~~~~~~~~~~
@@ -80,8 +81,8 @@ use—for example Polars when ``schema_type`` is ``polars_dataframe``, or Ibis
 when it is ``ibis_table``. Use ``--backend`` only when you want to be explicit;
 it must agree with the schema metadata.
 
-Full example (pandas CSV + JSON schema)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Full example: pandas CSV + JSON schema
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The snippet below installs what you need, writes a small CSV and a matching JSON
 schema (via :func:`pandera.io.pandas_io.to_json`), then runs the CLI. A JSON
@@ -107,8 +108,8 @@ names):
    )
    schema = pa.DataFrameSchema(
        {
-           "id": pa.Column(int),
-           "name": pa.Column(str),
+           "id": pa.Column(int, pa.Check.ge(0)),
+           "name": pa.Column(str, pa.Check.isin(["a", "b", "c"])),
        }
    )
    io.to_json(schema, "sample_schema.json")
@@ -134,23 +135,3 @@ Feather for pandas-like backends. Ibis is limited to CSV and Parquet in the CLI
 
 For more on serialization formats, see :ref:`Schema persistence <schema-persistence>`
 and :ref:`IO Utilities <api-io-utils>`.
-
-Generated command help
-----------------------
-
-The command tree below is generated from the Typer application with
-`sphinxcontrib-typer <https://github.com/sphinx-contrib/typer>`_ (see
-`its documentation <https://sphinxcontrib-typer.readthedocs.io/>`__).
-The application object is ``pandera._cli.app`` (it is not rendered with
-autodoc because inherited Typer docstrings confuse Sphinx).
-HTML output uses a fixed ``iframe-height`` so builds do not need Selenium
-(dynamic height would otherwise require ``selenium`` and ``webdriver-manager``,
-see `typer_get_iframe_height
-<https://sphinxcontrib-typer.readthedocs.io/en/latest/reference/configuration.html>`__).
-
-.. typer:: pandera._cli.app
-    :prog: pandera
-    :show-nested:
-    :make-sections:
-    :width: 79
-    :preferred: text

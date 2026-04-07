@@ -39,6 +39,16 @@ entry points) is documented on the dedicated :doc:`cli` page.
      - Pandera-specific exceptions
 ```
 
+## Multi-dimensional arrays
+
+```{eval-rst}
+.. list-table::
+   :widths: 30 70
+
+   * - :ref:`Xarray <api-xarray>`
+     - Schemas for labelled N-dimensional :mod:`xarray` arrays, datasets, and datatrees
+```
+
 ## Configuration
 
 ```{eval-rst}
@@ -63,17 +73,6 @@ entry points) is documented on the dedicated :doc:`cli` page.
      - Reset context configuration to the global default
 ```
 
-See {ref}`api-core` for full details.
-
-## Multi-dimensional arrays
-
-```{eval-rst}
-.. list-table::
-   :widths: 30 70
-
-   * - :ref:`Xarray <api-xarray>`
-     - Schemas for labelled N-dimensional :mod:`xarray` arrays, datasets, and datatrees
-```
 
 ```{toctree}
 :hidden: true
