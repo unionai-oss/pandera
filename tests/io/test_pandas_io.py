@@ -1361,15 +1361,13 @@ def test_check_custom_error_json_serialization_roundtrip():
     )
 
     schema_dict = json.loads(schema.to_json())
-    default_options = schema_dict["columns"]["default_error"]["checks"][0][
-        "options"
-    ]
-    custom_options = schema_dict["columns"]["custom_error"]["checks"][0][
-        "options"
-    ]
+    default_gt = schema_dict["columns"]["default_error"]["greater_than"]
+    custom_gt = schema_dict["columns"]["custom_error"]["greater_than"]
 
-    assert "error" not in default_options
-    assert custom_options["error"] == "column must be greater than 10"
+    assert default_gt == 10
+    assert isinstance(custom_gt, dict)
+    assert custom_gt["min_value"] == 10
+    assert custom_gt["error"] == "column must be greater than 10"
 
     restored = io.from_json(json.dumps(schema_dict))
     restored_checks = restored.columns["custom_error"].checks
@@ -1404,15 +1402,13 @@ def test_check_custom_error_yaml_serialization_roundtrip():
     yaml_str = schema.to_yaml()
     schema_dict = yaml.safe_load(yaml_str)
 
-    default_options = schema_dict["columns"]["default_error"]["checks"][0][
-        "options"
-    ]
-    custom_options = schema_dict["columns"]["custom_error"]["checks"][0][
-        "options"
-    ]
+    default_gt = schema_dict["columns"]["default_error"]["greater_than"]
+    custom_gt = schema_dict["columns"]["custom_error"]["greater_than"]
 
-    assert "error" not in default_options
-    assert custom_options["error"] == "column must be greater than 10"
+    assert default_gt == 10
+    assert isinstance(custom_gt, dict)
+    assert custom_gt["min_value"] == 10
+    assert custom_gt["error"] == "column must be greater than 10"
 
     restored = io.from_yaml(yaml_str)
     restored_checks = restored.columns["custom_error"].checks

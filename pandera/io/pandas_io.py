@@ -87,12 +87,15 @@ def _serialize_check_stats(check_stats, dtype=None):
         check_stats.pop("options", {}) if isinstance(check_stats, dict) else {}
     )
 
-    # Handle unary checks
+    # Single-statistic dict: preserve the argument name (e.g. min_value, stat)
+    # instead of coercing to "value", which breaks registered checks whose
+    # statistic is not a unary positional alias.
     if isinstance(check_stats, dict) and len(check_stats) == 1:
-        value = handle_stat_dtype(list(check_stats.values())[0])
+        arg_name, arg_val = next(iter(check_stats.items()))
+        coerced = handle_stat_dtype(arg_val)
         if check_options:
-            return {"value": value, "options": check_options}
-        return value
+            return {arg_name: coerced, "options": check_options}
+        return coerced
 
     # Handle dictionary case
     if isinstance(check_stats, dict):
