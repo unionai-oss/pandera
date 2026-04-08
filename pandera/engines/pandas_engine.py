@@ -1148,7 +1148,8 @@ class Date(_BaseDateTime, dtypes.Date):
 
         def _to_datetime(col: PandasObject) -> PandasObject:
             col = to_datetime_fn(col, **self.to_datetime_kwargs)
-            return col.astype(pandas_dtype).dt.date
+            # Keep date semantics as object dtype even for all-NaT values.
+            return col.astype(pandas_dtype).dt.date.astype(object)
 
         if isinstance(data_container, pd.DataFrame):
             # pd.to_datetime transforms a df input into a series.

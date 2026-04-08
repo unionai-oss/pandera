@@ -927,6 +927,28 @@ def test_multiindex_unique() -> None:
     assert expected == Base.to_schema()
 
 
+def test_add_missing_columns_nullable_date_with_nat_default() -> None:
+    """Ensure nullable Date fields with NaT defaults validate when auto-added."""
+
+    class Schema(pa.DataFrameModel):
+        index: Series[int] = pa.Field(ge=0)
+        confirmation_date: pa.Date = pa.Field(
+            nullable=True,
+            coerce=True,
+            default=pd.NaT,
+        )
+
+        class Config:
+            add_missing_columns = True
+            coerce = True
+            strict = "filter"
+
+    validated = Schema.validate(pd.DataFrame({"index": [1, 1]}))
+
+    assert validated["confirmation_date"].isna().all()
+    assert validated["confirmation_date"].dtype == object
+
+
 def test_multiindex_strict_valid_schema() -> None:
     """Test that multiindex_strict=True passes validation with correct levels."""
 
