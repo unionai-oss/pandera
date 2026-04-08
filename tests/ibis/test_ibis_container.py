@@ -284,6 +284,39 @@ def test_dataframe_level_checks():
         assert err.failure_cases.shape[0] == 6
 
 
+def test_failed_cases_index_for_column_check():
+    """Failure cases should keep original row positions."""
+    schema = DataFrameSchema(
+        {
+            "a": Column(int, checks=pa.Check.gt(0)),
+        }
+    )
+    t = ibis.memtable({"a": [10, 0, 20, 0, 30]})
+
+    with pytest.raises(pa.errors.SchemaErrors) as err:
+        schema.validate(t, lazy=True)
+
+    assert err.value.failure_cases["index"].to_list() == [1, 3]
+
+
+def test_failed_cases_index_for_dataframe_check():
+    """Dataframe checks should keep original row positions."""
+
+    def custom_check(data: IbisData):
+        return data.table.select((data.table.a > 0).name("a"))
+
+    schema = DataFrameSchema(
+        columns={"a": Column(dt.Int64)},
+        checks=[pa.Check(custom_check)],
+    )
+    t = ibis.memtable({"a": [10, 0, 20, 0, 30]})
+
+    with pytest.raises(pa.errors.SchemaErrors) as err:
+        schema.validate(t, lazy=True)
+
+    assert err.value.failure_cases["index"].to_list() == [1, 3]
+
+
 @pytest.mark.parametrize(
     "column_mod,filter_expr",
     [
