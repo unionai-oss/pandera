@@ -139,15 +139,6 @@ def _testing_requirements(
             PYPROJECT["project"]["optional-dependencies"]["pandas"]
         )
 
-    # tests/io/ also runs ibis and pyspark SQL IO tests. Polars is already pulled
-    # in via the dev dependency group; ibis and pyspark are not, so add them
-    # here—otherwise those tests are skipped (importorskip).
-    if extra == "io":
-        for _io_backend in ("ibis", "pyspark"):
-            _requirements.extend(
-                PYPROJECT["project"]["optional-dependencies"][_io_backend]
-            )
-
     _requirements = list(set(_requirements))
 
     _numpy: str | None = None
