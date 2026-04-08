@@ -108,6 +108,22 @@ the error during static type-linting but pandera will raise a
 exception at runtime, depending on whether you're doing
 {ref}`lazy validation <lazy-validation>` or not.
 
+:::{warning}
+**Known Limitation**: The `@check_types` decorator may not catch schema violations
+when DataFrames are modified in-place after being validated with `.pipe()`.
+This happens because in-place operations (like `.drop(columns="age", inplace=True)`)
+don't invalidate the attached schema, causing `@check_types` to skip re-validation.
+
+**Workaround**: If you need to modify DataFrames after validation, manually call
+`schema.validate(dataframe)` to ensure the data still conforms to the schema.
+:::
+
 ```{literalinclude} ../../tests/mypy/pandas_modules/pandas_dataframe.py
 :lines: 83-87
 ```
+
+:::{note}
+**Working Example**: The `@check_types` decorator works correctly when DataFrames
+are not modified in-place after validation. See the `fn_working_example` function
+in the test file for a demonstration of proper `@check_types` behavior.
+:::
