@@ -1454,7 +1454,7 @@ class TestUniqueValuesEqCheck(BaseClass):
     sample_numeric_data = {
         "test_pass_data": [("foo", 32), ("bar", 31)],
         "test_fail_data": [("foo", 31), ("bar", 31)],
-        "test_expression": [31, 32],
+        "test_expression": [32, 31],
     }
 
     sample_datetime_data = {
