@@ -10,8 +10,9 @@ import pandas as pd
 import pytest
 from packaging import version
 
-import pandera
+import pandera as pandera_base
 import pandera.api.extensions as pa_ext
+import pandera.pandas as pandera
 import pandera.typing as pat
 from pandera.api.pandas.container import DataFrameSchema
 from pandera.engines import pandas_engine
@@ -37,6 +38,7 @@ SKIP_YAML_TESTS = PYYAML_VERSION is None or PYYAML_VERSION.release < (5, 1, 0)  
 
 PANDAS_3_0_0_PLUS = pandas_version().release >= (3, 0, 0)
 
+_PANDERA_VERSION = pandera_base.__version__
 _PANDERA_STR_DTYPE = str(pandas_engine.Engine.dtype(pandera.String))
 
 
@@ -124,7 +126,7 @@ def _create_schema(index="single"):
 
 YAML_SCHEMA = f"""
 schema_type: dataframe
-version: {pandera.__version__}
+version: {_PANDERA_VERSION}
 columns:
   int_column:
     title: integer_col
@@ -309,7 +311,7 @@ description: null
 
 YAML_SCHEMA_DICT_CHECK = f"""
 schema_type: dataframe
-version: {pandera.__version__}
+version: {_PANDERA_VERSION}
 columns:
   int_column:
     title: integer_col
@@ -516,7 +518,7 @@ def _create_schema_null_index():
 
 YAML_SCHEMA_NULL_INDEX = f"""
 schema_type: dataframe
-version: {pandera.__version__}
+version: {_PANDERA_VERSION}
 columns:
   float_column:
     dtype: float64
@@ -562,7 +564,7 @@ strict: false
 
 YAML_SCHEMA_NULL_INDEX_DICT_CHECK = f"""
 schema_type: dataframe
-version: {pandera.__version__}
+version: {_PANDERA_VERSION}
 columns:
   float_column:
     dtype: float64
@@ -612,7 +614,7 @@ def _create_schema_python_types():
 
 YAML_SCHEMA_PYTHON_TYPES = f"""
 schema_type: dataframe
-version: {pandera.__version__}
+version: {_PANDERA_VERSION}
 columns:
   int_column:
     dtype: int64
@@ -631,7 +633,7 @@ strict: false
 
 YAML_SCHEMA_MISSING_GLOBAL_CHECK = f"""
 schema_type: dataframe
-version: {pandera.__version__}
+version: {_PANDERA_VERSION}
 columns:
   int_column:
     dtype: int64
@@ -653,7 +655,7 @@ strict: false
 
 YAML_SCHEMA_MISSING_GLOBAL_CHECK_DICT_CHECK = f"""
 schema_type: dataframe
-version: {pandera.__version__}
+version: {_PANDERA_VERSION}
 columns:
   int_column:
     dtype: int64
@@ -674,7 +676,7 @@ strict: false
 
 YAML_SCHEMA_MISSING_COLUMN_CHECK = f"""
 schema_type: dataframe
-version: {pandera.__version__}
+version: {_PANDERA_VERSION}
 columns:
   int_column:
     dtype: int64
@@ -696,7 +698,7 @@ strict: false
 
 YAML_SCHEMA_MISSING_COLUMN_CHECK_DICT_CHECK = f"""
 schema_type: dataframe
-version: {pandera.__version__}
+version: {_PANDERA_VERSION}
 columns:
   int_column:
     dtype: int64
@@ -718,7 +720,7 @@ strict: false
 
 YAML_SCHEMA_NO_DESCR_NO_TITLE = f"""
 schema_type: dataframe
-version: {pandera.__version__}
+version: {_PANDERA_VERSION}
 columns:
   int_column:
     title: null
@@ -903,7 +905,7 @@ description: null
 
 YAML_SCHEMA_NO_DESCR_NO_TITLE_DICT_CHECK = f"""
 schema_type: dataframe
-version: {pandera.__version__}
+version: {_PANDERA_VERSION}
 columns:
   int_column:
     title: null
@@ -1272,7 +1274,7 @@ def test_from_yaml_retains_ordered_keyword(is_ordered, test_data, expected):
     """Test that from_yaml() retains the 'ordered' keyword."""
     yaml_schema = f"""
     schema_type: dataframe
-    version: {pandera.__version__}
+    version: {_PANDERA_VERSION}
     columns:
         a:
             dtype: int64
@@ -1828,7 +1830,7 @@ INT_DTYPE_ALIAS = str(pandas_engine.Engine.dtype("int"))
 
 YAML_FROM_FRICTIONLESS = f"""
 schema_type: dataframe
-version: {pandera.__version__}
+version: {_PANDERA_VERSION}
 columns:
   integer_col:
     title: null
