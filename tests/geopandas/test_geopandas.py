@@ -5,7 +5,7 @@ import pandas as pd
 import pytest
 from shapely.geometry import Point, Polygon
 
-import pandera.pandas as pa
+import pandera.geopandas as pg
 from pandera.engines.geopandas_engine import Geometry
 from pandera.typing import Series
 from pandera.typing.geopandas import GeoDataFrame, GeoSeries
@@ -28,9 +28,9 @@ def test_dataframe_schema():
     )
 
     for geo_schema in [
-        pa.DataFrameSchema({"geometry": pa.Column("geometry")}),
-        pa.DataFrameSchema({"geometry": pa.Column(gpd.array.GeometryDtype)}),
-        pa.DataFrameSchema({"geometry": pa.Column(gpd.array.GeometryDtype())}),
+        pg.DataFrameSchema({"geometry": pg.Column("geometry")}),
+        pg.DataFrameSchema({"geometry": pg.Column(gpd.array.GeometryDtype)}),
+        pg.DataFrameSchema({"geometry": pg.Column(gpd.array.GeometryDtype())}),
     ]:
         assert isinstance(geo_schema.validate(geo_df), gpd.GeoDataFrame)
 
@@ -46,11 +46,11 @@ def test_dataframe_schema():
 def test_schema_model(data, invalid: bool):
     """Test that DataFrameModel works on GeoDataFrames."""
 
-    class Schema(pa.DataFrameModel):
+    class Schema(pg.DataFrameModel):
         # pylint: disable=missing-class-docstring
         geometry: GeoSeries
 
-        @pa.check("geometry")
+        @pg.check("geometry")
         @classmethod
         def geo_check(cls, geo_series: GeoSeries) -> Series[bool]:
             # pylint: disable=missing-function-docstring
@@ -58,7 +58,7 @@ def test_schema_model(data, invalid: bool):
 
     # create a geodataframe that's validated on object initialization
     if invalid:
-        with pytest.raises(pa.errors.SchemaError):
+        with pytest.raises(pg.errors.SchemaError):
             GeoDataFrame[Schema]({"geometry": data})
         return
 
@@ -100,7 +100,7 @@ def test_schema_dtype_crs_without_coerce(gdf_args, invalid: bool):
     """Test Geometry crs annotation without coerce."""
 
     # No CRS to validate
-    class Schema(pa.DataFrameModel):
+    class Schema(pg.DataFrameModel):
         # pylint: disable=missing-class-docstring
         geometry: Geometry(crs="EPSG:4326")  # type: ignore
 
@@ -146,7 +146,7 @@ def test_schema_dtype_crs_with_coerce(gdf_args, invalid: bool):
     """Test Geometry crs annotation with coerce."""
 
     # No CRS to validate
-    class Schema(pa.DataFrameModel):
+    class Schema(pg.DataFrameModel):
         # pylint: disable=missing-class-docstring
         geometry: Geometry(crs="EPSG:4326")  # type: ignore
 
@@ -169,13 +169,13 @@ def test_schema_parametrized_crs():
 
     gdf = gpd.GeoDataFrame({"geometry": [Point([1, 1])]}, crs="EPSG:4326")
 
-    class Schema1(pa.DataFrameModel):
+    class Schema1(pg.DataFrameModel):
         # pylint: disable=missing-class-docstring
-        geometry: Geometry = pa.Field(dtype_kwargs={"crs": "EPSG:4326"})
+        geometry: Geometry = pg.Field(dtype_kwargs={"crs": "EPSG:4326"})
 
     assert isinstance(GeoDataFrame[Schema1](gdf), gpd.GeoDataFrame)
 
-    class Schema2(pa.DataFrameModel):
+    class Schema2(pg.DataFrameModel):
         # pylint: disable=missing-class-docstring
         geometry: Annotated[Geometry, "EPSG:4326"]
 
@@ -185,10 +185,10 @@ def test_schema_parametrized_crs():
 def test_schema_multiple_geometry_same_crs():
     """Test GeoDataFrame with multiple GeoSeries columns on same CRS"""
 
-    class Schema(pa.DataFrameModel):
+    class Schema(pg.DataFrameModel):
         # pylint: disable=missing-class-docstring
-        geometry: Geometry = pa.Field(dtype_kwargs={"crs": "EPSG:4326"})
-        random: Geometry = pa.Field(dtype_kwargs={"crs": "EPSG:4326"})
+        geometry: Geometry = pg.Field(dtype_kwargs={"crs": "EPSG:4326"})
+        random: Geometry = pg.Field(dtype_kwargs={"crs": "EPSG:4326"})
 
     data = {
         "geometry": gpd.GeoSeries(
@@ -208,10 +208,10 @@ def test_schema_multiple_geometry_same_crs():
 def test_schema_multiple_geometry_different_crs():
     """Test GeoDataFrame with multiple GeoSeries columns on different CRS"""
 
-    class Schema(pa.DataFrameModel):
+    class Schema(pg.DataFrameModel):
         # pylint: disable=missing-class-docstring
-        geometry: Geometry = pa.Field(dtype_kwargs={"crs": "EPSG:4326"})
-        random: Geometry = pa.Field(dtype_kwargs={"crs": "EPSG:3857"})
+        geometry: Geometry = pg.Field(dtype_kwargs={"crs": "EPSG:4326"})
+        random: Geometry = pg.Field(dtype_kwargs={"crs": "EPSG:3857"})
 
         class Config:
             # pylint: disable=missing-class-docstring
@@ -276,7 +276,7 @@ def test_schema_multiple_geometry_different_crs():
 def test_schema_from_dataframe(data, invalid: bool):
     """Test that DataFrameModel works on gpd.GeoDataFrame or pd.DataFrame input."""
 
-    class Schema(pa.DataFrameModel):
+    class Schema(pg.DataFrameModel):
         # pylint: disable=missing-class-docstring
         geometry: GeoSeries
 
@@ -285,7 +285,7 @@ def test_schema_from_dataframe(data, invalid: bool):
 
     # create a geodataframe that's validated on object initialization
     if invalid:
-        with pytest.raises((pa.errors.SchemaError, pa.errors.SchemaErrors)):
+        with pytest.raises((pg.errors.SchemaError, pg.errors.SchemaErrors)):
             GeoDataFrame[Schema](data)
         return
 
@@ -295,7 +295,7 @@ def test_schema_from_dataframe(data, invalid: bool):
 def test_schema_no_geometry():
     """Test that GeoDataFrame can be constructed from data without a Geometry column."""
 
-    class Schema(pa.DataFrameModel):
+    class Schema(pg.DataFrameModel):
         # pylint: disable=missing-class-docstring
         name: str
 
@@ -303,3 +303,156 @@ def test_schema_no_geometry():
     assert isinstance(
         GeoDataFrame[Schema]({"name": ["a", "b"]}), gpd.GeoDataFrame
     )
+
+
+def test_geodataframe_model_validate_returns_geodataframe():
+    """GeoDataFrameModel.validate always yields a geopandas.GeoDataFrame."""
+
+    class GSchema(pg.GeoDataFrameModel):
+        # pylint: disable=missing-class-docstring
+        geometry: GeoSeries
+        region: Series[str]
+
+    gdf = gpd.GeoDataFrame(
+        {
+            "geometry": [
+                Polygon(((0, 0), (0, 1), (1, 1), (1, 0))),
+            ],
+            "region": ["NA"],
+        },
+        crs="EPSG:4326",
+    )
+    out = GSchema.validate(gdf)
+    assert isinstance(out, gpd.GeoDataFrame)
+    assert out.crs == gdf.crs
+
+    pdf = pd.DataFrame(
+        {
+            "geometry": gdf["geometry"],
+            "region": gdf["region"],
+        }
+    )
+    out_pdf = GSchema.validate(pdf)
+    assert isinstance(out_pdf, gpd.GeoDataFrame)
+
+
+def test_geodataframe_model_vs_dataframe_model_return_type():
+    """DataFrameModel may return a plain DataFrame; GeoDataFrameModel coerces."""
+
+    data = {
+        "geometry": [
+            Polygon(((0, 0), (0, 1), (1, 1), (1, 0))),
+        ],
+        "name": ["a"],
+    }
+
+    class PSchema(pg.DataFrameModel):
+        # pylint: disable=missing-class-docstring
+        geometry: GeoSeries
+        name: str
+
+        class Config:
+            coerce = True
+
+    class GSchema(pg.GeoDataFrameModel):
+        # pylint: disable=missing-class-docstring
+        geometry: GeoSeries
+        name: str
+
+        class Config:
+            coerce = True
+
+    pdf = pd.DataFrame(data)
+    p_out = PSchema.validate(pdf)
+    g_out = GSchema.validate(pdf)
+    assert type(p_out) is pd.DataFrame
+    assert isinstance(g_out, gpd.GeoDataFrame)
+
+
+def test_geodataframe_model_init_alias():
+    """Calling GeoDataFrameModel(...) delegates to validate like DataFrameModel."""
+
+    class GSchema(pg.GeoDataFrameModel):
+        # pylint: disable=missing-class-docstring
+        geometry: GeoSeries
+
+    gdf = gpd.GeoDataFrame(
+        {"geometry": [Polygon(((0, 0), (0, 1), (1, 1), (1, 0)))]},
+        crs="EPSG:4326",
+    )
+    assert isinstance(GSchema(gdf), gpd.GeoDataFrame)
+
+
+def test_geodataframe_model_with_typing_generic():
+    """GeoDataFrame[GSchema] works when GSchema subclasses GeoDataFrameModel."""
+
+    class GSchema(pg.GeoDataFrameModel):
+        # pylint: disable=missing-class-docstring
+        geometry: GeoSeries
+        x: Series[int]
+
+    gdf = GeoDataFrame[GSchema](
+        {
+            "geometry": [Point(0, 0)],
+            "x": [1],
+        }
+    )
+    assert isinstance(gdf, gpd.GeoDataFrame)
+
+
+def test_geodataframe_schema_validate_returns_geodataframe():
+    """GeoDataFrameSchema.validate coerces plain DataFrames to GeoDataFrame."""
+    schema = pg.GeoDataFrameSchema(
+        {
+            "geometry": pg.Column("geometry", coerce=True),
+            "region": pg.Column(str),
+        }
+    )
+    gdf = gpd.GeoDataFrame(
+        {
+            "geometry": [
+                Polygon(((0, 0), (0, 1), (1, 1), (1, 0))),
+            ],
+            "region": ["NA"],
+        },
+        crs="EPSG:4326",
+    )
+    assert isinstance(schema.validate(gdf), gpd.GeoDataFrame)
+
+    pdf = pd.DataFrame(
+        {
+            "geometry": gdf["geometry"],
+            "region": gdf["region"],
+        }
+    )
+    assert isinstance(schema.validate(pdf), gpd.GeoDataFrame)
+
+
+def test_geodataframe_schema_vs_dataframe_schema_return_type():
+    """DataFrameSchema may return a plain DataFrame; GeoDataFrameSchema coerces."""
+    cols = {
+        "geometry": pg.Column("geometry", coerce=True),
+        "name": pg.Column(str),
+    }
+    pdf = pd.DataFrame(
+        {
+            "geometry": [Polygon(((0, 0), (0, 1), (1, 1), (1, 0)))],
+            "name": ["a"],
+        }
+    )
+    p_out = pg.DataFrameSchema(cols).validate(pdf)
+    g_out = pg.GeoDataFrameSchema(cols).validate(pdf)
+    assert type(p_out) is pd.DataFrame
+    assert isinstance(g_out, gpd.GeoDataFrame)
+
+
+def test_geopandas_module_exports():
+    """pandera.geopandas re-exports pandera.pandas plus geo schema/model."""
+    import pandera.geopandas as pgeo
+    import pandera.pandas as pa
+
+    assert set(pa.__all__).issubset(set(pgeo.__all__))
+    assert len(pgeo.__all__) == len(pa.__all__) + 2
+    assert issubclass(pgeo.GeoDataFrameModel, pa.DataFrameModel)
+    assert pgeo.Column is pa.Column
+    assert pgeo.errors is pa.errors

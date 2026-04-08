@@ -159,6 +159,20 @@ DataFrame[Schema](
 Refer to {ref}`supported-dataframe-libraries` to see how this syntax applies
 to other supported dataframe types.
 
+## GeoPandas `GeoDataFrameModel`
+
+For {class}`geopandas.GeoDataFrame` workflows, use ``import pandera.geopandas as pg``
+(the module includes the full :mod:`pandera.pandas` API) and subclass
+{py:class}`~pandera.geopandas.GeoDataFrameModel` instead of
+{py:class}`~pandera.api.pandas.model.DataFrameModel` when you need
+{meth}`~pandera.api.geopandas.model.GeoDataFrameModel.validate` (and
+{meth}`~pandera.api.geopandas.model.GeoDataFrameModel.example`,
+{meth}`~pandera.api.geopandas.model.GeoDataFrameModel.empty`) to return a
+`GeoDataFrame`, preserving active geometry and CRS metadata after validation.
+For the object-based API, use {py:class}`~pandera.geopandas.GeoDataFrameSchema`.
+Field definitions, checks, parsers, and `Config` work the same as for
+`DataFrameModel`; see {ref}`supported-lib-geopandas` and :ref:`api-geopandas`.
+
 ## Converting to DataFrameSchema
 
 You can easily convert a {class}`~pandera.api.pandas.model.DataFrameModel` class into a

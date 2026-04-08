@@ -18,6 +18,7 @@ pandera/                  # Main package
 ├── api/                  # Public validation API (backend-specific schemas/models)
 │   ├── base/             # Abstract base classes (BaseSchema, BaseCheck, etc.)
 │   ├── pandas/           # Pandas DataFrameSchema, Column, Index, DataFrameModel
+│   ├── geopandas/        # GeoDataFrameSchema, GeoDataFrameModel (pandas-backed)
 │   ├── polars/           # Polars schema and model implementations
 │   ├── pyspark/          # PySpark schema and model implementations
 │   ├── ibis/             # Ibis schema and model implementations
@@ -51,6 +52,7 @@ pandera/                  # Main package
 ├── errors.py             # SchemaError, SchemaInitError, ParserError, etc.
 ├── extensions.py         # Custom check/parser extension mechanism
 ├── pandas.py             # Pandas entry point: `import pandera.pandas as pa`
+├── geopandas.py          # GeoPandas entry (`pg`): pandas API + GeoDataFrameSchema/Model
 ├── polars.py             # Polars entry point: `import pandera.polars as pa`
 ├── pyspark.py            # PySpark entry point: `import pandera.pyspark as pa`
 └── ibis.py               # Ibis entry point: `import pandera.ibis as pa`
