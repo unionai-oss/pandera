@@ -1401,6 +1401,35 @@ def test_io_json(index):
         assert schema_from_json == schema
 
 
+def test_io_json_with_multiindex_column_labels():
+    """Test JSON serialization for schemas with tuple column labels."""
+    import json
+
+    schema = pandera.DataFrameSchema(
+        {
+            ("level1", "col_a"): pandera.Column(float),
+            ("level1", "col_b"): pandera.Column(float),
+            ("level2", "col_c"): pandera.Column(int),
+        }
+    )
+    dataframe = pd.DataFrame(
+        {
+            ("level1", "col_a"): [1.0, 2.0, 3.0],
+            ("level1", "col_b"): [4.0, 5.0, 6.0],
+            ("level2", "col_c"): [7, 8, 9],
+        }
+    )
+
+    validated = schema.validate(dataframe)
+    serialized = schema.to_json()
+    restored = schema.from_json(serialized)
+
+    assert isinstance(serialized, str)
+    assert isinstance(json.loads(serialized)["columns"], list)
+    assert restored == schema
+    pd.testing.assert_frame_equal(restored.validate(validated), validated)
+
+
 def test_check_custom_error_json_serialization_roundtrip():
     """Test that custom check errors are serialized and deserialized via JSON."""
     import json

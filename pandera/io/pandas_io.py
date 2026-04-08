@@ -161,6 +161,20 @@ def _serialize_component_stats(component_stats):
     }
 
 
+def _serialize_column_name(col_name):
+    """Serialize column names that are not valid JSON object keys."""
+    if isinstance(col_name, tuple):
+        return list(col_name)
+    return col_name
+
+
+def _deserialize_column_name(col_name):
+    """Deserialize column names from json-compatible representation."""
+    if isinstance(col_name, list):
+        return tuple(col_name)
+    return col_name
+
+
 def serialize_schema(dataframe_schema):
     """Serialize dataframe schema into into json/yaml-compatible format."""
     from pandera import __version__
@@ -169,10 +183,19 @@ def serialize_schema(dataframe_schema):
 
     columns, index, checks = None, None, None
     if statistics["columns"] is not None:
-        columns = {
-            col_name: _serialize_component_stats(column_stats)
-            for col_name, column_stats in statistics["columns"].items()
-        }
+        columns = statistics["columns"]
+        if all(isinstance(col_name, str) for col_name in columns):
+            columns = {
+                col_name: _serialize_component_stats(column_stats)
+                for col_name, column_stats in columns.items()
+            }
+        else:
+            serialized_columns = []
+            for col_name, column_stats in columns.items():
+                serialized_column = _serialize_component_stats(column_stats)
+                serialized_column["name"] = _serialize_column_name(col_name)
+                serialized_columns.append(serialized_column)
+            columns = serialized_columns
 
     if statistics["index"] is not None:
         index = [
@@ -320,10 +343,24 @@ def deserialize_schema(serialized_schema):
     checks = serialized_schema.get("checks")
 
     if columns is not None:
-        columns = {
-            col_name: Column(**_deserialize_component_stats(column_stats))
-            for col_name, column_stats in columns.items()
-        }
+        if isinstance(columns, list):
+            deserialized_columns = {}
+            for column_stats in columns:
+                col_name = _deserialize_column_name(column_stats.get("name"))
+                component_stats = {
+                    key: value
+                    for key, value in column_stats.items()
+                    if key != "name"
+                }
+                deserialized_columns[col_name] = Column(
+                    **_deserialize_component_stats(component_stats)
+                )
+            columns = deserialized_columns
+        else:
+            columns = {
+                col_name: Column(**_deserialize_component_stats(column_stats))
+                for col_name, column_stats in columns.items()
+            }
 
     if index is not None:
         index = [
