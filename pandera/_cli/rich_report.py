@@ -316,6 +316,24 @@ def _shorten_message(msg: str, max_len: int = 100) -> str:
     return msg[: max_len - 1] + "…"
 
 
+def _format_failure_cases(failure_cases: Any) -> str:
+    """Format :attr:`~pandera.errors.SchemaError.failure_cases` for the CLI."""
+    if failure_cases is None:
+        return "—"
+    try:
+        import pandas as pd
+
+        if isinstance(failure_cases, pd.DataFrame):
+            text = failure_cases.to_string(max_rows=10, max_cols=10)
+            return _shorten_message(text, max_len=400)
+        if isinstance(failure_cases, pd.Series):
+            text = failure_cases.to_string(max_rows=15)
+            return _shorten_message(text, max_len=400)
+    except Exception:
+        pass
+    return _shorten_message(str(failure_cases), max_len=400)
+
+
 def _normalize_errors(exc: SchemaError | SchemaErrors) -> list[SchemaError]:
     if isinstance(exc, SchemaErrors):
         return list(exc.schema_errors)
@@ -413,7 +431,8 @@ def print_validation_failure(
         fail_tbl.add_column("Level")
         fail_tbl.add_column("Target")
         fail_tbl.add_column("Reason")
-        fail_tbl.add_column("Message")
+        fail_tbl.add_column("Failure cases", overflow="fold")
+        fail_tbl.add_column("Message", overflow="fold")
         for err in errors:
             tgt = err.column_name if err.column_name is not None else "—"
             rc = err.reason_code.value if err.reason_code else "—"
@@ -421,16 +440,20 @@ def print_validation_failure(
                 _reason_group(err.reason_code),
                 str(tgt),
                 rc,
+                _format_failure_cases(err.failure_cases),
                 _shorten_message(str(err)),
             )
         console.print(
-            Panel.fit(
+            Panel(
                 main,
                 title="[bold red]Validation failed[/bold red]",
                 border_style="red",
+                expand=True,
             )
         )
-        console.print(Panel.fit(fail_tbl, border_style="red"))
+        console.print(
+            Panel(fail_tbl, border_style="red", expand=True),
+        )
     except ImportError:
         print("Validation failed.")
         for row in plan:
@@ -439,6 +462,9 @@ def print_validation_failure(
             print(f"  [{lvl}] {row.target}: {row.requirement} — {st}")
         for err in errors:
             print(f"  ! {_shorten_message(str(err))}")
+            fc = _format_failure_cases(err.failure_cases)
+            if fc != "—":
+                print(f"    failure cases: {fc}")
 
 
 def _file_brief(path: Path) -> str:

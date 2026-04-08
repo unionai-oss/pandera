@@ -40,14 +40,20 @@ def infer_series_statistics(series: pd.Series) -> dict[str, Any]:
 
 
 def infer_index_statistics(index: Union[pd.Index, pd.MultiIndex]):
-    """Infer index statistics given a pandas Index object."""
+    """Infer index statistics given a pandas Index object.
+
+    Only dtype, nullability, and level names are inferred; index levels do not
+    receive inferred checks (unlike dataframe columns).
+    """
 
     def _index_stats(index_level):
         dtype = _get_array_type(index_level)
         return {
             "dtype": dtype,
             "nullable": bool(index_level.isna().any()),
-            "checks": _get_array_check_statistics(index_level, dtype),
+            # Index dtypes are inferred only; do not attach min/max, str_length,
+            # isin, etc. (unlike columns).
+            "checks": None,
             "name": index_level.name,
         }
 

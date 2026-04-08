@@ -33,7 +33,33 @@ EOF
 Write an inferred schema to `/tmp/schema.json`:
 
 ```bash
-pandera infer -d /tmp/dataset.csv -o /tmp/schema.json
+pandera infer -d /tmp/dataset.csv -o /tmp/schema.yaml
+```
+
+You can view the yaml schema with
+
+```bash
+cat /tmp/schema.yaml
+```
+
+```yaml
+schema_type: dataframe
+columns:
+  id:
+    dtype: int64
+    greater_than_or_equal_to: 1.0
+    less_than_or_equal_to: 3.0
+  name:
+    dtype: object
+    str_length:
+      min_value: 3
+      max_value: 5
+      exact_value: null
+index:
+- dtype: int64
+  greater_than_or_equal_to: 0.0
+  less_than_or_equal_to: 2.0
+coerce: true
 ```
 
 You should see a short summary (paths, shape, columns) and a line that the
@@ -42,7 +68,28 @@ schema was written successfully.
 ## Validate the good data
 
 ```bash
-pandera validate -s /tmp/schema.json -d /tmp/dataset.csv
+pandera validate -s /tmp/schema.yaml -d /tmp/dataset.csv
+```
+
+```
+╭──────────────────────────── Validation succeeded ────────────────────────────╮
+│                                    Checks                                    │
+│ ┏━━━━━━━━━┳━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━┓ │
+│ ┃ Level   ┃ Target    ┃ Requirement                              ┃ Status  ┃ │
+│ ┡━━━━━━━━━╇━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━┩ │
+│ │ data    │ index     │ dtype: int64                             │ passed  │ │
+│ │ data    │ index     │ non-null values                          │ passed  │ │
+│ │ data    │ id        │ column present                           │ passed  │ │
+│ │ data    │ id        │ dtype: int64                             │ passed  │ │
+│ │ data    │ id        │ non-null values                          │ passed  │ │
+│ │ data    │ id        │ check: greater_than_or_equal_to          │ passed  │ │
+│ │ data    │ id        │ check: less_than_or_equal_to             │ passed  │ │
+│ │ data    │ name      │ column present                           │ passed  │ │
+│ │ data    │ name      │ dtype: object                            │ passed  │ │
+│ │ data    │ name      │ non-null values                          │ passed  │ │
+│ │ data    │ name      │ check: str_length                        │ passed  │ │
+│ └─────────┴───────────┴──────────────────────────────────────────┴─────────┘ │
+╰─────────── All listed schema- and data-level requirements passed. ───────────╯
 ```
 
 You should see a **Validation succeeded** report (Rich tables if Rich is
@@ -64,24 +111,67 @@ EOF
 ## Validate the invalid data
 
 ```bash
-pandera validate -s /tmp/schema.json -d /tmp/invalid_dataset.csv
+pandera validate -s /tmp/schema.yaml -d /tmp/invalid_dataset.csv
+```
+
+
+```
+╭───────────────────────────── Validation failed ──────────────────────────────╮
+│                                Check results                                 │
+│ ┏━━━━━━━━━┳━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━┓ │
+│ ┃ Level   ┃ Target    ┃ Requirement                              ┃ Status  ┃ │
+│ ┡━━━━━━━━━╇━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━┩ │
+│ │ data    │ index     │ dtype: int64                             │ passed  │ │
+│ │ data    │ index     │ non-null values                          │ passed  │ │
+│ │ data    │ id        │ column present                           │ passed  │ │
+│ │ data    │ id        │ dtype: int64                             │ failed  │ │
+│ │ data    │ id        │ non-null values                          │ passed  │ │
+│ │ data    │ id        │ check: greater_than_or_equal_to          │ failed  │ │
+│ │ data    │ id        │ check: less_than_or_equal_to             │ failed  │ │
+│ │ data    │ name      │ column present                           │ passed  │ │
+│ │ data    │ name      │ dtype: object                            │ passed  │ │
+│ │ data    │ name      │ non-null values                          │ passed  │ │
+│ │ data    │ name      │ check: str_length                        │ passed  │ │
+│ └─────────┴───────────┴──────────────────────────────────────────┴─────────┘ │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭──────────────────────────────────────────────────────────────────────────────╮
+│                               Failure details                                │
+│ ┏━━━━━━━┳━━━━━━━━┳━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━┓ │
+│ ┃ Level ┃ Target ┃ Reason           ┃ Failure cases    ┃ Message           ┃ │
+│ ┡━━━━━━━╇━━━━━━━━╇━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━┩ │
+│ │ data  │ —      │ dtype_coercion_… │ index            │ Error while       │ │
+│ │       │        │                  │ failure_case 0 0 │ coercing 'id' to  │ │
+│ │       │        │                  │ x                │ type int64: Could │ │
+│ │       │        │                  │                  │ not coerce <class │ │
+│ │       │        │                  │                  │ 'pandas.core.seri │ │
+│ │       │        │                  │                  │ es.Series'>       │ │
+│ │       │        │                  │                  │ data_…            │ │
+│ │ data  │ id     │ wrong_dtype      │ index            │ expected series   │ │
+│ │       │        │                  │ failure_case 0 0 │ 'id' to have type │ │
+│ │       │        │                  │ x                │ int64, got object │ │
+│ │ data  │ id     │ check_error      │ TypeError("'>='  │ Error while       │ │
+│ │       │        │                  │ not supported    │ executing check   │ │
+│ │       │        │                  │ between          │ function:         │ │
+│ │       │        │                  │ instances of     │ TypeError("'>='   │ │
+│ │       │        │                  │ 'str' and        │ not supported     │ │
+│ │       │        │                  │ 'float'")        │ between instances │ │
+│ │       │        │                  │                  │ of 'str' and …    │ │
+│ │ data  │ id     │ check_error      │ TypeError("'<='  │ Error while       │ │
+│ │       │        │                  │ not supported    │ executing check   │ │
+│ │       │        │                  │ between          │ function:         │ │
+│ │       │        │                  │ instances of     │ TypeError("'<='   │ │
+│ │       │        │                  │ 'str' and        │ not supported     │ │
+│ │       │        │                  │ 'float'")        │ between instances │ │
+│ │       │        │                  │                  │ of 'str' and …    │ │
+│ └───────┴────────┴──────────────────┴──────────────────┴───────────────────┘ │
+╰──────────────────────────────────────────────────────────────────────────────╯
 ```
 
 This should exit with a **non-zero** status. You should see **Validation failed**
 on standard error plus tables listing which checks passed or failed and failure
 details (exact layout depends on your Pandera and Rich versions).
 
-## Generate synthetic data from the schema
-
-Create a new CSV of synthetic rows that satisfy the schema:
-
-```bash
-pandera generate -s /tmp/schema.json -o /tmp/generated.csv --size 5
-```
-
-Open `/tmp/generated.csv` to inspect the generated rows.
-
-:::{note}
+:::{important}
 **Other backends and formats**
 
 The same CLI supports **Polars**, **PySpark**, **Ibis**, and other loaders

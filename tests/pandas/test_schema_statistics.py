@@ -386,10 +386,7 @@ def test_empty_series_schema_statistics(null_values, dtype):
                     "name": None,
                     "dtype": DEFAULT_INT,
                     "nullable": False,
-                    "checks": {
-                        "greater_than_or_equal_to": 0,
-                        "less_than_or_equal_to": 19,
-                    },
+                    "checks": None,
                 }
             ],
         ],
@@ -400,10 +397,7 @@ def test_empty_series_schema_statistics(null_values, dtype):
                     "name": "int_index",
                     "dtype": DEFAULT_INT,
                     "nullable": False,
-                    "checks": {
-                        "greater_than_or_equal_to": 1,
-                        "less_than_or_equal_to": 3,
-                    },
+                    "checks": None,
                 }
             ],
         ],
@@ -419,9 +413,7 @@ def test_empty_series_schema_statistics(null_values, dtype):
                         else pandas_engine.Engine.dtype("object")
                     ),
                     "nullable": False,
-                    "checks": {
-                        "str_length": {"min_value": 3, "max_value": 3},
-                    },
+                    "checks": None,
                 },
             ],
         ],
@@ -435,16 +427,13 @@ def test_empty_series_schema_statistics(null_values, dtype):
                     "name": "int_index",
                     "dtype": DEFAULT_INT,
                     "nullable": False,
-                    "checks": {
-                        "greater_than_or_equal_to": 10,
-                        "less_than_or_equal_to": 12,
-                    },
+                    "checks": None,
                 },
                 {
                     "name": "str_index",
                     "dtype": pandas_engine.Engine.dtype(pa.Category),
                     "nullable": False,
-                    "checks": {"isin": ["a", "b", "c"]},
+                    "checks": None,
                 },
             ],
         ],
