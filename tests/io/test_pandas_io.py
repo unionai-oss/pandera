@@ -2160,7 +2160,7 @@ def test_frictionless_schema_primary_key(frictionless_schema):
 def test_frictionless_schema_with_description_and_title(
     frictionless_schema: dict[str, str],
 ):
-    schema = pandera.io.from_frictionless_schema(frictionless_schema)
+    schema = io.from_frictionless_schema(frictionless_schema)
     assert schema.columns["street_id"].description == "Id of the street"
     assert schema.columns["street_id"].title == "street identifier"
 
