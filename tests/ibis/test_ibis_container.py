@@ -1,5 +1,6 @@
 """Unit tests for Ibis container."""
 
+from types import SimpleNamespace
 from typing import Optional
 
 import ibis
@@ -12,6 +13,8 @@ from ibis import selectors as s
 
 import pandera as pa
 from pandera.api.ibis.types import IbisData
+from pandera.backends.ibis.base import IbisSchemaBackend
+from pandera.constants import CHECK_OUTPUT_KEY
 from pandera.dtypes import UniqueSettings
 from pandera.ibis import Column, DataFrameSchema
 
@@ -315,6 +318,56 @@ def test_failed_cases_index_for_dataframe_check():
         schema.validate(t, lazy=True)
 
     assert err.value.failure_cases["index"].to_list() == [1, 3]
+
+
+@pytest.mark.parametrize(
+    "check_output",
+    [
+        pd.Series([True, False, True, False], name=CHECK_OUTPUT_KEY),
+        pd.DataFrame({CHECK_OUTPUT_KEY: [True, False, True, False]}),
+    ],
+)
+def test_run_check_preserves_failed_index_for_materialized_output(
+    check_output,
+):
+    """run_check should preserve failed row positions in failure_cases."""
+
+    class _FakeExpr:
+        def __init__(self, pandas_obj=None, execute_value=None):
+            self._pandas_obj = pandas_obj
+            self._execute_value = execute_value
+
+        def execute(self):
+            return self._execute_value
+
+        def to_pandas(self):
+            return self._pandas_obj
+
+    class _FakeCheck:
+        ignore_na = True
+        raise_warning = False
+
+        def __init__(self, result):
+            self._result = result
+
+        def __call__(self, *_args, **_kwargs):
+            return self._result
+
+    check_result = SimpleNamespace(
+        check_passed=_FakeExpr(execute_value=False),
+        failure_cases=_FakeExpr(pandas_obj=pd.DataFrame({"a": [0, 0]})),
+        check_output=_FakeExpr(pandas_obj=check_output),
+    )
+    schema = SimpleNamespace(name="schema")
+
+    result = IbisSchemaBackend().run_check(
+        check_obj=ibis.memtable({"a": [10, 0, 20, 0]}),
+        schema=schema,
+        check=_FakeCheck(check_result),
+        check_index=0,
+    )
+
+    assert result.failure_cases["index"].to_list() == [1, 3]
 
 
 @pytest.mark.parametrize(
