@@ -14,6 +14,8 @@
 
    * - :ref:`Core <api-core>`
      - The core objects for defining pandera schemas
+   * - :ref:`GeoPandas <api-geopandas>`
+     - ``GeoDataFrameSchema`` and ``GeoDataFrameModel`` entry point
    * - :ref:`Data Types <api-dtypes>`
      - Data types for type checking and coercion.
    * - :ref:`DataFrame Models <api-dataframe-models>`
@@ -70,6 +72,7 @@ See :ref:`api-core` for full details.
 :hidden: true
 
 core
+geopandas
 dtypes
 dataframe_models
 decorators

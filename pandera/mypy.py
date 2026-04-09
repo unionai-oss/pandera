@@ -23,7 +23,10 @@ from mypy.types import CallableType, Instance, UnionType
 DATAFRAMEMODEL_FULLNAMES = {
     "pandera.api.dataframe.model.DataFrameModel",
     "pandera.api.pandas.model.DataFrameModel",
+    "pandera.api.geopandas.GeoDataFrameModel",
+    "pandera.api.geopandas.model.GeoDataFrameModel",
     "pandera.pandas.DataFrameModel",
+    "pandera.geopandas.GeoDataFrameModel",
     "pandera._pandas_deprecated.DataFrameModel",
 }
 PANDERA_PANDAS_DATAFRAME_FULLNAME = "pandera.typing.pandas.DataFrame"

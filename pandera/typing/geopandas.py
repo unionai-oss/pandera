@@ -122,7 +122,8 @@ if GEOPANDAS_INSTALLED:
         def from_format(cls, obj: Any, config) -> gpd.GeoDataFrame:
             """
             Converts serialized data from a specific format
-            specified in the :py:class:`pandera.api.pandas.model.DataFrameModel` config options
+            specified in the :py:class:`pandera.api.pandas.model.DataFrameModel` or
+            :py:class:`pandera.geopandas.GeoDataFrameModel` config options
             ``from_format`` and ``from_format_kwargs``.
 
             :param obj: object representing a serialized dataframe.
@@ -167,8 +168,9 @@ if GEOPANDAS_INSTALLED:
         def to_format(cls, data: gpd.GeoDataFrame, config) -> Any:
             """
             Converts a geodataframe to the format specified in the
-            :py:class:`pandera.api.pandas.model.DataFrameModel` config options ``to_format``
-            and ``to_format_kwargs``.
+            :py:class:`pandera.api.pandas.model.DataFrameModel` or
+            :py:class:`pandera.geopandas.GeoDataFrameModel` config options
+            ``to_format`` and ``to_format_kwargs``.
 
             :param data: convert this data to the specified format
             :param config: :py:cl

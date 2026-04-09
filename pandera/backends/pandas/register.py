@@ -39,6 +39,7 @@ def register_pandas_backends(
         DataFrameSchema as _DataFrameSchemaDeprecated,
     )
     from pandera.api.checks import Check
+    from pandera.api.geopandas.container import GeoDataFrameSchema
     from pandera.api.hypotheses import Hypothesis
     from pandera.api.pandas.array import SeriesSchema
     from pandera.api.pandas.components import Column, Index, MultiIndex
@@ -61,6 +62,8 @@ def register_pandas_backends(
 
     for t in backend_types.dataframe_datatypes:
         DataFrameSchema.register_backend(t, DataFrameSchemaBackend)
+        # Same pandas backend; GeoDataFrameSchema only changes validate output.
+        GeoDataFrameSchema.register_backend(t, DataFrameSchemaBackend)
         _DataFrameSchemaDeprecated.register_backend(t, DataFrameSchemaBackend)
         Column.register_backend(t, ColumnBackend)
         MultiIndex.register_backend(t, MultiIndexBackend)
