@@ -1555,7 +1555,7 @@ def test_to_script_lambda_check():
     )
 
     with pytest.warns(UserWarning):
-        pandera.io.to_script(schema1)
+        io.to_script(schema1)
 
     schema2 = pandera.DataFrameSchema(
         {
@@ -1567,7 +1567,7 @@ def test_to_script_lambda_check():
     )
 
     with pytest.warns(UserWarning, match=".*registered checks.*"):
-        pandera.io.to_script(schema2)
+        io.to_script(schema2)
 
 
 def test_to_yaml_lambda_check():
@@ -1584,7 +1584,7 @@ def test_to_yaml_lambda_check():
     )
 
     with pytest.warns(UserWarning):
-        pandera.io.to_yaml(schema)
+        io.to_yaml(schema)
 
 
 def test_format_checks_warning():
@@ -1626,8 +1626,8 @@ def test_to_yaml_registered_dataframe_check(_):
         checks=[pandera.Check.ncols_gt(column_count=5)],
     )
 
-    serialized = pandera.io.to_yaml(schema)
-    loaded = pandera.io.from_yaml(serialized)
+    serialized = io.to_yaml(schema)
+    loaded = io.from_yaml(serialized)
 
     assert len(loaded.checks) == 1, "global check was stripped"
 
@@ -1650,7 +1650,7 @@ def test_to_yaml_custom_dataframe_check():
     )
 
     with pytest.warns(UserWarning, match=".*registered checks.*"):
-        pandera.io.to_yaml(schema)
+        io.to_yaml(schema)
 
     # the unregistered column check case is tested in
     # `test_to_yaml_lambda_check`
@@ -2029,7 +2029,7 @@ INVALID_FRICTIONLESS_DF = pd.DataFrame(
 )
 def test_frictionless_schema_parses_correctly(frictionless_schema):
     """Test parsing frictionless schema from yaml and json."""
-    schema = pandera.io.from_frictionless_schema(frictionless_schema)
+    schema = io.from_frictionless_schema(frictionless_schema)
 
     assert str(schema.to_yaml()).strip() == YAML_FROM_FRICTIONLESS.strip()
 
@@ -2114,7 +2114,7 @@ def test_frictionless_schema_primary_key(frictionless_schema):
     If the primary key is only one field, the unique field should be in the
     column level and not the dataframe level.
     """
-    schema = pandera.io.from_frictionless_schema(frictionless_schema)
+    schema = io.from_frictionless_schema(frictionless_schema)
     if len(frictionless_schema["primaryKey"]) == 1:
         assert schema.columns[frictionless_schema["primaryKey"][0]].unique
         assert schema.unique is None
