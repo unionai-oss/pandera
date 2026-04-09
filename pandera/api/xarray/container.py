@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from typing import TYPE_CHECKING, Any, Optional, Union
 
 from pydantic import BaseModel
@@ -214,6 +215,45 @@ class DataArraySchema(_BaseDataArraySchema):
             lazy=lazy,
             inplace=inplace,
         )
+
+    def to_yaml(
+        self,
+        stream: os.PathLike | None = None,
+        *,
+        minimal: bool = True,
+    ) -> str | None:
+        """Write schema to YAML (see :mod:`pandera.io.xarray_io`)."""
+        from pandera.io import xarray_io
+
+        return xarray_io.to_yaml(self, stream=stream, minimal=minimal)
+
+    def to_json(
+        self,
+        target: os.PathLike | None = None,
+        *,
+        minimal: bool = True,
+        **kwargs,
+    ) -> str | None:
+        """Write schema to JSON (see :mod:`pandera.io.xarray_io`)."""
+        from pandera.io import xarray_io
+
+        return xarray_io.to_json(
+            self, target=target, minimal=minimal, **kwargs
+        )
+
+    @classmethod
+    def from_yaml(cls, yaml_schema) -> DataArraySchema:
+        """Load schema from YAML (see :mod:`pandera.io.xarray_io`)."""
+        from pandera.io import xarray_io
+
+        return xarray_io.from_yaml(yaml_schema)
+
+    @classmethod
+    def from_json(cls, source) -> DataArraySchema:
+        """Load schema from JSON (see :mod:`pandera.io.xarray_io`)."""
+        from pandera.io import xarray_io
+
+        return xarray_io.from_json(source)
 
     @staticmethod
     def register_default_backends(check_obj_cls: type):
@@ -519,6 +559,45 @@ class DatasetSchema(_BaseDatasetSchema):
             lazy=lazy,
             inplace=inplace,
         )
+
+    def to_yaml(
+        self,
+        stream: os.PathLike | None = None,
+        *,
+        minimal: bool = True,
+    ) -> str | None:
+        """Write schema to YAML (see :mod:`pandera.io.xarray_io`)."""
+        from pandera.io import xarray_io
+
+        return xarray_io.to_yaml(self, stream=stream, minimal=minimal)
+
+    def to_json(
+        self,
+        target: os.PathLike | None = None,
+        *,
+        minimal: bool = True,
+        **kwargs,
+    ) -> str | None:
+        """Write schema to JSON (see :mod:`pandera.io.xarray_io`)."""
+        from pandera.io import xarray_io
+
+        return xarray_io.to_json(
+            self, target=target, minimal=minimal, **kwargs
+        )
+
+    @classmethod
+    def from_yaml(cls, yaml_schema) -> DatasetSchema:
+        """Load schema from YAML (see :mod:`pandera.io.xarray_io`)."""
+        from pandera.io import xarray_io
+
+        return xarray_io.from_yaml(yaml_schema)
+
+    @classmethod
+    def from_json(cls, source) -> DatasetSchema:
+        """Load schema from JSON (see :mod:`pandera.io.xarray_io`)."""
+        from pandera.io import xarray_io
+
+        return xarray_io.from_json(source)
 
     @staticmethod
     def register_default_backends(check_obj_cls: type):

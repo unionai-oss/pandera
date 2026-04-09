@@ -2142,3 +2142,57 @@ def test_dataframe_library_metadata_roundtrip():
 
     as_json = json.loads(pandas_io.to_json(schema, dataframe_library="modin"))
     assert as_json["dataframe_library"] == "modin"
+
+
+class TestDataFrameModelIO:
+    """Test to/from_yaml and to/from_json on pandas DataFrameModel."""
+
+    def test_model_to_yaml(self):
+        class MyModel(pandera.DataFrameModel):
+            a: pat.Series[pat.Int64]
+            b: pat.Series[pat.String]
+
+        yaml_str = MyModel.to_yaml()
+        assert isinstance(yaml_str, str)
+        assert "a" in yaml_str
+        assert "b" in yaml_str
+
+    def test_model_to_json(self):
+        import json
+
+        class MyModel(pandera.DataFrameModel):
+            a: pat.Series[pat.Int64]
+
+        json_str = MyModel.to_json()
+        assert isinstance(json_str, str)
+        parsed = json.loads(json_str)
+        assert "a" in parsed["columns"]
+
+    def test_model_from_yaml(self):
+        class MyModel(pandera.DataFrameModel):
+            a: pat.Series[pat.Int64]
+            b: pat.Series[pat.String]
+
+        yaml_str = MyModel.to_yaml()
+        schema = MyModel.from_yaml(yaml_str)
+        assert isinstance(schema, DataFrameSchema)
+        assert "a" in schema.columns
+        assert "b" in schema.columns
+
+    def test_model_from_json(self):
+        class MyModel(pandera.DataFrameModel):
+            a: pat.Series[pat.Int64]
+
+        json_str = MyModel.to_json()
+        schema = MyModel.from_json(json_str)
+        assert isinstance(schema, DataFrameSchema)
+        assert "a" in schema.columns
+
+    def test_model_yaml_roundtrip(self):
+        class MyModel(pandera.DataFrameModel):
+            a: pat.Series[pat.Int64] = pandera.Field(ge=0)
+
+        yaml_str = MyModel.to_yaml()
+        schema = MyModel.from_yaml(yaml_str)
+        df = pd.DataFrame({"a": [1, 2, 3]})
+        schema.validate(df)

@@ -69,6 +69,21 @@ class BaseModel(metaclass=MetaModel):
         raise NotImplementedError
 
     @classmethod
+    def from_yaml(cls, yaml_schema):
+        """Create a Schema object from yaml."""
+        raise NotImplementedError
+
+    @classmethod
+    def to_json(cls, target: os.PathLike | None = None, **kwargs):
+        """Convert `Schema` to json using `io.to_json`."""
+        raise NotImplementedError
+
+    @classmethod
+    def from_json(cls, source):
+        """Create a Schema object from json."""
+        raise NotImplementedError
+
+    @classmethod
     def validate(
         cls: type[TBaseModel],
         check_obj: Any,

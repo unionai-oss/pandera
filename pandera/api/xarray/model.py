@@ -392,6 +392,40 @@ class _XarrayModelBase(BaseModel):
         return cls.__schema__
 
     @classmethod
+    def to_yaml(cls, stream=None, *, minimal: bool = True):
+        """Convert this model to YAML via its schema."""
+        return cls.to_schema().to_yaml(stream=stream, minimal=minimal)
+
+    @classmethod
+    def from_yaml(cls, yaml_schema):
+        """Load a schema from YAML.
+
+        :param yaml_schema: str, Path, or file stream with YAML content.
+        :returns: :class:`DataArraySchema` or :class:`DatasetSchema`.
+        """
+        from pandera.io.xarray_io import from_yaml
+
+        return from_yaml(yaml_schema)
+
+    @classmethod
+    def to_json(cls, target=None, *, minimal: bool = True, **kwargs):
+        """Convert this model to JSON via its schema."""
+        return cls.to_schema().to_json(
+            target=target, minimal=minimal, **kwargs
+        )
+
+    @classmethod
+    def from_json(cls, source):
+        """Load a schema from JSON.
+
+        :param source: str, Path, or file stream with JSON content.
+        :returns: :class:`DataArraySchema` or :class:`DatasetSchema`.
+        """
+        from pandera.io.xarray_io import from_json
+
+        return from_json(source)
+
+    @classmethod
     @docstring_substitution(validate_doc=BaseModel.validate.__doc__)
     def validate(
         cls,

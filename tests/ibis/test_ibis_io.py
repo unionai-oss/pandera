@@ -58,3 +58,46 @@ def test_ibis_rejects_add_missing_columns_in_payload():
     }
     with pytest.raises(SchemaDefinitionError):
         ibis_io.deserialize_schema(bad)
+
+
+class TestIbisDataFrameModelIO:
+    """Test to/from_yaml and to/from_json on ibis DataFrameModel."""
+
+    def test_model_to_yaml(self):
+        class MyModel(pa.DataFrameModel):
+            a: int
+            b: str
+
+        yaml_str = MyModel.to_yaml()
+        assert isinstance(yaml_str, str)
+        assert "a" in yaml_str
+
+    def test_model_to_json(self):
+        class MyModel(pa.DataFrameModel):
+            a: int
+
+        import json
+
+        json_str = MyModel.to_json()
+        assert isinstance(json_str, str)
+        parsed = json.loads(json_str)
+        assert "a" in parsed["columns"]
+
+    def test_model_from_yaml(self):
+        class MyModel(pa.DataFrameModel):
+            a: int
+            b: str
+
+        yaml_str = MyModel.to_yaml()
+        schema = MyModel.from_yaml(yaml_str)
+        assert isinstance(schema, pa.DataFrameSchema)
+        assert "a" in schema.columns
+
+    def test_model_from_json(self):
+        class MyModel(pa.DataFrameModel):
+            a: int
+
+        json_str = MyModel.to_json()
+        schema = MyModel.from_json(json_str)
+        assert isinstance(schema, pa.DataFrameSchema)
+        assert "a" in schema.columns
