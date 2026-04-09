@@ -70,11 +70,11 @@ from pandera.pandas import (
     dataframe_parser,
     dtypes,
     extensions,
-    infer_schema,
     pandas_version,
     parser,
     typing,
 )
+from pandera.schema_inference.geopandas import infer_schema
 
 __all__ = [
     "Bool",

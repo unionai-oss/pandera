@@ -9,6 +9,7 @@ import pandas as pd
 
 from pandera.api.base.schema import BaseSchema
 from pandera.api.geopandas.common import to_geodataframe
+from pandera.api.geopandas.container import GeoDataFrameSchema
 from pandera.api.pandas.model import DataFrameModel
 from pandera.import_utils import strategy_import_error
 from pandera.utils import docstring_substitution
@@ -36,6 +37,12 @@ class GeoDataFrameModel(DataFrameModel):
     :class:`pandera.typing.geopandas.GeoDataFrame` for validate-on-init, e.g.
     ``GeoDataFrame[MyModel](...)``.
     """
+
+    @classmethod
+    def build_schema_(cls, **kwargs) -> GeoDataFrameSchema:
+        """Build a :class:`GeoDataFrameSchema` from the model definition."""
+        schema = super().build_schema_(**kwargs)
+        return GeoDataFrameSchema._from_dataframe_schema(schema)
 
     @classmethod
     @docstring_substitution(validate_doc=BaseSchema.validate.__doc__)
