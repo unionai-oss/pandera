@@ -318,10 +318,35 @@ class DataFrameModel(Generic[TDataFrame, TSchema], BaseModel):
 
     @classmethod
     def to_yaml(cls, stream: os.PathLike | None = None):
-        """
-        Convert `Schema` to yaml using `io.to_yaml`.
-        """
+        """Convert this model's schema to YAML."""
         return cls.__schema__.to_yaml(stream)
+
+    @classmethod
+    def from_yaml(cls, yaml_schema):
+        """Load a schema from YAML.
+
+        :param yaml_schema: str, Path, or file stream with YAML content.
+        :returns: the backend-specific schema object.
+        """
+        return type(cls.__schema__).from_yaml(yaml_schema)
+
+    @classmethod
+    def to_json(
+        cls,
+        target: os.PathLike | None = None,
+        **kwargs,
+    ):
+        """Convert this model's schema to JSON."""
+        return cls.__schema__.to_json(target, **kwargs)
+
+    @classmethod
+    def from_json(cls, source):
+        """Load a schema from JSON.
+
+        :param source: str, Path, or file stream with JSON content.
+        :returns: the backend-specific schema object.
+        """
+        return type(cls.__schema__).from_json(source)
 
     @classmethod
     @docstring_substitution(validate_doc=BaseSchema.validate.__doc__)

@@ -275,11 +275,17 @@ def serialize_dataset_schema(
 def serialize_schema(schema, *, minimal: bool = True) -> dict[str, Any]:
     """Serialize a DataArraySchema or DatasetSchema.
 
-    :param schema: the schema to serialize.
+    :param schema: the schema to serialize.  May also be an xarray model
+        class (e.g. :class:`DataArrayModel` or :class:`DatasetModel`);
+        it will be converted to its schema via ``to_schema()``.
     :param minimal: passed to ``serialize_*_schema`` functions.
     :returns: dict representation of the schema.
     """
     from pandera.api.xarray.container import DataArraySchema, DatasetSchema
+    from pandera.api.xarray.model import _XarrayModelBase
+
+    if isinstance(schema, type) and issubclass(schema, _XarrayModelBase):
+        schema = schema.to_schema()
 
     if isinstance(schema, DataArraySchema):
         return serialize_data_array_schema(schema, minimal=minimal)
