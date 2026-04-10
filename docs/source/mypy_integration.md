@@ -111,3 +111,5 @@ exception at runtime, depending on whether you're doing
 ```{literalinclude} ../../tests/mypy/pandas_modules/pandas_dataframe.py
 :lines: 83-87
 ```
+
+However, note that for functions decorated with {class}`~pandera.decorators.check_types`, the runtime validation is only triggered if you explicitly call `validate()` on the returned object or use a schema model like {class}`~pandera.api.pandas.DataFrameModel`. If your function performs in-place mutations that change the structure (e.g., adding/dropping columns) without re-validating, mypy might not detect these structural changes at runtime.
