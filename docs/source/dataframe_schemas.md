@@ -791,3 +791,22 @@ The available methods for altering the schema are:
 - {func}`~pandera.api.dataframe.container.DataFrameSchema.rename_indexes`
 - {func}`~pandera.api.dataframe.container.DataFrameSchema.set_index`
 - {func}`~pandera.api.dataframe.container.DataFrameSchema.reset_index`
+
+Additionally, for {class}`~pandera.api.pandas.container.DataFrameSchema`, you can use the following example to see how `add_missing_columns` works with different column types:
+
+```{code-cell} python
+import pandas as pd
+import pandera.pandas as pa
+
+schema = pa.DataFrameSchema(
+    columns={
+        "a": pa.Column(int),
+        "b": pa.Column(int, default=1),
+        "c": pa.Column(float, nullable=True),
+    },
+    add_missing_columns=True,
+    coerce=True,
+)
+df = pd.DataFrame({"a": [1, 2, 3]})
+schema.validate(df)
+```
