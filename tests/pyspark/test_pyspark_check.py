@@ -1444,13 +1444,18 @@ class TestStringType(BaseClass):
         check_value = r"^[A-Z][a-z]+"
 
         pass_data = [("Bal", "Bread"), ("Bal", "Butter")]
-        fail_data = [("Bal", "bread"), ("Bal", "Butter")]  # "bread" doesn't start with uppercase
+        fail_data = [
+            ("Bal", "bread"),
+            ("Bal", "Butter"),
+        ]  # "bread" doesn't start with uppercase
         BaseClass.check_function(
             spark, check_func, pass_data, fail_data, StringType(), check_value
         )
 
     @validate_scope(scope=ValidationScope.DATA)
-    def test_str_matches_check_without_caret(self, spark_session, request) -> None:
+    def test_str_matches_check_without_caret(
+        self, spark_session, request
+    ) -> None:
         """Test str_matches automatically prepends ^ if not present"""
         spark = request.getfixturevalue(spark_session)
         check_func = pa.Check.str_matches
@@ -1458,13 +1463,18 @@ class TestStringType(BaseClass):
         check_value = r"[0-9]{3}"  # Match 3 digits at the start
 
         pass_data = [("Bal", "123abc"), ("Bal", "456def")]
-        fail_data = [("Bal", "abc123"), ("Bal", "456def")]  # "abc123" doesn't start with digits
+        fail_data = [
+            ("Bal", "abc123"),
+            ("Bal", "456def"),
+        ]  # "abc123" doesn't start with digits
         BaseClass.check_function(
             spark, check_func, pass_data, fail_data, StringType(), check_value
         )
 
     @validate_scope(scope=ValidationScope.DATA)
-    def test_str_matches_check_with_caret(self, spark_session, request) -> None:
+    def test_str_matches_check_with_caret(
+        self, spark_session, request
+    ) -> None:
         """Test str_matches works correctly when ^ is already present"""
         spark = request.getfixturevalue(spark_session)
         check_func = pa.Check.str_matches
@@ -1472,7 +1482,10 @@ class TestStringType(BaseClass):
         check_value = r"^test_"
 
         pass_data = [("Bal", "test_123"), ("Bal", "test_abc")]
-        fail_data = [("Bal", "Test_123"), ("Bal", "test_abc")]  # "Test_123" has uppercase T
+        fail_data = [
+            ("Bal", "Test_123"),
+            ("Bal", "test_abc"),
+        ]  # "Test_123" has uppercase T
         BaseClass.check_function(
             spark, check_func, pass_data, fail_data, StringType(), check_value
         )
@@ -1485,14 +1498,22 @@ class TestStringType(BaseClass):
         # Email pattern
         check_value = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
 
-        pass_data = [("Bal", "test@example.com"), ("Bal", "user.name@domain.org")]
-        fail_data = [("Bal", "invalid-email"), ("Bal", "test@example.com")]  # "invalid-email" is not an email
+        pass_data = [
+            ("Bal", "test@example.com"),
+            ("Bal", "user.name@domain.org"),
+        ]
+        fail_data = [
+            ("Bal", "invalid-email"),
+            ("Bal", "test@example.com"),
+        ]  # "invalid-email" is not an email
         BaseClass.check_function(
             spark, check_func, pass_data, fail_data, StringType(), check_value
         )
 
     @validate_scope(scope=ValidationScope.DATA)
-    def test_str_matches_with_compiled_pattern(self, spark_session, request) -> None:
+    def test_str_matches_with_compiled_pattern(
+        self, spark_session, request
+    ) -> None:
         """Test str_matches with a pre-compiled regex pattern"""
         import re
 
@@ -1503,7 +1524,9 @@ class TestStringType(BaseClass):
         schema = DataFrameSchema(
             {
                 "product": Column(StringType()),
-                "code": Column(StringType(), pa.Check.str_matches(check_value)),
+                "code": Column(
+                    StringType(), pa.Check.str_matches(check_value)
+                ),
             }
         )
         spark_schema = StructType(
@@ -1522,7 +1545,9 @@ class TestStringType(BaseClass):
         # Fail case: "ab123" starts with lowercase
         fail_data = [("foo", "ab123"), ("bar", "XYZ99")]
         with pytest.raises(PysparkSchemaError):
-            df_fail = spark.createDataFrame(data=fail_data, schema=spark_schema)
+            df_fail = spark.createDataFrame(
+                data=fail_data, schema=spark_schema
+            )
             df_out = schema.validate(df_fail)
             if df_out.pandera.errors:
                 raise PysparkSchemaError

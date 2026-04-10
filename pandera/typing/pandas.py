@@ -2,6 +2,7 @@
 
 import functools
 import io
+from collections.abc import Mapping, Sequence
 from typing import (  # type: ignore[attr-defined]
     TYPE_CHECKING,
     Any,
@@ -376,7 +377,11 @@ class DataFrame(DataFrameBase, pd.DataFrame, Generic[T]):
     def from_records(  # type: ignore
         schema: type[T],
         data: Union[  # type: ignore
-            np.ndarray, list[tuple[Any, ...]], dict[Any, Any], pd.DataFrame
+            np.ndarray,
+            list[tuple[Any, ...]],
+            dict[Any, Any],
+            pd.DataFrame,
+            Sequence[Mapping[str, Any]],
         ],
         **kwargs,
     ) -> "DataFrame[T]":
