@@ -33,7 +33,7 @@ class TestSerializeDataArraySchema:
             dims=("x", "y"),
             name="temperature",
         )
-        serialized = serialize_data_array_schema(schema)
+        serialized = serialize_data_array_schema(schema, minimal=False)
         assert serialized["schema_type"] == "data_array"
         assert serialized["dims"] == ["x", "y"]
         assert serialized["name"] == "temperature"
@@ -369,3 +369,180 @@ class TestComponentStatsFormat:
         restored = from_json(json.dumps(serialized))
         assert isinstance(restored, DataArraySchema)
         assert len(restored.checks) == 2
+
+
+class TestModelSerialization:
+    """Regression tests for model-level YAML/JSON serialization.
+
+    See https://github.com/unionai-oss/pandera/issues/2271
+    """
+
+    def test_dataset_model_to_yaml(self):
+        from pandera.typing.xarray import Coordinate as CoordMark
+
+        class Surface(pa.DatasetModel):
+            temperature: np.float64 = pa.Field(dims=("x", "y"))
+            pressure: np.float64 = pa.Field(dims=("x", "y"))
+            x: CoordMark[np.float64]
+            y: CoordMark[np.float64]
+
+            class Config:
+                strict = True
+
+        yaml_str = Surface.to_yaml()
+        assert isinstance(yaml_str, str)
+        assert "temperature" in yaml_str
+        assert "pressure" in yaml_str
+
+    def test_dataset_model_to_schema_to_yaml(self):
+        from pandera.typing.xarray import Coordinate as CoordMark
+
+        class Surface(pa.DatasetModel):
+            temperature: np.float64 = pa.Field(dims=("x", "y"))
+            x: CoordMark[np.float64]
+
+        yaml_str = Surface.to_schema().to_yaml()
+        assert isinstance(yaml_str, str)
+        assert "temperature" in yaml_str
+
+    def test_pa_to_yaml_with_dataset_model(self):
+        from pandera.typing.xarray import Coordinate as CoordMark
+
+        class Surface(pa.DatasetModel):
+            temperature: np.float64 = pa.Field(dims=("x", "y"))
+            x: CoordMark[np.float64]
+
+        yaml_str = pa.to_yaml(Surface)
+        assert isinstance(yaml_str, str)
+        assert "temperature" in yaml_str
+
+    def test_dataset_model_yaml_roundtrip(self):
+        from pandera.typing.xarray import Coordinate as CoordMark
+
+        class Surface(pa.DatasetModel):
+            temperature: np.float64 = pa.Field(dims=("x", "y"))
+            x: CoordMark[np.float64]
+
+            class Config:
+                strict = True
+
+        yaml_str = Surface.to_yaml()
+        restored = from_yaml(yaml_str)
+        assert isinstance(restored, DatasetSchema)
+        assert "temperature" in restored.data_vars
+        assert restored.strict is True
+
+    def test_dataset_model_to_json(self):
+        from pandera.typing.xarray import Coordinate as CoordMark
+
+        class Surface(pa.DatasetModel):
+            temperature: np.float64 = pa.Field(dims=("x",))
+            x: CoordMark[np.float64]
+
+        json_str = Surface.to_json()
+        assert isinstance(json_str, str)
+        parsed = json.loads(json_str)
+        assert parsed["schema_type"] == "dataset"
+        assert "temperature" in parsed["data_vars"]
+
+    def test_data_array_model_to_yaml(self):
+        from pandera.typing.xarray import Coordinate as CoordMark
+
+        class Temp(pa.DataArrayModel):
+            data: np.float64 = pa.Field()
+            x: CoordMark[np.float64]
+
+            class Config:
+                dims = ("x",)
+                name = "temperature"
+
+        yaml_str = Temp.to_yaml()
+        assert isinstance(yaml_str, str)
+        assert "temperature" in yaml_str
+
+    def test_pa_to_yaml_with_data_array_model(self):
+        from pandera.typing.xarray import Coordinate as CoordMark
+
+        class Temp(pa.DataArrayModel):
+            data: np.float64 = pa.Field()
+            x: CoordMark[np.float64]
+
+            class Config:
+                dims = ("x",)
+
+        yaml_str = pa.to_yaml(Temp)
+        assert isinstance(yaml_str, str)
+        assert "data_array" in yaml_str
+
+    def test_dataset_model_yaml_file_roundtrip(self):
+        from pandera.typing.xarray import Coordinate as CoordMark
+
+        class Surface(pa.DatasetModel):
+            temperature: np.float64 = pa.Field(dims=("x",))
+            x: CoordMark[np.float64]
+
+        with tempfile.NamedTemporaryFile(
+            suffix=".yaml", mode="w", delete=False
+        ) as f:
+            Surface.to_yaml(stream=f.name)
+            restored = from_yaml(f.name)
+        assert isinstance(restored, DatasetSchema)
+        assert "temperature" in restored.data_vars
+
+    def test_dataset_model_from_yaml(self):
+        from pandera.typing.xarray import Coordinate as CoordMark
+
+        class Surface(pa.DatasetModel):
+            temperature: np.float64 = pa.Field(dims=("x",))
+            x: CoordMark[np.float64]
+
+            class Config:
+                strict = True
+
+        yaml_str = Surface.to_yaml()
+        schema = Surface.from_yaml(yaml_str)
+        assert isinstance(schema, DatasetSchema)
+        assert "temperature" in schema.data_vars
+        assert schema.strict is True
+
+    def test_dataset_model_from_json(self):
+        from pandera.typing.xarray import Coordinate as CoordMark
+
+        class Surface(pa.DatasetModel):
+            temperature: np.float64 = pa.Field(dims=("x",))
+            x: CoordMark[np.float64]
+
+        json_str = Surface.to_json()
+        schema = Surface.from_json(json_str)
+        assert isinstance(schema, DatasetSchema)
+        assert "temperature" in schema.data_vars
+
+    def test_data_array_model_from_yaml(self):
+        from pandera.typing.xarray import Coordinate as CoordMark
+
+        class Temp(pa.DataArrayModel):
+            data: np.float64 = pa.Field()
+            x: CoordMark[np.float64]
+
+            class Config:
+                dims = ("x",)
+                name = "temperature"
+
+        yaml_str = Temp.to_yaml()
+        schema = Temp.from_yaml(yaml_str)
+        assert isinstance(schema, DataArraySchema)
+        assert schema.name == "temperature"
+
+    def test_data_array_model_from_json(self):
+        from pandera.typing.xarray import Coordinate as CoordMark
+
+        class Temp(pa.DataArrayModel):
+            data: np.float64 = pa.Field()
+            x: CoordMark[np.float64]
+
+            class Config:
+                dims = ("x",)
+
+        json_str = Temp.to_json()
+        schema = Temp.from_json(json_str)
+        assert isinstance(schema, DataArraySchema)

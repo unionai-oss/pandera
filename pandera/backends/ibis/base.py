@@ -64,9 +64,30 @@ class IbisSchemaBackend(BaseSchemaBackend):
                 from pandera.api.pandas.types import is_table
 
                 check_failure_cases = check_result.failure_cases.to_pandas()
+
+                failed_index = None
+                check_output = check_result.check_output.to_pandas()
+                if isinstance(check_output, pd.Series):
+                    failed_index = check_output[~check_output].index
+                elif (
+                    is_table(check_output)
+                    and CHECK_OUTPUT_KEY in check_output.columns
+                ):
+                    failed_index = check_output.index[
+                        ~check_output[CHECK_OUTPUT_KEY]
+                    ]
+
+                if failed_index is not None:
+                    check_failure_cases = check_failure_cases.set_axis(
+                        failed_index[: len(check_failure_cases)]
+                    )
+
                 if is_table(check_failure_cases):
                     check_failure_cases = (
-                        pd.Series(check_failure_cases.to_dict("records"))
+                        pd.Series(
+                            check_failure_cases.to_dict("records"),
+                            index=check_failure_cases.index,
+                        )
                         .rename("failure_case")
                         .to_frame()
                     )

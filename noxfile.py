@@ -142,7 +142,7 @@ def _testing_requirements(
     _requirements = list(set(_requirements))
 
     _numpy: str | None = None
-    if extra == "pyspark" and session.python in ("3.10",):
+    if extra in ("io", "pyspark") and session.python in ("3.10",):
         # constrain numpy < 2 for older versions of pyspark on py3.10
         # pandas 3.0.0 requires numpy >= 2.3.3, so don't apply this constraint
         _numpy = "< 2"

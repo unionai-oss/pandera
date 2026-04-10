@@ -18,6 +18,7 @@ pandera/                  # Main package
 ├── api/                  # Public validation API (backend-specific schemas/models)
 │   ├── base/             # Abstract base classes (BaseSchema, BaseCheck, etc.)
 │   ├── pandas/           # Pandas DataFrameSchema, Column, Index, DataFrameModel
+│   ├── geopandas/        # GeoDataFrameSchema, GeoDataFrameModel (pandas-backed)
 │   ├── polars/           # Polars schema and model implementations
 │   ├── pyspark/          # PySpark schema and model implementations
 │   ├── ibis/             # Ibis schema and model implementations
@@ -40,10 +41,10 @@ pandera/                  # Main package
 │   ├── pyarrow_engine.py # PyArrow dtype definitions
 │   └── geopandas_engine.py
 ├── typing/               # Type stubs for mypy integration
-├── strategies/           # Hypothesis strategy generation for property-based testing
+├── strategies/           # Hypothesis strategies: import ``pandera.strategies.pandas_strategies`` etc. (``strategies`` package does not import backends)
 ├── schema_inference/     # Infer schemas from data
 ├── schema_statistics/    # Statistical validation helpers
-├── io/                   # Serialization (YAML, frictionless)
+├── io/                   # Serialization: ``pandera.io.pandas_io``, ``polars_io``, ``pyspark_sql_io``, ``ibis_io``, ``xarray_io`` (``pandera.io`` package has no imports)
 ├── accessors/            # Pandas/PySpark accessor extensions (.pandera)
 ├── config.py             # PanderaConfig, ValidationDepth, ValidationScope
 ├── decorators.py         # @check_input, @check_output, @check_io, @check_types
@@ -51,6 +52,7 @@ pandera/                  # Main package
 ├── errors.py             # SchemaError, SchemaInitError, ParserError, etc.
 ├── extensions.py         # Custom check/parser extension mechanism
 ├── pandas.py             # Pandas entry point: `import pandera.pandas as pa`
+├── geopandas.py          # GeoPandas entry (`pg`): pandas API + GeoDataFrameSchema/Model
 ├── polars.py             # Polars entry point: `import pandera.polars as pa`
 ├── pyspark.py            # PySpark entry point: `import pandera.pyspark as pa`
 └── ibis.py               # Ibis entry point: `import pandera.ibis as pa`

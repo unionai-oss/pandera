@@ -12,6 +12,7 @@ Schemas
    :nosignatures:
 
    pandera.api.pandas.container.DataFrameSchema
+   pandera.api.geopandas.container.GeoDataFrameSchema
    pandera.api.pandas.array.SeriesSchema
    pandera.api.polars.container.DataFrameSchema
    pandera.api.pyspark.container.DataFrameSchema
