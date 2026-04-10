@@ -82,9 +82,7 @@ class TestBasicValidation:
             children={
                 "surface": DatasetSchema(
                     data_vars={
-                        "temperature": DataVar(
-                            dtype=np.float64, dims=("x",)
-                        ),
+                        "temperature": DataVar(dtype=np.float64, dims=("x",)),
                     },
                 ),
             },
@@ -105,9 +103,7 @@ class TestBasicValidation:
             children={
                 "surface": DatasetSchema(
                     data_vars={
-                        "temperature": DataVar(
-                            dtype=np.int64, dims=("x",)
-                        ),
+                        "temperature": DataVar(dtype=np.int64, dims=("x",)),
                     },
                 ),
             },
@@ -127,9 +123,7 @@ class TestPathBasedChildren:
             children={
                 "surface/diagnostics": DatasetSchema(
                     data_vars={
-                        "rmse": DataVar(
-                            dtype=np.float64, dims=("x",)
-                        ),
+                        "rmse": DataVar(dtype=np.float64, dims=("x",)),
                     },
                 ),
             },
@@ -196,9 +190,7 @@ class TestNestedTreeSchema:
                     children={
                         "diagnostics": DatasetSchema(
                             data_vars={
-                                "rmse": DataVar(
-                                    dtype=np.float64, dims=("x",)
-                                ),
+                                "rmse": DataVar(dtype=np.float64, dims=("x",)),
                             },
                         ),
                     },
@@ -247,9 +239,7 @@ class TestRootDataset:
             children={
                 "surface": DatasetSchema(
                     data_vars={
-                        "temperature": DataVar(
-                            dtype=np.float64, dims=("x",)
-                        ),
+                        "temperature": DataVar(dtype=np.float64, dims=("x",)),
                     },
                 ),
             },

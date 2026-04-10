@@ -656,6 +656,8 @@ class TestDatasetCheckMethods:
         results = backend.check_strict_attrs(ds, schema)
         assert len(results) == 1
         assert "extra" in results[0].message
+
+
 # ===================================================================
 # DataVar(regex=True) pattern matching
 # ===================================================================
@@ -753,9 +755,7 @@ class TestRegexDataVars:
         )
         schema = DatasetSchema(
             data_vars={
-                r"^band_\d+$": DataVar(
-                    dims=("x",), regex=True
-                ),
+                r"^band_\d+$": DataVar(dims=("x",), regex=True),
             },
             strict=True,
         )
