@@ -389,12 +389,19 @@ class DataFrame(DataFrameBase, pd.DataFrame, Generic[T]):
         See :doc:`pandas:reference/api/pandas.DataFrame.from_records` for
         more details.
         """
-        schema = schema.to_schema()  # type: ignore[attr-defined]
-        schema_index = schema.index.names if schema.index is not None else None
+        schema_model = schema
+        dataframe_schema = schema_model.to_schema()  # type: ignore[attr-defined]
+        schema_index = (
+            dataframe_schema.index.names
+            if dataframe_schema.index is not None
+            else None
+        )
         if "index" not in kwargs:
             kwargs["index"] = schema_index
         data_df = pd.DataFrame.from_records(data=data, **kwargs)
-        return DataFrame[schema](  # type: ignore
+        return DataFrame[schema_model](  # type: ignore
             # set the column order according to schema
-            data_df[[c for c in schema.columns if c in data_df.columns]]
+            data_df[
+                [c for c in dataframe_schema.columns if c in data_df.columns]
+            ]
         )
