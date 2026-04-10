@@ -1830,3 +1830,26 @@ def test_pickle_decorated_function(tmp_path):
 
     # pylint: disable=comparison-with-callable
     assert process_data_and_check_types == _process_data_and_check_types
+
+
+def test_check_types_catches_inplace_mutation():
+    """check_types should re-validate return values even if previously typed."""
+
+    class InSchema(DataFrameModel):
+        id: Series[int]
+        name: Series[str]
+
+    class OutSchema(DataFrameModel):
+        age: Series[int]
+
+    @check_types
+    def mutate_after_typing(
+        df: DataFrame[InSchema],
+    ) -> DataFrame[OutSchema]:
+        out = df.assign(age=30).pipe(DataFrame[OutSchema])
+        out.drop(columns="age", inplace=True)
+        return out
+
+    df = DataFrame[InSchema]({"id": [1], "name": ["foo"]})
+    with pytest.raises(errors.SchemaError):
+        mutate_after_typing(df)

@@ -74,10 +74,12 @@ a dataframe of the expected type:
 ```
 
 :::{note}
-If you use the approach above with the {py:func}`~pandera.check_types`
-decorator, pandera will do its best to not to validate the dataframe twice
-if it's already been initialized with the
-`DataFrame[Schema](**data)` syntax.
+If you construct a dataframe with `DataFrame[Schema](**data)` or
+`.pipe(DataFrame[Schema])`, pandera validates it at construction time.
+The {py:func}`~pandera.check_types` decorator still runs full schema
+validation on inputs and outputs when the function is called, so the same
+object may be validated more than once. That is intentional: skipping the
+second pass would miss in-place mutations between construction and return.
 :::
 
 Or use {py:func}`typing.cast` to indicate to mypy that the return value of
@@ -94,7 +96,10 @@ since pandas dataframes are mutable objects, there's no way for `mypy` to
 know whether a mutated instance of a
 {py:class}`~pandera.api.pandas.model.DataFrameModel`-typed dataframe has the correct
 contents. Fortunately, we can simply rely on the {py:func}`~pandera.check_types`
-decorator to verify that the output dataframe is valid.
+decorator to verify that the output dataframe is valid (including after any
+in-place changes). Expect full validation on each decorated call even when
+data was already validated at `DataFrame[Schema]` construction; see the note
+above.
 
 Consider the examples below:
 

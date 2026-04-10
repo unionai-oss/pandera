@@ -699,13 +699,6 @@ def check_types(
         ):
             return arg_value
 
-        if (
-            hasattr(arg_value, "pandera")
-            and arg_value.pandera.schema is not None
-            and arg_value.pandera.schema == schema
-        ):
-            return arg_value
-
         arg_value = schema.validate(
             arg_value,
             head,
