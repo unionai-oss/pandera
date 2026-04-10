@@ -1,8 +1,10 @@
 import pandas as pd
 import pytest
+
 import pandera.pandas as pa
-from pandera.typing import DataFrame, Series, Index
 from pandera.pandas import DataFrameModel
+from pandera.typing import DataFrame, Index, Series
+
 
 def test_from_records_with_list_of_dicts():
     """Test that DataFrame.from_records accepts a list of dictionaries."""
