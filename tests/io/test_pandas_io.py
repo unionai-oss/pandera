@@ -10,8 +10,9 @@ import pandas as pd
 import pytest
 from packaging import version
 
-import pandera
+import pandera as pandera_base
 import pandera.api.extensions as pa_ext
+import pandera.pandas as pandera
 import pandera.typing as pat
 from pandera.api.pandas.container import DataFrameSchema
 from pandera.engines import pandas_engine
@@ -33,6 +34,7 @@ SKIP_YAML_TESTS = PYYAML_VERSION is None or PYYAML_VERSION.release < (5, 1, 0)  
 
 PANDAS_3_0_0_PLUS = pandas_version().release >= (3, 0, 0)
 
+_PANDERA_VERSION = pandera_base.__version__
 _PANDERA_STR_DTYPE = str(pandas_engine.Engine.dtype(pandera.String))
 
 
@@ -120,7 +122,7 @@ def _create_schema(index="single"):
 
 YAML_SCHEMA = f"""
 schema_type: dataframe
-version: {pandera.__version__}
+version: {_PANDERA_VERSION}
 columns:
   int_column:
     title: integer_col
@@ -246,7 +248,7 @@ description: null
 
 YAML_SCHEMA_DICT_CHECK = f"""
 schema_type: dataframe
-version: {pandera.__version__}
+version: {_PANDERA_VERSION}
 columns:
   int_column:
     title: integer_col
@@ -453,7 +455,7 @@ def _create_schema_null_index():
 
 YAML_SCHEMA_NULL_INDEX = f"""
 schema_type: dataframe
-version: {pandera.__version__}
+version: {_PANDERA_VERSION}
 columns:
   float_column:
     dtype: float64
@@ -499,7 +501,7 @@ strict: false
 
 YAML_SCHEMA_NULL_INDEX_DICT_CHECK = f"""
 schema_type: dataframe
-version: {pandera.__version__}
+version: {_PANDERA_VERSION}
 columns:
   float_column:
     dtype: float64
@@ -549,7 +551,7 @@ def _create_schema_python_types():
 
 YAML_SCHEMA_PYTHON_TYPES = f"""
 schema_type: dataframe
-version: {pandera.__version__}
+version: {_PANDERA_VERSION}
 columns:
   int_column:
     dtype: int64
@@ -568,7 +570,7 @@ strict: false
 
 YAML_SCHEMA_MISSING_GLOBAL_CHECK = f"""
 schema_type: dataframe
-version: {pandera.__version__}
+version: {_PANDERA_VERSION}
 columns:
   int_column:
     dtype: int64
@@ -590,7 +592,7 @@ strict: false
 
 YAML_SCHEMA_MISSING_GLOBAL_CHECK_DICT_CHECK = f"""
 schema_type: dataframe
-version: {pandera.__version__}
+version: {_PANDERA_VERSION}
 columns:
   int_column:
     dtype: int64
@@ -611,7 +613,7 @@ strict: false
 
 YAML_SCHEMA_MISSING_COLUMN_CHECK = f"""
 schema_type: dataframe
-version: {pandera.__version__}
+version: {_PANDERA_VERSION}
 columns:
   int_column:
     dtype: int64
@@ -633,7 +635,7 @@ strict: false
 
 YAML_SCHEMA_MISSING_COLUMN_CHECK_DICT_CHECK = f"""
 schema_type: dataframe
-version: {pandera.__version__}
+version: {_PANDERA_VERSION}
 columns:
   int_column:
     dtype: int64
@@ -655,7 +657,7 @@ strict: false
 
 YAML_SCHEMA_NO_DESCR_NO_TITLE = f"""
 schema_type: dataframe
-version: {pandera.__version__}
+version: {_PANDERA_VERSION}
 columns:
   int_column:
     title: null
@@ -840,7 +842,7 @@ description: null
 
 YAML_SCHEMA_NO_DESCR_NO_TITLE_DICT_CHECK = f"""
 schema_type: dataframe
-version: {pandera.__version__}
+version: {_PANDERA_VERSION}
 columns:
   int_column:
     title: null
@@ -1209,7 +1211,7 @@ def test_from_yaml_retains_ordered_keyword(is_ordered, test_data, expected):
     """Test that from_yaml() retains the 'ordered' keyword."""
     yaml_schema = f"""
     schema_type: dataframe
-    version: {pandera.__version__}
+    version: {_PANDERA_VERSION}
     columns:
         a:
             dtype: int64
@@ -1336,6 +1338,35 @@ def test_io_json(index):
         stream.seek(0)
         schema_from_json = schema.from_json(stream)
         assert schema_from_json == schema
+
+
+def test_io_json_with_multiindex_column_labels():
+    """Test JSON serialization for schemas with tuple column labels."""
+    import json
+
+    schema = pandera.DataFrameSchema(
+        {
+            ("level1", "col_a"): pandera.Column(float),
+            ("level1", "col_b"): pandera.Column(float),
+            ("level2", "col_c"): pandera.Column(int),
+        }
+    )
+    dataframe = pd.DataFrame(
+        {
+            ("level1", "col_a"): [1.0, 2.0, 3.0],
+            ("level1", "col_b"): [4.0, 5.0, 6.0],
+            ("level2", "col_c"): [7, 8, 9],
+        }
+    )
+
+    validated = schema.validate(dataframe)
+    serialized = schema.to_json()
+    restored = schema.from_json(serialized)
+
+    assert isinstance(serialized, str)
+    assert isinstance(json.loads(serialized)["columns"], list)
+    assert restored == schema
+    pd.testing.assert_frame_equal(restored.validate(validated), validated)
 
 
 def test_check_custom_error_json_serialization_roundtrip():
@@ -1735,7 +1766,7 @@ INT_DTYPE_ALIAS = str(pandas_engine.Engine.dtype("int"))
 
 YAML_FROM_FRICTIONLESS = f"""
 schema_type: dataframe
-version: {pandera.__version__}
+version: {_PANDERA_VERSION}
 columns:
   integer_col:
     title: null
