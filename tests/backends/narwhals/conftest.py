@@ -1,4 +1,21 @@
-"""Shared fixtures for narwhals backend tests."""
+"""Shared fixtures for narwhals backend tests.
+
+CI Matrix (TEST-01, TEST-02, TEST-03):
+
+- tests/polars/ runs WITHOUT narwhals installed (CI job: unit-tests-dataframe-extras,
+  extra=polars). Guarded by tests/polars/conftest.py which re-registers the native
+  polars backend at session start (see TEST-01 in that file).
+- tests/ibis/ runs WITHOUT narwhals installed (CI job: unit-tests-dataframe-extras,
+  extra=ibis). Guarded by tests/ibis/conftest.py.
+- tests/backends/narwhals/ (this directory) runs WITH narwhals + polars + ibis all
+  installed together (CI job: unit-tests-narwhals, extra=narwhals). The
+  `make_narwhals_frame` fixture below parametrizes every test across the three
+  supported native frame types (pl.DataFrame, pl.LazyFrame, ibis.Table) so each
+  test runs 3 times and no frame type is silently skipped (TEST-02).
+
+See .github/workflows/ci-tests.yml for the full matrix and .planning/REQUIREMENTS.md
+for TEST-01, TEST-02, and TEST-03 definitions.
+"""
 import warnings
 
 import pytest
@@ -30,19 +47,25 @@ def _suppress_narwhals_warning():
 
 
 @pytest.fixture(
-    params=["polars", "ibis"],
-    ids=["polars", "ibis"],
+    params=["polars_eager", "polars_lazy", "ibis_table"],
+    ids=["polars_eager", "polars_lazy", "ibis_table"],
 )
 def make_narwhals_frame(request):
-    """Return a callable that creates an nw.LazyFrame for the given backend."""
+    """Return a callable that creates an nw frame across all 3 supported native types.
+
+    TEST-02: parametrizes Narwhals backend tests across pl.DataFrame (eager),
+    pl.LazyFrame (lazy), and ibis.Table — all three supported native frame types.
+    """
     backend = request.param
 
     def _make(data: dict):
-        if backend == "polars":
+        if backend == "polars_eager":
+            return nw.from_native(pl.DataFrame(data), eager_only=True)
+        elif backend == "polars_lazy":
             return nw.from_native(
                 pl.LazyFrame(data), eager_or_interchange_only=False
             )
-        elif backend == "ibis":
+        elif backend == "ibis_table":
             import pandas as pd
             import ibis
             return nw.from_native(

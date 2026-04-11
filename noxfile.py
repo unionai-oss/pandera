@@ -132,6 +132,15 @@ def _testing_requirements(
     _requirements = PYPROJECT["project"]["dependencies"]
     if extra is not None:
         _requirements += PYPROJECT["project"]["optional-dependencies"][extra]
+    # TEST-03: narwhals backend tests require polars and ibis co-installed
+    # (the narwhals extra alone only installs narwhals itself).
+    if extra == "narwhals":
+        _requirements += PYPROJECT["project"]["optional-dependencies"].get(
+            "polars", []
+        )
+        _requirements += PYPROJECT["project"]["optional-dependencies"].get(
+            "ibis", []
+        )
 
     # some of the extras are only supported with the pandas extra
     if extra in EXTRAS_REQUIRING_PANDAS:
@@ -199,6 +208,7 @@ DATAFRAME_EXTRAS = {
     "dask",
     "ibis",
     "xarray",
+    "narwhals",  # TEST-03: narwhals backend runs with polars+ibis co-installed
 }
 for extra in OPTIONAL_DEPENDENCIES:
     if extra == "pandas":
@@ -253,6 +263,9 @@ def tests(
 
     env = {}
     test_dir = "base" if extra is None else extra
+    if extra == "narwhals":
+        # TEST-03: narwhals backend tests live under tests/backends/narwhals/
+        test_dir = "backends/narwhals"
 
     if extra and extra.startswith("modin"):
         modin_split = extra.split("-")

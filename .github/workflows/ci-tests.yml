@@ -207,6 +207,12 @@ jobs:
         env:
           CODECOV_TOKEN: ${{ secrets.PANDERA_CODECOV_TOKEN }}
 
+  # TEST-01: the dataframe-extras jobs below (extra=polars, extra=ibis, etc.) install
+  # ONLY the library-native extras — narwhals is NOT installed here. This guarantees
+  # tests/polars/ and tests/ibis/ run against the native pandera.polars and
+  # pandera.ibis backends, not the narwhals backend. The narwhals backend has its
+  # own dedicated job `unit-tests-narwhals` below.
+
   # test extras for popular dataframe libraries
   unit-tests-dataframe-extras:
     name: >
@@ -290,6 +296,51 @@ jobs:
         if: matrix.extra != 'polars'
         run: nox -v -db uv --non-interactive --session "tests-${{ matrix.python-version }}(extra='${{ matrix.extra }}', pandas='${{ matrix.pandas-version }}', pydantic=None, polars=None)"
 
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        env:
+          CODECOV_TOKEN: ${{ secrets.PANDERA_CODECOV_TOKEN }}
+
+  # TEST-03 CI Matrix documentation:
+  #
+  # - tests/polars/ runs WITHOUT narwhals installed (see unit-tests-dataframe-extras
+  #   with extra=polars above). This exercises the library-native pandera.polars
+  #   backend and satisfies TEST-01.
+  # - tests/ibis/ runs WITHOUT narwhals installed (see unit-tests-dataframe-extras
+  #   with extra=ibis above). This exercises the library-native pandera.ibis backend
+  #   and also satisfies TEST-01.
+  # - tests/backends/narwhals/ (this job) runs WITH narwhals + polars + ibis all
+  #   co-installed. The make_narwhals_frame fixture parametrizes every test across
+  #   pl.DataFrame, pl.LazyFrame, and ibis.Table (TEST-02). This is the ONLY job
+  #   that installs narwhals alongside the library-native backends.
+  unit-tests-narwhals:
+    name: >
+      Unit Tests Narwhals: python-${{ matrix.python-version }} ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: pwsh
+    env:
+      PYTHONUTF8: 1
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        python-version: ["3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install dev deps
+        shell: bash
+        run: pip install 'uv<0.7.0' nox
+      - run: |
+          pip list
+          printenv | sort
+      - name: Unit Tests - narwhals
+        run: nox -v -db uv --non-interactive --session "tests-${{ matrix.python-version }}(extra='narwhals', pandas=None, pydantic=None, polars=None)"
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
         env:
