@@ -6,10 +6,12 @@ from typing import Any, Optional, Union
 import narwhals.stable.v1 as nw
 
 from pandera import dtypes, errors
+from pandera.api.narwhals.types import NarwhalsData
+from pandera.api.narwhals.utils import _materialize, _to_native
 from pandera.dtypes import immutable
 from pandera.engines import engine
 
-NarwhalsDataContainer = Any  # Union[nw.LazyFrame, NarwhalsData] — imported lazily
+NarwhalsDataContainer = Any  # Union[nw.LazyFrame, NarwhalsData]
 
 COERCION_ERRORS = (
     TypeError,
@@ -31,8 +33,6 @@ class DataType(dtypes.DataType):
         ``nw.LazyFrame``.  Always returns a ``nw.LazyFrame`` (lazy — does
         not collect).
         """
-        from pandera.api.narwhals.types import NarwhalsData
-
         if isinstance(data_container, nw.LazyFrame):
             data_container = NarwhalsData(frame=data_container)
 
@@ -52,21 +52,25 @@ class DataType(dtypes.DataType):
 
         :raises: :class:`~pandera.errors.ParserError`: if coercion fails
         """
-        from pandera.api.narwhals.types import NarwhalsData
-        from pandera.api.narwhals.utils import _to_native
-
         if isinstance(data_container, nw.LazyFrame):
             data_container = NarwhalsData(frame=data_container)
 
         try:
             lf = self.coerce(data_container)
-            lf.collect()
+            # Bounded probe: exercise the cast with 1 row instead of full frame.
+            # For nw.LazyFrame (polars): head(1).collect() stays in Narwhals.
+            # For nw.DataFrame (ibis): _materialize(head(1)) handles .execute().
+            if isinstance(lf, nw.LazyFrame):
+                lf.head(1).collect()
+            else:
+                _materialize(lf.head(1))
             return lf
         except COERCION_ERRORS as exc:
             key = data_container.key
             _key = "" if key == "*" else f"'{key}' in"
-            # Produce native failure_cases: collect original frame as native
-            failure_cases = _to_native(data_container.frame.collect())
+            # Produce native failure_cases: use _materialize to handle both polars
+            # (nw.LazyFrame -> collect) and ibis (nw.DataFrame -> .execute()) backends.
+            failure_cases = _to_native(_materialize(data_container.frame))
             if key != "*":
                 try:
                     failure_cases = failure_cases.select(key)
@@ -90,7 +94,7 @@ class Engine(metaclass=engine.Engine, base_pandera_dtypes=DataType):
 
     @classmethod
     def dtype(cls, data_type: Any) -> dtypes.DataType:
-        """Convert input into a narwhals-compatible
+        """Convert input into a Narwhals-compatible
         Pandera :class:`~pandera.dtypes.DataType` object.
 
         If ``data_type`` is an engine-specific dtype from another backend

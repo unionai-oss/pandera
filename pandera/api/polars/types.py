@@ -10,6 +10,11 @@ class PolarsData(NamedTuple):
     lazyframe: pl.LazyFrame
     key: str = "*"
 
+    @property
+    def frame(self) -> pl.LazyFrame:
+        """The native dataframe (LazyFrame)."""
+        return self.lazyframe
+
 
 class CheckResult(NamedTuple):
     """Check result for user-defined checks."""

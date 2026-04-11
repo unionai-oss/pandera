@@ -3,7 +3,7 @@ import narwhals.stable.v1 as nw
 
 
 def _to_native(frame):
-    """Convert a narwhals frame to its native backend frame.
+    """Convert a Narwhals frame to its native backend frame.
 
     Uses ``pass_through=True`` so that already-native frames (e.g. a raw
     ``polars.LazyFrame``) are returned unchanged without raising an error.
@@ -29,3 +29,13 @@ def _materialize(frame) -> nw.DataFrame:
         return nw.from_native(native.execute())
     # Fallback: already an eager DataFrame
     return frame
+
+
+def _is_lazy(frame) -> bool:
+    """True for nw.LazyFrame (polars-lazy) or nw.DataFrame wrapping a SQL-lazy backend (ibis)."""
+    if isinstance(frame, nw.LazyFrame):
+        return True
+    if isinstance(frame, nw.DataFrame):
+        native = nw.to_native(frame)
+        return hasattr(native, "execute")  # ibis.Table has .execute(); polars DataFrame does not
+    return False

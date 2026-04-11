@@ -2,12 +2,13 @@
 
 import re
 from collections.abc import Collection, Iterable
-from typing import Any, Optional, TypeVar, Union
+from typing import Any, TypeVar, Union
 
 import polars as pl
 
 from pandera.api.extensions import register_builtin_check
 from pandera.api.polars.types import PolarsData
+from pandera.backends.base import builtin_checks as base_checks
 
 T = TypeVar("T")
 
@@ -17,14 +18,8 @@ T = TypeVar("T")
     error="equal_to({value})",
 )
 def equal_to(data: PolarsData, value: Any) -> pl.LazyFrame:
-    """Ensure all elements of a column equal a certain value.
-
-    :param data: NamedTuple PolarsData contains the dataframe and column name for the check. The key
-        to access the dataframe is "dataframe", and the key to access the column name is "key".
-    :param value: Values in this Polars data structure must be
-        equal to this value.
-    """
-    return data.lazyframe.select(pl.col(data.key).eq(value))
+    """Ensure all elements of a column equal a certain value."""
+    return base_checks.equal_to(data, value)
 
 
 @register_builtin_check(
@@ -32,13 +27,8 @@ def equal_to(data: PolarsData, value: Any) -> pl.LazyFrame:
     error="not_equal_to({value})",
 )
 def not_equal_to(data: PolarsData, value: Any) -> pl.LazyFrame:
-    """Ensure no element of a column equals a certain value.
-
-    :param data: NamedTuple PolarsData contains the dataframe and column name for the check. The key
-        to access the dataframe is "dataframe", and the key the to access the column name is "key".
-    :param value: This value must not occur in the checked data structure.
-    """
-    return data.lazyframe.select(pl.col(data.key).ne(value))
+    """Ensure no element of a column equals a certain value."""
+    return base_checks.not_equal_to(data, value)
 
 
 @register_builtin_check(
@@ -46,16 +36,8 @@ def not_equal_to(data: PolarsData, value: Any) -> pl.LazyFrame:
     error="greater_than({min_value})",
 )
 def greater_than(data: PolarsData, min_value: Any) -> pl.LazyFrame:
-    """
-    Ensure values of a column are strictly greater than a minimum
-    value.
-
-    :param data: NamedTuple PolarsData contains the dataframe and column name for the check. The key
-        to access the dataframe is "dataframe", and the key the to access the column name is "key".
-    :param min_value: Lower bound to be exceeded. Must be
-        a type comparable to the dtype of the series datatype of Polars.
-    """
-    return data.lazyframe.select(pl.col(data.key).gt(min_value))
+    """Ensure values are strictly greater than a minimum value."""
+    return base_checks.greater_than(data, min_value)
 
 
 @register_builtin_check(
@@ -63,14 +45,8 @@ def greater_than(data: PolarsData, min_value: Any) -> pl.LazyFrame:
     error="greater_than_or_equal_to({min_value})",
 )
 def greater_than_or_equal_to(data: PolarsData, min_value: Any) -> pl.LazyFrame:
-    """Ensure all values are greater than or equal to a minimum value.
-
-    :param data: NamedTuple PolarsData contains the dataframe and column name for the check. The key
-        to access the dataframe is "dataframe", and the key the to access the column name is "key".
-    :param min_value: Allowed minimum value. Must be a type comparable
-        to the dtype of the :class:`pl.Series` to be validated.
-    """
-    return data.lazyframe.select(pl.col(data.key).ge(min_value))
+    """Ensure all values are greater than or equal to a minimum value."""
+    return base_checks.greater_than_or_equal_to(data, min_value)
 
 
 @register_builtin_check(
@@ -78,15 +54,8 @@ def greater_than_or_equal_to(data: PolarsData, min_value: Any) -> pl.LazyFrame:
     error="less_than({max_value})",
 )
 def less_than(data: PolarsData, max_value: Any) -> pl.LazyFrame:
-    """Ensure values of a column are strictly less than a maximum value.
-
-    :param data: NamedTuple PolarsData contains the dataframe and column name for the check. The key
-        to access the dataframe is "dataframe", and the key the to access the column name is "key".
-    :param max_value: All elements of a series must be strictly smaller
-        than this. Must be a type comparable to the dtype of the
-        :class:`pl.Series` to be validated.
-    """
-    return data.lazyframe.select(pl.col(data.key).lt(max_value))
+    """Ensure values are strictly less than a maximum value."""
+    return base_checks.less_than(data, max_value)
 
 
 @register_builtin_check(
@@ -94,14 +63,8 @@ def less_than(data: PolarsData, max_value: Any) -> pl.LazyFrame:
     error="less_than_or_equal_to({max_value})",
 )
 def less_than_or_equal_to(data: PolarsData, max_value: Any) -> pl.LazyFrame:
-    """Ensure all values are less than or equal to a maximum value.
-
-    :param data: NamedTuple PolarsData contains the dataframe and column name for the check. The key
-        to access the dataframe is "dataframe", and the key the to access the column name is "key".
-    :param max_value: Upper bound not to be exceeded. Must be a type comparable to the dtype of the
-        :class:`pl.Series` to be validated.
-    """
-    return data.lazyframe.select(pl.col(data.key).le(max_value))
+    """Ensure all values are less than or equal to a maximum value."""
+    return base_checks.less_than_or_equal_to(data, max_value)
 
 
 @register_builtin_check(

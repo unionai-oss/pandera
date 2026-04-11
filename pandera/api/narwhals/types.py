@@ -5,7 +5,7 @@ import narwhals.stable.v1 as nw
 
 
 class NarwhalsData(NamedTuple):
-    """Data container for narwhals-backed validation.
+    """Data container for Narwhals-backed validation.
 
     Note: field is named ``frame`` (not ``lazyframe``) to distinguish from
     the Polars ``PolarsData`` naming convention.
@@ -16,7 +16,7 @@ class NarwhalsData(NamedTuple):
 
 
 class NarwhalsCheckResult(NamedTuple):
-    """Check result for user-defined checks on narwhals frames."""
+    """Check result for user-defined checks on Narwhals frames."""
 
     check_output: nw.LazyFrame
     check_passed: nw.LazyFrame

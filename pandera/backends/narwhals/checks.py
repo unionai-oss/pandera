@@ -51,7 +51,7 @@ class NarwhalsCheckBackend(BaseCheckBackend):
                 )
                 # Force evaluation on a minimal probe to catch SQL-lazy
                 # backends that reject map_batches at query-plan build time
-                # (narwhals raises NotImplementedError during .select()).
+                # (Narwhals raises NotImplementedError during .select()).
                 frame.select(expr)
                 return expr
             except NotImplementedError:
@@ -79,9 +79,11 @@ class NarwhalsCheckBackend(BaseCheckBackend):
 
     @staticmethod
     def _normalize_native_output(out, check_obj: NarwhalsData):
-        """Normalize ibis outputs from native=True checks to narwhals types.
+        """Normalize native outputs from native=True checks to Narwhals types.
 
-        Polars and bool outputs pass through unchanged.
+        Handles ibis expression types (BooleanScalar, BooleanColumn, Table) and
+        polars native types (pl.Series of booleans, pl.DataFrame with CHECK_OUTPUT_KEY).
+        Bool scalars and other non-frame types pass through unchanged.
         """
         try:
             import ibis
@@ -98,7 +100,31 @@ class NarwhalsCheckBackend(BaseCheckBackend):
                 return nw.from_native(out, eager_or_interchange_only=False)
         except ImportError:
             pass
-        return out
+
+        # Handle polars native return types from native=True checks.
+        # Both pl.Series and pl.DataFrame are attached to the original frame so that
+        # postprocess_lazyframe_output receives a WIDE table (original columns +
+        # CHECK_OUTPUT_KEY) — the same shape produced by the ibis BooleanColumn path.
+        # - pl.Series of booleans: aliased to CHECK_OUTPUT_KEY and added via with_columns.
+        # - pl.DataFrame with CHECK_OUTPUT_KEY column: the boolean column is extracted and
+        #   then added to the original frame in the same way.
+        # Detection uses type.__module__ — avoids a hard polars import (polars is optional).
+        out_mod = getattr(type(out), "__module__", "") or ""
+        if out_mod.startswith("polars"):
+            native = nw.to_native(check_obj.frame)
+            # native may be a LazyFrame; collect to attach an eager column.
+            if hasattr(native, "collect"):
+                native = native.collect()
+            if type(out).__name__ == "Series":
+                bool_col = out.alias(CHECK_OUTPUT_KEY)
+            else:
+                # DataFrame must contain a CHECK_OUTPUT_KEY column
+                bool_col = out[CHECK_OUTPUT_KEY].alias(CHECK_OUTPUT_KEY)
+            return nw.from_native(
+                native.with_columns(bool_col), eager_only=True
+            )
+
+        return out  # bool or other scalar — handled by postprocess_bool_output
 
     def postprocess(self, check_obj: NarwhalsData, check_output):
         """Postprocesses the result of applying the check function."""
@@ -184,19 +210,17 @@ class NarwhalsCheckBackend(BaseCheckBackend):
         check_output: bool,
     ) -> CheckResult:
         """Postprocesses bool check output into a CheckResult."""
-        # SQL-lazy backends (ibis) do not support nw.from_dict — use polars
-        # as the eager namespace for bool scalar results.
+        # SQL-lazy backends (ibis) do not support nw.from_dict with their
+        # native namespace — fall back to pyarrow as the eager intermediate.
         try:
             ns = nw.get_native_namespace(check_obj.frame)
             lf = nw.from_dict(
                 {CHECK_OUTPUT_KEY: [check_output]}, native_namespace=ns
             ).lazy()
         except (ValueError, AttributeError):
-            import polars as pl
-            lf = nw.from_native(
-                pl.LazyFrame({CHECK_OUTPUT_KEY: [check_output]}),
-                eager_or_interchange_only=False,
-            )
+            lf = nw.from_dict(
+                {CHECK_OUTPUT_KEY: [check_output]}, backend="pyarrow"
+            ).lazy()
         return CheckResult(
             check_output=lf,
             check_passed=lf,

@@ -1,5 +1,6 @@
 """Column backend for Narwhals — per-column validation layer."""
 
+import re
 import warnings
 from collections.abc import Iterable
 from typing import cast
@@ -8,7 +9,7 @@ import narwhals.stable.v1 as nw
 
 from pandera.api.base.error_handler import get_error_category
 from pandera.api.narwhals.error_handler import ErrorHandler
-from pandera.api.narwhals.utils import _to_native
+from pandera.api.narwhals.utils import _is_lazy, _to_native
 from pandera.backends.base import CoreCheckResult
 from pandera.backends.narwhals.base import NarwhalsSchemaBackend, _materialize
 from pandera.config import ValidationScope
@@ -99,7 +100,6 @@ class ColumnBackend(NarwhalsSchemaBackend):
     def get_regex_columns(self, schema, check_obj) -> Iterable:
         """Get column names matching a regex pattern."""
         frame_cols = check_obj.collect_schema().names()
-        import re
         return [c for c in frame_cols if re.search(schema.selector, c)]
 
     @validate_scope(scope=ValidationScope.DATA)
@@ -141,7 +141,7 @@ class ColumnBackend(NarwhalsSchemaBackend):
                 )
             ]
 
-        # failure_cases and check_output stay lazy — narwhals wrappers, not native.
+        # failure_cases and check_output stay lazy — Narwhals wrappers, not native.
         failure_cases = combined_lf.filter(nw.col(CHECK_OUTPUT_KEY)).select(col)
         return [
             CoreCheckResult(
@@ -182,6 +182,8 @@ class ColumnBackend(NarwhalsSchemaBackend):
             .agg(nw.len().alias("_count"))
         )
         dup_values = grouped.filter(nw.col("_count") > 1).select(col)
+        # Bounded: dup_values contains only the distinct duplicate column values — not the full frame.
+        # Materialization is required here to evaluate len() and produce failure_cases.
         native_dups = nw.to_native(_materialize(dup_values))
 
         results = []
@@ -240,7 +242,7 @@ class ColumnBackend(NarwhalsSchemaBackend):
             # through the shared abstract pandera base class. Parametric types
             # (List, Struct) fall back to a direct check, which will report
             # WRONG_DATATYPE for cross-engine schemas. TODO: root fix is in schema
-            # construction — pandera.polars/pandera.ibis should produce narwhals
+            # construction — pandera.polars/pandera.ibis should produce Narwhals
             # engine dtypes when the Narwhals backend is active.
             try:
                 schema_nw_dtype = narwhals_engine.Engine.dtype(schema.dtype)
@@ -327,22 +329,22 @@ class ColumnBackend(NarwhalsSchemaBackend):
                     error = result.schema_error
                 else:
                     assert result.reason_code is not None
-                    # Convert narwhals failure_cases to native for SchemaError public API.
-                    # CoreCheckResult carries narwhals wrappers; SchemaError.failure_cases
+                    # Convert Narwhals failure_cases to native for SchemaError public API.
+                    # CoreCheckResult carries Narwhals wrappers; SchemaError.failure_cases
                     # is the public API and must be native (pl.DataFrame, ibis.Table, etc.)
-                    # so callers can use the result without narwhals knowledge.
+                    # so callers can use the result without Narwhals knowledge.
                     # For SQL-lazy backends (ibis): nw.to_native(LazyFrame) returns ibis.Table
                     #   directly (no execution) — hasattr(native, 'execute') detects this case.
                     # For polars LazyFrame: must collect() first, then to_native → pl.DataFrame.
                     # For nw.DataFrame: to_native directly (polars → pl.DataFrame, ibis → ibis.Table).
                     fc = result.failure_cases
                     if isinstance(fc, nw.LazyFrame):
-                        native_fc = nw.to_native(fc)
-                        if hasattr(native_fc, "execute"):
-                            # SQL-lazy backend (ibis): native is already ibis.Table
-                            fc = native_fc
+                        if hasattr(nw.to_native(fc), "execute"):
+                            # SQL-lazy backend (ibis): nw.to_native returns ibis.Table directly
+                            fc = nw.to_native(fc)
                         else:
-                            # Polars lazy: collect to eager then unwrap
+                            # Error path: collect failure_cases LazyFrame to eager.
+                            # Bounded: fc contains only failing rows from the check, not the full frame.
                             fc = nw.to_native(_materialize(fc))
                     elif isinstance(fc, nw.DataFrame):
                         fc = nw.to_native(fc)

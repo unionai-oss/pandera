@@ -185,6 +185,27 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
                 "strict parameter must equal either `True`, `False`, or `'filter'`."
             )
 
+    def infer_columns(self, column_names: list) -> list:
+        """Return Column instances for the given column names using this schema's Column type.
+
+        Encapsulates the Column class lookup so backends need not reach into
+        framework-specific modules (pandera.api.polars.components, etc.).
+
+        If the schema already has column entries, infer the Column class from them.
+        Otherwise, fall back to importlib using the schema's own package — same
+        as the pattern this method replaces, but now encapsulated in the schema layer.
+
+        :param column_names: list of column name strings to create Column objects for.
+        :returns: list of Column objects constructed with (self.dtype, name=col_name).
+        """
+        if self.columns:
+            col_cls = type(next(iter(self.columns.values())))
+        else:
+            import importlib
+            _pkg = self.__class__.__module__.rsplit(".", 1)[0]
+            col_cls = importlib.import_module(f"{_pkg}.components").Column
+        return [col_cls(self.dtype, name=str(name)) for name in column_names]
+
     @property
     def dtype(
         self,

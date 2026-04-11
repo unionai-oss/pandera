@@ -203,3 +203,111 @@ def test_validate_dataframe_returns_dataframe():
     assert isinstance(result, pl.DataFrame), (
         f"Expected pl.DataFrame, got {type(result)}"
     )
+
+
+# ---------------------------------------------------------------------------
+# CLEAN-01 / v1.2 Phase 1
+# checks.py must contain no polars-specific imports
+# ---------------------------------------------------------------------------
+
+
+def test_checks_has_no_polars_import():
+    """narwhals/checks.py must not import polars at module level or inside functions.
+
+    Polars is an optional dependency. checks.py uses narwhals operations only;
+    any polars import here would break ibis-only environments.
+    """
+    import inspect
+    import pandera.backends.narwhals.checks as checks_mod
+
+    src = inspect.getsource(checks_mod)
+    assert "import polars" not in src, (
+        "pandera/backends/narwhals/checks.py must not contain 'import polars'"
+    )
+
+
+# ---------------------------------------------------------------------------
+# CLEAN-02 / v1.2 Phase 1
+# container.py must not reach into pandera.api.polars.components
+# ---------------------------------------------------------------------------
+
+
+def test_container_has_no_polars_components_import():
+    """narwhals/container.py must not import from pandera.api.polars.components.
+
+    The narwhals backend is framework-agnostic. Column class lookup is now
+    delegated to schema.infer_columns() in the schema API layer.
+    """
+    import inspect
+    import pandera.backends.narwhals.container as container_mod
+
+    src = inspect.getsource(container_mod)
+    assert "pandera.api.polars.components" not in src, (
+        "pandera/backends/narwhals/container.py must not reference pandera.api.polars.components"
+    )
+    assert "importlib.import_module" not in src, (
+        "pandera/backends/narwhals/container.py must not use importlib to look up Column class"
+    )
+
+
+def test_container_uses_infer_columns_for_schema_components():
+    """collect_schema_components must call schema.infer_columns() — not importlib."""
+    import inspect
+    from pandera.backends.narwhals.container import DataFrameSchemaBackend
+
+    src = inspect.getsource(DataFrameSchemaBackend.collect_schema_components)
+    assert "schema.infer_columns(" in src, (
+        "collect_schema_components must call schema.infer_columns() to obtain Column objects"
+    )
+
+
+def test_infer_columns_returns_correct_column_type_for_polars():
+    """DataFrameSchema.infer_columns() returns polars Column instances for a polars schema."""
+    import polars as pl
+    import pandera.polars as pa_pl
+
+    schema = pa_pl.DataFrameSchema(dtype=pl.Int64)
+    cols = schema.infer_columns(["a", "b"])
+    from pandera.api.polars.components import Column as PolarsColumn
+    assert len(cols) == 2
+    assert all(isinstance(c, PolarsColumn) for c in cols), (
+        f"infer_columns() returned {[type(c) for c in cols]}, expected PolarsColumn"
+    )
+
+
+def test_polars_and_ibis_conftests_do_not_import_narwhals_backend():
+    """TEST-01: polars and ibis test conftests must not import pandera.backends.narwhals.
+
+    Rationale: the pandera.polars and pandera.ibis backends are library-native and
+    must remain the active backends when running `pytest tests/polars/` or
+    `pytest tests/ibis/`, even if narwhals is installed in the same environment.
+    Importing pandera.backends.narwhals in a conftest would cause the narwhals
+    backend to register for pl.DataFrame / pl.LazyFrame / ibis.Table, shadowing
+    the library-native backends and silently shifting test behavior.
+    """
+    import os
+
+    repo_root = os.path.abspath(
+        os.path.join(os.path.dirname(__file__), "..", "..", "..")
+    )
+    for relpath in ("tests/polars/conftest.py", "tests/ibis/conftest.py"):
+        path = os.path.join(repo_root, relpath)
+        assert os.path.isfile(path), f"Expected conftest at {path}"
+        src = open(path).read()
+        # The grep pattern is an import-line check. The literal string
+        # "pandera.backends.narwhals" may appear in a docstring or comment
+        # (e.g. the TEST-01 rationale). Only top-of-line imports are forbidden.
+        for line in src.splitlines():
+            stripped = line.lstrip()
+            if stripped.startswith("from pandera.backends.narwhals"):
+                raise AssertionError(
+                    f"TEST-01 violation in {relpath}: "
+                    f"'from pandera.backends.narwhals' import detected — "
+                    f"polars/ibis tests must not depend on the narwhals backend."
+                )
+            if stripped.startswith("import pandera.backends.narwhals"):
+                raise AssertionError(
+                    f"TEST-01 violation in {relpath}: "
+                    f"'import pandera.backends.narwhals' detected — "
+                    f"polars/ibis tests must not depend on the narwhals backend."
+                )

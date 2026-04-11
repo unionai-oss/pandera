@@ -12,9 +12,9 @@ def register_ibis_backends(
 ):
     """Register backends for Ibis Table types.
 
-    Auto-detects narwhals: if narwhals is installed, registers narwhals backends
-    (NarwhalsCheckBackend, narwhals ColumnBackend, narwhals DataFrameSchemaBackend)
-    and emits a UserWarning. If narwhals is not installed, registers the native
+    Auto-detects Narwhals: if Narwhals is installed, registers Narwhals backends
+    (NarwhalsCheckBackend, Narwhals ColumnBackend, Narwhals DataFrameSchemaBackend)
+    and emits a UserWarning. If Narwhals is not installed, registers the native
     Ibis backends.
 
     Decorated with @lru_cache to prevent duplicate registrations across repeated

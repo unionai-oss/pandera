@@ -1,17 +1,23 @@
 """Validation backend for Narwhals DataFrameSchema."""
 
+from __future__ import annotations
+
 import copy
+import re
 import traceback
 import warnings
 from collections.abc import Callable
-from typing import Any, Optional
+from typing import TYPE_CHECKING, Any, Optional
 
 import narwhals.stable.v1 as nw
 
 from pandera.api.base.error_handler import get_error_category
 from pandera.api.narwhals.error_handler import ErrorHandler
-from pandera.api.narwhals.utils import _to_native
-from pandera.api.polars.container import DataFrameSchema
+from pandera.api.narwhals.utils import _is_lazy, _to_native
+
+if TYPE_CHECKING:
+    from pandera.api.polars.container import DataFrameSchema
+
 from pandera.backends.base import ColumnInfo, CoreCheckResult
 from pandera.backends.narwhals.base import NarwhalsSchemaBackend, _materialize
 from pandera.config import ValidationDepth, ValidationScope, config_context, get_config_context
@@ -43,6 +49,10 @@ def _to_frame_kind_nw(lf: nw.LazyFrame, return_type: type):
     # type itself, an eager class or ibis.Table does not.
     if not hasattr(return_type, "collect"):
         if hasattr(native, "collect"):
+            # Acceptable: full-frame collect only at the final validation return boundary.
+            # The caller originally passed an eager frame (e.g. pl.DataFrame) and expects
+            # an eager result back.  This is a user-visible materialization at schema exit,
+            # not an internal hot-path collect.
             return native.collect()
     return native
 
@@ -148,17 +158,17 @@ class DataFrameSchemaBackend(NarwhalsSchemaBackend):
                     if result.schema_error is not None:
                         error = result.schema_error
                     else:
-                        # Unwrap narwhals failure_cases to native at the SchemaError boundary.
-                        # CoreCheckResult carries narwhals wrappers; SchemaError.failure_cases
+                        # Unwrap Narwhals failure_cases to native at the SchemaError boundary.
+                        # CoreCheckResult carries Narwhals wrappers; SchemaError.failure_cases
                         # is the public API and must be native.
                         fc = result.failure_cases
                         if isinstance(fc, nw.LazyFrame):
-                            native_fc = nw.to_native(fc)
-                            if hasattr(native_fc, "execute"):
-                                # SQL-lazy backend (ibis): native is already ibis.Table
-                                fc = native_fc
+                            if hasattr(nw.to_native(fc), "execute"):
+                                # SQL-lazy backend (ibis): nw.to_native returns ibis.Table directly
+                                fc = nw.to_native(fc)
                             else:
-                                # Polars lazy: collect to eager then unwrap
+                                # Error path: collect failure_cases LazyFrame to eager.
+                                # Bounded: fc contains only failing rows, not the full frame.
                                 fc = nw.to_native(_materialize(fc))
                         elif isinstance(fc, nw.DataFrame):
                             fc = nw.to_native(fc)
@@ -240,8 +250,6 @@ class DataFrameSchemaBackend(NarwhalsSchemaBackend):
         lazy: bool,
     ) -> list[CoreCheckResult]:
         """Run checks for all schema components."""
-        from pandera.api.narwhals.utils import _to_native
-
         check_results = []
         check_passed = []
         # Convert to native frame for column component dispatch.
@@ -252,7 +260,7 @@ class DataFrameSchemaBackend(NarwhalsSchemaBackend):
         for schema_component in schema_components:
             try:
                 result = schema_component.validate(native_obj, lazy=lazy)
-                # Narwhals backend returns a narwhals frame, not pl.LazyFrame.
+                # Narwhals backend returns a Narwhals frame, not pl.LazyFrame.
                 # The component validate() not raising is the success signal.
                 check_passed.append(result is not None)
             except SchemaError as err:
@@ -329,24 +337,19 @@ class DataFrameSchemaBackend(NarwhalsSchemaBackend):
     ):
         """Collects all schema components to use for validation."""
 
-        # Determine the Column class from the schema's own package to avoid
-        # hardcoding a framework-specific import in a backend-agnostic method.
-        # TODO: push synthetic column construction into the schema API layer
-        # (e.g., schema.infer_columns(frame_column_names)) so the backend
-        # doesn't need to know the Column type at all.
-        import importlib
-        _pkg = schema.__class__.__module__.rsplit(".", 1)[0]
-        Column = importlib.import_module(f"{_pkg}.components").Column
-
-        columns: dict[str, Column] = schema.columns
+        columns: dict = schema.columns
         frame_column_names = check_obj.collect_schema().names()
 
         if not schema.columns and schema.dtype is not None:
             # set schema components to dataframe dtype if columns are not
             # specified but the dataframe-level dtype is specified.
-            columns = {}
-            for col_name in frame_column_names:
-                columns[col_name] = Column(schema.dtype, name=str(col_name))
+            columns = {
+                col_name: col
+                for col_name, col in zip(
+                    frame_column_names,
+                    schema.infer_columns(frame_column_names),
+                )
+            }
 
         schema_components = []
         for col_name, col in columns.items():
@@ -436,8 +439,6 @@ class DataFrameSchemaBackend(NarwhalsSchemaBackend):
         column_info: Any,
     ) -> list[CoreCheckResult]:
         """Check that all columns in the schema are present in the dataframe."""
-        from pandera.api.narwhals.utils import _to_native
-
         results = []
         if column_info.absent_column_names and not schema.add_missing_columns:
             for colname in column_info.absent_column_names:
@@ -446,7 +447,6 @@ class DataFrameSchemaBackend(NarwhalsSchemaBackend):
                     # regex pattern — try to select using regex expression
                     try:
                         frame_cols = check_obj.collect_schema().names()
-                        import re
                         matching = [c for c in frame_cols if re.search(colname, c)]
                         if matching:
                             continue
@@ -500,6 +500,8 @@ class DataFrameSchemaBackend(NarwhalsSchemaBackend):
                 .agg(nw.len().alias("_count"))
             )
             dup_rows = grouped.filter(nw.col("_count") > 1).drop("_count")
+            # Bounded: dup_rows contains only rows with duplicate key values — not the full frame.
+            # Materialization is required here to evaluate len() and produce failure_cases.
             native_dups = nw.to_native(_materialize(dup_rows))
 
             if len(native_dups) > 0:

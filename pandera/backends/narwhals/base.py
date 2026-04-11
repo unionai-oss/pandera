@@ -1,12 +1,13 @@
 """Base schema backend for Narwhals."""
 
+import functools
 import warnings
 from collections import defaultdict
 
 import narwhals.stable.v1 as nw
 
 from pandera.api.narwhals.error_handler import ErrorHandler
-from pandera.api.narwhals.utils import _materialize
+from pandera.api.narwhals.utils import _is_lazy, _materialize
 from pandera.backends.base import BaseSchemaBackend, CoreCheckResult
 from pandera.backends.narwhals.checks import NarwhalsCheckBackend
 from pandera.constants import CHECK_OUTPUT_KEY
@@ -17,15 +18,6 @@ from pandera.errors import (
     SchemaWarning,
 )
 
-
-def _is_lazy_or_sql(fc) -> bool:
-    """True for polars-lazy (nw.LazyFrame) or SQL-lazy (nw.DataFrame wrapping ibis.Table)."""
-    if isinstance(fc, nw.LazyFrame):
-        return True
-    if isinstance(fc, nw.DataFrame):
-        native = nw.to_native(fc)
-        return hasattr(native, "execute")  # ibis.Table has .execute(); polars DataFrame does not
-    return False
 
 
 class NarwhalsSchemaBackend(BaseSchemaBackend):
@@ -88,7 +80,7 @@ class NarwhalsSchemaBackend(BaseSchemaBackend):
 
         Single unified code path — no _is_ibis_result bifurcation.
         Materializes only the scalar passed bool via _materialize(check_passed).
-        failure_cases and check_output stay as narwhals wrappers in the returned
+        failure_cases and check_output stay as Narwhals wrappers in the returned
         CoreCheckResult; callers (failure_cases_metadata) materialize as needed.
         """
         check_result = check(check_obj, *args)
@@ -129,7 +121,7 @@ class NarwhalsSchemaBackend(BaseSchemaBackend):
                 # Drop CHECK_OUTPUT_KEY column if present (wide table includes it for key=="*" checks)
                 if CHECK_OUTPUT_KEY in fc.collect_schema().names():
                     fc = fc.drop(CHECK_OUTPUT_KEY)
-                failure_cases = fc  # narwhals wrapper — NOT collected here
+                failure_cases = fc  # Narwhals wrapper — NOT collected here
                 message = f"Check '{check}' failed."
 
             if check.raise_warning:
@@ -147,7 +139,7 @@ class NarwhalsSchemaBackend(BaseSchemaBackend):
             check_output=check_result.check_output,  # stays lazy — NOT _materialize() here
             reason_code=SchemaErrorReason.DATAFRAME_CHECK,
             message=message,
-            failure_cases=failure_cases,             # narwhals wrapper — NOT _to_native() here
+            failure_cases=failure_cases,             # Narwhals wrapper — NOT _to_native() here
         )
 
     def is_float_dtype(self, check_obj, col_name: str) -> bool:
@@ -197,7 +189,7 @@ class NarwhalsSchemaBackend(BaseSchemaBackend):
                 )
             )
 
-            # Wrap any native frame (pl.DataFrame, pl.LazyFrame, ibis.Table) back to narwhals
+            # Wrap any native frame (pl.DataFrame, pl.LazyFrame, ibis.Table) back to Narwhals
             # so the type checks below work uniformly.
             # Python scalars/None/bool raise TypeError — leave fc unchanged (scalar path below).
             fc = err.failure_cases
@@ -206,9 +198,9 @@ class NarwhalsSchemaBackend(BaseSchemaBackend):
             except TypeError:
                 pass
 
-            if isinstance(fc, (nw.LazyFrame, nw.DataFrame)) and _is_lazy_or_sql(fc):
+            if isinstance(fc, (nw.LazyFrame, nw.DataFrame)) and _is_lazy(fc):
                 # --- Lazy/SQL path (polars-lazy nw.LazyFrame or ibis nw.DataFrame) ---
-                # Use narwhals ops only — no Arrow roundtrip, no polars import in this path.
+                # Use Narwhals ops only — no Arrow roundtrip, no polars import in this path.
                 # Row index is always None — no forced materialization for ordering.
                 col_names = fc.collect_schema().names()
 
@@ -237,7 +229,11 @@ class NarwhalsSchemaBackend(BaseSchemaBackend):
                 # --- Eager polars path (nw.DataFrame wrapping pl.DataFrame) ---
                 # Keep existing polars-based logic — works correctly for eager inputs.
                 # Row index is derivable from check_output.
-                import polars as pl
+                # This branch is only reached for eager polars DataFrames, so polars is present.
+                try:
+                    import polars as pl
+                except ImportError:
+                    pl = None  # type: ignore[assignment]
                 fc_eager = _materialize(fc)
                 pl_fc = pl.from_arrow(fc_eager.to_arrow())
 
@@ -291,7 +287,10 @@ class NarwhalsSchemaBackend(BaseSchemaBackend):
 
             else:
                 # --- Scalar path (Python scalars, strings, etc.) ---
-                import polars as pl
+                try:
+                    import polars as pl
+                except ImportError:
+                    pl = None  # type: ignore[assignment]
                 scalar_failure_cases = defaultdict(list)
                 scalar_failure_cases["failure_case"].append(err.failure_cases)
                 scalar_failure_cases["schema_context"].append(
@@ -314,14 +313,20 @@ class NarwhalsSchemaBackend(BaseSchemaBackend):
         if failure_case_collection:
             first = failure_case_collection[0]
             if hasattr(first, "union"):  # ibis.Table
-                import functools
                 failure_cases = functools.reduce(lambda a, b: a.union(b), failure_case_collection)
             else:
-                import polars as pl
+                # All items are pl.DataFrame or pl.LazyFrame — polars is present here.
+                try:
+                    import polars as pl
+                except ImportError:
+                    pl = None  # type: ignore[assignment]
                 failure_cases = pl.concat(failure_case_collection)  # pl.LazyFrame or pl.DataFrame
         else:
-            import polars as pl
-            failure_cases = pl.DataFrame()
+            try:
+                import polars as pl
+            except ImportError:
+                pl = None  # type: ignore[assignment]
+            failure_cases = pl.DataFrame() if pl is not None else None
 
         error_handler = ErrorHandler()
         # Only collect errors with a valid reason_code; errors without one
@@ -350,7 +355,7 @@ class NarwhalsSchemaBackend(BaseSchemaBackend):
         )
 
     def drop_invalid_rows(self, check_obj, error_handler):
-        """Remove invalid rows — pure narwhals, no backend delegation.
+        """Remove invalid rows — pure Narwhals, no backend delegation.
 
         Builds a pass-mask boolean column per check_output, combines with
         nw.all_horizontal, filters, and drops the temporary columns.
@@ -418,7 +423,7 @@ class NarwhalsSchemaBackend(BaseSchemaBackend):
         filtered = wide.filter(nw.all_horizontal(*[nw.col(c) for c in bool_cols]))
         result = filtered.drop(bool_cols)
 
-        # Preserve input type: native in -> native out, narwhals in -> narwhals out
+        # Preserve input type: native in -> native out, Narwhals in -> Narwhals out
         if isinstance(check_obj, (nw.LazyFrame, nw.DataFrame)):
             return result
         return nw.to_native(result)
