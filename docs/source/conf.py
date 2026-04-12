@@ -209,7 +209,7 @@ html_theme = "furo"
 announcement = """
 📢 Pandera 0.31.0 introduces the <i> pandera-xarray integration </i>!
 Validate all supported xarray data structures, including Dataset, DataArray, and DataTree.
-Learn more details <a href='./xarray.html'>here</a>
+Learn more details <a href='./xarray_guide/index.html'>here</a>
 """
 
 html_logo = "_static/pandera-banner.png"
