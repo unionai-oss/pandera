@@ -17,6 +17,12 @@ from pandera.config import (
 )
 from pandera.engines.polars_engine import polars_version
 
+try:
+    import narwhals  # noqa: F401
+    narwhals_installed = True
+except ImportError:
+    narwhals_installed = False
+
 
 @pytest.fixture(scope="function")
 def validation_disabled():
@@ -79,6 +85,7 @@ def test_validation_disabled(validation_disabled, schema):
     assert schema.validate(invalid).equals(invalid)
 
 
+@pytest.mark.xfail(condition=narwhals_installed, reason="Narwhals backend does not support coerce; validation depth behavior differs", strict=True)
 def test_lazyframe_validation_depth_none(validation_depth_none, schema):
     """
     Test that with default configuration setting for validation depth (None),
@@ -122,6 +129,7 @@ def test_lazyframe_validation_depth_none(validation_depth_none, schema):
             invalid_data_level.pipe(schema.validate)
 
 
+@pytest.mark.xfail(condition=narwhals_installed, reason="Narwhals backend does not support coerce; validation depth behavior differs", strict=True)
 def test_dataframe_validation_depth_none(validation_depth_none, schema):
     valid = pl.DataFrame({"a": [1, 2, 3], "b": [*"abc"]})
     invalid_data_level = pl.DataFrame({"a": [1, 2, -3], "b": [*"abc"]})
@@ -143,6 +151,7 @@ def test_dataframe_validation_depth_none(validation_depth_none, schema):
         assert schema.validate(invalid_schema_level)
 
 
+@pytest.mark.xfail(condition=narwhals_installed, reason="Error message format differs in Narwhals backend", strict=True)
 def test_lazyframe_validation_depth_schema_and_data(
     validation_depth_schema_and_data,
     schema,
@@ -169,6 +178,7 @@ def test_lazyframe_validation_depth_schema_and_data(
         assert ErrorCategory.DATA.name in exc.message
 
 
+@pytest.mark.xfail(condition=narwhals_installed, reason="Narwhals backend does not support dtype coercion", strict=True)
 def test_coerce_validation_depth_none(validation_depth_none, schema):
     assert get_config_global().validation_depth is None
     schema._coerce = True

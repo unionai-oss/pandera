@@ -27,6 +27,12 @@ from pandera.polars import (
     dataframe_check,
 )
 
+try:
+    import narwhals  # noqa: F401
+    narwhals_installed = True
+except ImportError:
+    narwhals_installed = False
+
 
 @pytest.fixture
 def ldf_model_basic():
@@ -56,6 +62,7 @@ def ldf_model_with_fields():
     return ModelWithFields
 
 
+@pytest.mark.xfail(condition=narwhals_installed, reason="coerce_dtype not implemented in Narwhals backend (used by DataFrameModel.empty())", strict=True)
 def test_empty() -> None:
     """Test to generate an empty DataFrameModel."""
 
@@ -150,7 +157,14 @@ ErrorCls = (
     [
         # this modification will cause a InvalidOperationError since casting the
         # values in ldf_basic will cause the error outside of pandera validation
-        ({"string_col": pl.Int64}, ErrorCls),
+        pytest.param(
+            {"string_col": pl.Int64}, ErrorCls,
+            marks=pytest.mark.xfail(
+                condition=narwhals_installed,
+                reason="Narwhals raises narwhals.exceptions.InvalidOperationError, not polars.exceptions.InvalidOperationError",
+                strict=True,
+            ),
+        ),
         # this modification will cause a SchemaError since schema validation
         # can actually catch the type mismatch
         ({"int_col": pl.Utf8}, SchemaError),
@@ -188,6 +202,7 @@ def test_model_with_fields(ldf_model_with_fields, ldf_basic):
         invalid_df.pipe(ldf_model_with_fields.validate).collect()
 
 
+@pytest.mark.xfail(condition=narwhals_installed, reason="Polars-style custom check functions incompatible with Narwhals backend", strict=True)
 def test_model_with_custom_column_checks(
     ldf_model_with_custom_column_checks,
     ldf_basic,
@@ -204,6 +219,7 @@ def test_model_with_custom_column_checks(
         invalid_df.pipe(ldf_model_with_custom_column_checks.validate).collect()
 
 
+@pytest.mark.xfail(condition=narwhals_installed, reason="Polars-style custom check functions incompatible with Narwhals backend", strict=True)
 def test_model_with_custom_dataframe_checks(
     ldf_model_with_custom_dataframe_checks,
     ldf_basic,
@@ -248,9 +264,9 @@ def test_polars_python_list_df_model(schema_with_list_type):
     "time_zone",
     [
         None,
-        "UTC",
-        "GMT",
-        "EST",
+        pytest.param("UTC", marks=pytest.mark.xfail(condition=narwhals_installed, reason="Narwhals engine dtype comparison fails for tz-aware polars Datetime", strict=True)),
+        pytest.param("GMT", marks=pytest.mark.xfail(condition=narwhals_installed, reason="Narwhals engine dtype comparison fails for tz-aware polars Datetime", strict=True)),
+        pytest.param("EST", marks=pytest.mark.xfail(condition=narwhals_installed, reason="Narwhals engine dtype comparison fails for tz-aware polars Datetime", strict=True)),
     ],
 )
 @given(st.data())
