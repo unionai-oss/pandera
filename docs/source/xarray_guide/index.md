@@ -6,6 +6,8 @@ file_format: mystnb
 
 # Xarray Data Validation
 
+*New in 0.31.0*
+
 [xarray](https://docs.xarray.dev/) provides labelled multi-dimensional arrays
 {class}`~xarray.DataArray`, collections of aligned arrays
 {class}`~xarray.Dataset`, and collections of datasets with {class}`~xarray.DataTree`.
