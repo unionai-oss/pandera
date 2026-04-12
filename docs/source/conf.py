@@ -207,9 +207,9 @@ html_theme = "furo"
 # documentation.
 
 announcement = """
-📢 Pandera 0.25.0 introduces the <i>🦩 pandera-ibis integration </i>!
-Validate all supported Ibis backends, including Snowflake, BigQuery, and more.
-Learn more details <a href='./ibis.html'>here</a>
+📢 Pandera 0.31.0 introduces the <i> pandera-xarray integration </i>!
+Validate all supported xarray data structures, including Dataset, DataArray, and DataTree.
+Learn more details <a href='./xarray.html'>here</a>
 """
 
 html_logo = "_static/pandera-banner.png"

@@ -3,6 +3,8 @@
 Xarray
 ======
 
+*New in 0.31.0*
+
 Schemas and components for validating :class:`xarray.DataArray`,
 :class:`xarray.Dataset`, and :class:`xarray.DataTree`. Typical imports use
 :mod:`pandera.xarray`; implementations live under :mod:`pandera.api.xarray`.
