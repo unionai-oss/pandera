@@ -98,6 +98,7 @@ xarray = [
     "xarray >= 2024.10.0",
     "numpy >= 1.24.4",
 ]
+narwhals = ["narwhals >= 2.15.0"]
 all = [
     "hypothesis >= 6.92.7",
     "scipy",
