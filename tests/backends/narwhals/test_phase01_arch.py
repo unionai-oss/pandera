@@ -12,7 +12,6 @@ import inspect
 import polars as pl
 import pytest
 
-
 # ---------------------------------------------------------------------------
 # ARCH-01 / Task 1-01-01
 # Base ErrorHandler must contain NO ibis-specific imports or isinstance checks
@@ -37,8 +36,8 @@ def test_base_error_handler_has_no_ibis_references():
 
 def test_narwhals_error_handler_is_subclass_of_base():
     """NarwhalsErrorHandler is a proper subclass of the base ErrorHandler."""
-    from pandera.api.narwhals.error_handler import ErrorHandler as NarwhalsEH
     from pandera.api.base.error_handler import ErrorHandler as BaseEH
+    from pandera.api.narwhals.error_handler import ErrorHandler as NarwhalsEH
 
     assert issubclass(NarwhalsEH, BaseEH), (
         "NarwhalsErrorHandler must subclass base ErrorHandler"
@@ -124,10 +123,13 @@ def test_container_has_no_polars_issubclass_check_in_to_frame_kind():
 
 def test_to_frame_kind_returns_lazyframe_for_lazyframe_input():
     """_to_frame_kind_nw returns a pl.LazyFrame when return_type is pl.LazyFrame."""
-    from pandera.backends.narwhals.container import _to_frame_kind_nw
     import narwhals.stable.v1 as nw
 
-    lf = nw.from_native(pl.LazyFrame({"a": [1, 2, 3]}), eager_or_interchange_only=False)
+    from pandera.backends.narwhals.container import _to_frame_kind_nw
+
+    lf = nw.from_native(
+        pl.LazyFrame({"a": [1, 2, 3]}), eager_or_interchange_only=False
+    )
     result = _to_frame_kind_nw(lf, pl.LazyFrame)
     assert isinstance(result, pl.LazyFrame), (
         f"Expected pl.LazyFrame for lazy input, got {type(result)}"
@@ -136,11 +138,14 @@ def test_to_frame_kind_returns_lazyframe_for_lazyframe_input():
 
 def test_to_frame_kind_returns_dataframe_for_dataframe_input():
     """_to_frame_kind_nw returns a pl.DataFrame when return_type is pl.DataFrame."""
-    from pandera.backends.narwhals.container import _to_frame_kind_nw
     import narwhals.stable.v1 as nw
 
+    from pandera.backends.narwhals.container import _to_frame_kind_nw
+
     # Wrap a pl.DataFrame as a nw.LazyFrame to simulate post-check state
-    lf = nw.from_native(pl.LazyFrame({"a": [1, 2, 3]}), eager_or_interchange_only=False)
+    lf = nw.from_native(
+        pl.LazyFrame({"a": [1, 2, 3]}), eager_or_interchange_only=False
+    )
     result = _to_frame_kind_nw(lf, pl.DataFrame)
     assert isinstance(result, pl.DataFrame), (
         f"Expected pl.DataFrame for eager input, got {type(result)}"
@@ -169,7 +174,8 @@ def test_validate_does_not_materialize_before_subsample():
     )
     # _to_frame_kind_nw NOT in a return or drop_invalid_rows block means premature call
     premature_calls = [
-        i for i, line in enumerate(lines)
+        i
+        for i, line in enumerate(lines)
         if "_to_frame_kind_nw(" in line
         and "return" not in line
         and "drop_invalid_rows" not in line
@@ -183,8 +189,8 @@ def test_validate_does_not_materialize_before_subsample():
 
 def test_validate_lazyframe_returns_lazyframe():
     """schema.validate(pl.LazyFrame) returns pl.LazyFrame — deferred materialization works end-to-end."""
-    from pandera.api.polars.container import DataFrameSchema
     from pandera.api.polars.components import Column
+    from pandera.api.polars.container import DataFrameSchema
 
     schema = DataFrameSchema(columns={"a": Column(pl.Int64)})
     result = schema.validate(pl.LazyFrame({"a": [1, 2, 3]}))
@@ -195,8 +201,8 @@ def test_validate_lazyframe_returns_lazyframe():
 
 def test_validate_dataframe_returns_dataframe():
     """schema.validate(pl.DataFrame) returns pl.DataFrame — deferred materialization works end-to-end."""
-    from pandera.api.polars.container import DataFrameSchema
     from pandera.api.polars.components import Column
+    from pandera.api.polars.container import DataFrameSchema
 
     schema = DataFrameSchema(columns={"a": Column(pl.Int64)})
     result = schema.validate(pl.DataFrame({"a": [1, 2, 3]}))
@@ -218,6 +224,7 @@ def test_checks_has_no_polars_import():
     any polars import here would break ibis-only environments.
     """
     import inspect
+
     import pandera.backends.narwhals.checks as checks_mod
 
     src = inspect.getsource(checks_mod)
@@ -239,6 +246,7 @@ def test_container_has_no_polars_components_import():
     delegated to schema.infer_columns() in the schema API layer.
     """
     import inspect
+
     import pandera.backends.narwhals.container as container_mod
 
     src = inspect.getsource(container_mod)
@@ -253,6 +261,7 @@ def test_container_has_no_polars_components_import():
 def test_container_uses_infer_columns_for_schema_components():
     """collect_schema_components must call schema.infer_columns() — not importlib."""
     import inspect
+
     from pandera.backends.narwhals.container import DataFrameSchemaBackend
 
     src = inspect.getsource(DataFrameSchemaBackend.collect_schema_components)
@@ -264,11 +273,13 @@ def test_container_uses_infer_columns_for_schema_components():
 def test_infer_columns_returns_correct_column_type_for_polars():
     """DataFrameSchema.infer_columns() returns polars Column instances for a polars schema."""
     import polars as pl
+
     import pandera.polars as pa_pl
 
     schema = pa_pl.DataFrameSchema(dtype=pl.Int64)
     cols = schema.infer_columns(["a", "b"])
     from pandera.api.polars.components import Column as PolarsColumn
+
     assert len(cols) == 2
     assert all(isinstance(c, PolarsColumn) for c in cols), (
         f"infer_columns() returned {[type(c) for c in cols]}, expected PolarsColumn"

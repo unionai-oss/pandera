@@ -7,27 +7,30 @@ Coerce-dependent tests are marked xfail(strict=True) — coerce is a v2
 feature; strict=True ensures CI breaks when coerce lands so marks are
 cleaned up rather than silently accumulating.
 """
-import pytest
-import polars as pl
+
 import narwhals.stable.v1 as nw
-from pandera.api.polars.container import DataFrameSchema
-from pandera.api.polars.components import Column
+import polars as pl
+import pytest
+
 from pandera.api.checks import Check
+from pandera.api.polars.components import Column
+from pandera.api.polars.container import DataFrameSchema
 from pandera.config import ValidationDepth, config_context
 from pandera.errors import SchemaError, SchemaErrors
-
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _make_polars_df(data: dict) -> pl.DataFrame:
     return pl.DataFrame(data)
 
 
 def _make_ibis_table(data: dict):
-    import pandas as pd
     import ibis
+    import pandas as pd
+
     return ibis.memtable(pd.DataFrame(data))
 
 
@@ -35,11 +38,13 @@ def _make_ibis_table(data: dict):
 # TEST-04: Container validation parity (Polars vs Ibis)
 # ---------------------------------------------------------------------------
 
+
 def test_validate_ibis_valid():
     """schema.validate(ibis_table) succeeds for a valid ibis Table."""
-    from pandera.api.ibis.container import DataFrameSchema as IbisSchema
-    from pandera.api.ibis.components import Column as IbisColumn
     import ibis.expr.datatypes as dt
+
+    from pandera.api.ibis.components import Column as IbisColumn
+    from pandera.api.ibis.container import DataFrameSchema as IbisSchema
 
     schema = IbisSchema(columns={"a": IbisColumn(dt.int64)})
     t = _make_ibis_table({"a": [1, 2, 3]})
@@ -49,11 +54,14 @@ def test_validate_ibis_valid():
 
 def test_validate_ibis_invalid_raises():
     """schema.validate(ibis_table) raises SchemaError for an invalid ibis Table."""
-    from pandera.api.ibis.container import DataFrameSchema as IbisSchema
-    from pandera.api.ibis.components import Column as IbisColumn
     import ibis.expr.datatypes as dt
 
-    schema = IbisSchema(columns={"a": IbisColumn(dt.int64, checks=[Check.greater_than(10)])})
+    from pandera.api.ibis.components import Column as IbisColumn
+    from pandera.api.ibis.container import DataFrameSchema as IbisSchema
+
+    schema = IbisSchema(
+        columns={"a": IbisColumn(dt.int64, checks=[Check.greater_than(10)])}
+    )
     t = _make_ibis_table({"a": [1, 2, 3]})
     with pytest.raises((SchemaError, SchemaErrors)):
         schema.validate(t)
@@ -61,14 +69,17 @@ def test_validate_ibis_invalid_raises():
 
 def test_lazy_mode_ibis_collects_all_errors():
     """schema.validate(ibis_table, lazy=True) collects multiple errors."""
-    from pandera.api.ibis.container import DataFrameSchema as IbisSchema
-    from pandera.api.ibis.components import Column as IbisColumn
     import ibis.expr.datatypes as dt
 
-    schema = IbisSchema(columns={
-        "a": IbisColumn(dt.int64, checks=[Check.greater_than(10)]),
-        "b": IbisColumn(dt.int64, checks=[Check.greater_than(10)]),
-    })
+    from pandera.api.ibis.components import Column as IbisColumn
+    from pandera.api.ibis.container import DataFrameSchema as IbisSchema
+
+    schema = IbisSchema(
+        columns={
+            "a": IbisColumn(dt.int64, checks=[Check.greater_than(10)]),
+            "b": IbisColumn(dt.int64, checks=[Check.greater_than(10)]),
+        }
+    )
     t = _make_ibis_table({"a": [1, 2], "b": [3, 4]})
     with pytest.raises(SchemaErrors) as exc_info:
         schema.validate(t, lazy=True)
@@ -77,9 +88,10 @@ def test_lazy_mode_ibis_collects_all_errors():
 
 def test_strict_true_ibis_rejects_extra_columns():
     """schema.validate(ibis_table, strict=True) raises for extra columns."""
-    from pandera.api.ibis.container import DataFrameSchema as IbisSchema
-    from pandera.api.ibis.components import Column as IbisColumn
     import ibis.expr.datatypes as dt
+
+    from pandera.api.ibis.components import Column as IbisColumn
+    from pandera.api.ibis.container import DataFrameSchema as IbisSchema
 
     schema = IbisSchema(columns={"a": IbisColumn(dt.int64)}, strict=True)
     t = _make_ibis_table({"a": [1], "b": [2]})
@@ -89,9 +101,10 @@ def test_strict_true_ibis_rejects_extra_columns():
 
 def test_strict_filter_ibis_drops_extra_columns():
     """schema.validate(ibis_table, strict='filter') drops extra columns."""
-    from pandera.api.ibis.container import DataFrameSchema as IbisSchema
-    from pandera.api.ibis.components import Column as IbisColumn
     import ibis.expr.datatypes as dt
+
+    from pandera.api.ibis.components import Column as IbisColumn
+    from pandera.api.ibis.container import DataFrameSchema as IbisSchema
 
     schema = IbisSchema(columns={"a": IbisColumn(dt.int64)}, strict="filter")
     t = _make_ibis_table({"a": [1], "b": [2]})
@@ -109,11 +122,14 @@ def test_failure_cases_native_ibis():
     RED until Plan 03 materializes failure_cases to native in the error pipeline.
     """
     import ibis
-    from pandera.api.ibis.container import DataFrameSchema as IbisSchema
-    from pandera.api.ibis.components import Column as IbisColumn
     import ibis.expr.datatypes as dt
 
-    schema = IbisSchema(columns={"a": IbisColumn(dt.int64, checks=[Check.greater_than(10)])})
+    from pandera.api.ibis.components import Column as IbisColumn
+    from pandera.api.ibis.container import DataFrameSchema as IbisSchema
+
+    schema = IbisSchema(
+        columns={"a": IbisColumn(dt.int64, checks=[Check.greater_than(10)])}
+    )
     t = _make_ibis_table({"a": [1, 2, 3]})
     try:
         schema.validate(t)
@@ -130,10 +146,12 @@ def test_failure_cases_native_ibis():
 # TEST-04: Decorator parity (Polars vs Ibis)
 # ---------------------------------------------------------------------------
 
+
 def test_check_decorator_ibis():
     """@pa.check_input / @pa.check_output works with ibis Table."""
-    import pandera.ibis as pa_ibis
     import ibis.expr.datatypes as dt
+
+    import pandera.ibis as pa_ibis
 
     schema = pa_ibis.DataFrameSchema(columns={"a": pa_ibis.Column(dt.int64)})
 
@@ -150,10 +168,12 @@ def test_check_decorator_ibis():
 # TEST-04: DataFrameModel parity (Polars vs Ibis)
 # ---------------------------------------------------------------------------
 
+
 def test_dataframe_model_ibis():
     """Ibis DataFrameModel schema validates an ibis Table correctly."""
-    import pandera.ibis as pa_ibis
     import ibis.expr.datatypes as dt
+
+    import pandera.ibis as pa_ibis
 
     class MyModel(pa_ibis.DataFrameModel):
         a: dt.int64
@@ -167,17 +187,23 @@ def test_dataframe_model_ibis():
 # TEST-04: Coerce parity (strict=True — must fail until coerce lands in v2)
 # ---------------------------------------------------------------------------
 
-@pytest.mark.xfail(reason="TEST-04: coerce not yet implemented in narwhals backend (v2 feature)", strict=True)
+
+@pytest.mark.xfail(
+    reason="TEST-04: coerce not yet implemented in narwhals backend (v2 feature)",
+    strict=True,
+)
 def test_coerce_ibis():
     """coerce=True on ibis Column coerces dtype — xfail strict=True until v2."""
-    from pandera.api.ibis.container import DataFrameSchema as IbisSchema
-    from pandera.api.ibis.components import Column as IbisColumn
     import ibis.expr.datatypes as dt
+
+    from pandera.api.ibis.components import Column as IbisColumn
+    from pandera.api.ibis.container import DataFrameSchema as IbisSchema
 
     schema = IbisSchema(columns={"a": IbisColumn(dt.int64, coerce=True)})
     # ibis.memtable with string column — should coerce to int64
-    import pandas as pd
     import ibis
+    import pandas as pd
+
     t = ibis.memtable(pd.DataFrame({"a": ["1", "2", "3"]}))
     result = schema.validate(t)
     assert result is not None
@@ -186,6 +212,7 @@ def test_coerce_ibis():
 # ---------------------------------------------------------------------------
 # TEST-04: Polars parity (verify narwhals backend works for polars too)
 # ---------------------------------------------------------------------------
+
 
 def test_validate_polars_parity():
     """narwhals backend validates Polars frames correctly (polars parity baseline)."""
@@ -211,6 +238,7 @@ def test_lazy_mode_polars_parity():
 # TEST-02: element_wise=True check on ibis Table raises (not supported)
 # ---------------------------------------------------------------------------
 
+
 def test_element_wise_check_raises_not_implemented_ibis():
     """element_wise=True on ibis Table raises SchemaError wrapping NotImplementedError.
 
@@ -219,23 +247,31 @@ def test_element_wise_check_raises_not_implemented_ibis():
     application time. The NotImplementedError is captured by run_checks and
     surfaced as a SchemaError with CHECK_ERROR reason_code. TEST-02.
     """
-    from pandera.api.ibis.container import DataFrameSchema as IbisSchema
-    from pandera.api.ibis.components import Column as IbisColumn
     import ibis.expr.datatypes as dt
 
+    from pandera.api.ibis.components import Column as IbisColumn
+    from pandera.api.ibis.container import DataFrameSchema as IbisSchema
+
     schema = IbisSchema(
-        columns={"a": IbisColumn(dt.int64, checks=[Check(lambda x: x > 0, element_wise=True)])}
+        columns={
+            "a": IbisColumn(
+                dt.int64, checks=[Check(lambda x: x > 0, element_wise=True)]
+            )
+        }
     )
     t = _make_ibis_table({"a": [1, 2, 3]})
     with pytest.raises(SchemaError) as exc_info:
         schema.validate(t)
     # The SchemaError wraps the NotImplementedError from element_wise check rejection
-    assert "NotImplementedError" in str(exc_info.value) or "element_wise" in str(exc_info.value)
+    assert "NotImplementedError" in str(
+        exc_info.value
+    ) or "element_wise" in str(exc_info.value)
 
 
 # ---------------------------------------------------------------------------
 # Gap closure: lazy=True custom ibis check must not crash (UAT test 8)
 # ---------------------------------------------------------------------------
+
 
 def test_custom_check_ibis_lazy():
     """schema.validate(ibis_table, lazy=True) with a custom check completes without crashing.
@@ -248,12 +284,13 @@ def test_custom_check_ibis_lazy():
     The check must use IbisData wrapping to produce an ibis.Table as
     failure_cases, which is what triggers the _count_failure_cases bug.
     """
-    from pandera.api.ibis.container import DataFrameSchema as IbisSchema
-    from pandera.api.ibis.components import Column as IbisColumn
-    from pandera.api.ibis.types import IbisData
     import ibis.expr.datatypes as dt
     import ibis.selectors as s
     from ibis import _ as ibis_deferred
+
+    from pandera.api.ibis.components import Column as IbisColumn
+    from pandera.api.ibis.container import DataFrameSchema as IbisSchema
+    from pandera.api.ibis.types import IbisData
 
     # Custom check using IbisData — returns a column-selection ibis expression.
     # Values [1, 2, 3] are not all == 0, so the check will fail.
@@ -273,6 +310,7 @@ def test_custom_check_ibis_lazy():
 # ---------------------------------------------------------------------------
 # TEST-09: drop_invalid_rows — Polars/Ibis parity
 # ---------------------------------------------------------------------------
+
 
 def test_drop_invalid_rows_expr_accumulation():
     """drop_invalid_rows with lazy=True correctly filters invalid rows using nw.Expr accumulation.
@@ -326,8 +364,8 @@ def _setup_drop_invalid_rows_backend(backend_name, monkeypatch):
     Both Schema and Column accept Python native types (int, str) as dtype.
     """
     if backend_name == "polars":
-        from pandera.api.polars.container import DataFrameSchema as Schema
         from pandera.api.polars.components import Column
+        from pandera.api.polars.container import DataFrameSchema as Schema
 
         def make_frame(data):
             return pl.LazyFrame(data)
@@ -338,11 +376,13 @@ def _setup_drop_invalid_rows_backend(backend_name, monkeypatch):
 
     else:
         import ibis
+
         ibis_backend = backend_name.split("_")[1]
         monkeypatch.setattr(ibis.options, "default_backend", None)
         ibis.set_backend(ibis_backend)
-        from pandera.api.ibis.container import DataFrameSchema as Schema
         from pandera.api.ibis.components import Column
+        from pandera.api.ibis.container import DataFrameSchema as Schema
+
         _ibis_type = {int: "int64", str: "string"}
 
         def make_frame(data):
@@ -357,8 +397,11 @@ def _setup_drop_invalid_rows_backend(backend_name, monkeypatch):
             out = {}
             for col in df.columns:
                 out[col] = [
-                    None if (isinstance(v, float) and v != v)
-                    else (int(v) if isinstance(v, float) and v == int(v) else v)
+                    None
+                    if (isinstance(v, float) and v != v)
+                    else (
+                        int(v) if isinstance(v, float) and v == int(v) else v
+                    )
                     for v in df[col].tolist()
                 ]
             return out
@@ -366,24 +409,34 @@ def _setup_drop_invalid_rows_backend(backend_name, monkeypatch):
     return Schema, Column, make_frame, collect
 
 
-@pytest.mark.parametrize("backend_name", ["polars", "ibis_duckdb", "ibis_sqlite"])
+@pytest.mark.parametrize(
+    "backend_name", ["polars", "ibis_duckdb", "ibis_sqlite"]
+)
 def test_drop_invalid_rows_parity(backend_name, monkeypatch):
     """drop_invalid_rows=True, lazy=True filters invalid rows for both Polars and Ibis."""
-    Schema, Column, make_frame, collect = _setup_drop_invalid_rows_backend(backend_name, monkeypatch)
+    Schema, Column, make_frame, collect = _setup_drop_invalid_rows_backend(
+        backend_name, monkeypatch
+    )
     schema = Schema(
         columns={"a": Column(int, Check.ge(0))},
         drop_invalid_rows=True,
     )
-    result = collect(schema.validate(make_frame({"a": [-1, 0, 1, 2]}), lazy=True))
+    result = collect(
+        schema.validate(make_frame({"a": [-1, 0, 1, 2]}), lazy=True)
+    )
     assert result["a"] == [0, 1, 2]
 
 
-@pytest.mark.parametrize("backend_name", ["polars", "ibis_duckdb", "ibis_sqlite"])
+@pytest.mark.parametrize(
+    "backend_name", ["polars", "ibis_duckdb", "ibis_sqlite"]
+)
 def test_drop_invalid_rows_lazy_false_raises_parity(backend_name, monkeypatch):
     """drop_invalid_rows=True with lazy=False raises SchemaDefinitionError on all backends."""
     from pandera.errors import SchemaDefinitionError
 
-    Schema, Column, make_frame, _ = _setup_drop_invalid_rows_backend(backend_name, monkeypatch)
+    Schema, Column, make_frame, _ = _setup_drop_invalid_rows_backend(
+        backend_name, monkeypatch
+    )
     schema = Schema(
         columns={"a": Column(int, Check.ge(0))},
         drop_invalid_rows=True,
@@ -392,19 +445,27 @@ def test_drop_invalid_rows_lazy_false_raises_parity(backend_name, monkeypatch):
         schema.validate(make_frame({"a": [-1, 1, 2]}), lazy=False)
 
 
-@pytest.mark.parametrize("backend_name", ["polars", "ibis_duckdb", "ibis_sqlite"])
+@pytest.mark.parametrize(
+    "backend_name", ["polars", "ibis_duckdb", "ibis_sqlite"]
+)
 def test_drop_invalid_rows_nullable_parity(backend_name, monkeypatch):
     """drop_invalid_rows with nullable=True: null rows pass, invalid non-null rows are dropped."""
-    Schema, Column, make_frame, collect = _setup_drop_invalid_rows_backend(backend_name, monkeypatch)
+    Schema, Column, make_frame, collect = _setup_drop_invalid_rows_backend(
+        backend_name, monkeypatch
+    )
     schema = Schema(
         columns={"a": Column(int, Check.ge(0), nullable=True)},
         drop_invalid_rows=True,
     )
-    result = collect(schema.validate(make_frame({"a": [None, -1, 0, 1]}), lazy=True))
+    result = collect(
+        schema.validate(make_frame({"a": [None, -1, 0, 1]}), lazy=True)
+    )
     assert result["a"] == [None, 0, 1]
 
 
-@pytest.mark.parametrize("backend_name", ["polars", "ibis_duckdb", "ibis_sqlite"])
+@pytest.mark.parametrize(
+    "backend_name", ["polars", "ibis_duckdb", "ibis_sqlite"]
+)
 def test_drop_invalid_rows_multiple_checks_parity(backend_name, monkeypatch):
     """drop_invalid_rows drops a row if ANY per-column check fails, not only when all fail.
 
@@ -416,7 +477,9 @@ def test_drop_invalid_rows_multiple_checks_parity(backend_name, monkeypatch):
       a=0,  b="0"  → kept
       a=1,  b="1"  → kept
     """
-    Schema, Column, make_frame, collect = _setup_drop_invalid_rows_backend(backend_name, monkeypatch)
+    Schema, Column, make_frame, collect = _setup_drop_invalid_rows_backend(
+        backend_name, monkeypatch
+    )
     schema = Schema(
         columns={
             "a": Column(int, Check.ge(0)),
@@ -424,9 +487,11 @@ def test_drop_invalid_rows_multiple_checks_parity(backend_name, monkeypatch):
         },
         drop_invalid_rows=True,
     )
-    result = collect(schema.validate(
-        make_frame({"a": [-1, 0, 0, 1], "b": ["0", "x", "0", "1"]}),
-        lazy=True,
-    ))
+    result = collect(
+        schema.validate(
+            make_frame({"a": [-1, 0, 0, 1], "b": ["0", "x", "0", "1"]}),
+            lazy=True,
+        )
+    )
     assert result["a"] == [0, 1]
     assert result["b"] == ["0", "1"]

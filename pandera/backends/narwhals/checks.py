@@ -34,7 +34,7 @@ class NarwhalsCheckBackend(BaseCheckBackend):
         """Implements aggregation behavior for check object."""
         raise NotImplementedError
 
-    def preprocess(self, check_obj: nw.LazyFrame, key: Optional[str]):
+    def preprocess(self, check_obj: nw.LazyFrame, key: str | None):
         """Preprocesses a check object before applying the check function."""
         return check_obj
 
@@ -88,6 +88,7 @@ class NarwhalsCheckBackend(BaseCheckBackend):
         try:
             import ibis
             import ibis.expr.types as ir
+
             if isinstance(out, ir.BooleanScalar):
                 return bool(out.execute())
             elif isinstance(out, ir.BooleanColumn):
@@ -172,7 +173,7 @@ class NarwhalsCheckBackend(BaseCheckBackend):
             )
         passed = check_col.select(nw.col(CHECK_OUTPUT_KEY).all())
         return CheckResult(
-            check_output=expr,   # Store ONLY the expr — failure_cases deferred
+            check_output=expr,  # Store ONLY the expr — failure_cases deferred
             check_passed=passed,
             checked_object=check_obj,
             failure_cases=None,  # Computed later in failure_cases_metadata()
@@ -231,7 +232,7 @@ class NarwhalsCheckBackend(BaseCheckBackend):
     def __call__(
         self,
         check_obj: nw.LazyFrame,
-        key: Optional[str] = None,
+        key: str | None = None,
     ) -> CheckResult:
         check_obj = self.preprocess(check_obj, key)
         narwhals_data = NarwhalsData(check_obj, key or "*")

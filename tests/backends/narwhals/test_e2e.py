@@ -119,14 +119,18 @@ def test_narwhals_backend_registered_for_ibis_table():
 
 def test_polars_lazyframe_returns_lazyframe(polars_lf):
     """schema.validate(pl.LazyFrame) → pl.LazyFrame."""
-    schema = pa_pl.DataFrameSchema({"x": pa_pl.Column(int), "y": pa_pl.Column(int)})
+    schema = pa_pl.DataFrameSchema(
+        {"x": pa_pl.Column(int), "y": pa_pl.Column(int)}
+    )
     result = schema.validate(polars_lf)
     assert isinstance(result, pl.LazyFrame)
 
 
 def test_polars_dataframe_returns_dataframe(polars_df):
     """schema.validate(pl.DataFrame) → pl.DataFrame."""
-    schema = pa_pl.DataFrameSchema({"x": pa_pl.Column(int), "y": pa_pl.Column(int)})
+    schema = pa_pl.DataFrameSchema(
+        {"x": pa_pl.Column(int), "y": pa_pl.Column(int)}
+    )
     result = schema.validate(polars_df)
     assert isinstance(result, pl.DataFrame)
 
@@ -164,7 +168,9 @@ def test_polars_dtype_mismatch_dataframe():
 
 def test_polars_missing_column_raises():
     """Missing required column raises SchemaError."""
-    schema = pa_pl.DataFrameSchema({"x": pa_pl.Column(int), "z": pa_pl.Column(int)})
+    schema = pa_pl.DataFrameSchema(
+        {"x": pa_pl.Column(int), "z": pa_pl.Column(int)}
+    )
     with pytest.raises(SchemaError):
         # TEST-02: intentionally polars_eager-specific — polars schema validation test
         schema.validate(pl.DataFrame({"x": [1]}))
@@ -207,7 +213,9 @@ class TestBuiltinChecksPolars:
             schema.validate(pl.DataFrame({"x": [-1, 2, -3]}))
 
         fc = exc_info.value.failure_cases
-        assert isinstance(fc, pl.DataFrame), f"expected pl.DataFrame, got {type(fc)}"
+        assert isinstance(fc, pl.DataFrame), (
+            f"expected pl.DataFrame, got {type(fc)}"
+        )
 
     def test_greater_than_fails_failure_cases_values(self):
         """failure_cases contains only the failing values, not the passing ones."""
@@ -353,7 +361,9 @@ class TestCustomChecksPolars:
             received.append((type(frame).__name__, key))
             return True
 
-        schema = pa_pl.DataFrameSchema({"x": pa_pl.Column(int, pa_pl.Check(capture))})
+        schema = pa_pl.DataFrameSchema(
+            {"x": pa_pl.Column(int, pa_pl.Check(capture))}
+        )
         with config_context(validation_depth=ValidationDepth.SCHEMA_AND_DATA):
             schema.validate(pl.DataFrame({"x": [1]}))
 
@@ -399,7 +409,9 @@ class TestCustomChecksSchemaLevelPolars:
             checks=pa_pl.Check(self._x_greater_than_y),
         )
         with config_context(validation_depth=ValidationDepth.SCHEMA_AND_DATA):
-            result = schema.validate(pl.DataFrame({"x": [10, 20], "y": [1, 2]}))
+            result = schema.validate(
+                pl.DataFrame({"x": [10, 20], "y": [1, 2]})
+            )
         assert isinstance(result, pl.DataFrame)
 
     def test_schema_check_fails(self):
@@ -431,7 +443,9 @@ class TestCustomChecksIbis:
         return bool((table[key] > 0).all().execute())
 
     @staticmethod
-    def _all_positive_scalar(table: "ibis.Table", key: str) -> "ir.BooleanScalar":
+    def _all_positive_scalar(
+        table: "ibis.Table", key: str
+    ) -> "ir.BooleanScalar":
         """Returns an ibis BooleanScalar — normalized to bool by the backend."""
         return (table[key] > 0).all()
 
@@ -442,14 +456,22 @@ class TestCustomChecksIbis:
 
     def test_custom_bool_check_passes(self, ibis_table):
         schema = pa_ibis.DataFrameSchema(
-            {"x": pa_ibis.Column(dt.int64, pa_ibis.Check(self._all_positive_bool))}
+            {
+                "x": pa_ibis.Column(
+                    dt.int64, pa_ibis.Check(self._all_positive_bool)
+                )
+            }
         )
         result = schema.validate(ibis_table)
         assert isinstance(result, ibis.Table)
 
     def test_custom_bool_check_fails(self):
         schema = pa_ibis.DataFrameSchema(
-            {"x": pa_ibis.Column(dt.int64, pa_ibis.Check(self._all_positive_bool))}
+            {
+                "x": pa_ibis.Column(
+                    dt.int64, pa_ibis.Check(self._all_positive_bool)
+                )
+            }
         )
         with pytest.raises(SchemaError) as exc_info:
             schema.validate(ibis.memtable({"x": [-1, 2, 3]}))
@@ -459,14 +481,22 @@ class TestCustomChecksIbis:
     def test_custom_boolean_scalar_check_passes(self, ibis_table):
         """BooleanScalar return is auto-executed and treated as a pass."""
         schema = pa_ibis.DataFrameSchema(
-            {"x": pa_ibis.Column(dt.int64, pa_ibis.Check(self._all_positive_scalar))}
+            {
+                "x": pa_ibis.Column(
+                    dt.int64, pa_ibis.Check(self._all_positive_scalar)
+                )
+            }
         )
         result = schema.validate(ibis_table)
         assert isinstance(result, ibis.Table)
 
     def test_custom_boolean_scalar_check_fails(self):
         schema = pa_ibis.DataFrameSchema(
-            {"x": pa_ibis.Column(dt.int64, pa_ibis.Check(self._all_positive_scalar))}
+            {
+                "x": pa_ibis.Column(
+                    dt.int64, pa_ibis.Check(self._all_positive_scalar)
+                )
+            }
         )
         with pytest.raises(SchemaError):
             schema.validate(ibis.memtable({"x": [-1, 2, 3]}))
@@ -474,7 +504,11 @@ class TestCustomChecksIbis:
     def test_custom_boolean_column_check_passes(self, ibis_table):
         """Per-row BooleanColumn check passes when all rows satisfy it."""
         schema = pa_ibis.DataFrameSchema(
-            {"x": pa_ibis.Column(dt.int64, pa_ibis.Check(self._per_row_positive))}
+            {
+                "x": pa_ibis.Column(
+                    dt.int64, pa_ibis.Check(self._per_row_positive)
+                )
+            }
         )
         result = schema.validate(ibis_table)
         assert isinstance(result, ibis.Table)
@@ -482,7 +516,11 @@ class TestCustomChecksIbis:
     def test_custom_boolean_column_check_fails(self):
         """Per-row BooleanColumn check fails when some rows don't satisfy it."""
         schema = pa_ibis.DataFrameSchema(
-            {"x": pa_ibis.Column(dt.int64, pa_ibis.Check(self._per_row_positive))}
+            {
+                "x": pa_ibis.Column(
+                    dt.int64, pa_ibis.Check(self._per_row_positive)
+                )
+            }
         )
         with pytest.raises(SchemaError):
             schema.validate(ibis.memtable({"x": [-1, 2, -3]}))
@@ -558,14 +596,16 @@ class TestCustomChecksPolarsRowLevel:
         from pandera.constants import CHECK_OUTPUT_KEY
 
         collected = frame.collect()
-        return collected.select(
-            (pl.col(key) > 0).alias(CHECK_OUTPUT_KEY)
-        )
+        return collected.select((pl.col(key) > 0).alias(CHECK_OUTPUT_KEY))
 
     def test_native_series_check_passes(self, polars_df):
         """native=True check returning pl.Series passes when all rows satisfy condition."""
         schema = pa_pl.DataFrameSchema(
-            {"x": pa_pl.Column(int, pa_pl.Check(self._series_all_positive, native=True))}
+            {
+                "x": pa_pl.Column(
+                    int, pa_pl.Check(self._series_all_positive, native=True)
+                )
+            }
         )
         with config_context(validation_depth=ValidationDepth.SCHEMA_AND_DATA):
             result = schema.validate(polars_df)
@@ -574,7 +614,11 @@ class TestCustomChecksPolarsRowLevel:
     def test_native_series_check_fails(self):
         """native=True check returning pl.Series fails when some rows fail condition."""
         schema = pa_pl.DataFrameSchema(
-            {"x": pa_pl.Column(int, pa_pl.Check(self._series_all_positive, native=True))}
+            {
+                "x": pa_pl.Column(
+                    int, pa_pl.Check(self._series_all_positive, native=True)
+                )
+            }
         )
         with config_context(validation_depth=ValidationDepth.SCHEMA_AND_DATA):
             with pytest.raises(SchemaError):
@@ -583,7 +627,11 @@ class TestCustomChecksPolarsRowLevel:
     def test_native_dataframe_check_passes(self, polars_df):
         """native=True check returning pl.DataFrame passes when all rows satisfy condition."""
         schema = pa_pl.DataFrameSchema(
-            {"x": pa_pl.Column(int, pa_pl.Check(self._dataframe_all_positive, native=True))}
+            {
+                "x": pa_pl.Column(
+                    int, pa_pl.Check(self._dataframe_all_positive, native=True)
+                )
+            }
         )
         with config_context(validation_depth=ValidationDepth.SCHEMA_AND_DATA):
             result = schema.validate(polars_df)
@@ -592,7 +640,11 @@ class TestCustomChecksPolarsRowLevel:
     def test_native_dataframe_check_fails(self):
         """native=True check returning pl.DataFrame fails when some rows fail condition."""
         schema = pa_pl.DataFrameSchema(
-            {"x": pa_pl.Column(int, pa_pl.Check(self._dataframe_all_positive, native=True))}
+            {
+                "x": pa_pl.Column(
+                    int, pa_pl.Check(self._dataframe_all_positive, native=True)
+                )
+            }
         )
         with config_context(validation_depth=ValidationDepth.SCHEMA_AND_DATA):
             with pytest.raises(SchemaError):
@@ -628,7 +680,9 @@ def test_polars_unique_false_raises_on_duplicate():
 @ibis_only
 def test_ibis_nullable_false_raises_on_null():
     """nullable=False raises SchemaError for ibis tables containing nulls."""
-    schema = pa_ibis.DataFrameSchema({"x": pa_ibis.Column(dt.int64, nullable=False)})
+    schema = pa_ibis.DataFrameSchema(
+        {"x": pa_ibis.Column(dt.int64, nullable=False)}
+    )
     with pytest.raises(SchemaError):
         # TEST-02: intentionally ibis_table-specific — ibis nullable constraint test
         schema.validate(ibis.memtable({"x": [1, None, 3]}))
@@ -654,7 +708,9 @@ class TestLazyValidationPolars:
             }
         )
         with pytest.raises(SchemaErrors) as exc_info:
-            schema.validate(pl.DataFrame({"x": [-1, 2], "y": [1, -2]}), lazy=True)
+            schema.validate(
+                pl.DataFrame({"x": [-1, 2], "y": [1, -2]}), lazy=True
+            )
 
         err = exc_info.value
         assert len(err.schema_errors) >= 2
@@ -722,7 +778,9 @@ class TestLazyValidationIbis:
             }
         )
         with pytest.raises(SchemaErrors) as exc_info:
-            schema.validate(ibis.memtable({"x": [-1, 2], "y": [1, -2]}), lazy=True)
+            schema.validate(
+                ibis.memtable({"x": [-1, 2], "y": [1, -2]}), lazy=True
+            )
 
         assert len(exc_info.value.schema_errors) >= 2
 

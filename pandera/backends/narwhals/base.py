@@ -19,7 +19,6 @@ from pandera.errors import (
 )
 
 
-
 class NarwhalsSchemaBackend(BaseSchemaBackend):
     """Base schema backend for Narwhals-backed DataFrames.
 
@@ -60,7 +59,9 @@ class NarwhalsSchemaBackend(BaseSchemaBackend):
         # Guard: SQL-lazy backends don't support tail without full ordering
         if tail is not None:
             native = nw.to_native(check_obj)
-            if hasattr(native, "execute"):  # ibis.Table has .execute(); pl.LazyFrame does not
+            if hasattr(
+                native, "execute"
+            ):  # ibis.Table has .execute(); pl.LazyFrame does not
                 raise NotImplementedError(
                     "tail= is not supported on SQL-lazy backends (Ibis, DuckDB, PySpark) "
                     "because SQL has no native TAIL without forced full ordering. "
@@ -69,9 +70,13 @@ class NarwhalsSchemaBackend(BaseSchemaBackend):
 
         obj_subsample = []
         if head is not None:
-            obj_subsample.append(check_obj.head(head))   # lazy — no _materialize()
+            obj_subsample.append(
+                check_obj.head(head)
+            )  # lazy — no _materialize()
         if tail is not None:
-            obj_subsample.append(check_obj.tail(tail))   # lazy — polars-only (guarded above)
+            obj_subsample.append(
+                check_obj.tail(tail)
+            )  # lazy — polars-only (guarded above)
 
         return nw.concat(obj_subsample).unique()
 
@@ -96,12 +101,17 @@ class NarwhalsSchemaBackend(BaseSchemaBackend):
                 # Expr path: postprocess_expr_output deferred failure_cases computation.
                 # Reconstruct from the stored nw.Expr and the original check_obj frame.
                 if isinstance(check_result.check_output, nw.Expr):
-                    frame = nw.from_native(check_obj, eager_or_interchange_only=False)
+                    frame = nw.from_native(
+                        check_obj, eager_or_interchange_only=False
+                    )
                     expr = check_result.check_output
-                    check_col = frame.with_columns(expr.alias(CHECK_OUTPUT_KEY))
+                    check_col = frame.with_columns(
+                        expr.alias(CHECK_OUTPUT_KEY)
+                    )
                     if check.ignore_na:
                         check_col = check_col.with_columns(
-                            nw.col(CHECK_OUTPUT_KEY) | nw.col(CHECK_OUTPUT_KEY).is_null()
+                            nw.col(CHECK_OUTPUT_KEY)
+                            | nw.col(CHECK_OUTPUT_KEY).is_null()
                         )
                     fc = check_col.filter(~nw.col(CHECK_OUTPUT_KEY))
                     if check_result.checked_object is not None:
@@ -139,7 +149,7 @@ class NarwhalsSchemaBackend(BaseSchemaBackend):
             check_output=check_result.check_output,  # stays lazy — NOT _materialize() here
             reason_code=SchemaErrorReason.DATAFRAME_CHECK,
             message=message,
-            failure_cases=failure_cases,             # Narwhals wrapper — NOT _to_native() here
+            failure_cases=failure_cases,  # Narwhals wrapper — NOT _to_native() here
         )
 
     def is_float_dtype(self, check_obj, col_name: str) -> bool:
@@ -211,16 +221,25 @@ class NarwhalsSchemaBackend(BaseSchemaBackend):
                     # Multi-column: build a readable "col=value, col=value" string per row.
                     # nw.concat_str() is cross-backend (polars and ibis) and stays lazy.
                     parts = [
-                        nw.lit(f"{c}=").cast(nw.String) + nw.col(c).cast(nw.String)
+                        nw.lit(f"{c}=").cast(nw.String)
+                        + nw.col(c).cast(nw.String)
                         for c in col_names
                     ]
-                    enriched = fc.select(nw.concat_str(*parts, separator=", ").alias("failure_case"))
+                    enriched = fc.select(
+                        nw.concat_str(*parts, separator=", ").alias(
+                            "failure_case"
+                        )
+                    )
 
                 enriched = enriched.with_columns(
-                    nw.lit(err.schema.__class__.__name__).alias("schema_context"),
+                    nw.lit(err.schema.__class__.__name__).alias(
+                        "schema_context"
+                    ),
                     nw.lit(err.schema.name).alias("column"),
                     nw.lit(check_identifier).alias("check"),
-                    nw.lit(err.check_index).cast(nw.Int32).alias("check_number"),
+                    nw.lit(err.check_index)
+                    .cast(nw.Int32)
+                    .alias("check_number"),
                     nw.lit(None).cast(nw.Int32).alias("index"),
                 )
                 failure_case_collection.append(nw.to_native(enriched))
@@ -244,7 +263,9 @@ class NarwhalsSchemaBackend(BaseSchemaBackend):
                     if isinstance(co, (nw.LazyFrame, nw.DataFrame)):
                         resolved_co = co
                     elif not isinstance(co, nw.Expr):
-                        resolved_co = nw.from_native(co, eager_or_interchange_only=False)
+                        resolved_co = nw.from_native(
+                            co, eager_or_interchange_only=False
+                        )
                     # nw.Expr: resolved_co stays None (err.data unavailable)
 
                 if resolved_co is not None:
@@ -258,7 +279,9 @@ class NarwhalsSchemaBackend(BaseSchemaBackend):
                     )["index"].to_list()
                     index = pl.Series("index", failing_indices, dtype=pl.Int32)
                 else:
-                    index = pl.Series("index", [None] * len(pl_fc), dtype=pl.Int32)
+                    index = pl.Series(
+                        "index", [None] * len(pl_fc), dtype=pl.Int32
+                    )
 
                 if len(pl_fc.columns) > 1:
                     failure_cases_df = pl_fc.with_columns(
@@ -313,14 +336,18 @@ class NarwhalsSchemaBackend(BaseSchemaBackend):
         if failure_case_collection:
             first = failure_case_collection[0]
             if hasattr(first, "union"):  # ibis.Table
-                failure_cases = functools.reduce(lambda a, b: a.union(b), failure_case_collection)
+                failure_cases = functools.reduce(
+                    lambda a, b: a.union(b), failure_case_collection
+                )
             else:
                 # All items are pl.DataFrame or pl.LazyFrame — polars is present here.
                 try:
                     import polars as pl
                 except ImportError:
                     pl = None  # type: ignore[assignment]
-                failure_cases = pl.concat(failure_case_collection)  # pl.LazyFrame or pl.DataFrame
+                failure_cases = pl.concat(
+                    failure_case_collection
+                )  # pl.LazyFrame or pl.DataFrame
         else:
             try:
                 import polars as pl
@@ -403,10 +430,9 @@ class NarwhalsSchemaBackend(BaseSchemaBackend):
         bool_cols = [col_name for col_name, _, _ in pass_exprs]
 
         # Build wide frame: single with_columns call for all exprs.
-        wide = frame.with_columns([
-            expr.alias(col_name)
-            for col_name, expr, _ in pass_exprs
-        ])
+        wide = frame.with_columns(
+            [expr.alias(col_name) for col_name, expr, _ in pass_exprs]
+        )
 
         # Apply ignore_na at column level for expr-based checks (avoids ibis SQL issues).
         ignore_na_cols = [
@@ -415,12 +441,16 @@ class NarwhalsSchemaBackend(BaseSchemaBackend):
             if check is not None and getattr(check, "ignore_na", False)
         ]
         if ignore_na_cols:
-            wide = wide.with_columns([
-                (nw.col(c) | nw.col(c).is_null()).alias(c)
-                for c in ignore_na_cols
-            ])
+            wide = wide.with_columns(
+                [
+                    (nw.col(c) | nw.col(c).is_null()).alias(c)
+                    for c in ignore_na_cols
+                ]
+            )
 
-        filtered = wide.filter(nw.all_horizontal(*[nw.col(c) for c in bool_cols]))
+        filtered = wide.filter(
+            nw.all_horizontal(*[nw.col(c) for c in bool_cols])
+        )
         result = filtered.drop(bool_cols)
 
         # Preserve input type: native in -> native out, Narwhals in -> Narwhals out

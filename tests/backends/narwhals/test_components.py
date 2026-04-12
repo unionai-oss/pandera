@@ -4,10 +4,12 @@ All tests are marked xfail(strict=False) until Plan 03-02 implements
 ColumnBackend in pandera/backends/narwhals/components.py.
 Once the implementation lands, all stubs flip to passing.
 """
-import pytest
-import polars as pl
-import narwhals.stable.v1 as nw
+
 from types import SimpleNamespace
+
+import narwhals.stable.v1 as nw
+import polars as pl
+import pytest
 
 from pandera.api.checks import Check
 from pandera.backends.base import CoreCheckResult
@@ -26,6 +28,7 @@ except ImportError:
 # ---------------------------------------------------------------------------
 # Schema stub — mimics pandera Column schema with the fields ColumnBackend needs
 # ---------------------------------------------------------------------------
+
 
 def _make_schema(
     selector="col",
@@ -59,6 +62,7 @@ _xfail = pytest.mark.xfail(
 # ---------------------------------------------------------------------------
 # check_nullable tests
 # ---------------------------------------------------------------------------
+
 
 @_xfail
 def test_check_nullable_passes(make_narwhals_frame):
@@ -107,6 +111,7 @@ def test_check_nullable_catches_nan(make_narwhals_frame):
 # check_unique tests
 # ---------------------------------------------------------------------------
 
+
 @_xfail
 def test_check_unique_passes(make_narwhals_frame):
     """COLUMN-02: unique=True column with all distinct values passes."""
@@ -131,12 +136,15 @@ def test_check_unique_fails(make_narwhals_frame):
 
     assert len(results) == 1
     assert results[0].passed is False
-    assert results[0].reason_code == SchemaErrorReason.SERIES_CONTAINS_DUPLICATES
+    assert (
+        results[0].reason_code == SchemaErrorReason.SERIES_CONTAINS_DUPLICATES
+    )
 
 
 # ---------------------------------------------------------------------------
 # check_dtype tests
 # ---------------------------------------------------------------------------
+
 
 @_xfail
 def test_check_dtype_correct(make_narwhals_frame):
@@ -187,6 +195,7 @@ def test_check_dtype_none(make_narwhals_frame):
 # run_checks test
 # ---------------------------------------------------------------------------
 
+
 @_xfail
 def test_run_checks(make_narwhals_frame):
     """COLUMN-02: run_checks executes Check objects and returns list[CoreCheckResult]."""
@@ -212,6 +221,7 @@ def test_run_checks(make_narwhals_frame):
 # Guard: skip ibis-specific tests if ibis is not installed
 try:
     import ibis as _ibis_mod
+
     HAS_IBIS = True
 except ImportError:
     HAS_IBIS = False
@@ -265,6 +275,7 @@ class TestSubsample:
     def test_subsample_ibis_tail_raises(self):
         """SQL-lazy backends: subsample(tail=) must raise NotImplementedError."""
         import pandas as pd
+
         ibis_frame = nw.from_native(
             _ibis_mod.memtable(pd.DataFrame({"x": [1, 2, 3, 4, 5]})),
             eager_or_interchange_only=False,
@@ -293,8 +304,8 @@ def test_failure_cases_metadata_ibis_returns_ibis_table():
     Currently RED because the implementation always converts to pl.DataFrame
     via to_arrow() + pl.from_arrow().  Plan 03 will make this GREEN.
     """
-    import pandas as pd
     import ibis
+    import pandas as pd
 
     failure_cases_df = nw.from_native(
         ibis.memtable(pd.DataFrame({"x": [-1, -3]})),

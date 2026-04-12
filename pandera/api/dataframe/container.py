@@ -202,6 +202,7 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
             col_cls = type(next(iter(self.columns.values())))
         else:
             import importlib
+
             _pkg = self.__class__.__module__.rsplit(".", 1)[0]
             col_cls = importlib.import_module(f"{_pkg}.components").Column
         return [col_cls(self.dtype, name=str(name)) for name in column_names]

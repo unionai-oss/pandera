@@ -7,12 +7,17 @@ import pandera.ibis as pa
 
 try:
     import narwhals  # noqa: F401
+
     narwhals_installed = True
 except ImportError:
     narwhals_installed = False
 
 
-@pytest.mark.xfail(condition=narwhals_installed, reason="Narwhals backend uses operations not supported by ibis sqlite backend (IsNan)", strict=True)
+@pytest.mark.xfail(
+    condition=narwhals_installed,
+    reason="Narwhals backend uses operations not supported by ibis sqlite backend (IsNan)",
+    strict=True,
+)
 def test_ibis_sqlite_backend():
     con = ibis.sqlite.connect()
     schema = ibis.schema(dict(x="int64", y="float64", z="string"))

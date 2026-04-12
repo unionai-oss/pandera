@@ -30,7 +30,9 @@ def register_ibis_backends(
     try:
         import narwhals.stable.v1 as nw  # noqa: F401
 
-        from pandera.backends.narwhals import builtin_checks  # noqa — triggers Dispatcher registration
+        from pandera.backends.narwhals import (
+            builtin_checks,  # noqa — triggers Dispatcher registration
+        )
         from pandera.backends.narwhals.checks import NarwhalsCheckBackend
         from pandera.backends.narwhals.components import ColumnBackend
         from pandera.backends.narwhals.container import DataFrameSchemaBackend

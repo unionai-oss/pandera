@@ -16,11 +16,12 @@ CI Matrix (TEST-01, TEST-02, TEST-03):
 See .github/workflows/ci-tests.yml for the full matrix and .planning/REQUIREMENTS.md
 for TEST-01, TEST-02, and TEST-03 definitions.
 """
+
 import warnings
 
-import pytest
-import polars as pl
 import narwhals.stable.v1 as nw
+import polars as pl
+import pytest
 
 
 @pytest.fixture(autouse=True, scope="module")
@@ -37,8 +38,9 @@ def _suppress_narwhals_warning():
     """
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", UserWarning)
-        from pandera.backends.polars.register import register_polars_backends
         from pandera.backends.ibis.register import register_ibis_backends
+        from pandera.backends.polars.register import register_polars_backends
+
         register_polars_backends.cache_clear()
         register_ibis_backends.cache_clear()
         register_polars_backends()
@@ -66,8 +68,9 @@ def make_narwhals_frame(request):
                 pl.LazyFrame(data), eager_or_interchange_only=False
             )
         elif backend == "ibis_table":
-            import pandas as pd
             import ibis
+            import pandas as pd
+
             return nw.from_native(
                 ibis.memtable(pd.DataFrame(data)),
                 eager_or_interchange_only=False,

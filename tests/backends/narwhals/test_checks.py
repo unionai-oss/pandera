@@ -3,10 +3,10 @@
 All tests are marked xfail(strict=True) until Plans 02-02 and 02-03 implement
 the backend. Once the backend is in place, xfail stubs flip to passing.
 """
+
 import pytest
 
 from pandera.api.checks import Check
-
 
 # ---------------------------------------------------------------------------
 # Parametrize data for CHECKS-02: 14 builtin checks
@@ -64,7 +64,12 @@ BUILTIN_CHECK_CASES = [
     ),
     pytest.param(
         "in_range",
-        {"min_value": 1, "max_value": 10, "include_min": True, "include_max": True},
+        {
+            "min_value": 1,
+            "max_value": 10,
+            "include_min": True,
+            "include_max": True,
+        },
         {"x": [1, 5, 10]},
         {"x": [1, 5, 11]},
         "x",
@@ -133,6 +138,7 @@ BUILTIN_CHECK_CASES = [
 # CHECKS-01: builtin check routing — NarwhalsData dispatched
 # ---------------------------------------------------------------------------
 
+
 def test_builtin_check_routing(make_narwhals_frame):
     """CHECKS-01: builtin check receives nw.Expr column expression."""
     import narwhals.stable.v1 as nw
@@ -141,6 +147,7 @@ def test_builtin_check_routing(make_narwhals_frame):
 
     # Wrap the underlying equal_to function to capture what it receives
     from pandera.api.function_dispatch import Dispatcher
+
     original_dispatcher = Check.equal_to(5)._check_fn
     assert isinstance(original_dispatcher, Dispatcher), "expected Dispatcher"
     # After Phase 5, builtins are keyed on nw.Expr; grab original (may be None pre-migration)
@@ -150,7 +157,9 @@ def test_builtin_check_routing(make_narwhals_frame):
         received.append(col_expr)
         if original_fn is not None:
             return original_fn(col_expr, **kwargs)
-        return col_expr == 5  # fallback so postprocess doesn't crash during RED
+        return (
+            col_expr == 5
+        )  # fallback so postprocess doesn't crash during RED
 
     # Patch the registry so our capturing function runs
     original_dispatcher._function_registry[nw.Expr] = capturing_fn
@@ -159,6 +168,7 @@ def test_builtin_check_routing(make_narwhals_frame):
         frame = make_narwhals_frame({"x": [5, 5, 5]})
 
         from pandera.backends.narwhals.checks import NarwhalsCheckBackend
+
         backend = NarwhalsCheckBackend(check)
         backend(frame, key="x")
     finally:
@@ -188,6 +198,7 @@ def test_user_defined_check_routing(make_narwhals_frame):
     lf = make_narwhals_frame({"x": [1, 2, 3]})
 
     from pandera.backends.narwhals.checks import NarwhalsCheckBackend
+
     backend = NarwhalsCheckBackend(check)
     backend(lf, key="x")
 
@@ -201,6 +212,7 @@ def test_user_defined_check_routing(make_narwhals_frame):
 # ---------------------------------------------------------------------------
 # CHECKS-02: all 14 builtin checks — valid data passes
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.parametrize(
     "check_name,check_kwargs,valid_data,invalid_data,col",
@@ -219,12 +231,15 @@ def test_builtin_checks_pass(
     frame = make_narwhals_frame(valid_data)
 
     from pandera.backends.narwhals.checks import NarwhalsCheckBackend
+
     backend = NarwhalsCheckBackend(check)
     result = backend(frame, key=col)
 
     # check_passed may be a LazyFrame, DataFrame (pandas or SQL-lazy), or bool
     import narwhals.stable.v1 as nw
+
     from pandera.constants import CHECK_OUTPUT_KEY
+
     passed = result.check_passed
     if isinstance(passed, nw.LazyFrame):
         collected = passed.collect()
@@ -245,6 +260,7 @@ def test_builtin_checks_pass(
 # CHECKS-02: all 14 builtin checks — invalid data fails
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.parametrize(
     "check_name,check_kwargs,valid_data,invalid_data,col",
     BUILTIN_CHECK_CASES,
@@ -262,12 +278,15 @@ def test_builtin_checks_fail(
     frame = make_narwhals_frame(invalid_data)
 
     from pandera.backends.narwhals.checks import NarwhalsCheckBackend
+
     backend = NarwhalsCheckBackend(check)
     result = backend(frame, key=col)
 
     # check_passed may be a LazyFrame, DataFrame (pandas or SQL-lazy), or bool
     import narwhals.stable.v1 as nw
+
     from pandera.constants import CHECK_OUTPUT_KEY
+
     passed = result.check_passed
     if isinstance(passed, nw.LazyFrame):
         collected = passed.collect()
@@ -288,6 +307,7 @@ def test_builtin_checks_fail(
 # CHECKS-03: element_wise on SQL-lazy backend raises NotImplementedError
 # ---------------------------------------------------------------------------
 
+
 def test_element_wise_sql_lazy_raises(make_narwhals_frame):
     """CHECKS-03: element_wise=True on ibis backend raises NotImplementedError."""
     import narwhals.stable.v1 as nw
@@ -304,15 +324,19 @@ def test_element_wise_sql_lazy_raises(make_narwhals_frame):
         pytest.skip("element_wise SQL-lazy guard only applies to ibis backend")
 
     from pandera.backends.narwhals.checks import NarwhalsCheckBackend
+
     backend = NarwhalsCheckBackend(check)
 
-    with pytest.raises(NotImplementedError, match="element_wise checks are not supported"):
+    with pytest.raises(
+        NotImplementedError, match="element_wise checks are not supported"
+    ):
         backend(frame, key="x")
 
 
 # ---------------------------------------------------------------------------
 # TEST-01: native=True dispatch convention — new tests for plan 03-02
 # ---------------------------------------------------------------------------
+
 
 def test_native_true_user_check_polars(make_narwhals_frame):
     """native=True check on Polars receives (pl.LazyFrame, key)."""
@@ -333,6 +357,7 @@ def test_native_true_user_check_polars(make_narwhals_frame):
         pytest.skip("polars-specific test")
 
     from pandera.backends.narwhals.checks import NarwhalsCheckBackend
+
     backend = NarwhalsCheckBackend(check)
     backend(lf, key="x")
 
@@ -363,6 +388,7 @@ def test_native_true_user_check_ibis(make_narwhals_frame):
         pytest.skip("ibis-specific test")
 
     from pandera.backends.narwhals.checks import NarwhalsCheckBackend
+
     backend = NarwhalsCheckBackend(check)
     backend(lf, key="x")
 
@@ -386,6 +412,7 @@ def test_native_false_user_check(make_narwhals_frame):
     lf = make_narwhals_frame({"x": [1, 2, 3]})
 
     from pandera.backends.narwhals.checks import NarwhalsCheckBackend
+
     backend = NarwhalsCheckBackend(check)
     result = backend(lf, key="x")
 
@@ -413,6 +440,7 @@ def test_ibis_boolean_scalar_normalization(make_narwhals_frame):
         pytest.skip("ibis-specific test")
 
     from pandera.backends.narwhals.checks import NarwhalsCheckBackend
+
     backend = NarwhalsCheckBackend(check)
     result = backend(lf, key="x")
 
@@ -420,6 +448,7 @@ def test_ibis_boolean_scalar_normalization(make_narwhals_frame):
     passed = result.check_passed
     if isinstance(passed, (nw.LazyFrame, nw.DataFrame)):
         from pandera.constants import CHECK_OUTPUT_KEY
+
         if isinstance(passed, nw.LazyFrame):
             passed = passed.collect()
         val = bool(passed[CHECK_OUTPUT_KEY][0])
@@ -442,6 +471,7 @@ def test_apply_returns_expr(make_narwhals_frame):
     nw.all_horizontal on the accumulated exprs.
     """
     import narwhals.stable.v1 as nw
+
     from pandera.backends.narwhals.checks import NarwhalsCheckBackend
 
     check = Check.greater_than(min_value=0)
@@ -462,6 +492,7 @@ def test_postprocess_lazyframe_no_materialization_polars(make_narwhals_frame):
     (run_check → components.validate) reconstructs failure_cases from the stored nw.Expr.
     """
     import narwhals.stable.v1 as nw
+
     from pandera.backends.narwhals.checks import NarwhalsCheckBackend
 
     frame = make_narwhals_frame({"x": [-1, 2, -3]})
@@ -492,6 +523,7 @@ def test_postprocess_lazyframe_no_materialization_ibis(make_narwhals_frame):
     """
     ibis_mod = pytest.importorskip("ibis")
     import narwhals.stable.v1 as nw
+
     from pandera.backends.narwhals.checks import NarwhalsCheckBackend
 
     frame = make_narwhals_frame({"x": [-1, 2, -3]})
@@ -516,6 +548,7 @@ def test_postprocess_lazyframe_no_materialization_ibis(make_narwhals_frame):
 def test_ignore_na_lazy(make_narwhals_frame):
     """LAZY-07: ignore_na=True treats None as pass in lazy postprocess path."""
     import narwhals.stable.v1 as nw
+
     from pandera.backends.narwhals.checks import NarwhalsCheckBackend
     from pandera.constants import CHECK_OUTPUT_KEY
 
@@ -554,24 +587,33 @@ def test_n_failure_cases_lazy(make_narwhals_frame):
     n_failure_cases limiting happens in run_check when failure_cases are reconstructed
     from the stored nw.Expr. Test via schema.validate() to exercise the full pipeline.
     """
-    import polars as pl
     import narwhals.stable.v1 as nw
-    from pandera.api.polars.container import DataFrameSchema
+    import polars as pl
+
     from pandera.api.polars.components import Column
+    from pandera.api.polars.container import DataFrameSchema
 
     native = nw.to_native(make_narwhals_frame({"x": [-1, -2, -3]}))
     if "polars" not in type(native).__module__:
         pytest.skip("polars-specific test")
 
     schema = DataFrameSchema(
-        columns={"x": Column(pl.Int64, checks=[Check.greater_than(min_value=0, n_failure_cases=1)])},
+        columns={
+            "x": Column(
+                pl.Int64,
+                checks=[Check.greater_than(min_value=0, n_failure_cases=1)],
+            )
+        },
     )
     try:
         schema.validate(pl.LazyFrame({"x": [-1, -2, -3]}))
     except (Exception,) as exc:
         # SchemaError.failure_cases is native after pipeline
         import pandera.errors as pa_errors
-        if not isinstance(exc, (pa_errors.SchemaError, pa_errors.SchemaErrors)):
+
+        if not isinstance(
+            exc, (pa_errors.SchemaError, pa_errors.SchemaErrors)
+        ):
             raise
         fc = exc.failure_cases if hasattr(exc, "failure_cases") else None
         if fc is None:

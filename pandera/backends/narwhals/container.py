@@ -20,7 +20,12 @@ if TYPE_CHECKING:
 
 from pandera.backends.base import ColumnInfo, CoreCheckResult
 from pandera.backends.narwhals.base import NarwhalsSchemaBackend, _materialize
-from pandera.config import ValidationDepth, ValidationScope, config_context, get_config_context
+from pandera.config import (
+    ValidationDepth,
+    ValidationScope,
+    config_context,
+    get_config_context,
+)
 from pandera.errors import (
     ParserError,
     SchemaDefinitionError,
@@ -447,7 +452,9 @@ class DataFrameSchemaBackend(NarwhalsSchemaBackend):
                     # regex pattern — try to select using regex expression
                     try:
                         frame_cols = check_obj.collect_schema().names()
-                        matching = [c for c in frame_cols if re.search(colname, c)]
+                        matching = [
+                            c for c in frame_cols if re.search(colname, c)
+                        ]
                         if matching:
                             continue
                     except Exception:
@@ -494,8 +501,7 @@ class DataFrameSchemaBackend(NarwhalsSchemaBackend):
         for lst in temp_unique:
             subset = [x for x in lst if x in frame_column_names]
             grouped = (
-                check_obj
-                .select(subset)
+                check_obj.select(subset)
                 .group_by(*[nw.col(c) for c in subset])
                 .agg(nw.len().alias("_count"))
             )

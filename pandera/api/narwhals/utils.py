@@ -1,4 +1,5 @@
 """Narwhals API utilities."""
+
 import narwhals.stable.v1 as nw
 
 
@@ -37,5 +38,7 @@ def _is_lazy(frame) -> bool:
         return True
     if isinstance(frame, nw.DataFrame):
         native = nw.to_native(frame)
-        return hasattr(native, "execute")  # ibis.Table has .execute(); polars DataFrame does not
+        return hasattr(
+            native, "execute"
+        )  # ibis.Table has .execute(); polars DataFrame does not
     return False

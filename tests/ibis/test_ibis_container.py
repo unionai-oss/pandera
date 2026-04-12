@@ -20,6 +20,7 @@ from pandera.ibis import Column, DataFrameSchema
 
 try:
     import narwhals  # noqa: F401
+
     narwhals_installed = True
 except ImportError:
     narwhals_installed = False
@@ -200,7 +201,11 @@ def test_unique_column_names():
         DataFrameSchema(unique_column_names=True)
 
 
-@pytest.mark.xfail(condition=narwhals_installed, reason="Error message format differs: 'not in dataframe' vs 'not in table' in Narwhals backend", strict=True)
+@pytest.mark.xfail(
+    condition=narwhals_installed,
+    reason="Error message format differs: 'not in dataframe' vs 'not in table' in Narwhals backend",
+    strict=True,
+)
 def test_column_absent_error(t_basic, t_schema_basic):
     """Test column presence."""
     with pytest.raises(
@@ -229,7 +234,11 @@ def test_column_values_are_unique(t_basic, t_schema_basic):
         ("exclude_last", [0, 1, 2, 4]),
     ],
 )
-@pytest.mark.xfail(condition=narwhals_installed, reason="failure_cases structure differs in Narwhals backend (missing 'index' field)", strict=True)
+@pytest.mark.xfail(
+    condition=narwhals_installed,
+    reason="failure_cases structure differs in Narwhals backend (missing 'index' field)",
+    strict=True,
+)
 def test_different_unique_settings(unique: UniqueSettings, answers: list[int]):
     """Test that different unique settings work as expected"""
     df: pd.DataFrame = pd.DataFrame({"a": [1, 2, 3, 4, 1, 1, 2, 3]})
@@ -254,7 +263,11 @@ def test_different_unique_settings(unique: UniqueSettings, answers: list[int]):
 @pytest.mark.parametrize(
     "report_duplicates", ["all", "exclude_first", "exclude_last", "invalid"]
 )
-@pytest.mark.xfail(condition=narwhals_installed, reason="failure_cases is pyarrow.lib.Table in Narwhals backend; .count() not available", strict=True)
+@pytest.mark.xfail(
+    condition=narwhals_installed,
+    reason="failure_cases is pyarrow.lib.Table in Narwhals backend; .count() not available",
+    strict=True,
+)
 def test_valid_unique_settings(report_duplicates):
     """Test that valid unique settings work and invalid ones will raise a ValueError"""
     schema = DataFrameSchema(
@@ -275,7 +288,11 @@ def test_valid_unique_settings(report_duplicates):
         assert err.value.failure_cases.count().execute()
 
 
-@pytest.mark.xfail(condition=narwhals_installed, reason="Ibis-style custom check functions incompatible with Narwhals backend", strict=True)
+@pytest.mark.xfail(
+    condition=narwhals_installed,
+    reason="Ibis-style custom check functions incompatible with Narwhals backend",
+    strict=True,
+)
 def test_dataframe_level_checks():
     def custom_check(data: IbisData):
         return data.table.select(s.across(s.all(), _ == 0))
@@ -446,7 +463,11 @@ def _failure_type(column: str):
     raise ValueError(f"unexpected column name: {column}")
 
 
-@pytest.mark.xfail(condition=narwhals_installed, reason="Regex column selection broken in Narwhals backend", strict=True)
+@pytest.mark.xfail(
+    condition=narwhals_installed,
+    reason="Regex column selection broken in Narwhals backend",
+    strict=True,
+)
 @pytest.mark.parametrize(
     "transform_fn,exception_msg",
     [
@@ -488,7 +509,11 @@ def test_regex_selector(
                 modified_data.pipe(schema.validate)
 
 
-@pytest.mark.xfail(condition=narwhals_installed, reason="failure_cases.shape[0] fails; ibis.Table has no .shape in Narwhals backend", strict=True)
+@pytest.mark.xfail(
+    condition=narwhals_installed,
+    reason="failure_cases.shape[0] fails; ibis.Table has no .shape in Narwhals backend",
+    strict=True,
+)
 def test_lazy_validation_errors():
     schema = DataFrameSchema(
         {

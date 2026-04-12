@@ -129,7 +129,9 @@ class ColumnBackend(NarwhalsSchemaBackend):
 
         # Materialize ONE ROW to evaluate the scalar bool — not the full frame.
         # _materialize handles both nw.LazyFrame (collect) and SQL-lazy DataFrame (execute).
-        has_nulls_df = _materialize(combined_lf.select(nw.col(CHECK_OUTPUT_KEY).any()))
+        has_nulls_df = _materialize(
+            combined_lf.select(nw.col(CHECK_OUTPUT_KEY).any())
+        )
         has_nulls = bool(has_nulls_df[CHECK_OUTPUT_KEY][0])
 
         if not has_nulls:
@@ -142,7 +144,9 @@ class ColumnBackend(NarwhalsSchemaBackend):
             ]
 
         # failure_cases and check_output stay lazy — Narwhals wrappers, not native.
-        failure_cases = combined_lf.filter(nw.col(CHECK_OUTPUT_KEY)).select(col)
+        failure_cases = combined_lf.filter(nw.col(CHECK_OUTPUT_KEY)).select(
+            col
+        )
         return [
             CoreCheckResult(
                 passed=False,
@@ -176,8 +180,7 @@ class ColumnBackend(NarwhalsSchemaBackend):
         # Supersedes COLUMN-02 collect()+is_duplicated() approach for SQL-lazy backends.
         col = schema.selector
         grouped = (
-            check_obj
-            .select(nw.col(col))
+            check_obj.select(nw.col(col))
             .group_by(nw.col(col))
             .agg(nw.len().alias("_count"))
         )
@@ -299,7 +302,11 @@ class ColumnBackend(NarwhalsSchemaBackend):
         return check_results
 
     def run_checks_and_handle_errors(
-        self, error_handler: ErrorHandler, schema, check_obj, **subsample_kwargs
+        self,
+        error_handler: ErrorHandler,
+        schema,
+        check_obj,
+        **subsample_kwargs,
     ) -> ErrorHandler:
         """Orchestrate all column checks, collecting errors via ErrorHandler.
 

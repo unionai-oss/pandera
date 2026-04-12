@@ -27,7 +27,9 @@ def register_polars_backends(
     try:
         import narwhals.stable.v1 as nw
 
-        from pandera.backends.narwhals import builtin_checks  # noqa — triggers Dispatcher registration for NarwhalsData
+        from pandera.backends.narwhals import (
+            builtin_checks,  # noqa — triggers Dispatcher registration for NarwhalsData
+        )
         from pandera.backends.narwhals.checks import NarwhalsCheckBackend
         from pandera.backends.narwhals.components import ColumnBackend
         from pandera.backends.narwhals.container import DataFrameSchemaBackend

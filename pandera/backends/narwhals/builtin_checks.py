@@ -63,9 +63,7 @@ def greater_than(col_expr: nw.Expr, min_value: Any) -> nw.Expr:
     aliases=["ge"],
     error="greater_than_or_equal_to({min_value})",
 )
-def greater_than_or_equal_to(
-    col_expr: nw.Expr, min_value: Any
-) -> nw.Expr:
+def greater_than_or_equal_to(col_expr: nw.Expr, min_value: Any) -> nw.Expr:
     """Ensure all values are greater than or equal to a minimum value.
 
     :param col_expr: Narwhals column expression to check.
@@ -232,9 +230,9 @@ def str_endswith(col_expr: nw.Expr, string: str) -> nw.Expr:
 @register_builtin_check()
 def str_length(
     col_expr: nw.Expr,
-    min_value: Optional[int] = None,
-    max_value: Optional[int] = None,
-    exact_value: Optional[int] = None,
+    min_value: int | None = None,
+    max_value: int | None = None,
+    exact_value: int | None = None,
 ) -> nw.Expr:
     """Ensure that the length of strings is within a specified range.
 

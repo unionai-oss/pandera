@@ -1,4 +1,5 @@
 """Narwhals API types."""
+
 from typing import NamedTuple
 
 import narwhals.stable.v1 as nw

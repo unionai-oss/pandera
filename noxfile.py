@@ -132,11 +132,17 @@ def _testing_requirements(
     _requirements = PYPROJECT["project"]["dependencies"]
     # Virtual extras combine multiple real extras; handle before the general lookup.
     if extra == "polars-narwhals":
-        _requirements += PYPROJECT["project"]["optional-dependencies"]["polars"]
-        _requirements += PYPROJECT["project"]["optional-dependencies"]["narwhals"]
+        _requirements += PYPROJECT["project"]["optional-dependencies"][
+            "polars"
+        ]
+        _requirements += PYPROJECT["project"]["optional-dependencies"][
+            "narwhals"
+        ]
     elif extra == "ibis-narwhals":
         _requirements += PYPROJECT["project"]["optional-dependencies"]["ibis"]
-        _requirements += PYPROJECT["project"]["optional-dependencies"]["narwhals"]
+        _requirements += PYPROJECT["project"]["optional-dependencies"][
+            "narwhals"
+        ]
     elif extra is not None:
         _requirements += PYPROJECT["project"]["optional-dependencies"][extra]
     # TEST-03: narwhals backend tests require polars and ibis co-installed

@@ -36,6 +36,7 @@ from pandera.polars import Column, DataFrameSchema
 
 try:
     import narwhals  # noqa: F401
+
     narwhals_installed = True
 except ImportError:
     narwhals_installed = False
@@ -320,7 +321,9 @@ class TestEqualToCheck(BaseClass):
     @pytest.mark.parametrize("check_fn", [pa.Check.equal_to, pa.Check.eq])
     def test_equal_to_check(self, check_fn, datatype, data) -> None:
         """Test the Check to see if all the values are equal to the defined value"""
-        if narwhals_installed and _is_narwhals_incompatible_polars_dtype(datatype):
+        if narwhals_installed and _is_narwhals_incompatible_polars_dtype(
+            datatype
+        ):
             pytest.xfail(
                 "Narwhals engine dtype comparison does not support polars-specific "
                 "types (Binary, Categorical, Decimal, Time, List, Array)"
@@ -500,7 +503,9 @@ class TestNotEqualToCheck(BaseClass):
     @pytest.mark.parametrize("check_fn", [pa.Check.not_equal_to, pa.Check.ne])
     def test_not_equal_to_check(self, check_fn, datatype, data) -> None:
         """Test the Check to see if all the values are equal to the defined value"""
-        if narwhals_installed and _is_narwhals_incompatible_polars_dtype(datatype):
+        if narwhals_installed and _is_narwhals_incompatible_polars_dtype(
+            datatype
+        ):
             pytest.xfail(
                 "Narwhals engine dtype comparison does not support polars-specific "
                 "types (Binary, Categorical, Decimal, Time, List, Array)"
@@ -617,7 +622,9 @@ class TestGreaterThanCheck(BaseClass):
     @pytest.mark.parametrize("check_fn", [pa.Check.greater_than, pa.Check.gt])
     def test_greater_than_check(self, check_fn, datatype, data) -> None:
         """Test the Check to see if all the values are equal to the defined value"""
-        if narwhals_installed and _is_narwhals_incompatible_polars_dtype(datatype):
+        if narwhals_installed and _is_narwhals_incompatible_polars_dtype(
+            datatype
+        ):
             pytest.xfail(
                 "Narwhals engine dtype comparison does not support polars-specific "
                 "types (Binary, Categorical, Decimal, Time, List, Array)"
@@ -738,7 +745,9 @@ class TestGreaterThanEqualToCheck(BaseClass):
         self, check_fn, datatype, data
     ) -> None:
         """Test the Check to see if all the values are equal to the defined value"""
-        if narwhals_installed and _is_narwhals_incompatible_polars_dtype(datatype):
+        if narwhals_installed and _is_narwhals_incompatible_polars_dtype(
+            datatype
+        ):
             pytest.xfail(
                 "Narwhals engine dtype comparison does not support polars-specific "
                 "types (Binary, Categorical, Decimal, Time, List, Array)"
@@ -855,7 +864,9 @@ class TestLessThanCheck(BaseClass):
     @pytest.mark.parametrize("check_fn", [pa.Check.less_than, pa.Check.lt])
     def test_less_than_check(self, check_fn, datatype, data) -> None:
         """Test the Check to see if all the values are equal to the defined value"""
-        if narwhals_installed and _is_narwhals_incompatible_polars_dtype(datatype):
+        if narwhals_installed and _is_narwhals_incompatible_polars_dtype(
+            datatype
+        ):
             pytest.xfail(
                 "Narwhals engine dtype comparison does not support polars-specific "
                 "types (Binary, Categorical, Decimal, Time, List, Array)"
@@ -976,7 +987,9 @@ class TestLessThanEqualToCheck(BaseClass):
         self, check_fn, datatype, data
     ) -> None:
         """Test the Check to see if all the values are equal to the defined value"""
-        if narwhals_installed and _is_narwhals_incompatible_polars_dtype(datatype):
+        if narwhals_installed and _is_narwhals_incompatible_polars_dtype(
+            datatype
+        ):
             pytest.xfail(
                 "Narwhals engine dtype comparison does not support polars-specific "
                 "types (Binary, Categorical, Decimal, Time, List, Array)"
@@ -1113,7 +1126,9 @@ class TestIsInCheck(BaseClass):
 
     def test_isin_check(self, datatype, data) -> None:
         """Test the Check to see if all the values are equal to the defined value"""
-        if narwhals_installed and _is_narwhals_incompatible_polars_dtype(datatype):
+        if narwhals_installed and _is_narwhals_incompatible_polars_dtype(
+            datatype
+        ):
             pytest.xfail(
                 "Narwhals engine dtype comparison does not support polars-specific "
                 "types (Binary, Categorical, Decimal, Time, List, Array)"
@@ -1250,7 +1265,9 @@ class TestNotInCheck(BaseClass):
 
     def test_notin_check(self, datatype, data) -> None:
         """Test the Check to see if all the values are equal to the defined value"""
-        if narwhals_installed and _is_narwhals_incompatible_polars_dtype(datatype):
+        if narwhals_installed and _is_narwhals_incompatible_polars_dtype(
+            datatype
+        ):
             pytest.xfail(
                 "Narwhals engine dtype comparison does not support polars-specific "
                 "types (Binary, Categorical, Decimal, Time, List, Array)"
@@ -1492,7 +1509,9 @@ class TestInRangeCheck(BaseClass):
 
     def test_inrange_exclude_min_max_check(self, datatype, data) -> None:
         """Test the Check to see if all the values are equal to the defined value"""
-        if narwhals_installed and _is_narwhals_incompatible_polars_dtype(datatype):
+        if narwhals_installed and _is_narwhals_incompatible_polars_dtype(
+            datatype
+        ):
             pytest.xfail(
                 "Narwhals engine dtype comparison does not support polars-specific "
                 "types (Binary, Categorical, Decimal, Time, List, Array)"
@@ -1513,7 +1532,9 @@ class TestInRangeCheck(BaseClass):
 
     def test_inrange_exclude_min_only_check(self, datatype, data) -> None:
         """Test the Check to see if all the values are equal to the defined value"""
-        if narwhals_installed and _is_narwhals_incompatible_polars_dtype(datatype):
+        if narwhals_installed and _is_narwhals_incompatible_polars_dtype(
+            datatype
+        ):
             pytest.xfail(
                 "Narwhals engine dtype comparison does not support polars-specific "
                 "types (Binary, Categorical, Decimal, Time, List, Array)"
@@ -1529,7 +1550,9 @@ class TestInRangeCheck(BaseClass):
 
     def test_inrange_exclude_max_only_check(self, datatype, data) -> None:
         """Test the Check to see if all the values are equal to the defined value"""
-        if narwhals_installed and _is_narwhals_incompatible_polars_dtype(datatype):
+        if narwhals_installed and _is_narwhals_incompatible_polars_dtype(
+            datatype
+        ):
             pytest.xfail(
                 "Narwhals engine dtype comparison does not support polars-specific "
                 "types (Binary, Categorical, Decimal, Time, List, Array)"
@@ -1545,7 +1568,9 @@ class TestInRangeCheck(BaseClass):
 
     def test_inrange_include_min_max_check(self, datatype, data) -> None:
         """Test the Check to see if all the values are equal to the defined value"""
-        if narwhals_installed and _is_narwhals_incompatible_polars_dtype(datatype):
+        if narwhals_installed and _is_narwhals_incompatible_polars_dtype(
+            datatype
+        ):
             pytest.xfail(
                 "Narwhals engine dtype comparison does not support polars-specific "
                 "types (Binary, Categorical, Decimal, Time, List, Array)"

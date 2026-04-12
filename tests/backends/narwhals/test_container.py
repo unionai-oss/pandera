@@ -11,14 +11,14 @@ Tests cover:
   TEST-03: SchemaError.failure_cases is a native pl.DataFrame, not nw.DataFrame
 """
 
-import pytest
-import polars as pl
 import narwhals.stable.v1 as nw
-from pandera.api.polars.container import DataFrameSchema
-from pandera.api.polars.components import Column
-from pandera.api.checks import Check
-from pandera.errors import SchemaError, SchemaErrors
+import polars as pl
+import pytest
 
+from pandera.api.checks import Check
+from pandera.api.polars.components import Column
+from pandera.api.polars.container import DataFrameSchema
+from pandera.errors import SchemaError, SchemaErrors
 
 # ---------------------------------------------------------------------------
 # CONTAINER-01: NarwhalsSchemaBackend.failure_cases_metadata / drop_invalid_rows
@@ -27,8 +27,8 @@ from pandera.errors import SchemaError, SchemaErrors
 
 def test_failure_cases_metadata():
     """NarwhalsSchemaBackend.failure_cases_metadata returns object with .failure_cases."""
-    from pandera.backends.narwhals.base import NarwhalsSchemaBackend
     from pandera.api.polars.container import DataFrameSchema as Schema
+    from pandera.backends.narwhals.base import NarwhalsSchemaBackend
 
     schema = Schema(columns={"a": Column(pl.Int64)})
     failure_cases_df = pl.DataFrame({"a": [0]})
@@ -42,7 +42,6 @@ def test_failure_cases_metadata():
     result = backend.failure_cases_metadata("test", [err])
     assert hasattr(result, "failure_cases")
     assert isinstance(result.failure_cases, pl.DataFrame)
-
 
 
 # ---------------------------------------------------------------------------
@@ -113,6 +112,7 @@ def test_lazy_mode_collects_all_errors():
         schema.validate(pl.DataFrame({"a": [1, 2], "b": [3, 4]}), lazy=True)
     assert len(exc_info.value.schema_errors) > 1
     from pandera.errors import SchemaErrorReason
+
     for err in exc_info.value.schema_errors:
         assert err.reason_code == SchemaErrorReason.DATAFRAME_CHECK, (
             f"Expected DATAFRAME_CHECK but got {err.reason_code}"
@@ -157,12 +157,14 @@ def test_polars_backends_registered():
 def test_narwhals_auto_activated_when_installed():
     """register_polars_backends() emits UserWarning when narwhals is installed."""
     import warnings
+
     from pandera.backends.polars.register import register_polars_backends
+
     register_polars_backends.cache_clear()
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter("always")
         register_polars_backends()
-        narwhals_warnings = [x for x in w if 'Narwhals' in str(x.message)]
+        narwhals_warnings = [x for x in w if "Narwhals" in str(x.message)]
         assert len(narwhals_warnings) == 1
     register_polars_backends.cache_clear()  # restore clean state
 
@@ -195,10 +197,13 @@ def test_failure_cases_is_native():
 # REGISTER-03: ibis.Table uses narwhals DataFrameSchemaBackend after registration
 # ---------------------------------------------------------------------------
 
+
 def test_ibis_narwhals_auto_activated():
     """register_ibis_backends() emits UserWarning when narwhals is installed."""
     import warnings
+
     from pandera.backends.ibis.register import register_ibis_backends
+
     register_ibis_backends.cache_clear()
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter("always")
@@ -211,9 +216,12 @@ def test_ibis_narwhals_auto_activated():
 def test_ibis_backend_is_narwhals():
     """After register_ibis_backends(), ibis.Table uses narwhals DataFrameSchemaBackend."""
     import ibis
+
+    from pandera.api.ibis.container import (
+        DataFrameSchema as IbisDataFrameSchema,
+    )
     from pandera.backends.ibis.register import register_ibis_backends
     from pandera.backends.narwhals.container import DataFrameSchemaBackend
-    from pandera.api.ibis.container import DataFrameSchema as IbisDataFrameSchema
 
     register_ibis_backends()
     t = ibis.memtable({"a": [1, 2, 3]})

@@ -15,6 +15,7 @@ from pandera.backends.ibis.components import ColumnBackend
 
 try:
     import narwhals  # noqa: F401
+
     narwhals_installed = True
 except ImportError:
     narwhals_installed = False
@@ -36,7 +37,11 @@ DTYPES_AND_DATA = [
 ]
 
 
-@pytest.mark.xfail(condition=narwhals_installed, reason="Narwhals backend column validation error for basic dtypes", strict=True)
+@pytest.mark.xfail(
+    condition=narwhals_installed,
+    reason="Narwhals backend column validation error for basic dtypes",
+    strict=True,
+)
 @pytest.mark.parametrize("dtype,data", DTYPES_AND_DATA)
 def test_column_schema_simple_dtypes(dtype, data):
     schema = pa.Column(dtype, name="column")
@@ -64,7 +69,11 @@ def test_column_schema_name_none():
         schema.validate(data)
 
 
-@pytest.mark.xfail(condition=narwhals_installed, reason="Regex column selection broken in Narwhals backend", strict=True)
+@pytest.mark.xfail(
+    condition=narwhals_installed,
+    reason="Regex column selection broken in Narwhals backend",
+    strict=True,
+)
 @pytest.mark.parametrize(
     "column_kwargs",
     [
@@ -85,7 +94,11 @@ def test_column_schema_regex(column_kwargs):
             invalid_data.pipe(schema.validate)
 
 
-@pytest.mark.xfail(condition=narwhals_installed, reason="Narwhals backend overrides native ibis ColumnBackend", strict=True)
+@pytest.mark.xfail(
+    condition=narwhals_installed,
+    reason="Narwhals backend overrides native ibis ColumnBackend",
+    strict=True,
+)
 def test_get_column_backend():
     assert isinstance(
         pa.Column.get_backend(ibis.memtable({"column": [1, 2, 3]})),
@@ -247,7 +260,11 @@ def test_check_dtype(data, from_dtype, check_dtype):
     assert result.passed if from_dtype == check_dtype else not result.passed
 
 
-@pytest.mark.xfail(condition=narwhals_installed, reason="failure_cases attribute not available in Narwhals backend", strict=True)
+@pytest.mark.xfail(
+    condition=narwhals_installed,
+    reason="failure_cases attribute not available in Narwhals backend",
+    strict=True,
+)
 def test_check_data_container():
     @ibis_engine.Engine.register_dtype
     class MyTestStartsWithID(ibis_engine.String):

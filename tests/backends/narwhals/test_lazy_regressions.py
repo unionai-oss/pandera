@@ -1,4 +1,5 @@
 """Regression tests for critical lazy=True bugs (Phase 8)."""
+
 import warnings
 
 import polars as pl
@@ -15,8 +16,9 @@ def _suppress_narwhals_warning():
     """Initialise narwhals backends and suppress the auto-activation UserWarning."""
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", UserWarning)
-        from pandera.backends.polars.register import register_polars_backends
         from pandera.backends.ibis.register import register_ibis_backends
+        from pandera.backends.polars.register import register_polars_backends
+
         register_polars_backends.cache_clear()
         register_ibis_backends.cache_clear()
         register_polars_backends()
@@ -52,7 +54,9 @@ def test_lazy_failure_cases_per_row_polars():
                     f"Expected individual numeric values, got non-numeric string: {v!r}"
                 )
         elif not isinstance(v, (int, float)):
-            raise AssertionError(f"Expected numeric value, got: {type(v).__name__} {v!r}")
+            raise AssertionError(
+                f"Expected numeric value, got: {type(v).__name__} {v!r}"
+            )
 
 
 def test_lazy_failure_cases_per_row_ibis():
@@ -62,10 +66,11 @@ def test_lazy_failure_cases_per_row_ibis():
     # TEST-02: intentionally ibis_table-specific — regression test for ibis lazy=True behavior
     """
     ibis = pytest.importorskip("ibis")
-    import pandas as pd
     import ibis.expr.datatypes as dt
-    from pandera.api.ibis.container import DataFrameSchema as IbisSchema
+    import pandas as pd
+
     from pandera.api.ibis.components import Column as IbisColumn
+    from pandera.api.ibis.container import DataFrameSchema as IbisSchema
 
     schema = IbisSchema(
         columns={"a": IbisColumn(dt.int64, checks=[Check.greater_than(10)])}

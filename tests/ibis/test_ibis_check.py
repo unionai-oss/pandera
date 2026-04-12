@@ -13,6 +13,7 @@ from pandera.constants import CHECK_OUTPUT_KEY
 
 try:
     import narwhals  # noqa: F401
+
     narwhals_installed = True
 except ImportError:
     narwhals_installed = False
@@ -43,7 +44,11 @@ def _column_check_fn_scalar_out(data: pa.IbisData) -> ir.Table:
     return (data.table[data.key] > 0).all()
 
 
-@pytest.mark.xfail(condition=narwhals_installed, reason="Ibis-style check functions incompatible with Narwhals backend", strict=True)
+@pytest.mark.xfail(
+    condition=narwhals_installed,
+    reason="Ibis-style check functions incompatible with Narwhals backend",
+    strict=True,
+)
 @pytest.mark.parametrize(
     "check_fn, invalid_data, expected_output",
     [
@@ -91,7 +96,11 @@ def _df_check_fn_scalar_out(data: pa.IbisData) -> ir.BooleanScalar:
     return acc.all()
 
 
-@pytest.mark.xfail(condition=narwhals_installed, reason="Ibis-style check functions incompatible with Narwhals backend", strict=True)
+@pytest.mark.xfail(
+    condition=narwhals_installed,
+    reason="Ibis-style check functions incompatible with Narwhals backend",
+    strict=True,
+)
 @pytest.mark.parametrize(
     "check_fn, invalid_data, expected_output",
     [
@@ -165,7 +174,11 @@ def _element_wise_check_fn(x: int) -> bool:
     return x > 0
 
 
-@pytest.mark.xfail(condition=narwhals_installed, reason="Element-wise checks incompatible with Narwhals backend", strict=True)
+@pytest.mark.xfail(
+    condition=narwhals_installed,
+    reason="Element-wise checks incompatible with Narwhals backend",
+    strict=True,
+)
 def test_ibis_element_wise_column_check(column_t):
     check = pa.Check(_element_wise_check_fn, element_wise=True)
     check_result = check(column_t, column="col")
@@ -179,7 +192,11 @@ def test_ibis_element_wise_column_check(column_t):
     assert failure_cases.equals(expected_failure_cases)
 
 
-@pytest.mark.xfail(condition=narwhals_installed, reason="Element-wise checks incompatible with Narwhals backend", strict=True)
+@pytest.mark.xfail(
+    condition=narwhals_installed,
+    reason="Element-wise checks incompatible with Narwhals backend",
+    strict=True,
+)
 def test_ibis_element_wise_dataframe_check(t):
     check = pa.Check(_element_wise_check_fn, element_wise=True)
     check_result = check(t)
@@ -197,7 +214,11 @@ def test_ibis_element_wise_dataframe_check(t):
     assert failure_cases.equals(expected_failure_cases)
 
 
-@pytest.mark.xfail(condition=narwhals_installed, reason="Element-wise checks incompatible with Narwhals backend", strict=True)
+@pytest.mark.xfail(
+    condition=narwhals_installed,
+    reason="Element-wise checks incompatible with Narwhals backend",
+    strict=True,
+)
 def test_ibis_element_wise_dataframe_different_dtypes():
     # Custom check function
     def check_gt_2(v: int) -> bool:
@@ -230,7 +251,11 @@ def test_ibis_element_wise_dataframe_different_dtypes():
     )
 
 
-@pytest.mark.xfail(condition=narwhals_installed, reason="Ibis-style custom check functions incompatible with Narwhals backend", strict=True)
+@pytest.mark.xfail(
+    condition=narwhals_installed,
+    reason="Ibis-style custom check functions incompatible with Narwhals backend",
+    strict=True,
+)
 def test_ibis_custom_check():
     t = ibis.memtable(
         pd.DataFrame(
@@ -261,7 +286,11 @@ def test_ibis_custom_check():
     assert failure_cases.equals(expected_failure_cases)
 
 
-@pytest.mark.xfail(condition=narwhals_installed, reason="Custom check signature incompatible with Narwhals backend", strict=True)
+@pytest.mark.xfail(
+    condition=narwhals_installed,
+    reason="Custom check signature incompatible with Narwhals backend",
+    strict=True,
+)
 def test_ibis_column_check_n_failure_cases(column_t):
     n_failure_cases = 2
     check = pa.Check(
@@ -275,7 +304,11 @@ def test_ibis_column_check_n_failure_cases(column_t):
         assert exc.failure_cases.shape[0] == n_failure_cases
 
 
-@pytest.mark.xfail(condition=narwhals_installed, reason="Custom check signature incompatible with Narwhals backend", strict=True)
+@pytest.mark.xfail(
+    condition=narwhals_installed,
+    reason="Custom check signature incompatible with Narwhals backend",
+    strict=True,
+)
 def test_ibis_dataframe_check_n_failure_cases(t):
     n_failure_cases = 2
     check = pa.Check(

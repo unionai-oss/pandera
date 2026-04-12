@@ -77,8 +77,7 @@ class DataType(dtypes.DataType):
                 except Exception:
                     pass
             raise errors.ParserError(
-                f"Could not coerce {_key} LazyFrame "
-                f"into type {self.type}",
+                f"Could not coerce {_key} LazyFrame into type {self.type}",
                 failure_cases=failure_cases,
             ) from exc
 
@@ -113,20 +112,23 @@ class Engine(metaclass=engine.Engine, base_pandera_dtypes=DataType):
             # in pandera.dtypes and will still raise TypeError.
             bases = type(data_type).__bases__
             abstract_base = bases[-1] if bases else None
-            if abstract_base is not None and abstract_base is not dtypes.DataType:
+            if (
+                abstract_base is not None
+                and abstract_base is not dtypes.DataType
+            ):
                 try:
                     return engine.Engine.dtype(cls, abstract_base())
                 except TypeError:
                     pass
             raise TypeError(
-                f"data type '{data_type}' not understood by "
-                f"{cls.__name__}."
+                f"data type '{data_type}' not understood by {cls.__name__}."
             ) from None
 
 
 ###############################################################################
 # Integer types
 ###############################################################################
+
 
 @Engine.register_dtype(
     equivalents=["int8", nw.Int8, dtypes.Int8, dtypes.Int8()]
@@ -212,6 +214,7 @@ class UInt64(DataType, dtypes.UInt64):
 # Floating-point types
 ###############################################################################
 
+
 @Engine.register_dtype(
     equivalents=["float32", nw.Float32, dtypes.Float32, dtypes.Float32()]
 )
@@ -235,6 +238,7 @@ class Float64(DataType, dtypes.Float64):
 ###############################################################################
 # String / Boolean types
 ###############################################################################
+
 
 @Engine.register_dtype(
     equivalents=["str", "string", nw.String, dtypes.String, dtypes.String()]
@@ -260,6 +264,7 @@ class Bool(DataType, dtypes.Bool):
 # Temporal types
 ###############################################################################
 
+
 @Engine.register_dtype(
     equivalents=["date", nw.Date, dtypes.Date, dtypes.Date()]
 )
@@ -281,13 +286,11 @@ class DateTime(DataType, dtypes.DateTime):
 
     def __init__(
         self,
-        time_unit: Optional[str] = None,
-        time_zone: Optional[str] = None,
+        time_unit: str | None = None,
+        time_zone: str | None = None,
     ) -> None:
         if time_unit is not None:
-            object.__setattr__(
-                self, "type", nw.Datetime(time_unit, time_zone)
-            )
+            object.__setattr__(self, "type", nw.Datetime(time_unit, time_zone))
         else:
             object.__setattr__(self, "type", nw.Datetime)
 
@@ -317,7 +320,7 @@ class Duration(DataType, dtypes.Timedelta):
 
     def __init__(
         self,
-        time_unit: Optional[str] = None,
+        time_unit: str | None = None,
     ) -> None:
         if time_unit is not None:
             object.__setattr__(self, "type", nw.Duration(time_unit))
@@ -334,6 +337,7 @@ class Duration(DataType, dtypes.Timedelta):
 ###############################################################################
 # Nested types
 ###############################################################################
+
 
 @Engine.register_dtype(
     equivalents=[

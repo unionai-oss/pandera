@@ -14,6 +14,7 @@ from pandera.engines import ibis_engine as ie
 
 try:
     import narwhals  # noqa: F401
+
     narwhals_installed = True
 except ImportError:
     narwhals_installed = False
@@ -154,7 +155,11 @@ def test_ibis_map_nested_type(key_dtype, value_dtype):
     assert pandera_dtype.check(pandera_dtype)
 
 
-@pytest.mark.xfail(condition=narwhals_installed, reason="Narwhals engine dtype comparison fails for ibis map type", strict=True)
+@pytest.mark.xfail(
+    condition=narwhals_installed,
+    reason="Narwhals engine dtype comparison fails for ibis map type",
+    strict=True,
+)
 def test_ibis_map_type():
     # https://github.com/unionai-oss/pandera/issues/2201
     data = {
