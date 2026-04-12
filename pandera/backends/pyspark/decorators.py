@@ -7,6 +7,12 @@ from contextlib import contextmanager
 
 from pyspark.sql import DataFrame
 
+try:
+    from pyspark.sql.connect.dataframe import DataFrame as ConnectDataFrame
+    _dataframe_types = (DataFrame, ConnectDataFrame)
+except ImportError:
+    _dataframe_types = (DataFrame,)
+
 from pandera.api.pyspark.types import PysparkDefaultTypes
 from pandera.config import ValidationDepth, get_config_context
 from pandera.errors import SchemaError
@@ -128,7 +134,7 @@ def cache_check_obj():
 
             # Check if decorated function has a dataframe object as an positional arg
             for arg in args:
-                if isinstance(arg, DataFrame):
+                if isinstance(arg, _dataframe_types):
                     check_obj = arg
                     break
 
@@ -136,7 +142,7 @@ def cache_check_obj():
             if check_obj is None:
                 check_obj = kwargs.get("check_obj", None)
 
-            if not isinstance(check_obj, DataFrame):
+            if not isinstance(check_obj, _dataframe_types):
                 raise ValueError(
                     "Expected to find a DataFrame object in a arg or a `check_obj` "
                     "kwarg in the decorated function "
