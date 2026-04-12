@@ -395,8 +395,12 @@ class DataFrame(DataFrameBase, pd.DataFrame, Generic[T]):
         more details.
         """
         schema_model = schema
-        schema = schema_model.to_schema()  # type: ignore[attr-defined]
-        schema_index = schema.index.names if schema.index is not None else None
+        dataframe_schema = schema_model.to_schema()  # type: ignore[attr-defined]
+        schema_index = (
+            dataframe_schema.index.names
+            if dataframe_schema.index is not None
+            else None
+        )
         if "index" not in kwargs:
             kwargs["index"] = schema_index
         data_df = pd.DataFrame.from_records(data=data, **kwargs)
