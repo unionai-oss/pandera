@@ -1756,6 +1756,25 @@ def test_from_records_validates_the_schema():
         DataFrame[Schema](raw_data)
 
 
+def test_from_records_invokes_parser_when_coerce_true() -> None:
+    """Ensure from_records uses DataFrameModel validation hooks."""
+
+    class Schema(pa.DataFrameModel):
+        c: Series[float] = pa.Field(alias="B", coerce=True)
+
+        @pa.parser("B")
+        def my_parser(cls, series: pd.Series) -> Series[float]:
+            return series.astype(float) + 1
+
+    raw_data = [
+        {"B": "1"},
+        {"B": "2"},
+    ]
+
+    expected = pd.DataFrame({"B": [2.0, 3.0]})
+    assert_frame_equal(DataFrame.from_records(Schema, raw_data), expected)
+
+
 def test_from_records_sets_the_index_from_schema():
     """Test that DataFrame[Schema] validates the schema"""
 
