@@ -402,5 +402,7 @@ class DataFrame(DataFrameBase, pd.DataFrame, Generic[T]):
         data_df = pd.DataFrame.from_records(data=data, **kwargs)
         return DataFrame[schema_model](  # type: ignore
             # set the column order according to schema
-            data_df[[c for c in schema.columns if c in data_df.columns]]
+            data_df[
+                [c for c in dataframe_schema.columns if c in data_df.columns]
+            ]
         )

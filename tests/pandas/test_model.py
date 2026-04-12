@@ -1712,7 +1712,7 @@ def test_validate_on_init_module():
 
 
 def test_from_records_validates_the_schema():
-    """Test that DataFrame[Schema] validates the schema"""
+    """Test that DataFrame.from_records validates against the model."""
 
     class Schema(pa.DataFrameModel):
         state: Series[str]
@@ -1753,7 +1753,29 @@ def test_from_records_validates_the_schema():
         pa.errors.SchemaError,
         match="^column 'price' not in dataframe",
     ):
-        DataFrame[Schema](raw_data)
+        DataFrame.from_records(Schema, raw_data)
+
+
+def test_from_records_raises_on_check_failure():
+    """Field checks run when building a dataframe via from_records."""
+
+    class Schema(pa.DataFrameModel):
+        state: Series[str]
+        city: Series[str]
+        price: Series[int] = pa.Field(
+            in_range={"min_value": 5, "max_value": 20}
+        )
+
+    raw_data = {
+        "state": ["NY", "FL", "GA", "CA"],
+        "city": ["New York", "Miami", "Atlanta", "San Francisco"],
+        "price": [8, 12, 10, 40],
+    }
+    with pytest.raises(
+        pa.errors.SchemaError,
+        match=r"Column 'price' failed element-wise validator",
+    ):
+        DataFrame.from_records(Schema, raw_data)
 
 
 def test_from_records_invokes_parser_when_coerce_true() -> None:
@@ -1776,7 +1798,7 @@ def test_from_records_invokes_parser_when_coerce_true() -> None:
 
 
 def test_from_records_sets_the_index_from_schema():
-    """Test that DataFrame[Schema] validates the schema"""
+    """Test that DataFrame.from_records applies index kwargs from the schema."""
 
     class Schema(pa.DataFrameModel):
         state: Index[str] = pa.Field(check_name=True)
@@ -1803,7 +1825,7 @@ def test_from_records_sets_the_index_from_schema():
 
 
 def test_from_records_sorts_the_columns():
-    """Test that DataFrame[Schema] validates the schema"""
+    """Test that from_records orders columns to match the schema."""
 
     class Schema(pa.DataFrameModel):
         state: Series[str]
