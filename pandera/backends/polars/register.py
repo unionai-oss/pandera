@@ -48,10 +48,10 @@ def register_polars_backends(
         Check.register_backend(nw.LazyFrame, NarwhalsCheckBackend)
         Check.register_backend(nw.DataFrame, NarwhalsCheckBackend)
     except ImportError:
-        from pandera.backends.polars import builtin_checks  # noqa
+        from pandera.backends.polars import builtin_checks  # type: ignore[no-redef]  # noqa
         from pandera.backends.polars.checks import PolarsCheckBackend
-        from pandera.backends.polars.components import ColumnBackend
-        from pandera.backends.polars.container import DataFrameSchemaBackend
+        from pandera.backends.polars.components import ColumnBackend  # type: ignore[assignment]
+        from pandera.backends.polars.container import DataFrameSchemaBackend  # type: ignore[assignment]
 
         DataFrameSchema.register_backend(pl.LazyFrame, DataFrameSchemaBackend)
         DataFrameSchema.register_backend(pl.DataFrame, DataFrameSchemaBackend)

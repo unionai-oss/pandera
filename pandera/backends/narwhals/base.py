@@ -283,6 +283,9 @@ class NarwhalsSchemaBackend(BaseSchemaBackend):
                         "index", [None] * len(pl_fc), dtype=pl.Int32
                     )
 
+                # pl.from_arrow() on a DataFrame always returns a DataFrame,
+                # never a Series; this assert narrows the type for mypy.
+                assert isinstance(pl_fc, pl.DataFrame)
                 if len(pl_fc.columns) > 1:
                     failure_cases_df = pl_fc.with_columns(
                         failure_case=pl.Series(pl_fc.rows(named=True))

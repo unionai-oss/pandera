@@ -50,10 +50,10 @@ def register_ibis_backends(
         Check.register_backend(ibis.Column, NarwhalsCheckBackend)
         Check.register_backend(nw.LazyFrame, NarwhalsCheckBackend)
     except ImportError:
-        from pandera.backends.ibis import builtin_checks  # noqa
+        from pandera.backends.ibis import builtin_checks  # type: ignore[no-redef]  # noqa
         from pandera.backends.ibis.checks import IbisCheckBackend
-        from pandera.backends.ibis.components import ColumnBackend
-        from pandera.backends.ibis.container import DataFrameSchemaBackend
+        from pandera.backends.ibis.components import ColumnBackend  # type: ignore[assignment]
+        from pandera.backends.ibis.container import DataFrameSchemaBackend  # type: ignore[assignment]
 
         DataFrameSchema.register_backend(ibis.Table, DataFrameSchemaBackend)
         Column.register_backend(ibis.Table, ColumnBackend)

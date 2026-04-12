@@ -19,6 +19,7 @@ from pandera.errors import SchemaError, SchemaErrorReason
 # ---------------------------------------------------------------------------
 # Guard: import ColumnBackend only if components.py exists (Plan 03-02)
 # ---------------------------------------------------------------------------
+ColumnBackend: type | None
 try:
     from pandera.backends.narwhals.components import ColumnBackend
 except ImportError:
