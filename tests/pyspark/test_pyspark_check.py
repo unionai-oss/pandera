@@ -1553,6 +1553,71 @@ class TestStringType(BaseClass):
                 raise PysparkSchemaError
 
 
+@validate_scope(scope=ValidationScope.DATA)
+def test_str_length_check_regression_issue_1314(
+    spark_session, request
+) -> None:
+    """Check.str_length should work for pyspark DataFrameSchema checks."""
+    spark = request.getfixturevalue(spark_session)
+    schema = DataFrameSchema(
+        {
+            "participant_id": Column(
+                StringType(),
+                checks=[pa.Check.str_length(32)],
+            )
+        }
+    )
+    spark_schema = StructType(
+        [StructField("participant_id", StringType(), False)],
+    )
+
+    df = spark.createDataFrame(
+        data=[("a" * 32,), ("b" * 32,)],
+        schema=spark_schema,
+    )
+    df_out = schema.validate(df)
+    assert not df_out.pandera.errors
+
+    df = spark.createDataFrame(
+        data=[("a" * 31,), ("b" * 32,)],
+        schema=spark_schema,
+    )
+    df_out = schema.validate(df)
+    assert (
+        dict(df_out.pandera.errors)["DATA"]["DATAFRAME_CHECK"][0]["check"]
+        == "str_length(32)"
+    )
+
+
+@validate_scope(scope=ValidationScope.DATA)
+def test_field_str_length_regression_issue_1311(
+    spark_session, request
+) -> None:
+    """Field(str_length=...) should work for pyspark DataFrameModel."""
+    spark = request.getfixturevalue(spark_session)
+
+    # pylint: disable=too-few-public-methods
+    class ProductSchema(DataFrameModel):
+        product_name: StringType() = Field(
+            str_length={"min_value": 1, "max_value": 2}
+        )
+
+    spark_schema = StructType(
+        [StructField("product_name", StringType(), False)],
+    )
+
+    df = spark.createDataFrame(data=[("a",), ("bb",)], schema=spark_schema)
+    df_out = ProductSchema.validate(df)
+    assert not df_out.pandera.errors
+
+    df = spark.createDataFrame(data=[("bbb",)], schema=spark_schema)
+    df_out = ProductSchema.validate(df)
+    assert (
+        dict(df_out.pandera.errors)["DATA"]["DATAFRAME_CHECK"][0]["check"]
+        == "str_length(1, 2)"
+    )
+
+
 class TestInRangeCheck(BaseClass):
     """This class is used to test the value in range check"""
 
