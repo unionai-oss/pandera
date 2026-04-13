@@ -1554,7 +1554,7 @@ class TestStringType(BaseClass):
 
 
 @validate_scope(scope=ValidationScope.DATA)
-def test_str_length_check_regression_issue_1314(
+def test_str_length_check_with_pyspark_schemas(
     spark_session, request
 ) -> None:
     """Check.str_length should work for pyspark DataFrameSchema checks."""
@@ -1590,7 +1590,7 @@ def test_str_length_check_regression_issue_1314(
 
 
 @validate_scope(scope=ValidationScope.DATA)
-def test_field_str_length_regression_issue_1311(
+def test_field_str_length_with_pyspark_schema_fields(
     spark_session, request
 ) -> None:
     """Field(str_length=...) should work for pyspark DataFrameModel."""
