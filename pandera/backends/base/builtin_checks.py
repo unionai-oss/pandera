@@ -9,7 +9,7 @@ specific implementations based on the data object type, e.g.
 
 import re
 from collections.abc import Iterable
-from typing import Any, Optional, TypeVar, Union
+from typing import Any, TypeVar, Union
 
 from pandera.api.checks import Check
 

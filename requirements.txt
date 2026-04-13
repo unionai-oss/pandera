@@ -17,6 +17,7 @@ scipy-stubs
 pyspark[connect] >= 3.2.0
 polars >= 0.20.0
 xarray >= 2024.10.0
+narwhals >= 1.26.0
 modin
 protobuf
 geopandas

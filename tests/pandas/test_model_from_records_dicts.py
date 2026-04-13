@@ -23,7 +23,7 @@ def test_from_records_with_list_of_dicts():
         {"state": "NY", "city": "New York", "price": 8.0},
         {"state": "FL", "city": "Miami", "price": 12.0},
     ]
-    
+
     pandera_validated_df = DataFrame.from_records(Schema, raw_data)
     pandas_df = pd.DataFrame.from_records(raw_data)
     assert pandera_validated_df.equals(Schema.validate(pandas_df))
