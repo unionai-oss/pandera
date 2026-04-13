@@ -136,6 +136,7 @@ __all__ = [
     "SeriesSchema",
     "extensions",
     "typing",
+    "errors",
     "dtypes",
 ]
 
