@@ -245,6 +245,10 @@ for extra in OPTIONAL_DEPENDENCIES:
                 for pandas in PANDAS_VERSIONS[:-1]
             ]
         )
+    elif extra == "narwhals":
+        # Use pandas=None so the session ID matches CI invocation and
+        # _testing_requirements auto-selects the version-appropriate pandas.
+        EXTRA_PYTHON_PYDANTIC.append((extra, None, None, None))
     elif extra in DATAFRAME_EXTRAS:
         EXTRA_PYTHON_PYDANTIC.append((extra, PANDAS_VERSIONS[0], None, None))
     else:
