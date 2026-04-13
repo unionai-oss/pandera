@@ -13,36 +13,262 @@
 
 Adding TensorDict support extends pandera's reach to the PyTorch ecosystem, providing a consistent validation API for high-dimensional tensor containers, alongside its existing tabular backends.
 
-### Why Pandera?
-While `tensordict` provides structural integrity (ensuring all tensors share a `batch_size`), it does not provide a declarative, schema-based way to validate the **data content** or **complex metadata constraints** without writing significant boilerplate. 
+### The Problem: Imperative Validation is Brittle
 
-Pandera adds value by:
-1.  **Declarative Data Validation:** Moving from imperative `assert` statements to structured, reusable schemas (`TensorDictSchema`, `TensorModel`).
-2.  **Complex Value Checks:** Leveraging the existing Pandera `Check` ecosystem (e.g., `in_range`, `isin`, `regex`-like pattern matching on metadata) for tensor values and dimensions.
-3.  **Unified API:** Providing the same validation experience as pandas/polars/xarray, allowing developers to use a single library for all data-centric pipelines.
-4.  **Type Safety:** Integrating with Python type hints via `@check_types` to catch structural errors at development time.
+In real-world ML pipelines, tensor containers often need to satisfy complex constraints that go beyond structural integrity:
 
-### Usage Example: Adding Value to TensorDict
+- Ensuring tensor values fall within a specific range (e.g., normalized inputs between -1 and 1).
+- Validating that specific keys exist with expected dtypes.
+- Checking that batch dimensions are consistent across all tensors.
+- Ensuring data meets quality standards before expensive training runs.
+
+While `tensordict` ensures that all tensors share a common `batch_size`, it doesn't provide built-in mechanisms for validating the **content** or **metadata** of those tensors. Developers often resort to verbose, imperative validation code that is hard to maintain and reuse.
+
+### The Solution: Declarative Schemas with Pandera
+
+Pandera adds value by enabling **declarative, schema-based validation** for TensorDict and tensorclass objects:
+
+1.  **Type Safety:** Catch structural errors at development time with Python type hints via `@check_types`.
+2.  **Complex Value Checks:** Leverage the existing Pandera `Check` ecosystem (e.g., `in_range`, `isin`, `greater_than`, etc.) for tensor values and dimensions.
+3.  **Unified API:** Use the same validation patterns across pandas, polars, and PyTorch for a consistent developer experience.
+4.  **Reusable Schemas:** Define validation logic once in a schema, then reuse it across multiple pipelines or data sources.
+
+---
+
+### Comprehensive Usage Examples
+
+#### Example 1: Validating TensorDict Structure and Values
+
+**Before (Imperative Validation - The "Pants on Fire" Approach)**
+
+```python
+import torch
+from tensordict import TensorDict
+
+def validate_batch(td: TensorDict):
+    """Manual validation - error-prone, hard to maintain."""
+    # Check batch size
+    assert td.batch_size[0] == 32, f"Expected batch_size[0]=32, got {td.batch_size[0]}"
+    
+    # Check keys exist
+    assert "observation" in td, "Missing 'observation' key"
+    assert "action" in td, "Missing 'action' key"
+    
+    # Check dtypes
+    assert td["observation"].dtype == torch.float32, f"Expected float32, got {td['observation'].dtype}"
+    assert td["action"].dtype == torch.float32, f"Expected float32, got {td['action'].dtype}"
+    
+    # Check value ranges (normalized observations)
+    obs = td["observation"]
+    assert obs.min() >= -1.0, f"observation min value {obs.min()} < -1.0"
+    assert obs.max() <= 1.0, f"observation max value {obs.max()} > 1.0"
+    
+    # Check action bounds
+    action = td["action"]
+    assert action.min() >= -2.0, f"action min value {action.min()} < -2.0"
+    assert action.max() <= 2.0, f"action max value {action.max()} > 2.0"
+
+# Usage
+batch = TensorDict({
+    "observation": torch.rand(32, 10) * 2 - 1,  # Range [-1, 1]
+    "action": torch.rand(32, 5) * 4 - 2           # Range [-2, 2]
+}, batch_size=[32])
+
+validate_batch(batch)  # Runs all checks
+```
+
+**After (Declarative Validation with Pandera)**
+
 ```python
 import torch
 from tensordict import TensorDict
 import pandera.tensordict as pa
+from pandera import Check
 
-# The "Standard" way (Manual/Imperative)
-td = TensorDict({"data": torch.randn(10, 5), "label": torch.tensor([1, 2])}, batch_size=[10])
-assert td["data"].max() < 1.0  # Manual check - hard to scale and reuse
-assert td["data"].dtype == torch.float32
-
-# The Pandera way (Declarative/Reusable)
-schema = pa.TensorDictSchema(
+# Define the schema once - reusable and self-documenting
+batch_schema = pa.TensorDictSchema(
     keys={
-        "data": pa.Tensor(dtype=torch.float32, shape=(None, 5), checks=pa.Check.in_range(-1, 1)),
-        "label": pa.Tensor(dtype=torch.int64, shape=(None,))
+        "observation": pa.Tensor(
+            dtype=torch.float32,
+            shape=(32, 10),
+            checks=[
+                Check.greater_than_or_equal_to(-1.0),
+                Check.less_than_or_equal_to(1.0),
+            ]
+        ),
+        "action": pa.Tensor(
+            dtype=torch.float32,
+            shape=(32, 5),
+            checks=[
+                Check.greater_than_or_equal_to(-2.0),
+                Check.less_than_or_equal_to(2.0),
+            ]
+        ),
     },
-    batch_size=(None, 5)
+    batch_size=(32,)  # Validate batch_size[0] == 32
 )
 
-validated_td = schema.validate(td) # Automatically performs all complex checks
+# Usage - clean and simple
+batch = TensorDict({
+    "observation": torch.rand(32, 10) * 2 - 1,
+    "action": torch.rand(32, 5) * 4 - 2
+}, batch_size=[32])
+
+validated_batch = batch_schema.validate(batch)
+```
+
+#### Example 2: Lazy Validation with Multiple Errors
+
+When validation fails, you want to see **all** errors at once, not just the first one:
+
+```python
+import pandera.tensordict as pa
+from pandera import Check, SchemaError
+
+# Schema with multiple checks per tensor
+policy_schema = pa.TensorDictSchema(
+    keys={
+        "logits": pa.Tensor(
+            dtype=torch.float32,
+            shape=(None, 10),  # None means "any size"
+            checks=Check.in_range(-10.0, 10.0)
+        ),
+        "values": pa.Tensor(
+            dtype=torch.float32,
+            shape=(None,),
+            checks=Check.greater_than(0.0)  # Value estimates must be positive
+        ),
+    },
+    batch_size=(64,)
+)
+
+# Create invalid data
+invalid_batch = TensorDict({
+    "logits": torch.randn(64, 10) * 20,  # Some values outside [-10, 10]
+    "values": torch.randn(64)             # Some negative values
+}, batch_size=[64])
+
+# Validate with lazy=True to collect ALL errors
+try:
+    policy_schema.validate(invalid_batch, lazy=True)
+except pa.SchemaErrors as e:
+    print(e)
+    # Output shows both dtype and value errors for each key
+```
+
+#### Example 3: Declarative API with `TensorDictModel`
+
+For a more Pydantic-like experience, use class-based models:
+
+```python
+import torch
+import pandera.tensordict as pa
+from pandera import Field, Check
+
+class PolicyModel(pa.TensorDictModel):
+    """Schema for a policy network output."""
+    
+    logits: torch.Tensor = Field(
+        dtype=torch.float32,
+        shape=(None, 10),
+        checks=Check.in_range(-5.0, 5.0)
+    )
+    value: torch.Tensor = Field(
+        dtype=torch.float32,
+        shape=(None,),
+        checks=Check.greater_than(0.0)
+    )
+    
+    class Config:
+        batch_size = (64,)
+
+# Validate using the model
+policy_model = PolicyModel()
+batch = TensorDict({
+    "logits": torch.randn(64, 10),
+    "value": torch.randn(64).abs()  # Ensure positive
+}, batch_size=[64])
+
+validated = policy_model.validate(batch)
+```
+
+#### Example 4: Validating `tensorclass` Objects
+
+The same schema works for both `TensorDict` and `tensorclass`:
+
+```python
+from tensordict import TensorDict, tensorclass
+import pandera.tensordict as pa
+from pandera import Check
+
+# Define a schema
+rl_schema = pa.TensorDictSchema(
+    keys={
+        "observation": pa.Tensor(dtype=torch.float32, shape=(32, 64, 64, 3)),
+        "action": pa.Tensor(dtype=torch.int64, shape=(32,), checks=Check.isin([0, 1, 2, 3])),
+        "reward": pa.Tensor(dtype=torch.float32, shape=(32,)),
+        "done": pa.Tensor(dtype=torch.bool, shape=(32,)),
+    },
+    batch_size=(32,)
+)
+
+# Validate a TensorDict
+td = TensorDict({
+    "observation": torch.randn(32, 64, 64, 3),
+    "action": torch.randint(0, 4, (32,)),
+    "reward": torch.randn(32),
+    "done": torch.zeros(32, dtype=torch.bool)
+}, batch_size=[32])
+rl_schema.validate(td)  # Works!
+
+# Validate a tensorclass (same schema!)
+@tensorclass
+class RLData:
+    observation: torch.Tensor
+    action: torch.Tensor
+    reward: torch.Tensor
+    done: torch.Tensor
+
+tc = RLData(
+    observation=torch.randn(32, 64, 64, 3),
+    action=torch.randint(0, 4, (32,)),
+    reward=torch.randn(32),
+    done=torch.zeros(32, dtype=torch.bool),
+    batch_size=[32]
+)
+rl_schema.validate(tc)  # Works with tensorclass too!
+```
+
+#### Example 5: Coercion and Type Conversion
+
+Pandera can automatically convert types when needed:
+
+```python
+import pandera.tensordict as pa
+from pandera import Check
+
+# Schema with coercion enabled
+coercing_schema = pa.TensorDictSchema(
+    keys={
+        "features": pa.Tensor(
+            dtype=torch.float32,
+            shape=(None, 128),
+            checks=Check.in_range(0.0, 1.0)
+        ),
+        "labels": pa.Tensor(dtype=torch.int32, shape=(None,)),
+    },
+    batch_size=(100,),
+    coerce=True  # Enable automatic dtype coercion
+)
+
+# Input has wrong dtype - will be coerced automatically
+td = TensorDict({
+    "features": torch.rand(100, 128),  # float64 by default
+    "labels": torch.arange(100, dtype=torch.int64)
+}, batch_size=[100])
+
+validated = coercing_schema.validate(td)
+# "features" is now float32, "labels" is now int32
 ```
 
 
@@ -154,7 +380,7 @@ class MyTensorDictModel(pa.TensorDictModel):
 
 ### Phase 1: Core Infrastructure & API
 - Define `pandera/api/tensordict/` structure.
-- Implement `TensorDictSchema` and `TensorDictEntry`.
+- Implement `TensorDictSchema` and `Tensor`.
 - Implement basic batch size and key existence validation.
 - Create the engine for PyTorch dtype resolution.
 
@@ -162,13 +388,9 @@ class MyTensorDictModel(pa.TensorDictModel):
 - Implement `pandera/backends/tensordict/` logic.
 - Implement structural checks (dtype, shape/size of entries).
 - Integrate with Pandera's existing `Check` system for tensor value validation.
+- Ensure support for both `TensorDict` and `tensorclass` objects.
 
-### Phase 3: TensorClass & Declarative API
-- Implement `TensorClassSchema` and `TensorClassModel`.
-- Enable support for `tensorclass` objects through the declarative API.
-- Ensure `@check_types` works with `TensorDict` annotations.
-
-### Phase 4: Advanced Features & Integration
+### Phase 3: Advanced Features & Integration
 - Support for `coerce=True` (dtype/shape coercion).
 - Implementation of specialized TensorDict checks (e.g., cross-entry constraints).
 - Comprehensive test suite coverage across all backend features.
@@ -184,9 +406,9 @@ pandera/
 ├── api/
 │   └── tensordict/
 │       ├── __init__.py
-│       ├── container.py        # TensorDictSchema, TensorClassSchema
+│       ├── container.py        # TensorDictSchema
 │       ├── components.py       # Tensor
-│       ├── model.py               # TensorDictModel, TensorClassModel
+│       ├── model.py               # TensorDictModel
 │       └── types.py            # Type aliases
 ├── backends/
 │   └── tensordict/
