@@ -74,8 +74,8 @@ Reference: [TensorDict documentation](https://pytorch.org/tensordict/)
 ### 3.1 Small Public API Surface
 
 The public API should be minimal and consistent with other backends:
-- **Schema classes**: `TensorDictSchema`, `TensorClassSchema`.
-- **Model classes**: `TensorDictModel`, `TensorClassModel`.
+- **Schema classes**: `TensorDictSchema`.
+- **Model classes**: `TensorDictModel`.
 - **Component classes**: `Tensor` (analogous to `Column`).
 
 ### 3.2 Consistent with Existing Pandera Patterns
@@ -87,8 +87,7 @@ The implementation must follow pandera's layered architecture:
 
 ### 3.3 Schema Components Mirror the pandas Pattern
 
-- `TensorDictSchema` → standalone schema for a `tensordict`.
-- `TensorClassSchema` → schema for a `tensorclass` object.
+- `TensorDictSchema` → standalone schema for a `tensordict` or `tensorclass`.
 - `Tensor` → defines constraints for a single entry in the container (dtype, shape/size, checks).
 
 ### 3.4 Leverage `Check` for Data-Level Validation
@@ -132,9 +131,9 @@ class TensorDictSchema(BaseSchema):
         ...
 ```
 
-### 4.3 `TensorClassSchema` (for `tensorclass`)
+### 4.3 `TensorDict` validation (for `tensorclass`)
 
-Validates a `tensorclass` object, ensuring it adheres to the specified structure and types.
+Validates a `*tensorclass*` object, ensuring it adheres to the specified structure and types.
 
 ### 4.4 Class-Based Models (Declarative API)
 
