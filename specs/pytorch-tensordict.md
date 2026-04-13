@@ -271,9 +271,285 @@ validated = coercing_schema.validate(td)
 # "features" is now float32, "labels" is now int32
 ```
 
+#### Example 6: Validating TorchRL Rollouts
 
+Real RL pipelines like those in [TorchRL](https://pytorch.org/rl/) rely on environment rollouts. Pandera ensures rollouts meet expected specifications before going into the replay buffer or training loop:
 
-## 2. TensorDict Data Model Primer
+```python
+import torch
+from tensordict import TensorDict
+import pandera.tensordict as pa
+from pandera import Check
+
+# Schema for a typical TorchRL environment rollout
+rollout_schema = pa.TensorDictSchema(
+    keys={
+        "observation": pa.Tensor(
+            dtype=torch.float32,
+            shape=(None, 4, 64, 64),  # Image observation (CIFAR-like)
+            checks=[
+                Check.greater_than_or_equal_to(0.0),  # Pixel values normalized
+                Check.less_than_or_equal_to(1.0),
+            ]
+        ),
+        "action": pa.Tensor(dtype=torch.float32, shape=(None, 2)),
+        "reward": pa.Tensor(dtype=torch.float32, shape=(None,)),
+        "done": pa.Tensor(dtype=torch.bool, shape=(None,)),
+        "next": pa.Tensor(
+            dtype=torch.float32,
+            shape=(None, 4, 64, 64),
+        ),
+    },
+    batch_size=(256,)  # Rollout batch size
+)
+
+# Simulate a TorchRL environment rollout
+def collect_rollout(env, policy, num_steps=256):
+    rollout = env.rollout(max_steps=num_steps, policy=policy)
+    return rollout
+
+# Validate before adding to replay buffer
+rollout = collect_rollout(env, policy)
+validated_rollout = rollout_schema.validate(rollout)  # Fails fast if invalid
+
+# Add to replay buffer - now we know data is valid!
+replay_buffer.add(validated_rollout)
+```
+
+#### Example 7: Replay Buffer Validation with TorchRL
+
+When sampling from replay buffers in large-scale training, you want to validate that the sampled batches meet your schema. This is especially important when using heterogeneous storage backends:
+
+```python
+from torchrl.data.replay_buffers import ReplayBuffer
+from torchrl.data.replay_buffers.storages import LazyTensorStorage
+import pandera.tensordict as pa
+from pandera import Check
+
+# Define schema for replay buffer contents
+replay_schema = pa.TensorDictSchema(
+    keys={
+        "state": pa.Tensor(dtype=torch.float32, shape=(None, 64)),
+        "action": pa.Tensor(dtype=torch.int64, shape=(None,)),
+        "reward": pa.Tensor(dtype=torch.float32, shape=(None,)),
+        "next_state": pa.Tensor(dtype=torch.float32, shape=(None, 64)),
+        "done": pa.Tensor(dtype=torch.bool, shape=(None,)),
+        "priority": pa.Tensor(dtype=torch.float32, shape=(None,)),
+    },
+    batch_size=(256,),
+    # Allow dtype coercion for storage efficiency
+    coerce=True,
+)
+
+# Create replay buffer (like in distributed training)
+replay_buffer = ReplayBuffer(
+    storage=LazyTensorStorage(max_size=100000),
+    batch_size=256,
+)
+
+# Validate sampled data before training
+def train_step():
+    batch = replay_buffer.sample()
+    
+    # Validate the batch - catch data corruption or storage errors
+    validated_batch = replay_schema.validate(batch)
+    
+    # Now safe to pass to loss computation
+    loss = compute_ppo_loss(validated_batch)
+    loss.backward()
+    optimizer.step()
+```
+
+#### Example 8: Actor-Critic Model Output Validation
+
+In actor-critic methods (PPO, A2C, etc.), both the policy and value networks output structured data. Pandera validates these outputs match expected signatures:
+
+```python
+import torch
+import pandera.tensordict as pa
+from pandera import Check
+
+# Schema for actor-critic network output
+class ActorCriticOutput(pa.TensorDictModel):
+    """Output from an actor-critic network."""
+    
+    action_mean: torch.Tensor = pa.Field(
+        dtype=torch.float32,
+        shape=(None, 4),  # 4D action space
+        checks=Check.greater_than_or_equal_to(-2.0),
+        Check.less_than_or_equal_to(2.0),
+    )
+    action_std: torch.Tensor = pa.Field(
+        dtype=torch.float32,
+        shape=(None, 4),
+        checks=Check.greater_than(1e-6),  # Standard deviation > 0
+    )
+    value: torch.Tensor = pa.Field(
+        dtype=torch.float32,
+        shape=(None,),
+        checks=Check.greater_than(-100.0),  # Reasonable value bounds
+        Check.less_than(100.0),
+    )
+    
+    class Config:
+        batch_size = (32,)
+
+# Validate model output before computing loss
+model = ActorCriticNetwork()
+batch = TensorDict({"observation": torch.randn(32, 64)}, batch_size=[32])
+
+# Forward pass
+output = model(batch)
+
+# Validate output - ensures no NaN/Inf from unstable training
+validated = ActorCriticOutput().validate(output)
+
+# Safe to use in PPO loss
+ppo_loss = compute_ppo_loss(validated["action_mean"], validated["action_std"], validated["value"])
+```
+
+#### Example 9: Distributed Training Data Validation
+
+In distributed RL training, data flows between collectors, replay buffers, and trainers. Schema validation at each stage ensures data integrity:
+
+```python
+import torch
+from tensordict import TensorDict
+import pandera.tensordict as pa
+from pandera import Check
+
+# Define a unified schema for the entire training pipeline
+training_schema = pa.TensorDictSchema(
+    keys={
+        # Environment interaction data
+        "observation": pa.Tensor(dtype=torch.float32, shape=(None, 17)),
+        "action": pa.Tensor(dtype=torch.float32, shape=(None, 6)),
+        "reward": pa.Tensor(dtype=torch.float32, shape=(None,)),
+        "done": pa.Tensor(dtype=torch.bool, shape=(None,)),
+        
+        # PPO-specific data
+        "log_prob": pa.Tensor(dtype=torch.float32, shape=(None,)),
+        "value": pa.Tensor(dtype=torch.float32, shape=(None,)),
+        "advantage": pa.Tensor(dtype=torch.float32, shape=(None,)),
+        "return": pa.Tensor(dtype=torch.float32, shape=(None,)),
+    },
+    batch_size=(512,),
+)
+
+# Validator for data collector (ensures valid env interactions)
+collector_validator = training_schema
+
+# Validator for trainer (additional PPO-specific checks)
+trainer_validator = pa.TensorDictSchema(
+    keys={
+        **training_schema.keys,
+        "log_prob": pa.Tensor(
+            dtype=torch.float32,
+            shape=(None,),
+            checks=Check.less_than(0.0),  # Log prob should be negative
+        ),
+        "advantage": pa.Tensor(
+            dtype=torch.float32,
+            shape=(None,),
+            checks=[
+                Check.mean().greater_than(0.0),  # Positive advantage on average
+            ],
+        ),
+    },
+    batch_size=(512,),
+)
+
+# In your distributed training loop:
+def distributed_train_step(collector_rank, trainer_rank):
+    # Collect experiences
+    experience = collector.collect_experiences()
+    
+    # Validate before sending to replay buffer
+    validated_exp = collector_validator.validate(experience)
+    
+    # Send to buffer (RRef)
+    replay_buffer_ref.add(validated_exp)
+    
+    # Trainer pulls batch
+    batch = replay_buffer_ref.sample()
+    
+    # Validate before training
+    validated_batch = trainer_validator.validate(batch)
+    
+    # Train
+    optimizer.zero_grad()
+    loss = compute_ppo_loss(validated_batch)
+    loss.backward()
+    optimizer.step()
+```
+
+#### Example 10: Integration with Custom TensorDictModules
+
+For users building custom neural network modules with `tensordict.nn`, Pandera can validate inputs/outputs:
+
+```python
+import torch
+import torch.nn as nn
+from tensordict import TensorDict
+from tensordict.nn import TensorDictModule
+import pandera.tensordict as pa
+from pandera import Check
+
+# Custom module that processes observations
+class CustomEncoder(TensorDictModule):
+    def __init__(self):
+        super().__init__(
+            module=nn.Sequential(
+                nn.Linear(128, 256),
+                nn.ReLU(),
+                nn.Linear(256, 128),
+            ),
+            in_keys=["observation"],
+            out_keys=["encoded"],
+        )
+
+# Schema for encoder input/output
+encoder_schema = pa.TensorDictSchema(
+    keys={
+        "observation": pa.Tensor(
+            dtype=torch.float32,
+            shape=(None, 128),
+            checks=[
+                Check.greater_than_or_equal_to(-10.0),  # Input bounds
+                Check.less_than_or_equal_to(10.0),
+                Check.no_inf(),  # No infinite values
+                Check.no_nan(),  # No NaN values
+            ]
+        ),
+        "encoded": pa.Tensor(
+            dtype=torch.float32,
+            shape=(None, 128),
+            checks=[
+                Check.no_nan(),
+                Check.no_inf(),
+            ]
+        ),
+    },
+    batch_size=(32,)
+)
+
+# Validation hook for model inputs/outputs
+def validate_encoder_io(td: TensorDict) -> TensorDict:
+    """Validate encoder input/output for debugging."""
+    return encoder_schema.validate(td)
+
+# Usage in training loop
+encoder = CustomEncoder()
+batch = TensorDict({"observation": torch.randn(32, 128)}, batch_size=[32])
+
+# Forward pass with validation
+encoded = encoder(batch)  # First pass through model
+
+# Validate - catches numerical instability
+validated = validate_encoder_io(encoded)
+
+print(f"Encoded mean: {validated['encoded'].mean():.4f}")
+```
 
 Reference: [TensorDict documentation](https://pytorch.org/tensordict/)
 
