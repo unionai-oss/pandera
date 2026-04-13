@@ -271,7 +271,195 @@ validated = coercing_schema.validate(td)
 # "features" is now float32, "labels" is now int32
 ```
 
-#### Example 6: Validating TorchRL Rollouts
+#### Example 6: Validating Data at Rest (Serialization/Deserialization)
+
+TensorDict supports efficient serialization to disk (using `memmap` for large datasets). When loading data back, validation ensures no corruption occurred:
+
+```python
+import torch
+from tensordict import TensorDict, MemmapTensor
+import pandera.tensordict as pa
+from pandera import Check
+
+# Schema for serializable data
+dataset_schema = pa.TensorDictSchema(
+    keys={
+        "image": pa.Tensor(
+            dtype=torch.uint8,
+            shape=(None, 224, 224, 3),
+        ),
+        "label": pa.Tensor(dtype=torch.int64, shape=(None,)),
+        "weight": pa.Tensor(
+            dtype=torch.float32,
+            shape=(None,),
+            checks=Check.greater_than_or_equal_to(0.0),
+        ),
+        "metadata": pa.Tensor(
+            dtype=torch.float32,
+            shape=(None, 10),
+        ),
+    },
+    batch_size=(1000,),
+)
+
+# Save dataset to disk efficiently
+def save_dataset(td: TensorDict, path: str):
+    """Save TensorDict with memmap for large datasets."""
+    td.memmap_(path)
+    return td
+
+# Load and validate - catches disk corruption, dtype mismatches, etc.
+def load_and_validate_dataset(path: str) -> TensorDict:
+    """Load dataset and validate before use."""
+    td = TensorDict.load(path)
+    
+    # Validate schema compliance
+    validated = dataset_schema.validate(td)
+    
+    return validated
+
+# Create and save a large dataset (e.g., ImageNet subset)
+dataset = TensorDict({
+    "image": torch.randint(0, 256, (10000, 224, 224, 3), dtype=torch.uint8),
+    "label": torch.randint(0, 1000, (10000,)),
+    "weight": torch.rand(10000).abs(),
+    "metadata": torch.randn(10000, 10),
+}, batch_size=[10000])
+
+save_dataset(dataset, "./data/image_dataset")
+
+# Later: Load and validate before training
+training_data = load_and_validate_dataset("./data/image_dataset")
+# training_data is guaranteed to have correct dtypes, shapes, and value ranges
+```
+
+#### Example 7: Validating TensorClass Serialization
+
+`tensorclass` objects can also be serialized. Pandera validates upon deserialization:
+
+```python
+import torch
+from tensordict import TensorDict, tensorclass
+import pandera.tensordict as pa
+from pandera import Check
+
+# Define a tensorclass for robot trajectory data
+@tensorclass
+class TrajectoryData:
+    states: torch.Tensor      # (T, state_dim)
+    actions: torch.Tensor    # (T, action_dim)
+    rewards: torch.Tensor    # (T,)
+    dones: torch.Tensor      # (T,)
+    returns_to_go: torch.Tensor  # (T,)
+
+# Schema for trajectory validation
+trajectory_schema = pa.TensorDictSchema(
+    keys={
+        "states": pa.Tensor(
+            dtype=torch.float32,
+            shape=(None, 64),  # state_dim
+            checks=[
+                Check.no_nan(),
+                Check.no_inf(),
+            ]
+        ),
+        "actions": pa.Tensor(
+            dtype=torch.float32,
+            shape=(None, 8),  # action_dim
+            checks=Check.in_range(-1.0, 1.0),  # Normalized actions
+        ),
+        "rewards": pa.Tensor(dtype=torch.float32, shape=(None,)),
+        "dones": pa.Tensor(dtype=torch.bool, shape=(None,)),
+        "returns_to_go": pa.Tensor(
+            dtype=torch.float32,
+            shape=(None,),
+            checks=Check.greater_than_or_equal_to(0.0),
+        ),
+    },
+    batch_size=(None,)  # Variable length trajectories
+)
+
+# Save/Load tensorclass data
+def save_trajectory(tc: TrajectoryData, path: str):
+    """Serialize tensorclass to disk."""
+    tc.save(path)
+
+def load_trajectory(path: str) -> TrajectoryData:
+    """Load and validate tensorclass from disk."""
+    tc = TrajectoryData.load(path)
+    
+    # Validate - catches any corruption from disk I/O
+    return trajectory_schema.validate(tc)
+
+# Create and save trajectory
+trajectory = TrajectoryData(
+    states=torch.randn(100, 64),
+    actions=torch.rand(100, 8) * 2 - 1,
+    rewards=torch.randn(100),
+    dones=torch.zeros(100, dtype=torch.bool),
+    returns_to_go=torch.cumsum(torch.randn(100).abs(), dim=0),
+    batch_size=[100]
+)
+
+save_trajectory(trajectory, "./data/trajectory.pt")
+
+# Load before training - validates data integrity
+loaded_trajectory = load_trajectory("./data/trajectory.pt")
+
+# Now safe to use in offline RL algorithms (CQL, IQL, etc.)
+```
+
+#### Example 8: Batch Validation for Large-Scale Datasets
+
+For large datasets, validate in batches to catch issues early:
+
+```python
+import torch
+from tensordict import TensorDict
+import pandera.tensordict as pa
+from pandera import Check
+from pathlib import Path
+
+# Schema for a large stored dataset
+large_dataset_schema = pa.TensorDictSchema(
+    keys={
+        "observation": pa.Tensor(dtype=torch.float32, shape=(None, 128)),
+        "action": pa.Tensor(dtype=torch.float32, shape=(None, 16)),
+        "reward": pa.Tensor(dtype=torch.float32, shape=(None,)),
+        "next_observation": pa.Tensor(dtype=torch.float32, shape=(None, 128)),
+        "done": pa.Tensor(dtype=torch.bool, shape=(None,)),
+    },
+    batch_size=(1024,)
+)
+
+# Validate all batches in a directory of TensorDicts
+def validate_dataset_directory(data_dir: Path) -> list[str]:
+    """Validate all TensorDict files in a directory."""
+    errors = []
+    schema = large_dataset_schema
+    
+    for td_file in sorted(data_dir.glob("*.pt")):
+        td = TensorDict.load(td_file)
+        
+        try:
+            schema.validate(td, lazy=True)
+        except pa.SchemaErrors as e:
+            errors.append(f"{td_file}: {e}")
+    
+    return errors
+
+# Check entire dataset before starting training
+data_errors = validate_dataset_directory(Path("./data/experience_buffer"))
+
+if data_errors:
+    print("Dataset validation failed:")
+    for err in data_errors:
+        print(f"  - {err}")
+else:
+    print("Dataset validation passed - ready for training!")
+```
+
+#### Example 9: Validating TorchRL Rollouts
 
 Real RL pipelines like those in [TorchRL](https://pytorch.org/rl/) rely on environment rollouts. Pandera ensures rollouts meet expected specifications before going into the replay buffer or training loop:
 
@@ -550,6 +738,8 @@ validated = validate_encoder_io(encoded)
 
 print(f"Encoded mean: {validated['encoded'].mean():.4f}")
 ```
+
+## 2. TensorDict Data Model Primer
 
 Reference: [TensorDict documentation](https://pytorch.org/tensordict/)
 
