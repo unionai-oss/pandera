@@ -10,11 +10,6 @@ class IbisData(NamedTuple):
     table: ibis.Table
     key: str | None = None
 
-    @property
-    def frame(self) -> ibis.Table:
-        """The native dataframe (Table)."""
-        return self.table
-
 
 class CheckResult(NamedTuple):
     """Check result for user-defined checks."""
