@@ -13,12 +13,19 @@ import pytest
 import pytz
 from hypothesis import given
 
+import pandera.pandas as pa
 from pandera.engines import pandas_engine
 from pandera.engines.pandas_engine import PANDAS_3_0_0_PLUS
 from pandera.errors import ParserError, SchemaError
 from pandera.pandas import DataFrameModel, Field, check, errors
 
 UNSUPPORTED_DTYPE_CLS: set[Any] = set()
+
+
+def test_errors_exported_in_pandas_public_api() -> None:
+    """Ensure ``errors`` is explicitly exported from ``pandera.pandas``."""
+    assert "errors" in pa.__all__
+    assert pa.errors is errors
 
 
 @pytest.mark.parametrize(
