@@ -167,6 +167,8 @@ __all__ = [
     "extensions",
     # typing
     "typing",
+    # errors
+    "errors",
     # dtypes
     "dtypes",
 ]
