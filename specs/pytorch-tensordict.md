@@ -9,11 +9,41 @@
 
 ## 1. Motivation
 
-[TensorDict](httpss://pytorch.org/tensordict/) is a powerful container for managing groups of tensors with the same batch dimension. It is central to many modern PyTorch workflows, especially in reinforcement learning and large-scale distributed training.
+[TensorDict](https://pytorch.org/tensordict/) is a powerful container for managing groups of tensors with the same batch dimension. It is central to many modern PyTorch workflows, especially in reinforcement learning and large-scale distributed training.
 
 Adding TensorDict support extends pandera's reach to the PyTorch ecosystem, providing a consistent validation API for high-dimensional tensor containers, alongside its existing tabular backends.
 
----
+### Why Pandera?
+While `tensordict` provides structural integrity (ensuring all tensors share a `batch_size`), it does not provide a declarative, schema-based way to validate the **data content** or **complex metadata constraints** without writing significant boilerplate. 
+
+Pandera adds value by:
+1.  **Declarative Data Validation:** Moving from imperative `assert` statements to structured, reusable schemas (`TensorDictSchema`, `TensorModel`).
+2.  **Complex Value Checks:** Leveraging the existing Pandera `Check` ecosystem (e.g., `in_range`, `isin`, `regex`-like pattern matching on metadata) for tensor values and dimensions.
+3.  **Unified API:** Providing the same validation experience as pandas/polars/xarray, allowing developers to use a single library for all data-centric pipelines.
+4.  **Type Safety:** Integrating with Python type hints via `@check_types` to catch structural errors at development time.
+
+### Usage Example: Adding Value to TensorDict
+```python
+import torch
+from tensordict import TensorDict
+import pandera.tensordict as pa
+
+# The "Standard" way (Manual/Imperative)
+td = TensorDict({"data": torch.randn(10, 5), "label": torch.tensor([1, 2])}, batch_size=[10])
+assert td["data"].max() < 1.0  # Manual check - hard to scale and reuse
+assert td["data"].dtype == torch.float32
+
+# The Pandera way (Declarative/Reusable)
+schema = pa.TensorDictSchema(
+    keys={
+        "data": pa.Tensor(dtype=torch.float32, shape=(None, 5), checks=pa.Check.in_range(-1, 1)),
+        "label": pa.Tensor(dtype=torch.int64, shape=(None,))
+    },
+    batch_size=(None, 5)
+)
+
+validated_td = schema.validate(td) # Automatically performs all complex checks
+```
 
 
 
@@ -46,7 +76,7 @@ Reference: [TensorDict documentation](https://pytorch.org/tensordict/)
 The public API should be minimal and consistent with other backends:
 - **Schema classes**: `TensorDictSchema`, `TensorClassSchema`.
 - **Model classes**: `TensorDictModel`, `TensorClassModel`.
-- **Component classes**: `TensorDictEntry` (analogous to `Column`).
+- **Component classes**: `Tensor` (analogous to `Column`).
 
 ### 3.2 Consistent with Existing Pandera Patterns
 
@@ -59,7 +89,7 @@ The implementation must follow pandera's layered architecture:
 
 - `TensorDictSchema` → standalone schema for a `tensordict`.
 - `TensorClassSchema` → schema for a `tensorclass` object.
-- `TensorDictEntry` → defines constraints for a single entry in the container (dtype, shape/size, checks).
+- `Tensor` → defines constraints for a single entry in the container (dtype, shape/size, checks).
 
 ### 3.4 Leverage `Check` for Data-Level Validation
 
@@ -85,7 +115,7 @@ import pandera.tensordict as pa
 class TensorDictSchema(BaseSchema):
     def __init__(
         self,
-        keys: dict[str, TensorDictEntry] | list[str] | None = None,
+        keys: dict[str, Tensor] | list[str] | None = None,
         batch_size: tuple[int, ...] | None = None,
         dtype: torch.dtype | None = None,
         checks: Check | list[Check] | None = None,
@@ -96,6 +126,9 @@ class TensorDictSchema(BaseSchema):
         ...
 
     def validate(self, check_obj: TensorDict, ...) -> TensorDict:
+        ...
+
+    def validate(self, check_obj: TensorClass, ...) -> TensorClass:
         ...
 ```
 
@@ -153,8 +186,8 @@ pandera/
 │   └── tensordict/
 │       ├── __init__.py
 │       ├── container.py        # TensorDictSchema, TensorClassSchema
-│       ├── components.py       # TensorDictEntry
-│．  ├── model.py               # TensorDictModel, TensorClassModel
+│       ├── components.py       # Tensor
+│       ├── model.py               # TensorDictModel, TensorClassModel
 │       └── types.py            # Type aliases
 ├── backends/
 │   └── tensordict/
@@ -167,4 +200,5 @@ pandera/
 ├── typing/
 │   └── tensordict.py           # Annotation types (TensorDict, TensorClass)
 └── tensordict.py               # Entry point: import pandera.tensordict as pa
+
 ```
