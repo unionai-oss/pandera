@@ -93,10 +93,12 @@ class DataFrameSchemaBackend(NarwhalsSchemaBackend):
                 "When drop_invalid_rows is True, lazy must be set to True."
             )
 
-        # Phase 4: parsers list contains ONLY strict_filter_columns.
-        # coerce_dtype, set_default, add_missing_columns are deferred to later phases.
+        # Phase 4: parsers list contains strict_filter_columns and coerce_dtype
+        # (for row-wise dtypes like PydanticModel).
+        # add_missing_columns and set_default are deferred to later phases.
         core_parsers: list[tuple[Callable[..., Any], tuple[Any, ...]]] = [
             (self.strict_filter_columns, (schema, column_info)),
+            (self.coerce_dtype, (schema,)),
         ]
 
         for parser, args in core_parsers:
@@ -334,6 +336,44 @@ class DataFrameSchemaBackend(NarwhalsSchemaBackend):
             regex_match_patterns=regex_match_patterns,
         )
 
+    def coerce_dtype(self, check_obj, schema):
+        """Coerce dataframe to schema.dtype for row-wise dtypes (e.g. PydanticModel).
+
+        Column-level dtypes are handled via schema components; this method only
+        acts when schema.dtype.auto_coerce is True (i.e. the dtype applies
+        row-wise and handles its own coercion over the whole frame).
+        """
+        if (
+            schema.dtype is None
+            or not schema.coerce
+            or not getattr(schema.dtype, "auto_coerce", False)
+        ):
+            return check_obj
+
+        config_ctx = get_config_context(validation_depth_default=None)
+        coerce_fn = (
+            "try_coerce"
+            if config_ctx.validation_depth
+            in (ValidationDepth.SCHEMA_AND_DATA, ValidationDepth.DATA_ONLY)
+            else "coerce"
+        )
+
+        native_obj = _to_native(check_obj)
+        try:
+            coerced = getattr(schema.dtype, coerce_fn)(native_obj)
+        except ParserError as exc:
+            raise SchemaError(
+                schema=schema,
+                data=native_obj,
+                message=exc.args[0],
+                check=f"coerce_dtype('{schema.dtype}')",
+                reason_code=SchemaErrorReason.DATATYPE_COERCION,
+                failure_cases=exc.failure_cases,
+                check_output=exc.parser_output,
+            ) from exc
+
+        return _to_lazy_nw(coerced)
+
     def collect_schema_components(
         self,
         check_obj,
@@ -345,7 +385,20 @@ class DataFrameSchemaBackend(NarwhalsSchemaBackend):
         columns: dict = schema.columns
         frame_column_names = check_obj.collect_schema().names()
 
-        if not schema.columns and schema.dtype is not None:
+        # Row-wise dtypes (e.g. PydanticModel, auto_coerce=True) apply to the
+        # whole row and are handled by coerce_dtype at the dataframe level.
+        # Per-column components must not be created for them — the per-column
+        # dtype check would incorrectly compare each column's native type
+        # against the row-wise dtype class.
+        is_row_dtype = schema.dtype is not None and getattr(
+            schema.dtype, "auto_coerce", False
+        )
+
+        if (
+            not schema.columns
+            and schema.dtype is not None
+            and not is_row_dtype
+        ):
             # set schema components to dataframe dtype if columns are not
             # specified but the dataframe-level dtype is specified.
             columns = {
