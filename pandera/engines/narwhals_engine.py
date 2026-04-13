@@ -1,7 +1,13 @@
 """Narwhals engine and data types."""
 
 import dataclasses
+import sys
 from typing import Any, Optional, Union
+
+if sys.version_info < (3, 11):
+    from typing_extensions import Self
+else:
+    from typing import Self
 
 import narwhals.stable.v1 as nw
 
@@ -295,7 +301,7 @@ class DateTime(DataType, dtypes.DateTime):
             object.__setattr__(self, "type", nw.Datetime)
 
     @classmethod
-    def from_parametrized_dtype(cls, nw_dtype: Any) -> Any:
+    def from_parametrized_dtype(cls, nw_dtype: nw.Datetime) -> Self:
         """Convert a parameterized ``nw.Datetime`` instance to a Pandera
         :class:`DateTime`."""
         return cls(
@@ -328,7 +334,7 @@ class Duration(DataType, dtypes.Timedelta):
             object.__setattr__(self, "type", nw.Duration)
 
     @classmethod
-    def from_parametrized_dtype(cls, nw_dtype: Any) -> Any:
+    def from_parametrized_dtype(cls, nw_dtype: nw.Duration) -> Self:
         """Convert a parameterized ``nw.Duration`` instance to a Pandera
         :class:`Duration`."""
         return cls(time_unit=nw_dtype.time_unit)
@@ -367,7 +373,7 @@ class List(DataType):
             object.__setattr__(self, "type", nw.List(inner))
 
     @classmethod
-    def from_parametrized_dtype(cls, nw_dtype: Any) -> Any:
+    def from_parametrized_dtype(cls, nw_dtype: nw.List) -> Self:
         """Convert a parameterized ``nw.List`` instance to a Pandera
         :class:`List`."""
         return cls(inner=nw_dtype.inner)
