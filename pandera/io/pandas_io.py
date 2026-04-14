@@ -29,7 +29,7 @@ from pandera.io._minimal import (
     DF_SCHEMA_DEFAULTS,
     apply_minimal_dataframe_container,
 )
-from pandera.schema_statistics import get_dataframe_schema_statistics
+from pandera.schema_statistics.pandas import get_dataframe_schema_statistics
 
 if TYPE_CHECKING:
     from frictionless import Schema as FrictionlessSchema
