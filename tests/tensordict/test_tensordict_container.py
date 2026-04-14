@@ -19,7 +19,7 @@ class TestTensorComponent:
 
     def test_tensor_creation(self):
         """Test Tensor component creation."""
-        from pandera.tensordict_api import Tensor
+        from pandera.tensordict import Tensor
 
         tensor = Tensor(dtype=torch.float32, shape=(None, 10))
         assert tensor.dtype == torch.float32
@@ -28,7 +28,7 @@ class TestTensorComponent:
     def test_tensor_with_checks(self):
         """Test Tensor component with checks."""
         from pandera import Check
-        from pandera.tensordict_api import Tensor
+        from pandera.tensordict import Tensor
 
         tensor = Tensor(
             dtype=torch.float32,
@@ -41,7 +41,7 @@ class TestTensorComponent:
 
     def test_tensor_repr(self):
         """Test Tensor repr."""
-        from pandera.tensordict_api import Tensor
+        from pandera.tensordict import Tensor
 
         tensor = Tensor(dtype=torch.float32, shape=(None, 10))
         repr_str = repr(tensor)
@@ -55,7 +55,7 @@ class TestTensorDictSchema:
 
     def test_tensordict_schema_creation(self):
         """Test TensorDictSchema creation."""
-        from pandera.tensordict_api import Tensor, TensorDictSchema
+        from pandera.tensordict import Tensor, TensorDictSchema
 
         schema = TensorDictSchema(
             keys={
@@ -70,7 +70,7 @@ class TestTensorDictSchema:
 
     def test_tensordict_schema_from_list(self):
         """Test TensorDictSchema creation from key list."""
-        from pandera.tensordict_api import TensorDictSchema
+        from pandera.tensordict import TensorDictSchema
 
         schema = TensorDictSchema(keys=["observation", "action"], batch_size=(32,))
         assert "observation" in schema.columns
@@ -78,7 +78,7 @@ class TestTensorDictSchema:
 
     def test_tensordict_schema_repr(self):
         """Test TensorDictSchema repr."""
-        from pandera.tensordict_api import Tensor, TensorDictSchema
+        from pandera.tensordict import Tensor, TensorDictSchema
 
         schema = TensorDictSchema(
             keys={
@@ -97,7 +97,7 @@ class TestTensorDictValidation:
 
     def test_validate_valid_tensordict(self):
         """Test validation of valid TensorDict."""
-        from pandera.tensordict_api import Tensor, TensorDictSchema
+        from pandera.tensordict import Tensor, TensorDictSchema
 
         schema = TensorDictSchema(
             keys={
@@ -121,7 +121,7 @@ class TestTensorDictValidation:
     def test_validate_invalid_batch_size(self):
         """Test validation fails with wrong batch size."""
         from pandera import errors
-        from pandera.tensordict_api import Tensor, TensorDictSchema
+        from pandera.tensordict import Tensor, TensorDictSchema
 
         schema = TensorDictSchema(
             keys={
@@ -141,7 +141,7 @@ class TestTensorDictValidation:
     def test_validate_missing_key(self):
         """Test validation fails with missing key."""
         from pandera import errors
-        from pandera.tensordict_api import Tensor, TensorDictSchema
+        from pandera.tensordict import Tensor, TensorDictSchema
 
         schema = TensorDictSchema(
             keys={
@@ -162,7 +162,7 @@ class TestTensorDictValidation:
     def test_validate_wrong_dtype(self):
         """Test validation fails with wrong dtype."""
         from pandera import errors
-        from pandera.tensordict_api import Tensor, TensorDictSchema
+        from pandera.tensordict import Tensor, TensorDictSchema
 
         schema = TensorDictSchema(
             keys={
@@ -182,7 +182,7 @@ class TestTensorDictValidation:
     def test_validate_wrong_shape(self):
         """Test validation fails with wrong shape."""
         from pandera import errors
-        from pandera.tensordict_api import Tensor, TensorDictSchema
+        from pandera.tensordict import Tensor, TensorDictSchema
 
         schema = TensorDictSchema(
             keys={
@@ -202,7 +202,7 @@ class TestTensorDictValidation:
     def test_validate_lazy(self):
         """Test lazy validation collects all errors."""
         from pandera import errors
-        from pandera.tensordict_api import Tensor, TensorDictSchema
+        from pandera.tensordict import Tensor, TensorDictSchema
 
         schema = TensorDictSchema(
             keys={
@@ -230,7 +230,7 @@ class TestTensorDictSchemaChecks:
     def test_validate_with_value_check(self):
         """Test validation with value check."""
         from pandera import Check
-        from pandera.tensordict_api import Tensor, TensorDictSchema
+        from pandera.tensordict import Tensor, TensorDictSchema
 
         schema = TensorDictSchema(
             keys={
@@ -254,7 +254,7 @@ class TestTensorDictSchemaChecks:
     def test_validate_value_check_failure(self):
         """Test validation fails with value check failure."""
         from pandera import Check, errors
-        from pandera.tensordict_api import Tensor, TensorDictSchema
+        from pandera.tensordict import Tensor, TensorDictSchema
 
         schema = TensorDictSchema(
             keys={
@@ -282,7 +282,7 @@ class TestTensorDictSchemaBatchSize:
 
     def test_batch_size_with_none_dimension(self):
         """Test batch size with None dimension allows any size."""
-        from pandera.tensordict_api import Tensor, TensorDictSchema
+        from pandera.tensordict import Tensor, TensorDictSchema
 
         schema = TensorDictSchema(
             keys={
@@ -302,7 +302,7 @@ class TestTensorDictSchemaBatchSize:
     def test_batch_size_exact_match(self):
         """Test batch size must match exactly when specified."""
         from pandera import errors
-        from pandera.tensordict_api import Tensor, TensorDictSchema
+        from pandera.tensordict import Tensor, TensorDictSchema
 
         schema = TensorDictSchema(
             keys={
@@ -323,7 +323,7 @@ class TestShapeValidation:
 
     def test_shape_with_none_allows_any(self):
         """Test shape with None allows any size for that dimension."""
-        from pandera.tensordict_api import Tensor, TensorDictSchema
+        from pandera.tensordict import Tensor, TensorDictSchema
 
         schema = TensorDictSchema(
             keys={
@@ -339,7 +339,7 @@ class TestShapeValidation:
     def test_shape_exact_match(self):
         """Test shape must match exactly when specified."""
         from pandera import errors
-        from pandera.tensordict_api import Tensor, TensorDictSchema
+        from pandera.tensordict import Tensor, TensorDictSchema
 
         schema = TensorDictSchema(
             keys={
@@ -352,6 +352,37 @@ class TestShapeValidation:
 
         with pytest.raises(errors.SchemaErrors):
             schema.validate(td)
+
+
+@torch_condition
+class TestTensorClassValidation:
+    """Tests for tensorclass validation."""
+
+    def test_validate_tensorclass(self):
+        """Test validation of tensorclass object."""
+        from pandera.tensordict import Tensor, TensorDictSchema
+
+        @tensorclass
+        class TCData:
+            observation: torch.Tensor
+            action: torch.Tensor
+
+        schema = TensorDictSchema(
+            keys={
+                "observation": Tensor(dtype=torch.float32, shape=(32, 10)),
+                "action": Tensor(dtype=torch.float32, shape=(32, 5)),
+            },
+            batch_size=(32,),
+        )
+
+        tc = TCData(
+            observation=torch.randn(32, 10),
+            action=torch.randn(32, 5),
+            batch_size=[32],
+        )
+
+        result = schema.validate(tc)
+        assert result is not None
 
 
 if __name__ == "__main__":

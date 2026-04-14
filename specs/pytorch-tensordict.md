@@ -887,10 +887,5 @@ pandera/
 │       └── register.py         # Backend registration
 ├── engines/
 │   └── tensordict_engine.py    # Engine for torch dtype registry
-├── typing/
-│   └── tensordict.py           # Annotation types (TensorDict, TensorClass)
-└── tensordict_api.py           # Entry point: import pandera.tensordict as pa
-```
 └── tensordict.py               # Entry point: import pandera.tensordict as pa
-
 ```

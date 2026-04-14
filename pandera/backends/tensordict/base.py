@@ -249,6 +249,8 @@ class TensorDictSchemaBackend(BaseSchemaBackend):
         self, check_obj, schema, error_handler, lazy
     ):
         """Run value checks on tensor values."""
+        from pandera.api.base.checks import CheckResult
+
         for key, tensor_schema in schema.columns.items():
             if key not in check_obj:
                 continue
@@ -264,7 +266,9 @@ class TensorDictSchemaBackend(BaseSchemaBackend):
 
             for check_index, check in enumerate(tensor_schema.checks):
                 try:
-                    check_result = check(tensor_data, key)
+                    check_result = check.get_backend(check_obj)(check)(
+                        tensor_data, key
+                    )
                 except Exception as exc:
                     check_result = CoreCheckResult(
                         passed=False,
