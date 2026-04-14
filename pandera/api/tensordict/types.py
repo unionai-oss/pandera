@@ -9,14 +9,19 @@ try:
 except ImportError:
     torch = None
 
-if TYPE_CHECKING:
-    from tensordict import TensorDict, tensorclass
+if torch is not None:
+    if TYPE_CHECKING:
+        from tensordict import TensorDict, tensorclass
 
-TensorDictCheckObjects = Any
+    TensorDictCheckObjects = Any
 
-TensorDictInputType = Union["TensorDict", "tensorclass", torch.Tensor]  # type: ignore[union-attr]
+    TensorDictInputType = Union["TensorDict", "tensorclass", torch.Tensor]  # type: ignore[union-attr]
 
-TensorDtypeInputTypes = Union[torch.dtype, str, type]  # type: ignore[union-attr]
+    TensorDtypeInputTypes = Union[torch.dtype, str, type]  # type: ignore[union-attr]
+else:
+    TensorDictCheckObjects = Any
+    TensorDictInputType = Any
+    TensorDtypeInputTypes = Any
 
 
 def is_tensordict(obj: Any) -> bool:
