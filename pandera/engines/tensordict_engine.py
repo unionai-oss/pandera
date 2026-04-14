@@ -25,10 +25,23 @@ if torch is not None:
 
         def __init__(self, dtype: Any):
             super().__init__()
-            object.__setattr__(self, "type", torch.dtype(dtype))
+            if isinstance(dtype, torch.dtype):
+                actual_dtype = dtype
+            elif isinstance(dtype, str):
+                dtype_str = dtype.replace("torch.", "")
+                actual_dtype = getattr(torch, dtype_str, None)
+                if actual_dtype is None:
+                    raise ValueError(f"Unknown torch dtype: {dtype}")
+            else:
+                actual_dtype = torch.dtype(dtype)
+            object.__setattr__(self, "type", actual_dtype)
 
         def __post_init__(self):
-            object.__setattr__(self, "type", torch.dtype(self.type))
+            if isinstance(self.type, torch.dtype):
+                return
+            actual_dtype = getattr(torch, str(self.type), None)
+            if actual_dtype is not None:
+                object.__setattr__(self, "type", actual_dtype)
 
         def coerce(self, data_container: torch.Tensor) -> torch.Tensor:
             """Coerce tensor to the specified dtype."""
@@ -63,11 +76,15 @@ if torch is not None:
             """Convert input into a PyTorch-compatible Pandera DataType."""
             try:
                 return engine.Engine.dtype(cls, data_type)
-            except TypeError:
+            except (TypeError, ValueError):
                 try:
-                    torch_dtype = torch.dtype(data_type)
-                    return DataType(torch_dtype)
-                except TypeError:
+                    if isinstance(data_type, torch.dtype):
+                        return DataType(str(data_type))
+                    elif isinstance(data_type, str):
+                        return DataType(data_type)
+                    else:
+                        return DataType(data_type)
+                except (TypeError, ValueError):
                     raise ValueError(
                         f"Data type '{data_type}' not understood for TensorDict. "
                         f"Expected a torch.dtype or string like 'float32'."
@@ -113,7 +130,7 @@ if torch is not None:
             try:
                 torch_dtype = getattr(torch, dtype_name, None)
                 if torch_dtype is not None:
-                    Engine.register_dtype(DataType(torch_dtype))
+                    Engine.register_dtype(DataType(dtype_name))
             except (AttributeError, ValueError):
                 pass
 

@@ -46,6 +46,10 @@ class Tensor(ComponentSchema):
 
         :raises SchemaInitError: if impossible to build schema from parameters
         """
+        if dtype is not None and torch is not None:
+            from pandera.engines import tensordict_engine
+            dtype = tensordict_engine.Engine.dtype(dtype) if dtype else None
+
         super().__init__(
             dtype=dtype,
             checks=checks,
@@ -59,8 +63,21 @@ class Tensor(ComponentSchema):
         )
         self.shape = shape
 
+    @property
+    def dtype(self):
+        return self._dtype
+
+    @dtype.setter
+    def dtype(self, value) -> None:
+        if torch is None:
+            self._dtype = value
+        else:
+            from pandera.engines import tensordict_engine
+            self._dtype = tensordict_engine.Engine.dtype(value) if value else None
+
     def __repr__(self) -> str:
+        dtype_str = self._dtype.type if hasattr(self._dtype, 'type') else str(self._dtype)
         return (
-            f"Tensor(dtype={self.dtype}, shape={self.shape}, "
+            f"Tensor(dtype={dtype_str}, shape={self.shape}, "
             f"nullable={self.nullable})"
         )

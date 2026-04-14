@@ -1,9 +1,9 @@
 """Register TensorDict backends."""
 
 from functools import lru_cache
-from typing import TYPE_CING, Any
+from typing import TYPE_CHECKING, Any
 
-if TYPE_CING:
+if TYPE_CHECKING:
     from tensordict import TensorDict, tensorclass
 
 
