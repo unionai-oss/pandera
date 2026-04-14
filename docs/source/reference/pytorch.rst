@@ -50,39 +50,6 @@ Declarative models
 
    pandera.api.tensordict.model_components.Field
 
-Typing
-------
-
-.. autosummary::
-   :toctree: generated
-   :template: class.rst
-   :nosignatures:
-
-   pandera.typing.tensordict.TensorDict
-   pandera.typing.tensordict.Tensorclass
-
-Abstract base classes
----------------------
-
-.. autosummary::
-   :toctree: generated
-   :template: class.rst
-   :nosignatures:
-
-   pandera.api.tensordict.base.BaseTensorDictSchema
-
-Check object types
-------------------
-
-Types accepted by TensorDict :class:`~pandera.api.checks.Check` backends.
-
-.. autosummary::
-   :toctree: generated
-   :nosignatures:
-
-   pandera.api.tensordict.types.TensorDictData
-   pandera.api.tensordict.types.TENSORDICT_CHECK_OBJECT_TYPES
-
 Configuration
 -------------
 
