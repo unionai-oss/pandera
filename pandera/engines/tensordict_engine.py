@@ -49,7 +49,7 @@ if torch is not None:
 
         def coerce_value(self, value: Any) -> Any:
             """Coerce a value to the particular type."""
-            return self.type(value)
+            return torch.tensor(value, dtype=self.type)
 
         def try_coerce(self, data_container: torch.Tensor) -> torch.Tensor:
             try:
