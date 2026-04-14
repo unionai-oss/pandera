@@ -6,6 +6,7 @@ on:
       - dev
       - bugfix
       - "release/*"
+      - "fix/**"
   pull_request:
     branches:
       - main
@@ -98,7 +99,8 @@ jobs:
         run: python -m pip install -e .
 
       - name: Test import pandera.polars
-        run: python -c "import pandera.polars; print('SUCCESS: pandera.polars imported without pandas')"
+        run: |
+          python -c "import pandera.polars; print('SUCCESS: pandera.polars imported without pandas')"
 
   # test base functionality
   unit-tests-base:
@@ -129,7 +131,8 @@ jobs:
           pip list
           printenv | sort
       - name: Unit Tests Base
-        run: nox -v -db uv --non-interactive --session "tests-${{ matrix.python-version }}(extra=None, pandas=None, pydantic=None, polars=None)"
+        run: |
+          nox -v -db uv --non-interactive --session 'tests-${{ matrix.python-version }}(extra=None, pandas=None, pydantic=None, polars=None)'
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
         env:
