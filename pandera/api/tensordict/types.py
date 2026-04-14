@@ -1,19 +1,22 @@
 """Type definitions for pandera tensordict integration."""
 
-from typing import TYPE_CING, Any, Union
-
-import torch
+from typing import TYPE_CHECKING, Any, Union
 
 from pandera.api.checks import Check
 
-if TYPE_CING:
+try:
+    import torch
+except ImportError:
+    torch = None
+
+if TYPE_CHECKING:
     from tensordict import TensorDict, tensorclass
 
 TensorDictCheckObjects = Any
 
-TensorDictInputType = Union["TensorDict", "tensorclass", torch.Tensor]
+TensorDictInputType = Union["TensorDict", "tensorclass", torch.Tensor]  # type: ignore[union-attr]
 
-TensorDtypeInputTypes = Union[torch.dtype, str, type]
+TensorDtypeInputTypes = Union[torch.dtype, str, type]  # type: ignore[union-attr]
 
 
 def is_tensordict(obj: Any) -> bool:

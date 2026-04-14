@@ -103,9 +103,9 @@ class TensorDictSchemaBackend(BaseSchemaBackend):
             )
             error = SchemaError(
                 schema=schema,
-                schema_context={"batch_size": actual_batch_size},
+                data=check_obj,
                 message=error_msg,
-                reason_code=SchemaErrorReason.WRONG_TYPE,
+                reason_code=SchemaErrorReason.WRONG_DATATYPE,
             )
             error_handler.collect_error(
                 get_error_category(error.reason_code),
@@ -123,9 +123,9 @@ class TensorDictSchemaBackend(BaseSchemaBackend):
                 )
                 error = SchemaError(
                     schema=schema,
-                    schema_context={"batch_size": actual_batch_size},
+                    data=check_obj,
                     message=error_msg,
-                    reason_code=SchemaErrorReason.WRONG_TYPE,
+                    reason_code=SchemaErrorReason.WRONG_DATATYPE,
                 )
                 error_handler.collect_error(
                     get_error_category(error.reason_code),
@@ -140,9 +140,9 @@ class TensorDictSchemaBackend(BaseSchemaBackend):
                 error_msg = f"Missing key '{key}' in TensorDict"
                 error = SchemaError(
                     schema=schema,
-                    schema_context={"keys": list(check_obj.keys())},
+                    data=check_obj,
                     message=error_msg,
-                    reason_code=SchemaErrorReason.MISSING_COLUMN,
+                    reason_code=SchemaErrorReason.COLUMN_NOT_IN_DATAFRAME,
                 )
                 error_handler.collect_error(
                     get_error_category(error.reason_code),
@@ -164,9 +164,9 @@ class TensorDictSchemaBackend(BaseSchemaBackend):
                 error_msg = f"Key '{key}' is not a torch.Tensor"
                 error = SchemaError(
                     schema=schema,
-                    schema_context={"key": key, "type": type(tensor)},
+                    data=check_obj,
                     message=error_msg,
-                    reason_code=SchemaErrorReason.WRONG_TYPE,
+                    reason_code=SchemaErrorReason.WRONG_DATATYPE,
                 )
                 error_handler.collect_error(
                     get_error_category(error.reason_code),
@@ -177,19 +177,17 @@ class TensorDictSchemaBackend(BaseSchemaBackend):
 
             if tensor_schema.dtype is not None:
                 expected_dtype = tensor_schema.dtype.type
-                if tensor.dtype != expected_dtype:
+                actual_dtype = tensor.dtype
+                if actual_dtype != expected_dtype:
                     error_msg = (
                         f"Key '{key}': expected dtype {expected_dtype}, "
-                        f"got {tensor.dtype}"
+                        f"got {actual_dtype}"
                     )
                     error = SchemaError(
                         schema=schema,
-                        schema_context={
-                            "key": key,
-                            "dtype": str(tensor.dtype),
-                        },
+                        data=check_obj,
                         message=error_msg,
-                        reason_code=SchemaErrorReason.WRONG_TYPE,
+                        reason_code=SchemaErrorReason.WRONG_DATATYPE,
                     )
                     error_handler.collect_error(
                         get_error_category(error.reason_code),
@@ -208,12 +206,9 @@ class TensorDictSchemaBackend(BaseSchemaBackend):
                     )
                     error = SchemaError(
                         schema=schema,
-                        schema_context={
-                            "key": key,
-                            "shape": actual_shape,
-                        },
+                        data=check_obj,
                         message=error_msg,
-                        reason_code=SchemaErrorReason.WRONG_TYPE,
+                        reason_code=SchemaErrorReason.WRONG_DATATYPE,
                     )
                     error_handler.collect_error(
                         get_error_category(error.reason_code),
@@ -232,12 +227,9 @@ class TensorDictSchemaBackend(BaseSchemaBackend):
                         )
                         error = SchemaError(
                             schema=schema,
-                            schema_context={
-                                "key": key,
-                                "shape": actual_shape,
-                            },
+                            data=check_obj,
                             message=error_msg,
-                            reason_code=SchemaErrorReason.WRONG_TYPE,
+                            reason_code=SchemaErrorReason.WRONG_DATATYPE,
                         )
                         error_handler.collect_error(
                             get_error_category(error.reason_code),
@@ -274,22 +266,23 @@ class TensorDictSchemaBackend(BaseSchemaBackend):
                         passed=False,
                         check=check,
                         check_index=check_index,
-                        reason_code=SchemaErrorReason.CHECK_FAILED,
+                        reason_code=SchemaErrorReason.CHECK_ERROR,
                         message=str(exc),
                     )
 
                 if not check_result.passed:
+                    check_msg = check_result.message or "check failed"
                     error_msg = (
                         f"Check '{check}' failed for key '{key}': "
-                        f"{check_result.message}"
+                        f"{check_msg}"
                     )
                     error = SchemaError(
                         schema=schema,
-                        schema_context={"key": key},
+                        data=check_obj,
                         message=error_msg,
                         check=check,
                         check_index=check_index,
-                        reason_code=SchemaErrorReason.CHECK_FAILED,
+                        reason_code=SchemaErrorReason.CHECK_ERROR,
                     )
                     error_handler.collect_error(
                         get_error_category(error.reason_code),
@@ -335,7 +328,31 @@ class TensorDictSchemaBackend(BaseSchemaBackend):
         self, schema_name: str, schema_errors: list[SchemaError]
     ):
         """Get failure cases metadata for lazy validation."""
-        return None
+        from collections import defaultdict
+
+        from pandera.errors import FailureCaseMetadata
+
+        from pandera.api.base.error_handler import ErrorHandler
+
+        error_dicts = {}
+        error_handler = ErrorHandler()
+        error_handler.collect_errors(schema_errors)
+
+        if error_handler.collected_errors:
+            error_dicts = error_handler.summarize(schema_name=schema_name)
+            error_dicts = dict(error_dicts)
+
+        failure_cases = [err.failure_cases for err in schema_errors if err.failure_cases]
+
+        error_counts = defaultdict(int)
+        for error in error_handler.collected_errors:
+            error_counts[error["reason_code"].name] += 1
+
+        return FailureCaseMetadata(
+            failure_cases=failure_cases,
+            message=error_dicts,
+            error_counts=dict(error_counts),
+        )
 
     def drop_invalid_rows(self, check_obj, error_handler):
         """Remove invalid elements in a check_obj."""

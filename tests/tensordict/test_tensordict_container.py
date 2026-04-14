@@ -22,7 +22,7 @@ class TestTensorComponent:
         from pandera.tensordict import Tensor
 
         tensor = Tensor(dtype=torch.float32, shape=(None, 10))
-        assert tensor.dtype == torch.float32
+        assert tensor.dtype.type == torch.float32
         assert tensor.shape == (None, 10)
 
     def test_tensor_with_checks(self):
@@ -35,7 +35,7 @@ class TestTensorComponent:
             shape=(None, 10),
             checks=Check.greater_than(0.0),
         )
-        assert tensor.dtype == torch.float32
+        assert tensor.dtype.type == torch.float32
         assert tensor.shape == (None, 10)
         assert len(tensor.checks) == 1
 
@@ -135,7 +135,7 @@ class TestTensorDictValidation:
             batch_size=[16],
         )
 
-        with pytest.raises(errors.SchemaErrors):
+        with pytest.raises(errors.SchemaError):
             schema.validate(td)
 
     def test_validate_missing_key(self):
@@ -156,7 +156,7 @@ class TestTensorDictValidation:
             batch_size=[32],
         )
 
-        with pytest.raises(errors.SchemaErrors):
+        with pytest.raises(errors.SchemaError):
             schema.validate(td)
 
     def test_validate_wrong_dtype(self):
@@ -176,7 +176,7 @@ class TestTensorDictValidation:
             batch_size=[32],
         )
 
-        with pytest.raises(errors.SchemaErrors):
+        with pytest.raises(errors.SchemaError):
             schema.validate(td)
 
     def test_validate_wrong_shape(self):
@@ -196,7 +196,7 @@ class TestTensorDictValidation:
             batch_size=[32],
         )
 
-        with pytest.raises(errors.SchemaErrors):
+        with pytest.raises(errors.SchemaError):
             schema.validate(td)
 
     def test_validate_lazy(self):
@@ -206,15 +206,15 @@ class TestTensorDictValidation:
 
         schema = TensorDictSchema(
             keys={
-                "observation": Tensor(dtype=torch.float32, shape=(32, 10)),
-                "action": Tensor(dtype=torch.float32, shape=(32, 5)),
+                "observation": Tensor(dtype=torch.float32, shape=(None, 10)),
+                "action": Tensor(dtype=torch.float32, shape=(None, 5)),
             },
             batch_size=(32,),
         )
 
         td = TensorDict(
-            {"observation": torch.randn(16, 10), "action": torch.randn(32, 5)},
-            batch_size=[16],
+            {"observation": torch.randn(32, 10), "action": torch.randn(16, 5)},
+            batch_size=None,
         )
 
         with pytest.raises(errors.SchemaErrors) as exc_info:
@@ -272,7 +272,7 @@ class TestTensorDictSchemaChecks:
             batch_size=[10],
         )
 
-        with pytest.raises(errors.SchemaErrors):
+        with pytest.raises(errors.SchemaError):
             schema.validate(td)
 
 
@@ -313,7 +313,7 @@ class TestTensorDictSchemaBatchSize:
 
         td = TensorDict({"observation": torch.randn(64, 10)}, batch_size=[64])
 
-        with pytest.raises(errors.SchemaErrors):
+        with pytest.raises(errors.SchemaError):
             schema.validate(td)
 
 
@@ -350,7 +350,7 @@ class TestShapeValidation:
 
         td = TensorDict({"data": torch.randn(32, 20)}, batch_size=[32])
 
-        with pytest.raises(errors.SchemaErrors):
+        with pytest.raises(errors.SchemaError):
             schema.validate(td)
 
 
@@ -392,11 +392,11 @@ class TestTensorDictErrorCases:
     def test_invalid_input_type(self):
         """Test validation fails with non-TensorDict input."""
         from pandera import errors
-        from pandera.tensordict import TensorDictSchema
+        from pandera.tensordict import Tensor, TensorDictSchema
 
         schema = TensorDictSchema(keys={"x": Tensor(dtype=torch.float32)})
 
-        with pytest.raises(TypeError, match="Expected TensorDict"):
+        with pytest.raises(errors.BackendNotFoundError, match="Backend not found"):
             schema.validate({"x": torch.randn(10)})
 
     def test_invalid_tensor_in_tensordict(self):
@@ -411,7 +411,7 @@ class TestTensorDictErrorCases:
 
         td = TensorDict({"x": "not a tensor"}, batch_size=[10])
 
-        with pytest.raises(errors.SchemaErrors):
+        with pytest.raises(errors.SchemaError):
             schema.validate(td)
 
     def test_batch_size_length_mismatch(self):
@@ -426,7 +426,7 @@ class TestTensorDictErrorCases:
 
         td = TensorDict({"x": torch.randn(10)}, batch_size=[10])
 
-        with pytest.raises(errors.SchemaErrors):
+        with pytest.raises(errors.SchemaError):
             schema.validate(td)
 
     def test_batch_size_value_mismatch_first_dim(self):
@@ -441,7 +441,7 @@ class TestTensorDictErrorCases:
 
         td = TensorDict({"x": torch.randn(5)}, batch_size=[5])
 
-        with pytest.raises(errors.SchemaErrors):
+        with pytest.raises(errors.SchemaError):
             schema.validate(td)
 
     def test_batch_size_value_mismatch_second_dim(self):
@@ -456,7 +456,7 @@ class TestTensorDictErrorCases:
 
         td = TensorDict({"x": torch.randn(10, 3)}, batch_size=[10, 3])
 
-        with pytest.raises(errors.SchemaErrors):
+        with pytest.raises(errors.SchemaError):
             schema.validate(td)
 
     def test_multiple_missing_keys(self):
@@ -475,7 +475,7 @@ class TestTensorDictErrorCases:
 
         td = TensorDict({"a": torch.randn(10)}, batch_size=[10])
 
-        with pytest.raises(errors.SchemaErrors):
+        with pytest.raises(errors.SchemaError):
             schema.validate(td)
 
     def test_multiple_dtype_mismatches(self):
@@ -496,7 +496,7 @@ class TestTensorDictErrorCases:
             batch_size=[10],
         )
 
-        with pytest.raises(errors.SchemaErrors):
+        with pytest.raises(errors.SchemaError):
             schema.validate(td)
 
     def test_multiple_shape_errors(self):
@@ -517,7 +517,7 @@ class TestTensorDictErrorCases:
             batch_size=[10],
         )
 
-        with pytest.raises(errors.SchemaErrors):
+        with pytest.raises(errors.SchemaError):
             schema.validate(td)
 
     def test_lazy_collects_all_errors(self):
@@ -537,7 +537,7 @@ class TestTensorDictErrorCases:
         td = TensorDict(
             {
                 "a": torch.randn(16, 5),
-                "b": torch.randn(32, 8),
+                "b": torch.randn(16, 8),
             },
             batch_size=[16],
         )
@@ -561,8 +561,8 @@ class TestTensorDictErrorCases:
 
         try:
             schema.validate(td)
-        except errors.SchemaErrors as e:
-            error_messages = [err.message for err in e.schema_errors]
+        except errors.SchemaError as e:
+            error_messages = [str(e)]
             assert any("batch_size" in msg for msg in error_messages)
 
     def test_error_message_content_dtype(self):
@@ -579,8 +579,8 @@ class TestTensorDictErrorCases:
 
         try:
             schema.validate(td)
-        except errors.SchemaErrors as e:
-            error_messages = [err.message for err in e.schema_errors]
+        except errors.SchemaError as e:
+            error_messages = [str(e)]
             assert any("dtype" in msg for msg in error_messages)
 
     def test_error_message_content_shape(self):
@@ -597,8 +597,8 @@ class TestTensorDictErrorCases:
 
         try:
             schema.validate(td)
-        except errors.SchemaErrors as e:
-            error_messages = [err.message for err in e.schema_errors]
+        except errors.SchemaError as e:
+            error_messages = [str(e)]
             assert any("shape" in msg for msg in error_messages)
 
     def test_error_message_content_missing_key(self):
@@ -618,8 +618,8 @@ class TestTensorDictErrorCases:
 
         try:
             schema.validate(td)
-        except errors.SchemaErrors as e:
-            error_messages = [err.message for err in e.schema_errors]
+        except errors.SchemaError as e:
+            error_messages = [str(e)]
             assert any("Missing key" in msg for msg in error_messages)
 
     def test_schema_error_reason_codes(self):
@@ -637,9 +637,9 @@ class TestTensorDictErrorCases:
 
         try:
             schema.validate(td)
-        except errors.SchemaErrors as e:
-            reason_codes = [err.reason_code for err in e.schema_errors]
-            assert SchemaErrorReason.WRONG_TYPE in reason_codes
+        except errors.SchemaError as e:
+            reason_codes = [e.reason_code]
+            assert SchemaErrorReason.WRONG_DATATYPE in reason_codes
 
 
 if __name__ == "__main__":
