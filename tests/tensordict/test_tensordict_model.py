@@ -18,7 +18,7 @@ class TestTensorDictModel:
 
     def test_model_basic(self):
         """Test basic TensorDictModel."""
-        from pandera.tensordict_api import TensorDictModel
+        from pandera.tensordict import TensorDictModel
 
         class BasicModel(TensorDictModel):
             observation: torch.Tensor
@@ -30,7 +30,7 @@ class TestTensorDictModel:
 
     def test_model_with_field(self):
         """Test TensorDictModel with Field."""
-        from pandera.tensordict_api import Field, TensorDictModel
+        from pandera.tensordict import Field, TensorDictModel
 
         class ModelWithField(TensorDictModel):
             observation: torch.Tensor = Field(dtype=torch.float32, shape=(None, 10))
@@ -43,7 +43,7 @@ class TestTensorDictModel:
 
     def test_model_with_config(self):
         """Test TensorDictModel with Config."""
-        from pandera.tensordict_api import TensorDictModel
+        from pandera.tensordict import TensorDictModel
 
         class ModelWithConfig(TensorDictModel):
             observation: torch.Tensor
@@ -57,7 +57,7 @@ class TestTensorDictModel:
 
     def test_model_with_checks(self):
         """Test TensorDictModel with check parameters."""
-        from pandera.tensordict_api import Field, TensorDictModel
+        from pandera.tensordict import Field, TensorDictModel
 
         class ModelWithChecks(TensorDictModel):
             values: torch.Tensor = Field(
@@ -73,7 +73,7 @@ class TestTensorDictModel:
 
     def test_model_validate(self):
         """Test TensorDictModel validate method."""
-        from pandera.tensordict_api import Field, TensorDictModel
+        from pandera.tensordict import Field, TensorDictModel
 
         class ModelForValidation(TensorDictModel):
             observation: torch.Tensor = Field(dtype=torch.float32, shape=(32, 10))
@@ -93,7 +93,7 @@ class TestTensorDictModel:
     def test_model_validate_invalid(self):
         """Test TensorDictModel validate raises on invalid data."""
         from pandera import errors
-        from pandera.tensordict_api import Field, TensorDictModel
+        from pandera.tensordict import Field, TensorDictModel
 
         class ModelForValidation(TensorDictModel):
             observation: torch.Tensor = Field(dtype=torch.float32, shape=(32, 10))
@@ -112,7 +112,7 @@ class TestTensorDictModel:
 
     def test_model_optional_field(self):
         """Test TensorDictModel with optional field."""
-        from pandera.tensordict_api import Field, TensorDictModel
+        from pandera.tensordict import Field, TensorDictModel
 
         class ModelWithOptional(TensorDictModel):
             observation: torch.Tensor
@@ -124,7 +124,7 @@ class TestTensorDictModel:
 
     def test_model_field_with_no_nan(self):
         """Test TensorDictModel with no_nan check."""
-        from pandera.tensordict_api import Field, TensorDictModel
+        from pandera.tensordict import Field, TensorDictModel
 
         class ModelWithNoNan(TensorDictModel):
             values: torch.Tensor = Field(
@@ -139,7 +139,7 @@ class TestTensorDictModel:
 
     def test_model_field_with_isin(self):
         """Test TensorDictModel with isin check."""
-        from pandera.tensordict_api import Field, TensorDictModel
+        from pandera.tensordict import Field, TensorDictModel
 
         class ModelWithIsin(TensorDictModel):
             actions: torch.Tensor = Field(
@@ -160,7 +160,7 @@ class TestTensorDictModelEdgeCases:
     def test_model_missing_annotation(self):
         """Test model raises error with missing annotation."""
         from pandera import errors
-        from pandera.tensordict_api import TensorDictModel
+        from pandera.tensordict import TensorDictModel
 
         class ModelWithMissingAnnotation(TensorDictModel):
             observation = None  # type: ignore
@@ -170,7 +170,7 @@ class TestTensorDictModelEdgeCases:
 
     def test_model_empty(self):
         """Test model with no fields."""
-        from pandera.tensordict_api import TensorDictModel
+        from pandera.tensordict import TensorDictModel
 
         class EmptyModel(TensorDictModel):
             pass
@@ -180,7 +180,7 @@ class TestTensorDictModelEdgeCases:
 
     def test_model_cannot_instantiate_directly(self):
         """Test that TensorDictModel cannot be instantiated directly."""
-        from pandera.tensordict_api import TensorDictModel
+        from pandera.tensordict import TensorDictModel
 
         with pytest.raises(NotImplementedError):
             TensorDictModel()
