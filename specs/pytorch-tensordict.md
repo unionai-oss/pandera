@@ -163,20 +163,21 @@ For a more Pydantic-like experience, use class-based models:
 ```python
 import torch
 import pandera.tensordict as pa
-from pandera import Field, Check
+from pandera import Check
 
 class PolicyModel(pa.TensorDictModel):
     """Schema for a policy network output."""
     
-    logits: torch.Tensor = Field(
+    logits: torch.Tensor = pa.Field(
         dtype=torch.float32,
         shape=(None, 10),
-        checks=Check.in_range(-5.0, 5.0)
+        ge=-5.0,
+        le=5.0
     )
-    value: torch.Tensor = Field(
+    value: torch.Tensor = pa.Field(
         dtype=torch.float32,
         shape=(None,),
-        checks=Check.greater_than(0.0)
+        gt=0.0
     )
     
     class Config:
@@ -564,19 +565,19 @@ class ActorCriticOutput(pa.TensorDictModel):
     action_mean: torch.Tensor = pa.Field(
         dtype=torch.float32,
         shape=(None, 4),  # 4D action space
-        checks=Check.greater_than_or_equal_to(-2.0),
-        Check.less_than_or_equal_to(2.0),
+        ge=-2.0,
+        le=2.0,
     )
     action_std: torch.Tensor = pa.Field(
         dtype=torch.float32,
         shape=(None, 4),
-        checks=Check.greater_than(1e-6),  # Standard deviation > 0
+        gt=1e-6,  # Standard deviation > 0
     )
     value: torch.Tensor = pa.Field(
         dtype=torch.float32,
         shape=(None,),
-        checks=Check.greater_than(-100.0),  # Reasonable value bounds
-        Check.less_than(100.0),
+        gt=-100.0,  # Reasonable value bounds
+        lt=100.0,
     )
     
     class Config:
@@ -874,7 +875,9 @@ pandera/
 │       ├── __init__.py
 │       ├── container.py        # TensorDictSchema
 │       ├── components.py       # Tensor
-│       ├── model.py               # TensorDictModel
+│       ├── model.py            # TensorDictModel
+│       ├── model_components.py # Field, TensorDictFieldInfo
+│       ├── model_config.py     # BaseConfig
 │       └── types.py            # Type aliases
 ├── backends/
 │   └── tensordict/
@@ -886,6 +889,8 @@ pandera/
 │   └── tensordict_engine.py    # Engine for torch dtype registry
 ├── typing/
 │   └── tensordict.py           # Annotation types (TensorDict, TensorClass)
+└── tensordict_api.py           # Entry point: import pandera.tensordict as pa
+```
 └── tensordict.py               # Entry point: import pandera.tensordict as pa
 
 ```
