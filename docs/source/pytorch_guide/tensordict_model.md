@@ -14,17 +14,15 @@ schema that maps directly to a {class}`~tensordict.TensorDict`.
 ```{code-cell} python
 import torch
 import pandera.tensordict as pa
+from pandera import Check
 
 class RL(pa.TensorDictModel):
-    observation: torch.Tensor
-    action: torch.Tensor
-
-    @classmethod
-    def _field(cls, field):
-        return field(dtype=torch.float32, shape=(None, 10))
+    observation: pa.DataType
+    action: pa.DataType
 ```
 
-The `_field()` classmethod customizes the default field configuration.
+Use {class}`~pandera.tensordict.DataType` as the type annotation and
+{func}`~pandera.tensordict.Field` to customize field options.
 
 ## Validate with a model
 
@@ -38,9 +36,9 @@ td = TensorDict(
 validated = RL.validate(td)
 ```
 
-## Model configuration
+## Field configuration
 
-Use {class}`~pandera.api.tensordict.model_components.Field` with the `_field()` method:
+Use {func}`~pandera.tensordict.Field` to customize field options:
 
 - `dtype`: Torch dtype
 - `shape`: Expected shape tuple
@@ -50,17 +48,13 @@ Use {class}`~pandera.api.tensordict.model_components.Field` with the `_field()` 
 
 ```{code-cell} python
 class RLWithConfig(pa.TensorDictModel):
-    observation: torch.Tensor
-    action: torch.Tensor
-    reward: torch.Tensor
-
-    @classmethod
-    def _field(cls, field):
-        return field(
-            dtype=torch.float32,
-            shape=(None,),
-            checks=[Check.greater_than(0.0)],
-        )
+    observation: pa.DataType = pa.Field(dtype=torch.float32, shape=(None, 10))
+    action: pa.DataType = pa.Field(dtype=torch.float32, shape=(None, 5))
+    reward: pa.DataType = pa.Field(
+        dtype=torch.float32,
+        shape=(None,),
+        checks=[Check.greater_than(0.0)],
+    )
 ```
 
 ## See also

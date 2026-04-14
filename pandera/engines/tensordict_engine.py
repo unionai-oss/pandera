@@ -74,6 +74,8 @@ if torch is not None:
         @classmethod
         def dtype(cls, data_type: Any) -> dtypes.DataType:
             """Convert input into a PyTorch-compatible Pandera DataType."""
+            if isinstance(data_type, type) and issubclass(data_type, DataType):
+                return DataType(str(data_type.type))
             try:
                 return engine.Engine.dtype(cls, data_type)
             except (TypeError, ValueError):
