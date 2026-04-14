@@ -385,5 +385,262 @@ class TestTensorClassValidation:
         assert result is not None
 
 
+@torch_condition
+class TestTensorDictErrorCases:
+    """Comprehensive error case tests."""
+
+    def test_invalid_input_type(self):
+        """Test validation fails with non-TensorDict input."""
+        from pandera import errors
+        from pandera.tensordict import TensorDictSchema
+
+        schema = TensorDictSchema(keys={"x": Tensor(dtype=torch.float32)})
+
+        with pytest.raises(TypeError, match="Expected TensorDict"):
+            schema.validate({"x": torch.randn(10)})
+
+    def test_invalid_tensor_in_tensordict(self):
+        """Test validation fails when key contains non-tensor."""
+        from pandera import errors
+        from pandera.tensordict import Tensor, TensorDictSchema
+
+        schema = TensorDictSchema(
+            keys={"x": Tensor(dtype=torch.float32)},
+            batch_size=(10,),
+        )
+
+        td = TensorDict({"x": "not a tensor"}, batch_size=[10])
+
+        with pytest.raises(errors.SchemaErrors):
+            schema.validate(td)
+
+    def test_batch_size_length_mismatch(self):
+        """Test validation fails when batch_size dimensions don't match."""
+        from pandera import errors
+        from pandera.tensordict import Tensor, TensorDictSchema
+
+        schema = TensorDictSchema(
+            keys={"x": Tensor(dtype=torch.float32)},
+            batch_size=(10, 5),
+        )
+
+        td = TensorDict({"x": torch.randn(10)}, batch_size=[10])
+
+        with pytest.raises(errors.SchemaErrors):
+            schema.validate(td)
+
+    def test_batch_size_value_mismatch_first_dim(self):
+        """Test validation fails when first batch_size dimension doesn't match."""
+        from pandera import errors
+        from pandera.tensordict import Tensor, TensorDictSchema
+
+        schema = TensorDictSchema(
+            keys={"x": Tensor(dtype=torch.float32)},
+            batch_size=(10,),
+        )
+
+        td = TensorDict({"x": torch.randn(5)}, batch_size=[5])
+
+        with pytest.raises(errors.SchemaErrors):
+            schema.validate(td)
+
+    def test_batch_size_value_mismatch_second_dim(self):
+        """Test validation fails when second batch_size dimension doesn't match."""
+        from pandera import errors
+        from pandera.tensordict import Tensor, TensorDictSchema
+
+        schema = TensorDictSchema(
+            keys={"x": Tensor(dtype=torch.float32)},
+            batch_size=(10, 5),
+        )
+
+        td = TensorDict({"x": torch.randn(10, 3)}, batch_size=[10, 3])
+
+        with pytest.raises(errors.SchemaErrors):
+            schema.validate(td)
+
+    def test_multiple_missing_keys(self):
+        """Test validation fails with multiple missing keys."""
+        from pandera import errors
+        from pandera.tensordict import Tensor, TensorDictSchema
+
+        schema = TensorDictSchema(
+            keys={
+                "a": Tensor(dtype=torch.float32),
+                "b": Tensor(dtype=torch.float32),
+                "c": Tensor(dtype=torch.float32),
+            },
+            batch_size=(10,),
+        )
+
+        td = TensorDict({"a": torch.randn(10)}, batch_size=[10])
+
+        with pytest.raises(errors.SchemaErrors):
+            schema.validate(td)
+
+    def test_multiple_dtype_mismatches(self):
+        """Test validation fails with multiple dtype errors."""
+        from pandera import errors
+        from pandera.tensordict import Tensor, TensorDictSchema
+
+        schema = TensorDictSchema(
+            keys={
+                "a": Tensor(dtype=torch.float32),
+                "b": Tensor(dtype=torch.float32),
+            },
+            batch_size=(10,),
+        )
+
+        td = TensorDict(
+            {"a": torch.randn(10).to(torch.int32), "b": torch.randn(10).to(torch.int64)},
+            batch_size=[10],
+        )
+
+        with pytest.raises(errors.SchemaErrors):
+            schema.validate(td)
+
+    def test_multiple_shape_errors(self):
+        """Test validation fails with multiple shape errors."""
+        from pandera import errors
+        from pandera.tensordict import Tensor, TensorDictSchema
+
+        schema = TensorDictSchema(
+            keys={
+                "a": Tensor(dtype=torch.float32, shape=(10, 5)),
+                "b": Tensor(dtype=torch.float32, shape=(10, 3)),
+            },
+            batch_size=(10,),
+        )
+
+        td = TensorDict(
+            {"a": torch.randn(10, 7), "b": torch.randn(10, 8)},
+            batch_size=[10],
+        )
+
+        with pytest.raises(errors.SchemaErrors):
+            schema.validate(td)
+
+    def test_lazy_collects_all_errors(self):
+        """Test lazy validation collects multiple errors."""
+        from pandera import errors
+        from pandera.tensordict import Tensor, TensorDictSchema
+
+        schema = TensorDictSchema(
+            keys={
+                "a": Tensor(dtype=torch.float32, shape=(32, 5)),
+                "b": Tensor(dtype=torch.float32, shape=(32, 3)),
+                "c": Tensor(dtype=torch.float32),
+            },
+            batch_size=(32,),
+        )
+
+        td = TensorDict(
+            {
+                "a": torch.randn(16, 5),
+                "b": torch.randn(32, 8),
+            },
+            batch_size=[16],
+        )
+
+        with pytest.raises(errors.SchemaErrors) as exc_info:
+            schema.validate(td, lazy=True)
+
+        assert len(exc_info.value.schema_errors) >= 2
+
+    def test_error_message_content_batch_size(self):
+        """Test error message contains batch_size info."""
+        from pandera import errors
+        from pandera.tensordict import Tensor, TensorDictSchema
+
+        schema = TensorDictSchema(
+            keys={"x": Tensor(dtype=torch.float32)},
+            batch_size=(10,),
+        )
+
+        td = TensorDict({"x": torch.randn(5)}, batch_size=[5])
+
+        try:
+            schema.validate(td)
+        except errors.SchemaErrors as e:
+            error_messages = [err.message for err in e.schema_errors]
+            assert any("batch_size" in msg for msg in error_messages)
+
+    def test_error_message_content_dtype(self):
+        """Test error message contains dtype info."""
+        from pandera import errors
+        from pandera.tensordict import Tensor, TensorDictSchema
+
+        schema = TensorDictSchema(
+            keys={"x": Tensor(dtype=torch.float32)},
+            batch_size=(10,),
+        )
+
+        td = TensorDict({"x": torch.randn(10).to(torch.int32)}, batch_size=[10])
+
+        try:
+            schema.validate(td)
+        except errors.SchemaErrors as e:
+            error_messages = [err.message for err in e.schema_errors]
+            assert any("dtype" in msg for msg in error_messages)
+
+    def test_error_message_content_shape(self):
+        """Test error message contains shape info."""
+        from pandera import errors
+        from pandera.tensordict import Tensor, TensorDictSchema
+
+        schema = TensorDictSchema(
+            keys={"x": Tensor(dtype=torch.float32, shape=(10, 5))},
+            batch_size=(10,),
+        )
+
+        td = TensorDict({"x": torch.randn(10, 3)}, batch_size=[10])
+
+        try:
+            schema.validate(td)
+        except errors.SchemaErrors as e:
+            error_messages = [err.message for err in e.schema_errors]
+            assert any("shape" in msg for msg in error_messages)
+
+    def test_error_message_content_missing_key(self):
+        """Test error message contains missing key info."""
+        from pandera import errors
+        from pandera.tensordict import Tensor, TensorDictSchema
+
+        schema = TensorDictSchema(
+            keys={
+                "x": Tensor(dtype=torch.float32),
+                "y": Tensor(dtype=torch.float32),
+            },
+            batch_size=(10,),
+        )
+
+        td = TensorDict({"x": torch.randn(10)}, batch_size=[10])
+
+        try:
+            schema.validate(td)
+        except errors.SchemaErrors as e:
+            error_messages = [err.message for err in e.schema_errors]
+            assert any("Missing key" in msg for msg in error_messages)
+
+    def test_schema_error_reason_codes(self):
+        """Test that error reason codes are correctly set."""
+        from pandera import errors
+        from pandera.tensordict import Tensor, TensorDictSchema
+        from pandera.errors import SchemaErrorReason
+
+        schema = TensorDictSchema(
+            keys={"x": Tensor(dtype=torch.float32)},
+            batch_size=(10,),
+        )
+
+        td = TensorDict({"x": torch.randn(5)}, batch_size=[5])
+
+        try:
+            schema.validate(td)
+        except errors.SchemaErrors as e:
+            reason_codes = [err.reason_code for err in e.schema_errors]
+            assert SchemaErrorReason.WRONG_TYPE in reason_codes
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

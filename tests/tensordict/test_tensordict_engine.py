@@ -93,6 +93,44 @@ class TestTensorDictEngine:
 
 
 @torch_condition
+class TestTensorDictEngineErrorCases:
+    """Error case tests for tensordict engine."""
+
+    def test_engine_dtype_from_invalid_string(self):
+        """Test engine raises on invalid dtype string."""
+        from pandera.engines import tensordict_engine
+
+        with pytest.raises(ValueError, match="not understood"):
+            tensordict_engine.Engine.dtype("invalid_type")
+
+    def test_engine_dtype_from_invalid_type(self):
+        """Test engine raises on invalid dtype type."""
+        from pandera.engines import tensordict_engine
+
+        with pytest.raises(ValueError, match="not understood"):
+            tensordict_engine.Engine.dtype(123)
+
+    def test_datatype_coerce_wrong_type(self):
+        """Test DataType coerce raises on wrong type."""
+        from pandera.engines import tensordict_engine
+
+        dtype = tensordict_engine.DataType(torch.float32)
+
+        with pytest.raises(Exception):
+            dtype.coerce("not a tensor")
+
+    def test_datatype_try_coerce_wrong_type(self):
+        """Test DataType try_coerce raises on wrong type."""
+        from pandera.engines import tensordict_engine
+        from pandera import errors
+
+        dtype = tensordict_engine.DataType(torch.float32)
+
+        with pytest.raises(errors.ParserError):
+            dtype.try_coerce("not a tensor")
+
+
+@torch_condition
 class TestTensorDictEngineNotInstalled:
     """Tests when torch is not installed."""
 
