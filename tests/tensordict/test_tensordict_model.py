@@ -186,5 +186,123 @@ class TestTensorDictModelEdgeCases:
             TensorDictModel()
 
 
+@torch_condition
+class TestTensorDictModelErrorCases:
+    """Comprehensive error case tests for TensorDictModel."""
+
+    def test_model_validate_wrong_batch_size(self):
+        """Test model validate fails with wrong batch size."""
+        from pandera import errors
+        from pandera.tensordict import Field, TensorDictModel
+
+        class ModelForValidation(TensorDictModel):
+            observation: torch.Tensor = Field(dtype=torch.float32, shape=(32, 10))
+
+            class Config:
+                batch_size = (32,)
+
+        td = TensorDict(
+            {"observation": torch.randn(16, 10)},
+            batch_size=[16],
+        )
+
+        with pytest.raises(errors.SchemaErrors):
+            ModelForValidation.validate(td)
+
+    def test_model_validate_wrong_dtype(self):
+        """Test model validate fails with wrong dtype."""
+        from pandera import errors
+        from pandera.tensordict import Field, TensorDictModel
+
+        class ModelForValidation(TensorDictModel):
+            observation: torch.Tensor = Field(dtype=torch.float32, shape=(32, 10))
+
+            class Config:
+                batch_size = (32,)
+
+        td = TensorDict(
+            {"observation": torch.randn(32, 10).to(torch.int32)},
+            batch_size=[32],
+        )
+
+        with pytest.raises(errors.SchemaErrors):
+            ModelForValidation.validate(td)
+
+    def test_model_validate_missing_key(self):
+        """Test model validate fails with missing key."""
+        from pandera import errors
+        from pandera.tensordict import Field, TensorDictModel
+
+        class ModelForValidation(TensorDictModel):
+            observation: torch.Tensor = Field(dtype=torch.float32, shape=(32, 10))
+            action: torch.Tensor = Field(dtype=torch.float32, shape=(32, 5))
+
+            class Config:
+                batch_size = (32,)
+
+        td = TensorDict(
+            {"observation": torch.randn(32, 10)},
+            batch_size=[32],
+        )
+
+        with pytest.raises(errors.SchemaErrors):
+            ModelForValidation.validate(td)
+
+    def test_model_validate_wrong_shape(self):
+        """Test model validate fails with wrong shape."""
+        from pandera import errors
+        from pandera.tensordict import Field, TensorDictModel
+
+        class ModelForValidation(TensorDictModel):
+            observation: torch.Tensor = Field(dtype=torch.float32, shape=(32, 10))
+
+            class Config:
+                batch_size = (32,)
+
+        td = TensorDict(
+            {"observation": torch.randn(32, 20)},
+            batch_size=[32],
+        )
+
+        with pytest.raises(errors.SchemaErrors):
+            ModelForValidation.validate(td)
+
+    def test_model_validate_value_check_failure(self):
+        """Test model validate fails with value check failure."""
+        from pandera import errors
+        from pandera.tensordict import Field, TensorDictModel
+
+        class ModelForValidation(TensorDictModel):
+            values: torch.Tensor = Field(
+                dtype=torch.float32,
+                shape=(10,),
+                gt=0.0,
+            )
+
+            class Config:
+                batch_size = (10,)
+
+        td = TensorDict(
+            {"values": torch.tensor([1.0, -2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0])},
+            batch_size=[10],
+        )
+
+        with pytest.raises(errors.SchemaErrors):
+            ModelForValidation.validate(td)
+
+    def test_model_config_batch_size(self):
+        """Test model config batch_size is used."""
+        from pandera.tensordict import Field, TensorDictModel
+
+        class ModelWithConfig(TensorDictModel):
+            observation: torch.Tensor = Field(dtype=torch.float32, shape=(32, 10))
+
+            class Config:
+                batch_size = (32,)
+
+        schema = ModelWithConfig.to_schema()
+        assert schema.batch_size == (32,)
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
