@@ -3,6 +3,7 @@
 from collections.abc import Iterable
 from typing import Any, Union
 
+from pandera.api.base.model_components import to_checklist
 from pandera.api.checks import Check
 from pandera.api.dataframe.model_components import FieldInfo, _check_dispatch
 from pandera.errors import SchemaInitError
@@ -58,24 +59,24 @@ class TensorDictFieldInfo(FieldInfo):
         checks: Any = None,
     ) -> dict[str, Any]:
         """Keyword args for :class:`~pandera.api.tensordict.components.Tensor`."""
-        req = self.required and not optional
-        return self._get_schema_properties(
-            dtype,
-            checks=checks,
-            required=req,
-            shape=self.shape,
-            alias=self.alias,
-            title=self.title,
-            description=self.description,
-            default=self.default,
-            metadata=self.metadata,
-            nullable=self.nullable,
-            coerce=self.coerce,
-        )
+        if self.dtype_kwargs:
+            dtype = dtype(**self.dtype_kwargs)
+        return {
+            "dtype": dtype,
+            "checks": to_checklist(self.checks) + to_checklist(checks),
+            "shape": self.shape,
+            "name": self.alias,
+            "title": self.title,
+            "description": self.description,
+            "nullable": self.nullable,
+            "coerce": self.coerce,
+        }
 
 
 def Field(
     *,
+    dtype: Any = None,
+    shape: tuple[int | None, ...] | None = None,
     eq: Any | None = None,
     ne: Any | None = None,
     gt: Any | None = None,
@@ -109,7 +110,6 @@ def Field(
     default: Any | None = None,
     metadata: dict[str, Any] | None = None,
     required: bool = True,
-    shape: tuple[int | None, ...] | None = None,
     **kwargs: Any,
 ) -> Any:
     """Field specification for TensorDict models."""

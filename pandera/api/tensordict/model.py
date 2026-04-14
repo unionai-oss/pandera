@@ -50,10 +50,10 @@ class TensorDictModel(BaseModel):
             keys=columns,
             checks=cls.__root_checks__,
             batch_size=cls.__config__.batch_size,
-            name=cls.__config__.name,
-            title=cls.__config__.title,
-            description=cls.__config__.description,
-            coerce=cls.__config__.coerce,
+            name=getattr(cls.__config__, "name", None),
+            title=getattr(cls.__config__, "title", None),
+            description=getattr(cls.__config__, "description", None),
+            coerce=getattr(cls.__config__, "coerce", False),
             **kwargs,
         )
 
@@ -65,7 +65,7 @@ class TensorDictModel(BaseModel):
     ) -> dict[str, Tensor]:
         columns = {}
         for name, (annotation, field) in fields.items():
-            dtype = annotation.arg
+            dtype = annotation.raw_annotation
             if dtype is None:
                 raise SchemaInitError(
                     f"expected annotation for field '{name}'"
@@ -156,8 +156,9 @@ class TensorDictModel(BaseModel):
     def to_schema(cls, **kwargs) -> TensorDictSchema:
         return cls.build_schema_(**kwargs)
 
-    def validate(self, check_obj, *args, **kwargs):
-        schema = self.to_schema()
+    @classmethod
+    def validate(cls, check_obj, *args, **kwargs):
+        schema = cls.to_schema()
         return schema.validate(check_obj, *args, **kwargs)
 
     def __new__(cls, *args, **kwargs) -> Any:
