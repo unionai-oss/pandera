@@ -11,4 +11,11 @@ try:
 except ImportError:
     DataType = None
 
-__all__ = ["Tensor", "TensorDictSchema", "TensorDictModel", "Field", "errors", "DataType"]
+__all__ = [
+    "Tensor",
+    "TensorDictSchema",
+    "TensorDictModel",
+    "Field",
+    "errors",
+    "DataType",
+]

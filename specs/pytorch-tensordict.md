@@ -49,20 +49,20 @@ def validate_batch(td: TensorDict):
     """Manual validation - error-prone, hard to maintain."""
     # Check batch size
     assert td.batch_size[0] == 32, f"Expected batch_size[0]=32, got {td.batch_size[0]}"
-    
+
     # Check keys exist
     assert "observation" in td, "Missing 'observation' key"
     assert "action" in td, "Missing 'action' key"
-    
+
     # Check dtypes
     assert td["observation"].dtype == torch.float32, f"Expected float32, got {td['observation'].dtype}"
     assert td["action"].dtype == torch.float32, f"Expected float32, got {td['action'].dtype}"
-    
+
     # Check value ranges (normalized observations)
     obs = td["observation"]
     assert obs.min() >= -1.0, f"observation min value {obs.min()} < -1.0"
     assert obs.max() <= 1.0, f"observation max value {obs.max()} > 1.0"
-    
+
     # Check action bounds
     action = td["action"]
     assert action.min() >= -2.0, f"action min value {action.min()} < -2.0"
@@ -167,7 +167,7 @@ from pandera import Check
 
 class PolicyModel(pa.TensorDictModel):
     """Schema for a policy network output."""
-    
+
     logits: torch.Tensor = pa.Field(
         dtype=torch.float32,
         shape=(None, 10),
@@ -179,7 +179,7 @@ class PolicyModel(pa.TensorDictModel):
         shape=(None,),
         gt=0.0
     )
-    
+
     class Config:
         batch_size = (64,)
 
@@ -313,10 +313,10 @@ def save_dataset(td: TensorDict, path: str):
 def load_and_validate_dataset(path: str) -> TensorDict:
     """Load dataset and validate before use."""
     td = TensorDict.load(path)
-    
+
     # Validate schema compliance
     validated = dataset_schema.validate(td)
-    
+
     return validated
 
 # Create and save a large dataset (e.g., ImageNet subset)
@@ -388,7 +388,7 @@ def save_trajectory(tc: TrajectoryData, path: str):
 def load_trajectory(path: str) -> TrajectoryData:
     """Load and validate tensorclass from disk."""
     tc = TrajectoryData.load(path)
-    
+
     # Validate - catches any corruption from disk I/O
     return trajectory_schema.validate(tc)
 
@@ -438,15 +438,15 @@ def validate_dataset_directory(data_dir: Path) -> list[str]:
     """Validate all TensorDict files in a directory."""
     errors = []
     schema = large_dataset_schema
-    
+
     for td_file in sorted(data_dir.glob("*.pt")):
         td = TensorDict.load(td_file)
-        
+
         try:
             schema.validate(td, lazy=True)
         except pa.SchemaErrors as e:
             errors.append(f"{td_file}: {e}")
-    
+
     return errors
 
 # Check entire dataset before starting training
@@ -539,10 +539,10 @@ replay_buffer = ReplayBuffer(
 # Validate sampled data before training
 def train_step():
     batch = replay_buffer.sample()
-    
+
     # Validate the batch - catch data corruption or storage errors
     validated_batch = replay_schema.validate(batch)
-    
+
     # Now safe to pass to loss computation
     loss = compute_ppo_loss(validated_batch)
     loss.backward()
@@ -561,7 +561,7 @@ from pandera import Check
 # Schema for actor-critic network output
 class ActorCriticOutput(pa.TensorDictModel):
     """Output from an actor-critic network."""
-    
+
     action_mean: torch.Tensor = pa.Field(
         dtype=torch.float32,
         shape=(None, 4),  # 4D action space
@@ -579,7 +579,7 @@ class ActorCriticOutput(pa.TensorDictModel):
         gt=-100.0,  # Reasonable value bounds
         lt=100.0,
     )
-    
+
     class Config:
         batch_size = (32,)
 
@@ -615,7 +615,7 @@ training_schema = pa.TensorDictSchema(
         "action": pa.Tensor(dtype=torch.float32, shape=(None, 6)),
         "reward": pa.Tensor(dtype=torch.float32, shape=(None,)),
         "done": pa.Tensor(dtype=torch.bool, shape=(None,)),
-        
+
         # PPO-specific data
         "log_prob": pa.Tensor(dtype=torch.float32, shape=(None,)),
         "value": pa.Tensor(dtype=torch.float32, shape=(None,)),
@@ -652,19 +652,19 @@ trainer_validator = pa.TensorDictSchema(
 def distributed_train_step(collector_rank, trainer_rank):
     # Collect experiences
     experience = collector.collect_experiences()
-    
+
     # Validate before sending to replay buffer
     validated_exp = collector_validator.validate(experience)
-    
+
     # Send to buffer (RRef)
     replay_buffer_ref.add(validated_exp)
-    
+
     # Trainer pulls batch
     batch = replay_buffer_ref.sample()
-    
+
     # Validate before training
     validated_batch = trainer_validator.validate(batch)
-    
+
     # Train
     optimizer.zero_grad()
     loss = compute_ppo_loss(validated_batch)

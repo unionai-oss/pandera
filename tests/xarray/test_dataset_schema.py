@@ -254,9 +254,7 @@ class TestDatasetCheckMethods:
 
     @pytest.fixture()
     def backend(self):
-        from pandera.backends.xarray.container import (
-            DatasetSchemaBackend,
-        )
+        from pandera.backends.xarray.container import DatasetSchemaBackend
 
         return DatasetSchemaBackend()
 
@@ -636,10 +634,7 @@ class TestDatasetCheckMethods:
         assert not results or all(r.passed for r in results)
 
     def test_schema_scope_checks_skipped_with_data_only(self, backend):
-        from pandera.config import (
-            ValidationDepth,
-            config_context,
-        )
+        from pandera.config import ValidationDepth, config_context
 
         ds = xr.Dataset({"a": (["x"], np.zeros(2))})
         schema = DatasetSchema(data_vars={"a": DataVar()}, dims=("y",))

@@ -1,11 +1,7 @@
 """DataFrameModel components"""
 
 from collections.abc import Callable, Iterable
-from typing import (
-    Any,
-    TypeVar,
-    Union,
-)
+from typing import Any, TypeVar, Union
 
 from pandera.api.dataframe.components import ComponentSchema
 from pandera.api.dataframe.model_components import Field as _Field

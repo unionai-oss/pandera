@@ -93,7 +93,10 @@ class TensorDictSchema(_DataFrameSchema[TensorDictCheckObjects]):
             self._dtype = value
         else:
             from pandera.engines import tensordict_engine
-            self._dtype = tensordict_engine.Engine.dtype(value) if value else None
+
+            self._dtype = (
+                tensordict_engine.Engine.dtype(value) if value else None
+            )
 
     def validate(
         self,
@@ -130,7 +133,10 @@ class TensorDictSchema(_DataFrameSchema[TensorDictCheckObjects]):
             self._dtype = value
         else:
             from pandera.engines import tensordict_engine
-            self._dtype = tensordict_engine.Engine.dtype(value) if value else None
+
+            self._dtype = (
+                tensordict_engine.Engine.dtype(value) if value else None
+            )
 
     def __repr__(self) -> str:
         return (

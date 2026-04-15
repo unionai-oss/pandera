@@ -13,14 +13,7 @@ import logging
 import sys
 import warnings
 from collections.abc import Callable, Iterable
-from typing import (
-    Any,
-    Literal,
-    NamedTuple,
-    Optional,
-    Union,
-    cast,
-)
+from typing import Any, Literal, NamedTuple, Optional, Union, cast
 
 import numpy as np
 import pandas as pd

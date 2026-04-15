@@ -2,13 +2,7 @@
 
 import warnings
 from collections.abc import Iterable
-from typing import (
-    Any,
-    NamedTuple,
-    Optional,
-    TypeVar,
-    Union,
-)
+from typing import Any, NamedTuple, Optional, TypeVar, Union
 
 from pyspark.sql import DataFrame
 from pyspark.sql.functions import col

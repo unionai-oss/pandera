@@ -3,14 +3,7 @@
 import inspect
 from collections.abc import Callable, Iterable
 from itertools import chain
-from typing import (
-    Any,
-    NamedTuple,
-    Optional,
-    TypeVar,
-    Union,
-    no_type_check,
-)
+from typing import Any, NamedTuple, Optional, TypeVar, Union, no_type_check
 
 from pandera.api.function_dispatch import Dispatcher
 from pandera.backends.base import BaseCheckBackend

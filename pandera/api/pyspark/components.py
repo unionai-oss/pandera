@@ -10,11 +10,7 @@ from pandera.dtypes import DataType
 from pandera.engines import pyspark_engine
 from pandera.utils import is_regex
 
-from .types import (
-    PySparkDataFrameTypes,
-    PySparkDtypeInputTypes,
-    PySparkFrame,
-)
+from .types import PySparkDataFrameTypes, PySparkDtypeInputTypes, PySparkFrame
 
 
 class Column(ComponentSchema[PySparkDataFrameTypes]):
