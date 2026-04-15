@@ -1,5 +1,7 @@
 """Type definitions for pandera tensordict integration."""
 
+from __future__ import annotations
+
 from typing import TYPE_CHECKING, Any, Union
 
 from pandera.api.checks import Check
@@ -10,18 +12,7 @@ except ImportError:
     torch = None
 
 if torch is not None:
-    if TYPE_CHECKING:
-        from tensordict import TensorDict, tensorclass
-
-    TensorDictCheckObjects = Any
-
-    TensorDictInputType = Union["TensorDict", "tensorclass", torch.Tensor]  # type: ignore[union-attr]
-
-    TensorDtypeInputTypes = Union[torch.dtype, str, type]  # type: ignore[union-attr]
-else:
-    TensorDictCheckObjects = Any
-    TensorDictInputType = Any
-    TensorDtypeInputTypes = Any
+    from tensordict import TensorDict, tensorclass
 
 
 def is_tensordict(obj: Any) -> bool:

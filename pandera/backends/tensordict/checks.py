@@ -30,7 +30,12 @@ class TensorDictCheckBackend(BaseCheckBackend):
     def apply(self, check_obj: Any):
         """Apply the check function to the tensor data."""
         if self.check_fn is None:
-            return CheckResult(check_passed=True, failure_cases=None)
+            return CheckResult(
+                check_output=True,
+                check_passed=True,
+                checked_object=check_obj,
+                failure_cases=None,
+            )
 
         if self.check.element_wise:
             return self._apply_element_wise(check_obj)
@@ -39,40 +44,53 @@ class TensorDictCheckBackend(BaseCheckBackend):
 
     def _apply_element_wise(self, check_obj: Any) -> CheckResult:
         """Apply check element-wise to tensor."""
-        if isinstance(check_obj, dict):
-            for key, tensor in check_obj.items():
-                result = self.check_fn(tensor)
-                if isinstance(result, torch.Tensor):
-                    passed = result.all().item()
-                else:
-                    passed = bool(result)
-                if not passed:
-                    return CheckResult(
-                        check_passed=False,
-                        failure_cases={"key": key, "failed_indices": []},
-                    )
-            return CheckResult(check_passed=True, failure_cases=None)
-        return CheckResult(check_passed=True, failure_cases=None)
+        result = self.check_fn(check_obj)
+        if isinstance(result, torch.Tensor):
+            passed = result.all().item()
+        else:
+            passed = bool(result)
+        if not passed:
+            return CheckResult(
+                check_output=result,
+                check_passed=False,
+                checked_object=check_obj,
+                failure_cases=None,
+            )
+        return CheckResult(
+            check_output=result,
+            check_passed=True,
+            checked_object=check_obj,
+            failure_cases=None,
+        )
 
     def _apply_full_tensor(self, check_obj: Any) -> CheckResult:
         """Apply check to full tensor."""
-        if isinstance(check_obj, dict):
-            for key, tensor in check_obj.items():
-                result = self.check_fn(tensor)
-                if isinstance(result, torch.Tensor):
-                    passed = result.all().item()
-                else:
-                    passed = bool(result)
-                if not passed:
-                    return CheckResult(
-                        check_passed=False,
-                        failure_cases={"key": key},
-                    )
-            return CheckResult(check_passed=True, failure_cases=None)
-        return CheckResult(check_passed=True, failure_cases=None)
+        result = self.check_fn(check_obj)
+        if isinstance(result, torch.Tensor):
+            passed = result.all().item()
+        else:
+            passed = bool(result)
+        if not passed:
+            return CheckResult(
+                check_output=result,
+                check_passed=False,
+                checked_object=check_obj,
+                failure_cases=None,
+            )
+        return CheckResult(
+            check_output=result,
+            check_passed=True,
+            checked_object=check_obj,
+            failure_cases=None,
+        )
 
     def postprocess(self, check_obj, check_output):
         """Postprocesses the result of applying the check function."""
         if isinstance(check_output, CheckResult):
             return check_output
-        return CheckResult(check_passed=bool(check_output), failure_cases=None)
+        return CheckResult(
+            check_output=check_output,
+            check_passed=bool(check_output),
+            checked_object=check_obj,
+            failure_cases=None,
+        )

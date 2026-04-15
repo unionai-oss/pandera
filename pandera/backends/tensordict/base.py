@@ -1,6 +1,7 @@
 """TensorDict parsing, validation, and error-reporting backends."""
 
 import copy
+from collections import defaultdict
 from typing import Any
 
 from pandera import errors
@@ -43,6 +44,10 @@ class TensorDictSchemaBackend(BaseSchemaBackend):
         check_obj,
         schema,
         *,
+        head: int | None = None,
+        tail: int | None = None,
+        sample: int | None = None,
+        random_state: int | None = None,
         lazy: bool = False,
         inplace: bool = False,
     ):
@@ -328,7 +333,7 @@ class TensorDictSchemaBackend(BaseSchemaBackend):
             err.failure_cases for err in schema_errors if err.failure_cases
         ]
 
-        error_counts = defaultdict(int)
+        error_counts: dict[str, int] = defaultdict(int)
         for error in error_handler.collected_errors:
             error_counts[error["reason_code"].name] += 1
 
