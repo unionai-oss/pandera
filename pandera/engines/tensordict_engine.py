@@ -97,10 +97,10 @@ if torch is not None:
             """Register a Pandera DataType for PyTorch dtypes."""
             cls._check_source_dtype(pandera_dtype_cls)
             equivalents = {}
-            strict_equivalents = {}
+            strict_equivalents: dict[Any, DataType] = {}
             for source_dtype in (pandera_dtype_cls.type,):
                 if source_dtype is not None:
-                    equivalents[source_dtype] = pandera_dtype_cls
+                    equivalents[source_dtype] = pandera_dtype_cls  # type: ignore[assignment]
 
             if equivalents:
                 registry = cls._registry[cls]
@@ -139,5 +139,12 @@ if torch is not None:
     _register_torch_dtypes()
 
 else:
-    DataType = None
-    Engine = None
+
+    class _DataTypePlaceholder:
+        pass
+
+    class _EnginePlaceholder:
+        pass
+
+    DataType = None  # type: ignore[misc, assignment]
+    Engine = None  # type: ignore[misc, assignment]

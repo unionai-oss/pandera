@@ -59,13 +59,11 @@ class TensorDictFieldInfo(FieldInfo):
         checks: Any = None,
     ) -> dict[str, Any]:
         """Keyword args for :class:`~pandera.api.tensordict.components.Tensor`."""
-        if self.dtype_kwargs:
-            dtype = dtype(**self.dtype_kwargs)
         return {
             "dtype": dtype,
             "checks": to_checklist(self.checks) + to_checklist(checks),
             "shape": self.shape,
-            "name": self.alias,
+            "name": self.alias or self.name,
             "title": self.title,
             "description": self.description,
             "nullable": self.nullable,
