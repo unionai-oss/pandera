@@ -22,6 +22,7 @@ on:
       - dev/xarray
       - bugfix
       - "release/*"
+      - "dev/*"
 
 env:
   DEFAULT_PYTHON: 3.11
