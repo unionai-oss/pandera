@@ -8,8 +8,10 @@ import polars as pl
 
 from pandera.api.polars.components import Column
 from pandera.api.polars.container import DataFrameSchema
-from pandera.schema_statistics.pandas import parse_check_statistics
-from pandera.schema_statistics.polars import infer_polars_dataframe_statistics
+from pandera.schema_statistics.polars import (
+    infer_polars_dataframe_statistics,
+    parse_check_statistics,
+)
 
 
 def infer_dataframe_schema(df: pl.DataFrame) -> DataFrameSchema:

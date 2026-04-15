@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
-from typing import Any
+import warnings
+from typing import Any, Union
 
 from pandera import dtypes
+from pandera.api.checks import Check
 from pandera.engines import polars_engine
-from pandera.schema_statistics.pandas import parse_checks
 
 
 def _infer_polars_series_checks(
@@ -85,3 +86,82 @@ def get_dataframe_schema_statistics(dataframe_schema) -> dict[str, Any]:
         "coerce": dataframe_schema.coerce,
     }
     return statistics
+
+
+def parse_checks(checks) -> Union[list[dict[str, Any]], None]:
+    """Convert Check object to check statistics including options."""
+
+    def _has_custom_error(check: Check) -> bool:
+        """Determine whether a check has a user-defined error message."""
+        if check.error is None:
+            return False
+
+        if check.name is None or not Check.is_builtin_check(check.name):
+            return True
+
+        try:
+            default_check = getattr(Check, check.name)(
+                **(check.statistics or {})
+            )
+        except (AttributeError, TypeError, ValueError):
+            return True
+
+        return check.error != default_check.error
+
+    check_statistics = []
+
+    for check in checks:
+        if check not in Check:
+            warnings.warn(
+                "Only registered checks may be serialized to statistics. "
+                "Did you forget to register it with the extension API? "
+                f"Check `{check.name}` will be skipped."
+            )
+            continue
+
+        base_stats = {} if check.statistics is None else check.statistics
+
+        check_options = {
+            "check_name": check.name,
+            "raise_warning": check.raise_warning,
+            "n_failure_cases": check.n_failure_cases,
+            "ignore_na": check.ignore_na,
+        }
+        if _has_custom_error(check):
+            check_options["error"] = check.error
+
+        check_options = {
+            k: v for k, v in check_options.items() if v is not None
+        }
+
+        if check_options:
+            base_stats["options"] = check_options
+            check_statistics.append(base_stats)
+
+    return check_statistics if check_statistics else None
+
+
+def parse_check_statistics(check_stats: Union[dict[str, Any], None]):
+    """Convert check statistics to a list of Check objects, including their options."""
+    if check_stats is None:
+        return None
+    checks = []
+    for check_name, stats in check_stats.items():
+        check = getattr(Check, check_name)
+        try:
+            if isinstance(stats, dict):
+                options = (
+                    stats.pop("options", {}) if "options" in stats else {}
+                )
+                if stats:
+                    check_instance = check(**stats)
+                else:
+                    check_instance = check()
+                for option_name, option_value in options.items():
+                    setattr(check_instance, option_name, option_value)
+                checks.append(check_instance)
+            else:
+                checks.append(check(stats))
+        except TypeError:
+            checks.append(check(stats))
+    return checks if checks else None
