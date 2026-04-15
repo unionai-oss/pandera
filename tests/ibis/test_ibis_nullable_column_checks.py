@@ -1,16 +1,16 @@
-"""Test for issue #2294: ibis validation fails checks if column all nulls."""
+"""Tests for ibis validation with nullable columns and check functions."""
 
+import ibis
 import pytest
 
 import pandera.ibis
-import ibis
 
 
-class TestIssue2294:
-    """Tests for the fix to issue #2294."""
+class TestIbisNullableColumnChecks:
+    """Tests for ibis validation when nullable columns contain only null values."""
 
     def test_ibis_column_with_all_nulls_passes_nullable_check(self):
-        """Ibis validation should pass when checking a nullable column with all nulls."""
+        """Validation should pass when checking a nullable column with all nulls."""
         data = {"my_value": [None, None]}
         df = ibis.memtable(data).cast({"my_value": "float64"})
 
@@ -26,12 +26,11 @@ class TestIssue2294:
             }
         )
 
-        # Should not raise - all nulls should be ignored
         result = schema.validate(df)
         assert isinstance(result, ibis.Table)
 
     def test_ibis_column_with_mixed_nulls_passes_nullable_check(self):
-        """Ibis validation should pass with some nulls and some valid values."""
+        """Validation should pass with some nulls and some valid values."""
         data = {"my_value": [42, None]}
         df = ibis.memtable(data).cast({"my_value": "float64"})
 
@@ -51,7 +50,7 @@ class TestIssue2294:
         assert isinstance(result, ibis.Table)
 
     def test_ibis_column_with_invalid_values_fails(self):
-        """Ibis validation should fail when non-null values don't pass checks."""
+        """Validation should fail when non-null values don't pass the check."""
         data = {"my_value": [-5, None]}
         df = ibis.memtable(data).cast({"my_value": "float64"})
 
@@ -71,7 +70,7 @@ class TestIssue2294:
             schema.validate(df)
 
     def test_ibis_column_with_all_valid_values_passes(self):
-        """Ibis validation should pass when all non-null values pass checks."""
+        """Validation should pass when all non-null values pass the check."""
         data = {"my_value": [10, 20]}
         df = ibis.memtable(data).cast({"my_value": "float64"})
 

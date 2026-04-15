@@ -59,26 +59,29 @@ class IbisSchemaBackend(BaseSchemaBackend):
                     schema, check, check_index
                 )
             else:
+                import ibis
                 import pandas as pd
 
                 from pandera.api.pandas.types import is_table
-
-                import ibis
 
                 check_failure_cases = check_result.failure_cases.to_pandas()
 
                 failed_index = None
                 check_output = check_result.check_output.to_pandas()
-                
+
                 # Get ignore_na from the check parameter or default to True
-                check_ignore_na = getattr(check, 'ignore_na', True)
-                
+                check_ignore_na = getattr(check, "ignore_na", True)
+
                 if isinstance(check_output, pd.Series):
                     # Handle case where all values are None or NA - these should be filtered out if ignore_na=True
                     if check_ignore_na:
                         # Convert to boolean, treating NA as False for the purpose of ~ operation
-                        check_output_bool = check_output.fillna(False).astype(bool)
-                        failed_index = check_output_bool[~check_output_bool].index
+                        check_output_bool = check_output.fillna(False).astype(
+                            bool
+                        )
+                        failed_index = check_output_bool[
+                            ~check_output_bool
+                        ].index
                     else:
                         failed_index = check_output[~check_output].index
                 elif (
@@ -89,12 +92,12 @@ class IbisSchemaBackend(BaseSchemaBackend):
                     # Handle case where all values are None or NA - these should be filtered out if ignore_na=True
                     if check_ignore_na:
                         # Convert to boolean, treating NA as False for the purpose of ~ operation
-                        check_output_bool = check_output_col.fillna(False).astype(bool)
+                        check_output_bool = check_output_col.fillna(
+                            False
+                        ).astype(bool)
                         failed_index = check_output.index[~check_output_bool]
                     else:
-                        failed_index = check_output.index[
-                            ~check_output_col
-                        ]
+                        failed_index = check_output.index[~check_output_col]
 
                 if failed_index is not None:
                     check_failure_cases = check_failure_cases.set_axis(
