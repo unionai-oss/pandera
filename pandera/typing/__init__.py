@@ -50,13 +50,7 @@ except ImportError:
 
 @lru_cache
 def get_dataframe_types():
-    from pandera.typing import (
-        dask,
-        geopandas,
-        modin,
-        pyspark,
-        pyspark_sql,
-    )
+    from pandera.typing import dask, geopandas, modin, pyspark, pyspark_sql
 
     dataframe_types: set[type] = {DataFrame}
     if dask.DASK_INSTALLED:
@@ -79,12 +73,7 @@ def get_dataframe_types():
 
 @lru_cache
 def get_series_types():
-    from pandera.typing import (
-        dask,
-        geopandas,
-        modin,
-        pyspark,
-    )
+    from pandera.typing import dask, geopandas, modin, pyspark
 
     series_types: set[type] = {Series}
     if dask.DASK_INSTALLED:

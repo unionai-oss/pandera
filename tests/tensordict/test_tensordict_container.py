@@ -10,7 +10,9 @@ except ImportError:
     TensorDict = None
     tensorclass = None
 
-torch_condition = pytest.mark.skipif(torch is None, reason="torch not installed")
+torch_condition = pytest.mark.skipif(
+    torch is None, reason="torch not installed"
+)
 
 
 @torch_condition
@@ -72,7 +74,9 @@ class TestTensorDictSchema:
         """Test TensorDictSchema creation from key list."""
         from pandera.tensordict import TensorDictSchema
 
-        schema = TensorDictSchema(keys=["observation", "action"], batch_size=(32,))
+        schema = TensorDictSchema(
+            keys=["observation", "action"], batch_size=(32,)
+        )
         assert "observation" in schema.columns
         assert "action" in schema.columns
 
@@ -244,7 +248,11 @@ class TestTensorDictSchemaChecks:
         )
 
         td = TensorDict(
-            {"values": torch.tensor([1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0])},
+            {
+                "values": torch.tensor(
+                    [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0]
+                )
+            },
             batch_size=[10],
         )
 
@@ -268,7 +276,11 @@ class TestTensorDictSchemaChecks:
         )
 
         td = TensorDict(
-            {"values": torch.tensor([1.0, -2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0])},
+            {
+                "values": torch.tensor(
+                    [1.0, -2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0]
+                )
+            },
             batch_size=[10],
         )
 
@@ -295,7 +307,9 @@ class TestTensorDictSchemaBatchSize:
         result = schema.validate(td)
         assert isinstance(result, TensorDict)
 
-        td = TensorDict({"observation": torch.randn(100, 10)}, batch_size=[100])
+        td = TensorDict(
+            {"observation": torch.randn(100, 10)}, batch_size=[100]
+        )
         result = schema.validate(td)
         assert isinstance(result, TensorDict)
 
@@ -396,7 +410,9 @@ class TestTensorDictErrorCases:
 
         schema = TensorDictSchema(keys={"x": Tensor(dtype=torch.float32)})
 
-        with pytest.raises(errors.BackendNotFoundError, match="Backend not found"):
+        with pytest.raises(
+            errors.BackendNotFoundError, match="Backend not found"
+        ):
             schema.validate({"x": torch.randn(10)})
 
     def test_invalid_tensor_in_tensordict(self):
@@ -492,7 +508,10 @@ class TestTensorDictErrorCases:
         )
 
         td = TensorDict(
-            {"a": torch.randn(10).to(torch.int32), "b": torch.randn(10).to(torch.int64)},
+            {
+                "a": torch.randn(10).to(torch.int32),
+                "b": torch.randn(10).to(torch.int64),
+            },
             batch_size=[10],
         )
 
@@ -575,7 +594,9 @@ class TestTensorDictErrorCases:
             batch_size=(10,),
         )
 
-        td = TensorDict({"x": torch.randn(10).to(torch.int32)}, batch_size=[10])
+        td = TensorDict(
+            {"x": torch.randn(10).to(torch.int32)}, batch_size=[10]
+        )
 
         try:
             schema.validate(td)
@@ -625,8 +646,8 @@ class TestTensorDictErrorCases:
     def test_schema_error_reason_codes(self):
         """Test that error reason codes are correctly set."""
         from pandera import errors
-        from pandera.tensordict import Tensor, TensorDictSchema
         from pandera.errors import SchemaErrorReason
+        from pandera.tensordict import Tensor, TensorDictSchema
 
         schema = TensorDictSchema(
             keys={"x": Tensor(dtype=torch.float32)},

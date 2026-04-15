@@ -7,7 +7,9 @@ try:
 except ImportError:
     torch = None
 
-torch_condition = pytest.mark.skipif(torch is None, reason="torch not installed")
+torch_condition = pytest.mark.skipif(
+    torch is None, reason="torch not installed"
+)
 
 
 @torch_condition
@@ -121,8 +123,8 @@ class TestTensorDictEngineErrorCases:
 
     def test_datatype_try_coerce_wrong_type(self):
         """Test DataType try_coerce raises on wrong type."""
-        from pandera.engines import tensordict_engine
         from pandera import errors
+        from pandera.engines import tensordict_engine
 
         dtype = tensordict_engine.DataType(torch.float32)
 

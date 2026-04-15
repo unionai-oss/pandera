@@ -9,11 +9,7 @@ from pandera.backends.pyspark.register import register_pyspark_backends
 from pandera.dtypes import DataType
 from pandera.engines import pyspark_engine
 
-from .types import (
-    PySparkDataFrameTypes,
-    PySparkDtypeInputTypes,
-    PySparkFrame,
-)
+from .types import PySparkDataFrameTypes, PySparkDtypeInputTypes, PySparkFrame
 
 
 class Column(ComponentSchema[PySparkDataFrameTypes]):

@@ -76,7 +76,7 @@ error_reporting
 ```
 
 - {ref}`pytorch-tensordict-schema` — validating a {class}`~tensordict.TensorDict` with `Tensor` components
-- {ref}`pytorch-tensordict-model` — class-based `TensorDictModel` 
+- {ref}`pytorch-tensordict-model` — class-based `TensorDictModel`
 - {ref}`pytorch-checks` — checks, parsers, and lazy validation
 - {ref}`pytorch-error-reporting` — `SchemaError` / `SchemaErrors`, lazy validation, and failure cases
 

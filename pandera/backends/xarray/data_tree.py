@@ -5,10 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from pandera.api.base.error_handler import ErrorHandler, get_error_category
-from pandera.api.xarray.container import (
-    DatasetSchema,
-    DataTreeSchema,
-)
+from pandera.api.xarray.container import DatasetSchema, DataTreeSchema
 from pandera.backends.base import CoreCheckResult
 from pandera.backends.xarray.base import XarraySchemaBackend
 from pandera.backends.xarray.container import DatasetSchemaBackend

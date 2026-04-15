@@ -5,11 +5,7 @@ from typing import Any, ClassVar, Union, cast
 
 from pandera.api.base.model import BaseModel
 from pandera.api.checks import Check
-from pandera.api.dataframe.model_components import (
-    CHECK_KEY,
-    Field,
-    FieldInfo,
-)
+from pandera.api.dataframe.model_components import CHECK_KEY, Field, FieldInfo
 from pandera.api.tensordict.components import Tensor
 from pandera.api.tensordict.container import TensorDictSchema
 from pandera.api.tensordict.model_config import BaseConfig

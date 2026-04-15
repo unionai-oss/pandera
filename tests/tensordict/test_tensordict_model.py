@@ -5,13 +5,16 @@ import pytest
 try:
     import torch
     from tensordict import TensorDict
+
     from pandera.tensordict import DataType
 except ImportError:
     torch = None
     TensorDict = None
     DataType = None
 
-torch_condition = pytest.mark.skipif(torch is None, reason="torch not installed")
+torch_condition = pytest.mark.skipif(
+    torch is None, reason="torch not installed"
+)
 
 
 @torch_condition
@@ -35,7 +38,9 @@ class TestTensorDictModel:
         from pandera.tensordict import DataType, Field, TensorDictModel
 
         class ModelWithField(TensorDictModel):
-            observation: DataType = Field(dtype=torch.float32, shape=(None, 10))
+            observation: DataType = Field(
+                dtype=torch.float32, shape=(None, 10)
+            )
             action: DataType = Field(dtype=torch.float32, shape=(None, 5))
 
         schema = ModelWithField.to_schema()
@@ -323,7 +328,11 @@ class TestTensorDictModelErrorCases:
                 batch_size = (10,)
 
         td = TensorDict(
-            {"values": torch.tensor([1.0, -2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0])},
+            {
+                "values": torch.tensor(
+                    [1.0, -2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0]
+                )
+            },
             batch_size=[10],
         )
 

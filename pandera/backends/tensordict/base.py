@@ -79,16 +79,12 @@ class TensorDictSchemaBackend(BaseSchemaBackend):
         """Run all checks and collect errors."""
         self._check_batch_size(check_obj, schema, error_handler, lazy)
         self._check_keys(check_obj, schema, error_handler, lazy)
-        self._check_dtypes_and_shapes(
-            check_obj, schema, error_handler, lazy
-        )
+        self._check_dtypes_and_shapes(check_obj, schema, error_handler, lazy)
         self._run_value_checks(check_obj, schema, error_handler, lazy)
 
         return error_handler
 
-    def _check_batch_size(
-        self, check_obj, schema, error_handler, lazy
-    ):
+    def _check_batch_size(self, check_obj, schema, error_handler, lazy):
         """Validate batch_size matches."""
         if schema.batch_size is None:
             return
@@ -118,9 +114,7 @@ class TensorDictSchemaBackend(BaseSchemaBackend):
             zip(expected_batch_size, actual_batch_size)
         ):
             if exp is not None and exp != act:
-                error_msg = (
-                    f"Expected batch_size[{i}]={exp}, got batch_size[{i}]={act}"
-                )
+                error_msg = f"Expected batch_size[{i}]={exp}, got batch_size[{i}]={act}"
                 error = SchemaError(
                     schema=schema,
                     data=check_obj,
@@ -150,9 +144,7 @@ class TensorDictSchemaBackend(BaseSchemaBackend):
                     error,
                 )
 
-    def _check_dtypes_and_shapes(
-        self, check_obj, schema, error_handler, lazy
-    ):
+    def _check_dtypes_and_shapes(self, check_obj, schema, error_handler, lazy):
         """Validate tensor dtypes and shapes."""
         for key, tensor_schema in schema.columns.items():
             if key not in check_obj:
@@ -237,9 +229,7 @@ class TensorDictSchemaBackend(BaseSchemaBackend):
                             error,
                         )
 
-    def _run_value_checks(
-        self, check_obj, schema, error_handler, lazy
-    ):
+    def _run_value_checks(self, check_obj, schema, error_handler, lazy):
         """Run value checks on tensor values."""
         from pandera.api.base.checks import CheckResult
 
@@ -252,9 +242,7 @@ class TensorDictSchemaBackend(BaseSchemaBackend):
 
             tensor = check_obj[key]
             is_tensorclass = hasattr(tensor, "as_dict")
-            tensor_data = (
-                tensor.as_dict() if is_tensorclass else {key: tensor}
-            )
+            tensor_data = tensor.as_dict() if is_tensorclass else {key: tensor}
 
             for check_index, check in enumerate(tensor_schema.checks):
                 try:
@@ -273,8 +261,7 @@ class TensorDictSchemaBackend(BaseSchemaBackend):
                 if not check_result.passed:
                     check_msg = check_result.message or "check failed"
                     error_msg = (
-                        f"Check '{check}' failed for key '{key}': "
-                        f"{check_msg}"
+                        f"Check '{check}' failed for key '{key}': {check_msg}"
                     )
                     error = SchemaError(
                         schema=schema,
@@ -296,17 +283,13 @@ class TensorDictSchemaBackend(BaseSchemaBackend):
 
     def run_checks(self, check_obj, schema):
         """Run a list of checks on the check object."""
-        raise NotImplementedError(
-            "Use _run_value_checks instead"
-        )
+        raise NotImplementedError("Use _run_value_checks instead")
 
     def run_schema_component_checks(
         self, check_obj, schema, schema_components, lazy
     ):
         """Run checks for all schema components."""
-        raise NotImplementedError(
-            "Use _run_value_checks instead"
-        )
+        raise NotImplementedError("Use _run_value_checks instead")
 
     def check_name(self, check_obj, schema):
         """Core check that checks the name of the check object."""
@@ -330,9 +313,8 @@ class TensorDictSchemaBackend(BaseSchemaBackend):
         """Get failure cases metadata for lazy validation."""
         from collections import defaultdict
 
-        from pandera.errors import FailureCaseMetadata
-
         from pandera.api.base.error_handler import ErrorHandler
+        from pandera.errors import FailureCaseMetadata
 
         error_dicts = {}
         error_handler = ErrorHandler()
@@ -342,7 +324,9 @@ class TensorDictSchemaBackend(BaseSchemaBackend):
             error_dicts = error_handler.summarize(schema_name=schema_name)
             error_dicts = dict(error_dicts)
 
-        failure_cases = [err.failure_cases for err in schema_errors if err.failure_cases]
+        failure_cases = [
+            err.failure_cases for err in schema_errors if err.failure_cases
+        ]
 
         error_counts = defaultdict(int)
         for error in error_handler.collected_errors:

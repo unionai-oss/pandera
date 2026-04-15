@@ -6,12 +6,7 @@ import pytest
 xr = pytest.importorskip("xarray")
 
 import pandera.errors
-from pandera.xarray import (
-    Check,
-    DataArraySchema,
-    DatasetSchema,
-    DataVar,
-)
+from pandera.xarray import Check, DataArraySchema, DatasetSchema, DataVar
 
 
 class TestCfStandardName:
