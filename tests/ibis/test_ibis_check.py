@@ -273,3 +273,28 @@ def test_ibis_dataframe_check_n_failure_cases(t):
         schema.validate(t, lazy=True)
     except pa.errors.SchemaErrors as exc:
         assert exc.failure_cases.shape[0] == n_failure_cases
+
+
+@pytest.mark.parametrize(
+    "values",
+    [
+        pytest.param([None, None], id="all_nulls"),
+        pytest.param([42, None], id="mixed"),
+    ],
+)
+def test_nullable_column_check_passes_with_nulls(values):
+    """Regression test for https://github.com/unionai-oss/pandera/issues/2294.
+
+    Validation should pass when a nullable column contains null values.
+    """
+    df = ibis.memtable({"my_value": values}).cast({"my_value": "float64"})
+    schema = pa.DataFrameSchema(
+        {
+            "my_value": pa.Column(
+                float,
+                nullable=True,
+                checks=[pa.Check.greater_than_or_equal_to(0)],
+            )
+        }
+    )
+    assert isinstance(schema.validate(df), ibis.Table)
