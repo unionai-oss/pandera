@@ -752,9 +752,13 @@ class STRING(DataType, dtypes.String):
             return np.full(len(data_container), True, dtype=bool)
         # On pandas < 3, object dtype often holds strings; accept Object when
         # data_container is None (e.g. schema inference) or when we have the series.
+        # On pandas 3+, object dtype should not be accepted as StringDtype since
+        # pandas 3 properly converts to string[pyarrow] by default.
         if not PANDAS_3_0_0_PLUS and isinstance(resolved, numpy_engine.Object):
             if data_container is None:
                 return True
+            if len(data_container) == 0:
+                return False
             if type(data_container).__module__.startswith("pyspark.pandas"):
                 is_python_string = data_container.map(
                     lambda x: str(type(x))
@@ -765,6 +769,17 @@ class STRING(DataType, dtypes.String):
                 is_python_string = data_container.map(
                     lambda x: isinstance(x, str)
                 )  # type: ignore[operator]
+            return is_python_string.astype(bool) | data_container.isna()  # type: ignore[return-value]
+        # For pandas 3+, also handle the case where data has object dtype but
+        # schema expects StringDtype - this can happen with None/mixed values
+        if PANDAS_3_0_0_PLUS and isinstance(resolved, numpy_engine.Object):
+            if data_container is None:
+                return True
+            if len(data_container) == 0:
+                return False
+            is_python_string = data_container.map(
+                lambda x: isinstance(x, str)
+            )  # type: ignore[operator]
             return is_python_string.astype(bool) | data_container.isna()  # type: ignore[return-value]
         return super().check(pandera_dtype, data_container)
 
