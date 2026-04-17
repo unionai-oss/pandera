@@ -70,15 +70,18 @@ class IbisSchemaBackend(BaseSchemaBackend):
 
                 check_ignore_na = getattr(check, "ignore_na", True)
 
+                def failed_mask(series: pd.Series) -> pd.Series:
+                    return ~series.fillna(check_ignore_na).astype(bool)
+
                 if isinstance(check_output, pd.Series):
-                    mask = ~check_output.fillna(check_ignore_na).astype(bool)
-                    failed_index = check_output[mask].index
+                    failed_index = check_output[failed_mask(check_output)].index
                 elif (
                     is_table(check_output)
                     and CHECK_OUTPUT_KEY in check_output.columns
                 ):
-                    mask = ~check_output[CHECK_OUTPUT_KEY].fillna(check_ignore_na).astype(bool)
-                    failed_index = check_output.index[mask]
+                    failed_index = check_output.index[
+                        failed_mask(check_output[CHECK_OUTPUT_KEY])
+                    ]
 
                 if failed_index is not None:
                     check_failure_cases = check_failure_cases.set_axis(
