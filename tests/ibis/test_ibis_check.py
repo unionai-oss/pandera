@@ -1,5 +1,7 @@
 """Unit tests for the Ibis check backend."""
 
+from contextlib import nullcontext
+
 import ibis
 import ibis.expr.types as ir
 import pandas as pd
@@ -276,15 +278,15 @@ def test_ibis_dataframe_check_n_failure_cases(t):
 
 
 @pytest.mark.parametrize(
-    "values,expect_error",
+    "values,expectation",
     [
-        pytest.param([None, None], False, id="all_nulls_pass"),
-        pytest.param([42, None], False, id="mixed_nulls_pass"),
-        pytest.param([-5, None], True, id="invalid_value_fails"),
-        pytest.param([10, 20], False, id="all_valid_pass"),
+        pytest.param([None, None], nullcontext(), id="all_nulls_pass"),
+        pytest.param([42, None], nullcontext(), id="mixed_nulls_pass"),
+        pytest.param([-5, None], pytest.raises(pa.errors.SchemaError), id="invalid_value_fails"),
+        pytest.param([10, 20], nullcontext(), id="all_valid_pass"),
     ],
 )
-def test_nullable_column_check(values, expect_error):
+def test_nullable_column_check(values, expectation):
     """Regression test for https://github.com/unionai-oss/pandera/issues/2294."""
     df = ibis.memtable({"my_value": values}).cast({"my_value": "float64"})
     schema = pa.DataFrameSchema(
@@ -296,8 +298,5 @@ def test_nullable_column_check(values, expect_error):
             )
         }
     )
-    if expect_error:
-        with pytest.raises(pa.errors.SchemaError):
-            schema.validate(df)
-    else:
-        assert isinstance(schema.validate(df), ibis.Table)
+    with expectation:
+        schema.validate(df)
