@@ -130,8 +130,30 @@ def _testing_requirements(
     polars = polars or POLARS_VERSIONS[-1]
 
     _requirements = PYPROJECT["project"]["dependencies"]
-    if extra is not None:
+    # Virtual extras combine multiple real extras; handle before the general lookup.
+    if extra == "polars-narwhals":
+        _requirements += PYPROJECT["project"]["optional-dependencies"][
+            "polars"
+        ]
+        _requirements += PYPROJECT["project"]["optional-dependencies"][
+            "narwhals"
+        ]
+    elif extra == "ibis-narwhals":
+        _requirements += PYPROJECT["project"]["optional-dependencies"]["ibis"]
+        _requirements += PYPROJECT["project"]["optional-dependencies"][
+            "narwhals"
+        ]
+    elif extra is not None:
         _requirements += PYPROJECT["project"]["optional-dependencies"][extra]
+    # TEST-03: narwhals backend tests require polars and ibis co-installed
+    # (the narwhals extra alone only installs narwhals itself).
+    if extra == "narwhals":
+        _requirements += PYPROJECT["project"]["optional-dependencies"].get(
+            "polars", []
+        )
+        _requirements += PYPROJECT["project"]["optional-dependencies"].get(
+            "ibis", []
+        )
 
     # some of the extras are only supported with the pandas extra
     if extra in EXTRAS_REQUIRING_PANDAS:
@@ -199,6 +221,7 @@ DATAFRAME_EXTRAS = {
     "dask",
     "ibis",
     "xarray",
+    "narwhals",  # TEST-03: narwhals backend runs with polars+ibis co-installed
 }
 for extra in OPTIONAL_DEPENDENCIES:
     if extra == "pandas":
@@ -222,6 +245,10 @@ for extra in OPTIONAL_DEPENDENCIES:
                 for pandas in PANDAS_VERSIONS[:-1]
             ]
         )
+    elif extra == "narwhals":
+        # Use pandas=None so the session ID matches CI invocation and
+        # _testing_requirements auto-selects the version-appropriate pandas.
+        EXTRA_PYTHON_PYDANTIC.append((extra, None, None, None))
     elif extra in DATAFRAME_EXTRAS:
         EXTRA_PYTHON_PYDANTIC.append((extra, PANDAS_VERSIONS[0], None, None))
     else:
@@ -253,6 +280,9 @@ def tests(
 
     env = {}
     test_dir = "base" if extra is None else extra
+    if extra == "narwhals":
+        # TEST-03: narwhals backend tests live under tests/backends/narwhals/
+        test_dir = "backends/narwhals"
 
     if extra and extra.startswith("modin"):
         modin_split = extra.split("-")
@@ -291,6 +321,56 @@ def tests(
         args.append(path)
 
     session.run("pytest", *args, env=env)
+
+
+@nox.session(venv_backend="uv", python=PYTHON_VERSIONS)
+@nox.parametrize("extra", ["polars", "ibis"])
+def tests_narwhals_backend(session: Session, extra: str) -> None:
+    """Run existing backend tests with narwhals co-installed.
+
+    Installs <extra> + narwhals so that register_polars_backends() /
+    register_ibis_backends() auto-detects narwhals and activates the narwhals
+    backend for that library's frame types. The existing tests/polars/ or
+    tests/ibis/ suite then exercises the narwhals backend rather than the
+    native one. Tests that expose narwhals backend gaps should be marked
+    xfail(condition=narwhals_installed, ...) in the test files.
+    """
+    deps = PYPROJECT["project"]["optional-dependencies"]
+    requirements = [
+        *PYPROJECT["project"]["dependencies"],
+        *deps[extra],
+        *deps["narwhals"],
+        *nox.project.dependency_groups(PYPROJECT, *["dev", "testing"]),
+    ]
+    # pin polars to its latest tested version when installing polars
+    if extra == "polars":
+        requirements = [
+            f"polars=={POLARS_VERSIONS[-1]}" if r == "polars" else r
+            for r in requirements
+        ]
+    if extra == "ibis":
+        requirements = [
+            "ibis-framework[duckdb,polars]"
+            if r == "ibis-framework" or r.startswith("ibis-framework ")
+            else r
+            for r in requirements
+        ]
+    session.install(*list(set(requirements)))
+    session.install("-e", ".", "--config-settings", "editable_mode=compat")
+    session.run("uv", "pip", "list")
+
+    path = f"tests/{extra}/"
+    args = [
+        f"--cov={PACKAGE}",
+        "--cov-report=term-missing",
+        "--cov-report=xml",
+        "--cov-append",
+        "--verbosity=10",
+    ]
+    if not CI_RUN:
+        args.append("--cov-report=html")
+    args.append(path)
+    session.run("pytest", *args)
 
 
 @nox.session(venv_backend="uv", python=PYTHON_VERSIONS)

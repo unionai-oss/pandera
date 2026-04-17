@@ -33,6 +33,9 @@ dependencies:
   # xarray extra
   - xarray >= 2024.10.0
 
+  # narwhals extra
+  - narwhals >= 1.26.0
+
   # modin extra
   - modin
   - protobuf
