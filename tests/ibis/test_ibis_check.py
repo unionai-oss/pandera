@@ -1,5 +1,7 @@
 """Unit tests for the Ibis check backend."""
 
+from contextlib import nullcontext
+
 import ibis
 import ibis.expr.types as ir
 import pandas as pd
@@ -273,3 +275,28 @@ def test_ibis_dataframe_check_n_failure_cases(t):
         schema.validate(t, lazy=True)
     except pa.errors.SchemaErrors as exc:
         assert exc.failure_cases.shape[0] == n_failure_cases
+
+
+@pytest.mark.parametrize(
+    "values,expectation",
+    [
+        pytest.param([None, None], nullcontext(), id="all_nulls_pass"),
+        pytest.param([42, None], nullcontext(), id="mixed_nulls_pass"),
+        pytest.param([-5, None], pytest.raises(pa.errors.SchemaError), id="invalid_value_fails"),
+        pytest.param([10, 20], nullcontext(), id="all_valid_pass"),
+    ],
+)
+def test_nullable_column_check(values, expectation):
+    """Regression test for https://github.com/unionai-oss/pandera/issues/2294."""
+    df = ibis.memtable({"my_value": values}).cast({"my_value": "float64"})
+    schema = pa.DataFrameSchema(
+        {
+            "my_value": pa.Column(
+                float,
+                nullable=True,
+                checks=[pa.Check.greater_than_or_equal_to(0)],
+            )
+        }
+    )
+    with expectation:
+        assert isinstance(schema.validate(df), ibis.Table)
