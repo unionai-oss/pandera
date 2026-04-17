@@ -299,4 +299,4 @@ def test_nullable_column_check(values, expectation):
         }
     )
     with expectation:
-        schema.validate(df)
+        assert isinstance(schema.validate(df), ibis.Table)
