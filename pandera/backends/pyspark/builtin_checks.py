@@ -390,3 +390,32 @@ def str_length(
         cond = (str_len >= min_value) & (str_len <= max_value)
 
     return data.dataframe.filter(~cond).limit(1).count() == 0
+
+@register_builtin_check(
+    error="unique_values_eq({values})",
+)
+@register_input_datatypes(
+    acceptable_datatypes=convert_to_list(
+        ALL_NUMERIC_TYPE, ALL_DATE_TYPE, STRING_TYPE, BINARY_TYPE
+    )
+)
+def unique_values_eq(
+        data: PysparkDataframeColumnObject, values: Iterable
+) -> bool:
+    """Ensure that unique values in the data object contain all values.
+
+    Remember it can be a compute intensive check on large dataset. So, use it with caution.
+
+    .. note::
+        In contrast with :func:`isin`, this check makes sure that all the items
+        in the ``values`` iterable are contained within the series.
+
+    :param data: NamedTuple PysparkDataframeColumnObject contains the dataframe and column name for the check. The key
+        to access the dataframe is "dataframe", and the key to access the column name is "column_name".
+    :param values: The set of values that must be present. May be any iterable.
+    """
+    unique_values = {
+        row[data.column_name]
+        for row in data.dataframe.select(data.column_name).distinct().collect()
+    }
+    return unique_values == set(values)
