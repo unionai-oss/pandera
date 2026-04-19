@@ -12,6 +12,10 @@ if TYPE_CHECKING:
     from pandera.api.tensordict.container import TensorDictSchema
     from pandera.api.tensordict.model import TensorDictModel
 
+# Import actual implementations (not just for type checking)
+from pandera.api.tensordict.components import Tensor
+from pandera.api.tensordict.container import TensorDictSchema
+from pandera.api.tensordict.model import TensorDictModel
 from pandera.api.tensordict.model_components import Field
 
 __all__ = [

@@ -20,11 +20,35 @@ def _is_tensordict(obj: Any) -> bool:
     if torch is None:
         return False
     try:
-        from tensordict import TensorDict, tensorclass
-
-        return isinstance(obj, (TensorDict, tensorclass))
+        from tensordict import TensorDict
+        
+        # Check for TensorDict first (more common case)
+        if isinstance(obj, TensorDict):
+            return True
+        
+        # Check for tensorclass - use _is_tensorclass attribute which is set
+        # on all tensorclass instances
+        if hasattr(obj, '_is_tensorclass') and obj._is_tensorclass:
+            return True
+            
+        return False
     except ImportError:
         return False
+
+
+def _get_tensor(obj: Any, key: str) -> Any:
+    """Get tensor from TensorDict or tensorclass object."""
+    # For TensorDict, use __getitem__
+    try:
+        return obj[key]
+    except (KeyError, TypeError, ValueError):
+        pass
+    
+    # For tensorclass, use attribute access
+    if hasattr(obj, key):
+        return getattr(obj, key)
+    
+    raise KeyError(f"Key '{key}' not found in object")
 
 
 class TensorDictSchemaBackend(BaseSchemaBackend):
@@ -53,11 +77,6 @@ class TensorDictSchemaBackend(BaseSchemaBackend):
     ):
         """Validate a TensorDict against the schema."""
         error_handler = ErrorHandler(lazy)
-
-        if not _is_tensordict(check_obj):
-            raise TypeError(
-                f"Expected TensorDict or tensorclass, got {type(check_obj)}"
-            )
 
         check_obj = self.preprocess(check_obj, inplace=inplace)
 
@@ -134,8 +153,26 @@ class TensorDictSchemaBackend(BaseSchemaBackend):
 
     def _check_keys(self, check_obj, schema, error_handler, lazy):
         """Validate required keys exist."""
-        for key in schema.columns:
-            if key not in check_obj:
+        for key in schema.keys:
+            # Check if key exists - use different methods for TensorDict vs tensorclass
+            is_key_present = False
+            
+            try:
+                from tensordict import TensorDict
+                
+                # For TensorDict, use 'in' operator
+                if isinstance(check_obj, TensorDict):
+                    is_key_present = key in check_obj
+                else:
+                    # For tensorclass, use keys() method or attribute access
+                    if hasattr(check_obj, 'keys'):
+                        is_key_present = key in check_obj.keys()
+                    elif hasattr(check_obj, key):
+                        is_key_present = True
+            except ImportError:
+                pass
+            
+            if not is_key_present:
                 error_msg = f"Missing key '{key}' in TensorDict"
                 error = SchemaError(
                     schema=schema,
@@ -151,11 +188,12 @@ class TensorDictSchemaBackend(BaseSchemaBackend):
 
     def _check_dtypes_and_shapes(self, check_obj, schema, error_handler, lazy):
         """Validate tensor dtypes and shapes."""
-        for key, tensor_schema in schema.columns.items():
-            if key not in check_obj:
+        for key, tensor_schema in schema.keys.items():
+            try:
+                tensor = _get_tensor(check_obj, key)
+            except KeyError:
+                # Key doesn't exist (should already be caught by _check_keys)
                 continue
-
-            tensor = check_obj[key]
 
             if not isinstance(tensor, torch.Tensor):
                 error_msg = f"Key '{key}' is not a torch.Tensor"
@@ -238,22 +276,30 @@ class TensorDictSchemaBackend(BaseSchemaBackend):
         """Run value checks on tensor values."""
         from pandera.api.base.checks import CheckResult
 
-        for key, tensor_schema in schema.columns.items():
-            if key not in check_obj:
+        for key, tensor_schema in schema.keys.items():
+            try:
+                tensor = _get_tensor(check_obj, key)
+            except KeyError:
                 continue
 
             if not tensor_schema.checks:
                 continue
 
-            tensor = check_obj[key]
-            is_tensorclass = hasattr(tensor, "as_dict")
-            tensor_data = tensor.as_dict() if is_tensorclass else {key: tensor}
+            # For value checks, we need to pass the tensor data
+            tensor_data = {key: tensor}
 
             for check_index, check in enumerate(tensor_schema.checks):
                 try:
-                    check_result = check.get_backend(check_obj)(check)(
-                        tensor_data, key
-                    )
+                    # Use TensorDictCheckBackend directly
+                    from pandera.backends.tensordict.checks import TensorDictCheckBackend
+                    
+                    check_backend = TensorDictCheckBackend(check)
+                    
+                    # Apply check to the tensor (not dict)
+                    check_result = check_backend.apply(tensor)
+                    
+                    # Postprocess result
+                    check_result = check_backend.postprocess(tensor, check_result)
                 except Exception as exc:
                     check_result = CoreCheckResult(
                         passed=False,
@@ -263,10 +309,9 @@ class TensorDictSchemaBackend(BaseSchemaBackend):
                         message=str(exc),
                     )
 
-                if not check_result.passed:
-                    check_msg = check_result.message or "check failed"
+                if not check_result.check_passed:
                     error_msg = (
-                        f"Check '{check}' failed for key '{key}': {check_msg}"
+                        f"Check '{check}' failed for key '{key}': check failed"
                     )
                     error = SchemaError(
                         schema=schema,
