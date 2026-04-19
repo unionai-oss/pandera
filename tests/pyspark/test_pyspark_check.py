@@ -1888,3 +1888,146 @@ class TestCustomCheck(BaseClass):
             self.sample_numeric_data["test_fail_data"],
             IntegerType(),
         )
+
+
+class TestUniqueValuesEqCheck(BaseClass):
+    """This class is used to test the unique_values_eq check"""
+
+    sample_numeric_data = {
+        "test_pass_data": [("foo", 31), ("bar", 32)],
+        "test_fail_data": [("foo", 31), ("bar", 31)],  # Missing 32, only has 31
+        "test_expression": [31, 32],
+    }
+
+    sample_timestamp_data = {
+        "test_pass_data": [
+            ("foo", datetime.datetime(2020, 10, 1, 10, 0)),
+            ("bar", datetime.datetime(2020, 10, 2, 10, 0)),
+        ],
+        "test_fail_data": [
+            ("foo", datetime.datetime(2020, 10, 1, 10, 0)),
+            ("bar", datetime.datetime(2020, 10, 1, 10, 0)),  # Missing second date
+        ],
+        "test_expression": [
+            datetime.datetime(2020, 10, 1, 10, 0),
+            datetime.datetime(2020, 10, 2, 10, 0),
+        ],
+    }
+
+    sample_date_data = {
+        "test_pass_data": [
+            ("foo", datetime.date(2020, 10, 1)),
+            ("bar", datetime.date(2020, 10, 2)),
+        ],
+        "test_fail_data": [
+            ("foo", datetime.date(2020, 10, 1)),
+            ("bar", datetime.date(2020, 10, 1)),  # Missing second date
+        ],
+        "test_expression": [
+            datetime.date(2020, 10, 1),
+            datetime.date(2020, 10, 2),
+        ],
+    }
+
+    sample_string_data = {
+        "test_pass_data": [("foo", "b"), ("bar", "c")],
+        "test_fail_data": [("foo", "b"), ("bar", "b")],  # Missing 'c'
+        "test_expression": ["b", "c"],
+    }
+
+    sample_bolean_data = {
+        "test_pass_data": [("foo", [True]), ("bar", [True])],
+        "test_expression": [True],
+    }
+
+    def pytest_generate_tests(self, metafunc):
+        """This function passes the parameter for each function based on parameter form get_data_param function"""
+        # called once per each test function
+        funcarglist = self.get_data_param()[metafunc.function.__name__]
+        argnames = sorted(funcarglist[0])
+        metafunc.parametrize(
+            argnames,
+            [
+                [funcargs[name] for name in argnames]
+                for funcargs in funcarglist
+            ],
+        )
+
+    def get_data_param(self):
+        """Generate the params which will be used to test this function. All the acceptable
+        data types would be tested"""
+        return {
+            "test_unique_values_eq_check": [
+                {"datatype": LongType(), "data": self.sample_numeric_data},
+                {"datatype": IntegerType(), "data": self.sample_numeric_data},
+                {"datatype": ByteType(), "data": self.sample_numeric_data},
+                {"datatype": ShortType(), "data": self.sample_numeric_data},
+                {
+                    "datatype": DoubleType(),
+                    "data": self.convert_numeric_data(
+                        self.sample_numeric_data, "double"
+                    ),
+                },
+                {
+                    "datatype": TimestampType(),
+                    "data": self.sample_timestamp_data,
+                },
+                {"datatype": DateType(), "data": self.sample_date_data},
+                {
+                    "datatype": DecimalType(),
+                    "data": self.convert_numeric_data(
+                        self.sample_numeric_data, "decimal"
+                    ),
+                },
+                {
+                    "datatype": FloatType(),
+                    "data": self.convert_numeric_data(
+                        self.sample_numeric_data, "float"
+                    ),
+                },
+                {"datatype": StringType(), "data": self.sample_string_data},
+            ],
+            "test_failed_unaccepted_datatypes": [
+                {"datatype": BooleanType(), "data": self.sample_bolean_data},
+                {
+                    "datatype": ArrayType(StringType()),
+                    "data": self.sample_array_data,
+                },
+                {
+                    "datatype": MapType(StringType(), StringType()),
+                    "data": self.sample_map_data,
+                },
+            ],
+        }
+
+    @validate_scope(scope=ValidationScope.DATA)
+    def test_unique_values_eq_check(
+        self, spark_session, datatype, data, request
+    ) -> None:
+        """Test the Check to see if all unique values match the defined values exactly"""
+        spark = request.getfixturevalue(spark_session)
+        self.check_function(
+            spark,
+            pa.Check.unique_values_eq,
+            data["test_pass_data"],
+            data["test_fail_data"],
+            datatype,
+            data["test_expression"],
+        )
+
+    @validate_scope(scope=ValidationScope.DATA)
+    def test_failed_unaccepted_datatypes(
+        self, spark_session, datatype, data, request
+    ) -> None:
+        """Test the Check to see if error is raised for datatypes which are not accepted for this function"""
+        spark = request.getfixturevalue(spark_session)
+        with pytest.raises(TypeError):
+            self.check_function(
+                spark,
+                pa.Check.unique_values_eq,
+                data["test_pass_data"],
+                None,
+                datatype,
+                data["test_expression"],
+            )
+
