@@ -17,13 +17,7 @@ from collections import defaultdict
 from collections.abc import Callable, Sequence
 from copy import deepcopy
 from functools import partial, wraps
-from typing import (
-    Any,
-    Optional,
-    TypeVar,
-    Union,
-    cast,
-)
+from typing import Any, Optional, TypeVar, Union, cast
 
 import numpy as np
 import pandas as pd

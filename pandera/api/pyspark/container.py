@@ -16,11 +16,7 @@ from pandera.dtypes import DataType
 from pandera.engines import pyspark_engine
 from pandera.utils import docstring_substitution
 
-from .types import (
-    PySparkDataFrameTypes,
-    PySparkDtypeInputTypes,
-    PySparkFrame,
-)
+from .types import PySparkDataFrameTypes, PySparkDtypeInputTypes, PySparkFrame
 
 if TYPE_CHECKING:
     import pandera.api.pyspark.components

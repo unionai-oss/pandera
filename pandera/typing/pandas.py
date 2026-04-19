@@ -25,9 +25,7 @@ from pandera.typing.common import (
     IndexBase,
     SeriesBase,
 )
-from pandera.typing.common import (
-    GenericDtype as _CommonGenericDtype,
-)
+from pandera.typing.common import GenericDtype as _CommonGenericDtype
 from pandera.typing.formats import Formats
 
 try:

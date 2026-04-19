@@ -1,10 +1,6 @@
 """Unit tests for pydantic compatibility."""
 
-from typing import (
-    Generic,
-    Optional,
-    TypeVar,
-)
+from typing import Generic, Optional, TypeVar
 
 import pandas as pd
 import pytest

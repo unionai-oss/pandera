@@ -37,6 +37,12 @@ EXTRAS_REQUIRING_PANDAS = frozenset(
     ]
 )
 
+EXTRAS_REQUIRING_TORCH = frozenset(
+    [
+        "torch",
+    ]
+)
+
 CI_RUN = os.environ.get("CI") == "true"
 if CI_RUN:
     print("Running on CI")
@@ -139,6 +145,12 @@ def _testing_requirements(
             PYPROJECT["project"]["optional-dependencies"]["pandas"]
         )
 
+    # torch extra requires torch and tensordict
+    if extra in EXTRAS_REQUIRING_TORCH:
+        _requirements.extend(
+            PYPROJECT["project"]["optional-dependencies"]["torch"]
+        )
+
     _requirements = list(set(_requirements))
 
     _numpy: str | None = None
@@ -165,6 +177,10 @@ def _testing_requirements(
             req = "ibis-framework[duckdb] >= 11.0.0"
         if req == "polars":
             req = f"polars=={polars}"
+        if req == "torch":
+            req = "torch"
+        if req == "tensordict":
+            req = "tensordict"
 
         # for some reason uv will try to install an old version of dask,
         # have to specifically pin dask[dataframe] to a higher version
@@ -199,6 +215,7 @@ DATAFRAME_EXTRAS = {
     "dask",
     "ibis",
     "xarray",
+    "torch",
 }
 for extra in OPTIONAL_DEPENDENCIES:
     if extra == "pandas":

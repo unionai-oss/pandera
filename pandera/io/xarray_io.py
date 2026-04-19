@@ -239,9 +239,7 @@ def serialize_dataset_schema(
     :returns: dict representation of the schema.
     """
     from pandera import __version__
-    from pandera.schema_statistics.xarray import (
-        get_dataset_schema_statistics,
-    )
+    from pandera.schema_statistics.xarray import get_dataset_schema_statistics
 
     stats = get_dataset_schema_statistics(dataset_schema)
 

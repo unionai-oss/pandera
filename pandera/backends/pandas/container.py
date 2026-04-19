@@ -16,9 +16,7 @@ from pandera.backends.pandas.base import (
     PandasSchemaBackend,
     _parsed_column_values,
 )
-from pandera.backends.pandas.error_formatters import (
-    reshape_failure_cases,
-)
+from pandera.backends.pandas.error_formatters import reshape_failure_cases
 from pandera.backends.utils import convert_uniquesettings
 from pandera.config import ValidationScope
 from pandera.engines import pandas_engine
