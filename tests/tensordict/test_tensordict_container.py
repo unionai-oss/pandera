@@ -66,8 +66,8 @@ class TestTensorDictSchema:
             },
             batch_size=(32,),
         )
-        assert "observation" in schema.columns
-        assert "action" in schema.columns
+        assert "observation" in schema.keys
+        assert "action" in schema.keys
         assert schema.batch_size == (32,)
 
     def test_tensordict_schema_from_list(self):
@@ -77,8 +77,8 @@ class TestTensorDictSchema:
         schema = TensorDictSchema(
             keys=["observation", "action"], batch_size=(32,)
         )
-        assert "observation" in schema.columns
-        assert "action" in schema.columns
+        assert "observation" in schema.keys
+        assert "action" in schema.keys
 
     def test_tensordict_schema_repr(self):
         """Test TensorDictSchema repr."""
