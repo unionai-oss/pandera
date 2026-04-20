@@ -9,6 +9,7 @@ from pandera.api.dataframe.model_components import FieldInfo, _check_dispatch
 from pandera.errors import SchemaInitError
 
 CHECK_KEY = "__check_config__"
+TENSOR_CHECK_KEY = "__tensor_check_config__"
 
 
 class TensorDictFieldInfo(FieldInfo):
