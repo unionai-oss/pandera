@@ -6,29 +6,30 @@ from typing import TYPE_CHECKING, Any, Optional
 
 from pandera.api.base.schema import BaseSchema
 from pandera.api.tensordict.components import Tensor
+from pandera.backends.base import BaseSchemaBackend
 
 
 class TensorDictSchema(BaseSchema):
     """Validate TensorDict and tensorclass objects.
-    
+
     Analogous to :class:`~pandera.api.pandas.DataFrameSchema` for DataFrames
     and :class:`~pandera.api.xarray.DatasetSchema` for xarray Datasets.
-    
+
     The schema accepts a ``keys`` parameter (instead of ``columns``) which is
     more semantically appropriate for TensorDict's dictionary-like structure.
     """
 
     def __init__(
         self,
-        keys: Optional[dict[str, Tensor]] = None,
+        keys: dict[str, Tensor] | None = None,
         batch_size: tuple[int | None, ...] | None = None,
         dtype: Any = None,
         checks=None,
         coerce: bool = False,
-        name: Optional[str] = None,
-        title: Optional[str] = None,
-        description: Optional[str] = None,
-        metadata: Optional[dict] = None,
+        name: str | None = None,
+        title: str | None = None,
+        description: str | None = None,
+        metadata: dict | None = None,
     ) -> None:
         """Create TensorDict schema.
 
@@ -50,7 +51,7 @@ class TensorDictSchema(BaseSchema):
             keys = {}
         elif isinstance(keys, list):
             keys = {k: Tensor() for k in keys}
-        
+
         super().__init__(
             dtype=dtype,
             checks=checks,
@@ -60,22 +61,25 @@ class TensorDictSchema(BaseSchema):
             description=description,
             metadata=metadata,
         )
-        
+
         self.keys: dict[str, Tensor] = keys
         self.batch_size = batch_size
-    
+
     @staticmethod
     def register_default_backends(check_obj_cls: type) -> None:
         """Register default backends at validation time."""
         from pandera.backends.tensordict.register import (
             register_tensordict_backends,
         )
+
         register_tensordict_backends()
-    
+
     @classmethod
-    def get_backend(cls, check_obj: Any | None = None) -> BaseSchemaBackend:
+    def get_backend(
+        cls, check_obj: Any | None = None, check_type: type | None = None
+    ) -> BaseSchemaBackend:
         """Get the backend for TensorDict validation.
-        
+
         Overrides base class to handle tensorclass objects which have unique
         types at runtime. We use TensorDict's backend since tensorclasses share
         the same interface and both inherit from object in their MRO.
@@ -84,33 +88,36 @@ class TensorDictSchema(BaseSchema):
             try:
                 # Check if it's a valid TensorDict/tensorclass object
                 from pandera.backends.tensordict.base import _is_tensordict
-                
+
                 if _is_tensordict(check_obj):
                     check_type = type(check_obj)
                     cls.register_default_backends(check_type)
-                    
+
                     # Try to get backend for this exact type first
-                    classes = __import__('inspect').getmro(check_type)
+                    classes = __import__("inspect").getmro(check_type)
                     for _class in classes:
                         try:
                             return cls.BACKEND_REGISTRY[(cls, _class)]()
                         except KeyError:
                             pass
-                    
+
                     # For tensorclass instances (which don't have a specific backend),
                     # fall back to TensorDict's backend
                     from tensordict import TensorDict as TD
-                    if check_type != TD and hasattr(check_obj, '_is_tensorclass'):
+
+                    if check_type != TD and hasattr(
+                        check_obj, "_is_tensorclass"
+                    ):
                         try:
                             return cls.BACKEND_REGISTRY[(cls, TD)]()
                         except KeyError:
                             pass
             except ImportError:
                 pass
-        
+
         # Default fallback to base class implementation
         return super().get_backend(check_obj)
-    
+
     def validate(
         self,
         check_obj: Any,

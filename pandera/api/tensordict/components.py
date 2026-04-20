@@ -10,7 +10,7 @@ from pandera.engines import tensordict_engine
 
 class Tensor:
     """Validate a single tensor entry in a TensorDict.
-    
+
     Analogous to :class:`~pandera.api.pandas.components.Column` for DataFrames
     and :class:`~pandera.api.xarray.components.DataVar` for xarray Datasets.
     """
@@ -18,11 +18,11 @@ class Tensor:
     def __init__(
         self,
         dtype: Any = None,
-        shape: tuple[Optional[int], ...] | None = None,
+        shape: tuple[int | None, ...] | None = None,
         checks: CheckList | None = None,
         nullable: bool = False,
         coerce: bool = False,
-        name: Optional[str] = None,
+        name: str | None = None,
         required: bool = True,
     ) -> None:
         """Create tensor validator.
@@ -47,7 +47,7 @@ class Tensor:
             else None
         )
         self.shape = shape
-        
+
         # Normalize checks to a list
         self.checks: list = []
         if checks is not None:
@@ -55,7 +55,7 @@ class Tensor:
                 self.checks = list(checks)
             else:
                 self.checks = [checks]
-        
+
         self.nullable = nullable
         self.coerce = coerce
         self.name = name

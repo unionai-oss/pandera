@@ -22,19 +22,19 @@ class TensorDictCheckBackend(BaseCheckBackend):
             else None
         )
 
-    def preprocess(self, check_obj: Any) -> Any:
+    def preprocess(self, check_obj: Any, key: Any = None) -> Any:
         """Preprocesses the check object before applying the check function."""
         # For tensor data, no preprocessing needed
         return check_obj
 
     def apply(self, check_obj: Any) -> CheckResult:
         """Apply the check function to the check object.
-        
+
         :param check_obj: Tensor data to validate.
         :returns: CheckResult with passed status and output.
         """
         check_obj = self.preprocess(check_obj)
-        
+
         if self.check_fn is None:
             return CheckResult(
                 check_output=True,
@@ -47,21 +47,21 @@ class TensorDictCheckBackend(BaseCheckBackend):
         try:
             result = self.check_fn(check_obj)
         except Exception as exc:
-            return CoreCheckResult(
-                passed=False,
-                check=self.check,
-                reason_code=SchemaErrorReason.CHECK_ERROR,
-                message=str(exc),
+            return CheckResult(
+                check_output=False,
+                check_passed=False,
+                checked_object=check_obj,
+                failure_cases=None,
             )
-        
+
         # Reduce to boolean
         passed = self._reduce_to_bool(result)
-        
+
         if not passed:
             failure_cases = self._get_failure_cases(check_obj, result)
         else:
             failure_cases = None
-        
+
         return CheckResult(
             check_output=result,
             check_passed=passed,
@@ -90,9 +90,7 @@ class TensorDictCheckBackend(BaseCheckBackend):
         # Assume it's already a boolean
         return bool(result)
 
-    def _get_failure_cases(
-        self, check_obj: Any, result: Any
-    ) -> Any | None:
+    def _get_failure_cases(self, check_obj: Any, result: Any) -> Any | None:
         """Get the failure cases from the check result."""
         try:
             import torch
@@ -107,7 +105,9 @@ class TensorDictCheckBackend(BaseCheckBackend):
 
         return None
 
-    def postprocess(self, check_obj: Any, check_output: CheckResult) -> CheckResult:
+    def postprocess(
+        self, check_obj: Any, check_output: CheckResult
+    ) -> CheckResult:
         """Postprocesses the result of applying the check function."""
         if isinstance(check_output, CheckResult):
             return check_output

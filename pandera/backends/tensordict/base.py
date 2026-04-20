@@ -21,16 +21,16 @@ def _is_tensordict(obj: Any) -> bool:
         return False
     try:
         from tensordict import TensorDict
-        
+
         # Check for TensorDict first (more common case)
         if isinstance(obj, TensorDict):
             return True
-        
+
         # Check for tensorclass - use _is_tensorclass attribute which is set
         # on all tensorclass instances
-        if hasattr(obj, '_is_tensorclass') and obj._is_tensorclass:
+        if hasattr(obj, "_is_tensorclass") and obj._is_tensorclass:
             return True
-            
+
         return False
     except ImportError:
         return False
@@ -43,11 +43,11 @@ def _get_tensor(obj: Any, key: str) -> Any:
         return obj[key]
     except (KeyError, TypeError, ValueError):
         pass
-    
+
     # For tensorclass, use attribute access
     if hasattr(obj, key):
         return getattr(obj, key)
-    
+
     raise KeyError(f"Key '{key}' not found in object")
 
 
@@ -156,22 +156,22 @@ class TensorDictSchemaBackend(BaseSchemaBackend):
         for key in schema.keys:
             # Check if key exists - use different methods for TensorDict vs tensorclass
             is_key_present = False
-            
+
             try:
                 from tensordict import TensorDict
-                
+
                 # For TensorDict, use 'in' operator
                 if isinstance(check_obj, TensorDict):
                     is_key_present = key in check_obj
                 else:
                     # For tensorclass, use keys() method or attribute access
-                    if hasattr(check_obj, 'keys'):
+                    if hasattr(check_obj, "keys"):
                         is_key_present = key in check_obj.keys()
                     elif hasattr(check_obj, key):
                         is_key_present = True
             except ImportError:
                 pass
-            
+
             if not is_key_present:
                 error_msg = f"Missing key '{key}' in TensorDict"
                 error = SchemaError(
@@ -291,15 +291,19 @@ class TensorDictSchemaBackend(BaseSchemaBackend):
             for check_index, check in enumerate(tensor_schema.checks):
                 try:
                     # Use TensorDictCheckBackend directly
-                    from pandera.backends.tensordict.checks import TensorDictCheckBackend
-                    
+                    from pandera.backends.tensordict.checks import (
+                        TensorDictCheckBackend,
+                    )
+
                     check_backend = TensorDictCheckBackend(check)
-                    
+
                     # Apply check to the tensor (not dict)
                     check_result = check_backend.apply(tensor)
-                    
+
                     # Postprocess result
-                    check_result = check_backend.postprocess(tensor, check_result)
+                    check_result = check_backend.postprocess(
+                        tensor, check_result
+                    )
                 except Exception as exc:
                     check_result = CoreCheckResult(
                         passed=False,
