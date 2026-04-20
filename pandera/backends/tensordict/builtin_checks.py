@@ -5,17 +5,21 @@ import sys
 # Import torch first to get the actual type, not string annotation
 try:
     import torch
+
     TORCH_AVAILABLE = True
 except ImportError:
     TORCH_AVAILABLE = False
     torch = None
 
-from typing import Any, Iterable
+from collections.abc import Callable, Iterable
+from functools import partial
+from typing import Any
 
 try:
     from pandera.api.extensions import register_builtin_check
-    
+
     if TORCH_AVAILABLE:
+
         @register_builtin_check(
             aliases=["gt"],
             error="greater_than({min_value})",
@@ -32,7 +36,9 @@ try:
             aliases=["ge"],
             error="greater_than_or_equal_to({min_value})",
         )
-        def greater_than_or_equal_to(data: torch.Tensor, min_value: Any) -> torch.Tensor:
+        def greater_than_or_equal_to(
+            data: torch.Tensor, min_value: Any
+        ) -> torch.Tensor:
             """Ensure all values are greater than or equal to a minimum value.
 
             :param data: Input tensor data.
@@ -56,7 +62,9 @@ try:
             aliases=["le"],
             error="less_than_or_equal_to({max_value})",
         )
-        def less_than_or_equal_to(data: torch.Tensor, max_value: Any) -> torch.Tensor:
+        def less_than_or_equal_to(
+            data: torch.Tensor, max_value: Any
+        ) -> torch.Tensor:
             """Ensure all values are less than or equal to a maximum value.
 
             :param data: Input tensor data.
@@ -106,7 +114,22 @@ try:
 
 except ImportError:
     # extensions not available yet
-    def register_builtin_check(fn=None, **kwargs):
+    def register_builtin_check(
+        fn: Any = None,
+        strategy: Callable | None = None,
+        _check_cls: type = None,  # type: ignore[assignment]
+        aliases: list[str] | None = None,
+        **kwargs: Any,
+    ) -> Any:
         def decorator(f):
             return f
-        return decorator if fn is None else decorator(fn)
+
+        if fn is None:
+            return partial(
+                register_builtin_check,
+                strategy=strategy,
+                _check_cls=_check_cls,
+                aliases=aliases,
+                **kwargs,
+            )
+        return decorator(fn)

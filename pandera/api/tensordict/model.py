@@ -2,29 +2,31 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, ClassVar, Optional
+from typing import Any, ClassVar
 
 from pandera.api.base.model import BaseModel
+from pandera.api.tensordict.components import Tensor
+from pandera.api.tensordict.model_config import BaseConfig
 
 
 class TensorDictModel(BaseModel):
     """Declarative TensorDict schema using class definitions.
-    
+
     Example:
         >>> import torch
         >>> import pandera.tensordict as pa
-        
+
         >>> class MySchema(pa.TensorDictModel):
         ...     observation: pa.DataType = pa.Field(dtype=torch.float32, shape=(None, 10))
         ...     action: pa.DataType = pa.Field(dtype=torch.int64, shape=(None,))
         ...
         ...     class Config:
         ...         batch_size = (32,)
-        
+
         >>> schema = MySchema.to_schema()
     """
 
-    Config: type[object] = object
+    Config: type[BaseConfig] = BaseConfig
     __schema__: ClassVar[Any | None] = None
 
     def __init_subclass__(cls, **kwargs: Any) -> None:
@@ -39,52 +41,49 @@ class TensorDictModel(BaseModel):
         :returns: TensorDictSchema with fields converted to Tensor components.
         """
         columns: dict[str, Any] = {}
-        batch_size: Optional[tuple[int | None, ...]] = None
+        batch_size: tuple[int | None, ...] | None = None
 
         # Get field definitions from class annotations and Field info
         for name, (annotation_info, field_info) in cls.__fields__.items():
             if hasattr(field_info, "shape"):
                 # Extract dtype from annotation
-                dtype = annotation_info.annotation
-                
+                dtype = annotation_info.raw_annotation
+
                 # Handle DataType special case - convert to torch.dtype if possible
                 if dtype is not None:
                     try:
-                        from pandera.engines.tensordict_engine import DataType as _DataType
-                        
-                        if isinstance(dtype, type) and issubclass(dtype, _DataType):
+                        from pandera.engines.tensordict_engine import (
+                            DataType as _DataType,
+                        )
+
+                        if isinstance(dtype, type) and issubclass(
+                            dtype, _DataType
+                        ):
                             dtype = dtype.type
                     except Exception:
                         pass
-                
+
                 # Get shape from Field info
                 shape = getattr(field_info, "shape", None)
-                
-                # Build Tensor component - use Tensor directly since it's not imported yet
-                try:
-                    from pandera.tensordict import Tensor
-                except ImportError:
-                    Tensor = None
-                
-                if Tensor is not None:
-                    tensor_kwargs: dict[str, Any] = {
-                        "dtype": dtype,
-                        "shape": shape,
-                        "name": name,
-                    }
-                    
-                    if hasattr(field_info, "checks") and field_info.checks:
-                        tensor_kwargs["checks"] = field_info.checks
-                    
-                    columns[name] = Tensor(**tensor_kwargs)
-        
+
+                tensor_kwargs: dict[str, Any] = {
+                    "dtype": dtype,
+                    "shape": shape,
+                    "name": name,
+                }
+
+                if hasattr(field_info, "checks") and field_info.checks:
+                    tensor_kwargs["checks"] = field_info.checks
+
+                columns[name] = Tensor(**tensor_kwargs)
+
         # Get batch_size from Config
         if hasattr(cls, "Config"):
             batch_size = getattr(cls.Config, "batch_size", None)
 
         try:
             from pandera.tensordict import TensorDictSchema
-            
+
             return TensorDictSchema(keys=columns, batch_size=batch_size)
         except ImportError:
             return None
