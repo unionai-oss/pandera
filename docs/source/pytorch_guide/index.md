@@ -48,20 +48,26 @@ schema.validate(td)
 
 ```{code-cell} python
 class RL(pa.TensorDictModel):
-    observation: torch.Tensor
-    action: torch.Tensor
+    """Schema for reinforcement learning data."""
+    
+    # Use PyTorch dtypes in type annotations
+    observation: torch.float32 = pa.Field(shape=(None, 10))
+    action: torch.int64 = pa.Field(shape=(None,))
+    reward: torch.float32 = pa.Field()
 
-    @classmethod
-    def _field(cls, field):
-        return field(dtype=torch.float32, shape=(None, 10))
+    class Config:
+        batch_size = (32,)
 
-# Validate using the model
+# Validate using the model - schema is built automatically
 td = TensorDict(
-    {"observation": torch.randn(32, 10), "action": torch.randn(32, 5)},
+    {"observation": torch.randn(32, 10), "action": torch.randint(0, 4, (32,)), "reward": torch.randn(32)},
     batch_size=[32],
 )
 RL.validate(td)
 ```
+
+**Note:** Type annotations specify the dtype (e.g., `torch.float32`, `torch.int64`).
+Use {func}`~pandera.tensordict.Field` to define additional constraints like shape and checks.
 
 ## Guide contents
 

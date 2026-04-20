@@ -14,15 +14,19 @@ schema that maps directly to a {class}`~tensordict.TensorDict`.
 ```{code-cell} python
 import torch
 import pandera.tensordict as pa
-from pandera import Check
 
 class RL(pa.TensorDictModel):
-    observation: pa.DataType
-    action: pa.DataType
+    """Schema for reinforcement learning data."""
+    
+    # Type annotation specifies the dtype (torch.float32, torch.int64, etc.)
+    observation: torch.float32 = pa.Field(shape=(None, 10))
+    action: torch.int64 = pa.Field(shape=(None,))
+    reward: torch.float32 = pa.Field()
 ```
 
-Use {class}`~pandera.tensordict.DataType` as the type annotation and
-{func}`~pandera.tensordict.Field` to customize field options.
+Use PyTorch dtypes in type annotations (e.g., `torch.float32`, `torch.int64`)
+to specify the expected data type. Use {func}`~pandera.tensordict.Field` to
+define additional constraints.
 
 ## Validate with a model
 
@@ -30,7 +34,7 @@ Use {class}`~pandera.tensordict.DataType` as the type annotation and
 from tensordict import TensorDict
 
 td = TensorDict(
-    {"observation": torch.randn(32, 10), "action": torch.randn(32, 5)},
+    {"observation": torch.randn(32, 10), "action": torch.randint(0, 4, (32,))},
     batch_size=[32],
 )
 validated = RL.validate(td)
@@ -40,21 +44,78 @@ validated = RL.validate(td)
 
 Use {func}`~pandera.tensordict.Field` to customize field options:
 
-- `dtype`: Torch dtype
-- `shape`: Expected shape tuple
-- `checks`: List of Check instances
+- `shape`: Expected shape tuple (use `None` for variable dimensions)
+- `checks`: List of Check instances or check arguments
 - `nullable`: Whether the key can be missing
 - `default`: Default value if missing
 
 ```{code-cell} python
+from pandera import Check
+
 class RLWithConfig(pa.TensorDictModel):
-    observation: pa.DataType = pa.Field(dtype=torch.float32, shape=(None, 10))
-    action: pa.DataType = pa.Field(dtype=torch.float32, shape=(None, 5))
-    reward: pa.DataType = pa.Field(
-        dtype=torch.float32,
-        shape=(None,),
-        checks=[Check.greater_than(0.0)],
+    """RL schema with field-level checks."""
+    
+    observation: torch.float32 = pa.Field(
+        shape=(None, 10),
+        ge=-1.0,
+        le=1.0,
     )
+    action: torch.int64 = pa.Field(
+        shape=(None,),
+        checks=[Check.isin([0, 1, 2, 3])],
+    )
+    reward: torch.float32 = pa.Field(
+        gt=0.0,
+    )
+
+    class Config:
+        batch_size = (32,)
+```
+
+## Configuring the model
+
+Use a nested `Config` class to configure schema-level options:
+
+- `batch_size`: Expected batch size tuple (use `None` for variable dimensions)
+
+```{code-cell} python
+class RLWithBatchSize(pa.TensorDictModel):
+    observation: torch.float32 = pa.Field(shape=(None, 10))
+    action: torch.int64 = pa.Field(shape=(None,))
+
+    class Config:
+        batch_size = (64,)
+```
+
+## Lazy validation
+
+Use `lazy=True` to collect all validation errors:
+
+```{code-cell} python
+try:
+    RL.validate(td, lazy=True)
+except pa.SchemaErrors as e:
+    print(f"Found {len(e.schema_errors)} validation errors:")
+    for err in e.schema_errors:
+        print(f"  - {err.reason_code}")
+```
+
+## Model inheritance
+
+Models can be inherited to create more specific schemas:
+
+```{code-cell} python
+class BaseRL(pa.TensorDictModel):
+    observation: torch.float32 = pa.Field(shape=(None, 10))
+
+    class Config:
+        batch_size = (32,)
+
+class ExtendedRL(BaseRL):
+    action: torch.int64 = pa.Field(shape=(None,))
+
+# ExtendedRL has both 'observation' and 'action'
+schema = ExtendedRL.to_schema()
 ```
 
 ## See also

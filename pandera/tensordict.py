@@ -27,4 +27,10 @@ __all__ = [
     "Field",
     "errors",
     "DataType",
+    # Error classes
+    "SchemaError",
+    "SchemaErrors",
 ]
+
+# Import error classes for convenience
+from pandera.errors import SchemaError, SchemaErrors

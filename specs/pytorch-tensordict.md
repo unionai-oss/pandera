@@ -158,7 +158,7 @@ except pa.SchemaErrors as e:
 
 #### Example 3: Declarative API with `TensorDictModel`
 
-For a more Pydantic-like experience, use class-based models:
+For a more Pydantic-like experience, use class-based models. **Type annotations specify the dtype directly**, and `pa.Field` defines additional constraints:
 
 ```python
 import torch
@@ -168,14 +168,13 @@ from pandera import Check
 class PolicyModel(pa.TensorDictModel):
     """Schema for a policy network output."""
 
-    logits: torch.Tensor = pa.Field(
-        dtype=torch.float32,
+    # Dtype is specified in the type annotation, Field defines constraints
+    logits: torch.float32 = pa.Field(
         shape=(None, 10),
         ge=-5.0,
         le=5.0
     )
-    value: torch.Tensor = pa.Field(
-        dtype=torch.float32,
+    value: torch.float32 = pa.Field(
         shape=(None,),
         gt=0.0
     )
@@ -183,14 +182,8 @@ class PolicyModel(pa.TensorDictModel):
     class Config:
         batch_size = (64,)
 
-# Validate using the model
-policy_model = PolicyModel()
-batch = TensorDict({
-    "logits": torch.randn(64, 10),
-    "value": torch.randn(64).abs()  # Ensure positive
-}, batch_size=[64])
-
-validated = policy_model.validate(batch)
+# Validate using the model - schema is built automatically from class definition
+validated_batch = PolicyModel.validate(batch)
 ```
 
 #### Example 4: Validating `tensorclass` Objects
@@ -840,6 +833,127 @@ class MyTensorDictModel(pa.TensorDictModel):
     class Config:
         batch_size = (None,)
 ```
+
+
+
+### 4.5 Class-Based Model Implementation
+
+The `TensorDictModel` class follows the same pattern as `xarray.DatasetModel` and `pandas.DataFrameModel`. The API supports direct usage of `pa.Field` in type annotations without requiring custom `_field` classmethods or other complex patterns.
+
+**Key principles:**
+- Use PyTorch dtypes (e.g., `torch.float32`, `torch.int64`) in type annotations
+- Define constraints using `pa.Field()` descriptor
+- Configuration via nested `Config` class
+
+#### Example: Complete Model Definition
+
+```python
+import torch
+import pandera.tensordict as pa
+from pandera import Check
+
+class RLModel(pa.TensorDictModel):
+    """Reinforcement learning model output schema."""
+    
+    # Dtype in annotation, constraints in Field
+    observation: torch.float32 = pa.Field(shape=(None, 128))
+    action: torch.int64 = pa.Field(
+        shape=(None,),
+        checks=Check.isin([0, 1, 2, 3])
+    )
+    reward: torch.float32 = pa.Field()
+    
+    class Config:
+        batch_size = (32,)
+        
+# Access schema directly
+schema = RLModel.to_schema()
+
+# Or validate directly
+batch = TensorDict({
+    "observation": torch.randn(32, 128),
+    "action": torch.randint(0, 4, (32,)),
+    "reward": torch.randn(32)
+}, batch_size=[32])
+
+validated = RLModel.validate(batch)
+```
+
+#### Example: Class-Based Model with Field-Level Checks
+
+```python
+class ActorCriticOutput(pa.TensorDictModel):
+    """Actor-critic network output."""
+    
+    action_mean: torch.float32 = pa.Field(
+        shape=(None, 4),
+        ge=-2.0,
+        le=2.0,
+    )
+    action_std: torch.float32 = pa.Field(
+        shape=(None, 4),
+        gt=1e-6,
+    )
+    value: torch.float32 = pa.Field(
+        shape=(None,),
+        gt=-100.0,
+        lt=100.0,
+    )
+
+    class Config:
+        batch_size = (32,)
+```
+
+#### Example: Lazy Validation with Class-Based Model
+
+```python
+# Create invalid data
+invalid_batch = TensorDict({
+    "observation": torch.randn(32, 128),
+    "action": torch.randint(0, 4, (16,)),  # Wrong batch size!
+    "reward": torch.randn(32)
+}, batch_size=[32])
+
+try:
+    RLModel.validate(invalid_batch, lazy=True)
+except pa.SchemaErrors as e:
+    print(e)  # Shows all validation errors
+```
+
+#### Example: TensorDictSchema vs TensorDictModel
+
+For simple use cases, `TensorDictSchema` is sufficient:
+
+```python
+# Standalone schema - no class definition needed
+schema = pa.TensorDictSchema(
+    keys={
+        "observation": pa.Tensor(dtype=torch.float32, shape=(None, 10)),
+        "action": pa.Tensor(dtype=torch.int64, shape=(None,)),
+    },
+    batch_size=(32,)
+)
+
+validated = schema.validate(batch)
+```
+
+For reusable, self-documenting schemas with type hints, use `TensorDictModel`:
+
+```python
+class MySchema(pa.TensorDictModel):
+    observation: torch.float32 = pa.Field(shape=(None, 10))
+    action: torch.int64 = pa.Field(shape=(None,))
+    
+    class Config:
+        batch_size = (32,)
+
+# Schema is automatically built from class definition
+schema = MySchema.to_schema()  # Same as standalone schema above!
+validated = MySchema.validate(batch)  # Direct validation
+```
+
+---
+
 
 ---
 
