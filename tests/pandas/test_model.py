@@ -6,7 +6,7 @@ import runpy
 from collections.abc import Iterable
 from copy import deepcopy
 from enum import Enum
-from typing import Any, Generic, Optional, TypeVar
+from typing import Annotated, Any, Generic, Optional, TypeVar
 
 import numpy as np
 import pandas as pd
@@ -116,6 +116,42 @@ def test_schema_with_bare_types():
     )
 
     assert expected == Model.to_schema()
+
+
+def test_annotated_field_metadata_with_omitted_field() -> None:
+    class Model(pa.DataFrameModel):
+        a: Annotated[
+            int,
+            pa.Field(
+                title="A",
+                description="annotated description",
+                unique=True,
+            ),
+        ]
+
+    schema = Model.to_schema()
+
+    assert schema.columns["a"].title == "A"
+    assert schema.columns["a"].description == "annotated description"
+    assert schema.columns["a"].unique
+
+
+def test_annotated_dtype_with_annotated_field_metadata() -> None:
+    class Model(pa.DataFrameModel):
+        a: Series[
+            Annotated[
+                pd.DatetimeTZDtype,
+                "ns",
+                "UTC",
+                pa.Field(description="annotated dtype description"),
+            ]
+        ]
+
+    schema = Model.to_schema()
+
+    expected_dtype = pa.Column(pd.DatetimeTZDtype("ns", "UTC")).dtype
+    assert schema.columns["a"].dtype == expected_dtype
+    assert schema.columns["a"].description == "annotated dtype description"
 
 
 def test_empty_schema() -> None:

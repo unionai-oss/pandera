@@ -65,14 +65,36 @@ GENERIC_SCHEMA_CACHE: dict[
 
 
 def get_dtype_kwargs(annotation: AnnotationInfo) -> dict[str, Any]:
-    sig = inspect.signature(annotation.arg)  # type: ignore
+    metadata = tuple(
+        item
+        for item in (annotation.metadata or ())
+        if not isinstance(item, FieldInfo)
+    )
+    try:
+        sig = inspect.signature(annotation.arg)  # type: ignore
+    except (TypeError, ValueError):
+        return {}
     dtype_arg_names = list(sig.parameters.keys())
-    if len(annotation.metadata) != len(dtype_arg_names):  # type: ignore
+    if len(metadata) != len(dtype_arg_names):
         raise TypeError(
             f"Annotation '{annotation.arg.__name__}' requires "  # type: ignore
             + f"all positional arguments {dtype_arg_names}."
         )
-    return dict(zip(dtype_arg_names, annotation.metadata))  # type: ignore
+    return dict(zip(dtype_arg_names, metadata))
+
+
+def _get_field_from_annotation(annotation: Any) -> FieldInfo | None:
+    metadata = getattr(annotation, "__metadata__", ())
+    field_infos = [item for item in metadata if isinstance(item, FieldInfo)]
+    if field_infos:
+        return copy.deepcopy(field_infos[0])
+
+    for arg in typing.get_args(annotation):
+        field_info = _get_field_from_annotation(arg)
+        if field_info is not None:
+            return field_info
+
+    return None
 
 
 def _is_field(name: str) -> bool:
@@ -259,10 +281,9 @@ class DataFrameModel(Generic[TDataFrame, TSchema], BaseModel):
         super().__init_subclass__(**kwargs)
         subclass_annotations = inspect.get_annotations(cls)
 
-        for field_name in subclass_annotations.keys():
+        for field_name, annotation in subclass_annotations.items():
             if _is_field(field_name) and field_name not in cls.__dict__:
-                # Field omitted
-                field = Field()
+                field = _get_field_from_annotation(annotation) or Field()
                 field.__set_name__(cls, field_name)
                 setattr(cls, field_name, field)
 
