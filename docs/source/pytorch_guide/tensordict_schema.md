@@ -43,18 +43,21 @@ validated = schema.validate(td)
 
 ## Lazy validation
 
-Set `lazy=True` to collect all errors instead of fail-fast:
+Set `lazy=True` to collect all errors instead of fail-fast. Note that TensorDict
+validates batch dimensions on creation, so we need to use matching dimensions:
 
 ```{code-cell} python
-td_invalid = TensorDict(
-    {"observation": torch.randn(16, 10), "action": torch.randn(32, 5)},
-    batch_size=[16],
+td_wrong_dtype = TensorDict(
+    {"observation": torch.randn(32, 10), "action": torch.randint(0, 5, (32,))},
+    batch_size=[32],
 )
 
 try:
-    schema.validate(td_invalid, lazy=True)
+    schema.validate(td_wrong_dtype, lazy=True)
 except pa.errors.SchemaErrors as exc:
-    print(exc)
+    print(f"Total errors: {len(exc.schema_errors)}")
+    for err in exc.schema_errors:
+        print(f"  - {str(err)}")
 ```
 
 ## Tensor component
