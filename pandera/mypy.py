@@ -23,12 +23,15 @@ from mypy.types import CallableType, Instance, UnionType
 DATAFRAMEMODEL_FULLNAMES = {
     "pandera.api.dataframe.model.DataFrameModel",
     "pandera.api.pandas.model.DataFrameModel",
+    "pandera.api.polars.model.DataFrameModel",
     "pandera.pandas.DataFrameModel",
+    "pandera.polars.DataFrameModel",
     "pandera._pandas_deprecated.DataFrameModel",
 }
 PANDERA_PANDAS_DATAFRAME_FULLNAME = "pandera.typing.pandas.DataFrame"
 PANDERA_PANDAS_SERIES_FULLNAME = "pandera.typing.pandas.Series"
 PANDERA_PANDAS_INDEX_FULLNAME = "pandera.typing.pandas.Index"
+PANDERA_POLARS_SERIES_FULLNAME = "pandera.typing.polars.Series"
 PANDERA_MODIN_SERIES_FULLNAME = "pandera.typing.modin.Series"
 PANDERA_MODIN_INDEX_FULLNAME = "pandera.typing.modin.Index"
 PANDERA_DASK_SERIES_FULLNAME = "pandera.typing.dask.Series"
@@ -41,6 +44,7 @@ PANDAS_CONCAT = "pandas.core.reshape.concat.concat"
 FIELD_GENERICS_FULLNAMES = {
     PANDERA_PANDAS_SERIES_FULLNAME,
     PANDERA_PANDAS_INDEX_FULLNAME,
+    PANDERA_POLARS_SERIES_FULLNAME,
     PANDERA_MODIN_SERIES_FULLNAME,
     PANDERA_MODIN_INDEX_FULLNAME,
     PANDERA_DASK_SERIES_FULLNAME,
