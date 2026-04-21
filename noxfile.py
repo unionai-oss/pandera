@@ -315,7 +315,7 @@ def docs(session: Session) -> None:
     """Build the documentation."""
     # this is needed until ray and geopandas are supported on python 3.10
 
-    session.install("-e", ".")
+    session.install("-e", ".[all]")
     session.install(
         *_testing_requirements(
             session, extra="all", pandas=PANDAS_VERSIONS[0]
