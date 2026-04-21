@@ -34,7 +34,7 @@ define additional constraints.
 from tensordict import TensorDict
 
 td = TensorDict(
-    {"observation": torch.randn(32, 10), "action": torch.randint(0, 4, (32,))},
+    {"observation": torch.randn(32, 10), "action": torch.randint(0, 4, (32,)), "reward": torch.randn(32)},
     batch_size=[32],
 )
 validated = RL.validate(td)
@@ -50,8 +50,6 @@ Use {func}`~pandera.tensordict.Field` to customize field options:
 - `default`: Default value if missing
 
 ```{code-cell} python
-from pandera import Check
-
 class RLWithConfig(pa.TensorDictModel):
     """RL schema with field-level checks."""
 
@@ -62,7 +60,7 @@ class RLWithConfig(pa.TensorDictModel):
     )
     action: torch.int64 = pa.Field(
         shape=(None,),
-        checks=[Check.isin([0, 1, 2, 3])],
+        isin=[0, 1, 2, 3],
     )
     reward: torch.float32 = pa.Field(
         gt=0.0,

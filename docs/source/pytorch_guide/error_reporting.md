@@ -47,7 +47,7 @@ try:
 except pa.errors.SchemaErrors as exc:
     print(f"Found {len(exc.schema_errors)} errors")
     for err in exc.schema_errors:
-        print(f"  - {err.message}")
+        print(f"  - {str(err)}")
     print(f"\nError counts: {exc.error_counts}")
 ```
 
