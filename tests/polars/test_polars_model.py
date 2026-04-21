@@ -294,3 +294,31 @@ def test_dataframe_schema_with_tz_agnostic_dates(time_zone, data):
         if time_zone:
             with pytest.raises(SchemaError):
                 tz_sensitive_model.validate(lf)
+
+
+def test_model_field_access_returns_string():
+    """Test that accessing DataFrameModel fields returns column names as strings.
+    
+    Regression test for issue #2297.
+    """
+    from pandera.typing.polars import Series
+
+    class ModelWithSeries(DataFrameModel):
+        a: Series[int]
+        b: Series[float]
+
+    class ModelWithBareTypes(DataFrameModel):
+        x: int
+        y: float
+
+    # Both Series and bare type annotations should return strings
+    assert isinstance(ModelWithSeries.a, str)
+    assert isinstance(ModelWithSeries.b, str)
+    assert isinstance(ModelWithBareTypes.x, str)
+    assert isinstance(ModelWithBareTypes.y, str)
+
+    # Verify the actual column names
+    assert ModelWithSeries.a == "a"
+    assert ModelWithSeries.b == "b"
+    assert ModelWithBareTypes.x == "x"
+    assert ModelWithBareTypes.y == "y"
