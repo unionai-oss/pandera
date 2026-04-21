@@ -6,7 +6,7 @@ import runpy
 from collections.abc import Iterable
 from copy import deepcopy
 from enum import Enum
-from typing import Annotated, Any, Generic, Optional, TypeVar
+from typing import Annotated, Any, Generic, Optional, TypeVar, cast
 
 import numpy as np
 import pandas as pd
@@ -16,9 +16,11 @@ from pandas._testing import assert_frame_equal
 import pandera.api.extensions as pax
 import pandera.pandas as pa
 from pandera.api.base.model import MetaModel
+from pandera.api.dataframe.model import get_dtype_kwargs
 from pandera.errors import SchemaError, SchemaInitError
 from pandera.typing import DataFrame, Index, Series, String
 from pandera.typing import pandas as pandas_typing
+from pandera.typing.common import AnnotationInfo
 
 
 def test_idempotent_magics() -> None:
@@ -152,6 +154,13 @@ def test_annotated_dtype_with_annotated_field_metadata() -> None:
     expected_dtype = pa.Column(pd.DatetimeTZDtype("ns", "UTC")).dtype
     assert schema.columns["a"].dtype == expected_dtype
     assert schema.columns["a"].description == "annotated dtype description"
+
+
+def test_get_dtype_kwargs_signature_failure_returns_empty_kwargs() -> None:
+    raw_annotation = cast(type, Annotated[type(None), "ignored"])
+    annotation = AnnotationInfo(raw_annotation)
+
+    assert get_dtype_kwargs(annotation) == {}
 
 
 def test_empty_schema() -> None:
