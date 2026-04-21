@@ -854,7 +854,7 @@ from pandera import Check
 
 class RLModel(pa.TensorDictModel):
     """Reinforcement learning model output schema."""
-    
+
     # Dtype in annotation, constraints in Field
     observation: torch.float32 = pa.Field(shape=(None, 128))
     action: torch.int64 = pa.Field(
@@ -862,10 +862,10 @@ class RLModel(pa.TensorDictModel):
         checks=Check.isin([0, 1, 2, 3])
     )
     reward: torch.float32 = pa.Field()
-    
+
     class Config:
         batch_size = (32,)
-        
+
 # Access schema directly
 schema = RLModel.to_schema()
 
@@ -884,7 +884,7 @@ validated = RLModel.validate(batch)
 ```python
 class ActorCriticOutput(pa.TensorDictModel):
     """Actor-critic network output."""
-    
+
     action_mean: torch.float32 = pa.Field(
         shape=(None, 4),
         ge=-2.0,
@@ -943,7 +943,7 @@ For reusable, self-documenting schemas with type hints, use `TensorDictModel`:
 class MySchema(pa.TensorDictModel):
     observation: torch.float32 = pa.Field(shape=(None, 10))
     action: torch.int64 = pa.Field(shape=(None,))
-    
+
     class Config:
         batch_size = (32,)
 

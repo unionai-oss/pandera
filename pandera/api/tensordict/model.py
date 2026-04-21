@@ -23,7 +23,7 @@ TChecks = dict[str, list[Check]]
 TParsers = dict[str, list[Parser]]
 
 _CONFIG_KEY = "Config"
-MODEL_CACHE: dict[tuple[type["TensorDictModel"], int], Any] = {}
+MODEL_CACHE: dict[tuple[type[TensorDictModel], int], Any] = {}
 
 
 def _is_field(name: str) -> bool:
@@ -112,7 +112,9 @@ class _RootParsersDescriptor:
         return self.cache[cls]
 
 
+CHECK_KEY = "__check_config__"
 DATAFRAME_CHECK_KEY = "__dataframe_check_config__"
+PARSER_KEY = "__parser_config__"
 DATAFRAME_PARSER_KEY = "__dataframe_parser_config__"
 
 
@@ -139,21 +141,21 @@ def _convert_extras_to_checks(extras: dict[str, Any]) -> list[Check]:
 class TensorDictModel(BaseModel):
     """Declarative TensorDict schema using class definitions.
 
-    Fields are defined using ``pa.Field`` directly in type annotations. Use PyTorch dtypes
-(e.g., `torch.float32`, `torch.int64`) to specify the expected data type:
+        Fields are defined using ``pa.Field`` directly in type annotations. Use PyTorch dtypes
+    (e.g., `torch.float32`, `torch.int64`) to specify the expected data type:
 
-    Example:
-        >>> import torch
-        >>> import pandera.tensordict as pa
+        Example:
+            >>> import torch
+            >>> import pandera.tensordict as pa
 
-        >>> class MySchema(pa.TensorDictModel):
-        ...     observation: torch.float32 = pa.Field(shape=(None, 10))
-        ...     action: torch.int64 = pa.Field(shape=(None,))
-        ...
-        ...     class Config:
-        ...         batch_size = (32,)
+            >>> class MySchema(pa.TensorDictModel):
+            ...     observation: torch.float32 = pa.Field(shape=(None, 10))
+            ...     action: torch.int64 = pa.Field(shape=(None,))
+            ...
+            ...     class Config:
+            ...         batch_size = (32,)
 
-        >>> schema = MySchema.to_schema()
+            >>> schema = MySchema.to_schema()
     """
 
     Config: type[BaseConfig] = BaseConfig
@@ -174,10 +176,10 @@ class TensorDictModel(BaseModel):
                 cls.Config.name = None
         else:
             cls.Config = type("Config", (cls.Config,), {})
-        
+
         super().__init_subclass__(**kwargs)
         hints = get_type_hints(cls, include_extras=True)
-        
+
         for fname in hints.keys():
             if not _is_field(fname):
                 continue
@@ -185,11 +187,11 @@ class TensorDictModel(BaseModel):
                 continue
             # Auto-add Field() if not explicitly defined
             from pandera.api.tensordict.model_components import Field
-            
+
             field = Field()
             field.__set_name__(cls, fname)
             setattr(cls, fname, field)
-        
+
         cls.__config__, cls.__extras__ = cls._collect_config_and_extras()
 
     @classmethod
@@ -209,7 +211,7 @@ class TensorDictModel(BaseModel):
     def _collect_fields(cls) -> TFields:
         """Centralize publicly named fields and their corresponding annotations."""
         from pandera.api.tensordict.model_components import TensorDictFieldInfo
-        
+
         annotations = get_type_hints(cls, include_extras=True)
         attrs = cls._get_model_attrs()
 
@@ -230,7 +232,7 @@ class TensorDictModel(BaseModel):
             if not _is_field(field_name):
                 continue
             field = attrs[field_name]
-            
+
             # Check if it's a TensorDictFieldInfo instance
             if not isinstance(field, TensorDictFieldInfo):
                 raise SchemaInitError(
@@ -246,11 +248,13 @@ class TensorDictModel(BaseModel):
         config: Any,
     ) -> tuple[dict[str, Any], dict[str, Any]]:
         """Extract config options and extras from Config class."""
-        from pandera.api.dataframe.model_config import BaseConfig as DataFrameBaseConfig
-        
+        from pandera.api.dataframe.model_config import (
+            BaseConfig as DataFrameBaseConfig,
+        )
+
         config_options = {}
         extras = {}
-        
+
         # Get allowed config option names
         if hasattr(DataFrameBaseConfig, "__dataclass_fields__"):
             config_field_names = list(
@@ -310,7 +314,14 @@ class TensorDictModel(BaseModel):
         for base in bases:
             for attr_name, attr_value in vars(base).items():
                 check_info = getattr(attr_value, key, None)
-                if not isinstance(check_info, type(cls).__dict__.get("Field", object).__bases__[0] if hasattr(type(cls).__dict__.get("Field", object), "__bases__") else object):
+                if not isinstance(
+                    check_info,
+                    type(cls).__dict__.get("Field", object).__bases__[0]
+                    if hasattr(
+                        type(cls).__dict__.get("Field", object), "__bases__"
+                    )
+                    else object,
+                ):
                     continue
                 if attr_name in method_names:
                     continue
@@ -331,7 +342,14 @@ class TensorDictModel(BaseModel):
         for base in bases:
             for attr_name, attr_value in vars(base).items():
                 parser_info = getattr(attr_value, key, None)
-                if not isinstance(parser_info, type(cls).__dict__.get("Field", object).__bases__[0] if hasattr(type(cls).__dict__.get("Field", object), "__bases__") else object):
+                if not isinstance(
+                    parser_info,
+                    type(cls).__dict__.get("Field", object).__bases__[0]
+                    if hasattr(
+                        type(cls).__dict__.get("Field", object), "__bases__"
+                    )
+                    else object,
+                ):
                     continue
                 method_names.add(attr_name)
                 parser_infos.append(parser_info)
@@ -357,10 +375,17 @@ class TensorDictModel(BaseModel):
         for check_info in check_infos:
             if not hasattr(check_info, "fields"):
                 continue
-                
+
             check_info_fields = {
                 field.name
-                if isinstance(field, type(cls).__dict__.get("Field", object).__bases__[0] if hasattr(type(cls).__dict__.get("Field", object), "__bases__") else object)
+                if isinstance(
+                    field,
+                    type(cls).__dict__.get("Field", object).__bases__[0]
+                    if hasattr(
+                        type(cls).__dict__.get("Field", object), "__bases__"
+                    )
+                    else object,
+                )
                 else field
                 for field in check_info.fields
             }
@@ -372,7 +397,9 @@ class TensorDictModel(BaseModel):
             )
 
             check_ = (
-                check_info.to_check(cls) if hasattr(check_info, "to_check") else None
+                check_info.to_check(cls)
+                if hasattr(check_info, "to_check")
+                else None
             )
 
             for field in matched:
@@ -382,17 +409,20 @@ class TensorDictModel(BaseModel):
                     )
                 if field not in checks:
                     checks[field] = []
-                checks[field].append(check_)
+                if check_ is not None:
+                    checks[field].append(check_)
         return checks
 
     @classmethod
     def _extract_df_checks(cls, check_infos: list[Any]) -> list[Check]:
         """Collect dataframe-level checks."""
-        return [
-            check_info.to_check(cls)
-            for check_info in check_infos
-            if hasattr(check_info, "to_check")
-        ]
+        result: list[Check] = []
+        for check_info in check_infos:
+            if hasattr(check_info, "to_check"):
+                check_ = check_info.to_check(cls)
+                if check_ is not None:
+                    result.append(check_)
+        return result
 
     @classmethod
     def _extract_parsers(
@@ -403,10 +433,17 @@ class TensorDictModel(BaseModel):
         for parser_info in parser_infos:
             if not hasattr(parser_info, "fields"):
                 continue
-                
+
             parser_info_fields = {
                 field.name
-                if isinstance(field, type(cls).__dict__.get("Field", object).__bases__[0] if hasattr(type(cls).__dict__.get("Field", object), "__bases__") else object)
+                if isinstance(
+                    field,
+                    type(cls).__dict__.get("Field", object).__bases__[0]
+                    if hasattr(
+                        type(cls).__dict__.get("Field", object), "__bases__"
+                    )
+                    else object,
+                )
                 else field
                 for field in parser_info.fields
             }
@@ -430,17 +467,20 @@ class TensorDictModel(BaseModel):
                     )
                 if field not in parsers:
                     parsers[field] = []
-                parsers[field].append(parser_)
+                if parser_ is not None:
+                    parsers[field].append(parser_)
         return parsers
 
     @classmethod
     def _extract_df_parsers(cls, parser_infos: list[Any]) -> list[Parser]:
         """Collect dataframe-level parsers."""
-        return [
-            parser_info.to_parser(cls)
-            for parser_info in parser_infos
-            if hasattr(parser_info, "to_parser")
-        ]
+        result: list[Parser] = []
+        for parser_info in parser_infos:
+            if hasattr(parser_info, "to_parser"):
+                parser_ = parser_info.to_parser(cls)
+                if parser_ is not None:
+                    result.append(parser_)
+        return result
 
     @classmethod
     def build_schema_(cls, **kwargs) -> TensorDictSchema:
@@ -464,7 +504,9 @@ class TensorDictModel(BaseModel):
                         DataType as _DataType,
                     )
 
-                    if isinstance(dtype, type) and issubclass(dtype, _DataType):
+                    if isinstance(dtype, type) and issubclass(
+                        dtype, _DataType
+                    ):
                         dtype = dtype.type
                 except Exception:
                     pass
@@ -490,11 +532,11 @@ class TensorDictModel(BaseModel):
         )
 
         try:
-            return TensorDictSchema(keys=columns or None, batch_size=batch_size)
+            return TensorDictSchema(
+                keys=columns or None, batch_size=batch_size
+            )
         except ImportError as e:
-            raise RuntimeError(
-                "Could not import TensorDictSchema"
-            ) from e
+            raise RuntimeError("Could not import TensorDictSchema") from e
 
     @classmethod
     def to_schema(cls: type[TensorDictModel]) -> TensorDictSchema:

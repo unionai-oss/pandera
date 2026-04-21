@@ -25,7 +25,7 @@ class TestTensorDictModelBasic:
 
     def test_model_with_field_annotations(self):
         """Test model with field annotations."""
-        from pandera.tensordict import TensorDictModel, Field
+        from pandera.tensordict import Field, TensorDictModel
 
         class MyModel(TensorDictModel):
             observation: torch.float32 = Field(shape=(None, 10))
@@ -40,7 +40,7 @@ class TestTensorDictModelBasic:
 
     def test_model_validation(self):
         """Test model validation with valid data."""
-        from pandera.tensordict import TensorDictModel, Field
+        from pandera.tensordict import Field, TensorDictModel
 
         class MyModel(TensorDictModel):
             observation: torch.float32 = Field(shape=(None, 10))
@@ -59,7 +59,7 @@ class TestTensorDictModelBasic:
     def test_model_validation_failure(self):
         """Test model validation fails with invalid data."""
         import pandera.errors as errors
-        from pandera.tensordict import TensorDictModel, Field
+        from pandera.tensordict import Field, TensorDictModel
 
         class MyModel(TensorDictModel):
             observation: torch.float32 = Field(shape=(None, 10))
@@ -84,7 +84,7 @@ class TestTensorDictModelWithChecks:
         """Test model with Field-level checks."""
         import pandera.errors as errors
         from pandera import Check
-        from pandera.tensordict import TensorDictModel, Field
+        from pandera.tensordict import Field, TensorDictModel
 
         class MyModel(TensorDictModel):
             values: torch.float32 = Field(
@@ -120,7 +120,7 @@ class TestTensorDictModelInheritance:
 
     def test_model_inheritance(self):
         """Test model can be inherited from."""
-        from pandera.tensordict import TensorDictModel, Field
+        from pandera.tensordict import Field, TensorDictModel
 
         class BaseModel(TensorDictModel):
             observation: torch.float32 = Field(shape=(None, 10))

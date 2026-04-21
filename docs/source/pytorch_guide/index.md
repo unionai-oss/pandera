@@ -49,7 +49,7 @@ schema.validate(td)
 ```{code-cell} python
 class RL(pa.TensorDictModel):
     """Schema for reinforcement learning data."""
-    
+
     # Use PyTorch dtypes in type annotations
     observation: torch.float32 = pa.Field(shape=(None, 10))
     action: torch.int64 = pa.Field(shape=(None,))

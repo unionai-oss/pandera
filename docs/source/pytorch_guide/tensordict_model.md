@@ -17,7 +17,7 @@ import pandera.tensordict as pa
 
 class RL(pa.TensorDictModel):
     """Schema for reinforcement learning data."""
-    
+
     # Type annotation specifies the dtype (torch.float32, torch.int64, etc.)
     observation: torch.float32 = pa.Field(shape=(None, 10))
     action: torch.int64 = pa.Field(shape=(None,))
@@ -54,7 +54,7 @@ from pandera import Check
 
 class RLWithConfig(pa.TensorDictModel):
     """RL schema with field-level checks."""
-    
+
     observation: torch.float32 = pa.Field(
         shape=(None, 10),
         ge=-1.0,
