@@ -19,6 +19,16 @@ is collected to create a data-generating strategy using
 [hypothesis](https://hypothesis.readthedocs.io/en/latest/), which is a
 property-based testing library.
 
+:::{note}
+The data synthesis feature requires a pandera installation with the
+`strategies` dependency set:
+
+`pip install 'pandera[strategies]'`
+
+The `hypotheses` dependency set is for pandera hypothesis checks and does
+not install the `hypothesis` library.
+:::
+
 ## Basic Usage
 
 Once you've defined a schema, it's easy to generate examples:
