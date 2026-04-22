@@ -190,6 +190,8 @@ docs = [
     "sphinx-docsearch",
     "grpcio",
     "ray",
+    "torch",
+    "tensordict",
     "types-click",
     "types-pytz",
     "types-pyyaml",
