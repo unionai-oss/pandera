@@ -18,7 +18,16 @@ pandera schema or schema component objects. Under the hood, the schema metadata
 is collected to create a data-generating strategy using
 [hypothesis](https://hypothesis.readthedocs.io/en/latest/), which is a
 property-based testing library.
+:::{note}
+The data synthesis strategies feature requires a pandera installation with `strategies`
+dependency set. Install it with:
 
+```bash
+pip install 'pandera[strategies]'
+```
+
+See the {ref}`installation<installation>` instructions for more details.
+:::
 ## Basic Usage
 
 Once you've defined a schema, it's easy to generate examples:
