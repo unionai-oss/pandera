@@ -16,11 +16,11 @@ test_module_dir = Path(os.path.dirname(__file__))
 
 def _get_mypy_errors(
     module_name: str,
-    stdout,
+    output,
 ):
     """Parse mypy output and return list of errors."""
     errors = []
-    for line in stdout.split("\n"):
+    for line in output.split("\n"):
         if module_name in line and "error:" in line:
             errors.append(line)
     return errors
@@ -43,7 +43,7 @@ POLARS_MODEL_COLUMN_ATTRS_ERRORS = [
         ["polars_model_column_attrs.py", "plugin_mypy.ini", []],
     ],
 )
-def test_polars_mypy_typing(capfd, module, config, expected_errors) -> None:
+def test_polars_mypy_typing(module, config, expected_errors) -> None:
     """Test that mypy plugin correctly handles Polars DataFrameModel field types."""
     pytest.importorskip("polars")
     
@@ -64,11 +64,11 @@ def test_polars_mypy_typing(capfd, module, config, expected_errors) -> None:
         "--show-error-codes",
     ]
     # pylint: disable=subprocess-run-check
-    result = subprocess.run(commands, text=True)
+    result = subprocess.run(commands, text=True, capture_output=True)
     # NOTE: mypy return code is 0 if no errors were found, 1 if errors were found
     # or 2 if there was a failure in checking
     assert result.returncode in (0, 1)
-    resulting_errors = _get_mypy_errors(module, capfd.readouterr().out)
+    resulting_errors = _get_mypy_errors(module, result.stderr)
 
     assert len(expected_errors) == len(resulting_errors), (
         f"Expected {len(expected_errors)} errors but got {len(resulting_errors)}. "
