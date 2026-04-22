@@ -68,7 +68,7 @@ def test_polars_mypy_typing(module, config, expected_errors) -> None:
     # NOTE: mypy return code is 0 if no errors were found, 1 if errors were found
     # or 2 if there was a failure in checking
     assert result.returncode in (0, 1)
-    resulting_errors = _get_mypy_errors(module, result.stderr)
+    resulting_errors = _get_mypy_errors(module, result.stdout)
 
     assert len(expected_errors) == len(resulting_errors), (
         f"Expected {len(expected_errors)} errors but got {len(resulting_errors)}. "
