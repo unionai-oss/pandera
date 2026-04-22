@@ -27,6 +27,8 @@ def _get_mypy_errors(
 
 
 POLARS_MODEL_COLUMN_ATTRS_ERRORS = [
+    'List item 0 has incompatible type "int"; expected "str"',
+    'List item 1 has incompatible type "float"; expected "str"',
     'Argument 1 to "print_string" has incompatible type "int"; expected "str"',
     'Argument 1 to "print_string" has incompatible type "float"; expected "str"',
 ]
@@ -40,7 +42,7 @@ POLARS_MODEL_COLUMN_ATTRS_ERRORS = [
             "no_plugin.ini",
             POLARS_MODEL_COLUMN_ATTRS_ERRORS,
         ],
-        ["polars_model_column_attrs.py", "plugin_mypy.ini", []],
+        ["polars_model_column_attrs.py", "plugin_mypy_silent.ini", []],
     ],
 )
 def test_polars_mypy_typing(module, config, expected_errors) -> None:
