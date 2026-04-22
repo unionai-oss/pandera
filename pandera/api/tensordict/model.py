@@ -9,6 +9,12 @@ from typing import Any, ClassVar, cast, get_type_hints
 
 import typing_inspect
 
+# Import torch if available for TensorDict type hints in docstrings
+try:
+    import torch  # noqa: F401
+except ImportError:
+    pass
+
 from pandera.api.base.model import BaseModel
 from pandera.api.checks import Check
 from pandera.api.parsers import Parser
