@@ -6,6 +6,7 @@ import runpy
 from collections.abc import Iterable
 from copy import deepcopy
 from enum import Enum
+from types import SimpleNamespace
 from typing import Annotated, Any, Generic, Optional, TypeVar, cast
 
 import numpy as np
@@ -156,9 +157,21 @@ def test_annotated_dtype_with_annotated_field_metadata() -> None:
     assert schema.columns["a"].description == "annotated dtype description"
 
 
-def test_get_dtype_kwargs_signature_failure_returns_empty_kwargs() -> None:
-    raw_annotation = cast(type, Annotated[type(None), "ignored"])
-    annotation = AnnotationInfo(raw_annotation)
+def test_get_dtype_kwargs_signature_failure_returns_empty_kwargs(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    annotation = cast(
+        AnnotationInfo,
+        SimpleNamespace(arg=int, metadata=("ignored",)),
+    )
+
+    def fake_signature(_arg):
+        raise TypeError
+
+    monkeypatch.setattr(
+        "pandera.api.dataframe.model.inspect.signature",
+        fake_signature,
+    )
 
     assert get_dtype_kwargs(annotation) == {}
 
