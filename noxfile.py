@@ -487,10 +487,10 @@ def docs(session: Session) -> None:
             "sphinx-build",
             *args,
         )
-    
+
     # Ensure torch is available for TensorDictModel doctests
     session.run("python", "-c", "import torch")
-    
+
     session.run("xdoctest", PACKAGE, "--quiet")
 
 
