@@ -315,7 +315,11 @@ def docs(session: Session) -> None:
     """Build the documentation."""
     # this is needed until ray and geopandas are supported on python 3.10
 
-    session.install("-e", ".[all]")
+    session.install(
+        "-e",
+        ".[all]",
+        *nox.project.dependency_groups(PYPROJECT, "docs"),
+    )
     session.run("uv", "pip", "list")
     session.chdir("docs")
 
@@ -351,10 +355,10 @@ def docs(session: Session) -> None:
             "sphinx-build",
             *args,
         )
-    
+
     # Ensure torch is available for TensorDictModel doctests
     session.run("python", "-c", "import torch")
-    
+
     session.run("xdoctest", PACKAGE, "--quiet")
 
 

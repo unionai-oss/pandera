@@ -177,6 +177,7 @@ docs = [
     "types-pyyaml",
     "types-requests",
     "types-setuptools",
+    "xdoctest",
 ]
 
 [tool.setuptools]
