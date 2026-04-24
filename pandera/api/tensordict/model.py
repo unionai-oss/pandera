@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import inspect
+import sys
 import threading
+import types as types_module
 import typing
-from typing import Any, ClassVar, cast, get_type_hints
+from typing import Any, ClassVar, cast
 
 import typing_inspect
 
@@ -34,6 +36,62 @@ MODEL_CACHE: dict[tuple[type[TensorDictModel], int], Any] = {}
 
 def _is_field(name: str) -> bool:
     return not name.startswith("_") and name != _CONFIG_KEY
+
+
+def _metaclass_dict(cls: type) -> Any:
+    """``type(cls).__dict__`` (typeshed types ``.__dict__`` on metaclass poorly)."""
+    return cast(Any, type(cls).__dict__)
+
+
+def _get_tensor_dict_class_type_hints(
+    cls: type,
+    globalns: dict[str, Any] | None = None,
+    localns: dict[str, Any] | None = None,
+    *,
+    include_extras: bool = True,
+) -> dict[str, Any]:
+    """Resolve class annotations like :func:`typing.get_type_hints`.
+
+    String annotations (PEP 563) such as ``"torch.float32"`` evaluate to
+    ``torch.dtype`` instances; :func:`typing.get_type_hints` rejects those
+    because they are not :class:`type` objects. TensorDict field annotations
+    intentionally use dtypes, so string annotations are resolved with
+    :func:`eval` like :func:`inspect.get_annotations` (same security model as
+    normal forward references).
+    """
+    # typing.get_type_hints uses these; they are not in typeshed (private API).
+    _eval_type = cast(Any, getattr(typing, "_eval_type"))
+    _strip_annotations = cast(Any, getattr(typing, "_strip_annotations"))
+
+    if getattr(cls, "__no_type_check__", None):
+        return {}
+    hints: dict[str, Any] = {}
+    for base in reversed(cls.__mro__):
+        if globalns is None:
+            base_globals = getattr(
+                sys.modules.get(base.__module__, None),
+                "__dict__",
+                {},
+            )
+        else:
+            base_globals = globalns
+        ann = base.__dict__.get("__annotations__", {})
+        if isinstance(ann, types_module.GetSetDescriptorType):
+            ann = {}
+        base_locals = dict(vars(base)) if localns is None else localns
+        if localns is None and globalns is None:
+            base_globals, base_locals = base_locals, base_globals
+        for name, value in ann.items():
+            if value is None:
+                value = type(None)
+            if isinstance(value, str):
+                value = eval(value, base_globals, base_locals)
+            else:
+                value = _eval_type(value, base_globals, base_locals)
+            hints[name] = value
+    if include_extras:
+        return hints
+    return {k: _strip_annotations(t) for k, t in hints.items()}
 
 
 class _FieldsDescriptor:
@@ -184,7 +242,7 @@ class TensorDictModel(BaseModel):
             cls.Config = type("Config", (cls.Config,), {})
 
         super().__init_subclass__(**kwargs)
-        hints = get_type_hints(cls, include_extras=True)
+        hints = _get_tensor_dict_class_type_hints(cls, include_extras=True)
 
         for fname in hints.keys():
             if not _is_field(fname):
@@ -218,7 +276,9 @@ class TensorDictModel(BaseModel):
         """Centralize publicly named fields and their corresponding annotations."""
         from pandera.api.tensordict.model_components import TensorDictFieldInfo
 
-        annotations = get_type_hints(cls, include_extras=True)
+        annotations = _get_tensor_dict_class_type_hints(
+            cls, include_extras=True
+        )
         attrs = cls._get_model_attrs()
 
         missing = []
@@ -322,9 +382,10 @@ class TensorDictModel(BaseModel):
                 check_info = getattr(attr_value, key, None)
                 if not isinstance(
                     check_info,
-                    type(cls).__dict__.get("Field", object).__bases__[0]
+                    _metaclass_dict(cls).get("Field", object).__bases__[0]
                     if hasattr(
-                        type(cls).__dict__.get("Field", object), "__bases__"
+                        _metaclass_dict(cls).get("Field", object),
+                        "__bases__",
                     )
                     else object,
                 ):
@@ -350,9 +411,10 @@ class TensorDictModel(BaseModel):
                 parser_info = getattr(attr_value, key, None)
                 if not isinstance(
                     parser_info,
-                    type(cls).__dict__.get("Field", object).__bases__[0]
+                    _metaclass_dict(cls).get("Field", object).__bases__[0]
                     if hasattr(
-                        type(cls).__dict__.get("Field", object), "__bases__"
+                        _metaclass_dict(cls).get("Field", object),
+                        "__bases__",
                     )
                     else object,
                 ):
@@ -386,9 +448,10 @@ class TensorDictModel(BaseModel):
                 field.name
                 if isinstance(
                     field,
-                    type(cls).__dict__.get("Field", object).__bases__[0]
+                    _metaclass_dict(cls).get("Field", object).__bases__[0]
                     if hasattr(
-                        type(cls).__dict__.get("Field", object), "__bases__"
+                        _metaclass_dict(cls).get("Field", object),
+                        "__bases__",
                     )
                     else object,
                 )
@@ -444,9 +507,10 @@ class TensorDictModel(BaseModel):
                 field.name
                 if isinstance(
                     field,
-                    type(cls).__dict__.get("Field", object).__bases__[0]
+                    _metaclass_dict(cls).get("Field", object).__bases__[0]
                     if hasattr(
-                        type(cls).__dict__.get("Field", object), "__bases__"
+                        _metaclass_dict(cls).get("Field", object),
+                        "__bases__",
                     )
                     else object,
                 )
