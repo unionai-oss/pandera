@@ -66,6 +66,8 @@ See :ref:`api-core` for full details.
 
    * - :ref:`Xarray <api-xarray>`
      - Schemas for labelled N-dimensional :mod:`xarray` arrays, datasets, and datatrees
+   * - :ref:`PyTorch <api-pytorch>`
+     - Schemas for :mod:`tensordict` TensorDict and tensorclass objects
 ```
 
 ```{toctree}
@@ -82,4 +84,5 @@ strategies
 extensions
 errors
 xarray
+pytorch
 ```

@@ -49,20 +49,20 @@ def validate_batch(td: TensorDict):
     """Manual validation - error-prone, hard to maintain."""
     # Check batch size
     assert td.batch_size[0] == 32, f"Expected batch_size[0]=32, got {td.batch_size[0]}"
-    
+
     # Check keys exist
     assert "observation" in td, "Missing 'observation' key"
     assert "action" in td, "Missing 'action' key"
-    
+
     # Check dtypes
     assert td["observation"].dtype == torch.float32, f"Expected float32, got {td['observation'].dtype}"
     assert td["action"].dtype == torch.float32, f"Expected float32, got {td['action'].dtype}"
-    
+
     # Check value ranges (normalized observations)
     obs = td["observation"]
     assert obs.min() >= -1.0, f"observation min value {obs.min()} < -1.0"
     assert obs.max() <= 1.0, f"observation max value {obs.max()} > 1.0"
-    
+
     # Check action bounds
     action = td["action"]
     assert action.min() >= -2.0, f"action min value {action.min()} < -2.0"
@@ -158,38 +158,32 @@ except pa.SchemaErrors as e:
 
 #### Example 3: Declarative API with `TensorDictModel`
 
-For a more Pydantic-like experience, use class-based models:
+For a more Pydantic-like experience, use class-based models. **Type annotations specify the dtype directly**, and `pa.Field` defines additional constraints:
 
 ```python
 import torch
 import pandera.tensordict as pa
-from pandera import Field, Check
+from pandera import Check
 
 class PolicyModel(pa.TensorDictModel):
     """Schema for a policy network output."""
-    
-    logits: torch.Tensor = Field(
-        dtype=torch.float32,
+
+    # Dtype is specified in the type annotation, Field defines constraints
+    logits: torch.float32 = pa.Field(
         shape=(None, 10),
-        checks=Check.in_range(-5.0, 5.0)
+        ge=-5.0,
+        le=5.0
     )
-    value: torch.Tensor = Field(
-        dtype=torch.float32,
+    value: torch.float32 = pa.Field(
         shape=(None,),
-        checks=Check.greater_than(0.0)
+        gt=0.0
     )
-    
+
     class Config:
         batch_size = (64,)
 
-# Validate using the model
-policy_model = PolicyModel()
-batch = TensorDict({
-    "logits": torch.randn(64, 10),
-    "value": torch.randn(64).abs()  # Ensure positive
-}, batch_size=[64])
-
-validated = policy_model.validate(batch)
+# Validate using the model - schema is built automatically from class definition
+validated_batch = PolicyModel.validate(batch)
 ```
 
 #### Example 4: Validating `tensorclass` Objects
@@ -312,10 +306,10 @@ def save_dataset(td: TensorDict, path: str):
 def load_and_validate_dataset(path: str) -> TensorDict:
     """Load dataset and validate before use."""
     td = TensorDict.load(path)
-    
+
     # Validate schema compliance
     validated = dataset_schema.validate(td)
-    
+
     return validated
 
 # Create and save a large dataset (e.g., ImageNet subset)
@@ -387,7 +381,7 @@ def save_trajectory(tc: TrajectoryData, path: str):
 def load_trajectory(path: str) -> TrajectoryData:
     """Load and validate tensorclass from disk."""
     tc = TrajectoryData.load(path)
-    
+
     # Validate - catches any corruption from disk I/O
     return trajectory_schema.validate(tc)
 
@@ -437,15 +431,15 @@ def validate_dataset_directory(data_dir: Path) -> list[str]:
     """Validate all TensorDict files in a directory."""
     errors = []
     schema = large_dataset_schema
-    
+
     for td_file in sorted(data_dir.glob("*.pt")):
         td = TensorDict.load(td_file)
-        
+
         try:
             schema.validate(td, lazy=True)
         except pa.SchemaErrors as e:
             errors.append(f"{td_file}: {e}")
-    
+
     return errors
 
 # Check entire dataset before starting training
@@ -538,10 +532,10 @@ replay_buffer = ReplayBuffer(
 # Validate sampled data before training
 def train_step():
     batch = replay_buffer.sample()
-    
+
     # Validate the batch - catch data corruption or storage errors
     validated_batch = replay_schema.validate(batch)
-    
+
     # Now safe to pass to loss computation
     loss = compute_ppo_loss(validated_batch)
     loss.backward()
@@ -560,25 +554,25 @@ from pandera import Check
 # Schema for actor-critic network output
 class ActorCriticOutput(pa.TensorDictModel):
     """Output from an actor-critic network."""
-    
+
     action_mean: torch.Tensor = pa.Field(
         dtype=torch.float32,
         shape=(None, 4),  # 4D action space
-        checks=Check.greater_than_or_equal_to(-2.0),
-        Check.less_than_or_equal_to(2.0),
+        ge=-2.0,
+        le=2.0,
     )
     action_std: torch.Tensor = pa.Field(
         dtype=torch.float32,
         shape=(None, 4),
-        checks=Check.greater_than(1e-6),  # Standard deviation > 0
+        gt=1e-6,  # Standard deviation > 0
     )
     value: torch.Tensor = pa.Field(
         dtype=torch.float32,
         shape=(None,),
-        checks=Check.greater_than(-100.0),  # Reasonable value bounds
-        Check.less_than(100.0),
+        gt=-100.0,  # Reasonable value bounds
+        lt=100.0,
     )
-    
+
     class Config:
         batch_size = (32,)
 
@@ -614,7 +608,7 @@ training_schema = pa.TensorDictSchema(
         "action": pa.Tensor(dtype=torch.float32, shape=(None, 6)),
         "reward": pa.Tensor(dtype=torch.float32, shape=(None,)),
         "done": pa.Tensor(dtype=torch.bool, shape=(None,)),
-        
+
         # PPO-specific data
         "log_prob": pa.Tensor(dtype=torch.float32, shape=(None,)),
         "value": pa.Tensor(dtype=torch.float32, shape=(None,)),
@@ -651,19 +645,19 @@ trainer_validator = pa.TensorDictSchema(
 def distributed_train_step(collector_rank, trainer_rank):
     # Collect experiences
     experience = collector.collect_experiences()
-    
+
     # Validate before sending to replay buffer
     validated_exp = collector_validator.validate(experience)
-    
+
     # Send to buffer (RRef)
     replay_buffer_ref.add(validated_exp)
-    
+
     # Trainer pulls batch
     batch = replay_buffer_ref.sample()
-    
+
     # Validate before training
     validated_batch = trainer_validator.validate(batch)
-    
+
     # Train
     optimizer.zero_grad()
     loss = compute_ppo_loss(validated_batch)
@@ -840,6 +834,127 @@ class MyTensorDictModel(pa.TensorDictModel):
         batch_size = (None,)
 ```
 
+
+
+### 4.5 Class-Based Model Implementation
+
+The `TensorDictModel` class follows the same pattern as `xarray.DatasetModel` and `pandas.DataFrameModel`. The API supports direct usage of `pa.Field` in type annotations without requiring custom `_field` classmethods or other complex patterns.
+
+**Key principles:**
+- Use PyTorch dtypes (e.g., `torch.float32`, `torch.int64`) in type annotations
+- Define constraints using `pa.Field()` descriptor
+- Configuration via nested `Config` class
+
+#### Example: Complete Model Definition
+
+```python
+import torch
+import pandera.tensordict as pa
+from pandera import Check
+
+class RLModel(pa.TensorDictModel):
+    """Reinforcement learning model output schema."""
+
+    # Dtype in annotation, constraints in Field
+    observation: torch.float32 = pa.Field(shape=(None, 128))
+    action: torch.int64 = pa.Field(
+        shape=(None,),
+        checks=Check.isin([0, 1, 2, 3])
+    )
+    reward: torch.float32 = pa.Field()
+
+    class Config:
+        batch_size = (32,)
+
+# Access schema directly
+schema = RLModel.to_schema()
+
+# Or validate directly
+batch = TensorDict({
+    "observation": torch.randn(32, 128),
+    "action": torch.randint(0, 4, (32,)),
+    "reward": torch.randn(32)
+}, batch_size=[32])
+
+validated = RLModel.validate(batch)
+```
+
+#### Example: Class-Based Model with Field-Level Checks
+
+```python
+class ActorCriticOutput(pa.TensorDictModel):
+    """Actor-critic network output."""
+
+    action_mean: torch.float32 = pa.Field(
+        shape=(None, 4),
+        ge=-2.0,
+        le=2.0,
+    )
+    action_std: torch.float32 = pa.Field(
+        shape=(None, 4),
+        gt=1e-6,
+    )
+    value: torch.float32 = pa.Field(
+        shape=(None,),
+        gt=-100.0,
+        lt=100.0,
+    )
+
+    class Config:
+        batch_size = (32,)
+```
+
+#### Example: Lazy Validation with Class-Based Model
+
+```python
+# Create invalid data
+invalid_batch = TensorDict({
+    "observation": torch.randn(32, 128),
+    "action": torch.randint(0, 4, (16,)),  # Wrong batch size!
+    "reward": torch.randn(32)
+}, batch_size=[32])
+
+try:
+    RLModel.validate(invalid_batch, lazy=True)
+except pa.SchemaErrors as e:
+    print(e)  # Shows all validation errors
+```
+
+#### Example: TensorDictSchema vs TensorDictModel
+
+For simple use cases, `TensorDictSchema` is sufficient:
+
+```python
+# Standalone schema - no class definition needed
+schema = pa.TensorDictSchema(
+    keys={
+        "observation": pa.Tensor(dtype=torch.float32, shape=(None, 10)),
+        "action": pa.Tensor(dtype=torch.int64, shape=(None,)),
+    },
+    batch_size=(32,)
+)
+
+validated = schema.validate(batch)
+```
+
+For reusable, self-documenting schemas with type hints, use `TensorDictModel`:
+
+```python
+class MySchema(pa.TensorDictModel):
+    observation: torch.float32 = pa.Field(shape=(None, 10))
+    action: torch.int64 = pa.Field(shape=(None,))
+
+    class Config:
+        batch_size = (32,)
+
+# Schema is automatically built from class definition
+schema = MySchema.to_schema()  # Same as standalone schema above!
+validated = MySchema.validate(batch)  # Direct validation
+```
+
+---
+
+
 ---
 
 ## 5. Implementation Roadmap
@@ -874,7 +989,9 @@ pandera/
 │       ├── __init__.py
 │       ├── container.py        # TensorDictSchema
 │       ├── components.py       # Tensor
-│       ├── model.py               # TensorDictModel
+│       ├── model.py            # TensorDictModel
+│       ├── model_components.py # Field, TensorDictFieldInfo
+│       ├── model_config.py     # BaseConfig
 │       └── types.py            # Type aliases
 ├── backends/
 │   └── tensordict/
@@ -884,8 +1001,5 @@ pandera/
 │       └── register.py         # Backend registration
 ├── engines/
 │   └── tensordict_engine.py    # Engine for torch dtype registry
-├── typing/
-│   └── tensordict.py           # Annotation types (TensorDict, TensorClass)
 └── tensordict.py               # Entry point: import pandera.tensordict as pa
-
 ```

@@ -6,14 +6,7 @@ import copy
 import sys
 import warnings
 from pathlib import Path
-from typing import (
-    Any,
-    Generic,
-    Optional,
-    TypeVar,
-    Union,
-    cast,
-)
+from typing import Any, Generic, Optional, TypeVar, Union, cast
 
 from pandera import errors
 from pandera.api.base.schema import BaseSchema

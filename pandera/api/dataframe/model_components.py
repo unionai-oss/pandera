@@ -1,11 +1,7 @@
 """DataFrameModel components"""
 
 from collections.abc import Callable, Iterable
-from typing import (
-    Any,
-    Union,
-    cast,
-)
+from typing import Any, Union, cast
 
 from pandera.api.base.model_components import (
     BaseCheckInfo,

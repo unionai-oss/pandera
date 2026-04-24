@@ -2,12 +2,7 @@
 
 import re
 from collections.abc import Callable, Iterable
-from typing import (
-    Any,
-    Optional,
-    TypeVar,
-    Union,
-)
+from typing import Any, Optional, TypeVar, Union
 
 from pandera import errors
 from pandera.api.base.checks import BaseCheck, CheckResult

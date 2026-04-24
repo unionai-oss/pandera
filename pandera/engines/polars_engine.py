@@ -8,14 +8,7 @@ import inspect
 import logging
 import warnings
 from collections.abc import Iterable, Mapping, Sequence
-from typing import (
-    Any,
-    Literal,
-    Optional,
-    TypedDict,
-    Union,
-    overload,
-)
+from typing import Any, Literal, Optional, TypedDict, Union, overload
 
 import polars as pl
 from packaging import version

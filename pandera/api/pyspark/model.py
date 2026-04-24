@@ -5,13 +5,7 @@ import inspect
 import re
 import typing
 from collections.abc import Callable, Iterable, Mapping
-from typing import (
-    Any,
-    Optional,
-    TypeVar,
-    Union,
-    cast,
-)
+from typing import Any, Optional, TypeVar, Union, cast
 
 from pyspark.sql.types import StructType
 from typing_extensions import Self

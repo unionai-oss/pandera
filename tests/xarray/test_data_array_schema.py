@@ -326,9 +326,7 @@ class TestDataArrayCheckMethods:
 
     @pytest.fixture()
     def backend(self):
-        from pandera.backends.xarray.container import (
-            DataArraySchemaBackend,
-        )
+        from pandera.backends.xarray.container import DataArraySchemaBackend
 
         return DataArraySchemaBackend()
 
@@ -515,10 +513,7 @@ class TestDataArrayCheckMethods:
         assert any(not r.passed for r in results)
 
     def test_schema_scope_checks_skipped_with_data_only(self, backend):
-        from pandera.config import (
-            ValidationDepth,
-            config_context,
-        )
+        from pandera.config import ValidationDepth, config_context
 
         da = xr.DataArray(np.zeros(2), dims="x", name="wrong")
         schema = DataArraySchema(name="correct")

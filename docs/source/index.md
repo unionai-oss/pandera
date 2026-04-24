@@ -464,6 +464,7 @@ configuration
 
 supported_libraries
 xarray_guide/index
+pytorch_guide/index
 integrations
 ```
 

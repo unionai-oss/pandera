@@ -2,10 +2,7 @@
 
 import inspect
 import sys
-from typing import (
-    Optional,
-    cast,
-)
+from typing import Optional, cast
 
 import ibis
 import ibis.expr.datatypes as dt

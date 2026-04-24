@@ -7,13 +7,7 @@ import decimal
 import inspect
 from abc import ABC
 from collections.abc import Callable, Iterable
-from typing import (
-    Any,
-    Literal,
-    Optional,
-    TypeVar,
-    Union,
-)
+from typing import Any, Literal, Optional, TypeVar, Union
 
 from typing_extensions import overload
 

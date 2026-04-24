@@ -11,9 +11,7 @@ from pandera.api.pandas.array import SeriesSchema
 from pandera.schema_inference.pandas import (
     infer_dataframe_schema as _infer_pandas_df_schema,
 )
-from pandera.schema_inference.pandas import (
-    infer_series_schema,
-)
+from pandera.schema_inference.pandas import infer_series_schema
 
 
 def infer_geodataframe_schema(df: pd.DataFrame) -> GeoDataFrameSchema:

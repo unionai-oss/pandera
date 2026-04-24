@@ -33,6 +33,10 @@ dependencies:
   # xarray extra
   - xarray >= 2024.10.0
 
+  # torch extra
+  - torch
+  - tensordict
+
   # modin extra
   - modin
   - protobuf

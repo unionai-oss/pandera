@@ -245,5 +245,7 @@ class DataFrameModel(_DataFrameModel[pl.LazyFrame, DataFrameSchema]):
         """Create an empty DataFrame with the schema of this model."""
         schema = copy.deepcopy(cls.to_schema())
         schema.coerce = True
-        empty_df = schema.coerce_dtype(pl.DataFrame(schema=[*schema.columns]))
-        return DataFrame[Self](empty_df)
+        coerced = schema.coerce_dtype(pl.DataFrame(schema=[*schema.columns]))
+        if isinstance(coerced, pl.LazyFrame):
+            coerced = coerced.collect()
+        return DataFrame[Self](coerced)

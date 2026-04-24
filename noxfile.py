@@ -37,6 +37,12 @@ EXTRAS_REQUIRING_PANDAS = frozenset(
     ]
 )
 
+EXTRAS_REQUIRING_TORCH = frozenset(
+    [
+        "torch",
+    ]
+)
+
 CI_RUN = os.environ.get("CI") == "true"
 if CI_RUN:
     print("Running on CI")
@@ -139,6 +145,12 @@ def _testing_requirements(
             PYPROJECT["project"]["optional-dependencies"]["pandas"]
         )
 
+    # torch extra requires torch and tensordict
+    if extra in EXTRAS_REQUIRING_TORCH:
+        _requirements.extend(
+            PYPROJECT["project"]["optional-dependencies"]["torch"]
+        )
+
     _requirements = list(set(_requirements))
 
     _numpy: str | None = None
@@ -199,6 +211,7 @@ DATAFRAME_EXTRAS = {
     "dask",
     "ibis",
     "xarray",
+    "torch",
 }
 for extra in OPTIONAL_DEPENDENCIES:
     if extra == "pandas":
@@ -298,12 +311,10 @@ def docs(session: Session) -> None:
     """Build the documentation."""
     # this is needed until ray and geopandas are supported on python 3.10
 
-    session.install("-e", ".")
     session.install(
-        *_testing_requirements(
-            session, extra="all", pandas=PANDAS_VERSIONS[0]
-        ),
-        *nox.project.dependency_groups(PYPROJECT, "dev", "testing", "docs"),
+        "-e",
+        ".[all]",
+        *nox.project.dependency_groups(PYPROJECT, "docs"),
     )
     session.run("uv", "pip", "list")
     session.chdir("docs")
@@ -340,6 +351,9 @@ def docs(session: Session) -> None:
             "sphinx-build",
             *args,
         )
+
+    # Ensure torch is available for TensorDictModel doctests
+    session.run("python", "-c", "import torch")
 
     session.run("xdoctest", PACKAGE, "--quiet")
 

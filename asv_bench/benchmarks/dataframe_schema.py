@@ -1,21 +1,9 @@
 # Airspeed Velocity Benchmarks for pandera
 import pandas as pd
 
-from pandera.pandas import (
-    Column,
-    DataFrameSchema,
-    Bool,
-    Category,
-    Check,
-    DateTime,
-    Float,
-    Int,
-    Object,
-    String,
-    Timedelta,
-    check_input,
-    check_output,
-)
+from pandera.pandas import (Bool, Category, Check, Column, DataFrameSchema,
+                            DateTime, Float, Int, Object, String, Timedelta,
+                            check_input, check_output)
 
 
 class Validate:

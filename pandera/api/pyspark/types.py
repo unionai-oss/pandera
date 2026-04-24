@@ -20,9 +20,7 @@ if version.parse(pyspark.__version__) >= version.parse("3.4"):
     )
     from pyspark.sql.connect.group import GroupedData
 else:
-    from pyspark.sql import (
-        DataFrame as PySparkConnectDataFrame,
-    )
+    from pyspark.sql import DataFrame as PySparkConnectDataFrame
     from pyspark.sql.group import GroupedData
 
 PySparkDataFrameTypes = Union[
