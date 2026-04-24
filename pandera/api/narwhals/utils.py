@@ -2,6 +2,21 @@
 
 import narwhals.stable.v1 as nw
 
+# Implementations Pandera's Narwhals backend currently treats as SQL-lazy
+# (i.e. wrapped as ``nw.DataFrame`` but not collectible via ``.collect()``).
+# Keeping this set centralised avoids scattering ``hasattr(native, "execute")``
+# attribute probes across the backend — we dispatch on the Narwhals
+# ``Implementation`` enum instead.
+_SQL_LAZY_IMPLEMENTATIONS: frozenset = frozenset(
+    {
+        nw.Implementation.IBIS,
+        nw.Implementation.DUCKDB,
+        nw.Implementation.PYSPARK,
+        nw.Implementation.PYSPARK_CONNECT,
+        nw.Implementation.SQLFRAME,
+    }
+)
+
 
 def _to_native(frame):
     """Convert a Narwhals frame to its native backend frame.
@@ -14,6 +29,17 @@ def _to_native(frame):
     return nw.to_native(frame, pass_through=True)
 
 
+def _is_sql_lazy(frame) -> bool:
+    """True if frame is backed by a SQL-lazy implementation (Ibis, DuckDB, etc.).
+
+    Uses ``nw.Implementation`` membership instead of attribute probing so new
+    SQL-lazy backends can be added by updating ``_SQL_LAZY_IMPLEMENTATIONS``.
+    """
+    if not isinstance(frame, (nw.DataFrame, nw.LazyFrame)):
+        return False
+    return frame.implementation in _SQL_LAZY_IMPLEMENTATIONS
+
+
 def _materialize(frame) -> nw.DataFrame:
     """Materialize a LazyFrame or SQL-lazy DataFrame to a Narwhals DataFrame.
 
@@ -23,12 +49,11 @@ def _materialize(frame) -> nw.DataFrame:
     """
     if isinstance(frame, nw.LazyFrame):
         return frame.collect()
-    # SQL-lazy (Ibis, DuckDB): the frame is already a nw.DataFrame but
-    # cannot be collected — execute via the native object instead.
-    native = nw.to_native(frame)
-    if hasattr(native, "execute"):
-        return nw.from_native(native.execute())
-    # Fallback: already an eager DataFrame
+    if isinstance(frame, nw.DataFrame) and _is_sql_lazy(frame):
+        # SQL-lazy (Ibis, DuckDB): already a nw.DataFrame but not
+        # collectible — execute via the native object instead.
+        return nw.from_native(nw.to_native(frame).execute())
+    # Already an eager DataFrame
     return frame
 
 
@@ -37,8 +62,5 @@ def _is_lazy(frame) -> bool:
     if isinstance(frame, nw.LazyFrame):
         return True
     if isinstance(frame, nw.DataFrame):
-        native = nw.to_native(frame)
-        return hasattr(
-            native, "execute"
-        )  # ibis.Table has .execute(); polars DataFrame does not
+        return _is_sql_lazy(frame)
     return False

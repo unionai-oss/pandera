@@ -74,14 +74,14 @@ class DataType(dtypes.DataType):
         except COERCION_ERRORS as exc:
             key = data_container.key
             _key = "" if key == "*" else f"'{key}' in"
-            # Produce native failure_cases: use _materialize to handle both polars
-            # (nw.LazyFrame -> collect) and ibis (nw.DataFrame -> .execute()) backends.
-            failure_cases = _to_native(_materialize(data_container.frame))
-            if key != "*":
-                try:
-                    failure_cases = failure_cases.select(key)
-                except Exception:
-                    pass
+            # Bounded failure_cases: select the offending column (if applicable)
+            # and materialize only a small number of rows. We never collect
+            # the full frame here — failure_cases is for error reporting,
+            # not exhaustive enumeration.
+            failing = data_container.frame
+            if key != "*" and key in failing.collect_schema().names():
+                failing = failing.select(key)
+            failure_cases = _to_native(_materialize(failing.head(10)))
             raise errors.ParserError(
                 f"Could not coerce {_key} LazyFrame into type {self.type}",
                 failure_cases=failure_cases,
