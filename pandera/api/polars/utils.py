@@ -1,8 +1,9 @@
 """Polars validation engine utilities."""
 
+from typing import Any
+
 import polars as pl
 
-from pandera.api.polars.types import PolarsCheckObjects
 from pandera.config import (
     ValidationDepth,
     get_config_context,
@@ -32,36 +33,39 @@ def get_lazyframe_column_names(lf: pl.LazyFrame) -> list[str]:
     return lf.columns
 
 
-def get_validation_depth(check_obj: PolarsCheckObjects) -> ValidationDepth:
-    """Get validation depth for a given polars check object."""
-    is_dataframe = isinstance(check_obj, pl.DataFrame)
+def get_validation_depth(check_obj: Any) -> ValidationDepth:
+    """Get validation depth for a given check object.
 
+    The narwhals backend can validate any frame supported by narwhals
+    (``pl.DataFrame``, ``pl.LazyFrame``, ``pd.DataFrame``,
+    ``pyarrow.Table``, ``ibis.Table``, etc.). LazyFrame-like inputs default
+    to ``SCHEMA_ONLY`` so we don't force a full collect; eager inputs
+    default to ``SCHEMA_AND_DATA``.
+    """
     config_global = get_config_global()
     config_ctx = get_config_context(validation_depth_default=None)
 
     if config_ctx.validation_depth is not None:
-        # use context configuration if specified
         return config_ctx.validation_depth
 
     if config_global.validation_depth is not None:
-        # use global configuration if specified
         return config_global.validation_depth
 
-    if (
-        isinstance(check_obj, pl.LazyFrame)
-        and config_global.validation_depth is None
-    ):
-        # if global validation depth is not set, use schema only validation
-        # when validating LazyFrames
-        validation_depth = ValidationDepth.SCHEMA_ONLY
-    elif is_dataframe and (
-        config_ctx.validation_depth is None
-        or config_ctx.validation_depth is None
-    ):
-        # if context validation depth is not set, use schema and data validation
-        # when validating DataFrames
-        validation_depth = ValidationDepth.SCHEMA_AND_DATA
-    else:
-        validation_depth = ValidationDepth.SCHEMA_ONLY
+    # Treat polars LazyFrame and SQL-lazy backends (ibis.Table) as lazy.
+    # ``ibis.Table`` exposes ``.execute`` rather than ``.collect``; both should
+    # default to SCHEMA_ONLY to avoid materializing the full frame.
+    is_lazy = isinstance(check_obj, pl.LazyFrame) or _is_sql_lazy(check_obj)
+    if is_lazy:
+        return ValidationDepth.SCHEMA_ONLY
 
-    return validation_depth
+    return ValidationDepth.SCHEMA_AND_DATA
+
+
+def _is_sql_lazy(check_obj: Any) -> bool:
+    """Detect SQL-lazy frames (e.g. ``ibis.Table``) without importing ibis."""
+    try:
+        import ibis
+
+        return isinstance(check_obj, ibis.Table)
+    except ImportError:
+        return False

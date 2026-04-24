@@ -438,6 +438,46 @@ Element-wise checks using ``DataFrameModel`` are not yet supported in
 the Ibis integration; use ``DataFrameSchema`` instead.
 :::
 
+## Cross-Backend Validation (via Narwhals)
+
+Pandera's Ibis backend is built on top of
+[Narwhals](https://narwhals-dev.github.io/narwhals/), which means an Ibis
+{py:class}`~pandera.api.ibis.container.DataFrameSchema` can validate **any
+narwhals-supported native frame** — not just `ibis.Table`. The currently
+supported native input types are:
+
+- `ibis.Table`
+- `pandas.DataFrame`
+- `polars.DataFrame`
+- `polars.LazyFrame`
+- `pyarrow.Table`
+
+```python
+import ibis.expr.datatypes as dt
+import pandas as pd
+import pandera.ibis as pa
+
+
+schema = pa.DataFrameSchema(
+    {
+        "state": pa.Column(dt.string),
+        "city": pa.Column(dt.string),
+        "price": pa.Column(dt.int64, checks=pa.Check.in_range(5, 20)),
+    }
+)
+
+pdf = pd.DataFrame(
+    {"state": ["FL"], "city": ["Miami"], "price": [10]}
+)
+schema.validate(pdf)
+```
+
+The output is the same native type as the input. By default, eager
+inputs (`pandas.DataFrame`, `polars.DataFrame`) run both schema- and
+data-level checks; SQL-lazy inputs (`ibis.Table`) and `polars.LazyFrame`
+only run schema-level checks unless overridden via the
+``ValidationDepth`` config.
+
 ## Supported and Unsupported Functionality
 
 Since the Pandera-Ibis integration is less mature than pandas support, some

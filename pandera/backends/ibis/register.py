@@ -5,6 +5,36 @@ from functools import lru_cache
 import ibis
 
 
+def _optional_native_frame_types() -> list[type]:
+    """Collect optional narwhals-supported native frame classes.
+
+    Each entry is registered against the ibis schema/backend dispatch so
+    users can validate, e.g., a ``pd.DataFrame`` with an ibis schema. The
+    narwhals backend wraps the native input internally, so the same
+    backend implementations work uniformly across native types.
+    """
+    classes: list[type] = []
+    try:
+        import pandas as pd
+
+        classes.append(pd.DataFrame)
+    except ImportError:
+        pass
+    try:
+        import polars as pl
+
+        classes.extend([pl.DataFrame, pl.LazyFrame])
+    except ImportError:
+        pass
+    try:
+        import pyarrow as pa
+
+        classes.append(pa.Table)
+    except ImportError:
+        pass
+    return classes
+
+
 @lru_cache
 def register_ibis_backends(
     check_cls_fqn: str | None = None,
@@ -48,6 +78,23 @@ def register_ibis_backends(
         Check.register_backend(ibis.Table, NarwhalsCheckBackend)
         Check.register_backend(ibis.Column, NarwhalsCheckBackend)
         Check.register_backend(nw.LazyFrame, NarwhalsCheckBackend)
+
+        # Cross-backend support: enable validating any narwhals-supported
+        # native frame (pandas, polars, pyarrow, ...) against an ibis schema.
+        #
+        # IMPORTANT: We deliberately do NOT register the cross-backend native
+        # frames against ``Check``. ``Check.register_backend`` is first-write-
+        # wins, and the legacy pandas backend also claims ``pd.DataFrame``;
+        # letting both compete would silently break pandera's own pandas
+        # tests. Custom dataframe-level checks always receive a Narwhals frame
+        # inside the narwhals backend (``check_obj`` is wrapped to
+        # ``nw.LazyFrame`` before dispatch), so dispatch by the registered
+        # ``nw.LazyFrame`` entry is sufficient.
+        for native_cls in _optional_native_frame_types():
+            DataFrameSchema.register_backend(
+                native_cls, DataFrameSchemaBackend
+            )
+            Column.register_backend(native_cls, ColumnBackend)
     else:
         import pandera.backends.ibis.builtin_checks  # noqa: F401, I001
         from pandera.backends.ibis.checks import IbisCheckBackend

@@ -834,6 +834,52 @@ Under the hood, the validation process will make `.collect()` calls on the
 LazyFrame in order to run data-level validation checks, and it will still
 return a `pl.LazyFrame` after validation is done.
 
+## Cross-Backend Validation (via Narwhals)
+
+When [Narwhals](https://narwhals-dev.github.io/narwhals/) is installed (which
+is the default for `pip install 'pandera[polars]'`), pandera's polars
+backend is built on top of narwhals. This means a polars
+{py:class}`~pandera.api.polars.container.DataFrameSchema` can validate **any
+narwhals-supported native frame** — not just `polars.DataFrame` /
+`polars.LazyFrame`. The currently supported native input types are:
+
+- `polars.DataFrame`
+- `polars.LazyFrame`
+- `pandas.DataFrame`
+- `pyarrow.Table`
+
+```{code-cell} python
+import pandas as pd
+import polars as pl
+import pandera.polars as pa
+
+
+class Schema(pa.DataFrameModel):
+    state: str
+    city: str
+    price: int = pa.Field(in_range={"min_value": 5, "max_value": 20})
+
+
+pdf = pd.DataFrame(
+    {
+        "state": ["FL", "CA"],
+        "city": ["Miami", "San Diego"],
+        "price": [10, 18],
+    }
+)
+Schema.validate(pdf)
+```
+
+The output is the same native type as the input — a `pandas.DataFrame` in
+goes a `pandas.DataFrame` out. By default, eager native inputs (e.g.
+`pandas.DataFrame`, `polars.DataFrame`) run both schema- and data-level
+checks; lazy inputs (`polars.LazyFrame`) only run schema-level checks
+unless you set `validation_depth=ValidationDepth.SCHEMA_AND_DATA`.
+
+Per-column `coerce=True` is not yet supported for non-polars native
+inputs (it's marked `xfail` for the polars backend in general — see
+{ref}`supported features matrix <supported-features>`).
+
 ## Supported and Unsupported Functionality
 
 Since the pandera-polars integration is less mature than pandas support, some

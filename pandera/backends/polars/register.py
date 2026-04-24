@@ -5,6 +5,29 @@ from functools import lru_cache
 import polars as pl
 
 
+def _optional_native_frame_types() -> list[type]:
+    """Collect optional narwhals-supported native frame classes.
+
+    Each entry is registered against the polars schema/backend dispatch so
+    users can validate, e.g., a ``pd.DataFrame`` with a polars schema.
+    Imports are best-effort — missing packages are silently skipped.
+    """
+    classes: list[type] = []
+    try:
+        import pandas as pd
+
+        classes.append(pd.DataFrame)
+    except ImportError:
+        pass
+    try:
+        import pyarrow as pa
+
+        classes.append(pa.Table)
+    except ImportError:
+        pass
+    return classes
+
+
 @lru_cache
 def register_polars_backends(
     check_cls_fqn: str | None = None,
@@ -46,6 +69,27 @@ def register_polars_backends(
         Check.register_backend(pl.LazyFrame, NarwhalsCheckBackend)
         Check.register_backend(nw.LazyFrame, NarwhalsCheckBackend)
         Check.register_backend(nw.DataFrame, NarwhalsCheckBackend)
+
+        # Cross-backend support: enable validating any narwhals-supported
+        # native frame (pandas, pyarrow, ...) against a polars schema.
+        # The narwhals backend wraps the native input via ``nw.from_native``
+        # and operates on a Narwhals LazyFrame internally, so the same
+        # backend implementations work uniformly across native types.
+        #
+        # IMPORTANT: We do NOT register the cross-backend native frames
+        # against ``Check`` here. ``Check.register_backend`` is first-write-
+        # wins, and the legacy pandas backend also registers ``pd.DataFrame``
+        # against ``PandasCheckBackend``. Letting both compete would silently
+        # break pandera's own pandas tests. Custom dataframe-level checks
+        # always receive a Narwhals frame inside the narwhals backend
+        # (``check_obj`` is wrapped to ``nw.LazyFrame`` before dispatch),
+        # so dispatch by the registered ``nw.LazyFrame`` /  ``nw.DataFrame``
+        # entries is sufficient.
+        for native_cls in _optional_native_frame_types():
+            DataFrameSchema.register_backend(
+                native_cls, DataFrameSchemaBackend
+            )
+            Column.register_backend(native_cls, ColumnBackend)
     else:
         import pandera.backends.polars.builtin_checks  # noqa: F401, I001
         from pandera.backends.polars.checks import PolarsCheckBackend
