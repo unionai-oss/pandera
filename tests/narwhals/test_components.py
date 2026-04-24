@@ -292,6 +292,64 @@ class TestSubsample:
         result = backend.subsample(frame)
         assert result is frame
 
+    def test_subsample_sample_eager_polars(self):
+        """sample= works on eager polars frames wrapped as nw.DataFrame."""
+        frame = nw.from_native(
+            pl.DataFrame({"x": list(range(20))}),
+            eager_only=True,
+        )
+        backend = NarwhalsSchemaBackend()
+        result = backend.subsample(frame, sample=5, random_state=42)
+        assert isinstance(result, nw.DataFrame)
+        native = nw.to_native(result)
+        assert native.shape[0] == 5
+        # Deterministic for the same seed (unique() may reorder the rows,
+        # so compare the row set rather than the exact row order).
+        result2 = backend.subsample(frame, sample=5, random_state=42)
+        assert set(nw.to_native(result2)["x"].to_list()) == set(
+            native["x"].to_list()
+        )
+
+    def test_subsample_sample_lazy_raises(self):
+        """sample= on a polars LazyFrame raises NotImplementedError."""
+        frame = self._polars_lazy_frame()
+        backend = NarwhalsSchemaBackend()
+        with pytest.raises(NotImplementedError, match="sample="):
+            backend.subsample(frame, sample=2)
+
+    @ibis_only
+    def test_subsample_sample_ibis_raises(self):
+        """sample= on a SQL-lazy backend (ibis) raises NotImplementedError."""
+        import pandas as pd
+
+        ibis_frame = nw.from_native(
+            _ibis_mod.memtable(pd.DataFrame({"x": [1, 2, 3, 4, 5]})),
+            eager_or_interchange_only=False,
+        )
+        backend = NarwhalsSchemaBackend()
+        with pytest.raises(NotImplementedError, match="sample="):
+            backend.subsample(ibis_frame, sample=2)
+
+    def test_subsample_head_and_sample_combined(self):
+        """head= and sample= can be combined on an eager polars frame.
+
+        ``sample(5)`` draws from the *full* frame, not from head(10), so the
+        union of head(10) + sample(5) contains at most 15 distinct rows
+        (fewer if the sample happens to overlap with the head).
+        """
+        frame = nw.from_native(
+            pl.DataFrame({"x": list(range(20))}),
+            eager_only=True,
+        )
+        backend = NarwhalsSchemaBackend()
+        result = backend.subsample(frame, head=10, sample=5, random_state=0)
+        native = nw.to_native(result)
+        n_rows = native.shape[0]
+        assert 10 <= n_rows <= 15
+        xs = set(native["x"].to_list())
+        # head(10) values must all be present.
+        assert set(range(10)).issubset(xs)
+
 
 # ---------------------------------------------------------------------------
 # Phase 6 RED baseline: failure_cases_metadata() returns ibis.Table for ibis input

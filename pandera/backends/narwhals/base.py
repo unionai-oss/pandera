@@ -70,43 +70,54 @@ class NarwhalsSchemaBackend(BaseSchemaBackend):
     ):
         """Return a (possibly subsampled) version of check_obj.
 
-        Never materializes check_obj — delegates directly to .head()/.tail()
-        so the result stays lazy (nw.LazyFrame) for Polars inputs.
+        Stays lazy whenever possible. ``head=``/``tail=`` delegate to
+        ``nw.LazyFrame.head()/tail()`` — no ``_materialize()`` call.
+        ``sample=`` is only supported for eager frames (``nw.DataFrame``
+        wrapping a ``pl.DataFrame``); it requires ``nw.DataFrame.sample``
+        which is not available on ``nw.LazyFrame`` or SQL-lazy backends.
 
         :param head: Number of rows to take from the head.
         :param tail: Number of rows to take from the tail.
-        :param sample: Not supported — raises NotImplementedError.
-        :param random_state: Ignored (no random sampling supported).
-        :raises NotImplementedError: If sample is not None, or if tail= is
-            requested on a SQL-lazy backend (ibis.Table) that does not support
-            TAIL without forced full ordering.
+        :param sample: Number of rows to randomly sample (eager polars only).
+        :param random_state: Seed forwarded to ``sample(seed=...)``.
+        :raises NotImplementedError: If ``sample=`` is requested on a lazy or
+            SQL-lazy input, or if ``tail=`` is requested on a SQL-lazy backend
+            (ibis.Table) that does not support TAIL without forced full
+            ordering.
         """
-        if sample is not None:
-            raise NotImplementedError(
-                "sample= is not supported in the Narwhals backend. "
-                "Use head= or tail= instead."
-            )
-
-        if head is None and tail is None:
+        if head is None and tail is None and sample is None:
             return check_obj
 
-        # Guard: SQL-lazy backends don't support tail without full ordering
         if tail is not None and _is_sql_lazy(check_obj):
             raise NotImplementedError(
-                "tail= is not supported on SQL-lazy backends (Ibis, DuckDB, PySpark) "
-                "because SQL has no native TAIL without forced full ordering. "
-                "Use head= instead."
+                "tail= is not supported on SQL-lazy backends (Ibis, DuckDB, "
+                "PySpark) because SQL has no native TAIL without forced full "
+                "ordering. Use head= instead."
             )
+
+        if sample is not None:
+            # Sampling is not representable as a pure expression on lazy or
+            # SQL-lazy frames, so we restrict it to eager polars inputs. This
+            # matches the behaviour of the legacy Polars backend.
+            if isinstance(check_obj, nw.LazyFrame):
+                raise NotImplementedError(
+                    "sample= is not supported for lazy frames (polars "
+                    "LazyFrame). Use head=/tail= or call .collect() on the "
+                    "input before validation."
+                )
+            if _is_sql_lazy(check_obj):
+                raise NotImplementedError(
+                    "sample= is not supported on SQL-lazy backends (Ibis, "
+                    "DuckDB, PySpark). Use head= instead."
+                )
 
         obj_subsample = []
         if head is not None:
-            obj_subsample.append(
-                check_obj.head(head)
-            )  # lazy — no _materialize()
+            obj_subsample.append(check_obj.head(head))
         if tail is not None:
-            obj_subsample.append(
-                check_obj.tail(tail)
-            )  # lazy — polars-only (guarded above)
+            obj_subsample.append(check_obj.tail(tail))
+        if sample is not None:
+            obj_subsample.append(check_obj.sample(n=sample, seed=random_state))
 
         return nw.concat(obj_subsample).unique()
 
