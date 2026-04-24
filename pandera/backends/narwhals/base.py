@@ -78,8 +78,8 @@ class NarwhalsSchemaBackend(BaseSchemaBackend):
         :param sample: Not supported — raises NotImplementedError.
         :param random_state: Ignored (no random sampling supported).
         :raises NotImplementedError: If sample is not None, or if tail= is
-            requested on a SQL-lazy backend (ibis.Table) that does not support
-            TAIL without forced full ordering.
+            requested on a SQL-lazy backend (ibis.Table, pyspark.sql.DataFrame)
+            that does not support TAIL without forced full ordering.
         """
         if sample is not None:
             raise NotImplementedError(
@@ -90,7 +90,9 @@ class NarwhalsSchemaBackend(BaseSchemaBackend):
         if head is None and tail is None:
             return check_obj
 
-        # Guard: SQL-lazy backends don't support tail without full ordering
+        # Guard: SQL-lazy backends don't support tail without full ordering.
+        # ``_is_sql_lazy`` covers ibis, duckdb, and pyspark via the
+        # ``_SQL_LAZY_IMPLEMENTATIONS`` set in ``pandera.api.narwhals.utils``.
         if tail is not None and _is_sql_lazy(check_obj):
             raise NotImplementedError(
                 "tail= is not supported on SQL-lazy backends (Ibis, DuckDB, PySpark) "

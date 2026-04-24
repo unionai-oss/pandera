@@ -9,8 +9,9 @@ def _optional_native_frame_types() -> list[type]:
     """Collect optional narwhals-supported native frame classes.
 
     Each entry is registered against the polars schema/backend dispatch so
-    users can validate, e.g., a ``pd.DataFrame`` with a polars schema.
-    Imports are best-effort — missing packages are silently skipped.
+    users can validate, e.g., a ``pd.DataFrame`` or a ``pyspark.sql.DataFrame``
+    with a polars schema. Imports are best-effort — missing packages are
+    silently skipped.
     """
     classes: list[type] = []
     try:
@@ -23,6 +24,22 @@ def _optional_native_frame_types() -> list[type]:
         import pyarrow as pa
 
         classes.append(pa.Table)
+    except ImportError:
+        pass
+    try:
+        import pyspark.sql
+
+        classes.append(pyspark.sql.DataFrame)
+    except ImportError:
+        pass
+    # Spark Connect (pyspark>=3.4) ships its own ``DataFrame`` class which
+    # narwhals dispatches as ``Implementation.PYSPARK_CONNECT``. Registering
+    # both keeps cross-backend coverage in step with the legacy pyspark
+    # register at ``pandera.backends.pyspark.register``.
+    try:
+        from pyspark.sql.connect import dataframe as pyspark_connect
+
+        classes.append(pyspark_connect.DataFrame)
     except ImportError:
         pass
     return classes
@@ -71,20 +88,22 @@ def register_polars_backends(
         Check.register_backend(nw.DataFrame, NarwhalsCheckBackend)
 
         # Cross-backend support: enable validating any narwhals-supported
-        # native frame (pandas, pyarrow, ...) against a polars schema.
-        # The narwhals backend wraps the native input via ``nw.from_native``
-        # and operates on a Narwhals LazyFrame internally, so the same
-        # backend implementations work uniformly across native types.
+        # native frame (pandas, pyarrow, pyspark.sql.DataFrame, ...) against
+        # a polars schema. The narwhals backend wraps the native input via
+        # ``nw.from_native`` and operates on a Narwhals LazyFrame internally,
+        # so the same backend implementations work uniformly across native
+        # types.
         #
         # IMPORTANT: We do NOT register the cross-backend native frames
         # against ``Check`` here. ``Check.register_backend`` is first-write-
-        # wins, and the legacy pandas backend also registers ``pd.DataFrame``
-        # against ``PandasCheckBackend``. Letting both compete would silently
-        # break pandera's own pandas tests. Custom dataframe-level checks
-        # always receive a Narwhals frame inside the narwhals backend
-        # (``check_obj`` is wrapped to ``nw.LazyFrame`` before dispatch),
-        # so dispatch by the registered ``nw.LazyFrame`` /  ``nw.DataFrame``
-        # entries is sufficient.
+        # wins, and the legacy pandas/pyspark backends already register
+        # ``pd.DataFrame`` / ``pyspark.sql.DataFrame`` against their own
+        # check backends. Letting both compete would silently break each
+        # other's tests. Custom dataframe-level checks always receive a
+        # Narwhals frame inside the narwhals backend (``check_obj`` is
+        # wrapped to ``nw.LazyFrame`` before dispatch), so dispatch by the
+        # registered ``nw.LazyFrame`` / ``nw.DataFrame`` entries is
+        # sufficient.
         for native_cls in _optional_native_frame_types():
             DataFrameSchema.register_backend(
                 native_cls, DataFrameSchemaBackend

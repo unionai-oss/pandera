@@ -834,6 +834,8 @@ Under the hood, the validation process will make `.collect()` calls on the
 LazyFrame in order to run data-level validation checks, and it will still
 return a `pl.LazyFrame` after validation is done.
 
+(polars-cross-backend)=
+
 ## Cross-Backend Validation (via Narwhals)
 
 When [Narwhals](https://narwhals-dev.github.io/narwhals/) is installed (which
@@ -847,6 +849,7 @@ narwhals-supported native frame** — not just `polars.DataFrame` /
 - `polars.LazyFrame`
 - `pandas.DataFrame`
 - `pyarrow.Table`
+- `pyspark.sql.DataFrame` *(experimental)*
 
 ```{code-cell} python
 import pandas as pd
@@ -872,13 +875,59 @@ Schema.validate(pdf)
 
 The output is the same native type as the input — a `pandas.DataFrame` in
 goes a `pandas.DataFrame` out. By default, eager native inputs (e.g.
-`pandas.DataFrame`, `polars.DataFrame`) run both schema- and data-level
-checks; lazy inputs (`polars.LazyFrame`) only run schema-level checks
-unless you set `validation_depth=ValidationDepth.SCHEMA_AND_DATA`.
+`pandas.DataFrame`, `polars.DataFrame`, `pyarrow.Table`) run both schema-
+and data-level checks; lazy / SQL-lazy inputs (`polars.LazyFrame`,
+`pyspark.sql.DataFrame`) only run schema-level checks unless you set
+`validation_depth=ValidationDepth.SCHEMA_AND_DATA`.
 
 Per-column `coerce=True` is not yet supported for non-polars native
 inputs (it's marked `xfail` for the polars backend in general — see
 {ref}`supported features matrix <supported-features>`).
+
+(polars-cross-backend-pyspark)=
+
+### PySpark via Narwhals
+
+PySpark `DataFrame`s are *SQL-lazy*; the cross-backend route applies a few
+extra constraints relative to the eager backends:
+
+```python
+import os
+os.environ["SPARK_LOCAL_IP"] = "127.0.0.1"
+
+import pandera.polars as pa
+from pyspark.sql import SparkSession
+
+spark = SparkSession.builder.master("local[1]").getOrCreate()
+df = spark.createDataFrame([(1, "a"), (2, "b"), (3, "c")], ["a", "b"])
+
+schema = pa.DataFrameSchema(
+    {
+        "a": pa.Column(int),
+        "b": pa.Column(str),
+    }
+)
+
+validated = schema.validate(df)
+# input type is preserved -> validated is a pyspark.sql.DataFrame
+```
+
+Notes and caveats:
+
+- **Validation depth**: `pyspark.sql.DataFrame` defaults to `SCHEMA_ONLY` so
+  pandera does not trigger a full `.toPandas()` materialization for
+  data-level checks. Force `SCHEMA_AND_DATA` via
+  `PANDERA_VALIDATION_DEPTH=SCHEMA_AND_DATA` (or the
+  {py:func}`pandera.config.config_context` context manager) when you want
+  data-level checks to execute on the cluster.
+- **Subsampling**: only `head=` is supported. `tail=` raises
+  `NotImplementedError` because SQL has no notion of TAIL without a
+  forced full ordering. `sample=` is also unsupported on the Narwhals
+  backend.
+- **Native pyspark integration unaffected**: `import pandera.pyspark` and
+  the `pyspark.sql`-native backend continue to work as before. The
+  cross-backend route only activates when you call
+  `pandera.polars.DataFrameSchema.validate(pyspark_df)`.
 
 ## Supported and Unsupported Functionality
 

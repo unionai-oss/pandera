@@ -438,6 +438,8 @@ Element-wise checks using ``DataFrameModel`` are not yet supported in
 the Ibis integration; use ``DataFrameSchema`` instead.
 :::
 
+(ibis-cross-backend)=
+
 ## Cross-Backend Validation (via Narwhals)
 
 Pandera's Ibis backend is built on top of
@@ -451,6 +453,7 @@ supported native input types are:
 - `polars.DataFrame`
 - `polars.LazyFrame`
 - `pyarrow.Table`
+- `pyspark.sql.DataFrame` *(experimental)*
 
 ```python
 import ibis.expr.datatypes as dt
@@ -473,10 +476,51 @@ schema.validate(pdf)
 ```
 
 The output is the same native type as the input. By default, eager
-inputs (`pandas.DataFrame`, `polars.DataFrame`) run both schema- and
-data-level checks; SQL-lazy inputs (`ibis.Table`) and `polars.LazyFrame`
-only run schema-level checks unless overridden via the
-``ValidationDepth`` config.
+inputs (`pandas.DataFrame`, `polars.DataFrame`, `pyarrow.Table`) run
+both schema- and data-level checks; SQL-lazy inputs (`ibis.Table`,
+`pyspark.sql.DataFrame`) and `polars.LazyFrame` only run schema-level
+checks unless overridden via the ``ValidationDepth`` config.
+
+(ibis-cross-backend-pyspark)=
+
+### PySpark via Narwhals
+
+PySpark `DataFrame`s are *SQL-lazy*; the cross-backend route applies a few
+extra constraints relative to the eager backends:
+
+```python
+import os
+os.environ["SPARK_LOCAL_IP"] = "127.0.0.1"
+
+import pandera.ibis as pa
+from pyspark.sql import SparkSession
+
+spark = SparkSession.builder.master("local[1]").getOrCreate()
+df = spark.createDataFrame([(1, "a"), (2, "b"), (3, "c")], ["a", "b"])
+
+schema = pa.DataFrameSchema(
+    {
+        "a": pa.Column(int),
+        "b": pa.Column(str),
+    }
+)
+
+validated = schema.validate(df)
+# input type is preserved -> validated is a pyspark.sql.DataFrame
+```
+
+Notes and caveats:
+
+- **Validation depth**: `pyspark.sql.DataFrame` defaults to `SCHEMA_ONLY`.
+  Force `SCHEMA_AND_DATA` via `PANDERA_VALIDATION_DEPTH=SCHEMA_AND_DATA`
+  (or the {py:func}`pandera.config.config_context` manager) when you want
+  data-level checks to execute on the cluster.
+- **Subsampling**: only `head=` is supported; `tail=` and `sample=`
+  raise `NotImplementedError`.
+- **Native pyspark integration unaffected**: `import pandera.pyspark`
+  and the `pyspark.sql`-native backend continue to work as before. This
+  cross-backend route only activates when you call
+  `pandera.ibis.DataFrameSchema.validate(pyspark_df)`.
 
 ## Supported and Unsupported Functionality
 
