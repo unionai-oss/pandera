@@ -11,6 +11,15 @@ from pandera.api.narwhals.types import NarwhalsData
 from pandera.backends.base import BaseCheckBackend
 from pandera.constants import CHECK_OUTPUT_KEY
 
+try:
+    import ibis  # noqa: F401
+    import ibis.expr.types as ir
+
+    _HAS_IBIS = True
+except ImportError:  # pragma: no cover — ibis is optional
+    _HAS_IBIS = False
+    ir = None  # type: ignore[assignment]
+
 
 class NarwhalsCheckBackend(BaseCheckBackend):
     """Check backend for Narwhals."""
@@ -79,47 +88,40 @@ class NarwhalsCheckBackend(BaseCheckBackend):
 
     @staticmethod
     def _normalize_native_output(out, check_obj: NarwhalsData):
-        """Normalize native outputs from native=True checks to Narwhals types.
+        """Normalize native outputs from ``native=True`` checks.
 
-        Handles ibis expression types (BooleanScalar, BooleanColumn, Table) and
-        polars native types (pl.Series of booleans, pl.DataFrame with CHECK_OUTPUT_KEY).
-        Bool scalars and other non-frame types pass through unchanged.
+        Native check functions may return any of:
+
+        - **ibis**: ``ir.BooleanScalar`` (aggregate bool), ``ir.BooleanColumn``
+          (row-level bool), or ``ibis.Table``.
+        - **polars**: ``pl.Series`` of booleans or ``pl.DataFrame`` containing
+          a ``CHECK_OUTPUT_KEY`` boolean column.
+        - Any Python ``bool`` / scalar — passed through unchanged so
+          ``postprocess_bool_output`` can handle it.
+
+        The output shape mirrors ``postprocess_lazyframe_output``: a wide
+        Narwhals frame with the original columns plus ``CHECK_OUTPUT_KEY``.
         """
-        try:
-            import ibis
-            import ibis.expr.types as ir
-
+        if _HAS_IBIS:
             if isinstance(out, ir.BooleanScalar):
                 return bool(out.execute())
-            elif isinstance(out, ir.BooleanColumn):
-                # Attach the boolean column expression to the original table,
-                # producing a wide table (original columns + CHECK_OUTPUT_KEY).
+            if isinstance(out, ir.BooleanColumn):
                 native = nw.to_native(check_obj.frame)
                 tbl = native.mutate(**{CHECK_OUTPUT_KEY: out})
                 return nw.from_native(tbl, eager_or_interchange_only=False)
-            elif isinstance(out, ibis.Table):
+            if isinstance(out, ir.Table):
                 return nw.from_native(out, eager_or_interchange_only=False)
-        except ImportError:
-            pass
 
-        # Handle polars native return types from native=True checks.
-        # Both pl.Series and pl.DataFrame are attached to the original frame so that
-        # postprocess_lazyframe_output receives a WIDE table (original columns +
-        # CHECK_OUTPUT_KEY) — the same shape produced by the ibis BooleanColumn path.
-        # - pl.Series of booleans: aliased to CHECK_OUTPUT_KEY and added via with_columns.
-        # - pl.DataFrame with CHECK_OUTPUT_KEY column: the boolean column is extracted and
-        #   then added to the original frame in the same way.
-        # Detection uses type.__module__ — avoids a hard polars import (polars is optional).
+        # Polars: detect via module name rather than importing polars, so
+        # ibis-only environments don't need polars installed.
         out_mod = getattr(type(out), "__module__", "") or ""
         if out_mod.startswith("polars"):
             native = nw.to_native(check_obj.frame)
-            # native may be a LazyFrame; collect to attach an eager column.
             if hasattr(native, "collect"):
                 native = native.collect()
             if type(out).__name__ == "Series":
                 bool_col = out.alias(CHECK_OUTPUT_KEY)
             else:
-                # DataFrame must contain a CHECK_OUTPUT_KEY column
                 bool_col = out[CHECK_OUTPUT_KEY].alias(CHECK_OUTPUT_KEY)
             return nw.from_native(
                 native.with_columns(bool_col), eager_only=True

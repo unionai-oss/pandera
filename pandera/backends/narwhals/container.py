@@ -13,13 +13,18 @@ import narwhals.stable.v1 as nw
 
 from pandera.api.base.error_handler import get_error_category
 from pandera.api.narwhals.error_handler import ErrorHandler
-from pandera.api.narwhals.utils import _is_lazy, _to_native
+from pandera.api.narwhals.utils import (
+    _is_lazy,
+    _is_sql_lazy,
+    _materialize,
+    _to_native,
+)
 
 if TYPE_CHECKING:
     from pandera.api.polars.container import DataFrameSchema
 
 from pandera.backends.base import ColumnInfo, CoreCheckResult
-from pandera.backends.narwhals.base import NarwhalsSchemaBackend, _materialize
+from pandera.backends.narwhals.base import NarwhalsSchemaBackend
 from pandera.config import (
     ValidationDepth,
     ValidationScope,
@@ -46,19 +51,32 @@ def _to_lazy_nw(check_obj) -> nw.LazyFrame:
 
 
 def _to_frame_kind_nw(lf: nw.LazyFrame, return_type: type):
-    """Unwrap Narwhals LazyFrame to the original native frame type."""
+    """Unwrap a Narwhals LazyFrame to match the original native frame type.
+
+    If the caller originally passed an eager ``pl.DataFrame``, the
+    corresponding Narwhals lazy result must be collected back into an eager
+    frame so the returned type matches the input. Ibis tables and
+    ``pl.LazyFrame`` inputs pass through as-is.
+
+    The decision is driven by the Narwhals Implementation and the original
+    ``return_type``, rather than attribute probing (``hasattr(..., "collect")``)
+    on the native object — the latter is ambiguous because both
+    ``pl.LazyFrame`` and ``pl.DataFrame`` share some API surface.
+    """
+    # Detect "caller passed an eager polars.DataFrame" purely from return_type
+    # metadata so we don't need to import polars here. Eager polars DataFrame
+    # subclasses do not define ``collect`` at the class level; the lazy class
+    # does.  Everything else (ibis.Table, pl.LazyFrame) is returned as-is.
+    caller_was_eager_polars = not hasattr(
+        return_type, "collect"
+    ) and return_type.__module__.startswith("polars")
     native = nw.to_native(lf)
-    # If the caller originally passed an eager frame, materialise by calling
-    # .collect() on the native lazy result.  Use duck-typing on the *return_type
-    # class* rather than importing polars: a lazy class exposes .collect on the
-    # type itself, an eager class or ibis.Table does not.
-    if not hasattr(return_type, "collect"):
-        if hasattr(native, "collect"):
-            # Acceptable: full-frame collect only at the final validation return boundary.
-            # The caller originally passed an eager frame (e.g. pl.DataFrame) and expects
-            # an eager result back.  This is a user-visible materialization at schema exit,
-            # not an internal hot-path collect.
-            return native.collect()
+    if caller_was_eager_polars:
+        # Acceptable: full-frame collect only at the final validation return
+        # boundary. The caller originally passed an eager frame and expects
+        # an eager result back. This is a user-visible materialization at
+        # schema exit, not an internal hot-path collect.
+        return native.collect()
     return native
 
 
@@ -169,16 +187,18 @@ class DataFrameSchemaBackend(NarwhalsSchemaBackend):
                         # CoreCheckResult carries Narwhals wrappers; SchemaError.failure_cases
                         # is the public API and must be native.
                         fc = result.failure_cases
-                        if isinstance(fc, nw.LazyFrame):
-                            if hasattr(nw.to_native(fc), "execute"):
-                                # SQL-lazy backend (ibis): nw.to_native returns ibis.Table directly
+                        if isinstance(fc, (nw.LazyFrame, nw.DataFrame)):
+                            if _is_sql_lazy(fc):
+                                # SQL-lazy backend (ibis): nw.to_native returns
+                                # the native expression directly, no collect.
                                 fc = nw.to_native(fc)
-                            else:
-                                # Error path: collect failure_cases LazyFrame to eager.
-                                # Bounded: fc contains only failing rows, not the full frame.
+                            elif isinstance(fc, nw.LazyFrame):
+                                # Polars LazyFrame: collect failure_cases to
+                                # eager (bounded: only failing rows, not the
+                                # full frame) before unwrapping to native.
                                 fc = nw.to_native(_materialize(fc))
-                        elif isinstance(fc, nw.DataFrame):
-                            fc = nw.to_native(fc)
+                            else:
+                                fc = nw.to_native(fc)
                         error = SchemaError(
                             schema,
                             data=check_lf,

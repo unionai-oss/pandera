@@ -9,9 +9,14 @@ import narwhals.stable.v1 as nw
 
 from pandera.api.base.error_handler import get_error_category
 from pandera.api.narwhals.error_handler import ErrorHandler
-from pandera.api.narwhals.utils import _is_lazy, _to_native
+from pandera.api.narwhals.utils import (
+    _is_lazy,
+    _is_sql_lazy,
+    _materialize,
+    _to_native,
+)
 from pandera.backends.base import CoreCheckResult
-from pandera.backends.narwhals.base import NarwhalsSchemaBackend, _materialize
+from pandera.backends.narwhals.base import NarwhalsSchemaBackend
 from pandera.config import ValidationScope
 from pandera.constants import CHECK_OUTPUT_KEY
 from pandera.errors import (
@@ -340,21 +345,19 @@ class ColumnBackend(NarwhalsSchemaBackend):
                     # CoreCheckResult carries Narwhals wrappers; SchemaError.failure_cases
                     # is the public API and must be native (pl.DataFrame, ibis.Table, etc.)
                     # so callers can use the result without Narwhals knowledge.
-                    # For SQL-lazy backends (ibis): nw.to_native(LazyFrame) returns ibis.Table
-                    #   directly (no execution) — hasattr(native, 'execute') detects this case.
-                    # For polars LazyFrame: must collect() first, then to_native → pl.DataFrame.
-                    # For nw.DataFrame: to_native directly (polars → pl.DataFrame, ibis → ibis.Table).
+                    # - SQL-lazy backends (ibis, duckdb, ...): nw.to_native returns
+                    #   the native expression directly without execution.
+                    # - Polars LazyFrame: collect() first (bounded — only failing
+                    #   rows from the check, not the full frame).
+                    # - Polars DataFrame (eager): direct to_native.
                     fc = result.failure_cases
-                    if isinstance(fc, nw.LazyFrame):
-                        if hasattr(nw.to_native(fc), "execute"):
-                            # SQL-lazy backend (ibis): nw.to_native returns ibis.Table directly
+                    if isinstance(fc, (nw.LazyFrame, nw.DataFrame)):
+                        if _is_sql_lazy(fc):
                             fc = nw.to_native(fc)
-                        else:
-                            # Error path: collect failure_cases LazyFrame to eager.
-                            # Bounded: fc contains only failing rows from the check, not the full frame.
+                        elif isinstance(fc, nw.LazyFrame):
                             fc = nw.to_native(_materialize(fc))
-                    elif isinstance(fc, nw.DataFrame):
-                        fc = nw.to_native(fc)
+                        else:
+                            fc = nw.to_native(fc)
                     error = SchemaError(
                         schema=schema,
                         data=check_obj,

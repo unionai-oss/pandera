@@ -3,11 +3,12 @@
 import functools
 import warnings
 from collections import defaultdict
+from typing import Any
 
 import narwhals.stable.v1 as nw
 
 from pandera.api.narwhals.error_handler import ErrorHandler
-from pandera.api.narwhals.utils import _is_lazy, _materialize
+from pandera.api.narwhals.utils import _is_lazy, _is_sql_lazy, _materialize
 from pandera.backends.base import BaseSchemaBackend, CoreCheckResult
 from pandera.backends.narwhals.checks import NarwhalsCheckBackend
 from pandera.constants import CHECK_OUTPUT_KEY
@@ -17,6 +18,39 @@ from pandera.errors import (
     SchemaErrorReason,
     SchemaWarning,
 )
+
+try:
+    import polars as pl  # noqa: F401  # used in eager/scalar failure_cases paths
+except ImportError:  # pragma: no cover — polars is optional
+    pl = None  # type: ignore[assignment]
+
+
+def _check_identifier(err: SchemaError) -> Any:
+    """Derive a short, human-readable identifier for the Check on an error."""
+    if err.check is None:
+        return None
+    if isinstance(err.check, str):
+        return err.check
+    if err.check.error is not None:
+        return err.check.error
+    if err.check.name is not None:
+        return err.check.name
+    return str(err.check)
+
+
+def _concat_failure_cases(items: list) -> Any:
+    """Concatenate per-error failure-case frames into a single frame.
+
+    Dispatches on the first item: ibis uses ``.union``; polars uses
+    ``pl.concat``. Returns an empty ``pl.DataFrame`` if the collection is
+    empty (SchemaErrors always constructs from polars by default).
+    """
+    if not items:
+        return pl.DataFrame() if pl is not None else None
+    first = items[0]
+    if hasattr(first, "union"):  # ibis.Table
+        return functools.reduce(lambda a, b: a.union(b), items)
+    return pl.concat(items)
 
 
 class NarwhalsSchemaBackend(BaseSchemaBackend):
@@ -57,16 +91,12 @@ class NarwhalsSchemaBackend(BaseSchemaBackend):
             return check_obj
 
         # Guard: SQL-lazy backends don't support tail without full ordering
-        if tail is not None:
-            native = nw.to_native(check_obj)
-            if hasattr(
-                native, "execute"
-            ):  # ibis.Table has .execute(); pl.LazyFrame does not
-                raise NotImplementedError(
-                    "tail= is not supported on SQL-lazy backends (Ibis, DuckDB, PySpark) "
-                    "because SQL has no native TAIL without forced full ordering. "
-                    "Use head= instead."
-                )
+        if tail is not None and _is_sql_lazy(check_obj):
+            raise NotImplementedError(
+                "tail= is not supported on SQL-lazy backends (Ibis, DuckDB, PySpark) "
+                "because SQL has no native TAIL without forced full ordering. "
+                "Use head= instead."
+            )
 
         obj_subsample = []
         if head is not None:
@@ -176,32 +206,15 @@ class NarwhalsSchemaBackend(BaseSchemaBackend):
         conversion, no Arrow roundtrip for lazy/SQL backends.
         """
         error_counts: dict[str, int] = defaultdict(int)
-        failure_case_collection = []
+        failure_case_collection: list = []
 
         for err in schema_errors:
             error_counts[err.reason_code] += 1
+            check_identifier = _check_identifier(err)
 
-            check_identifier = (
-                None
-                if err.check is None
-                else (
-                    err.check
-                    if isinstance(err.check, str)
-                    else (
-                        err.check.error
-                        if err.check.error is not None
-                        else (
-                            err.check.name
-                            if err.check.name is not None
-                            else str(err.check)
-                        )
-                    )
-                )
-            )
-
-            # Wrap any native frame (pl.DataFrame, pl.LazyFrame, ibis.Table) back to Narwhals
-            # so the type checks below work uniformly.
-            # Python scalars/None/bool raise TypeError — leave fc unchanged (scalar path below).
+            # Wrap native frames (pl.DataFrame, pl.LazyFrame, ibis.Table) as
+            # Narwhals wrappers for uniform dispatch. Python scalars raise
+            # TypeError — handled by the scalar path below.
             fc = err.failure_cases
             try:
                 fc = nw.from_native(fc, eager_or_interchange_only=False)
@@ -209,154 +222,19 @@ class NarwhalsSchemaBackend(BaseSchemaBackend):
                 pass
 
             if isinstance(fc, (nw.LazyFrame, nw.DataFrame)) and _is_lazy(fc):
-                # --- Lazy/SQL path (polars-lazy nw.LazyFrame or ibis nw.DataFrame) ---
-                # Use Narwhals ops only — no Arrow roundtrip, no polars import in this path.
-                # Row index is always None — no forced materialization for ordering.
-                col_names = fc.collect_schema().names()
-
-                if len(col_names) == 1:
-                    # Single-column: rename directly to "failure_case"
-                    enriched = fc.rename({col_names[0]: "failure_case"})
-                else:
-                    # Multi-column: build a readable "col=value, col=value" string per row.
-                    # nw.concat_str() is cross-backend (polars and ibis) and stays lazy.
-                    parts = [
-                        nw.lit(f"{c}=").cast(nw.String)
-                        + nw.col(c).cast(nw.String)
-                        for c in col_names
-                    ]
-                    enriched = fc.select(
-                        nw.concat_str(*parts, separator=", ").alias(
-                            "failure_case"
-                        )
-                    )
-
-                enriched = enriched.with_columns(
-                    nw.lit(err.schema.__class__.__name__).alias(
-                        "schema_context"
-                    ),
-                    nw.lit(err.schema.name).alias("column"),
-                    nw.lit(check_identifier).alias("check"),
-                    nw.lit(err.check_index)
-                    .cast(nw.Int32)
-                    .alias("check_number"),
-                    nw.lit(None).cast(nw.Int32).alias("index"),
+                failure_case_collection.append(
+                    self._build_lazy_failure_case(fc, err, check_identifier)
                 )
-                failure_case_collection.append(nw.to_native(enriched))
-
             elif isinstance(fc, (nw.LazyFrame, nw.DataFrame)):
-                # --- Eager polars path (nw.DataFrame wrapping pl.DataFrame) ---
-                # Keep existing polars-based logic — works correctly for eager inputs.
-                # Row index is derivable from check_output.
-                # This branch is only reached for eager polars DataFrames, so polars is present.
-                try:
-                    import polars as pl
-                except ImportError:
-                    pl = None  # type: ignore[assignment]
-                fc_eager = _materialize(fc)
-                pl_fc = pl.from_arrow(fc_eager.to_arrow())
-
-                # Compute row indices of failing cases from check_output.
-                resolved_co = None
-                if err.check_output is not None:
-                    co = err.check_output
-                    if isinstance(co, (nw.LazyFrame, nw.DataFrame)):
-                        resolved_co = co
-                    elif not isinstance(co, nw.Expr):
-                        resolved_co = nw.from_native(
-                            co, eager_or_interchange_only=False
-                        )
-                    # nw.Expr: resolved_co stays None (err.data unavailable)
-
-                if resolved_co is not None:
-                    co_eager = _materialize(resolved_co)
-                    try:
-                        co_indexed = co_eager.with_row_index("index")
-                    except Exception:
-                        co_indexed = co_eager.with_row_count("index")
-                    failing_indices = co_indexed.filter(
-                        ~nw.col(CHECK_OUTPUT_KEY)
-                    )["index"].to_list()
-                    index = pl.Series("index", failing_indices, dtype=pl.Int32)
-                else:
-                    index = pl.Series(
-                        "index", [None] * len(pl_fc), dtype=pl.Int32
-                    )
-
-                # pl.from_arrow() on a DataFrame always returns a DataFrame,
-                # never a Series; this assert narrows the type for mypy.
-                assert isinstance(pl_fc, pl.DataFrame)
-                if len(pl_fc.columns) > 1:
-                    failure_cases_df = pl_fc.with_columns(
-                        failure_case=pl.Series(pl_fc.rows(named=True))
-                    ).select(pl.col.failure_case.struct.json_encode())
-                else:
-                    failure_cases_df = pl_fc.rename(
-                        {pl_fc.columns[0]: "failure_case"}
-                    )
-
-                failure_cases_df = failure_cases_df.with_columns(
-                    schema_context=pl.lit(err.schema.__class__.__name__),
-                    column=pl.lit(err.schema.name),
-                    check=pl.lit(check_identifier),
-                    check_number=pl.lit(err.check_index),
-                    index=index.limit(failure_cases_df.shape[0]),
-                ).cast(
-                    {
-                        "failure_case": pl.Utf8,
-                        "column": pl.String,
-                        "index": pl.Int32,
-                        "check_number": pl.Int32,
-                    }
-                )
-                failure_case_collection.append(failure_cases_df)
-
-            else:
-                # --- Scalar path (Python scalars, strings, etc.) ---
-                try:
-                    import polars as pl
-                except ImportError:
-                    pl = None  # type: ignore[assignment]
-                scalar_failure_cases = defaultdict(list)
-                scalar_failure_cases["failure_case"].append(err.failure_cases)
-                scalar_failure_cases["schema_context"].append(
-                    err.schema.__class__.__name__
-                )
-                scalar_failure_cases["column"].append(err.schema.name)
-                scalar_failure_cases["check"].append(check_identifier)
-                scalar_failure_cases["check_number"].append(err.check_index)
-                scalar_failure_cases["index"].append(None)
-                failure_cases_df = pl.DataFrame(scalar_failure_cases).cast(
-                    {
-                        "check_number": pl.Int32,
-                        "column": pl.String,
-                        "index": pl.Int32,
-                    }
-                )
-                failure_case_collection.append(failure_cases_df)
-
-        # Backend-aware concat: ibis uses .union(), polars uses pl.concat().
-        if failure_case_collection:
-            first = failure_case_collection[0]
-            if hasattr(first, "union"):  # ibis.Table
-                failure_cases = functools.reduce(
-                    lambda a, b: a.union(b), failure_case_collection
+                failure_case_collection.append(
+                    self._build_eager_failure_case(fc, err, check_identifier)
                 )
             else:
-                # All items are pl.DataFrame or pl.LazyFrame — polars is present here.
-                try:
-                    import polars as pl
-                except ImportError:
-                    pl = None  # type: ignore[assignment]
-                failure_cases = pl.concat(
-                    failure_case_collection
-                )  # pl.LazyFrame or pl.DataFrame
-        else:
-            try:
-                import polars as pl
-            except ImportError:
-                pl = None  # type: ignore[assignment]
-            failure_cases = pl.DataFrame() if pl is not None else None
+                failure_case_collection.append(
+                    self._build_scalar_failure_case(err, check_identifier)
+                )
+
+        failure_cases = _concat_failure_cases(failure_case_collection)
 
         error_handler = ErrorHandler()
         # Only collect errors with a valid reason_code; errors without one
@@ -382,6 +260,114 @@ class NarwhalsSchemaBackend(BaseSchemaBackend):
             failure_cases=failure_cases,
             message=error_dicts,
             error_counts=error_counts,
+        )
+
+    @staticmethod
+    def _build_lazy_failure_case(fc, err: SchemaError, check_identifier):
+        """Build a lazy/SQL failure-case frame using Narwhals ops only.
+
+        Works uniformly for ``polars.LazyFrame`` and ``ibis.Table`` — no
+        Arrow roundtrip, no polars import. Row index is always ``None``
+        since SQL has no natural row ordering.
+        """
+        col_names = fc.collect_schema().names()
+        if len(col_names) == 1:
+            enriched = fc.rename({col_names[0]: "failure_case"})
+        else:
+            parts = [
+                nw.lit(f"{c}=").cast(nw.String) + nw.col(c).cast(nw.String)
+                for c in col_names
+            ]
+            enriched = fc.select(
+                nw.concat_str(*parts, separator=", ").alias("failure_case")
+            )
+
+        enriched = enriched.with_columns(
+            nw.lit(err.schema.__class__.__name__).alias("schema_context"),
+            nw.lit(err.schema.name).alias("column"),
+            nw.lit(check_identifier).alias("check"),
+            nw.lit(err.check_index).cast(nw.Int32).alias("check_number"),
+            nw.lit(None).cast(nw.Int32).alias("index"),
+        )
+        return nw.to_native(enriched)
+
+    @staticmethod
+    def _build_eager_failure_case(fc, err: SchemaError, check_identifier):
+        """Build an eager polars failure-case frame with row-index enrichment.
+
+        Only reached for eager polars DataFrames; ``polars`` is guaranteed
+        to be importable here.
+        """
+        assert pl is not None, "polars is required for eager failure_cases"
+        fc_eager = _materialize(fc)
+        pl_fc = pl.from_arrow(fc_eager.to_arrow())
+
+        resolved_co = None
+        if err.check_output is not None:
+            co = err.check_output
+            if isinstance(co, (nw.LazyFrame, nw.DataFrame)):
+                resolved_co = co
+            elif not isinstance(co, nw.Expr):
+                resolved_co = nw.from_native(
+                    co, eager_or_interchange_only=False
+                )
+
+        if resolved_co is not None:
+            co_eager = _materialize(resolved_co)
+            try:
+                co_indexed = co_eager.with_row_index("index")
+            except AttributeError:
+                # Older polars: ``with_row_index`` was called ``with_row_count``.
+                co_indexed = co_eager.with_row_count("index")
+            failing_indices = co_indexed.filter(~nw.col(CHECK_OUTPUT_KEY))[
+                "index"
+            ].to_list()
+            index = pl.Series("index", failing_indices, dtype=pl.Int32)
+        else:
+            index = pl.Series("index", [None] * len(pl_fc), dtype=pl.Int32)
+
+        assert isinstance(pl_fc, pl.DataFrame)
+        if len(pl_fc.columns) > 1:
+            failure_cases_df = pl_fc.with_columns(
+                failure_case=pl.Series(pl_fc.rows(named=True))
+            ).select(pl.col.failure_case.struct.json_encode())
+        else:
+            failure_cases_df = pl_fc.rename({pl_fc.columns[0]: "failure_case"})
+
+        return failure_cases_df.with_columns(
+            schema_context=pl.lit(err.schema.__class__.__name__),
+            column=pl.lit(err.schema.name),
+            check=pl.lit(check_identifier),
+            check_number=pl.lit(err.check_index),
+            index=index.limit(failure_cases_df.shape[0]),
+        ).cast(
+            {
+                "failure_case": pl.Utf8,
+                "column": pl.String,
+                "index": pl.Int32,
+                "check_number": pl.Int32,
+            }
+        )
+
+    @staticmethod
+    def _build_scalar_failure_case(err: SchemaError, check_identifier):
+        """Build a failure-case frame for Python scalars/strings/None."""
+        assert pl is not None, "polars is required for scalar failure_cases"
+        scalar_failure_cases: dict = defaultdict(list)
+        scalar_failure_cases["failure_case"].append(err.failure_cases)
+        scalar_failure_cases["schema_context"].append(
+            err.schema.__class__.__name__
+        )
+        scalar_failure_cases["column"].append(err.schema.name)
+        scalar_failure_cases["check"].append(check_identifier)
+        scalar_failure_cases["check_number"].append(err.check_index)
+        scalar_failure_cases["index"].append(None)
+        return pl.DataFrame(scalar_failure_cases).cast(
+            {
+                "check_number": pl.Int32,
+                "column": pl.String,
+                "index": pl.Int32,
+            }
         )
 
     def drop_invalid_rows(self, check_obj, error_handler):
