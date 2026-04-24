@@ -106,22 +106,35 @@ class NarwhalsCheckBackend(BaseCheckBackend):
             if isinstance(out, ir.BooleanScalar):
                 return bool(out.execute())
             if isinstance(out, ir.BooleanColumn):
+                # Attach the boolean column expression to the original table,
+                # producing a wide table (original columns + CHECK_OUTPUT_KEY).
                 native = nw.to_native(check_obj.frame)
                 tbl = native.mutate(**{CHECK_OUTPUT_KEY: out})
                 return nw.from_native(tbl, eager_or_interchange_only=False)
             if isinstance(out, ir.Table):
                 return nw.from_native(out, eager_or_interchange_only=False)
 
-        # Polars: detect via module name rather than importing polars, so
-        # ibis-only environments don't need polars installed.
+        # Handle polars native return types from native=True checks.
+        # Both pl.Series and pl.DataFrame are attached to the original frame
+        # so that postprocess_lazyframe_output receives a WIDE table
+        # (original columns + CHECK_OUTPUT_KEY) — the same shape produced by
+        # the ibis BooleanColumn path.
+        # - pl.Series of booleans: aliased to CHECK_OUTPUT_KEY and added via
+        #   with_columns.
+        # - pl.DataFrame with CHECK_OUTPUT_KEY column: the boolean column is
+        #   extracted and then added to the original frame in the same way.
+        # Detection uses type.__module__ — avoids a hard polars import
+        # (polars is optional).
         out_mod = getattr(type(out), "__module__", "") or ""
         if out_mod.startswith("polars"):
             native = nw.to_native(check_obj.frame)
+            # native may be a LazyFrame; collect to attach an eager column.
             if hasattr(native, "collect"):
                 native = native.collect()
             if type(out).__name__ == "Series":
                 bool_col = out.alias(CHECK_OUTPUT_KEY)
             else:
+                # DataFrame must contain a CHECK_OUTPUT_KEY column.
                 bool_col = out[CHECK_OUTPUT_KEY].alias(CHECK_OUTPUT_KEY)
             return nw.from_native(
                 native.with_columns(bool_col), eager_only=True
