@@ -218,17 +218,21 @@ class Column(ComponentSchema[PolarsCheckObjects]):
         return self
 
     def strategy(self, *, size=None):
-        """Create a ``hypothesis`` strategy for generating a Column.
+        """Create a ``hypothesis`` strategy for generating a single-column polars DataFrame.
 
-        :param size: number of elements to generate
-        :returns: a dataframe strategy for a single column.
+        Delegates to :func:`pandera.strategies.narwhals_strategies.dataframe_strategy`
+        with a single-column wrapper schema.
 
-        .. warning::
-
-           This method is not implemented in the polars backend.
+        :param size: number of elements to generate.
+        :returns: a strategy that produces ``polars.DataFrame`` objects
+            with one column.
         """
-        raise NotImplementedError(
-            "Data synthesis is not supported in with polars schemas."
+        from pandera.strategies import narwhals_strategies as nws
+
+        return nws.dataframe_strategy(
+            columns={self.name or "x": self},
+            size=size,
+            target="polars_eager",
         )
 
     def strategy_component(self):
@@ -243,16 +247,18 @@ class Column(ComponentSchema[PolarsCheckObjects]):
         )
 
     def example(self, size=None):
-        """Generate an example of a particular size.
+        """Generate a single-column polars DataFrame from this Column.
 
-        :param size: number of elements in the generated Index.
-        :returns: pandas DataFrame object.
-
-        .. warning::
-
-           This method is not implemented in the polars backend.
+        :param size: number of elements to generate.
+        :returns: ``polars.DataFrame`` with one column.
         """
+        import warnings
 
-        raise NotImplementedError(
-            "Data synthesis is not supported in with polars schemas."
-        )
+        import hypothesis
+
+        with warnings.catch_warnings():
+            warnings.simplefilter(
+                "ignore",
+                category=hypothesis.errors.NonInteractiveExampleWarning,
+            )
+            return self.strategy(size=size).example()

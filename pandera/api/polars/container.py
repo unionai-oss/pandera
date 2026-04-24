@@ -92,32 +92,45 @@ class DataFrameSchema(_DataFrameSchema[PolarsCheckObjects]):
         self._dtype = polars_engine.Engine.dtype(value) if value else None
 
     def strategy(self, *, size: int | None = None, n_regex_columns: int = 1):
-        """Create a ``hypothesis`` strategy for generating a DataFrame.
+        """Create a ``hypothesis`` strategy for generating a polars DataFrame.
+
+        Internally generates a pandas DataFrame using
+        :mod:`pandera.strategies.pandas_strategies` (for full check
+        coverage) and converts the result to a ``polars.DataFrame`` via
+        ``pl.from_pandas``.
 
         :param size: number of elements to generate
         :param n_regex_columns: number of regex columns to generate.
-        :returns: a strategy that generates pandas DataFrame objects.
-
-        .. warning::
-
-           This method is not implemented in the polars backend.
+        :returns: a strategy that generates ``polars.DataFrame`` objects.
         """
-        raise NotImplementedError(
-            "Data synthesis is not supported in with polars schemas."
+        import polars as pl
+
+        from pandera.strategies import narwhals_strategies as nws
+
+        self.register_default_backends(pl.DataFrame)
+        return nws.strategy_for_schema(
+            self,
+            target="polars_eager",
+            size=size,
+            n_regex_columns=n_regex_columns,
         )
 
     def example(self, size: int | None = None, n_regex_columns: int = 1):
-        """Generate an example of a particular size.
+        """Generate a single example polars DataFrame from this schema.
 
         :param size: number of elements in the generated DataFrame.
-        :returns: pandas DataFrame object.
-
-        .. warning::
-
-           This method is not implemented in polars backend.
+        :returns: ``polars.DataFrame`` object.
         """
-        raise NotImplementedError(
-            "Data synthesis is not supported in with polars schemas."
+        import polars as pl
+
+        from pandera.strategies import narwhals_strategies as nws
+
+        self.register_default_backends(pl.DataFrame)
+        return nws.example(
+            self,
+            target="polars_eager",
+            size=size,
+            n_regex_columns=n_regex_columns,
         )
 
     #####################

@@ -119,6 +119,47 @@ class DataFrameSchema(_DataFrameSchema[ibis.Table]):
         """Set the dtype property."""
         self._dtype = ibis_engine.Engine.dtype(value) if value else None
 
+    def strategy(self, *, size: int | None = None, n_regex_columns: int = 1):
+        """Create a ``hypothesis`` strategy for generating an ibis Table.
+
+        Internally generates a pandas DataFrame using
+        :mod:`pandera.strategies.pandas_strategies` (for full check
+        coverage) and converts the result to an ``ibis.memtable``.
+
+        :param size: number of elements to generate.
+        :param n_regex_columns: number of regex columns to generate.
+        :returns: a strategy that produces ``ibis.Table`` objects.
+        """
+        import ibis
+
+        from pandera.strategies import narwhals_strategies as nws
+
+        self.register_default_backends(ibis.Table)
+        return nws.strategy_for_schema(
+            self,
+            target="ibis",
+            size=size,
+            n_regex_columns=n_regex_columns,
+        )
+
+    def example(self, size: int | None = None, n_regex_columns: int = 1):
+        """Generate a single example ibis Table from this schema.
+
+        :param size: number of elements in the generated table.
+        :returns: ``ibis.Table`` (memtable) object.
+        """
+        import ibis
+
+        from pandera.strategies import narwhals_strategies as nws
+
+        self.register_default_backends(ibis.Table)
+        return nws.example(
+            self,
+            target="ibis",
+            size=size,
+            n_regex_columns=n_regex_columns,
+        )
+
     #####################
     # Schema IO Methods #
     #####################
