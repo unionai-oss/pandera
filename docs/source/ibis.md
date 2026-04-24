@@ -204,7 +204,11 @@ invalid_t = ibis.memtable({
     "b": ["d", "e", "f"],
     "c": [0.0, 1.1, -0.1],
 })
-ModelWithChecks.validate(invalid_t, lazy=True)
+
+try:
+    ModelWithChecks.validate(invalid_t, lazy=True)
+except pa.errors.SchemaErrors as exc:
+    print(exc)
 ```
 
 (supported-ibis-dtypes)=
