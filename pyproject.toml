@@ -178,6 +178,7 @@ testing = [
 docs = [
     "setuptools",
     "typer >= 0.12.3",
+    "duckdb",
     "pyarrow-hotfix",
     "sphinx<9",
     "sphinx-design",
