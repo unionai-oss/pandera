@@ -8,6 +8,7 @@ import narwhals.stable.v1 as nw
 from pandera.api.base.checks import CheckResult
 from pandera.api.checks import Check
 from pandera.api.narwhals.types import NarwhalsData
+from pandera.api.narwhals.utils import _is_lazy, _materialize
 from pandera.backends.base import BaseCheckBackend
 from pandera.constants import CHECK_OUTPUT_KEY
 
@@ -31,9 +32,37 @@ class NarwhalsCheckBackend(BaseCheckBackend):
         self.check = check
         self.check_fn = partial(check._check_fn, **check._check_kwargs)
 
-    def groupby(self, check_obj: nw.LazyFrame):
-        """Implements groupby behavior for check object."""
-        raise NotImplementedError
+    def groupby(self, check_obj):
+        """Partition the check object into a dict of group_key -> sub-frame.
+
+        Materializes the frame (via :func:`_materialize`) so iteration over
+        the resulting :class:`narwhals.GroupBy` works on every backend.
+        SQL-lazy backends (ibis, duckdb) do not support iterating on their
+        ``GroupBy`` objects directly, so we collect once and group on the
+        eager wrapper.
+
+        Returns a ``dict[group_key, nw.DataFrame]`` where ``group_key`` is
+        a single value (when grouping by one column) or a tuple of values
+        (when grouping by multiple columns) — mirroring the pandas backend
+        contract.
+        """
+        groupby = self.check.groupby
+        if callable(groupby):
+            raise NotImplementedError(
+                "Callable groupby is not supported in the narwhals backend. "
+                "Pass a column name or list of column names instead."
+            )
+        # ``Check.__init__`` normalizes str -> list[str].
+        group_cols = list(groupby)
+
+        eager = _materialize(check_obj) if _is_lazy(check_obj) else check_obj
+        grouped: dict = {}
+        for group_tuple, sub_frame in eager.group_by(*group_cols):
+            group_key = (
+                group_tuple[0] if len(group_tuple) == 1 else group_tuple
+            )
+            grouped[group_key] = sub_frame
+        return grouped
 
     def query(self, check_obj: nw.LazyFrame):
         """Implements querying behavior to produce subset of check object."""
@@ -51,6 +80,9 @@ class NarwhalsCheckBackend(BaseCheckBackend):
         """Apply check function — dispatch on self.check.native flag."""
         frame = check_obj.frame
         key = check_obj.key
+
+        if self.check.groupby is not None:
+            return self._apply_groupby(check_obj)
 
         if self.check.element_wise:
             selector = nw.col(key or "*")
@@ -85,6 +117,38 @@ class NarwhalsCheckBackend(BaseCheckBackend):
             else:
                 expr = self.check_fn(frame)
             return expr
+
+    def _apply_groupby(self, check_obj: NarwhalsData):
+        """Apply a groupby check.
+
+        The check function receives a ``dict[group_key, value]`` where
+        ``value`` is a Narwhals ``Series`` (column-level checks) or a
+        Narwhals ``DataFrame`` (frame-level checks).
+
+        The output is expected to be a ``bool`` — the same contract as the
+        pandas backend's dict-style groupby checks. Series-valued outputs
+        (one bool per group) are not yet supported; users should aggregate
+        to a single ``bool`` inside the check function.
+        """
+        frame = check_obj.frame
+        key = check_obj.key
+
+        grouped = self.groupby(frame)
+
+        if self.check.groups is not None:
+            invalid = [g for g in self.check.groups if g not in grouped]
+            if invalid:
+                raise KeyError(
+                    f"groups {invalid} provided in `groups` argument not "
+                    f"a valid group key. Valid group keys: "
+                    f"{list(grouped.keys())}"
+                )
+            grouped = {g: grouped[g] for g in self.check.groups}
+
+        if key and key != "*":
+            grouped = {gk: sub[key] for gk, sub in grouped.items()}
+
+        return self.check_fn(grouped)
 
     @staticmethod
     def _normalize_native_output(out, check_obj: NarwhalsData):
