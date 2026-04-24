@@ -201,10 +201,6 @@ def _testing_requirements(
             req = "ibis-framework[duckdb] >= 11.0.0"
         if req == "polars" or req.startswith("polars "):
             req = f"polars=={polars}"
-        if req == "torch":
-            req = "torch"
-        if req == "tensordict":
-            req = "tensordict"
 
         # for some reason uv will try to install an old version of dask,
         # have to specifically pin dask[dataframe] to a higher version
