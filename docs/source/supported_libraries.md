@@ -27,6 +27,16 @@ Pandera supports validation of the following DataFrame libraries:
   - A data processing library for large-scale data.
 :::
 
+:::{note}
+*new in 0.26.0* &mdash; Pandera's Polars and Ibis backends are powered by
+[Narwhals](https://narwhals-dev.github.io/narwhals/), a lightweight
+compatibility layer between DataFrame libraries. The Narwhals-based backends
+are enabled automatically when `narwhals` is installed; the user-facing API
+(`import pandera.polars as pa` / `import pandera.ibis as pa`) is unchanged.
+See the {ref}`Narwhals-powered backends <narwhals-backends>` section below
+for details.
+:::
+
 ```{toctree}
 :hidden: true
 :maxdepth: 1
@@ -104,6 +114,71 @@ dataframe validation:
 
 Fugue <fugue>
 ```
+
+(narwhals-backends)=
+
+## Narwhals-powered backends
+
+As of *0.26.0*, Pandera ships an internal
+[Narwhals](https://narwhals-dev.github.io/narwhals/)-based validation
+backend that powers both the {ref}`Polars <polars>` and {ref}`Ibis <ibis>`
+integrations behind a single unified code path. The backend is enabled
+automatically whenever `narwhals` is importable &mdash; you do not need to
+install any additional extras, and the public API (`import pandera.polars
+as pa`, `import pandera.ibis as pa`) is unchanged.
+
+### What it is
+
+Narwhals is a lightweight compatibility layer that provides a subset of the
+Polars expression API on top of multiple underlying DataFrame libraries
+(Polars, pandas, PyArrow, Modin, cuDF, Dask, Ibis, DuckDB, PySpark, etc.).
+Pandera uses it to express validation logic &mdash; column selection, type
+coercion, check evaluation, failure-case collection &mdash; once, and have
+it executed natively by each supported engine.
+
+### What it changes for you
+
+* **Unified checks across Polars and Ibis.** Built-in checks
+  (`isin`, `in_range`, `str_matches`, etc.) are now implemented as Narwhals
+  expressions and run unchanged on both Polars LazyFrames and Ibis tables.
+* **Lazy validation stays lazy.** For Polars LazyFrames and Ibis tables,
+  Pandera threads validation through the native lazy API: no full-frame
+  `.collect()` / `.execute()` is triggered during validation. Only the
+  bounded `failure_cases` frame is materialized, and only on error.
+* **Custom checks become portable.** A check written against
+  `pandera.polars` typically works against `pandera.ibis` (and vice versa)
+  as long as it uses Narwhals expressions. Backend-native checks
+  (pure `polars.Expr` or pure `ibis` expressions) are still supported via
+  the `native=True` flag on `Check`.
+
+### Opting out
+
+If you need the previous non-Narwhals Polars backend for compatibility
+reasons, uninstall `narwhals`:
+
+```bash
+pip uninstall narwhals
+```
+
+Pandera will then fall back to the legacy Polars backend. The legacy path
+remains available but is in maintenance mode; new backend work targets the
+Narwhals path.
+
+### Known gaps
+
+A small number of features are currently not wired through the Narwhals
+backend. Follow-up milestones track each of the gaps below:
+
+* `coerce` for the Ibis backend (deferred; `Ibis` coerces eagerly today)
+* `add_missing_columns` parser and `set_default` for `Column` fields
+* `group_by`-based checks beyond element-wise and column-wise expressions
+* Schema IO (YAML/JSON) for Narwhals-backed schemas
+* Hypothesis data-synthesis strategies
+* `sample=` subsampling (only `head=` / `tail=` are supported today)
+
+See the {ref}`Supported DataFrame Libraries <supported-dataframe-libraries>`
+section above for the user-facing integrations; the Narwhals layer is an
+implementation detail that keeps them consistent.
 
 :::{note}
 Don't see a library that you want supported? Check out the

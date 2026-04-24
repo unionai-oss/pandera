@@ -31,6 +31,14 @@ You can find the command to install the Ibis backend of your choice on the
 [Installation page of the Ibis documentation](https://ibis-project.org/install).
 :::
 
+:::{note}
+*new in 0.26.0* &mdash; Pandera's Ibis integration is implemented on top of
+the shared {ref}`Narwhals-powered backend <narwhals-backends>`. Validation
+runs against the native Ibis expression graph without materializing tables,
+and the same check implementations are shared with the Polars backend. The
+public API shown on this page is unchanged.
+:::
+
 Then, you can start validating Ibis tables using Pandera schemas. In the example
 below, we'll use the {ref}`class-based API <dataframe-models>` to define a
 {py:class}`~pandera.api.ibis.model.DataFrameModel`, which we'll then use to
