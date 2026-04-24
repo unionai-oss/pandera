@@ -777,9 +777,7 @@ class STRING(DataType, dtypes.String):
                 return True
             if len(data_container) == 0:
                 return False
-            is_python_string = data_container.map(
-                lambda x: isinstance(x, str)
-            )  # type: ignore[operator]
+            is_python_string = data_container.map(lambda x: isinstance(x, str))  # type: ignore[operator]
             return is_python_string.astype(bool) | data_container.isna()  # type: ignore[return-value]
         return super().check(pandera_dtype, data_container)
 

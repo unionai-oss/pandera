@@ -329,7 +329,11 @@ def test_ibis_dataframe_check_n_failure_cases(t):
     [
         pytest.param([None, None], nullcontext(), id="all_nulls_pass"),
         pytest.param([42, None], nullcontext(), id="mixed_nulls_pass"),
-        pytest.param([-5, None], pytest.raises(pa.errors.SchemaError), id="invalid_value_fails"),
+        pytest.param(
+            [-5, None],
+            pytest.raises(pa.errors.SchemaError),
+            id="invalid_value_fails",
+        ),
         pytest.param([10, 20], nullcontext(), id="all_valid_pass"),
     ],
 )

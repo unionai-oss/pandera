@@ -15,7 +15,9 @@ class TestPandasStringDtypeValidation:
         schema = pa.DataFrameSchema({"name": pa.Column(pd.StringDtype())})
         df = pd.DataFrame(columns=["name"])
 
-        with pytest.raises(SchemaError, match="expected series 'name' to have type string"):
+        with pytest.raises(
+            SchemaError, match="expected series 'name' to have type string"
+        ):
             schema.validate(df)
 
     def test_empty_dataframe_with_object_dtype_passes(self):
@@ -28,13 +30,16 @@ class TestPandasStringDtypeValidation:
 
     def test_dataframe_with_object_value_fails_stringdtype(self):
         """DataFrame with Object() value should fail when schema expects StringDtype."""
+
         class CustomObject:
             pass
 
         schema = pa.DataFrameSchema({"name": pa.Column(pd.StringDtype())})
         df = pd.DataFrame({"name": [CustomObject()]})
 
-        with pytest.raises(SchemaError, match="expected series 'name' to have type string"):
+        with pytest.raises(
+            SchemaError, match="expected series 'name' to have type string"
+        ):
             schema.validate(df)
 
     def test_dataframe_with_string_values_passes(self):
@@ -47,7 +52,9 @@ class TestPandasStringDtypeValidation:
 
     def test_dataframe_with_none_nullable_true_passes(self):
         """DataFrame with None should pass when nullable=True."""
-        schema = pa.DataFrameSchema({"name": pa.Column(pd.StringDtype(), nullable=True)})
+        schema = pa.DataFrameSchema(
+            {"name": pa.Column(pd.StringDtype(), nullable=True)}
+        )
         df = pd.DataFrame({"name": [None]})
 
         result = schema.validate(df)
@@ -55,7 +62,9 @@ class TestPandasStringDtypeValidation:
 
     def test_dataframe_with_none_nullable_false_fails(self):
         """DataFrame with None should fail when nullable=False."""
-        schema = pa.DataFrameSchema({"name": pa.Column(pd.StringDtype(), nullable=False)})
+        schema = pa.DataFrameSchema(
+            {"name": pa.Column(pd.StringDtype(), nullable=False)}
+        )
         df = pd.DataFrame({"name": [None]})
 
         with pytest.raises(SchemaError, match="non-nullable series"):
@@ -63,9 +72,9 @@ class TestPandasStringDtypeValidation:
 
     def test_dataframe_with_mixed_values_passes(self):
         """DataFrame with mixed None and strings should pass when nullable=True."""
-        schema = pa.DataFrameSchema({
-            "name": pa.Column(pd.StringDtype(), nullable=True)
-        })
+        schema = pa.DataFrameSchema(
+            {"name": pa.Column(pd.StringDtype(), nullable=True)}
+        )
         df = pd.DataFrame({"name": ["test", None, "another"]})
 
         result = schema.validate(df)
@@ -73,23 +82,25 @@ class TestPandasStringDtypeValidation:
 
     def test_dataframe_with_mixed_values_and_object_fails(self):
         """DataFrame with mixed values including Object() should fail."""
+
         class CustomObject:
             pass
 
-        schema = pa.DataFrameSchema({
-            "name": pa.Column(pd.StringDtype(), nullable=True)
-        })
+        schema = pa.DataFrameSchema(
+            {"name": pa.Column(pd.StringDtype(), nullable=True)}
+        )
         df = pd.DataFrame({"name": ["test", None, CustomObject()]})
 
-        with pytest.raises(SchemaError, match="expected series 'name' to have type string"):
+        with pytest.raises(
+            SchemaError, match="expected series 'name' to have type string"
+        ):
             schema.validate(df)
 
     def test_empty_dataframe_multiple_columns(self):
         """Empty DataFrame with multiple columns should fail."""
-        schema = pa.DataFrameSchema({
-            "name": pa.Column(pd.StringDtype()),
-            "value": pa.Column(int)
-        })
+        schema = pa.DataFrameSchema(
+            {"name": pa.Column(pd.StringDtype()), "value": pa.Column(int)}
+        )
         df = pd.DataFrame(columns=["name", "value"])
 
         with pytest.raises(SchemaError, match="expected series"):
@@ -97,11 +108,12 @@ class TestPandasStringDtypeValidation:
 
     def test_empty_dataframe_with_stringdtype_and_object_column(self):
         """Empty DataFrame with mixed column types should fail."""
-        schema = pa.DataFrameSchema({
-            "name": pa.Column(pd.StringDtype()),
-            "data": pa.Column(object)
-        })
+        schema = pa.DataFrameSchema(
+            {"name": pa.Column(pd.StringDtype()), "data": pa.Column(object)}
+        )
         df = pd.DataFrame(columns=["name", "data"])
 
-        with pytest.raises(SchemaError, match="expected series 'name' to have type string"):
+        with pytest.raises(
+            SchemaError, match="expected series 'name' to have type string"
+        ):
             schema.validate(df)

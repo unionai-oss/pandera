@@ -1554,9 +1554,7 @@ class TestStringType(BaseClass):
 
 
 @validate_scope(scope=ValidationScope.DATA)
-def test_str_length_check_with_pyspark_schemas(
-    spark_session, request
-) -> None:
+def test_str_length_check_with_pyspark_schemas(spark_session, request) -> None:
     """Check.str_length should work for pyspark DataFrameSchema checks."""
     spark = request.getfixturevalue(spark_session)
     schema = DataFrameSchema(
@@ -1895,7 +1893,10 @@ class TestUniqueValuesEqCheck(BaseClass):
 
     sample_numeric_data = {
         "test_pass_data": [("foo", 31), ("bar", 32)],
-        "test_fail_data": [("foo", 31), ("bar", 31)],  # Missing 32, only has 31
+        "test_fail_data": [
+            ("foo", 31),
+            ("bar", 31),
+        ],  # Missing 32, only has 31
         "test_expression": [31, 32],
     }
 
@@ -1906,7 +1907,10 @@ class TestUniqueValuesEqCheck(BaseClass):
         ],
         "test_fail_data": [
             ("foo", datetime.datetime(2020, 10, 1, 10, 0)),
-            ("bar", datetime.datetime(2020, 10, 1, 10, 0)),  # Missing second date
+            (
+                "bar",
+                datetime.datetime(2020, 10, 1, 10, 0),
+            ),  # Missing second date
         ],
         "test_expression": [
             datetime.datetime(2020, 10, 1, 10, 0),
@@ -2030,4 +2034,3 @@ class TestUniqueValuesEqCheck(BaseClass):
                 datatype,
                 data["test_expression"],
             )
-

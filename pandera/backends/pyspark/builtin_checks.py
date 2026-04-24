@@ -391,6 +391,7 @@ def str_length(
 
     return data.dataframe.filter(~cond).limit(1).count() == 0
 
+
 @register_builtin_check(
     error="unique_values_eq({values})",
 )
@@ -400,7 +401,7 @@ def str_length(
     )
 )
 def unique_values_eq(
-        data: PysparkDataframeColumnObject, values: Iterable
+    data: PysparkDataframeColumnObject, values: Iterable
 ) -> bool:
     """Ensure that unique values in the data object contain all values.
 

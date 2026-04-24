@@ -9,6 +9,7 @@ from pyspark.sql import DataFrame
 
 try:
     from pyspark.sql.connect.dataframe import DataFrame as ConnectDataFrame
+
     _dataframe_types = (DataFrame, ConnectDataFrame)
 except ImportError:
     _dataframe_types = (DataFrame,)

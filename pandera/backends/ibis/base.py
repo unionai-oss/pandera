@@ -74,7 +74,9 @@ class IbisSchemaBackend(BaseSchemaBackend):
                     return ~series.fillna(check_ignore_na).astype(bool)
 
                 if isinstance(check_output, pd.Series):
-                    failed_index = check_output[failed_mask(check_output)].index
+                    failed_index = check_output[
+                        failed_mask(check_output)
+                    ].index
                 elif (
                     is_table(check_output)
                     and CHECK_OUTPUT_KEY in check_output.columns
