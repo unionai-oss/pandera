@@ -87,6 +87,38 @@ schema = pa.TensorDictSchema(
 )
 ```
 
+## Type Coercion
+
+Set `coerce=True` to automatically convert tensor dtypes during validation:
+
+```{code-cell} python
+schema = pa.TensorDictSchema(
+    keys={
+        "observation": pa.Tensor(dtype=torch.float32, shape=(None, 10)),
+        "action": pa.Tensor(dtype=torch.int64),
+    },
+    batch_size=(32,),
+    coerce=True,
+)
+
+# Input has wrong dtypes (float64, int32)
+td = TensorDict(
+    {
+        "observation": torch.randn(32, 10).to(torch.float64),
+        "action": torch.randint(0, 5, (32,)).to(torch.int32),
+    },
+    batch_size=[32],
+)
+
+# Dtypes are automatically coerced to float32 and int64
+validated = schema.validate(td)
+assert validated["observation"].dtype == torch.float32
+assert validated["action"].dtype == torch.int64
+```
+
+Type coercion is applied **before** validation checks, so any dtype or shape
+constraints will be evaluated on the coerced data.
+
 ## See also
 
 - {ref}`pytorch-tensordict-model` — class-based schema definition

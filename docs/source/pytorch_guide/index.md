@@ -44,6 +44,30 @@ td = TensorDict(
 schema.validate(td)
 ```
 
+## Type Coercion
+
+Set `coerce=True` to automatically convert tensor dtypes:
+
+```{code-cell} python
+schema_coerce = pa.TensorDictSchema(
+    keys={
+        "observation": pa.Tensor(dtype=torch.float32, shape=(None, 10)),
+    },
+    batch_size=(32,),
+    coerce=True,
+)
+
+# Input with wrong dtype (float64)
+td_wrong_dtype = TensorDict(
+    {"observation": torch.randn(32, 10).to(torch.float64)},
+    batch_size=[32],
+)
+
+# Dtype is automatically coerced to float32
+validated = schema_coerce.validate(td_wrong_dtype)
+assert validated["observation"].dtype == torch.float32
+```
+
 ## Define a schema with a class-based model
 
 ```{code-cell} python

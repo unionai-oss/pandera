@@ -663,5 +663,239 @@ class TestTensorDictErrorCases:
             assert SchemaErrorReason.WRONG_DATATYPE in reason_codes
 
 
+@torch_condition
+class TestTensorDictCoercion:
+    """Tests for TensorDict dtype coercion."""
+
+    def test_coerce_dtype_basic(self):
+        """Test basic dtype coercion with coerce=True."""
+        from pandera.tensordict import Tensor, TensorDictSchema
+
+        schema = TensorDictSchema(
+            keys={
+                "data": Tensor(dtype=torch.float32, shape=(None, 10)),
+            },
+            batch_size=(16,),
+            coerce=True,
+        )
+
+        td = TensorDict(
+            {"data": torch.randn(16, 10).to(torch.float64)},
+            batch_size=[16],
+        )
+
+        assert td["data"].dtype == torch.float64
+        result = schema.validate(td)
+        assert result["data"].dtype == torch.float32
+
+    def test_coerce_dtype_multiple_tensors(self):
+        """Test coercion of multiple tensors with different dtypes."""
+        from pandera.tensordict import Tensor, TensorDictSchema
+
+        schema = TensorDictSchema(
+            keys={
+                "float_data": Tensor(dtype=torch.float32, shape=(None, 10)),
+                "int_data": Tensor(dtype=torch.int64, shape=(None,)),
+            },
+            batch_size=(16,),
+            coerce=True,
+        )
+
+        td = TensorDict(
+            {
+                "float_data": torch.randn(16, 10).to(torch.float64),
+                "int_data": torch.arange(16).to(torch.int32),
+            },
+            batch_size=[16],
+        )
+
+        result = schema.validate(td)
+        assert result["float_data"].dtype == torch.float32
+        assert result["int_data"].dtype == torch.int64
+
+    def test_coerce_dtype_with_shape(self):
+        """Test coercion preserves shape."""
+        from pandera.tensordict import Tensor, TensorDictSchema
+
+        schema = TensorDictSchema(
+            keys={
+                "data": Tensor(dtype=torch.float32, shape=(32, 10)),
+            },
+            batch_size=(32,),
+            coerce=True,
+        )
+
+        td = TensorDict(
+            {"data": torch.randn(32, 10).to(torch.float64)},
+            batch_size=[32],
+        )
+
+        result = schema.validate(td)
+        assert result["data"].shape == (32, 10)
+        assert result["data"].dtype == torch.float32
+
+    def test_coerce_dtype_tensorclass(self):
+        """Test coercion with tensorclass objects."""
+        from pandera.tensordict import Tensor, TensorDictSchema
+
+        @tensorclass
+        class TCData:
+            observation: torch.Tensor
+            action: torch.Tensor
+
+        schema = TensorDictSchema(
+            keys={
+                "observation": Tensor(dtype=torch.float32, shape=(None, 10)),
+                "action": Tensor(dtype=torch.int64, shape=(None,)),
+            },
+            batch_size=(16,),
+            coerce=True,
+        )
+
+        tc = TCData(
+            observation=torch.randn(16, 10).to(torch.float64),
+            action=torch.randint(0, 5, (16,)).to(torch.int32),
+            batch_size=[16],
+        )
+
+        result = schema.validate(tc)
+        assert result.observation.dtype == torch.float32
+        assert result.action.dtype == torch.int64
+
+    def test_coerce_dtype_with_value_checks(self):
+        """Test coercion works with value checks."""
+        from pandera import Check
+        from pandera.tensordict import Tensor, TensorDictSchema
+
+        schema = TensorDictSchema(
+            keys={
+                "data": Tensor(
+                    dtype=torch.float32,
+                    shape=(None,),
+                    checks=Check.gt(0.0),
+                ),
+            },
+            batch_size=(10,),
+            coerce=True,
+        )
+
+        td = TensorDict(
+            {"data": torch.rand(10).to(torch.float64) * 2 + 1},
+            batch_size=[10],
+        )
+
+        result = schema.validate(td)
+        assert result["data"].dtype == torch.float32
+        # Check that value validation still works
+        assert (result["data"] > 0.0).all()
+
+    def test_coerce_dtype_lazy_validation(self):
+        """Test coercion with lazy validation."""
+        from pandera import Check, errors
+        from pandera.tensordict import Tensor, TensorDictSchema
+
+        schema = TensorDictSchema(
+            keys={
+                "a": Tensor(
+                    dtype=torch.float32,
+                    shape=(None, 10),
+                    checks=[Check.gt(0.0)],  # Will fail for random normal data
+                ),
+                "b": Tensor(dtype=torch.int64),
+            },
+            batch_size=(16,),
+            coerce=True,
+        )
+
+        td = TensorDict(
+            {
+                "a": torch.randn(16, 10).to(torch.float64),  # Wrong dtype + value check
+                "b": torch.arange(16).to(torch.int32),       # Wrong dtype
+            },
+            batch_size=[16],
+        )
+
+        with pytest.raises(errors.SchemaErrors) as exc_info:
+            schema.validate(td, lazy=True)
+
+        errors = exc_info.value.schema_errors
+        assert len(errors) >= 1
+
+        # Verify dtypes were coerced despite validation failures
+        result = exc_info.value.data
+        assert result["a"].dtype == torch.float32
+        assert result["b"].dtype == torch.int64
+
+    def test_coerce_dtype_with_schema_level_and_tensor_level(self):
+        """Test that both schema-level and tensor-level coerce flags work."""
+        from pandera.tensordict import Tensor, TensorDictSchema
+
+        # Schema-level coerce applies to all tensors
+        schema = TensorDictSchema(
+            keys={
+                "a": Tensor(dtype=torch.float32),  # No tensor-level coerce
+                "b": Tensor(dtype=torch.int64),
+            },
+            batch_size=(10,),
+            coerce=True,
+        )
+
+        td = TensorDict(
+            {
+                "a": torch.rand(10).to(torch.float64) * 2 + 1,
+                "b": torch.arange(10).to(torch.int32),
+            },
+            batch_size=[10],
+        )
+
+        result = schema.validate(td)
+        assert result["a"].dtype == torch.float32
+        assert result["b"].dtype == torch.int64
+
+    def test_coerce_dtype_without_schema_level(self):
+        """Test that without coerce=True, dtypes are not coerced."""
+        from pandera import errors
+        from pandera.tensordict import Tensor, TensorDictSchema
+
+        schema = TensorDictSchema(
+            keys={
+                "data": Tensor(dtype=torch.float32),
+            },
+            batch_size=(10,),
+            # coerce=False (default)
+        )
+
+        td = TensorDict(
+            {"data": torch.rand(10).to(torch.float64) * 2 + 1},
+            batch_size=[10],
+        )
+
+        with pytest.raises(errors.SchemaError):
+            schema.validate(td)
+
+    def test_coerce_dtype_error_handling(self):
+        """Test error handling during coercion."""
+        from pandera import errors
+        from pandera.tensordict import Tensor, TensorDictSchema
+
+        # This would fail if we tried to coerce a non-tensor
+        schema = TensorDictSchema(
+            keys={
+                "data": Tensor(dtype=torch.float32),
+            },
+            batch_size=(10,),
+            coerce=True,
+        )
+
+        td = TensorDict(
+            {"data": torch.rand(10).to(torch.float64) * 2 + 1},
+            batch_size=[10],
+        )
+
+        # Coercion should succeed
+        result = schema.validate(td)
+        assert result["data"].dtype == torch.float32
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
