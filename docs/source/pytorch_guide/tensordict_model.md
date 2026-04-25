@@ -98,6 +98,29 @@ except pa.SchemaErrors as e:
         print(f"  - {err.reason_code}")
 ```
 
+## Type Coercion
+
+Model schemas support dtype coercion with the `coerce=True` option:
+
+```{code-cell} python
+class RLWithCoercion(pa.TensorDictModel):
+    observation: torch.float32 = pa.Field(shape=(None, 10))
+    
+    class Config:
+        batch_size = (32,)
+        coerce = True
+
+# Input with wrong dtype
+td = TensorDict(
+    {"observation": torch.randn(32, 10).to(torch.float64)},
+    batch_size=[32],
+)
+
+# Dtype is automatically coerced during validation
+validated = RLWithCoercion.validate(td)
+assert validated["observation"].dtype == torch.float32
+```
+
 ## Model inheritance
 
 Models can be inherited to create more specific schemas:

@@ -80,6 +80,9 @@ class TensorDictSchemaBackend(BaseSchemaBackend):
 
         check_obj = self.preprocess(check_obj, inplace=inplace)
 
+        if schema.coerce:
+            check_obj = self.coerce_dtype(check_obj, schema=schema)
+
         error_handler = self.run_checks_and_handle_errors(
             error_handler, schema, check_obj, lazy
         )
@@ -95,6 +98,67 @@ class TensorDictSchemaBackend(BaseSchemaBackend):
 
     def coerce_dtype(self, check_obj, schema=None):
         """Coerce the dtype of tensors in the TensorDict."""
+        if not schema.coerce:
+            return check_obj
+
+        from pandera import errors
+        from pandera.api.base.error_handler import ErrorHandler
+
+        error_handler = ErrorHandler(lazy=True)
+
+        def _set_tensor(obj, key, value):
+            """Set tensor in TensorDict or tensorclass object."""
+            try:
+                # For TensorDict, use item assignment
+                from tensordict import TensorDict
+
+                if isinstance(obj, TensorDict):
+                    obj[key] = value
+                else:
+                    # For tensorclass, use attribute access
+                    setattr(obj, key, value)
+            except (KeyError, TypeError):
+                pass
+
+        for key, tensor_schema in schema.keys.items():
+            # Apply coercion if either schema-level coerce is True or 
+            # tensor-level coerce is True, and dtype is specified
+            if not (schema.coerce or tensor_schema.coerce) or tensor_schema.dtype is None:
+                continue
+
+            try:
+                tensor = _get_tensor(check_obj, key)
+                coerced_tensor = tensor_schema.dtype.try_coerce(tensor)
+                _set_tensor(check_obj, key, coerced_tensor)
+            except errors.SchemaError as err:
+                error_handler.collect_error(
+                    get_error_category(err.reason_code),
+                    err.reason_code,
+                    err,
+                )
+            except Exception as exc:
+                from pandera.errors import SchemaError, SchemaErrors
+
+                # Wrap non-SchemaError exceptions in SchemaError
+                error = SchemaError(
+                    schema=schema,
+                    data=check_obj,
+                    message=f"Coercion failed for key '{key}': {exc}",
+                    reason_code=SchemaErrorReason.DATATYPE_COERCION,
+                )
+                error_handler.collect_error(
+                    get_error_category(error.reason_code),
+                    error.reason_code,
+                    error,
+                )
+
+        if error_handler.collected_errors:
+            raise errors.SchemaErrors(
+                schema=schema,
+                schema_errors=error_handler.schema_errors,
+                data=check_obj,
+            )
+
         return check_obj
 
     def run_checks_and_handle_errors(
