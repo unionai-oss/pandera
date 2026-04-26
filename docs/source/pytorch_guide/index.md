@@ -102,12 +102,18 @@ Use {func}`~pandera.tensordict.Field` to define additional constraints like shap
 tensordict_schema
 tensordict_model
 tensordict_checks
+tensordict_schema_inference
+tensordict_io
+tensordict_strategies
 error_reporting
 ```
 
 - {ref}`pytorch-tensordict-schema` — validating a {class}`~tensordict.TensorDict` with `Tensor` components
 - {ref}`pytorch-tensordict-model` — class-based `TensorDictModel`
 - {ref}`pytorch-checks` — checks, parsers, and lazy validation
+- {ref}`pytorch-tensordict-inference` — infer schemas from data automatically
+- {ref}`pytorch-tensordict-io` — save/load schemas with YAML/JSON
+- {ref}`pytorch-tensordict-strategies` — generate synthetic data with Hypothesis
 - {ref}`pytorch-error-reporting` — `SchemaError` / `SchemaErrors`, lazy validation, and failure cases
 
 ## See also
