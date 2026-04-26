@@ -6,6 +6,7 @@ import datetime
 import decimal
 import inspect
 import logging
+import types
 import warnings
 from collections.abc import Iterable, Mapping, Sequence
 from typing import (
@@ -901,6 +902,32 @@ class PydanticModel(DataType):
         if PYDANTIC_V2:
             return list(self.type.model_fields.keys())  # type: ignore[attr-defined]
         return list(self.type.__fields__.keys())  # type: ignore[attr-defined]
+
+    def _get_polars_schema(self) -> dict[str, DataTypeClass]:
+        """Derive a {col_name: polars_dtype} mapping from the Pydantic model."""
+        from typing import Union, get_args, get_origin
+
+        annotations: dict[str, Any] = {}
+        if hasattr(self.type, "model_fields"):
+            for name, info in self.type.model_fields.items():
+                annotations[name] = info.annotation
+        else:
+            # TODO: remove pydantic v1 branch after dropping v1 support
+            for name, info in getattr(self.type, "__fields__").items():
+                annotations[name] = getattr(info, "outer_type_")
+
+        schema: dict[str, DataTypeClass] = {}
+        for name, ann in annotations.items():
+            origin = get_origin(ann)
+            if origin is Union or isinstance(ann, types.UnionType):
+                non_none = [a for a in get_args(ann) if a is not type(None)]
+                if len(non_none) == 1:
+                    ann = non_none[0]
+            try:
+                schema[name] = convert_py_dtype_to_polars_dtype(ann)
+            except (TypeError, ValueError):
+                schema[name] = pl.Null
+        return schema
 
     def _check_column_names(
         self,

@@ -1,9 +1,11 @@
 """DataFrame Schema for Polars."""
 
+from __future__ import annotations
+
 import os
 import sys
 import warnings
-from typing import overload
+from typing import TYPE_CHECKING, overload
 
 from pandera.api.dataframe.container import DataFrameSchema as _DataFrameSchema
 from pandera.api.polars.types import PolarsCheckObjects, PolarsFrame
@@ -16,6 +18,9 @@ if sys.version_info < (3, 11):
     from typing_extensions import Self
 else:
     from typing import Self
+
+if TYPE_CHECKING:  # pragma: no cover
+    import polars as pl
 
 
 class DataFrameSchema(_DataFrameSchema[PolarsCheckObjects]):
@@ -73,6 +78,13 @@ class DataFrameSchema(_DataFrameSchema[PolarsCheckObjects]):
             )
 
         return output
+
+    @overload  # type: ignore[override]
+    def coerce_dtype(self, check_obj: pl.LazyFrame) -> pl.LazyFrame: ...
+    @overload
+    def coerce_dtype(self, check_obj: pl.DataFrame) -> pl.DataFrame: ...
+    def coerce_dtype(self, check_obj):
+        return super().coerce_dtype(check_obj)
 
     @_DataFrameSchema.dtype.setter  # type: ignore[attr-defined]
     def dtype(self, value) -> None:

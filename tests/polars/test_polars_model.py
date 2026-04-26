@@ -82,6 +82,17 @@ def test_empty() -> None:
     assert Schema.validate(df).is_empty()  # type: ignore [attr-defined]
 
 
+def test_empty_no_columns() -> None:
+    """Test empty() on a DataFrameModel with no field annotations."""
+
+    class EmptySchema(DataFrameModel):
+        pass
+
+    df = EmptySchema.empty()
+    assert isinstance(df, pl.DataFrame)
+    assert df.shape == (0, 0)
+
+
 @pytest.fixture
 def ldf_model_with_custom_column_checks():
     class ModelWithCustomColumnChecks(DataFrameModel):

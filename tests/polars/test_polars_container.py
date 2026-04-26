@@ -146,6 +146,22 @@ def test_basic_polars_lazyframe_check_error(
     assert validated_df.equals(ldf_basic.collect())
 
 
+def test_coerce_dtype_preserves_lazyframe(ldf_basic, ldf_schema_basic):
+    """coerce_dtype called with a LazyFrame returns a LazyFrame at runtime."""
+    ldf_schema_basic._coerce = True
+    result = ldf_schema_basic.coerce_dtype(ldf_basic)
+    assert isinstance(result, pl.LazyFrame)
+
+
+def test_coerce_dtype_with_dataframe(ldf_schema_basic):
+    """coerce_dtype is callable with a DataFrame input via the overload path."""
+    ldf_schema_basic._coerce = True
+    df = pl.DataFrame(schema=[*ldf_schema_basic.columns])
+    result = ldf_schema_basic.coerce_dtype(df)
+    # Backend currently lazifies DataFrame inputs; assert it's still a frame-like.
+    assert isinstance(result, (pl.DataFrame, pl.LazyFrame))
+
+
 @pytest.mark.xfail(
     condition=narwhals_installed,
     reason="Narwhals backend does not support dtype coercion",

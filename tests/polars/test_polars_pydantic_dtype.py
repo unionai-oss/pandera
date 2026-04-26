@@ -125,6 +125,86 @@ def test_pydantic_model_empty_dataframe_missing_column():
         PydanticSchema.validate(df)
 
 
+def test_pydantic_model_empty_via_model():
+    """Test that DataFrameModel.empty() works with PydanticModel dtype."""
+
+    class Row(BaseModel):
+        name: str | None = None
+        value: int | None = None
+
+    class MySchema(pa.DataFrameModel):
+        class Config:
+            dtype = PydanticModel(Row)
+            coerce = True
+            strict = False
+
+    result = MySchema.empty()
+    assert isinstance(result, pl.DataFrame)
+    assert result.shape[0] == 0
+    assert result.schema == {"name": pl.String, "value": pl.Int64}
+
+
+def test_pydantic_model_get_polars_schema_unsupported_type():
+    """Test that _get_polars_schema falls back to pl.Null for unsupported types."""
+
+    class Custom:
+        pass
+
+    class ModelWithCustom(BaseModel):
+        class Config:
+            arbitrary_types_allowed = True
+
+        field: Custom
+
+    pm = PydanticModel(ModelWithCustom)
+    schema = pm._get_polars_schema()
+    assert schema == {"field": pl.Null}
+
+
+def test_pydantic_model_get_polars_schema_typing_union():
+    """typing.Union[X, None] (not PEP 604) should hit the `origin is Union` branch."""
+    import typing
+    from types import SimpleNamespace
+
+    optional_int = typing.Union[int, None]
+    fake_field = SimpleNamespace(outer_type_=optional_int)
+    fake_model = type("FakeModel", (), {"__fields__": {"a": fake_field}})
+
+    pm = PydanticModel.__new__(PydanticModel)
+    object.__setattr__(pm, "type", fake_model)
+
+    assert pm._get_polars_schema() == {"a": pl.Int64}
+
+
+def test_pydantic_model_get_polars_schema_multiarg_union():
+    """Union with >1 non-None arg can't be unwrapped and falls back to pl.Null."""
+    import typing
+    from types import SimpleNamespace
+
+    multi_union = typing.Union[int, str, None]
+    fake_field = SimpleNamespace(outer_type_=multi_union)
+    fake_model = type("FakeModel", (), {"__fields__": {"x": fake_field}})
+
+    pm = PydanticModel.__new__(PydanticModel)
+    object.__setattr__(pm, "type", fake_model)
+
+    assert pm._get_polars_schema() == {"x": pl.Null}
+
+
+def test_pydantic_model_get_polars_schema_v1_fallback():
+    """Test _get_polars_schema v1 branch via a mock without model_fields."""
+    from types import SimpleNamespace
+
+    fake_field = SimpleNamespace(outer_type_=str | None)
+    fake_model = type("FakeModel", (), {"__fields__": {"name": fake_field}})
+
+    pm = PydanticModel.__new__(PydanticModel)
+    object.__setattr__(pm, "type", fake_model)
+
+    schema = pm._get_polars_schema()
+    assert schema == {"name": pl.String}
+
+
 @pytest.mark.parametrize("coerce", [True, False])
 def test_pydantic_model_coerce_always_true(coerce: bool):
     """Test that DataFrameSchema.coerce is always True with PydanticModel."""

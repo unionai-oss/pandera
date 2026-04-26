@@ -244,6 +244,15 @@ class DataFrameModel(_DataFrameModel[pl.LazyFrame, DataFrameSchema]):
     def empty(cls: type[Self], *_args) -> DataFrame[Self]:
         """Create an empty DataFrame with the schema of this model."""
         schema = copy.deepcopy(cls.to_schema())
-        schema.coerce = True
-        empty_df = schema.coerce_dtype(pl.DataFrame(schema=[*schema.columns]))
-        return DataFrame[Self](cast(pl.DataFrame, empty_df))
+        if schema.columns:
+            schema.coerce = True
+            empty_df = (
+                schema.coerce_dtype(pl.DataFrame(schema=[*schema.columns]))
+                .lazy()
+                .collect()
+            )
+        elif isinstance(schema.dtype, pe.PydanticModel):
+            empty_df = pl.DataFrame(schema=schema.dtype._get_polars_schema())
+        else:
+            empty_df = pl.DataFrame()
+        return DataFrame[Self](empty_df)
