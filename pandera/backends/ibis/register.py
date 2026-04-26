@@ -1,6 +1,5 @@
 """Register Ibis backends."""
 
-import warnings
 from functools import lru_cache
 
 import ibis
@@ -12,10 +11,9 @@ def register_ibis_backends(
 ):
     """Register backends for Ibis Table types.
 
-    Auto-detects Narwhals: if Narwhals is installed, registers Narwhals backends
-    (NarwhalsCheckBackend, Narwhals ColumnBackend, Narwhals DataFrameSchemaBackend)
-    and emits a UserWarning. If Narwhals is not installed, registers the native
-    Ibis backends.
+    Uses the Narwhals backends when ``PANDERA_USE_NARWHALS_BACKEND=True`` (or
+    ``pandera.config.CONFIG.use_narwhals_backend`` is ``True``); otherwise
+    registers the native Ibis backends.
 
     Decorated with @lru_cache to prevent duplicate registrations across repeated
     validate() calls.
@@ -26,9 +24,10 @@ def register_ibis_backends(
     from pandera.api.checks import Check
     from pandera.api.ibis.components import Column
     from pandera.api.ibis.container import DataFrameSchema
+    from pandera.config import CONFIG
 
-    try:
-        import narwhals.stable.v1 as nw  # noqa: F401
+    if CONFIG.use_narwhals_backend:
+        import narwhals.stable.v1 as nw
 
         from pandera.backends.narwhals import (
             builtin_checks,  # noqa — triggers Dispatcher registration
@@ -37,20 +36,13 @@ def register_ibis_backends(
         from pandera.backends.narwhals.components import ColumnBackend
         from pandera.backends.narwhals.container import DataFrameSchemaBackend
 
-        warnings.warn(
-            "Narwhals is installed. Pandera is using the experimental Narwhals backends "
-            "for Ibis Tables. These backends may change in future versions.",
-            UserWarning,
-            stacklevel=2,
-        )
-
         DataFrameSchema.register_backend(ibis.Table, DataFrameSchemaBackend)
         Column.register_backend(ibis.Table, ColumnBackend)
         Check.register_backend(ibis.Table, NarwhalsCheckBackend)
         Check.register_backend(ibis.Column, NarwhalsCheckBackend)
         Check.register_backend(nw.LazyFrame, NarwhalsCheckBackend)
-    except ImportError:
-        from pandera.backends.ibis import builtin_checks  # type: ignore[no-redef]  # noqa
+    else:
+        from pandera.backends.ibis import builtin_checks  # noqa
         from pandera.backends.ibis.checks import IbisCheckBackend
         from pandera.backends.ibis.components import ColumnBackend  # type: ignore[assignment]
         from pandera.backends.ibis.container import DataFrameSchemaBackend  # type: ignore[assignment]

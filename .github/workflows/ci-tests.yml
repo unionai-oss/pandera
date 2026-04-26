@@ -234,10 +234,10 @@ jobs:
         env:
           CODECOV_TOKEN: ${{ secrets.PANDERA_CODECOV_TOKEN }}
 
-  # The dataframe-extras jobs below install ONLY the library-native extras —
-  # narwhals is NOT installed here. This exercises the native pandera.polars and
-  # pandera.ibis backends. The `unit-tests-narwhals-backend` jobs below run the
-  # same test suites with narwhals co-installed so the narwhals backend is active.
+  # The dataframe-extras jobs below exercise the native pandera.polars and
+  # pandera.ibis backends (PANDERA_USE_NARWHALS_BACKEND is unset / False).
+  # The `unit-tests-narwhals-backend` jobs below run the same test suites with
+  # PANDERA_USE_NARWHALS_BACKEND=True so the narwhals backend is active.
 
   # test extras for popular dataframe libraries
   unit-tests-dataframe-extras:
@@ -327,9 +327,9 @@ jobs:
         env:
           CODECOV_TOKEN: ${{ secrets.PANDERA_CODECOV_TOKEN }}
 
-  # Run tests/polars/ and tests/ibis/ with narwhals co-installed so the narwhals
-  # backend is active for those frame types. Tests that expose gaps in the narwhals
-  # backend should be marked xfail(condition=narwhals_installed) in the test files.
+  # Run tests/polars/ and tests/ibis/ with narwhals co-installed and
+  # PANDERA_USE_NARWHALS_BACKEND=True so the narwhals backend is active for those
+  # frame types. Tests that expose narwhals backend gaps should be marked xfail.
   unit-tests-narwhals-backend:
     name: >
       Unit Tests Narwhals Backend: python-${{ matrix.python-version }} (extra-${{ matrix.extra }})

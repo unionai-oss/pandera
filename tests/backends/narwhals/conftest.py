@@ -2,22 +2,19 @@
 
 CI Matrix (TEST-01, TEST-02, TEST-03):
 
-- tests/polars/ runs WITHOUT narwhals installed (CI job: unit-tests-dataframe-extras,
-  extra=polars). Guarded by tests/polars/conftest.py which re-registers the native
-  polars backend at session start (see TEST-01 in that file).
-- tests/ibis/ runs WITHOUT narwhals installed (CI job: unit-tests-dataframe-extras,
-  extra=ibis). Guarded by tests/ibis/conftest.py.
+- tests/polars/ and tests/ibis/ run with PANDERA_USE_NARWHALS_BACKEND unset
+  (defaults to False), so the native polars/ibis backends are used regardless
+  of whether narwhals is installed.
 - tests/backends/narwhals/ (this directory) runs WITH narwhals + polars + ibis all
-  installed together (CI job: unit-tests-narwhals, extra=narwhals). The
-  `make_narwhals_frame` fixture below parametrizes every test across the three
-  supported native frame types (pl.DataFrame, pl.LazyFrame, ibis.Table) so each
-  test runs 3 times and no frame type is silently skipped (TEST-02).
+  installed together and PANDERA_USE_NARWHALS_BACKEND=True
+  (CI job: unit-tests-narwhals, extra=narwhals). The `make_narwhals_frame` fixture
+  below parametrizes every test across the three supported native frame types
+  (pl.DataFrame, pl.LazyFrame, ibis.Table) so each test runs 3 times and no frame
+  type is silently skipped (TEST-02).
 
 See .github/workflows/ci-tests.yml for the full matrix and .planning/REQUIREMENTS.md
 for TEST-01, TEST-02, and TEST-03 definitions.
 """
-
-import warnings
 
 import narwhals.stable.v1 as nw
 import polars as pl
@@ -25,27 +22,25 @@ import pytest
 
 
 @pytest.fixture(autouse=True, scope="module")
-def _suppress_narwhals_warning():
-    """Initialise narwhals backends and suppress the auto-activation UserWarning.
+def _ensure_narwhals_backends_registered():
+    """Initialise narwhals backends before each test module in this directory.
 
-    Calls register_polars_backends() once per module so that:
+    Clears the lru_cache on the register functions and re-registers so that:
     - builtin_checks side-effect runs (populates Dispatcher._function_registry)
     - NarwhalsCheckBackend, ColumnBackend, DataFrameSchemaBackend are registered
     - Tests that call NarwhalsCheckBackend directly do not need to trigger
       schema.validate() first.
 
-    UserWarning is suppressed to keep test output clean.
+    Requires PANDERA_USE_NARWHALS_BACKEND=True (set by the nox session).
     """
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore", UserWarning)
-        from pandera.backends.ibis.register import register_ibis_backends
-        from pandera.backends.polars.register import register_polars_backends
+    from pandera.backends.ibis.register import register_ibis_backends
+    from pandera.backends.polars.register import register_polars_backends
 
-        register_polars_backends.cache_clear()
-        register_ibis_backends.cache_clear()
-        register_polars_backends()
-        register_ibis_backends()
-        yield
+    register_polars_backends.cache_clear()
+    register_ibis_backends.cache_clear()
+    register_polars_backends()
+    register_ibis_backends()
+    yield
 
 
 @pytest.fixture(

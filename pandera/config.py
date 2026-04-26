@@ -35,6 +35,7 @@ class PanderaConfig:
     export PANDERA_VALIDATION_DEPTH=DATA_ONLY
     export PANDERA_CACHE_DATAFRAME=True
     export PANDERA_KEEP_CACHED_DATAFRAME=True
+    export PANDERA_USE_NARWHALS_BACKEND=True
     export SILENCE_WARNING_PYDANTIC_MODEL=true
     """
 
@@ -46,6 +47,7 @@ class PanderaConfig:
     validation_depth: ValidationDepth | None = None
     cache_dataframe: bool = False
     keep_cached_dataframe: bool = False
+    use_narwhals_backend: bool = False
     silenced_warnings: list[str] = field(default_factory=list)
 
     def is_warning_silenced(self, warning_name: str) -> bool:
@@ -83,12 +85,16 @@ def _config_from_env_vars():
     keep_cached_dataframe = (
         os.environ.get("PANDERA_KEEP_CACHED_DATAFRAME", "False") in _TRUTHY
     )
+    use_narwhals_backend = (
+        os.environ.get("PANDERA_USE_NARWHALS_BACKEND", "False") in _TRUTHY
+    )
 
     return PanderaConfig(
         validation_enabled=validation_enabled,
         validation_depth=validation_depth,
         cache_dataframe=cache_dataframe,
         keep_cached_dataframe=keep_cached_dataframe,
+        use_narwhals_backend=use_narwhals_backend,
         silenced_warnings=_silenced_warnings_from_env(),
     )
 
