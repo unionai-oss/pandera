@@ -2,19 +2,17 @@
 
 from __future__ import annotations
 
-# mypy: disable-error-code=attr-defined
-from typing import TYPE_CHECKING
+import warnings
 
 from pandera import errors
 
 try:
     from pandera.engines.tensordict_engine import DataType as _DataType
 
-    DataType: type[_DataType] | None = _DataType  # type: ignore[misc]
+    DataType: type[_DataType] | None = _DataType
 except ImportError:
-    DataType = None  # type: ignore[misc, assignment]
+    DataType = None
 
-# Import actual implementations (not just for type checking)
 from pandera.api.tensordict.components import Tensor
 from pandera.api.tensordict.container import TensorDictSchema
 from pandera.api.tensordict.model import TensorDictModel
@@ -27,10 +25,37 @@ __all__ = [
     "Field",
     "errors",
     "DataType",
-    # Error classes
     "SchemaError",
     "SchemaErrors",
 ]
 
-# Import error classes for convenience
+try:
+    from pandera.schema_inference.tensordict import infer_schema
+    __all__.append("infer_schema")
+except ImportError as e:
+    warnings.warn(f"Could not import infer_schema: {e}")
+    infer_schema = None
+
 from pandera.errors import SchemaError, SchemaErrors
+
+# Import IO module if available
+try:
+    from pandera.io.tensordict_io import (
+        from_json,
+        from_yaml,
+        to_json,
+        to_yaml,
+        save,
+        load,
+    )
+    
+    __all__.extend([
+        "from_json",
+        "from_yaml", 
+        "to_json",
+        "to_yaml",
+        "save",
+        "load",
+    ])
+except ImportError:
+    pass
