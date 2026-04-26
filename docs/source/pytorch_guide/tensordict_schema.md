@@ -161,7 +161,7 @@ with tempfile.TemporaryDirectory() as tmpdir:
     # Save to YAML
     yaml_path = Path(tmpdir) / "schema.yaml"
     pa.to_yaml(schema, yaml_path)
-    
+
     # Load from YAML
     loaded_schema = pa.from_yaml(yaml_path)
 ```

@@ -31,6 +31,7 @@ __all__ = [
 
 try:
     from pandera.schema_inference.tensordict import infer_schema
+
     __all__.append("infer_schema")
 except ImportError as e:
     warnings.warn(f"Could not import infer_schema: {e}")
@@ -43,19 +44,21 @@ try:
     from pandera.io.tensordict_io import (
         from_json,
         from_yaml,
+        load,
+        save,
         to_json,
         to_yaml,
-        save,
-        load,
     )
-    
-    __all__.extend([
-        "from_json",
-        "from_yaml", 
-        "to_json",
-        "to_yaml",
-        "save",
-        "load",
-    ])
+
+    __all__.extend(
+        [
+            "from_json",
+            "from_yaml",
+            "to_json",
+            "to_yaml",
+            "save",
+            "load",
+        ]
+    )
 except ImportError:
     pass
