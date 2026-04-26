@@ -121,9 +121,12 @@ class TensorDictSchemaBackend(BaseSchemaBackend):
                 pass
 
         for key, tensor_schema in schema.keys.items():
-            # Apply coercion if either schema-level coerce is True or 
+            # Apply coercion if either schema-level coerce is True or
             # tensor-level coerce is True, and dtype is specified
-            if not (schema.coerce or tensor_schema.coerce) or tensor_schema.dtype is None:
+            if (
+                not (schema.coerce or tensor_schema.coerce)
+                or tensor_schema.dtype is None
+            ):
                 continue
 
             try:

@@ -90,8 +90,16 @@ class RLWithBatchSize(pa.TensorDictModel):
 Use `lazy=True` to collect all validation errors:
 
 ```{code-cell} python
+from tensordict import TensorDict
+
+# Create invalid data with wrong dtypes
+td_wrong_dtype = TensorDict(
+    {"observation": torch.randn(32, 10).to(torch.float64), "action": torch.randint(0, 4, (32,)), "reward": torch.randn(32)},
+    batch_size=[32],
+)
+
 try:
-    RL.validate(td, lazy=True)
+    RL.validate(td_wrong_dtype, lazy=True)
 except pa.SchemaErrors as e:
     print(f"Found {len(e.schema_errors)} validation errors:")
     for err in e.schema_errors:
@@ -105,7 +113,7 @@ Model schemas support dtype coercion with the `coerce=True` option:
 ```{code-cell} python
 class RLWithCoercion(pa.TensorDictModel):
     observation: torch.float32 = pa.Field(shape=(None, 10))
-    
+
     class Config:
         batch_size = (32,)
         coerce = True
