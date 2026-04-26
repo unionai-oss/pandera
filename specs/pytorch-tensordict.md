@@ -976,6 +976,268 @@ validated = MySchema.validate(batch)  # Direct validation
 - Implementation of specialized TensorDict checks (e.g., cross-entry constraints).
 - Comprehensive test suite coverage across all backend features.
 
+### Phase 4: Schema Inference, IO, and Hypothesis Strategies
+- **Schema Inference**: Infer TensorDict schemas from data using `pa.infer_schema()`.
+- **IO Serialization/Deserialization**: Support for saving/loading TensorDicts with schema validation (JSON, YAML, Torch formats).
+- **Hypothesis Strategies**: Generate test data with Hypothesis for property-based testing of TensorDict schemas.
+
+---
+
+### 7.1 Schema Inference
+
+Automatically infer a `TensorDictSchema` from existing data:
+
+```python
+import torch
+from tensordict import TensorDict
+import pandera.tensordict as pa
+
+# Existing data
+data = TensorDict({
+    "observation": torch.randn(100, 64),
+    "action": torch.randint(0, 4, (100,)),
+    "reward": torch.randn(100),
+}, batch_size=[100])
+
+# Infer schema from data
+schema = pa.infer_schema(data)
+print(schema)
+
+# Output includes inferred dtypes, shapes, and value ranges
+```
+
+**Features:**
+- Automatically detect dtypes (torch.float32, torch.int64, etc.)
+- Infer shape dimensions (including batch_size)
+- Detect value ranges and patterns from sample data
+- Support for both `TensorDict` and `tensorclass` objects
+
+### 7.2 IO Serialization/Deserialization
+
+#### 7.2.1 Save/Load with Schema Validation
+
+```python
+import torch
+from tensordict import TensorDict
+import pandera.tensordict as pa
+
+# Define schema
+schema = pa.TensorDictSchema(
+    keys={
+        "observation": pa.Tensor(dtype=torch.float32, shape=(None, 64)),
+        "action": pa.Tensor(dtype=torch.int64, shape=(None,)),
+        "reward": pa.Tensor(dtype=torch.float32, shape=(None,)),
+    },
+    batch_size=(1000,),
+)
+
+# Save dataset with schema metadata
+dataset = TensorDict({
+    "observation": torch.randn(1000, 64),
+    "action": torch.randint(0, 4, (1000,)),
+    "reward": torch.randn(1000),
+}, batch_size=[1000])
+
+# Save to disk
+schema.save(dataset, "./data/dataset.pt")
+
+# Load and validate
+loaded = schema.load("./data/dataset.pt")
+```
+
+#### 7.2.2 YAML/JSON Configuration Files
+
+Define schemas in configuration files:
+
+```python
+import pandera.tensordict as pa
+
+# Load schema from YAML
+schema = pa.TensorDictSchema.from_yaml("config/schema.yaml")
+
+# Save schema to YAML
+schema.to_yaml("config/schema.yaml")
+```
+
+**YAML Example:**
+```yaml
+keys:
+  observation:
+    dtype: float32
+    shape: [null, 64]
+  action:
+    dtype: int64
+    shape: [null]
+  reward:
+    dtype: float32
+    shape: [null]
+batch_size: [1000]
+coerce: true
+```
+
+#### 7.2.3 Integration with Memmap and Large Datasets
+
+```python
+import torch
+from tensordict import TensorDict, MemmapTensor
+import pandera.tensordict as pa
+
+# Schema for memmap-backed datasets
+schema = pa.TensorDictSchema(
+    keys={
+        "image": pa.Tensor(dtype=torch.uint8, shape=(None, 224, 224, 3)),
+        "label": pa.Tensor(dtype=torch.int64, shape=(None,)),
+    },
+    batch_size=(10000,),
+)
+
+# Create memmap-backed dataset
+dataset = TensorDict({
+    "image": MemmapTensor(10000, 224, 224, 3, dtype=torch.uint8),
+    "label": MemmapTensor(10000, dtype=torch.int64),
+}, batch_size=[10000])
+
+# Save to disk with schema
+schema.save(dataset, "./data/large_dataset")
+
+# Load with validation
+loaded = schema.load("./data/large_dataset")
+```
+
+### 7.3 Hypothesis Strategies
+
+Generate test data for property-based testing:
+
+```python
+import torch
+from hypothesis import given, strategies as st
+import pandera.tensordict as pa
+from pandera.strategies import tensordict_strategies as tgt_strats
+
+# Define schema
+schema = pa.TensorDictSchema(
+    keys={
+        "observation": pa.Tensor(dtype=torch.float32, shape=(None, 10)),
+        "action": pa.Tensor(dtype=torch.int64, shape=(None,)),
+    },
+    batch_size=(32,),
+)
+
+# Generate valid TensorDicts for testing
+@given(tgt_strats.tensordict(schema))
+def test_policy_output(td):
+    """Property-based test for policy network."""
+    # schema validates automatically
+    assert td["observation"].shape == (32, 10)
+    assert td["action"].dtype == torch.int64
+
+# Generate data with custom constraints
+custom_strategy = tgt_strats.tensordict(
+    schema,
+    observation_kwargs={"min_value": -1.0, "max_value": 1.0},
+)
+
+@given(custom_strategy)
+def test_normalized_inputs(td):
+    """Test that observations are normalized."""
+    assert td["observation"].min() >= -1.0
+    assert td["observation"].max() <= 1.0
+
+# Generate tensorclasses
+@tensorclass
+class RLData:
+    observation: torch.Tensor
+    action: torch.Tensor
+
+schema = pa.TensorDictSchema(
+    keys={
+        "observation": pa.Tensor(dtype=torch.float32, shape=(None, 64)),
+        "action": pa.Tensor(dtype=torch.int64, shape=(None,)),
+    },
+    batch_size=(64,),
+)
+
+@given(tgt_strats.tensorclass(RLData, schema))
+def test_tensorclass_generation(tc):
+    """Generate and validate tensorclass objects."""
+    assert tc.batch_size == [64]
+```
+
+**Features:**
+- Automatic strategy generation from schema definitions
+- Support for dtype constraints (e.g., `min_value`, `max_value`)
+- Integration with Hypothesis' existing strategies
+- Works with both `TensorDict` and `tensorclass`
+
+### 7.4 Complete Phase 4 Example: ML Pipeline with Validation
+
+```python
+import torch
+from tensordict import TensorDict, tensorclass
+import pandera.tensordict as pa
+from pandera.strategies import tensordict_strategies as tgt_strats
+from hypothesis import given, settings
+import yaml
+
+# Define schema in YAML config
+config = """
+keys:
+  observation:
+    dtype: float32
+    shape: [null, 128]
+  action:
+    dtype: int64
+    shape: [null]
+  reward:
+    dtype: float32
+    shape: [null]
+batch_size: [256]
+coerce: true
+"""
+
+# Save schema to file
+with open("config/rl_schema.yaml", "w") as f:
+    f.write(config)
+
+# Load schema from config
+schema = pa.TensorDictSchema.from_yaml("config/rl_schema.yaml")
+
+# Phase 4.1: Infer schema from sample data
+sample_data = TensorDict({
+    "observation": torch.randn(256, 128),
+    "action": torch.randint(0, 4, (256,)),
+    "reward": torch.randn(256),
+}, batch_size=[256])
+
+inferred_schema = pa.infer_schema(sample_data)
+assert inferred_schema.batch_size == schema.batch_size
+
+# Phase 4.2: IO with validation
+schema.save(sample_data, "./data/rl_dataset.pt")
+loaded = schema.load("./data/rl_dataset.pt")
+
+# Phase 4.3: Hypothesis-based testing
+@given(tgt_strats.tensordict(schema))
+@settings(max_examples=100)
+def test_training_batch(td):
+    """Property-based test for RL training batches."""
+    assert td["observation"].shape == (256, 128)
+    assert td["action"].max() < 4  # Action space size
+    assert td["reward"].dtype == torch.float32
+
+# Run tests
+test_training_batch()
+
+# Phase 4.4: Schema evolution
+# Save schema for version tracking
+schema.to_yaml("config/rl_schema_v1.yaml")
+
+# Later: load and evolve schema
+updated_schema = pa.TensorDictSchema.from_yaml("config/rl_schema_v1.yaml")
+updated_schema.keys["new_feature"] = pa.Tensor(dtype=torch.float32, shape=(None,))
+updated_schema.to_yaml("config/rl_schema_v2.yaml")
+```
+
 ---
 
 ## 6. Architecture
@@ -1001,5 +1263,34 @@ pandera/
 │       └── register.py         # Backend registration
 ├── engines/
 │   └── tensordict_engine.py    # Engine for torch dtype registry
+├── strategies/
+│   └── tensordict_strategies.py  # Hypothesis strategies
+└── schema_inference/
+    └── tensordict.py           # Schema inference logic
 └── tensordict.py               # Entry point: import pandera.tensordict as pa
 ```
+
+### 6.2 Phase 4 API
+
+```python
+import pandera.tensordict as pa
+from pandera.strategies import tensordict_strategies as tgt_strats
+
+# Schema inference
+schema = pa.infer_schema(data)
+
+# IO operations
+schema.save(tensor_dict, "path.pt")
+loaded = schema.load("path.pt")
+
+# YAML/JSON support
+schema.to_yaml("config.yaml")
+schema = pa.TensorDictSchema.from_yaml("config.yaml")
+
+# Hypothesis strategies
+@given(tgt_strats.tensordict(schema))
+def test_my_function(td):
+    ...
+```
+
+---
