@@ -30,7 +30,7 @@ def register_polars_backends(
             import narwhals.stable.v1 as nw
         except ImportError as exc:
             raise ImportError(
-                "PANDERA_USE_NARWHALS_BACKEND is enabled but the 'narwhals' "
+                "The Narwhals backend is enabled but the 'narwhals' "
                 "package is not installed. Install it with: "
                 "pip install 'pandera[narwhals]'"
             ) from exc
