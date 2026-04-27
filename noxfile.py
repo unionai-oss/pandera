@@ -371,7 +371,8 @@ def tests_narwhals_backend(session: Session, extra: str) -> None:
     if not CI_RUN:
         args.append("--cov-report=html")
     args.append(path)
-    session.run("pytest", *args, env={"PANDERA_USE_NARWHALS_BACKEND": "True"})
+    env = {"PANDERA_USE_NARWHALS_BACKEND": "True"}
+    session.run("pytest", *args, env=env)
 
 
 @nox.session(venv_backend="uv", python=PYTHON_VERSIONS)

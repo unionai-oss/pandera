@@ -195,7 +195,7 @@ def test_failure_cases_is_native():
 
 
 # ---------------------------------------------------------------------------
-# REGISTER-03: ibis.Table uses narwhals DataFrameSchemaBackend after registration
+# REGISTER-04 (ibis): narwhals backend activated when PANDERA_USE_NARWHALS_BACKEND=True
 # ---------------------------------------------------------------------------
 
 
@@ -219,6 +219,11 @@ def test_ibis_narwhals_activated_when_opted_in(monkeypatch, request):
     t = ibis.memtable({"a": [1, 2, 3]})
     backend = IbisDataFrameSchema.get_backend(t)
     assert isinstance(backend, NarwhalsDataFrameSchemaBackend)
+
+
+# ---------------------------------------------------------------------------
+# REGISTER-03 (ibis): ibis.Table uses narwhals DataFrameSchemaBackend after registration
+# ---------------------------------------------------------------------------
 
 
 def test_ibis_backend_is_narwhals():
