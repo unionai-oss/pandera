@@ -154,7 +154,7 @@ def test_polars_backends_registered():
 # ---------------------------------------------------------------------------
 
 
-def test_narwhals_activated_when_opted_in(monkeypatch):
+def test_polars_narwhals_activated_when_opted_in(monkeypatch, request):
     """register_polars_backends() registers narwhals backends when opt-in is enabled."""
     from pandera.backends.narwhals.container import (
         DataFrameSchemaBackend as NarwhalsDataFrameSchemaBackend,
@@ -163,7 +163,7 @@ def test_narwhals_activated_when_opted_in(monkeypatch):
     from pandera.config import CONFIG
 
     monkeypatch.setattr(CONFIG, "use_narwhals_backend", True)
-    monkeypatch.addfinalizer(register_polars_backends.cache_clear)
+    request.addfinalizer(register_polars_backends.cache_clear)
     register_polars_backends.cache_clear()
     register_polars_backends()
     backend = DataFrameSchema.get_backend(pl.DataFrame({}))
@@ -199,7 +199,7 @@ def test_failure_cases_is_native():
 # ---------------------------------------------------------------------------
 
 
-def test_ibis_narwhals_activated_when_opted_in(monkeypatch):
+def test_ibis_narwhals_activated_when_opted_in(monkeypatch, request):
     """register_ibis_backends() registers narwhals backends when opt-in is enabled."""
     import ibis
 
@@ -213,7 +213,7 @@ def test_ibis_narwhals_activated_when_opted_in(monkeypatch):
     from pandera.config import CONFIG
 
     monkeypatch.setattr(CONFIG, "use_narwhals_backend", True)
-    monkeypatch.addfinalizer(register_ibis_backends.cache_clear)
+    request.addfinalizer(register_ibis_backends.cache_clear)
     register_ibis_backends.cache_clear()
     register_ibis_backends()
     t = ibis.memtable({"a": [1, 2, 3]})
