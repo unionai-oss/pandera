@@ -362,9 +362,9 @@ jobs:
         env:
           CODECOV_TOKEN: ${{ secrets.PANDERA_CODECOV_TOKEN }}
 
-  # Run the narwhals-specific test suite (tests/backends/narwhals/) with narwhals,
-  # polars, and ibis all co-installed. The make_narwhals_frame fixture parametrizes
-  # every test across pl.DataFrame, pl.LazyFrame, and ibis.Table (TEST-02).
+  # Run the narwhals-specific test suite (tests/narwhals/) with narwhals,
+  # polars, and ibis all co-installed. Tests in tests/narwhals/backends/ run
+  # once per backend (polars, ibis) using native frames (TEST-02, TEST-03).
   unit-tests-narwhals:
     name: >
       Unit Tests Narwhals: python-${{ matrix.python-version }} ${{ matrix.os }}

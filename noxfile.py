@@ -281,8 +281,7 @@ def tests(
     env = {}
     test_dir = "base" if extra is None else extra
     if extra == "narwhals":
-        # TEST-03: narwhals backend tests live under tests/backends/narwhals/
-        test_dir = "backends/narwhals"
+        test_dir = "narwhals"
         env["PANDERA_USE_NARWHALS_BACKEND"] = "True"
 
     if extra and extra.startswith("modin"):
