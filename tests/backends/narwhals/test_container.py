@@ -154,7 +154,7 @@ def test_polars_backends_registered():
 # ---------------------------------------------------------------------------
 
 
-def test_narwhals_activated_when_opted_in():
+def test_narwhals_activated_when_opted_in(monkeypatch):
     """register_polars_backends() registers narwhals backends when opt-in is enabled."""
     from pandera.backends.narwhals.container import (
         DataFrameSchemaBackend as NarwhalsDataFrameSchemaBackend,
@@ -162,16 +162,12 @@ def test_narwhals_activated_when_opted_in():
     from pandera.backends.polars.register import register_polars_backends
     from pandera.config import CONFIG
 
-    original = CONFIG.use_narwhals_backend
-    try:
-        CONFIG.use_narwhals_backend = True
-        register_polars_backends.cache_clear()
-        register_polars_backends()
-        backend = DataFrameSchema.get_backend(pl.DataFrame({}))
-        assert isinstance(backend, NarwhalsDataFrameSchemaBackend)
-    finally:
-        CONFIG.use_narwhals_backend = original
-        register_polars_backends.cache_clear()  # restore clean state
+    monkeypatch.setattr(CONFIG, "use_narwhals_backend", True)
+    monkeypatch.addfinalizer(register_polars_backends.cache_clear)
+    register_polars_backends.cache_clear()
+    register_polars_backends()
+    backend = DataFrameSchema.get_backend(pl.DataFrame({}))
+    assert isinstance(backend, NarwhalsDataFrameSchemaBackend)
 
 
 # ---------------------------------------------------------------------------
@@ -203,7 +199,7 @@ def test_failure_cases_is_native():
 # ---------------------------------------------------------------------------
 
 
-def test_ibis_narwhals_activated_when_opted_in():
+def test_ibis_narwhals_activated_when_opted_in(monkeypatch):
     """register_ibis_backends() registers narwhals backends when opt-in is enabled."""
     import ibis
 
@@ -216,17 +212,13 @@ def test_ibis_narwhals_activated_when_opted_in():
     )
     from pandera.config import CONFIG
 
-    original = CONFIG.use_narwhals_backend
-    try:
-        CONFIG.use_narwhals_backend = True
-        register_ibis_backends.cache_clear()
-        register_ibis_backends()
-        t = ibis.memtable({"a": [1, 2, 3]})
-        backend = IbisDataFrameSchema.get_backend(t)
-        assert isinstance(backend, NarwhalsDataFrameSchemaBackend)
-    finally:
-        CONFIG.use_narwhals_backend = original
-        register_ibis_backends.cache_clear()  # restore clean state
+    monkeypatch.setattr(CONFIG, "use_narwhals_backend", True)
+    monkeypatch.addfinalizer(register_ibis_backends.cache_clear)
+    register_ibis_backends.cache_clear()
+    register_ibis_backends()
+    t = ibis.memtable({"a": [1, 2, 3]})
+    backend = IbisDataFrameSchema.get_backend(t)
+    assert isinstance(backend, NarwhalsDataFrameSchemaBackend)
 
 
 def test_ibis_backend_is_narwhals():
