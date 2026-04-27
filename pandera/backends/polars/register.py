@@ -47,7 +47,7 @@ def register_polars_backends(
         Check.register_backend(nw.LazyFrame, NarwhalsCheckBackend)
         Check.register_backend(nw.DataFrame, NarwhalsCheckBackend)
     else:
-        import pandera.backends.polars.builtin_checks  # noqa: F401
+        import pandera.backends.polars.builtin_checks  # noqa: F401, I001
         from pandera.backends.polars.checks import PolarsCheckBackend
         from pandera.backends.polars.components import ColumnBackend  # type: ignore[assignment]
         from pandera.backends.polars.container import DataFrameSchemaBackend  # type: ignore[assignment]

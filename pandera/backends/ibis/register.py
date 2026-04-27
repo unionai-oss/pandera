@@ -49,7 +49,7 @@ def register_ibis_backends(
         Check.register_backend(ibis.Column, NarwhalsCheckBackend)
         Check.register_backend(nw.LazyFrame, NarwhalsCheckBackend)
     else:
-        import pandera.backends.ibis.builtin_checks  # noqa: F401
+        import pandera.backends.ibis.builtin_checks  # noqa: F401, I001
         from pandera.backends.ibis.checks import IbisCheckBackend
         from pandera.backends.ibis.components import ColumnBackend  # type: ignore[assignment]
         from pandera.backends.ibis.container import DataFrameSchemaBackend  # type: ignore[assignment]
