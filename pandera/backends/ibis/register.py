@@ -16,7 +16,9 @@ def register_ibis_backends(
     registers the native Ibis backends.
 
     Decorated with @lru_cache to prevent duplicate registrations across repeated
-    validate() calls.
+    validate() calls. The backend choice is fixed at first call — programmatic
+    changes to ``CONFIG.use_narwhals_backend`` after registration require
+    ``register_ibis_backends.cache_clear()`` to take effect.
 
     This function is called at schema initialization in the _register_*_backends
     method.
@@ -27,7 +29,14 @@ def register_ibis_backends(
     from pandera.config import CONFIG
 
     if CONFIG.use_narwhals_backend:
-        import narwhals.stable.v1 as nw
+        try:
+            import narwhals.stable.v1 as nw
+        except ImportError as exc:
+            raise ImportError(
+                "PANDERA_USE_NARWHALS_BACKEND is enabled but the 'narwhals' "
+                "package is not installed. Install it with: "
+                "pip install 'pandera[narwhals]'"
+            ) from exc
 
         from pandera.backends.narwhals import (
             builtin_checks,  # noqa — triggers Dispatcher registration

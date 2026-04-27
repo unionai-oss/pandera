@@ -16,7 +16,9 @@ def register_polars_backends(
     registers the native Polars backends.
 
     Decorated with @lru_cache to prevent duplicate registrations across repeated
-    validate() calls.
+    validate() calls. The backend choice is fixed at first call — programmatic
+    changes to ``CONFIG.use_narwhals_backend`` after registration require
+    ``register_polars_backends.cache_clear()`` to take effect.
     """
     from pandera.api.checks import Check
     from pandera.api.polars.components import Column
@@ -24,7 +26,14 @@ def register_polars_backends(
     from pandera.config import CONFIG
 
     if CONFIG.use_narwhals_backend:
-        import narwhals.stable.v1 as nw
+        try:
+            import narwhals.stable.v1 as nw
+        except ImportError as exc:
+            raise ImportError(
+                "PANDERA_USE_NARWHALS_BACKEND is enabled but the 'narwhals' "
+                "package is not installed. Install it with: "
+                "pip install 'pandera[narwhals]'"
+            ) from exc
 
         from pandera.backends.narwhals import (
             builtin_checks,  # noqa — triggers Dispatcher registration for NarwhalsData

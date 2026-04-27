@@ -160,12 +160,18 @@ def test_narwhals_activated_when_opted_in():
         DataFrameSchemaBackend as NarwhalsDataFrameSchemaBackend,
     )
     from pandera.backends.polars.register import register_polars_backends
+    from pandera.config import CONFIG
 
-    register_polars_backends.cache_clear()
-    register_polars_backends()
-    backend = DataFrameSchema.get_backend(pl.DataFrame({}))
-    assert isinstance(backend, NarwhalsDataFrameSchemaBackend)
-    register_polars_backends.cache_clear()  # restore clean state
+    original = CONFIG.use_narwhals_backend
+    try:
+        CONFIG.use_narwhals_backend = True
+        register_polars_backends.cache_clear()
+        register_polars_backends()
+        backend = DataFrameSchema.get_backend(pl.DataFrame({}))
+        assert isinstance(backend, NarwhalsDataFrameSchemaBackend)
+    finally:
+        CONFIG.use_narwhals_backend = original
+        register_polars_backends.cache_clear()  # restore clean state
 
 
 # ---------------------------------------------------------------------------
@@ -208,13 +214,19 @@ def test_ibis_narwhals_activated_when_opted_in():
     from pandera.backends.narwhals.container import (
         DataFrameSchemaBackend as NarwhalsDataFrameSchemaBackend,
     )
+    from pandera.config import CONFIG
 
-    register_ibis_backends.cache_clear()
-    register_ibis_backends()
-    t = ibis.memtable({"a": [1, 2, 3]})
-    backend = IbisDataFrameSchema.get_backend(t)
-    assert isinstance(backend, NarwhalsDataFrameSchemaBackend)
-    register_ibis_backends.cache_clear()  # restore clean state
+    original = CONFIG.use_narwhals_backend
+    try:
+        CONFIG.use_narwhals_backend = True
+        register_ibis_backends.cache_clear()
+        register_ibis_backends()
+        t = ibis.memtable({"a": [1, 2, 3]})
+        backend = IbisDataFrameSchema.get_backend(t)
+        assert isinstance(backend, NarwhalsDataFrameSchemaBackend)
+    finally:
+        CONFIG.use_narwhals_backend = original
+        register_ibis_backends.cache_clear()  # restore clean state
 
 
 def test_ibis_backend_is_narwhals():
