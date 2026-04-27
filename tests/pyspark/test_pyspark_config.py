@@ -49,6 +49,7 @@ class TestPanderaConfig:
             "validation_depth": ValidationDepth.SCHEMA_AND_DATA,
             "cache_dataframe": False,
             "keep_cached_dataframe": False,
+            "use_narwhals_backend": False,
             "silenced_warnings": [],
         }
 
@@ -72,6 +73,7 @@ class TestPanderaConfig:
             "validation_depth": ValidationDepth.SCHEMA_ONLY,
             "cache_dataframe": False,
             "keep_cached_dataframe": False,
+            "use_narwhals_backend": False,
             "silenced_warnings": [],
         }
         input_df = spark_df(spark, self.sample_data, sample_spark_schema)
@@ -159,6 +161,7 @@ class TestPanderaConfig:
             "validation_depth": ValidationDepth.DATA_ONLY,
             "cache_dataframe": False,
             "keep_cached_dataframe": False,
+            "use_narwhals_backend": False,
             "silenced_warnings": [],
         }
 
@@ -243,6 +246,7 @@ class TestPanderaConfig:
             "validation_depth": ValidationDepth.SCHEMA_AND_DATA,
             "cache_dataframe": False,
             "keep_cached_dataframe": False,
+            "use_narwhals_backend": False,
             "silenced_warnings": [],
         }
 
@@ -353,6 +357,7 @@ class TestPanderaConfig:
             "validation_depth": ValidationDepth.SCHEMA_AND_DATA,
             "cache_dataframe": cache_dataframe,
             "keep_cached_dataframe": keep_cached_dataframe,
+            "use_narwhals_backend": False,
             "silenced_warnings": [],
         }
         with config_context(
