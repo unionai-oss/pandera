@@ -35,9 +35,7 @@ def register_polars_backends(
                 "pip install 'pandera[narwhals]'"
             ) from exc
 
-        from pandera.backends.narwhals import (
-            builtin_checks,  # noqa — triggers Dispatcher registration for NarwhalsData
-        )
+        import pandera.backends.narwhals.builtin_checks  # noqa: F401
         from pandera.backends.narwhals.checks import NarwhalsCheckBackend
         from pandera.backends.narwhals.components import ColumnBackend
         from pandera.backends.narwhals.container import DataFrameSchemaBackend
@@ -49,7 +47,7 @@ def register_polars_backends(
         Check.register_backend(nw.LazyFrame, NarwhalsCheckBackend)
         Check.register_backend(nw.DataFrame, NarwhalsCheckBackend)
     else:
-        from pandera.backends.polars import builtin_checks  # noqa
+        import pandera.backends.polars.builtin_checks  # noqa: F401
         from pandera.backends.polars.checks import PolarsCheckBackend
         from pandera.backends.polars.components import ColumnBackend  # type: ignore[assignment]
         from pandera.backends.polars.container import DataFrameSchemaBackend  # type: ignore[assignment]

@@ -38,9 +38,7 @@ def register_ibis_backends(
                 "pip install 'pandera[narwhals]'"
             ) from exc
 
-        from pandera.backends.narwhals import (
-            builtin_checks,  # noqa — triggers Dispatcher registration
-        )
+        import pandera.backends.narwhals.builtin_checks  # noqa: F401
         from pandera.backends.narwhals.checks import NarwhalsCheckBackend
         from pandera.backends.narwhals.components import ColumnBackend
         from pandera.backends.narwhals.container import DataFrameSchemaBackend
@@ -51,7 +49,7 @@ def register_ibis_backends(
         Check.register_backend(ibis.Column, NarwhalsCheckBackend)
         Check.register_backend(nw.LazyFrame, NarwhalsCheckBackend)
     else:
-        from pandera.backends.ibis import builtin_checks  # noqa
+        import pandera.backends.ibis.builtin_checks  # noqa: F401
         from pandera.backends.ibis.checks import IbisCheckBackend
         from pandera.backends.ibis.components import ColumnBackend  # type: ignore[assignment]
         from pandera.backends.ibis.container import DataFrameSchemaBackend  # type: ignore[assignment]
