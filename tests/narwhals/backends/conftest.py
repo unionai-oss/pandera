@@ -3,18 +3,14 @@
 Tests in this directory run once per backend using native frames.
 Narwhals is an implementation detail — never pass nw-wrapped frames here.
 
-Adding a new backend: subclass _BackendFixture, implement its methods,
-and add a pytest.param entry to _BACKENDS.
+Adding a new backend: subclass BackendFixture, implement its methods,
+and add a pytest.param entry to BACKENDS.
 """
 
-import polars as pl
 import pytest
 
-import pandera.ibis as pa_ibis
-import pandera.polars as pa_pl
 
-
-class _BackendFixture:
+class BackendFixture:
     name: str
     DataFrameSchema: type
     Column: type
@@ -23,19 +19,41 @@ class _BackendFixture:
         raise NotImplementedError
 
 
-class _PolarsBackend(_BackendFixture):
+class PolarsBackend(BackendFixture):
     name = "polars"
-    DataFrameSchema = pa_pl.DataFrameSchema
-    Column = pa_pl.Column
+
+    @property
+    def DataFrameSchema(self):
+        import pandera.polars as pa_pl
+
+        return pa_pl.DataFrameSchema
+
+    @property
+    def Column(self):
+        import pandera.polars as pa_pl
+
+        return pa_pl.Column
 
     def make_frame(self, data: dict):
+        import polars as pl
+
         return pl.DataFrame(data)
 
 
-class _IbisBackend(_BackendFixture):
+class IbisBackend(BackendFixture):
     name = "ibis"
-    DataFrameSchema = pa_ibis.DataFrameSchema
-    Column = pa_ibis.Column
+
+    @property
+    def DataFrameSchema(self):
+        import pandera.ibis as pa_ibis
+
+        return pa_ibis.DataFrameSchema
+
+    @property
+    def Column(self):
+        import pandera.ibis as pa_ibis
+
+        return pa_ibis.Column
 
     def make_frame(self, data: dict):
         import ibis
@@ -43,14 +61,14 @@ class _IbisBackend(_BackendFixture):
         return ibis.memtable(data)
 
 
-_BACKENDS = [
-    pytest.param(_PolarsBackend(), id="polars"),
-    pytest.param(_IbisBackend(), id="ibis"),
+BACKENDS = [
+    pytest.param(PolarsBackend(), id="polars", marks=pytest.mark.polars),
+    pytest.param(IbisBackend(), id="ibis", marks=pytest.mark.ibis),
 ]
 
 
-@pytest.fixture(params=_BACKENDS)
-def backend(request) -> _BackendFixture:
+@pytest.fixture(params=BACKENDS)
+def backend(request) -> BackendFixture:
     return request.param
 
 

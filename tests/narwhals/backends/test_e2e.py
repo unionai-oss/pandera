@@ -5,7 +5,6 @@ Backend-specific behaviors (LazyFrame depth, ibis BooleanScalar normalization,
 etc.) are covered in tests/narwhals/test_e2e.py.
 """
 
-import polars as pl
 import pytest
 
 from pandera.api.checks import Check
