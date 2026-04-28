@@ -1,10 +1,27 @@
-"""Schema serialization (import backend modules explicitly).
+"""Input/Output operations for pandera schemas."""
 
-Examples:
+from __future__ import annotations
 
-- ``import pandera.io.pandas_io`` — pandas / modin / dask / pyspark.pandas API schemas
-- ``import pandera.io.polars_io`` — Polars API schemas
-- ``import pandera.io.pyspark_sql_io`` — PySpark SQL API schemas
-- ``import pandera.io.ibis_io`` — Ibis API schemas
-- ``import pandera.io.xarray_io`` — xarray API schemas
-"""
+from .tensordict_io import (
+    from_json,
+    from_yaml,
+    load,
+    save,
+    to_json,
+    to_yaml,
+)
+
+__all__ = [
+    "ibis_io",
+    "pandas_io",
+    "polars_io",
+    "pyspark_sql_io",
+    "xarray_io",
+    "tensordict_io",
+    "from_json",
+    "from_yaml",
+    "to_json",
+    "to_yaml",
+    "save",
+    "load",
+]

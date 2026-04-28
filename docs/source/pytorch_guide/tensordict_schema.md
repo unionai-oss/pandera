@@ -87,8 +87,91 @@ schema = pa.TensorDictSchema(
 )
 ```
 
+## Type Coercion
+
+Set `coerce=True` to automatically convert tensor dtypes during validation:
+
+```{code-cell} python
+schema = pa.TensorDictSchema(
+    keys={
+        "observation": pa.Tensor(dtype=torch.float32, shape=(None, 10)),
+        "action": pa.Tensor(dtype=torch.int64),
+    },
+    batch_size=(32,),
+    coerce=True,
+)
+
+# Input has wrong dtypes (float64, int32)
+td = TensorDict(
+    {
+        "observation": torch.randn(32, 10).to(torch.float64),
+        "action": torch.randint(0, 5, (32,)).to(torch.int32),
+    },
+    batch_size=[32],
+)
+
+# Dtypes are automatically coerced to float32 and int64
+validated = schema.validate(td)
+assert validated["observation"].dtype == torch.float32
+assert validated["action"].dtype == torch.int64
+```
+
+Type coercion is applied **before** validation checks, so any dtype or shape
+constraints will be evaluated on the coerced data.
+
+## Schema Inference
+
+Automatically infer a schema from existing data using `pa.infer_schema()`:
+
+```{code-cell} python
+import torch
+from tensordict import TensorDict
+import pandera.tensordict as pa
+
+# Existing TensorDict with sample data
+sample_td = TensorDict({
+    "observation": torch.randn(100, 64),
+    "action": torch.randint(0, 4, (100,)),
+}, batch_size=[100])
+
+# Infer schema from data
+inferred_schema = pa.infer_schema(sample_td)
+```
+
+See {ref}`pytorch-tensordict-inference` for more details on schema inference.
+
+## Serialization
+
+Save and load schemas using YAML or JSON:
+
+```{code-cell} python
+import tempfile
+from pathlib import Path
+import torch
+import pandera.tensordict as pa
+
+schema = pa.TensorDictSchema(
+    keys={
+        "observation": pa.Tensor(dtype=torch.float32, shape=(None, 10)),
+    },
+    batch_size=(32,),
+)
+
+with tempfile.TemporaryDirectory() as tmpdir:
+    # Save to YAML
+    yaml_path = Path(tmpdir) / "schema.yaml"
+    pa.to_yaml(schema, yaml_path)
+
+    # Load from YAML
+    loaded_schema = pa.from_yaml(yaml_path)
+```
+
+See {ref}`pytorch-tensordict-io` for more details on serialization.
+
 ## See also
 
 - {ref}`pytorch-tensordict-model` — class-based schema definition
 - {ref}`pytorch-checks` — checks for value validation
 - {ref}`pytorch-error-reporting` — error handling
+- {ref}`pytorch-tensordict-inference` — infer schemas from data
+- {ref}`pytorch-tensordict-io` — save/load schemas

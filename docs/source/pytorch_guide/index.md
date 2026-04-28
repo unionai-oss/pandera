@@ -44,6 +44,30 @@ td = TensorDict(
 schema.validate(td)
 ```
 
+## Type Coercion
+
+Set `coerce=True` to automatically convert tensor dtypes:
+
+```{code-cell} python
+schema_coerce = pa.TensorDictSchema(
+    keys={
+        "observation": pa.Tensor(dtype=torch.float32, shape=(None, 10)),
+    },
+    batch_size=(32,),
+    coerce=True,
+)
+
+# Input with wrong dtype (float64)
+td_wrong_dtype = TensorDict(
+    {"observation": torch.randn(32, 10).to(torch.float64)},
+    batch_size=[32],
+)
+
+# Dtype is automatically coerced to float32
+validated = schema_coerce.validate(td_wrong_dtype)
+assert validated["observation"].dtype == torch.float32
+```
+
 ## Define a schema with a class-based model
 
 ```{code-cell} python
@@ -78,12 +102,18 @@ Use {func}`~pandera.tensordict.Field` to define additional constraints like shap
 tensordict_schema
 tensordict_model
 tensordict_checks
+tensordict_schema_inference
+tensordict_io
+tensordict_strategies
 error_reporting
 ```
 
 - {ref}`pytorch-tensordict-schema` — validating a {class}`~tensordict.TensorDict` with `Tensor` components
 - {ref}`pytorch-tensordict-model` — class-based `TensorDictModel`
 - {ref}`pytorch-checks` — checks, parsers, and lazy validation
+- {ref}`pytorch-tensordict-inference` — infer schemas from data automatically
+- {ref}`pytorch-tensordict-io` — save/load schemas with YAML/JSON
+- {ref}`pytorch-tensordict-strategies` — generate synthetic data with Hypothesis
 - {ref}`pytorch-error-reporting` — `SchemaError` / `SchemaErrors`, lazy validation, and failure cases
 
 ## See also
