@@ -14,9 +14,13 @@ from pandera.api.tensordict.container import TensorDictSchema
 def infer_schema(
     tensordict: torch.TensorDict,
 ) -> TensorDictSchema: ...
+@overload
+def infer_schema(
+    tensordict: Any,
+) -> TensorDictSchema: ...
 
 
-def infer_schema(tensordict):
+def infer_schema(tensordict: Any):
     """Infer schema for a TensorDict or tensorclass object.
 
     Automatically detects dtypes, shapes, and value statistics from data.
