@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import warnings
+from typing import TYPE_CHECKING
 
 from pandera import errors
 
@@ -29,13 +30,18 @@ __all__ = [
     "SchemaErrors",
 ]
 
-try:
-    from pandera.schema_inference.tensordict import infer_schema
+if TYPE_CHECKING:
+    from pandera.schema_inference.tensordict import (
+        infer_schema as _infer_schema,
+    )
+else:
+    try:
+        from pandera.schema_inference.tensordict import infer_schema
 
-    __all__.append("infer_schema")
-except ImportError as e:
-    warnings.warn(f"Could not import infer_schema: {e}")
-    infer_schema = None
+        __all__.append("infer_schema")
+    except ImportError as e:
+        warnings.warn(f"Could not import infer_schema: {e}")
+        infer_schema = None  # type: ignore[assignment]
 
 from pandera.errors import SchemaError, SchemaErrors
 

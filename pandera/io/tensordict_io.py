@@ -81,11 +81,13 @@ def serialize_schema(
     """Serialize a TensorDict schema into JSON/YAML-compatible dict."""
     from pandera import __version__
 
-    statistics = {
+    statistics: dict[str, Any] = {
         "keys": {},
-        "batch_size": list(dataframe_schema.batch_size)
-        if dataframe_schema.batch_size
-        else None,
+        "batch_size": (
+            list(dataframe_schema.batch_size)
+            if dataframe_schema.batch_size
+            else None
+        ),
     }
 
     if dataframe_schema.keys:

@@ -31,7 +31,7 @@ def _strategy_import_error(fn: F) -> F:
     """Decorator to raise ImportError when hypothesis is missing."""
 
     @wraps(fn)
-    def _wrapper(*args, **kwargs):
+    def _wrapper(*args: Any, **kwargs: Any) -> Any:
         if not HAS_HYPOTHESIS:
             raise ImportError(
                 'Strategies for generating data requires "hypothesis" '
