@@ -809,8 +809,10 @@ class TestTensorDictCoercion:
 
         td = TensorDict(
             {
-                "a": torch.randn(16, 10).to(torch.float64),  # Wrong dtype + value check
-                "b": torch.arange(16).to(torch.int32),       # Wrong dtype
+                "a": torch.randn(16, 10).to(
+                    torch.float64
+                ),  # Wrong dtype + value check
+                "b": torch.arange(16).to(torch.int32),  # Wrong dtype
             },
             batch_size=[16],
         )

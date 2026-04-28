@@ -79,7 +79,11 @@ schema = pa.TensorDictSchema(
 with tempfile.TemporaryDirectory() as tmpdir:
     schema_path = Path(tmpdir) / "schema.yaml"
     pa.to_yaml(schema, schema_path)
+<<<<<<< HEAD
     
+=======
+
+>>>>>>> pr/pytorch-tensordict-phase3-4
     # Load from file
     loaded_schema = pa.from_yaml(schema_path)
     print("Successfully saved and loaded schema")
@@ -112,7 +116,11 @@ import tempfile
 with tempfile.TemporaryDirectory() as tmpdir:
     save_path = f"{tmpdir}/rl_batch.pt"
     pa.save(schema, td, save_path)
+<<<<<<< HEAD
     
+=======
+
+>>>>>>> pr/pytorch-tensordict-phase3-4
     # Load and validate automatically
     loaded_td = pa.load(save_path)
     print(f"Loaded batch size: {loaded_td.batch_size}")
@@ -146,7 +154,11 @@ schema = pa.TensorDictSchema(
 
 with tempfile.TemporaryDirectory() as tmpdir:
     pa.save(schema, training_data, f"{tmpdir}/training.pt")
+<<<<<<< HEAD
     
+=======
+
+>>>>>>> pr/pytorch-tensordict-phase3-4
     # Later: validate before inference
     loaded = pa.load(f"{tmpdir}/training.pt")
     print("Successfully validated and loaded training data")
@@ -175,7 +187,11 @@ with tempfile.TemporaryDirectory() as tmpdir:
     # Save to config file
     config_path = Path(tmpdir) / "rl_schema.yaml"
     pa.to_yaml(schema, config_path)
+<<<<<<< HEAD
     
+=======
+
+>>>>>>> pr/pytorch-tensordict-phase3-4
     # Load from config file (e.g., in a different process)
     loaded_schema = pa.from_yaml(config_path)
     print("Successfully loaded schema from config")

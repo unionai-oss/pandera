@@ -122,7 +122,7 @@ class PolicyNetwork(torch.nn.Module):
     def __init__(self):
         super().__init__()
         self.fc = torch.nn.Linear(10, 5)
-    
+
     def forward(self, obs: torch.Tensor) -> torch.Tensor:
         return self.fc(obs)
 
@@ -137,7 +137,7 @@ schema = pa.TensorDictSchema(
 @settings(max_examples=10)
 def test_policy_model(td):
     model = PolicyNetwork()
-    
+
     # Test with various inputs
     output = model(td["observation"])
     assert output.shape == (32, 5)
@@ -162,7 +162,7 @@ class PolicyNetwork(torch.nn.Module):
     def __init__(self):
         super().__init__()
         self.fc = torch.nn.Linear(10, 5)
-    
+
     def forward(self, obs: torch.Tensor) -> torch.Tensor:
         return self.fc(obs)
 
@@ -177,7 +177,7 @@ schema = pa.TensorDictSchema(
 @settings(max_examples=50)
 def test_policy_model(td):
     model = PolicyNetwork()
-    
+
     # Test with various inputs
     output = model(td["observation"])
     assert output.shape == (32, 5)
@@ -216,10 +216,10 @@ rollout_schema = pa.TensorDictSchema(
 class ReplayBuffer:
     def __init__(self):
         self.data = []
-    
+
     def add(self, rollout: Rollout):
         self.data.append(rollout)
-    
+
     def sample(self) -> Rollout:
         import random
         return random.choice(self.data) if self.data else None
@@ -231,7 +231,7 @@ def test_replay_buffer(rollout):
     replay_buffer = ReplayBuffer()
     replay_buffer.add(rollout)
     sampled = replay_buffer.sample()
-    
+
     # Properties
     assert sampled is not None
     assert "observations" in sampled.keys()
@@ -266,7 +266,7 @@ schema = pa.TensorDictSchema(
 def test_preprocessing(td):
     """Test preprocessing handles various inputs."""
     processed = preprocess(td)
-    
+
     # Check normalization
     assert torch.allclose(processed["observation"].mean(), torch.tensor(0.0), atol=1e-4)
 

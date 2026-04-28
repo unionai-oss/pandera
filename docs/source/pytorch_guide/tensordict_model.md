@@ -113,7 +113,7 @@ Model schemas support dtype coercion with the `coerce=True` option:
 ```{code-cell} python
 class RLWithCoercion(pa.TensorDictModel):
     observation: torch.float32 = pa.Field(shape=(None, 10))
-    
+
     class Config:
         batch_size = (32,)
         coerce = True
