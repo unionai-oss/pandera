@@ -80,7 +80,7 @@ with tempfile.TemporaryDirectory() as tmpdir:
     schema_path = Path(tmpdir) / "schema.yaml"
     pa.to_yaml(schema, schema_path)
 <<<<<<< HEAD
-    
+
 =======
 
 >>>>>>> pr/pytorch-tensordict-phase3-4
@@ -117,7 +117,7 @@ with tempfile.TemporaryDirectory() as tmpdir:
     save_path = f"{tmpdir}/rl_batch.pt"
     pa.save(schema, td, save_path)
 <<<<<<< HEAD
-    
+
 =======
 
 >>>>>>> pr/pytorch-tensordict-phase3-4
@@ -155,7 +155,7 @@ schema = pa.TensorDictSchema(
 with tempfile.TemporaryDirectory() as tmpdir:
     pa.save(schema, training_data, f"{tmpdir}/training.pt")
 <<<<<<< HEAD
-    
+
 =======
 
 >>>>>>> pr/pytorch-tensordict-phase3-4
@@ -188,7 +188,7 @@ with tempfile.TemporaryDirectory() as tmpdir:
     config_path = Path(tmpdir) / "rl_schema.yaml"
     pa.to_yaml(schema, config_path)
 <<<<<<< HEAD
-    
+
 =======
 
 >>>>>>> pr/pytorch-tensordict-phase3-4
