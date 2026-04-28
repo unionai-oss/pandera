@@ -1,7 +1,11 @@
-"""Behavioral parity tests: narwhals backend against Polars and Ibis.
+"""Ibis-specific and complex cross-backend narwhals tests.
 
-Tests verify that the narwhals backend produces identical validation
-behavior when wrapping Polars frames and Ibis Tables. Covers TEST-04.
+Cross-backend behavioral parity (strict, nullable, check decorators, etc.)
+lives in tests/narwhals/backends/test_e2e.py, parametrized via BackendFixture.
+
+This file covers ibis-specific contracts (failure_cases type, BooleanScalar
+normalization, element_wise rejection) and multi-ibis-backend drop_invalid_rows
+parity that requires monkeypatching the ibis backend. Covers TEST-04.
 
 Coerce-dependent tests are marked xfail(strict=True) — coerce is a v2
 feature; strict=True ensures CI breaks when coerce lands so marks are
@@ -23,145 +27,11 @@ from pandera.errors import SchemaError, SchemaErrors
 # ---------------------------------------------------------------------------
 
 
-def _make_polars_df(data: dict) -> pl.DataFrame:
-    return pl.DataFrame(data)
-
-
 def _make_ibis_table(data: dict):
     import ibis
     import pandas as pd
 
     return ibis.memtable(pd.DataFrame(data))
-
-
-# ---------------------------------------------------------------------------
-# TEST-04: Container validation parity (Polars vs Ibis)
-# ---------------------------------------------------------------------------
-
-
-def test_validate_ibis_valid():
-    """schema.validate(ibis_table) succeeds for a valid ibis Table."""
-    import ibis.expr.datatypes as dt
-
-    from pandera.api.ibis.components import Column as IbisColumn
-    from pandera.api.ibis.container import DataFrameSchema as IbisSchema
-
-    schema = IbisSchema(columns={"a": IbisColumn(dt.int64)})
-    t = _make_ibis_table({"a": [1, 2, 3]})
-    result = schema.validate(t)
-    assert result is not None
-
-
-def test_validate_ibis_invalid_raises():
-    """schema.validate(ibis_table) raises SchemaError for an invalid ibis Table."""
-    import ibis.expr.datatypes as dt
-
-    from pandera.api.ibis.components import Column as IbisColumn
-    from pandera.api.ibis.container import DataFrameSchema as IbisSchema
-
-    schema = IbisSchema(
-        columns={"a": IbisColumn(dt.int64, checks=[Check.greater_than(10)])}
-    )
-    t = _make_ibis_table({"a": [1, 2, 3]})
-    with pytest.raises((SchemaError, SchemaErrors)):
-        schema.validate(t)
-
-
-def test_lazy_mode_ibis_collects_all_errors():
-    """schema.validate(ibis_table, lazy=True) collects multiple errors."""
-    import ibis.expr.datatypes as dt
-
-    from pandera.api.ibis.components import Column as IbisColumn
-    from pandera.api.ibis.container import DataFrameSchema as IbisSchema
-
-    schema = IbisSchema(
-        columns={
-            "a": IbisColumn(dt.int64, checks=[Check.greater_than(10)]),
-            "b": IbisColumn(dt.int64, checks=[Check.greater_than(10)]),
-        }
-    )
-    t = _make_ibis_table({"a": [1, 2], "b": [3, 4]})
-    with pytest.raises(SchemaErrors) as exc_info:
-        schema.validate(t, lazy=True)
-    assert len(exc_info.value.schema_errors) > 1
-
-
-def test_strict_true_ibis_rejects_extra_columns():
-    """schema.validate(ibis_table, strict=True) raises for extra columns."""
-    import ibis.expr.datatypes as dt
-
-    from pandera.api.ibis.components import Column as IbisColumn
-    from pandera.api.ibis.container import DataFrameSchema as IbisSchema
-
-    schema = IbisSchema(columns={"a": IbisColumn(dt.int64)}, strict=True)
-    t = _make_ibis_table({"a": [1], "b": [2]})
-    with pytest.raises((SchemaError, SchemaErrors)):
-        schema.validate(t)
-
-
-def test_strict_filter_ibis_drops_extra_columns():
-    """schema.validate(ibis_table, strict='filter') drops extra columns."""
-    import ibis.expr.datatypes as dt
-
-    from pandera.api.ibis.components import Column as IbisColumn
-    from pandera.api.ibis.container import DataFrameSchema as IbisSchema
-
-    schema = IbisSchema(columns={"a": IbisColumn(dt.int64)}, strict="filter")
-    t = _make_ibis_table({"a": [1], "b": [2]})
-    result = schema.validate(t)
-    assert result is not None
-    result_df = result.execute()
-    assert "b" not in result_df.columns
-    assert "a" in result_df.columns
-
-
-def test_failure_cases_native_ibis():
-    """SchemaError.failure_cases on ibis validation is native ibis.Table.
-
-    Phase 6 contract: failure_cases is native ibis.Table for ibis inputs — not nw.DataFrame.
-    RED until Plan 03 materializes failure_cases to native in the error pipeline.
-    """
-    import ibis
-    import ibis.expr.datatypes as dt
-
-    from pandera.api.ibis.components import Column as IbisColumn
-    from pandera.api.ibis.container import DataFrameSchema as IbisSchema
-
-    schema = IbisSchema(
-        columns={"a": IbisColumn(dt.int64, checks=[Check.greater_than(10)])}
-    )
-    t = _make_ibis_table({"a": [1, 2, 3]})
-    try:
-        schema.validate(t)
-        pytest.fail("Expected SchemaError was not raised")
-    except SchemaError as err:
-        fc = err.failure_cases
-        # Phase 6 contract: failure_cases is native ibis.Table (unwrapped).
-        assert isinstance(fc, ibis.Table), (
-            f"failure_cases should be native ibis.Table (Phase 6 contract), got {type(fc)}"
-        )
-
-
-# ---------------------------------------------------------------------------
-# TEST-04: Decorator parity (Polars vs Ibis)
-# ---------------------------------------------------------------------------
-
-
-def test_check_decorator_ibis():
-    """@pa.check_input / @pa.check_output works with ibis Table."""
-    import ibis.expr.datatypes as dt
-
-    import pandera.ibis as pa_ibis
-
-    schema = pa_ibis.DataFrameSchema(columns={"a": pa_ibis.Column(dt.int64)})
-
-    @pa_ibis.check_input(schema)
-    def my_func(t):
-        return t
-
-    t = _make_ibis_table({"a": [1, 2, 3]})
-    result = my_func(t)
-    assert result is not None
 
 
 # ---------------------------------------------------------------------------
@@ -207,31 +77,6 @@ def test_coerce_ibis():
     t = ibis.memtable(pd.DataFrame({"a": ["1", "2", "3"]}))
     result = schema.validate(t)
     assert result is not None
-
-
-# ---------------------------------------------------------------------------
-# TEST-04: Polars parity (verify narwhals backend works for polars too)
-# ---------------------------------------------------------------------------
-
-
-def test_validate_polars_parity():
-    """narwhals backend validates Polars frames correctly (polars parity baseline)."""
-    schema = DataFrameSchema(columns={"a": Column(pl.Int64)})
-    result = schema.validate(pl.DataFrame({"a": [1, 2, 3]}))
-    assert isinstance(result, pl.DataFrame)
-
-
-def test_lazy_mode_polars_parity():
-    """narwhals backend lazy=True collects multiple Polars errors (parity baseline)."""
-    schema = DataFrameSchema(
-        columns={
-            "a": Column(pl.Int64, checks=[Check.greater_than(10)]),
-            "b": Column(pl.Int64, checks=[Check.greater_than(10)]),
-        }
-    )
-    with pytest.raises(SchemaErrors) as exc_info:
-        schema.validate(pl.DataFrame({"a": [1, 2], "b": [3, 4]}), lazy=True)
-    assert len(exc_info.value.schema_errors) > 1
 
 
 # ---------------------------------------------------------------------------

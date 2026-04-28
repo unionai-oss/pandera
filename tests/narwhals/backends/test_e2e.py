@@ -8,6 +8,7 @@ etc.) are covered in tests/narwhals/test_e2e.py.
 import pytest
 
 from pandera.api.checks import Check
+from pandera.decorators import check_input
 from pandera.errors import SchemaError, SchemaErrors
 
 
@@ -81,3 +82,34 @@ def test_custom_bool_check_fails(backend, DataFrameSchema, Column):
     )
     with pytest.raises(SchemaError):
         schema.validate(backend.make_frame({"x": [1, 2, 3]}))
+
+
+def test_strict_true_rejects_extra_columns(backend, DataFrameSchema, Column):
+    schema = DataFrameSchema({"a": Column(int)}, strict=True)
+    with pytest.raises((SchemaError, SchemaErrors)):
+        schema.validate(backend.make_frame({"a": [1], "b": [2]}))
+
+
+def test_strict_filter_drops_extra_columns(backend, DataFrameSchema, Column):
+    schema = DataFrameSchema({"a": Column(int)}, strict="filter")
+    result = schema.validate(backend.make_frame({"a": [1], "b": [2]}))
+    assert "b" not in result.columns
+    assert "a" in result.columns
+
+
+def test_failure_cases_is_native_type(backend, DataFrameSchema, Column):
+    frame = backend.make_frame({"a": [1, 2, 3]})
+    schema = DataFrameSchema({"a": Column(int, [Check.greater_than(10)])})
+    with pytest.raises(SchemaError) as exc_info:
+        schema.validate(frame)
+    assert isinstance(exc_info.value.failure_cases, type(frame))
+
+
+def test_check_input_decorator(backend, DataFrameSchema, Column):
+    schema = DataFrameSchema({"a": Column(int)})
+
+    @check_input(schema)
+    def my_func(frame):
+        return frame
+
+    assert my_func(backend.make_frame({"a": [1, 2, 3]})) is not None
