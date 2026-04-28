@@ -31,6 +31,16 @@ else:
 STRATEGY_DISPATCHER: dict[tuple[str, type], Callable] = {}
 
 
+# Maps (check_name, data_type) -> callable producing a FieldConstraints.
+# This is the constraint-aggregator dispatcher introduced in
+# ``specs/optimized-strategies.md``. When a built-in or user check has
+# a constraint adapter registered here, the strategy layer prefers it
+# over any legacy strategy in ``STRATEGY_DISPATCHER`` and merges its
+# output with siblings before constructing the final hypothesis
+# strategy in one shot.
+CONSTRAINT_DISPATCHER: dict[tuple[str, type], Callable] = {}
+
+
 def strategy_import_error(fn: F) -> F:
     """Decorator to generate input error if dependency is missing."""
 

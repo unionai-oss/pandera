@@ -196,6 +196,44 @@ def register_check_strategy(strategy_fn: StrategyFn):
     return register_check_strategy_decorator
 
 
+def register_check_constraint(constraint_fn: Callable):
+    """Decorate a Check method with a constraint adapter.
+
+    Constraint adapters take the check's ``statistics`` as kwargs and
+    return a
+    :class:`~pandera.strategies.constraints.FieldConstraints` value
+    describing the bounds/membership/regex constraints the check
+    encodes. When a check has a constraint adapter, the strategy
+    builder prefers it over ``check.strategy`` and merges its output
+    with sibling constraints, emitting a single hypothesis strategy
+    (no per-check ``.filter`` chaining). See
+    ``specs/optimized-strategies.md``.
+
+    :param constraint_fn: callable with signature
+        ``(**statistics) -> FieldConstraints``.
+    """
+
+    def register_check_constraint_decorator(class_method):
+        """Decorator that wraps Check class method."""
+
+        @wraps(class_method)
+        def _wrapper(cls, *args, **kwargs):
+            check = class_method(cls, *args, **kwargs)
+            if check.statistics is None:
+                raise AttributeError(
+                    "check object doesn't have a defined statistics "
+                    "property. Use the checks.register_check_statistics "
+                    "decorator to specify the statistics for the "
+                    f"{class_method.__name__} method."
+                )
+            check.constraint = constraint_fn
+            return check
+
+        return _wrapper
+
+    return register_check_constraint_decorator
+
+
 # Values taken from
 # https://hypothesis.readthedocs.io/en/latest/_modules/hypothesis/extra/numpy.html#from_dtype  # noqa
 # NOTE: We're reducing the range here by an order of magnitude to avoid overflows
