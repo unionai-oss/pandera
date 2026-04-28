@@ -39,8 +39,14 @@ from pandera.dtypes import (
 from pandera.engines import numpy_engine, pandas_engine
 from pandera.errors import BaseStrategyOnlyError, SchemaDefinitionError
 from pandera.strategies.base_strategies import (
+    CONSTRAINT_DISPATCHER,
     HAS_HYPOTHESIS,
     STRATEGY_DISPATCHER,
+)
+from pandera.strategies.constraints import (
+    UNSET,
+    ConstraintConflictError,
+    FieldConstraints,
 )
 
 if HAS_HYPOTHESIS:
@@ -509,6 +515,251 @@ def pandas_dtype_strategy(
     if is_string_type:
         result = result.map(_remove_surrogates)
     return result
+
+
+def _is_temporal_dtype(pandera_dtype: DataType) -> bool:
+    return is_datetime(pandera_dtype) or is_timedelta(pandera_dtype)
+
+
+def _close_bound(
+    pandera_dtype: DataType,
+    value: Any,
+    exclude: bool,
+    side: str,
+) -> tuple[Any, bool]:
+    """Lower an exclusive bound to a closed bound when the dtype demands it.
+
+    Hypothesis only supports ``exclude_min`` / ``exclude_max`` for
+    floats and complex numbers. For integer / temporal dtypes we
+    translate ``(value, exclude=True)`` into a closed-bound
+    representation so we can pass kwargs that the underlying
+    ``hypothesis.extra.numpy.from_dtype`` (or our
+    ``numpy_time_dtypes`` helper) accepts.
+
+    :param pandera_dtype: the field's dtype.
+    :param value: the original bound value.
+    :param exclude: whether the bound is exclusive in the original
+        check.
+    :param side: ``"min"`` or ``"max"``.
+    :returns: ``(adjusted_value, exclude_flag)`` where ``exclude_flag``
+        is the value to forward as ``exclude_min`` /
+        ``exclude_max`` (only meaningful for float/complex dtypes).
+    """
+    if is_float(pandera_dtype) or is_complex(pandera_dtype):
+        return value, exclude
+
+    if not exclude:
+        return value, False
+
+    if _is_temporal_dtype(pandera_dtype):
+        delta = pd.Timedelta(1, unit="ns")
+        if side == "min":
+            return pd.Timestamp(value) + delta if is_datetime(
+                pandera_dtype
+            ) else pd.Timedelta(value) + delta, False
+        return pd.Timestamp(value) - delta if is_datetime(
+            pandera_dtype
+        ) else pd.Timedelta(value) - delta, False
+
+    # Integer / boolean / other discrete dtypes.
+    try:
+        if side == "min":
+            return value + 1, False
+        return value - 1, False
+    except TypeError:
+        # Fall back: leave bound unchanged. The aggregator's residual
+        # filter catches over-generation in this edge case.
+        return value, False
+
+
+def _combine_patterns(
+    fullmatch_patterns: tuple[str, ...],
+    search_patterns: tuple[str, ...],
+) -> tuple[str, bool] | None:
+    """Combine multiple regex constraints into a single anchored regex.
+
+    Uses zero-width lookahead conjunction so all patterns must match.
+    Returns ``None`` when any input pattern fails ``re.compile``;
+    callers fall back to ``.filter`` in that case.
+
+    :returns: ``(combined_pattern, fullmatch_flag)`` or ``None``.
+    """
+    parts: list[str] = []
+    for p in fullmatch_patterns:
+        try:
+            re.compile(p)
+        except re.error:
+            return None
+        parts.append(rf"(?=\A(?:{p})\Z)")
+    for p in search_patterns:
+        try:
+            re.compile(p)
+        except re.error:
+            return None
+        parts.append(rf"(?=.*(?:{p}))")
+    if not parts:
+        return None
+    combined = "".join(parts) + r".*"
+    return combined, True
+
+
+def _compile_string_strategy(
+    pandera_dtype: DataType, constraints: FieldConstraints
+) -> SearchStrategy:
+    """Compile string-shaped ``FieldConstraints`` to a single strategy.
+
+    Combines all regex constraints into one anchored ``st.from_regex``
+    via zero-width lookahead-AND when every pattern compiles cleanly.
+    Length constraints are passed as ``min_size`` / ``max_size`` to
+    ``st.text(...)`` when there are no regex patterns, and otherwise
+    folded into a single trailing length filter on the regex strategy.
+    Surrogate-stripping for pyarrow-backed strings is preserved.
+    """
+    np_type = to_numpy_dtype(pandera_dtype).type
+
+    str_min = constraints.str_min_len
+    str_max = constraints.str_max_len
+    if constraints.str_exact_len is not None:
+        str_min = constraints.str_exact_len
+        str_max = constraints.str_exact_len
+
+    has_regex = bool(constraints.regex_fullmatch or constraints.regex_search)
+
+    if has_regex:
+        combined = _combine_patterns(
+            constraints.regex_fullmatch, constraints.regex_search
+        )
+        if combined is not None:
+            pattern, fullmatch = combined
+            strat = st.from_regex(pattern, fullmatch=fullmatch).map(np_type)
+        else:
+            # Fall back: pick first uncompilable pattern and chain the
+            # rest as filters. Mirrors today's per-check behaviour for
+            # pathological inputs only.
+            patterns = [
+                *constraints.regex_fullmatch,
+                *constraints.regex_search,
+            ]
+            strat = st.from_regex(patterns[0], fullmatch=True).map(np_type)
+            for p in patterns[1:]:
+                strat = strat.filter(re.compile(p).search)
+
+        if str_min is not None or str_max is not None:
+            lo = str_min if str_min is not None else 0
+            hi = str_max if str_max is not None else 1 << 30
+            strat = strat.filter(lambda s, lo=lo, hi=hi: lo <= len(s) <= hi)
+    elif str_min is not None or str_max is not None:
+        strat = st.text(min_size=str_min, max_size=str_max).map(np_type)
+    else:
+        strat = pandas_dtype_strategy(pandera_dtype)
+
+    if _is_string_dtype(pandera_dtype):
+        strat = strat.map(_remove_surrogates)
+
+    if constraints.notin:
+        forbidden = constraints.notin
+        strat = strat.filter(lambda v, f=forbidden: v not in f)
+
+    for _name, predicate in constraints.residual_filters:
+        strat = strat.filter(predicate)
+
+    return strat
+
+
+def compile_field_strategy(
+    pandera_dtype: DataType, constraints: FieldConstraints
+) -> SearchStrategy:
+    """Compile a merged ``FieldConstraints`` into a single hypothesis strategy.
+
+    All dtype-specific bridging (datetime tz, complex, time
+    resolutions, surrogate handling) is delegated to
+    :func:`pandas_dtype_strategy`; this helper only translates the
+    aggregated constraints into the appropriate kwargs and parent
+    strategy.
+
+    :param pandera_dtype: the field's dtype.
+    :param constraints: merged ``FieldConstraints`` produced by
+        bucketing every check on the field.
+    :returns: a ``hypothesis`` strategy with at most one trailing
+        ``.filter`` per residual predicate (built-in checks contribute
+        zero residuals).
+    :raises ConstraintConflictError: when the merged constraint set
+        is jointly unsatisfiable (e.g. ``isin`` set pruned to empty by
+        bounds + ``notin``).
+    """
+    constraints = constraints.apply_post_merge_hooks()
+
+    # 1. Equality short-circuits everything.
+    if constraints.eq is not UNSET:
+        if constraints.eq in constraints.notin:
+            raise ConstraintConflictError(
+                f"eq={constraints.eq!r} conflicts with notin"
+            )
+        return pandas_dtype_strategy(pandera_dtype, st.just(constraints.eq))
+
+    # 2. Membership: prune the allowed set against bounds/notin so the
+    # underlying ``st.sampled_from`` already only sees valid values.
+    if constraints.isin is not None:
+        allowed = set(constraints.isin) - set(constraints.notin)
+        if constraints.min_value is not UNSET:
+            cmp = operator.lt if constraints.exclude_min else operator.le
+            allowed = {v for v in allowed if cmp(constraints.min_value, v)}
+        if constraints.max_value is not UNSET:
+            cmp = operator.gt if constraints.exclude_max else operator.ge
+            allowed = {v for v in allowed if cmp(constraints.max_value, v)}
+        if not allowed:
+            raise ConstraintConflictError(
+                "isin/notin/bounds intersection is empty"
+            )
+        sampled = st.sampled_from(sorted(allowed))
+        strat = pandas_dtype_strategy(pandera_dtype, sampled)
+        for _name, predicate in constraints.residual_filters:
+            strat = strat.filter(predicate)
+        return strat
+
+    # 3. Strings.
+    if _is_string_dtype(pandera_dtype):
+        return _compile_string_strategy(pandera_dtype, constraints)
+
+    # 4. Numeric / temporal: build kwargs for pandas_dtype_strategy.
+    kwargs: dict[str, Any] = {}
+    if constraints.min_value is not UNSET:
+        min_v, excl_min = _close_bound(
+            pandera_dtype,
+            constraints.min_value,
+            constraints.exclude_min,
+            side="min",
+        )
+        kwargs["min_value"] = min_v
+        if is_float(pandera_dtype) or is_complex(pandera_dtype):
+            kwargs["exclude_min"] = excl_min
+    if constraints.max_value is not UNSET:
+        max_v, excl_max = _close_bound(
+            pandera_dtype,
+            constraints.max_value,
+            constraints.exclude_max,
+            side="max",
+        )
+        kwargs["max_value"] = max_v
+        if is_float(pandera_dtype) or is_complex(pandera_dtype):
+            kwargs["exclude_max"] = excl_max
+    if is_float(pandera_dtype) or is_complex(pandera_dtype):
+        kwargs["allow_nan"] = constraints.allow_nan
+        kwargs["allow_infinity"] = constraints.allow_infinity
+
+    strat = pandas_dtype_strategy(pandera_dtype, **kwargs)
+
+    # 5. Single trailing ``notin`` filter (only when the membership
+    # path above wasn't taken).
+    if constraints.notin:
+        forbidden = constraints.notin
+        strat = strat.filter(lambda v, f=forbidden: v not in f)
+
+    # 6. Residual opaque predicates from custom checks.
+    for _name, predicate in constraints.residual_filters:
+        strat = strat.filter(predicate)
+
+    return strat
 
 
 def eq_strategy(
