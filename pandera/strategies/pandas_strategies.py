@@ -10,6 +10,7 @@ to compose strategies given multiple checks specified in a schema.
 See the :ref:`user guide <data-synthesis-strategies>` for more details.
 """
 
+import inspect
 import operator
 import re
 import warnings
@@ -1310,6 +1311,8 @@ def field_element_strategy(
         elements = None
 
     for check, legacy_strategy in legacy_strategies:
+        if has_aggregated and _strategy_supports_base_mode(legacy_strategy):
+            _warn_legacy_strategy_chained_once(check, legacy_strategy)
         elements = legacy_strategy(pandera_dtype, elements, **check.statistics)
 
     if elements is None:
@@ -1325,6 +1328,62 @@ def _raise_unsatisfiable(checks: Sequence, exc: ConstraintConflictError):
         f"Cannot construct a data-generation strategy for checks "
         f"{names}: constraints are jointly unsatisfiable ({exc})."
     ) from exc
+
+
+# Module-level cache so the §9.3 ``DeprecationWarning`` fires at most
+# once per ``(check.name, fn id)`` pair per process. Hypothesis runs
+# each strategy many times during a draw loop and we don't want to
+# spam the user.
+_LEGACY_CHAINED_WARNED: set[tuple[str, int]] = set()
+
+
+def _strategy_supports_base_mode(fn: Callable | None) -> bool:
+    """Return ``True`` when ``fn`` advertises base-mode support.
+
+    A legacy strategy callable is considered "base-mode-supporting" if
+    its ``strategy`` parameter has ``None`` as the default value (the
+    convention used by every built-in legacy strategy in this module).
+    Pure chained-mode strategies (where ``strategy`` has no default)
+    are unaffected by Stage 7's deprecation warning.
+    """
+    if fn is None:
+        return False
+    try:
+        sig = inspect.signature(fn)
+    except (TypeError, ValueError):
+        return False
+    param = sig.parameters.get("strategy")
+    return param is not None and param.default is None
+
+
+def _warn_legacy_strategy_chained_once(check, fn: Callable) -> None:
+    """Emit the §9.3 deprecation warning at most once per ``(name, fn)``.
+
+    See ``specs/optimized-strategies.md`` §9.3 for the full migration
+    rationale.
+    """
+    name = str(getattr(check, "name", "?"))
+    key = (name, id(fn))
+    if key in _LEGACY_CHAINED_WARNED:
+        return
+    _LEGACY_CHAINED_WARNED.add(key)
+    warnings.warn(
+        (
+            f"The 'strategy' kwarg on Check(check_fn=..., strategy={fn!r}) "
+            "is being invoked as a chained strategy because built-in "
+            "checks are also present on this column and now produce the "
+            "merged base strategy in a single hypothesis call. If "
+            f"{getattr(fn, '__name__', fn)!r} relied on running as the "
+            "base strategy in this context, migrate it to a constraint "
+            "adapter via "
+            "`pandera.strategies.pandas_strategies."
+            "register_check_constraint(...)` or pass `constraint=...` "
+            "to `register_check_method(...)`. This warning will become "
+            "an error in pandera 1.0."
+        ),
+        DeprecationWarning,
+        stacklevel=2,
+    )
 
 
 def series_strategy(
@@ -1609,6 +1668,10 @@ def dataframe_strategy(
             strategy = None
 
         for check, legacy_strategy in legacy_strategies:
+            if has_aggregated and _strategy_supports_base_mode(
+                legacy_strategy
+            ):
+                _warn_legacy_strategy_chained_once(check, legacy_strategy)
             strategy = legacy_strategy(col.dtype, strategy, **check.statistics)
 
         for check in undefined_checks:
