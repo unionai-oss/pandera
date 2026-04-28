@@ -27,8 +27,6 @@ Key behavioural notes
   The simplest portable pattern is to return a ``bool``.
 """
 
-import warnings
-
 import polars as pl
 import pytest
 
@@ -37,10 +35,6 @@ import pandera.polars as pa_pl
 from pandera.backends.narwhals.checks import NarwhalsCheckBackend
 from pandera.config import ValidationDepth, config_context
 from pandera.errors import SchemaError, SchemaErrors
-
-# Suppress the "experimental Narwhals backend" UserWarning globally for this
-# module — we assert the backend is in use via the registry, not via the warning.
-pytestmark = pytest.mark.filterwarnings("ignore::UserWarning")
 
 # ---------------------------------------------------------------------------
 # ibis is an optional dependency — skip all ibis tests if it is not installed.

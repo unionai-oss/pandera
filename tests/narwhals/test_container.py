@@ -7,7 +7,7 @@ Tests cover:
   CONTAINER-04: lazy=True collects all errors before raising SchemaErrors
   REGISTER-01: register_polars_backends() is idempotent via lru_cache
   REGISTER-02: DataFrameSchema backend for pl.DataFrame/pl.LazyFrame is narwhals after registration
-  REGISTER-04: narwhals backend auto-activated when narwhals is installed
+  REGISTER-04: narwhals backend activated when PANDERA_USE_NARWHALS_BACKEND=True (opt-in)
   TEST-03: SchemaError.failure_cases is a native pl.DataFrame, not nw.DataFrame
 """
 
@@ -150,23 +150,24 @@ def test_polars_backends_registered():
 
 
 # ---------------------------------------------------------------------------
-# REGISTER-04: narwhals backend auto-activated when narwhals is installed
+# REGISTER-04: narwhals backend activated when PANDERA_USE_NARWHALS_BACKEND=True
 # ---------------------------------------------------------------------------
 
 
-def test_narwhals_auto_activated_when_installed():
-    """register_polars_backends() emits UserWarning when narwhals is installed."""
-    import warnings
-
+def test_polars_narwhals_activated_when_opted_in(monkeypatch, request):
+    """register_polars_backends() registers narwhals backends when opt-in is enabled."""
+    from pandera.backends.narwhals.container import (
+        DataFrameSchemaBackend as NarwhalsDataFrameSchemaBackend,
+    )
     from pandera.backends.polars.register import register_polars_backends
+    from pandera.config import CONFIG
 
+    monkeypatch.setattr(CONFIG, "use_narwhals_backend", True)
+    request.addfinalizer(register_polars_backends.cache_clear)
     register_polars_backends.cache_clear()
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter("always")
-        register_polars_backends()
-        narwhals_warnings = [x for x in w if "Narwhals" in str(x.message)]
-        assert len(narwhals_warnings) == 1
-    register_polars_backends.cache_clear()  # restore clean state
+    register_polars_backends()
+    backend = DataFrameSchema.get_backend(pl.DataFrame({}))
+    assert isinstance(backend, NarwhalsDataFrameSchemaBackend)
 
 
 # ---------------------------------------------------------------------------
@@ -194,23 +195,35 @@ def test_failure_cases_is_native():
 
 
 # ---------------------------------------------------------------------------
-# REGISTER-03: ibis.Table uses narwhals DataFrameSchemaBackend after registration
+# REGISTER-04 (ibis): narwhals backend activated when PANDERA_USE_NARWHALS_BACKEND=True
 # ---------------------------------------------------------------------------
 
 
-def test_ibis_narwhals_auto_activated():
-    """register_ibis_backends() emits UserWarning when narwhals is installed."""
-    import warnings
+def test_ibis_narwhals_activated_when_opted_in(monkeypatch, request):
+    """register_ibis_backends() registers narwhals backends when opt-in is enabled."""
+    import ibis
 
+    from pandera.api.ibis.container import (
+        DataFrameSchema as IbisDataFrameSchema,
+    )
     from pandera.backends.ibis.register import register_ibis_backends
+    from pandera.backends.narwhals.container import (
+        DataFrameSchemaBackend as NarwhalsDataFrameSchemaBackend,
+    )
+    from pandera.config import CONFIG
 
+    monkeypatch.setattr(CONFIG, "use_narwhals_backend", True)
+    request.addfinalizer(register_ibis_backends.cache_clear)
     register_ibis_backends.cache_clear()
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter("always")
-        register_ibis_backends()
-        narwhals_warnings = [x for x in w if "Narwhals" in str(x.message)]
-        assert len(narwhals_warnings) == 1
-    register_ibis_backends.cache_clear()  # restore clean state
+    register_ibis_backends()
+    t = ibis.memtable({"a": [1, 2, 3]})
+    backend = IbisDataFrameSchema.get_backend(t)
+    assert isinstance(backend, NarwhalsDataFrameSchemaBackend)
+
+
+# ---------------------------------------------------------------------------
+# REGISTER-03 (ibis): ibis.Table uses narwhals DataFrameSchemaBackend after registration
+# ---------------------------------------------------------------------------
 
 
 def test_ibis_backend_is_narwhals():

@@ -1,6 +1,5 @@
 """Register polars backends."""
 
-import warnings
 from functools import lru_cache
 
 import polars as pl
@@ -12,34 +11,34 @@ def register_polars_backends(
 ):
     """Register backends for Polars frame types.
 
-    Auto-detects Narwhals: if Narwhals is installed, registers Narwhals backends
-    (NarwhalsCheckBackend, Narwhals ColumnBackend, Narwhals DataFrameSchemaBackend)
-    and emits a UserWarning. If Narwhals is not installed, registers the native
-    Polars backends.
+    Uses the Narwhals backends when ``PANDERA_USE_NARWHALS_BACKEND=True`` (or
+    ``pandera.config.CONFIG.use_narwhals_backend`` is ``True``); otherwise
+    registers the native Polars backends.
 
     Decorated with @lru_cache to prevent duplicate registrations across repeated
-    validate() calls.
+    validate() calls. The backend choice is fixed at first call — programmatic
+    changes to ``CONFIG.use_narwhals_backend`` after registration require
+    ``register_polars_backends.cache_clear()`` to take effect.
     """
     from pandera.api.checks import Check
     from pandera.api.polars.components import Column
     from pandera.api.polars.container import DataFrameSchema
+    from pandera.config import CONFIG
 
-    try:
-        import narwhals.stable.v1 as nw
+    if CONFIG.use_narwhals_backend:
+        try:
+            import narwhals.stable.v1 as nw
+        except ImportError as exc:
+            raise ImportError(
+                "The Narwhals backend is enabled but the 'narwhals' "
+                "package is not installed. Install it with: "
+                "pip install 'pandera[narwhals]'"
+            ) from exc
 
-        from pandera.backends.narwhals import (
-            builtin_checks,  # noqa — triggers Dispatcher registration for NarwhalsData
-        )
+        import pandera.backends.narwhals.builtin_checks  # noqa: F401
         from pandera.backends.narwhals.checks import NarwhalsCheckBackend
         from pandera.backends.narwhals.components import ColumnBackend
         from pandera.backends.narwhals.container import DataFrameSchemaBackend
-
-        warnings.warn(
-            "Narwhals is installed. Pandera is using the experimental Narwhals backends "
-            "for Polars DataFrames. These backends may change in future versions.",
-            UserWarning,
-            stacklevel=2,
-        )
 
         DataFrameSchema.register_backend(pl.LazyFrame, DataFrameSchemaBackend)
         DataFrameSchema.register_backend(pl.DataFrame, DataFrameSchemaBackend)
@@ -47,8 +46,8 @@ def register_polars_backends(
         Check.register_backend(pl.LazyFrame, NarwhalsCheckBackend)
         Check.register_backend(nw.LazyFrame, NarwhalsCheckBackend)
         Check.register_backend(nw.DataFrame, NarwhalsCheckBackend)
-    except ImportError:
-        from pandera.backends.polars import builtin_checks  # type: ignore[no-redef]  # noqa
+    else:
+        import pandera.backends.polars.builtin_checks  # noqa: F401, I001
         from pandera.backends.polars.checks import PolarsCheckBackend
         from pandera.backends.polars.components import ColumnBackend  # type: ignore[assignment]
         from pandera.backends.polars.container import DataFrameSchemaBackend  # type: ignore[assignment]

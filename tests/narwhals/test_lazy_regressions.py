@@ -1,7 +1,5 @@
 """Regression tests for critical lazy=True bugs (Phase 8)."""
 
-import warnings
-
 import polars as pl
 import pytest
 
@@ -9,21 +7,6 @@ from pandera.api.checks import Check
 from pandera.api.polars.components import Column
 from pandera.api.polars.container import DataFrameSchema
 from pandera.errors import SchemaErrors
-
-
-@pytest.fixture(autouse=True, scope="module")
-def _suppress_narwhals_warning():
-    """Initialise narwhals backends and suppress the auto-activation UserWarning."""
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore", UserWarning)
-        from pandera.backends.ibis.register import register_ibis_backends
-        from pandera.backends.polars.register import register_polars_backends
-
-        register_polars_backends.cache_clear()
-        register_ibis_backends.cache_clear()
-        register_polars_backends()
-        register_ibis_backends()
-        yield
 
 
 def test_lazy_failure_cases_per_row_polars():

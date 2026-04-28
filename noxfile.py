@@ -281,8 +281,8 @@ def tests(
     env = {}
     test_dir = "base" if extra is None else extra
     if extra == "narwhals":
-        # TEST-03: narwhals backend tests live under tests/backends/narwhals/
-        test_dir = "backends/narwhals"
+        test_dir = "narwhals"
+        env["PANDERA_USE_NARWHALS_BACKEND"] = "True"
 
     if extra and extra.startswith("modin"):
         modin_split = extra.split("-")
@@ -326,14 +326,14 @@ def tests(
 @nox.session(venv_backend="uv", python=PYTHON_VERSIONS)
 @nox.parametrize("extra", ["polars", "ibis"])
 def tests_narwhals_backend(session: Session, extra: str) -> None:
-    """Run existing backend tests with narwhals co-installed.
+    """Run existing backend tests with narwhals co-installed and opt-in enabled.
 
-    Installs <extra> + narwhals so that register_polars_backends() /
-    register_ibis_backends() auto-detects narwhals and activates the narwhals
-    backend for that library's frame types. The existing tests/polars/ or
-    tests/ibis/ suite then exercises the narwhals backend rather than the
+    Installs <extra> + narwhals and sets PANDERA_USE_NARWHALS_BACKEND=True so
+    that register_polars_backends() / register_ibis_backends() activate the
+    narwhals backend for that library's frame types. The existing tests/polars/
+    or tests/ibis/ suite then exercises the narwhals backend rather than the
     native one. Tests that expose narwhals backend gaps should be marked
-    xfail(condition=narwhals_installed, ...) in the test files.
+    xfail in the test files.
     """
     deps = PYPROJECT["project"]["optional-dependencies"]
     requirements = [
@@ -370,7 +370,8 @@ def tests_narwhals_backend(session: Session, extra: str) -> None:
     if not CI_RUN:
         args.append("--cov-report=html")
     args.append(path)
-    session.run("pytest", *args)
+    env = {"PANDERA_USE_NARWHALS_BACKEND": "True"}
+    session.run("pytest", *args, env=env)
 
 
 @nox.session(venv_backend="uv", python=PYTHON_VERSIONS)

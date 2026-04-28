@@ -246,6 +246,4 @@ class DataFrameModel(_DataFrameModel[pl.LazyFrame, DataFrameSchema]):
         schema = copy.deepcopy(cls.to_schema())
         schema.coerce = True
         empty_df = schema.coerce_dtype(pl.DataFrame(schema=[*schema.columns]))
-        if isinstance(empty_df, pl.LazyFrame):
-            empty_df = empty_df.collect()
-        return DataFrame[Self](empty_df)
+        return DataFrame[Self](cast(pl.DataFrame, empty_df))
