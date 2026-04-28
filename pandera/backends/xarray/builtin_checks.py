@@ -48,6 +48,7 @@ import numpy as np
 import xarray as xr
 
 from pandera.api.extensions import register_builtin_check
+from pandera.strategies import pandas_constraints as cn
 
 XrLike: TypeAlias = xr.DataArray | xr.Dataset
 
@@ -117,6 +118,7 @@ def _str_mask_predicate(
 
 @register_builtin_check(
     aliases=["eq"],
+    constraint=cn.eq_constraint,
     error="equal_to({value})",
 )
 def equal_to(data: XrLike, value: Any) -> bool | xr.DataArray:
@@ -132,6 +134,7 @@ def equal_to(data: XrLike, value: Any) -> bool | xr.DataArray:
 
 @register_builtin_check(
     aliases=["ne"],
+    constraint=cn.ne_constraint,
     error="not_equal_to({value})",
 )
 def not_equal_to(data: XrLike, value: Any) -> bool | xr.DataArray:
@@ -147,6 +150,7 @@ def not_equal_to(data: XrLike, value: Any) -> bool | xr.DataArray:
 
 @register_builtin_check(
     aliases=["gt"],
+    constraint=cn.gt_constraint,
     error="greater_than({min_value})",
 )
 def greater_than(data: XrLike, min_value: Any) -> bool | xr.DataArray:
@@ -158,6 +162,7 @@ def greater_than(data: XrLike, min_value: Any) -> bool | xr.DataArray:
 
 @register_builtin_check(
     aliases=["ge"],
+    constraint=cn.ge_constraint,
     error="greater_than_or_equal_to({min_value})",
 )
 def greater_than_or_equal_to(
@@ -171,6 +176,7 @@ def greater_than_or_equal_to(
 
 @register_builtin_check(
     aliases=["lt"],
+    constraint=cn.lt_constraint,
     error="less_than({max_value})",
 )
 def less_than(data: XrLike, max_value: Any) -> bool | xr.DataArray:
@@ -184,6 +190,7 @@ def less_than(data: XrLike, max_value: Any) -> bool | xr.DataArray:
 
 @register_builtin_check(
     aliases=["le"],
+    constraint=cn.le_constraint,
     error="less_than_or_equal_to({max_value})",
 )
 def less_than_or_equal_to(data: XrLike, max_value: Any) -> bool | xr.DataArray:
@@ -196,6 +203,7 @@ def less_than_or_equal_to(data: XrLike, max_value: Any) -> bool | xr.DataArray:
 
 
 @register_builtin_check(
+    constraint=cn.isin_constraint,
     error="isin({allowed_values})",
 )
 def isin(data: XrLike, allowed_values: Iterable) -> bool | xr.DataArray:
@@ -207,6 +215,7 @@ def isin(data: XrLike, allowed_values: Iterable) -> bool | xr.DataArray:
 
 
 @register_builtin_check(
+    constraint=cn.notin_constraint,
     error="notin({forbidden_values})",
 )
 def notin(data: XrLike, forbidden_values: Iterable) -> bool | xr.DataArray:
@@ -221,6 +230,7 @@ def notin(data: XrLike, forbidden_values: Iterable) -> bool | xr.DataArray:
 
 
 @register_builtin_check(
+    constraint=cn.str_matches_constraint,
     error="str_matches('{pattern}')",
 )
 def str_matches(
@@ -240,6 +250,7 @@ def str_matches(
 
 
 @register_builtin_check(
+    constraint=cn.str_contains_constraint,
     error="str_contains('{pattern}')",
 )
 def str_contains(
@@ -259,6 +270,7 @@ def str_contains(
 
 
 @register_builtin_check(
+    constraint=cn.str_startswith_constraint,
     error="str_startswith('{string}')",
 )
 def str_startswith(data: XrLike, string: str) -> bool | xr.DataArray:
@@ -272,6 +284,7 @@ def str_startswith(data: XrLike, string: str) -> bool | xr.DataArray:
 
 
 @register_builtin_check(
+    constraint=cn.str_endswith_constraint,
     error="str_endswith('{string}')",
 )
 def str_endswith(data: XrLike, string: str) -> bool | xr.DataArray:
@@ -285,6 +298,7 @@ def str_endswith(data: XrLike, string: str) -> bool | xr.DataArray:
 
 
 @register_builtin_check(
+    constraint=cn.str_length_constraint,
     error="str_length",
 )
 def str_length(
@@ -365,6 +379,7 @@ def unique_values_eq(data: XrLike, values: Iterable) -> bool:
 
 
 @register_builtin_check(
+    constraint=cn.in_range_constraint,
     error="in_range({min_value}, {max_value})",
 )
 def in_range(
