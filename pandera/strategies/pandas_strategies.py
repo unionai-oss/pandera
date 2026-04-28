@@ -1549,27 +1549,78 @@ def dataframe_strategy(
         return strategy.filter(check_fn)
 
     def make_row_strategy(col, checks):
-        strategy = None
+        """Apply ``checks`` to ``col``'s per-element strategy.
+
+        Mirrors :func:`field_element_strategy`'s bucketing logic so
+        dataframe-level checks compose without ``.filter`` chaining
+        wherever a constraint adapter is available:
+
+        1. constraint-providing checks (built-in via
+           ``(check.name, pd.DataFrame)`` in ``CONSTRAINT_DISPATCHER``,
+           or ``check.constraint`` set explicitly): aggregated into a
+           single ``FieldConstraints`` and lowered to one strategy.
+        2. legacy ``check.strategy`` callables (or
+           ``STRATEGY_DISPATCHER[(name, pd.DataFrame)]``): chained as
+           before, on top of the merged base.
+        3. element-wise checks with no strategy / constraint: degraded
+           to a single residual ``.filter`` with the pre-existing
+           ``undefined_check_strategy`` warning.
+
+        For the v1 refactor every built-in is column-scoped, so no
+        check populates the ``(name, pd.DataFrame)`` constraint slot
+        and the practical generation path is unchanged. The bucketing
+        is in place as the extension point for future dataframe-level
+        constraint adapters.
+        """
+        constraint_acc = FieldConstraints()
+        legacy_strategies: list[tuple[Any, Callable]] = []
+        undefined_checks: list = []
+
         for check in checks:
-            if check.strategy is not None:
-                strategy = check.strategy(
-                    col.dtype,
-                    strategy,
-                    **check.statistics,
-                )
-            elif STRATEGY_DISPATCHER.get((check.name, pd.DataFrame), None):
-                strategy = STRATEGY_DISPATCHER.get((check.name, pd.DataFrame))(
-                    col.dtype, strategy, **check.statistics
-                )
-            else:
-                strategy = undefined_check_strategy(
-                    strategy=(
-                        pandas_dtype_strategy(col.dtype)
-                        if strategy is None
-                        else strategy
-                    ),
-                    check=check,
-                )
+            constraint_fn = getattr(check, "constraint", None) or (
+                CONSTRAINT_DISPATCHER.get((check.name, pd.DataFrame))
+            )
+            if constraint_fn is not None:
+                try:
+                    constraint_acc = constraint_acc.merge(
+                        constraint_fn(**check.statistics)
+                    )
+                except ConstraintConflictError as exc:
+                    _raise_unsatisfiable(checks, exc)
+                continue
+
+            legacy_strategy = check.strategy or STRATEGY_DISPATCHER.get(
+                (check.name, pd.DataFrame)
+            )
+            if legacy_strategy is not None:
+                legacy_strategies.append((check, legacy_strategy))
+                continue
+
+            undefined_checks.append(check)
+
+        has_aggregated = not constraint_acc.is_empty()
+
+        if has_aggregated:
+            try:
+                strategy = compile_field_strategy(col.dtype, constraint_acc)
+            except ConstraintConflictError as exc:
+                _raise_unsatisfiable(checks, exc)
+        else:
+            strategy = None
+
+        for check, legacy_strategy in legacy_strategies:
+            strategy = legacy_strategy(col.dtype, strategy, **check.statistics)
+
+        for check in undefined_checks:
+            strategy = undefined_check_strategy(
+                strategy=(
+                    pandas_dtype_strategy(col.dtype)
+                    if strategy is None
+                    else strategy
+                ),
+                check=check,
+            )
+
         if strategy is None:
             strategy = pandas_dtype_strategy(col.dtype)
         return strategy
@@ -1582,6 +1633,8 @@ def dataframe_strategy(
             if (
                 check.strategy
                 or STRATEGY_DISPATCHER.get((check.name, pd.DataFrame), None)
+                or getattr(check, "constraint", None) is not None
+                or CONSTRAINT_DISPATCHER.get((check.name, pd.DataFrame))
                 or check.element_wise
             ):
                 # we can apply element-wise checks defined at the dataframe
@@ -1620,12 +1673,16 @@ def dataframe_strategy(
                     )
 
         # collect all non-element-wise column checks with undefined strategies
+        # Constraint adapters fully describe the element distribution, so
+        # they don't need a redundant ``.filter`` pass on the dataframe.
         undefined_strat_column_checks: dict[str, list] = defaultdict(list)
         for col_name, column in expanded_columns.items():
             undefined_strat_column_checks[col_name].extend(
                 check
                 for check in column.checks
                 if STRATEGY_DISPATCHER.get((check.name, pd.DataFrame)) is None
+                and getattr(check, "constraint", None) is None
+                and CONSTRAINT_DISPATCHER.get((check.name, pd.Series)) is None
                 and not check.element_wise
             )
 

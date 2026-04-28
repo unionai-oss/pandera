@@ -229,3 +229,46 @@ def test_isin_intersected_membership_validates(data):
     for v in df["x"]:
         assert 10 < v < 50
         assert v not in {20, 30, 40}
+
+
+# ----- dataframe-level checks (Stage 6) ----------------------------------
+
+
+@hypothesis.given(st.data())
+def test_dataframe_level_aggregated_checks_validate(data):
+    """Element-wise dataframe-level checks aggregate via the row strategy.
+
+    Stage 6 routes ``dataframe_strategy.make_row_strategy`` through the
+    same constraint bucketing logic. Built-ins are column-scoped so the
+    aggregation happens per row-element when the user attaches the same
+    checks at the dataframe level via ``element_wise=True``.
+    """
+    schema = pa.DataFrameSchema(
+        {"x": pa.Column(int)},
+        checks=[
+            Check.gt(0, element_wise=True),
+            Check.lt(100, element_wise=True),
+        ],
+    )
+    df = data.draw(schema.strategy(size=15))
+    schema(df)
+    for v in df["x"]:
+        assert 0 < v < 100
+
+
+def test_dataframe_level_constraint_adapter_skips_redundant_filter():
+    """Column constraints don't add a redundant dataframe-level filter.
+
+    Built-in checks lower to ``FieldConstraints``; the dataframe wrapper
+    used to apply them again as ``.filter`` on the resulting dataframe,
+    triggering a "no defined strategy" warning. After Stage 6 those
+    redundant filters are skipped.
+    """
+    import warnings
+
+    schema = pa.DataFrameSchema(
+        {"x": pa.Column(int, checks=[Check.gt(0), Check.lt(100)])}
+    )
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        schema.strategy(size=5)
