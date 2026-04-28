@@ -1111,52 +1111,111 @@ def field_element_strategy(
 ) -> SearchStrategy:
     """Strategy to generate elements of a column or index.
 
+    Buckets ``checks`` into:
+
+    1. constraint-providing checks (built-in or via ``Check.constraint``
+       / ``register_check_method(constraint=...)``): aggregated into a
+       single ``FieldConstraints`` and compiled to one hypothesis
+       strategy via :func:`compile_field_strategy`. No ``.filter``
+       chaining.
+    2. legacy ``check.strategy`` callables: applied as a chained
+       strategy on top of the merged base, preserving today's
+       behaviour for users who haven't migrated.
+    3. element-wise checks with no strategy / constraint: lowered to a
+       single residual filter (warn the user that this is slow).
+
     :param pandera_dtype: :class:`pandera.dtypes.DataType` instance.
-    :param strategy: an optional hypothesis strategy. If specified, the
-        pandas dtype strategy will be chained onto this strategy.
-    :param checks: sequence of :class:`~pandera.api.checks.Check` s to constrain
-        the values of the data in the column/index.
-    :returns: ``hypothesis`` strategy
+    :param strategy: an optional hypothesis strategy. Reserved; passing
+        a non-``None`` value raises :class:`BaseStrategyOnlyError`.
+    :param checks: sequence of :class:`~pandera.api.checks.Check` s to
+        constrain the values of the data in the column/index.
+    :returns: ``hypothesis`` strategy.
     """
     if strategy:
         raise BaseStrategyOnlyError(
             "The series strategy is a base strategy. You cannot specify the "
             "strategy argument to chain it to a parent strategy."
         )
-    checks = [] if checks is None else checks
-    elements = None
+    check_list = list(checks or [])
 
-    def undefined_check_strategy(elements, check):
-        """Strategy for checks with undefined strategies."""
-        warnings.warn(
-            "Element-wise check doesn't have a defined strategy."
-            "Falling back to filtering drawn values based on the check "
-            "definition. This can considerably slow down data-generation."
-        )
-        return (
-            pandas_dtype_strategy(pandera_dtype)
-            if elements is None
-            else elements
-        ).filter(check._check_fn)
+    constraint_acc = FieldConstraints()
+    legacy_strategies: list[tuple[Any, Callable]] = []
+    residuals: list[tuple[str, Callable]] = []
 
-    for check in checks:
-        check_strategy = (
-            check.strategy
-            if check.strategy is not None
-            else STRATEGY_DISPATCHER.get((check.name, pd.Series), None)
+    for check in check_list:
+        constraint_fn = getattr(check, "constraint", None) or (
+            CONSTRAINT_DISPATCHER.get((check.name, pd.Series))
         )
-        if check_strategy is not None:
-            elements = check_strategy(
-                pandera_dtype, elements, **check.statistics
+        if constraint_fn is not None:
+            try:
+                constraint_acc = constraint_acc.merge(
+                    constraint_fn(**check.statistics)
+                )
+            except ConstraintConflictError as exc:
+                _raise_unsatisfiable(check_list, exc)
+            continue
+
+        legacy_strategy = check.strategy or STRATEGY_DISPATCHER.get(
+            (check.name, pd.Series)
+        )
+        if legacy_strategy is not None:
+            legacy_strategies.append((check, legacy_strategy))
+            continue
+
+        if check.element_wise:
+            warnings.warn(
+                "Element-wise check doesn't have a defined strategy."
+                "Falling back to filtering drawn values based on the "
+                "check definition. This can considerably slow down "
+                "data-generation."
             )
-        elif check.element_wise:
-            elements = undefined_check_strategy(elements, check)
-        # NOTE: vectorized checks with undefined strategies should be handled
-        # by the series/dataframe strategy.
+            residuals.append((check.name, check._check_fn))
+        # NOTE: vectorized checks with undefined strategies should be
+        # handled by the series/dataframe strategy.
+
+    if residuals:
+        from dataclasses import replace as _rep
+
+        constraint_acc = _rep(
+            constraint_acc,
+            residual_filters=(
+                constraint_acc.residual_filters + tuple(residuals)
+            ),
+        )
+
+    has_aggregated = not constraint_acc.is_empty()
+
+    if has_aggregated:
+        try:
+            elements = compile_field_strategy(pandera_dtype, constraint_acc)
+        except ConstraintConflictError as exc:
+            _raise_unsatisfiable(check_list, exc)
+    else:
+        # No constraint adapters fired and no residuals: preserve the
+        # legacy fold semantics so the first legacy strategy can take
+        # its "no parent strategy" fast path. Constraint adapters are
+        # the path that aggregates work into a single strategy call;
+        # without them, today's per-check fold is the fastest available
+        # path and we don't want to regress it before the built-ins are
+        # migrated in stage 5.
+        elements = None
+
+    for check, legacy_strategy in legacy_strategies:
+        elements = legacy_strategy(pandera_dtype, elements, **check.statistics)
+
     if elements is None:
         elements = pandas_dtype_strategy(pandera_dtype)
 
     return elements
+
+
+def _raise_unsatisfiable(checks: Sequence, exc: ConstraintConflictError):
+    """Translate a constraint conflict into a SchemaDefinitionError."""
+    names = [str(getattr(c, "name", "?")) for c in checks]
+    raise SchemaDefinitionError(
+        f"Cannot construct a data-generation strategy for checks "
+        f"{names}: constraints are jointly unsatisfiable ({exc})."
+    ) from exc
 
 
 def series_strategy(
