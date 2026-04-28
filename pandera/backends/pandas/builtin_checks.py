@@ -8,6 +8,7 @@ from typing import Any, Optional, TypeVar, Union, cast
 
 import pandas as pd
 
+import pandera.strategies.pandas_constraints as cn
 import pandera.strategies.pandas_strategies as st
 from pandera.api.extensions import register_builtin_check
 
@@ -66,6 +67,7 @@ T = TypeVar("T")
 @register_builtin_check(
     aliases=["eq"],
     strategy=st.eq_strategy,
+    constraint=cn.eq_constraint,
     error="equal_to({value})",
 )
 def equal_to(data: PandasData, value: Any) -> PandasData:
@@ -80,6 +82,7 @@ def equal_to(data: PandasData, value: Any) -> PandasData:
 @register_builtin_check(
     aliases=["ne"],
     strategy=st.ne_strategy,
+    constraint=cn.ne_constraint,
     error="not_equal_to({value})",
 )
 def not_equal_to(data: PandasData, value: Any) -> PandasData:
@@ -94,6 +97,7 @@ def not_equal_to(data: PandasData, value: Any) -> PandasData:
 @register_builtin_check(
     aliases=["gt"],
     strategy=st.gt_strategy,
+    constraint=cn.gt_constraint,
     error="greater_than({min_value})",
 )
 def greater_than(data: PandasData, min_value: Any) -> PandasData:
@@ -109,6 +113,7 @@ def greater_than(data: PandasData, min_value: Any) -> PandasData:
 @register_builtin_check(
     aliases=["ge"],
     strategy=st.ge_strategy,
+    constraint=cn.ge_constraint,
     error="greater_than_or_equal_to({min_value})",
 )
 def greater_than_or_equal_to(data: PandasData, min_value: Any) -> PandasData:
@@ -123,6 +128,7 @@ def greater_than_or_equal_to(data: PandasData, min_value: Any) -> PandasData:
 @register_builtin_check(
     aliases=["lt"],
     strategy=st.lt_strategy,
+    constraint=cn.lt_constraint,
     error="less_than({max_value})",
 )
 def less_than(data: PandasData, max_value: Any) -> PandasData:
@@ -140,6 +146,7 @@ def less_than(data: PandasData, max_value: Any) -> PandasData:
 @register_builtin_check(
     aliases=["le"],
     strategy=st.le_strategy,
+    constraint=cn.le_constraint,
     error="less_than_or_equal_to({max_value})",
 )
 def less_than_or_equal_to(data: PandasData, max_value: Any) -> PandasData:
@@ -156,6 +163,7 @@ def less_than_or_equal_to(data: PandasData, max_value: Any) -> PandasData:
 @register_builtin_check(
     aliases=["between"],
     strategy=st.in_range_strategy,
+    constraint=cn.in_range_constraint,
     error="in_range({min_value}, {max_value})",
 )
 def in_range(
@@ -189,6 +197,7 @@ def in_range(
 
 @register_builtin_check(
     strategy=st.isin_strategy,
+    constraint=cn.isin_constraint,
     error="isin({allowed_values})",
 )
 def isin(data: PandasData, allowed_values: Iterable) -> PandasData:
@@ -208,6 +217,7 @@ def isin(data: PandasData, allowed_values: Iterable) -> PandasData:
 
 @register_builtin_check(
     strategy=st.notin_strategy,
+    constraint=cn.notin_constraint,
     error="notin({forbidden_values})",
 )
 def notin(data: PandasData, forbidden_values: Iterable) -> PandasData:
@@ -226,6 +236,7 @@ def notin(data: PandasData, forbidden_values: Iterable) -> PandasData:
 
 @register_builtin_check(
     strategy=st.str_matches_strategy,
+    constraint=cn.str_matches_constraint,
     error="str_matches('{pattern}')",
 )
 def str_matches(
@@ -241,6 +252,7 @@ def str_matches(
 
 @register_builtin_check(
     strategy=st.str_contains_strategy,
+    constraint=cn.str_contains_constraint,
     error="str_contains('{pattern}')",
 )
 def str_contains(
@@ -256,6 +268,7 @@ def str_contains(
 
 @register_builtin_check(
     strategy=st.str_startswith_strategy,
+    constraint=cn.str_startswith_constraint,
     error="str_startswith('{string}')",
 )
 def str_startswith(data: PandasData, string: str) -> PandasData:
@@ -267,7 +280,9 @@ def str_startswith(data: PandasData, string: str) -> PandasData:
 
 
 @register_builtin_check(
-    strategy=st.str_endswith_strategy, error="str_endswith('{string}')"
+    strategy=st.str_endswith_strategy,
+    constraint=cn.str_endswith_constraint,
+    error="str_endswith('{string}')",
 )
 def str_endswith(data: PandasData, string: str) -> PandasData:
     """Ensure that all values end with a certain string.
@@ -279,6 +294,7 @@ def str_endswith(data: PandasData, string: str) -> PandasData:
 
 @register_builtin_check(
     strategy=st.str_length_strategy,
+    constraint=cn.str_length_constraint,
 )
 def str_length(
     data: PandasData,

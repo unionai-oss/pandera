@@ -572,35 +572,132 @@ def _close_bound(
         return value, False
 
 
+_PREFIX_PREAMBLE = r"\A(?:"
+_PREFIX_SUFFIX = r").*\Z"
+_SUFFIX_PREAMBLE = r"\A.*(?:"
+_SUFFIX_SUFFIX = r")\Z"
+
+
+def _split_prefix(pattern: str) -> str | None:
+    """Return ``X`` if ``pattern`` is ``\\A(?:X).*\\Z`` else ``None``."""
+    if (
+        pattern.startswith(_PREFIX_PREAMBLE)
+        and pattern.endswith(_PREFIX_SUFFIX)
+        and len(pattern) > len(_PREFIX_PREAMBLE) + len(_PREFIX_SUFFIX)
+    ):
+        return pattern[len(_PREFIX_PREAMBLE) : -len(_PREFIX_SUFFIX)]
+    return None
+
+
+def _split_suffix(pattern: str) -> str | None:
+    """Return ``X`` if ``pattern`` is ``\\A.*(?:X)\\Z`` else ``None``."""
+    if (
+        pattern.startswith(_SUFFIX_PREAMBLE)
+        and pattern.endswith(_SUFFIX_SUFFIX)
+        and len(pattern) > len(_SUFFIX_PREAMBLE) + len(_SUFFIX_SUFFIX)
+    ):
+        return pattern[len(_SUFFIX_PREAMBLE) : -len(_SUFFIX_SUFFIX)]
+    return None
+
+
+def _try_structural_merge(
+    fullmatch_patterns: tuple[str, ...],
+    search_patterns: tuple[str, ...],
+) -> tuple[str, bool] | None:
+    """Try to combine patterns into a single concatenated regex.
+
+    Recognises ``str_startswith`` (``\\A(?:X).*\\Z``) and
+    ``str_endswith`` (``\\A.*(?:X)\\Z``) shapes plus generic search
+    patterns and concatenates them in the order
+    ``\\A<prefix>.*<contains_1>.*<contains_2>...<suffix>\\Z`` so
+    hypothesis's regex generator drives directly toward valid strings
+    (no lookahead-induced rejection sampling).
+
+    Returns ``None`` when the patterns can't be safely concatenated
+    (e.g. multiple distinct ``startswith`` / ``endswith`` constraints,
+    or arbitrary ``str_matches`` patterns that aren't simple prefix /
+    suffix shapes).
+    """
+    prefixes: list[str] = []
+    suffixes: list[str] = []
+    other_fullmatch: list[str] = []
+    for p in fullmatch_patterns:
+        if (px := _split_prefix(p)) is not None:
+            prefixes.append(px)
+            continue
+        if (sx := _split_suffix(p)) is not None:
+            suffixes.append(sx)
+            continue
+        other_fullmatch.append(p)
+
+    if other_fullmatch:
+        return None
+    if len(prefixes) > 1 or len(suffixes) > 1:
+        # Two distinct startswith / endswith are unsatisfiable in
+        # general; defer to the lookahead path so the conflict surfaces
+        # as a generation failure rather than a malformed regex.
+        return None
+
+    parts: list[str] = [r"\A"]
+    if prefixes:
+        parts.append(rf"(?:{prefixes[0]})")
+    parts.append(".*")
+    for p in search_patterns:
+        parts.append(rf"(?:{p}).*")
+    if suffixes:
+        parts.append(rf"(?:{suffixes[0]})")
+    parts.append(r"\Z")
+    return "".join(parts), True
+
+
 def _combine_patterns(
     fullmatch_patterns: tuple[str, ...],
     search_patterns: tuple[str, ...],
 ) -> tuple[str, bool] | None:
     """Combine multiple regex constraints into a single anchored regex.
 
-    Uses zero-width lookahead conjunction so all patterns must match.
-    Returns ``None`` when any input pattern fails ``re.compile``;
-    callers fall back to ``.filter`` in that case.
+    Strategy (in priority order):
+
+    1. Single-pattern pass-through (most efficient for hypothesis).
+    2. Structural concatenation of ``str_startswith`` /
+       ``str_endswith`` / ``str_contains`` shapes.
+    3. Zero-width lookahead conjunction (correct but generates
+       inefficiently — included as a fallback).
+
+    Returns ``None`` when any input pattern fails ``re.compile`` so
+    callers can fall back to ``.filter``.
 
     :returns: ``(combined_pattern, fullmatch_flag)`` or ``None``.
     """
+    fullmatch_patterns = tuple(fullmatch_patterns)
+    search_patterns = tuple(search_patterns)
+
+    if len(fullmatch_patterns) + len(search_patterns) == 0:
+        return None
+
+    for p in (*fullmatch_patterns, *search_patterns):
+        try:
+            re.compile(p)
+        except re.error:
+            return None
+
+    # Single-pattern fast path: avoid any wrapping.
+    if len(fullmatch_patterns) == 1 and not search_patterns:
+        return fullmatch_patterns[0], True
+    if not fullmatch_patterns and len(search_patterns) == 1:
+        return search_patterns[0], False
+
+    structural = _try_structural_merge(fullmatch_patterns, search_patterns)
+    if structural is not None:
+        return structural
+
     parts: list[str] = []
     for p in fullmatch_patterns:
-        try:
-            re.compile(p)
-        except re.error:
-            return None
         parts.append(rf"(?=\A(?:{p})\Z)")
     for p in search_patterns:
-        try:
-            re.compile(p)
-        except re.error:
-            return None
         parts.append(rf"(?=.*(?:{p}))")
-    if not parts:
-        return None
-    combined = "".join(parts) + r".*"
-    return combined, True
+
+    return "".join(parts) + r".*", True
 
 
 def _compile_string_strategy(
@@ -611,9 +708,12 @@ def _compile_string_strategy(
     Combines all regex constraints into one anchored ``st.from_regex``
     via zero-width lookahead-AND when every pattern compiles cleanly.
     Length constraints are passed as ``min_size`` / ``max_size`` to
-    ``st.text(...)`` when there are no regex patterns, and otherwise
-    folded into a single trailing length filter on the regex strategy.
-    Surrogate-stripping for pyarrow-backed strings is preserved.
+    ``st.text(...)`` when there are no regex patterns; when both regex
+    and length constraints are present, the length range is embedded
+    into the combined regex as a lookahead so hypothesis's regex
+    generator drives toward valid strings (rather than us filtering
+    after the fact). Surrogate-stripping for pyarrow-backed strings is
+    preserved.
     """
     np_type = to_numpy_dtype(pandera_dtype).type
 
@@ -625,9 +725,16 @@ def _compile_string_strategy(
 
     has_regex = bool(constraints.regex_fullmatch or constraints.regex_search)
 
+    length_filter = None
+    if str_min is not None or str_max is not None:
+        lo = str_min if str_min is not None else 0
+        hi = str_max if str_max is not None else 1 << 30
+        length_filter = lambda s, lo=lo, hi=hi: lo <= len(s) <= hi  # noqa: E731
+
     if has_regex:
         combined = _combine_patterns(
-            constraints.regex_fullmatch, constraints.regex_search
+            constraints.regex_fullmatch,
+            constraints.regex_search,
         )
         if combined is not None:
             pattern, fullmatch = combined
@@ -643,18 +750,20 @@ def _compile_string_strategy(
             strat = st.from_regex(patterns[0], fullmatch=True).map(np_type)
             for p in patterns[1:]:
                 strat = strat.filter(re.compile(p).search)
-
-        if str_min is not None or str_max is not None:
-            lo = str_min if str_min is not None else 0
-            hi = str_max if str_max is not None else 1 << 30
-            strat = strat.filter(lambda s, lo=lo, hi=hi: lo <= len(s) <= hi)
     elif str_min is not None or str_max is not None:
-        strat = st.text(min_size=str_min, max_size=str_max).map(np_type)
+        strat = st.text(min_size=str_min or 0, max_size=str_max).map(np_type)
     else:
         strat = pandas_dtype_strategy(pandera_dtype)
 
     if _is_string_dtype(pandera_dtype):
         strat = strat.map(_remove_surrogates)
+
+    # Apply the length filter *after* surrogate removal so the
+    # post-mapping string length is what gets validated.
+    if length_filter is not None and (
+        has_regex or _is_string_dtype(pandera_dtype)
+    ):
+        strat = strat.filter(length_filter)
 
     if constraints.notin:
         forbidden = constraints.notin
