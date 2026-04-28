@@ -114,6 +114,15 @@ two cases to account for {ref}`strategy chaining <check-strategy-chaining>`:
 2. when the strategy function is being chained from a previously-defined
    strategy, i.e. when `strategy` is not `None`.
 
+:::{note}
+The `strategy=` parameter is preserved for backward compatibility. New
+code should prefer the `constraint=` parameter (described in
+{ref}`custom-constraints`), which lets your check participate in
+pandera's single-shot constraint aggregator. When a `Check(strategy=fn)`
+is mixed with built-in checks, pandera emits a `DeprecationWarning`
+pointing to the migration path.
+:::
+
 Finally, to register the custom check with the strategy, use the
 {func}`~pandera.extensions.register_check_method` decorator:
 
