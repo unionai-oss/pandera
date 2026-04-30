@@ -14,8 +14,9 @@ from pandera.api.pandas.components import Column, Index, MultiIndex
 from pandera.api.pandas.container import DataFrameSchema
 from pandera.api.pandas.model_config import BaseConfig
 from pandera.api.parsers import Parser
+from pandera.dtypes import DataType
 from pandera.engines import numpy_engine, pandas_engine
-from pandera.engines.pandas_engine import Engine
+from pandera.engines.pandas_engine import Engine, PythonGenericType
 from pandera.errors import SchemaInitError
 from pandera.typing import (
     AnnotationInfo,
@@ -247,9 +248,17 @@ class DataFrameModel(_DataFrameModel[pd.DataFrame, DataFrameSchema]):
             FastAPI integration.
         """
         schema = cls.to_schema()
-        empty = pd.DataFrame(columns=schema.columns.keys()).astype(
-            {k: v.type if v else None for k, v in schema.dtypes.items()}
-        )
+        dtypes = {
+            k: (
+                v.type
+                if not isinstance(v.type, PythonGenericType)
+                else "object"
+            )
+            if v
+            else None
+            for k, v in schema.dtypes.items()
+        }
+        empty = pd.DataFrame(columns=schema.columns.keys()).astype(dtypes)
         table_schema = pd.io.json.build_table_schema(empty)
 
         def _field_json_schema(field):
@@ -280,8 +289,13 @@ class DataFrameModel(_DataFrameModel[pd.DataFrame, DataFrameSchema]):
 
         data = {}
         for col_name, col_schema in schema.columns.items():
+            dtype = (
+                col_schema.dtype.type
+                if not isinstance(col_schema.dtype, PythonGenericType)
+                else "object"
+            )
             if col_schema.dtype is not None:
-                data[col_name] = pd.array([], dtype=col_schema.dtype.type)
+                data[col_name] = pd.array([], dtype=dtype)
             else:
                 data[col_name] = pd.array([])
 
