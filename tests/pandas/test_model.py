@@ -2215,6 +2215,9 @@ def test_empty() -> None:
         b: Series[pa.Int]
         c: Series[pa.String]
         d: Series[pa.DateTime]
+        e: Series[list]
+        f: Series[tuple]
+        g: Series[dict]
 
     df = Schema.empty()
     assert df.empty
