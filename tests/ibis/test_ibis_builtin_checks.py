@@ -1018,13 +1018,12 @@ class TestInRangeCheck(BaseClass):
                 "datatype": dt.Float64,
                 "data": self.convert_data(self.sample_numeric_data, "float64"),
             },
-            # TODO(deepyaman): Enable once the decimal issue is resolved
-            # {
-            #     "datatype": dt.Decimal(precision=38, scale=10),
-            #     "data": self.convert_data(
-            #         self.sample_numeric_data, "decimal"
-            #     ),
-            # },
+            {
+                "datatype": dt.Decimal(precision=38, scale=10),
+                "data": self.convert_data(
+                    self.sample_numeric_data, "decimal"
+                ),
+            },
             {
                 "datatype": dt.Date,
                 "data": self.convert_data(self.sample_datetime_data, "date"),
