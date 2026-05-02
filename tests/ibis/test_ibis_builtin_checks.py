@@ -50,25 +50,10 @@ class BaseClass:
         data_dict = {}
         for key, value in sample_data.items():
             if key == "test_expression":
-                # Work around Ibis issue wherein comparison with decimal
-                # literals doesn't work. This is very fragile and should
-                # be undone once the open issue is fixed. For more info,
-                # see https://github.com/ibis-project/ibis/issues/11819
-                if conversion_datatype is decimal.Decimal:
-
-                    def patched_conversion_datatype(x):
-                        return ibis.literal(conversion_datatype(x)).cast(
-                            "decimal(28, 0)"
-                        )
-                else:
-                    patched_conversion_datatype = conversion_datatype
-
                 if not isinstance(value, list):
-                    data_dict[key] = patched_conversion_datatype(value)
+                    data_dict[key] = conversion_datatype(value)
                 else:
-                    data_dict[key] = [
-                        patched_conversion_datatype(i) for i in value
-                    ]
+                    data_dict[key] = [conversion_datatype(i) for i in value]
 
             else:
                 if not isinstance(value[0][1], list):
