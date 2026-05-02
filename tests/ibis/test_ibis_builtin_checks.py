@@ -1506,39 +1506,6 @@ class TestStringType(BaseClass):
 class TestUniqueValuesEqCheck(BaseClass):
     """This class is used to test the unique values eq check"""
 
-    # Use the original `convert_value` implementation. Once the upstream
-    # issue is fixed, we can remove this override; the "original" method
-    # will again be the `BaseClass` implementation.
-    @staticmethod
-    def convert_value(sample_data, conversion_datatype):
-        """
-        Convert the sample data to other formats excluding dates and does not
-        support complex datatypes such as array and map as of now
-        """
-
-        data_dict = {}
-        for key, value in sample_data.items():
-            if key == "test_expression":
-                if not isinstance(value, list):
-                    data_dict[key] = conversion_datatype(value)
-                else:
-                    data_dict[key] = [conversion_datatype(i) for i in value]
-
-            else:
-                if not isinstance(value[0][1], list):
-                    data_dict[key] = [
-                        (i[0], conversion_datatype(i[1])) for i in value
-                    ]
-                else:
-                    final_val = []
-                    for row in value:
-                        data_val = []
-                        for column in row[1]:
-                            data_val.append(conversion_datatype(column))
-                        final_val.append((row[0], data_val))
-                    data_dict[key] = final_val
-        return data_dict
-
     sample_numeric_data = {
         "test_pass_data": [("foo", 32), ("bar", 31)],
         "test_fail_data": [("foo", 31), ("bar", 31)],
