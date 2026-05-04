@@ -154,12 +154,28 @@ def test_coerce_dtype_preserves_lazyframe(ldf_basic, ldf_schema_basic):
 
 
 def test_coerce_dtype_with_dataframe(ldf_schema_basic):
-    """coerce_dtype is callable with a DataFrame input via the overload path."""
+    """coerce_dtype preserves a DataFrame input as a DataFrame at runtime."""
     ldf_schema_basic._coerce = True
     df = pl.DataFrame(schema=[*ldf_schema_basic.columns])
     result = ldf_schema_basic.coerce_dtype(df)
-    # Backend currently lazifies DataFrame inputs; assert it's still a frame-like.
-    assert isinstance(result, (pl.DataFrame, pl.LazyFrame))
+    assert isinstance(result, pl.DataFrame)
+
+
+@pytest.mark.xfail(
+    condition=narwhals_installed,
+    reason="Narwhals backend does not support dtype coercion",
+    strict=True,
+)
+def test_coerce_dtype_dataframe_actually_coerces():
+    """coerce_dtype with a DataFrame input both coerces and stays a DataFrame."""
+    schema = DataFrameSchema(
+        {"a": Column(int, coerce=True)},
+    )
+    df = pl.DataFrame({"a": ["1", "2", "3"]})
+    result = schema.coerce_dtype(df)
+    assert isinstance(result, pl.DataFrame)
+    assert result.schema == {"a": pl.Int64}
+    assert result["a"].to_list() == [1, 2, 3]
 
 
 @pytest.mark.xfail(

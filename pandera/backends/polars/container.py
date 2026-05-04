@@ -432,19 +432,26 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
 
         return check_obj
 
-    def coerce_dtype(self, check_obj: pl.LazyFrame, schema=None):
-        """Coerce dataframe columns to the correct dtype."""
+    def coerce_dtype(self, check_obj: PolarsFrame, schema=None) -> PolarsFrame:
+        """Coerce dataframe columns to the correct dtype.
+
+        Preserves the input frame kind: a ``pl.DataFrame`` in returns a
+        ``pl.DataFrame`` out; a ``pl.LazyFrame`` in returns a ``pl.LazyFrame``
+        out.
+        """
         assert schema is not None, "The `schema` argument must be provided."
 
-        error_handler = ErrorHandler(lazy=True)
+        return_type = type(check_obj)
+        check_lf = _to_lazy(check_obj)
 
         if not (
             schema.coerce or any(col.coerce for col in schema.columns.values())
         ):
-            return check_obj
+            return _to_frame_kind(check_lf, return_type)
 
+        error_handler = ErrorHandler(lazy=True)
         try:
-            check_obj = self._coerce_dtype_helper(check_obj, schema)
+            check_lf = self._coerce_dtype_helper(check_lf, schema)
         except SchemaErrors as err:
             for schema_error in err.schema_errors:
                 error_handler.collect_error(
@@ -467,10 +474,10 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
             raise SchemaErrors(
                 schema=schema,
                 schema_errors=error_handler.schema_errors,
-                data=check_obj,
+                data=check_lf,
             )
 
-        return check_obj
+        return _to_frame_kind(check_lf, return_type)
 
     def _coerce_dtype_helper(
         self,

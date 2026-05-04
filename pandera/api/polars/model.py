@@ -246,10 +246,8 @@ class DataFrameModel(_DataFrameModel[pl.LazyFrame, DataFrameSchema]):
         schema = copy.deepcopy(cls.to_schema())
         if schema.columns:
             schema.coerce = True
-            empty_df = (
-                schema.coerce_dtype(pl.DataFrame(schema=[*schema.columns]))
-                .lazy()
-                .collect()
+            empty_df = schema.coerce_dtype(
+                pl.DataFrame(schema=[*schema.columns])
             )
         elif isinstance(schema.dtype, pe.PydanticModel):
             empty_df = pl.DataFrame(schema=schema.dtype._get_polars_schema())
