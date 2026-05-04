@@ -18,7 +18,6 @@ from pandera.config import (
 from pandera.engines.polars_engine import polars_version
 
 
-
 @pytest.fixture(scope="function")
 def validation_disabled():
     """Disable validation in the context of a fixture."""

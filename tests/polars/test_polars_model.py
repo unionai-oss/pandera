@@ -16,8 +16,8 @@ from hypothesis import strategies as st
 from polars.testing.parametric import column, dataframes
 
 import pandera.engines.polars_engine as pe
-from pandera.errors import SchemaError
 from pandera.config import CONFIG
+from pandera.errors import SchemaError
 from pandera.polars import (
     Column,
     DataFrameModel,
@@ -27,7 +27,6 @@ from pandera.polars import (
     check,
     dataframe_check,
 )
-
 
 
 @pytest.fixture

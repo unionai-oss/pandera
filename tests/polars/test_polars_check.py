@@ -5,9 +5,8 @@ import pytest
 
 import pandera.polars as pa
 from pandera.api.polars.utils import get_lazyframe_schema
-from pandera.constants import CHECK_OUTPUT_KEY
 from pandera.config import CONFIG
-
+from pandera.constants import CHECK_OUTPUT_KEY
 
 
 @pytest.fixture

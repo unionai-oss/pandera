@@ -16,13 +16,13 @@ from pandera.api.polars.types import PolarsData
 from pandera.api.polars.utils import get_lazyframe_column_names
 from pandera.engines import polars_engine as pe
 from pandera.polars import Column, DataFrameModel, DataFrameSchema
-from pandera.config import CONFIG
 
 try:
     from polars._typing import PolarsDataType  # type: ignore
 except NameError:
     from polars.type_aliases import PolarsDataType  # type: ignore
 
+from pandera.config import CONFIG
 
 
 @pytest.fixture

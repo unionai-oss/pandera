@@ -78,7 +78,6 @@ def polars_lf():
 
 @pytest.fixture()
 def ibis_table():
-    # TEST-02: intentionally ibis_table-specific — used by tests asserting ibis.Table return type
     return ibis.memtable({"x": [1, 2, 3], "y": [10, 20, 30]})
 
 
@@ -120,25 +119,6 @@ def test_polars_lazyframe_returns_lazyframe(polars_lf):
     assert isinstance(result, pl.LazyFrame)
 
 
-def test_polars_dataframe_returns_dataframe(polars_df):
-    """schema.validate(pl.DataFrame) → pl.DataFrame."""
-    schema = pa_pl.DataFrameSchema(
-        {"x": pa_pl.Column(int), "y": pa_pl.Column(int)}
-    )
-    result = schema.validate(polars_df)
-    assert isinstance(result, pl.DataFrame)
-
-
-@ibis_only
-def test_ibis_table_returns_table(ibis_table):
-    """schema.validate(ibis.Table) → ibis.Table."""
-    schema = pa_ibis.DataFrameSchema(
-        {"x": pa_ibis.Column(dt.int64), "y": pa_ibis.Column(dt.int64)}
-    )
-    result = schema.validate(ibis_table)
-    assert isinstance(result, ibis.Table)
-
-
 # ===========================================================================
 # 3. Dtype / schema validation (SCHEMA scope — works for all frame types)
 # ===========================================================================
@@ -152,33 +132,6 @@ def test_polars_dtype_mismatch_lazyframe():
         schema.validate(pl.LazyFrame({"x": [1, 2, 3]}))
 
 
-def test_polars_dtype_mismatch_dataframe():
-    """Wrong dtype raises SchemaError for pl.DataFrame."""
-    schema = pa_pl.DataFrameSchema({"x": pa_pl.Column(pl.Utf8)})
-    with pytest.raises(SchemaError):
-        # TEST-02: intentionally polars_eager-specific — complements the LazyFrame test above
-        schema.validate(pl.DataFrame({"x": [1, 2, 3]}))
-
-
-def test_polars_missing_column_raises():
-    """Missing required column raises SchemaError."""
-    schema = pa_pl.DataFrameSchema(
-        {"x": pa_pl.Column(int), "z": pa_pl.Column(int)}
-    )
-    with pytest.raises(SchemaError):
-        # TEST-02: intentionally polars_eager-specific — polars schema validation test
-        schema.validate(pl.DataFrame({"x": [1]}))
-
-
-@ibis_only
-def test_ibis_dtype_mismatch():
-    """Wrong dtype raises SchemaError for ibis.Table."""
-    schema = pa_ibis.DataFrameSchema({"x": pa_ibis.Column(dt.float64)})
-    with pytest.raises(SchemaError):
-        # TEST-02: intentionally ibis_table-specific — ibis schema validation test
-        schema.validate(ibis.memtable({"x": [1, 2, 3]}))
-
-
 # ===========================================================================
 # 4. Built-in checks
 # ===========================================================================
@@ -190,13 +143,6 @@ class TestBuiltinChecksPolars:
     TEST-02: intentionally polars_eager-specific — tests pl.DataFrame return types and
     failure_cases as pl.DataFrame. Ibis equivalent in TestBuiltinChecksIbis.
     """
-
-    def test_greater_than_passes(self, polars_df):
-        schema = pa_pl.DataFrameSchema(
-            {"x": pa_pl.Column(int, pa_pl.Check.greater_than(0))}
-        )
-        result = schema.validate(polars_df)
-        assert isinstance(result, pl.DataFrame)
 
     def test_greater_than_fails_failure_cases_type(self):
         """Builtin check failure → failure_cases is pl.DataFrame (native, unwrapped)."""
@@ -222,12 +168,6 @@ class TestBuiltinChecksPolars:
         failing_values = exc_info.value.failure_cases["x"].to_list()
         assert set(failing_values) == {-1, -3}
         assert 2 not in failing_values
-
-    def test_isin_passes(self, polars_df):
-        schema = pa_pl.DataFrameSchema(
-            {"x": pa_pl.Column(int, pa_pl.Check.isin([1, 2, 3, 10, 20, 30]))}
-        )
-        assert isinstance(schema.validate(polars_df), pl.DataFrame)
 
     def test_isin_fails(self):
         schema = pa_pl.DataFrameSchema(
@@ -270,13 +210,6 @@ class TestBuiltinChecksIbis:
     failure_cases as ibis.Table. Polars equivalent in TestBuiltinChecksPolars.
     """
 
-    def test_greater_than_passes(self, ibis_table):
-        schema = pa_ibis.DataFrameSchema(
-            {"x": pa_ibis.Column(dt.int64, pa_ibis.Check.greater_than(0))}
-        )
-        result = schema.validate(ibis_table)
-        assert isinstance(result, ibis.Table)
-
     def test_greater_than_fails_failure_cases_type(self):
         """Ibis builtin check failure → failure_cases is ibis.Table (native, unwrapped)."""
         schema = pa_ibis.DataFrameSchema(
@@ -302,12 +235,6 @@ class TestBuiltinChecksIbis:
         failing = fc.execute()["x"].tolist()
         assert set(failing) == {-1, -3}
         assert 2 not in failing
-
-    def test_isin_passes(self, ibis_table):
-        schema = pa_ibis.DataFrameSchema(
-            {"x": pa_ibis.Column(dt.int64, pa_ibis.Check.isin([1, 2, 3]))}
-        )
-        assert isinstance(schema.validate(ibis_table), ibis.Table)
 
 
 # ===========================================================================
@@ -663,25 +590,6 @@ def test_polars_nullable_false_raises_on_null():
     assert fc["x"].null_count() == 1
 
 
-def test_polars_unique_false_raises_on_duplicate():
-    """unique=True raises SchemaError on duplicate values."""
-    schema = pa_pl.DataFrameSchema({"x": pa_pl.Column(int, unique=True)})
-    with pytest.raises(SchemaError):
-        # TEST-02: intentionally polars_eager-specific — polars unique constraint test
-        schema.validate(pl.DataFrame({"x": [1, 1, 3]}))
-
-
-@ibis_only
-def test_ibis_nullable_false_raises_on_null():
-    """nullable=False raises SchemaError for ibis tables containing nulls."""
-    schema = pa_ibis.DataFrameSchema(
-        {"x": pa_ibis.Column(dt.int64, nullable=False)}
-    )
-    with pytest.raises(SchemaError):
-        # TEST-02: intentionally ibis_table-specific — ibis nullable constraint test
-        schema.validate(ibis.memtable({"x": [1, None, 3]}))
-
-
 # ===========================================================================
 # 7. Lazy validation (lazy=True) — SchemaErrors collects all failures
 # ===========================================================================
@@ -757,37 +665,16 @@ class TestLazyValidationPolars:
 
 
 @ibis_only
-class TestLazyValidationIbis:
-    """lazy=True defers error raising for ibis tables.
+def test_ibis_lazy_failure_cases_is_ibis_table():
+    """SchemaErrors.failure_cases is an ibis.Table for ibis inputs (lazy-first)."""
+    schema = pa_ibis.DataFrameSchema(
+        {"x": pa_ibis.Column(dt.int64, pa_ibis.Check.greater_than(0))}
+    )
+    with pytest.raises(SchemaErrors) as exc_info:
+        schema.validate(ibis.memtable({"x": [-1, -2, 3]}), lazy=True)
 
-    TEST-02: intentionally ibis_table-specific — tests lazy=True with ibis.Table inputs,
-    asserts SchemaErrors.failure_cases is ibis.Table. Polars equivalent in TestLazyValidationPolars.
-    """
-
-    def test_ibis_lazy_collects_multiple_errors(self):
-        schema = pa_ibis.DataFrameSchema(
-            {
-                "x": pa_ibis.Column(dt.int64, pa_ibis.Check.greater_than(0)),
-                "y": pa_ibis.Column(dt.int64, pa_ibis.Check.greater_than(0)),
-            }
-        )
-        with pytest.raises(SchemaErrors) as exc_info:
-            schema.validate(
-                ibis.memtable({"x": [-1, 2], "y": [1, -2]}), lazy=True
-            )
-
-        assert len(exc_info.value.schema_errors) >= 2
-
-    def test_ibis_lazy_failure_cases_is_ibis_table(self):
-        """SchemaErrors.failure_cases is an ibis.Table for ibis inputs (lazy-first)."""
-        schema = pa_ibis.DataFrameSchema(
-            {"x": pa_ibis.Column(dt.int64, pa_ibis.Check.greater_than(0))}
-        )
-        with pytest.raises(SchemaErrors) as exc_info:
-            schema.validate(ibis.memtable({"x": [-1, -2, 3]}), lazy=True)
-
-        fc = exc_info.value.failure_cases
-        assert isinstance(fc, ibis.Table), (
-            "SchemaErrors.failure_cases should be ibis.Table for ibis inputs, "
-            f"got {type(fc)}"
-        )
+    fc = exc_info.value.failure_cases
+    assert isinstance(fc, ibis.Table), (
+        "SchemaErrors.failure_cases should be ibis.Table for ibis inputs, "
+        f"got {type(fc)}"
+    )

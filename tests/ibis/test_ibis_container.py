@@ -14,11 +14,10 @@ from ibis import selectors as s
 import pandera as pa
 from pandera.api.ibis.types import IbisData
 from pandera.backends.ibis.base import IbisSchemaBackend
+from pandera.config import CONFIG
 from pandera.constants import CHECK_OUTPUT_KEY
 from pandera.dtypes import UniqueSettings
 from pandera.ibis import Column, DataFrameSchema
-from pandera.config import CONFIG
-
 
 
 @pytest.fixture

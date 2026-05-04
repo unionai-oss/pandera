@@ -10,13 +10,12 @@ import pytest
 
 import pandera.polars as pa
 from pandera.api.polars.utils import get_lazyframe_schema
-
 from pandera.backends.base import CoreCheckResult
 from pandera.backends.polars.components import ColumnBackend
+from pandera.config import CONFIG
 from pandera.dtypes import DataType
 from pandera.engines import polars_engine
 from pandera.errors import SchemaDefinitionError, SchemaError
-from pandera.config import CONFIG
 
 DTYPES_AND_DATA = [
     # python types

@@ -11,9 +11,8 @@ from ibis import selectors as s
 
 import pandera.ibis as pa
 from pandera.backends.ibis.register import register_ibis_backends
-from pandera.constants import CHECK_OUTPUT_KEY
 from pandera.config import CONFIG
-
+from pandera.constants import CHECK_OUTPUT_KEY
 
 
 @pytest.fixture(autouse=True, scope="module")

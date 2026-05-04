@@ -4,9 +4,8 @@ import polars as pl
 import pytest
 from joblib import Parallel, delayed
 
-from pandera.polars import Column, DataFrameSchema
 from pandera.config import CONFIG
-
+from pandera.polars import Column, DataFrameSchema
 
 schema = DataFrameSchema({"a": Column(pl.Int32)}, coerce=True)
 

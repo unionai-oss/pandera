@@ -10,9 +10,8 @@ from polars.testing import assert_frame_equal
 from polars.testing.parametric import dataframes
 
 import pandera.ibis as pa
-from pandera.engines import ibis_engine as ie
 from pandera.config import CONFIG
-
+from pandera.engines import ibis_engine as ie
 
 NUMERIC_TYPES = [
     ie.Int32,

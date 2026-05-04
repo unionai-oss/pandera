@@ -12,11 +12,10 @@ from ibis.common.exceptions import IbisTypeError
 import pandera.ibis as pa
 from pandera.backends.base import CoreCheckResult
 from pandera.backends.ibis.components import ColumnBackend
-
+from pandera.config import CONFIG
 from pandera.dtypes import DataType
 from pandera.engines import ibis_engine
 from pandera.errors import SchemaDefinitionError, SchemaError, SchemaErrors
-from pandera.config import CONFIG
 
 DTYPES_AND_DATA = [
     # python types
