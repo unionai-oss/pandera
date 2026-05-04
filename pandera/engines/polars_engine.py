@@ -538,10 +538,12 @@ class DateTime(DataType, dtypes.DateTime):
         "time",
         datetime.time,
         pl.Time,
+        dtypes.Time,
+        dtypes.Time(),
     ]
 )
 @immutable
-class Time(DataType):
+class Time(DataType, dtypes.Time):
     """Polars time data type."""
 
     type = pl.Time
