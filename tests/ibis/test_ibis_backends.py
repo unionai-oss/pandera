@@ -4,17 +4,11 @@ import ibis
 import pytest
 
 import pandera.ibis as pa
-
-try:
-    import narwhals  # noqa: F401
-
-    narwhals_installed = True
-except ImportError:
-    narwhals_installed = False
+from pandera.config import CONFIG
 
 
 @pytest.mark.xfail(
-    condition=narwhals_installed,
+    condition=CONFIG.use_narwhals_backend,
     reason="Narwhals backend uses operations not supported by ibis sqlite backend (IsNan)",
     strict=True,
 )

@@ -17,13 +17,8 @@ from pandera.backends.ibis.base import IbisSchemaBackend
 from pandera.constants import CHECK_OUTPUT_KEY
 from pandera.dtypes import UniqueSettings
 from pandera.ibis import Column, DataFrameSchema
+from pandera.config import CONFIG
 
-try:
-    import narwhals  # noqa: F401
-
-    narwhals_installed = True
-except ImportError:
-    narwhals_installed = False
 
 
 @pytest.fixture
@@ -202,7 +197,7 @@ def test_unique_column_names():
 
 
 @pytest.mark.xfail(
-    condition=narwhals_installed,
+    condition=CONFIG.use_narwhals_backend,
     reason="Error message format differs: 'not in dataframe' vs 'not in table' in Narwhals backend",
     strict=True,
 )
@@ -235,7 +230,7 @@ def test_column_values_are_unique(t_basic, t_schema_basic):
     ],
 )
 @pytest.mark.xfail(
-    condition=narwhals_installed,
+    condition=CONFIG.use_narwhals_backend,
     reason="failure_cases structure differs in Narwhals backend (missing 'index' field)",
     strict=True,
 )
@@ -264,7 +259,7 @@ def test_different_unique_settings(unique: UniqueSettings, answers: list[int]):
     "report_duplicates", ["all", "exclude_first", "exclude_last", "invalid"]
 )
 @pytest.mark.xfail(
-    condition=narwhals_installed,
+    condition=CONFIG.use_narwhals_backend,
     reason="failure_cases is pyarrow.lib.Table in Narwhals backend; .count() not available",
     strict=True,
 )
@@ -289,7 +284,7 @@ def test_valid_unique_settings(report_duplicates):
 
 
 @pytest.mark.xfail(
-    condition=narwhals_installed,
+    condition=CONFIG.use_narwhals_backend,
     reason="Ibis-style custom check functions incompatible with Narwhals backend",
     strict=True,
 )
@@ -315,7 +310,7 @@ def test_dataframe_level_checks():
 
 
 @pytest.mark.xfail(
-    condition=narwhals_installed,
+    condition=CONFIG.use_narwhals_backend,
     reason="Row index not preserved in Narwhals backend lazy/SQL failure_cases path",
     strict=True,
 )
@@ -335,7 +330,7 @@ def test_failed_cases_index_for_column_check():
 
 
 @pytest.mark.xfail(
-    condition=narwhals_installed,
+    condition=CONFIG.use_narwhals_backend,
     reason="IbisData-style custom check functions incompatible with Narwhals backend",
     strict=True,
 )
@@ -474,7 +469,7 @@ def _failure_type(column: str):
 
 
 @pytest.mark.xfail(
-    condition=narwhals_installed,
+    condition=CONFIG.use_narwhals_backend,
     reason="Regex column selection broken in Narwhals backend",
     strict=True,
 )
@@ -520,7 +515,7 @@ def test_regex_selector(
 
 
 @pytest.mark.xfail(
-    condition=narwhals_installed,
+    condition=CONFIG.use_narwhals_backend,
     reason="failure_cases.shape[0] fails; ibis.Table has no .shape in Narwhals backend",
     strict=True,
 )

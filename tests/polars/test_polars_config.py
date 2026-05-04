@@ -17,12 +17,6 @@ from pandera.config import (
 )
 from pandera.engines.polars_engine import polars_version
 
-try:
-    import narwhals  # noqa: F401
-
-    narwhals_installed = True
-except ImportError:
-    narwhals_installed = False
 
 
 @pytest.fixture(scope="function")
@@ -87,7 +81,7 @@ def test_validation_disabled(validation_disabled, schema):
 
 
 @pytest.mark.xfail(
-    condition=narwhals_installed,
+    condition=CONFIG.use_narwhals_backend,
     reason="Narwhals backend does not support coerce; validation depth behavior differs",
     strict=True,
 )
@@ -135,7 +129,7 @@ def test_lazyframe_validation_depth_none(validation_depth_none, schema):
 
 
 @pytest.mark.xfail(
-    condition=narwhals_installed,
+    condition=CONFIG.use_narwhals_backend,
     reason="Narwhals backend does not support coerce; validation depth behavior differs",
     strict=True,
 )
@@ -161,7 +155,7 @@ def test_dataframe_validation_depth_none(validation_depth_none, schema):
 
 
 @pytest.mark.xfail(
-    condition=narwhals_installed,
+    condition=CONFIG.use_narwhals_backend,
     reason="Error message format differs in Narwhals backend",
     strict=True,
 )
@@ -192,7 +186,7 @@ def test_lazyframe_validation_depth_schema_and_data(
 
 
 @pytest.mark.xfail(
-    condition=narwhals_installed,
+    condition=CONFIG.use_narwhals_backend,
     reason="Narwhals backend does not support dtype coercion",
     strict=True,
 )

@@ -5,19 +5,14 @@ import pytest
 from joblib import Parallel, delayed
 
 from pandera.polars import Column, DataFrameSchema
+from pandera.config import CONFIG
 
-try:
-    import narwhals  # noqa: F401
-
-    narwhals_installed = True
-except ImportError:
-    narwhals_installed = False
 
 schema = DataFrameSchema({"a": Column(pl.Int32)}, coerce=True)
 
 
 @pytest.mark.xfail(
-    condition=narwhals_installed,
+    condition=CONFIG.use_narwhals_backend,
     reason="Narwhals backend does not support dtype coercion (schema uses coerce=True)",
     strict=True,
 )

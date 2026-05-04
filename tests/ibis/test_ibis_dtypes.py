@@ -11,13 +11,8 @@ from polars.testing.parametric import dataframes
 
 import pandera.ibis as pa
 from pandera.engines import ibis_engine as ie
+from pandera.config import CONFIG
 
-try:
-    import narwhals  # noqa: F401
-
-    narwhals_installed = True
-except ImportError:
-    narwhals_installed = False
 
 NUMERIC_TYPES = [
     ie.Int32,
@@ -156,7 +151,7 @@ def test_ibis_map_nested_type(key_dtype, value_dtype):
 
 
 @pytest.mark.xfail(
-    condition=narwhals_installed,
+    condition=CONFIG.use_narwhals_backend,
     reason="Narwhals engine dtype comparison fails for ibis map type",
     strict=True,
 )

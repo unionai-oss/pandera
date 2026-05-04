@@ -16,18 +16,13 @@ from pandera.api.polars.types import PolarsData
 from pandera.api.polars.utils import get_lazyframe_column_names
 from pandera.engines import polars_engine as pe
 from pandera.polars import Column, DataFrameModel, DataFrameSchema
+from pandera.config import CONFIG
 
 try:
     from polars._typing import PolarsDataType  # type: ignore
 except NameError:
     from polars.type_aliases import PolarsDataType  # type: ignore
 
-try:
-    import narwhals  # noqa: F401
-
-    narwhals_installed = True
-except ImportError:
-    narwhals_installed = False
 
 
 @pytest.fixture
@@ -162,7 +157,7 @@ def test_coerce_dtype_with_dataframe(ldf_schema_basic):
 
 
 @pytest.mark.xfail(
-    condition=narwhals_installed,
+    condition=CONFIG.use_narwhals_backend,
     reason="Narwhals backend does not support dtype coercion",
     strict=True,
 )
@@ -179,7 +174,7 @@ def test_coerce_dtype_dataframe_actually_coerces():
 
 
 @pytest.mark.xfail(
-    condition=narwhals_installed,
+    condition=CONFIG.use_narwhals_backend,
     reason="Narwhals backend does not support dtype coercion",
     strict=True,
 )
@@ -204,7 +199,7 @@ def test_coerce_column_dtype_error(ldf_basic, ldf_schema_basic):
 
 
 @pytest.mark.xfail(
-    condition=narwhals_installed,
+    condition=CONFIG.use_narwhals_backend,
     reason="Narwhals backend does not support dtype coercion",
     strict=True,
 )
@@ -259,7 +254,7 @@ def test_strict_filter(ldf_basic, ldf_schema_basic):
 
 
 @pytest.mark.xfail(
-    condition=narwhals_installed,
+    condition=CONFIG.use_narwhals_backend,
     reason="add_missing_columns parser not implemented in Narwhals backend",
     strict=True,
 )
@@ -275,7 +270,7 @@ def test_add_missing_columns_with_default(ldf_basic, ldf_schema_basic):
 
 
 @pytest.mark.xfail(
-    condition=narwhals_installed,
+    condition=CONFIG.use_narwhals_backend,
     reason="add_missing_columns parser not implemented in Narwhals backend",
     strict=True,
 )
@@ -353,7 +348,7 @@ def test_column_values_are_unique(ldf_basic, ldf_schema_basic):
 
 
 @pytest.mark.xfail(
-    condition=narwhals_installed,
+    condition=CONFIG.use_narwhals_backend,
     reason="Polars-style custom check functions incompatible with Narwhals backend",
     strict=True,
 )
@@ -459,7 +454,7 @@ def test_drop_invalid_rows_nullable(
 
 
 @pytest.mark.xfail(
-    condition=narwhals_installed,
+    condition=CONFIG.use_narwhals_backend,
     reason="set_default not implemented in Narwhals backend",
     strict=True,
 )
@@ -497,7 +492,7 @@ def _failure_type(column: str):
 
 
 @pytest.mark.xfail(
-    condition=narwhals_installed,
+    condition=CONFIG.use_narwhals_backend,
     reason="Regex column selection broken in Narwhals backend",
     strict=True,
 )
@@ -559,7 +554,7 @@ def test_regex_selector(
 
 
 @pytest.mark.xfail(
-    condition=narwhals_installed,
+    condition=CONFIG.use_narwhals_backend,
     reason="Regex column selection broken in Narwhals backend",
     strict=True,
 )
@@ -602,7 +597,7 @@ def test_regex_column_name_in_error_message():
 
 
 @pytest.mark.xfail(
-    condition=narwhals_installed,
+    condition=CONFIG.use_narwhals_backend,
     reason="Narwhals backend does not support coerce or regex column selection",
     strict=True,
 )
@@ -626,7 +621,7 @@ def test_ordered(ldf_basic, ldf_schema_basic):
 
 
 @pytest.mark.xfail(
-    condition=narwhals_installed,
+    condition=CONFIG.use_narwhals_backend,
     reason="sample= parameter not supported in Narwhals backend",
     strict=True,
 )
@@ -688,7 +683,7 @@ def test_dataframe_validation_errors_nullable():
 
 
 @pytest.mark.xfail(
-    condition=narwhals_installed,
+    condition=CONFIG.use_narwhals_backend,
     reason="Unique violation count differs in Narwhals backend",
     strict=True,
 )
@@ -706,7 +701,7 @@ def test_dataframe_validation_errors_unique():
 
 
 @pytest.mark.xfail(
-    condition=narwhals_installed,
+    condition=CONFIG.use_narwhals_backend,
     reason="Unique violation count differs in Narwhals backend",
     strict=True,
 )
@@ -777,7 +772,7 @@ def lf_with_nested_types():
 
 
 @pytest.mark.xfail(
-    condition=narwhals_installed,
+    condition=CONFIG.use_narwhals_backend,
     reason="Narwhals engine dtype comparison fails for nested polars types",
     strict=True,
 )
@@ -798,7 +793,7 @@ def test_dataframe_schema_with_nested_types(lf_with_nested_types):
 
 
 @pytest.mark.xfail(
-    condition=narwhals_installed,
+    condition=CONFIG.use_narwhals_backend,
     reason="Narwhals engine dtype comparison fails for nested polars types",
     strict=True,
 )
@@ -816,7 +811,7 @@ def test_dataframe_model_with_annotated_nested_types(lf_with_nested_types):
 
 
 @pytest.mark.xfail(
-    condition=narwhals_installed,
+    condition=CONFIG.use_narwhals_backend,
     reason="Narwhals engine dtype comparison fails for nested polars types",
     strict=True,
 )
@@ -846,7 +841,7 @@ def test_dataframe_schema_with_kwargs_nested_types(lf_with_nested_types):
         pytest.param(
             "UTC",
             marks=pytest.mark.xfail(
-                condition=narwhals_installed,
+                condition=CONFIG.use_narwhals_backend,
                 reason="Narwhals engine dtype comparison fails for tz-aware polars Datetime",
                 strict=True,
             ),
@@ -854,7 +849,7 @@ def test_dataframe_schema_with_kwargs_nested_types(lf_with_nested_types):
         pytest.param(
             "GMT",
             marks=pytest.mark.xfail(
-                condition=narwhals_installed,
+                condition=CONFIG.use_narwhals_backend,
                 reason="Narwhals engine dtype comparison fails for tz-aware polars Datetime",
                 strict=True,
             ),
@@ -862,7 +857,7 @@ def test_dataframe_schema_with_kwargs_nested_types(lf_with_nested_types):
         pytest.param(
             "EST",
             marks=pytest.mark.xfail(
-                condition=narwhals_installed,
+                condition=CONFIG.use_narwhals_backend,
                 reason="Narwhals engine dtype comparison fails for tz-aware polars Datetime",
                 strict=True,
             ),
@@ -894,7 +889,7 @@ def test_dataframe_schema_with_tz_agnostic_dates(time_zone, data):
 
 
 @pytest.mark.xfail(
-    condition=narwhals_installed,
+    condition=CONFIG.use_narwhals_backend,
     reason="Narwhals backend does not support dtype coercion",
     strict=True,
 )
@@ -924,7 +919,7 @@ def test_dataframe_coerce_col_with_null_in_other_column():
 
 
 @pytest.mark.xfail(
-    condition=narwhals_installed,
+    condition=CONFIG.use_narwhals_backend,
     reason="Narwhals backend does not support dtype coercion",
     strict=True,
 )
@@ -948,7 +943,7 @@ def test_dataframe_column_level_coerce():
 
 
 @pytest.mark.xfail(
-    condition=narwhals_installed,
+    condition=CONFIG.use_narwhals_backend,
     reason="Custom check signature incompatible with Narwhals backend",
     strict=True,
 )
