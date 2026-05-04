@@ -79,6 +79,17 @@ class BaseClass:
                 f"Narwhals engine does not support this dtype on {backend.name}"
             )
 
+        if (
+            CONFIG.use_narwhals_backend
+            and backend.name == "ibis"
+            and isinstance(dtype, type)
+            and issubclass(dtype, dtypes.Timedelta)
+        ):
+            pytest.xfail(
+                "Ibis does not support mixed-unit Python timedelta literals "
+                "as check comparison values under the Narwhals backend"
+            )
+
         schema = backend.DataFrameSchema(
             {
                 "product": backend.Column(backend.string_dtype),
