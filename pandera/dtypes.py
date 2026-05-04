@@ -538,6 +538,14 @@ class Timedelta(DataType):
 
 
 @immutable
+class Time(DataType):
+    """Semantic representation of a time-of-day data type."""
+
+    def __str__(self) -> str:
+        return "time"
+
+
+@immutable
 class Binary(DataType):
     """Semantic representation of a delta time data type."""
 

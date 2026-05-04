@@ -451,10 +451,12 @@ class DateTime(DataType, dtypes.DateTime):
         dt.Time,
         dt.time,
         dt.Time(nullable=False),
+        dtypes.Time,
+        dtypes.Time(),
     ]
 )
 @immutable
-class Time(DataType):
+class Time(DataType, dtypes.Time):
     """Semantic representation of a :class:`dt.Time`."""
 
     type = dt.time
