@@ -7,6 +7,7 @@ Adding a new backend: subclass BackendFixture, implement its methods,
 and add a pytest.param entry to BACKENDS.
 """
 
+import pandas as pd
 import pytest
 
 
@@ -16,6 +17,9 @@ class BackendFixture:
     Column: type
 
     def make_frame(self, data: dict):
+        raise NotImplementedError
+
+    def collect(self, result) -> pd.DataFrame:
         raise NotImplementedError
 
 
@@ -39,6 +43,9 @@ class PolarsBackend(BackendFixture):
 
         return pl.DataFrame(data)
 
+    def collect(self, result) -> pd.DataFrame:
+        return result.to_pandas()
+
 
 class IbisBackend(BackendFixture):
     name = "ibis"
@@ -58,7 +65,16 @@ class IbisBackend(BackendFixture):
     def make_frame(self, data: dict):
         import ibis
 
-        return ibis.memtable(data)
+        # Infer schema from Python types so ibis doesn't widen int+None to float64.
+        ibis_type = {int: "int64", str: "string", float: "float64"}
+        fields = [
+            (k, ibis_type[type(next(x for x in v if x is not None))])
+            for k, v in data.items()
+        ]
+        return ibis.memtable(data, schema=ibis.schema(fields))
+
+    def collect(self, result) -> pd.DataFrame:
+        return result.execute()
 
 
 BACKENDS = [

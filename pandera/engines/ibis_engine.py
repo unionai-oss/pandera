@@ -473,8 +473,8 @@ class Time(DataType, dtypes.Time):
     ]
 )
 @immutable(init=True)
-class Timedelta(DataType, dtypes.DateTime):
-    """Semantic representation of a :class:`dt.Timestamp`."""
+class Timedelta(DataType, dtypes.Timedelta):
+    """Semantic representation of a :class:`dt.Interval`."""
 
     type: type[dt.Interval]
 

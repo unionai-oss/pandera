@@ -300,16 +300,16 @@ def tests(
         args = session.posargs
     else:
         path = f"tests/{test_dir}/" if extra != "all" else "tests"
-        args = []
+        cov_args = []
         if extra == "strategies":
             profile = "ci"
             # enable threading via pytest-xdist
-            args = [
+            cov_args = [
                 "-n=auto",
                 "-q",
                 f"--hypothesis-profile={profile}",
             ]
-        args += [
+        cov_args += [
             f"--cov={PACKAGE}",
             "--cov-report=term-missing",
             "--cov-report=xml",
@@ -317,10 +317,12 @@ def tests(
             "--verbosity=10",
         ]
         if not CI_RUN:
-            args.append("--cov-report=html")
-        args.append(path)
+            cov_args.append("--cov-report=html")
+        args = [*cov_args, path]
 
     session.run("pytest", *args, env=env)
+    if not session.posargs and extra in ("polars", "ibis"):
+        session.run("pytest", *cov_args, "tests/common/", "-m", extra, env=env)
 
 
 @nox.session(venv_backend="uv", python=PYTHON_VERSIONS)
@@ -360,7 +362,7 @@ def tests_narwhals_backend(session: Session, extra: str) -> None:
     session.run("uv", "pip", "list")
 
     path = f"tests/{extra}/"
-    args = [
+    cov_args = [
         f"--cov={PACKAGE}",
         "--cov-report=term-missing",
         "--cov-report=xml",
@@ -368,10 +370,10 @@ def tests_narwhals_backend(session: Session, extra: str) -> None:
         "--verbosity=10",
     ]
     if not CI_RUN:
-        args.append("--cov-report=html")
-    args.append(path)
+        cov_args.append("--cov-report=html")
     env = {"PANDERA_USE_NARWHALS_BACKEND": "True"}
-    session.run("pytest", *args, env=env)
+    session.run("pytest", *cov_args, path, env=env)
+    session.run("pytest", *cov_args, "tests/common/", "-m", extra, env=env)
 
 
 @nox.session(venv_backend="uv", python=PYTHON_VERSIONS)

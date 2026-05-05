@@ -11,14 +11,8 @@ from ibis import selectors as s
 
 import pandera.ibis as pa
 from pandera.backends.ibis.register import register_ibis_backends
+from pandera.config import CONFIG
 from pandera.constants import CHECK_OUTPUT_KEY
-
-try:
-    import narwhals  # noqa: F401
-
-    narwhals_installed = True
-except ImportError:
-    narwhals_installed = False
 
 
 @pytest.fixture(autouse=True, scope="module")
@@ -47,7 +41,7 @@ def _column_check_fn_scalar_out(data: pa.IbisData) -> ir.Table:
 
 
 @pytest.mark.xfail(
-    condition=narwhals_installed,
+    condition=CONFIG.use_narwhals_backend,
     reason="Ibis-style check functions incompatible with Narwhals backend",
     strict=True,
 )
@@ -99,7 +93,7 @@ def _df_check_fn_scalar_out(data: pa.IbisData) -> ir.BooleanScalar:
 
 
 @pytest.mark.xfail(
-    condition=narwhals_installed,
+    condition=CONFIG.use_narwhals_backend,
     reason="Ibis-style check functions incompatible with Narwhals backend",
     strict=True,
 )
@@ -177,7 +171,7 @@ def _element_wise_check_fn(x: int) -> bool:
 
 
 @pytest.mark.xfail(
-    condition=narwhals_installed,
+    condition=CONFIG.use_narwhals_backend,
     reason="Element-wise checks incompatible with Narwhals backend",
     strict=True,
 )
@@ -195,7 +189,7 @@ def test_ibis_element_wise_column_check(column_t):
 
 
 @pytest.mark.xfail(
-    condition=narwhals_installed,
+    condition=CONFIG.use_narwhals_backend,
     reason="Element-wise checks incompatible with Narwhals backend",
     strict=True,
 )
@@ -217,7 +211,7 @@ def test_ibis_element_wise_dataframe_check(t):
 
 
 @pytest.mark.xfail(
-    condition=narwhals_installed,
+    condition=CONFIG.use_narwhals_backend,
     reason="Element-wise checks incompatible with Narwhals backend",
     strict=True,
 )
@@ -254,7 +248,7 @@ def test_ibis_element_wise_dataframe_different_dtypes():
 
 
 @pytest.mark.xfail(
-    condition=narwhals_installed,
+    condition=CONFIG.use_narwhals_backend,
     reason="Ibis-style custom check functions incompatible with Narwhals backend",
     strict=True,
 )
@@ -289,7 +283,7 @@ def test_ibis_custom_check():
 
 
 @pytest.mark.xfail(
-    condition=narwhals_installed,
+    condition=CONFIG.use_narwhals_backend,
     reason="Custom check signature incompatible with Narwhals backend",
     strict=True,
 )
@@ -307,7 +301,7 @@ def test_ibis_column_check_n_failure_cases(column_t):
 
 
 @pytest.mark.xfail(
-    condition=narwhals_installed,
+    condition=CONFIG.use_narwhals_backend,
     reason="Custom check signature incompatible with Narwhals backend",
     strict=True,
 )

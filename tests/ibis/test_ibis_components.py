@@ -12,13 +12,7 @@ from ibis.common.exceptions import IbisTypeError
 import pandera.ibis as pa
 from pandera.backends.base import CoreCheckResult
 from pandera.backends.ibis.components import ColumnBackend
-
-try:
-    import narwhals  # noqa: F401
-
-    narwhals_installed = True
-except ImportError:
-    narwhals_installed = False
+from pandera.config import CONFIG
 from pandera.dtypes import DataType
 from pandera.engines import ibis_engine
 from pandera.errors import SchemaDefinitionError, SchemaError, SchemaErrors
@@ -38,7 +32,7 @@ DTYPES_AND_DATA = [
 
 
 @pytest.mark.xfail(
-    condition=narwhals_installed,
+    condition=CONFIG.use_narwhals_backend,
     reason="Narwhals backend column validation error for basic dtypes",
     strict=True,
 )
@@ -70,7 +64,7 @@ def test_column_schema_name_none():
 
 
 @pytest.mark.xfail(
-    condition=narwhals_installed,
+    condition=CONFIG.use_narwhals_backend,
     reason="Regex column selection broken in Narwhals backend",
     strict=True,
 )
@@ -95,7 +89,7 @@ def test_column_schema_regex(column_kwargs):
 
 
 @pytest.mark.xfail(
-    condition=narwhals_installed,
+    condition=CONFIG.use_narwhals_backend,
     reason="Narwhals backend overrides native ibis ColumnBackend",
     strict=True,
 )
@@ -201,7 +195,7 @@ def test_check_nullable(dtype, data, nullable):
     [(True, nullcontext()), (False, pytest.raises(SchemaErrors))],
 )
 def test_check_nullable_regex(dtype, data, nullable, expectation):
-    if narwhals_installed and not nullable:
+    if CONFIG.use_narwhals_backend and not nullable:
         pytest.xfail(
             "failure_cases is an ibis.Table in Narwhals backend; .shape[0] not available"
         )
@@ -261,7 +255,7 @@ def test_check_dtype(data, from_dtype, check_dtype):
 
 
 @pytest.mark.xfail(
-    condition=narwhals_installed,
+    condition=CONFIG.use_narwhals_backend,
     reason="failure_cases attribute not available in Narwhals backend",
     strict=True,
 )

@@ -7,6 +7,7 @@ from typing import Any, Optional, TypeVar, Union
 
 import ibis
 import ibis.expr.datatypes as dt
+import ibis.expr.types as ir
 from ibis import _
 from ibis import selectors as s
 
@@ -364,7 +365,7 @@ def str_length(
 @register_builtin_check(
     error="unique_values_eq({values})",
 )
-def unique_values_eq(data: IbisData, values: Iterable) -> ibis.Table:
+def unique_values_eq(data: IbisData, values: Iterable) -> bool:
     """Ensure that unique values in the data object contain all values.
 
     .. note::
@@ -375,6 +376,9 @@ def unique_values_eq(data: IbisData, values: Iterable) -> ibis.Table:
         to access the table is "table", and the key to access the column name is "key".
     :param values: The set of values that must be present. May be any iterable.
     """
+    resolved = frozenset(
+        v.execute() if isinstance(v, ir.Expr) else v for v in values
+    )
     return (
         set(
             data.table.select(data.key)
@@ -382,5 +386,5 @@ def unique_values_eq(data: IbisData, values: Iterable) -> ibis.Table:
             .to_pyarrow()
             .to_pylist()
         )
-        == values
+        == resolved
     )

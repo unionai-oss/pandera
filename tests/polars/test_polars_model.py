@@ -16,6 +16,7 @@ from hypothesis import strategies as st
 from polars.testing.parametric import column, dataframes
 
 import pandera.engines.polars_engine as pe
+from pandera.config import CONFIG
 from pandera.errors import SchemaError
 from pandera.polars import (
     Column,
@@ -26,13 +27,6 @@ from pandera.polars import (
     check,
     dataframe_check,
 )
-
-try:
-    import narwhals  # noqa: F401
-
-    narwhals_installed = True
-except ImportError:
-    narwhals_installed = False
 
 
 @pytest.fixture
@@ -64,7 +58,7 @@ def ldf_model_with_fields():
 
 
 @pytest.mark.xfail(
-    condition=narwhals_installed,
+    condition=CONFIG.use_narwhals_backend,
     reason="coerce_dtype not implemented in Narwhals backend (used by DataFrameModel.empty())",
     strict=True,
 )
@@ -177,7 +171,7 @@ ErrorCls = (
             {"string_col": pl.Int64},
             ErrorCls,
             marks=pytest.mark.xfail(
-                condition=narwhals_installed,
+                condition=CONFIG.use_narwhals_backend,
                 reason="Narwhals raises narwhals.exceptions.InvalidOperationError, not polars.exceptions.InvalidOperationError",
                 strict=True,
             ),
@@ -220,7 +214,7 @@ def test_model_with_fields(ldf_model_with_fields, ldf_basic):
 
 
 @pytest.mark.xfail(
-    condition=narwhals_installed,
+    condition=CONFIG.use_narwhals_backend,
     reason="Polars-style custom check functions incompatible with Narwhals backend",
     strict=True,
 )
@@ -241,7 +235,7 @@ def test_model_with_custom_column_checks(
 
 
 @pytest.mark.xfail(
-    condition=narwhals_installed,
+    condition=CONFIG.use_narwhals_backend,
     reason="Polars-style custom check functions incompatible with Narwhals backend",
     strict=True,
 )
@@ -292,7 +286,7 @@ def test_polars_python_list_df_model(schema_with_list_type):
         pytest.param(
             "UTC",
             marks=pytest.mark.xfail(
-                condition=narwhals_installed,
+                condition=CONFIG.use_narwhals_backend,
                 reason="Narwhals engine dtype comparison fails for tz-aware polars Datetime",
                 strict=True,
             ),
@@ -300,7 +294,7 @@ def test_polars_python_list_df_model(schema_with_list_type):
         pytest.param(
             "GMT",
             marks=pytest.mark.xfail(
-                condition=narwhals_installed,
+                condition=CONFIG.use_narwhals_backend,
                 reason="Narwhals engine dtype comparison fails for tz-aware polars Datetime",
                 strict=True,
             ),
@@ -308,7 +302,7 @@ def test_polars_python_list_df_model(schema_with_list_type):
         pytest.param(
             "EST",
             marks=pytest.mark.xfail(
-                condition=narwhals_installed,
+                condition=CONFIG.use_narwhals_backend,
                 reason="Narwhals engine dtype comparison fails for tz-aware polars Datetime",
                 strict=True,
             ),
