@@ -728,6 +728,8 @@ def check_types(
                 )
             except errors.SchemaError as e:
                 schema_errors.append(e)
+            except errors.SchemaErrors as e:
+                schema_errors.extend(e.schema_errors)
         if schema_errors:
             raise errors.SchemaErrors(
                 schema=child.dataframe_model.to_schema()
