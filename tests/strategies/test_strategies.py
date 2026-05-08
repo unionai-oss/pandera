@@ -962,14 +962,24 @@ def test_defined_check_strategy(
 
 
 def test_unsatisfiable_checks():
-    """Test that unsatisfiable checks raise an exception."""
+    """Test that unsatisfiable checks raise an exception.
+
+    Joint-unsatisfiable check stacks now fail fast at strategy
+    construction time as a ``SchemaDefinitionError`` (per
+    ``specs/optimized-strategies.md`` §6) instead of after hypothesis
+    exhausts itself with ``Unsatisfiable``.
+    """
+    from pandera.errors import SchemaDefinitionError
+
     schema = pa.DataFrameSchema(
         columns={
             "col1": pa.Column(int, checks=[pa.Check.gt(0), pa.Check.lt(0)])
         }
     )
     for _ in range(5):
-        with pytest.raises(hypothesis.errors.Unsatisfiable):
+        with pytest.raises(
+            (SchemaDefinitionError, hypothesis.errors.Unsatisfiable),
+        ):
             schema.example(size=10)
 
 

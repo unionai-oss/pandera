@@ -11,7 +11,8 @@ package.
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+import operator
+from collections.abc import Callable, Sequence
 from functools import wraps
 from typing import Any, TypeVar, cast
 
@@ -20,7 +21,15 @@ import numpy as np
 from pandera.engines import numpy_engine
 from pandera.engines.xarray_engine import DataType as XarrayDataType
 from pandera.errors import SchemaDefinitionError
-from pandera.strategies.base_strategies import HAS_HYPOTHESIS
+from pandera.strategies.base_strategies import (
+    CONSTRAINT_DISPATCHER,
+    HAS_HYPOTHESIS,
+)
+from pandera.strategies.constraints import (
+    UNSET,
+    ConstraintConflictError,
+    FieldConstraints,
+)
 
 if HAS_HYPOTHESIS:
     import hypothesis.extra.numpy as npst
@@ -72,6 +81,214 @@ def _to_numpy_dtype(dtype_spec) -> np.dtype:
         return np.dtype(dtype_spec)
     except TypeError:
         return np.dtype("float64")
+
+
+def _aggregate_constraints(
+    checks: Sequence | None,
+    dispatch_type: type,
+) -> tuple[FieldConstraints, list]:
+    """Bucket xarray-level checks into constraint adapters and residuals.
+
+    Mirrors the bucketing in
+    :func:`pandera.strategies.pandas_strategies.field_element_strategy`
+    so xarray strategies can leverage the same ``FieldConstraints``
+    aggregation machinery (per ``specs/optimized-strategies.md`` §5).
+
+    :param checks: sequence of ``Check`` objects to aggregate.
+    :param dispatch_type: the dispatch key (``xr.DataArray`` for
+        ``data_array_strategy`` or ``xr.Dataset`` for
+        ``dataset_strategy``) used to look up adapters in
+        :data:`CONSTRAINT_DISPATCHER`.
+    :returns: ``(merged_constraints, leftover_checks)`` — checks that
+        did not contribute a constraint adapter remain in the leftover
+        list so callers can decide whether to warn or filter.
+    :raises SchemaDefinitionError: when the merged constraints are
+        jointly unsatisfiable.
+    """
+    constraint_acc = FieldConstraints()
+    leftover: list = []
+    for check in checks or ():
+        constraint_fn = getattr(check, "constraint", None) or (
+            CONSTRAINT_DISPATCHER.get((check.name, dispatch_type))
+        )
+        if constraint_fn is None:
+            leftover.append(check)
+            continue
+        try:
+            constraint_acc = constraint_acc.merge(
+                constraint_fn(**check.statistics)
+            )
+        except ConstraintConflictError as exc:
+            names = [str(getattr(c, "name", "?")) for c in checks or ()]
+            raise SchemaDefinitionError(
+                f"Cannot construct a data-generation strategy for checks "
+                f"{names}: constraints are jointly unsatisfiable ({exc})."
+            ) from exc
+    return constraint_acc, leftover
+
+
+def _close_bound_for_npdtype(
+    np_dtype: np.dtype,
+    value: Any,
+    exclude: bool,
+    side: str,
+) -> tuple[Any, bool]:
+    """Adjust an exclusive bound for a numpy dtype.
+
+    ``hypothesis.extra.numpy.from_dtype`` natively supports exclusive
+    bounds for floats / complex dtypes via ``exclude_min`` /
+    ``exclude_max`` but treats integer bounds as inclusive. For
+    integer-like dtypes we close the interval by adjusting by 1
+    (mirrors ``pandas_strategies._close_bound``).
+    """
+    if np.issubdtype(np_dtype, np.floating) or np.issubdtype(
+        np_dtype, np.complexfloating
+    ):
+        return value, exclude
+    if not exclude:
+        return value, False
+    if np.issubdtype(np_dtype, np.integer):
+        try:
+            return (value + 1) if side == "min" else (value - 1), False
+        except TypeError:
+            return value, False
+    return value, False
+
+
+@_strategy_import_error
+def compile_dataarray_element_strategy(
+    np_dtype: np.dtype,
+    constraints: FieldConstraints,
+) -> SearchStrategy:
+    """Lower a merged ``FieldConstraints`` to a single element strategy.
+
+    Analogous to
+    :func:`pandera.strategies.pandas_strategies.compile_field_strategy`,
+    but emits ``hypothesis.extra.numpy.from_dtype`` instead of the
+    pandas dtype strategy. Equality, ``isin``, ``notin`` and
+    numeric-bound aggregation are honoured; string aggregation falls
+    back to ``st.text`` since ``npst.from_dtype`` doesn't model
+    regex-shaped strings directly.
+    """
+    constraints = constraints.apply_post_merge_hooks()
+
+    if constraints.eq is not UNSET:
+        if constraints.eq in constraints.notin:
+            raise ConstraintConflictError(
+                f"eq={constraints.eq!r} conflicts with notin"
+            )
+        return st.just(constraints.eq).map(np_dtype.type)
+
+    if constraints.isin is not None:
+        allowed = set(constraints.isin) - set(constraints.notin)
+        if constraints.min_value is not UNSET:
+            cmp = operator.lt if constraints.exclude_min else operator.le
+            allowed = {v for v in allowed if cmp(constraints.min_value, v)}
+        if constraints.max_value is not UNSET:
+            cmp = operator.gt if constraints.exclude_max else operator.ge
+            allowed = {v for v in allowed if cmp(constraints.max_value, v)}
+        if not allowed:
+            raise ConstraintConflictError(
+                "isin/notin/bounds intersection is empty"
+            )
+        strat = st.sampled_from(sorted(allowed)).map(np_dtype.type)
+        for _name, predicate in constraints.residual_filters:
+            strat = strat.filter(predicate)
+        return strat
+
+    is_string = np_dtype.kind in {"U", "S", "O"}
+    if is_string and (
+        constraints.regex_fullmatch
+        or constraints.regex_search
+        or constraints.str_min_len is not None
+        or constraints.str_max_len is not None
+        or constraints.str_exact_len is not None
+    ):
+        # Reuse the pandas string compiler — the constraints layer is
+        # dtype-agnostic; we just need a string-shaped element strategy.
+        # A circular import is avoided by a local import.
+        from pandera.engines import pandas_engine
+        from pandera.strategies.pandas_strategies import (
+            _compile_string_strategy,
+        )
+
+        return _compile_string_strategy(
+            pandas_engine.Engine.dtype(str), constraints
+        )
+
+    kwargs: dict[str, Any] = {}
+    if constraints.min_value is not UNSET:
+        min_v, excl_min = _close_bound_for_npdtype(
+            np_dtype, constraints.min_value, constraints.exclude_min, "min"
+        )
+        kwargs["min_value"] = min_v
+        if np.issubdtype(np_dtype, np.floating) or np.issubdtype(
+            np_dtype, np.complexfloating
+        ):
+            kwargs["exclude_min"] = excl_min
+    if constraints.max_value is not UNSET:
+        max_v, excl_max = _close_bound_for_npdtype(
+            np_dtype, constraints.max_value, constraints.exclude_max, "max"
+        )
+        kwargs["max_value"] = max_v
+        if np.issubdtype(np_dtype, np.floating) or np.issubdtype(
+            np_dtype, np.complexfloating
+        ):
+            kwargs["exclude_max"] = excl_max
+    if np.issubdtype(np_dtype, np.floating) or np.issubdtype(
+        np_dtype, np.complexfloating
+    ):
+        kwargs["allow_nan"] = constraints.allow_nan
+        kwargs["allow_infinity"] = constraints.allow_infinity
+
+    if np.issubdtype(np_dtype, np.datetime64):
+        strat = npst.from_dtype(
+            np.dtype("int64"),
+            **{"allow_nan": False, "allow_infinity": False, **kwargs},
+        ).map(lambda x: np.datetime64(x, "ns"))
+    elif np.issubdtype(np_dtype, np.timedelta64):
+        strat = npst.from_dtype(
+            np.dtype("int64"),
+            **{"allow_nan": False, "allow_infinity": False, **kwargs},
+        ).map(lambda x: np.timedelta64(x, "ns"))
+    else:
+        strat = npst.from_dtype(
+            np_dtype,
+            **{"allow_nan": False, "allow_infinity": False, **kwargs},
+        )
+
+    if constraints.notin:
+        forbidden = constraints.notin
+        strat = strat.filter(lambda v, f=forbidden: v not in f)
+
+    for _name, predicate in constraints.residual_filters:
+        strat = strat.filter(predicate)
+
+    return strat
+
+
+def _checks_to_element_strategy(
+    np_dtype: np.dtype,
+    dtype_spec: Any,
+    checks: Sequence | None,
+    dispatch_type: type,
+) -> tuple[SearchStrategy, list]:
+    """Lower xarray-level checks to a single hypothesis element strategy.
+
+    Returns the element strategy plus any leftover checks (those
+    without a constraint adapter). The xarray strategy layer does not
+    currently fall back to ``.filter`` chaining for leftover checks —
+    it ignores them and lets the schema validate-time pass surface
+    failures, which matches the pre-Stage-8 behaviour. A future
+    revision may surface a ``DeprecationWarning`` analogous to
+    ``pandas_strategies._warn_legacy_strategy_chained_once``.
+    """
+    constraints, leftover = _aggregate_constraints(checks, dispatch_type)
+    if constraints.is_empty():
+        elements = xarray_dtype_strategy(dtype_spec)
+    else:
+        elements = compile_dataarray_element_strategy(np_dtype, constraints)
+    return elements, leftover
 
 
 @_strategy_import_error
@@ -149,7 +366,11 @@ def data_array_strategy(
     :param shape: positional shape tuple.
     :param coords: mapping of coord name to values/strategy.
     :param name: name for the DataArray.
-    :param checks: (unused) reserved for future check-aware generation.
+    :param checks: optional sequence of :class:`~pandera.api.checks.Check`
+        instances. Built-in checks with constraint adapters compose
+        into a single ``hypothesis`` element strategy so generated
+        values satisfy the constraints by construction (per
+        ``specs/optimized-strategies.md`` §5).
     :param nullable: if True, sprinkle NaN values.
     :param size: default size for dimensions without an explicit size.
     :returns: hypothesis strategy producing ``xr.DataArray``.
@@ -163,7 +384,9 @@ def data_array_strategy(
     resolved_shape = _resolve_shape(dims, sizes, shape, default_size)
 
     np_dtype = _to_numpy_dtype(dtype)
-    element_strat = xarray_dtype_strategy(dtype)
+    element_strat, _leftover = _checks_to_element_strategy(
+        np_dtype, dtype, checks, xr.DataArray
+    )
     data = draw(
         npst.arrays(
             dtype=np_dtype, shape=resolved_shape, elements=element_strat
@@ -257,14 +480,18 @@ def dataset_strategy(
         var_dims = spec.get("dims", DEFAULT_DIMS)
         var_dtype = spec.get("dtype", "float64")
         var_nullable = spec.get("nullable", False)
+        var_checks = spec.get("checks")
         var_shape = tuple(dim_sizes.get(d, default_size) for d in var_dims)
 
         np_dtype = _to_numpy_dtype(var_dtype)
+        var_elements, _leftover = _checks_to_element_strategy(
+            np_dtype, var_dtype, var_checks, xr.DataArray
+        )
         arr = draw(
             npst.arrays(
                 dtype=np_dtype,
                 shape=var_shape,
-                elements=xarray_dtype_strategy(var_dtype),
+                elements=var_elements,
             )
         )
 
@@ -348,12 +575,14 @@ def dataset_schema_strategy(
                     "dtype": str(spec.dtype) if spec.dtype else "float64",
                     "dims": spec.dims or DEFAULT_DIMS,
                     "nullable": spec.nullable,
+                    "checks": spec.checks,
                 }
             else:
                 dv_specs[key] = {
                     "dtype": str(spec.dtype) if spec.dtype else "float64",
                     "dims": spec.dims or DEFAULT_DIMS,
                     "nullable": getattr(spec, "nullable", False),
+                    "checks": getattr(spec, "checks", None),
                 }
 
     coord_specs = None

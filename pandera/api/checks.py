@@ -34,6 +34,7 @@ class Check(BaseCheck):
         description: str | None = None,
         statistics: dict[str, Any] | None = None,
         strategy: Any | None = None,
+        constraint: Any | None = None,
         determined_by_unique: bool = False,
         **check_kwargs,
     ) -> None:
@@ -107,6 +108,13 @@ class Check(BaseCheck):
         :param strategy: A hypothesis strategy, used for implementing data
             synthesis strategies for this check. See the
             :ref:`User Guide <custom-strategies>` for more details.
+        :param constraint: An optional constraint adapter that returns a
+            ``FieldConstraints`` value describing the bounds/membership/regex
+            constraints this check encodes. When present, the strategy
+            builder aggregates this with sibling constraints and emits a
+            single hypothesis strategy in one shot, avoiding ``.filter``
+            chaining. See :ref:`User Guide <custom-strategies>` for more
+            details.
         :param determined_by_unique: If True, indicates that this check's
             result is fully determined by the unique values in the data, meaning
             duplicate values don't affect the outcome. This enables significant
@@ -211,6 +219,7 @@ class Check(BaseCheck):
         self.statistics = statistics or check_kwargs or {}
         self.statistics_args = [*self.statistics.keys()]
         self.strategy = strategy
+        self.constraint = constraint
 
     def __call__(
         self,

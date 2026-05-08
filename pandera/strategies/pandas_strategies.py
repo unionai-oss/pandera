@@ -10,6 +10,7 @@ to compose strategies given multiple checks specified in a schema.
 See the :ref:`user guide <data-synthesis-strategies>` for more details.
 """
 
+import inspect
 import operator
 import re
 import warnings
@@ -39,8 +40,14 @@ from pandera.dtypes import (
 from pandera.engines import numpy_engine, pandas_engine
 from pandera.errors import BaseStrategyOnlyError, SchemaDefinitionError
 from pandera.strategies.base_strategies import (
+    CONSTRAINT_DISPATCHER,
     HAS_HYPOTHESIS,
     STRATEGY_DISPATCHER,
+)
+from pandera.strategies.constraints import (
+    UNSET,
+    ConstraintConflictError,
+    FieldConstraints,
 )
 
 if HAS_HYPOTHESIS:
@@ -194,6 +201,44 @@ def register_check_strategy(strategy_fn: StrategyFn):
         return _wrapper
 
     return register_check_strategy_decorator
+
+
+def register_check_constraint(constraint_fn: Callable):
+    """Decorate a Check method with a constraint adapter.
+
+    Constraint adapters take the check's ``statistics`` as kwargs and
+    return a
+    :class:`~pandera.strategies.constraints.FieldConstraints` value
+    describing the bounds/membership/regex constraints the check
+    encodes. When a check has a constraint adapter, the strategy
+    builder prefers it over ``check.strategy`` and merges its output
+    with sibling constraints, emitting a single hypothesis strategy
+    (no per-check ``.filter`` chaining). See
+    ``specs/optimized-strategies.md``.
+
+    :param constraint_fn: callable with signature
+        ``(**statistics) -> FieldConstraints``.
+    """
+
+    def register_check_constraint_decorator(class_method):
+        """Decorator that wraps Check class method."""
+
+        @wraps(class_method)
+        def _wrapper(cls, *args, **kwargs):
+            check = class_method(cls, *args, **kwargs)
+            if check.statistics is None:
+                raise AttributeError(
+                    "check object doesn't have a defined statistics "
+                    "property. Use the checks.register_check_statistics "
+                    "decorator to specify the statistics for the "
+                    f"{class_method.__name__} method."
+                )
+            check.constraint = constraint_fn
+            return check
+
+        return _wrapper
+
+    return register_check_constraint_decorator
 
 
 # Values taken from
@@ -471,6 +516,360 @@ def pandas_dtype_strategy(
     if is_string_type:
         result = result.map(_remove_surrogates)
     return result
+
+
+def _is_temporal_dtype(pandera_dtype: DataType) -> bool:
+    return is_datetime(pandera_dtype) or is_timedelta(pandera_dtype)
+
+
+def _close_bound(
+    pandera_dtype: DataType,
+    value: Any,
+    exclude: bool,
+    side: str,
+) -> tuple[Any, bool]:
+    """Lower an exclusive bound to a closed bound when the dtype demands it.
+
+    Hypothesis only supports ``exclude_min`` / ``exclude_max`` for
+    floats and complex numbers. For integer / temporal dtypes we
+    translate ``(value, exclude=True)`` into a closed-bound
+    representation so we can pass kwargs that the underlying
+    ``hypothesis.extra.numpy.from_dtype`` (or our
+    ``numpy_time_dtypes`` helper) accepts.
+
+    :param pandera_dtype: the field's dtype.
+    :param value: the original bound value.
+    :param exclude: whether the bound is exclusive in the original
+        check.
+    :param side: ``"min"`` or ``"max"``.
+    :returns: ``(adjusted_value, exclude_flag)`` where ``exclude_flag``
+        is the value to forward as ``exclude_min`` /
+        ``exclude_max`` (only meaningful for float/complex dtypes).
+    """
+    if is_float(pandera_dtype) or is_complex(pandera_dtype):
+        return value, exclude
+
+    if not exclude:
+        return value, False
+
+    if _is_temporal_dtype(pandera_dtype):
+        delta = pd.Timedelta(1, unit="ns")
+        if side == "min":
+            return pd.Timestamp(value) + delta if is_datetime(
+                pandera_dtype
+            ) else pd.Timedelta(value) + delta, False
+        return pd.Timestamp(value) - delta if is_datetime(
+            pandera_dtype
+        ) else pd.Timedelta(value) - delta, False
+
+    # Integer / boolean / other discrete dtypes.
+    try:
+        if side == "min":
+            return value + 1, False
+        return value - 1, False
+    except TypeError:
+        # Fall back: leave bound unchanged. The aggregator's residual
+        # filter catches over-generation in this edge case.
+        return value, False
+
+
+_PREFIX_PREAMBLE = r"\A(?:"
+_PREFIX_SUFFIX = r").*\Z"
+_SUFFIX_PREAMBLE = r"\A.*(?:"
+_SUFFIX_SUFFIX = r")\Z"
+
+
+def _split_prefix(pattern: str) -> str | None:
+    """Return ``X`` if ``pattern`` is ``\\A(?:X).*\\Z`` else ``None``."""
+    if (
+        pattern.startswith(_PREFIX_PREAMBLE)
+        and pattern.endswith(_PREFIX_SUFFIX)
+        and len(pattern) > len(_PREFIX_PREAMBLE) + len(_PREFIX_SUFFIX)
+    ):
+        return pattern[len(_PREFIX_PREAMBLE) : -len(_PREFIX_SUFFIX)]
+    return None
+
+
+def _split_suffix(pattern: str) -> str | None:
+    """Return ``X`` if ``pattern`` is ``\\A.*(?:X)\\Z`` else ``None``."""
+    if (
+        pattern.startswith(_SUFFIX_PREAMBLE)
+        and pattern.endswith(_SUFFIX_SUFFIX)
+        and len(pattern) > len(_SUFFIX_PREAMBLE) + len(_SUFFIX_SUFFIX)
+    ):
+        return pattern[len(_SUFFIX_PREAMBLE) : -len(_SUFFIX_SUFFIX)]
+    return None
+
+
+def _try_structural_merge(
+    fullmatch_patterns: tuple[str, ...],
+    search_patterns: tuple[str, ...],
+) -> tuple[str, bool] | None:
+    """Try to combine patterns into a single concatenated regex.
+
+    Recognises ``str_startswith`` (``\\A(?:X).*\\Z``) and
+    ``str_endswith`` (``\\A.*(?:X)\\Z``) shapes plus generic search
+    patterns and concatenates them in the order
+    ``\\A<prefix>.*<contains_1>.*<contains_2>...<suffix>\\Z`` so
+    hypothesis's regex generator drives directly toward valid strings
+    (no lookahead-induced rejection sampling).
+
+    Returns ``None`` when the patterns can't be safely concatenated
+    (e.g. multiple distinct ``startswith`` / ``endswith`` constraints,
+    or arbitrary ``str_matches`` patterns that aren't simple prefix /
+    suffix shapes).
+    """
+    prefixes: list[str] = []
+    suffixes: list[str] = []
+    other_fullmatch: list[str] = []
+    for p in fullmatch_patterns:
+        if (px := _split_prefix(p)) is not None:
+            prefixes.append(px)
+            continue
+        if (sx := _split_suffix(p)) is not None:
+            suffixes.append(sx)
+            continue
+        other_fullmatch.append(p)
+
+    if other_fullmatch:
+        return None
+    if len(prefixes) > 1 or len(suffixes) > 1:
+        # Two distinct startswith / endswith are unsatisfiable in
+        # general; defer to the lookahead path so the conflict surfaces
+        # as a generation failure rather than a malformed regex.
+        return None
+
+    parts: list[str] = [r"\A"]
+    if prefixes:
+        parts.append(rf"(?:{prefixes[0]})")
+    parts.append(".*")
+    for p in search_patterns:
+        parts.append(rf"(?:{p}).*")
+    if suffixes:
+        parts.append(rf"(?:{suffixes[0]})")
+    parts.append(r"\Z")
+    return "".join(parts), True
+
+
+def _combine_patterns(
+    fullmatch_patterns: tuple[str, ...],
+    search_patterns: tuple[str, ...],
+) -> tuple[str, bool] | None:
+    """Combine multiple regex constraints into a single anchored regex.
+
+    Strategy (in priority order):
+
+    1. Single-pattern pass-through (most efficient for hypothesis).
+    2. Structural concatenation of ``str_startswith`` /
+       ``str_endswith`` / ``str_contains`` shapes.
+    3. Zero-width lookahead conjunction (correct but generates
+       inefficiently — included as a fallback).
+
+    Returns ``None`` when any input pattern fails ``re.compile`` so
+    callers can fall back to ``.filter``.
+
+    :returns: ``(combined_pattern, fullmatch_flag)`` or ``None``.
+    """
+    fullmatch_patterns = tuple(fullmatch_patterns)
+    search_patterns = tuple(search_patterns)
+
+    if len(fullmatch_patterns) + len(search_patterns) == 0:
+        return None
+
+    for p in (*fullmatch_patterns, *search_patterns):
+        try:
+            re.compile(p)
+        except re.error:
+            return None
+
+    # Single-pattern fast path: avoid any wrapping.
+    if len(fullmatch_patterns) == 1 and not search_patterns:
+        return fullmatch_patterns[0], True
+    if not fullmatch_patterns and len(search_patterns) == 1:
+        return search_patterns[0], False
+
+    structural = _try_structural_merge(fullmatch_patterns, search_patterns)
+    if structural is not None:
+        return structural
+
+    parts: list[str] = []
+    for p in fullmatch_patterns:
+        parts.append(rf"(?=\A(?:{p})\Z)")
+    for p in search_patterns:
+        parts.append(rf"(?=.*(?:{p}))")
+
+    return "".join(parts) + r".*", True
+
+
+def _compile_string_strategy(
+    pandera_dtype: DataType, constraints: FieldConstraints
+) -> SearchStrategy:
+    """Compile string-shaped ``FieldConstraints`` to a single strategy.
+
+    Combines all regex constraints into one anchored ``st.from_regex``
+    via zero-width lookahead-AND when every pattern compiles cleanly.
+    Length constraints are passed as ``min_size`` / ``max_size`` to
+    ``st.text(...)`` when there are no regex patterns; when both regex
+    and length constraints are present, the length range is embedded
+    into the combined regex as a lookahead so hypothesis's regex
+    generator drives toward valid strings (rather than us filtering
+    after the fact). Surrogate-stripping for pyarrow-backed strings is
+    preserved.
+    """
+    np_type = to_numpy_dtype(pandera_dtype).type
+
+    str_min = constraints.str_min_len
+    str_max = constraints.str_max_len
+    if constraints.str_exact_len is not None:
+        str_min = constraints.str_exact_len
+        str_max = constraints.str_exact_len
+
+    has_regex = bool(constraints.regex_fullmatch or constraints.regex_search)
+
+    length_filter = None
+    if str_min is not None or str_max is not None:
+        lo = str_min if str_min is not None else 0
+        hi = str_max if str_max is not None else 1 << 30
+        length_filter = lambda s, lo=lo, hi=hi: lo <= len(s) <= hi  # noqa: E731
+
+    if has_regex:
+        combined = _combine_patterns(
+            constraints.regex_fullmatch,
+            constraints.regex_search,
+        )
+        if combined is not None:
+            pattern, fullmatch = combined
+            strat = st.from_regex(pattern, fullmatch=fullmatch).map(np_type)
+        else:
+            # Fall back: pick first uncompilable pattern and chain the
+            # rest as filters. Mirrors today's per-check behaviour for
+            # pathological inputs only.
+            patterns = [
+                *constraints.regex_fullmatch,
+                *constraints.regex_search,
+            ]
+            strat = st.from_regex(patterns[0], fullmatch=True).map(np_type)
+            for p in patterns[1:]:
+                strat = strat.filter(re.compile(p).search)
+    elif str_min is not None or str_max is not None:
+        strat = st.text(min_size=str_min or 0, max_size=str_max).map(np_type)
+    else:
+        strat = pandas_dtype_strategy(pandera_dtype)
+
+    if _is_string_dtype(pandera_dtype):
+        strat = strat.map(_remove_surrogates)
+
+    # Apply the length filter *after* surrogate removal so the
+    # post-mapping string length is what gets validated.
+    if length_filter is not None and (
+        has_regex or _is_string_dtype(pandera_dtype)
+    ):
+        strat = strat.filter(length_filter)
+
+    if constraints.notin:
+        forbidden = constraints.notin
+        strat = strat.filter(lambda v, f=forbidden: v not in f)
+
+    for _name, predicate in constraints.residual_filters:
+        strat = strat.filter(predicate)
+
+    return strat
+
+
+def compile_field_strategy(
+    pandera_dtype: DataType, constraints: FieldConstraints
+) -> SearchStrategy:
+    """Compile a merged ``FieldConstraints`` into a single hypothesis strategy.
+
+    All dtype-specific bridging (datetime tz, complex, time
+    resolutions, surrogate handling) is delegated to
+    :func:`pandas_dtype_strategy`; this helper only translates the
+    aggregated constraints into the appropriate kwargs and parent
+    strategy.
+
+    :param pandera_dtype: the field's dtype.
+    :param constraints: merged ``FieldConstraints`` produced by
+        bucketing every check on the field.
+    :returns: a ``hypothesis`` strategy with at most one trailing
+        ``.filter`` per residual predicate (built-in checks contribute
+        zero residuals).
+    :raises ConstraintConflictError: when the merged constraint set
+        is jointly unsatisfiable (e.g. ``isin`` set pruned to empty by
+        bounds + ``notin``).
+    """
+    constraints = constraints.apply_post_merge_hooks()
+
+    # 1. Equality short-circuits everything.
+    if constraints.eq is not UNSET:
+        if constraints.eq in constraints.notin:
+            raise ConstraintConflictError(
+                f"eq={constraints.eq!r} conflicts with notin"
+            )
+        return pandas_dtype_strategy(pandera_dtype, st.just(constraints.eq))
+
+    # 2. Membership: prune the allowed set against bounds/notin so the
+    # underlying ``st.sampled_from`` already only sees valid values.
+    if constraints.isin is not None:
+        allowed = set(constraints.isin) - set(constraints.notin)
+        if constraints.min_value is not UNSET:
+            cmp = operator.lt if constraints.exclude_min else operator.le
+            allowed = {v for v in allowed if cmp(constraints.min_value, v)}
+        if constraints.max_value is not UNSET:
+            cmp = operator.gt if constraints.exclude_max else operator.ge
+            allowed = {v for v in allowed if cmp(constraints.max_value, v)}
+        if not allowed:
+            raise ConstraintConflictError(
+                "isin/notin/bounds intersection is empty"
+            )
+        sampled = st.sampled_from(sorted(allowed))
+        strat = pandas_dtype_strategy(pandera_dtype, sampled)
+        for _name, predicate in constraints.residual_filters:
+            strat = strat.filter(predicate)
+        return strat
+
+    # 3. Strings.
+    if _is_string_dtype(pandera_dtype):
+        return _compile_string_strategy(pandera_dtype, constraints)
+
+    # 4. Numeric / temporal: build kwargs for pandas_dtype_strategy.
+    kwargs: dict[str, Any] = {}
+    if constraints.min_value is not UNSET:
+        min_v, excl_min = _close_bound(
+            pandera_dtype,
+            constraints.min_value,
+            constraints.exclude_min,
+            side="min",
+        )
+        kwargs["min_value"] = min_v
+        if is_float(pandera_dtype) or is_complex(pandera_dtype):
+            kwargs["exclude_min"] = excl_min
+    if constraints.max_value is not UNSET:
+        max_v, excl_max = _close_bound(
+            pandera_dtype,
+            constraints.max_value,
+            constraints.exclude_max,
+            side="max",
+        )
+        kwargs["max_value"] = max_v
+        if is_float(pandera_dtype) or is_complex(pandera_dtype):
+            kwargs["exclude_max"] = excl_max
+    if is_float(pandera_dtype) or is_complex(pandera_dtype):
+        kwargs["allow_nan"] = constraints.allow_nan
+        kwargs["allow_infinity"] = constraints.allow_infinity
+
+    strat = pandas_dtype_strategy(pandera_dtype, **kwargs)
+
+    # 5. Single trailing ``notin`` filter (only when the membership
+    # path above wasn't taken).
+    if constraints.notin:
+        forbidden = constraints.notin
+        strat = strat.filter(lambda v, f=forbidden: v not in f)
+
+    # 6. Residual opaque predicates from custom checks.
+    for _name, predicate in constraints.residual_filters:
+        strat = strat.filter(predicate)
+
+    return strat
 
 
 def eq_strategy(
@@ -822,52 +1221,169 @@ def field_element_strategy(
 ) -> SearchStrategy:
     """Strategy to generate elements of a column or index.
 
+    Buckets ``checks`` into:
+
+    1. constraint-providing checks (built-in or via ``Check.constraint``
+       / ``register_check_method(constraint=...)``): aggregated into a
+       single ``FieldConstraints`` and compiled to one hypothesis
+       strategy via :func:`compile_field_strategy`. No ``.filter``
+       chaining.
+    2. legacy ``check.strategy`` callables: applied as a chained
+       strategy on top of the merged base, preserving today's
+       behaviour for users who haven't migrated.
+    3. element-wise checks with no strategy / constraint: lowered to a
+       single residual filter (warn the user that this is slow).
+
     :param pandera_dtype: :class:`pandera.dtypes.DataType` instance.
-    :param strategy: an optional hypothesis strategy. If specified, the
-        pandas dtype strategy will be chained onto this strategy.
-    :param checks: sequence of :class:`~pandera.api.checks.Check` s to constrain
-        the values of the data in the column/index.
-    :returns: ``hypothesis`` strategy
+    :param strategy: an optional hypothesis strategy. Reserved; passing
+        a non-``None`` value raises :class:`BaseStrategyOnlyError`.
+    :param checks: sequence of :class:`~pandera.api.checks.Check` s to
+        constrain the values of the data in the column/index.
+    :returns: ``hypothesis`` strategy.
     """
     if strategy:
         raise BaseStrategyOnlyError(
             "The series strategy is a base strategy. You cannot specify the "
             "strategy argument to chain it to a parent strategy."
         )
-    checks = [] if checks is None else checks
-    elements = None
+    check_list = list(checks or [])
 
-    def undefined_check_strategy(elements, check):
-        """Strategy for checks with undefined strategies."""
-        warnings.warn(
-            "Element-wise check doesn't have a defined strategy."
-            "Falling back to filtering drawn values based on the check "
-            "definition. This can considerably slow down data-generation."
-        )
-        return (
-            pandas_dtype_strategy(pandera_dtype)
-            if elements is None
-            else elements
-        ).filter(check._check_fn)
+    constraint_acc = FieldConstraints()
+    legacy_strategies: list[tuple[Any, Callable]] = []
+    residuals: list[tuple[str, Callable]] = []
 
-    for check in checks:
-        check_strategy = (
-            check.strategy
-            if check.strategy is not None
-            else STRATEGY_DISPATCHER.get((check.name, pd.Series), None)
+    for check in check_list:
+        constraint_fn = getattr(check, "constraint", None) or (
+            CONSTRAINT_DISPATCHER.get((check.name, pd.Series))
         )
-        if check_strategy is not None:
-            elements = check_strategy(
-                pandera_dtype, elements, **check.statistics
+        if constraint_fn is not None:
+            try:
+                constraint_acc = constraint_acc.merge(
+                    constraint_fn(**check.statistics)
+                )
+            except ConstraintConflictError as exc:
+                _raise_unsatisfiable(check_list, exc)
+            continue
+
+        legacy_strategy = check.strategy or STRATEGY_DISPATCHER.get(
+            (check.name, pd.Series)
+        )
+        if legacy_strategy is not None:
+            legacy_strategies.append((check, legacy_strategy))
+            continue
+
+        if check.element_wise:
+            warnings.warn(
+                "Element-wise check doesn't have a defined strategy."
+                "Falling back to filtering drawn values based on the "
+                "check definition. This can considerably slow down "
+                "data-generation."
             )
-        elif check.element_wise:
-            elements = undefined_check_strategy(elements, check)
-        # NOTE: vectorized checks with undefined strategies should be handled
-        # by the series/dataframe strategy.
+            residuals.append((check.name, check._check_fn))
+        # NOTE: vectorized checks with undefined strategies should be
+        # handled by the series/dataframe strategy.
+
+    if residuals:
+        from dataclasses import replace as _rep
+
+        constraint_acc = _rep(
+            constraint_acc,
+            residual_filters=(
+                constraint_acc.residual_filters + tuple(residuals)
+            ),
+        )
+
+    has_aggregated = not constraint_acc.is_empty()
+
+    if has_aggregated:
+        try:
+            elements = compile_field_strategy(pandera_dtype, constraint_acc)
+        except ConstraintConflictError as exc:
+            _raise_unsatisfiable(check_list, exc)
+    else:
+        # No constraint adapters fired and no residuals: preserve the
+        # legacy fold semantics so the first legacy strategy can take
+        # its "no parent strategy" fast path. Constraint adapters are
+        # the path that aggregates work into a single strategy call;
+        # without them, today's per-check fold is the fastest available
+        # path and we don't want to regress it before the built-ins are
+        # migrated in stage 5.
+        elements = None
+
+    for check, legacy_strategy in legacy_strategies:
+        if has_aggregated and _strategy_supports_base_mode(legacy_strategy):
+            _warn_legacy_strategy_chained_once(check, legacy_strategy)
+        elements = legacy_strategy(pandera_dtype, elements, **check.statistics)
+
     if elements is None:
         elements = pandas_dtype_strategy(pandera_dtype)
 
     return elements
+
+
+def _raise_unsatisfiable(checks: Sequence, exc: ConstraintConflictError):
+    """Translate a constraint conflict into a SchemaDefinitionError."""
+    names = [str(getattr(c, "name", "?")) for c in checks]
+    raise SchemaDefinitionError(
+        f"Cannot construct a data-generation strategy for checks "
+        f"{names}: constraints are jointly unsatisfiable ({exc})."
+    ) from exc
+
+
+# Module-level cache so the §9.3 ``DeprecationWarning`` fires at most
+# once per ``(check.name, fn id)`` pair per process. Hypothesis runs
+# each strategy many times during a draw loop and we don't want to
+# spam the user.
+_LEGACY_CHAINED_WARNED: set[tuple[str, int]] = set()
+
+
+def _strategy_supports_base_mode(fn: Callable | None) -> bool:
+    """Return ``True`` when ``fn`` advertises base-mode support.
+
+    A legacy strategy callable is considered "base-mode-supporting" if
+    its ``strategy`` parameter has ``None`` as the default value (the
+    convention used by every built-in legacy strategy in this module).
+    Pure chained-mode strategies (where ``strategy`` has no default)
+    are unaffected by Stage 7's deprecation warning.
+    """
+    if fn is None:
+        return False
+    try:
+        sig = inspect.signature(fn)
+    except (TypeError, ValueError):
+        return False
+    param = sig.parameters.get("strategy")
+    return param is not None and param.default is None
+
+
+def _warn_legacy_strategy_chained_once(check, fn: Callable) -> None:
+    """Emit the §9.3 deprecation warning at most once per ``(name, fn)``.
+
+    See ``specs/optimized-strategies.md`` §9.3 for the full migration
+    rationale.
+    """
+    name = str(getattr(check, "name", "?"))
+    key = (name, id(fn))
+    if key in _LEGACY_CHAINED_WARNED:
+        return
+    _LEGACY_CHAINED_WARNED.add(key)
+    warnings.warn(
+        (
+            f"The 'strategy' kwarg on Check(check_fn=..., strategy={fn!r}) "
+            "is being invoked as a chained strategy because built-in "
+            "checks are also present on this column and now produce the "
+            "merged base strategy in a single hypothesis call. If "
+            f"{getattr(fn, '__name__', fn)!r} relied on running as the "
+            "base strategy in this context, migrate it to a constraint "
+            "adapter via "
+            "`pandera.strategies.pandas_strategies."
+            "register_check_constraint(...)` or pass `constraint=...` "
+            "to `register_check_method(...)`. This warning will become "
+            "an error in pandera 1.0."
+        ),
+        DeprecationWarning,
+        stacklevel=2,
+    )
 
 
 def series_strategy(
@@ -1092,27 +1608,82 @@ def dataframe_strategy(
         return strategy.filter(check_fn)
 
     def make_row_strategy(col, checks):
-        strategy = None
+        """Apply ``checks`` to ``col``'s per-element strategy.
+
+        Mirrors :func:`field_element_strategy`'s bucketing logic so
+        dataframe-level checks compose without ``.filter`` chaining
+        wherever a constraint adapter is available:
+
+        1. constraint-providing checks (built-in via
+           ``(check.name, pd.DataFrame)`` in ``CONSTRAINT_DISPATCHER``,
+           or ``check.constraint`` set explicitly): aggregated into a
+           single ``FieldConstraints`` and lowered to one strategy.
+        2. legacy ``check.strategy`` callables (or
+           ``STRATEGY_DISPATCHER[(name, pd.DataFrame)]``): chained as
+           before, on top of the merged base.
+        3. element-wise checks with no strategy / constraint: degraded
+           to a single residual ``.filter`` with the pre-existing
+           ``undefined_check_strategy`` warning.
+
+        For the v1 refactor every built-in is column-scoped, so no
+        check populates the ``(name, pd.DataFrame)`` constraint slot
+        and the practical generation path is unchanged. The bucketing
+        is in place as the extension point for future dataframe-level
+        constraint adapters.
+        """
+        constraint_acc = FieldConstraints()
+        legacy_strategies: list[tuple[Any, Callable]] = []
+        undefined_checks: list = []
+
         for check in checks:
-            if check.strategy is not None:
-                strategy = check.strategy(
-                    col.dtype,
-                    strategy,
-                    **check.statistics,
-                )
-            elif STRATEGY_DISPATCHER.get((check.name, pd.DataFrame), None):
-                strategy = STRATEGY_DISPATCHER.get((check.name, pd.DataFrame))(
-                    col.dtype, strategy, **check.statistics
-                )
-            else:
-                strategy = undefined_check_strategy(
-                    strategy=(
-                        pandas_dtype_strategy(col.dtype)
-                        if strategy is None
-                        else strategy
-                    ),
-                    check=check,
-                )
+            constraint_fn = getattr(check, "constraint", None) or (
+                CONSTRAINT_DISPATCHER.get((check.name, pd.DataFrame))
+            )
+            if constraint_fn is not None:
+                try:
+                    constraint_acc = constraint_acc.merge(
+                        constraint_fn(**check.statistics)
+                    )
+                except ConstraintConflictError as exc:
+                    _raise_unsatisfiable(checks, exc)
+                continue
+
+            legacy_strategy = check.strategy or STRATEGY_DISPATCHER.get(
+                (check.name, pd.DataFrame)
+            )
+            if legacy_strategy is not None:
+                legacy_strategies.append((check, legacy_strategy))
+                continue
+
+            undefined_checks.append(check)
+
+        has_aggregated = not constraint_acc.is_empty()
+
+        if has_aggregated:
+            try:
+                strategy = compile_field_strategy(col.dtype, constraint_acc)
+            except ConstraintConflictError as exc:
+                _raise_unsatisfiable(checks, exc)
+        else:
+            strategy = None
+
+        for check, legacy_strategy in legacy_strategies:
+            if has_aggregated and _strategy_supports_base_mode(
+                legacy_strategy
+            ):
+                _warn_legacy_strategy_chained_once(check, legacy_strategy)
+            strategy = legacy_strategy(col.dtype, strategy, **check.statistics)
+
+        for check in undefined_checks:
+            strategy = undefined_check_strategy(
+                strategy=(
+                    pandas_dtype_strategy(col.dtype)
+                    if strategy is None
+                    else strategy
+                ),
+                check=check,
+            )
+
         if strategy is None:
             strategy = pandas_dtype_strategy(col.dtype)
         return strategy
@@ -1125,6 +1696,8 @@ def dataframe_strategy(
             if (
                 check.strategy
                 or STRATEGY_DISPATCHER.get((check.name, pd.DataFrame), None)
+                or getattr(check, "constraint", None) is not None
+                or CONSTRAINT_DISPATCHER.get((check.name, pd.DataFrame))
                 or check.element_wise
             ):
                 # we can apply element-wise checks defined at the dataframe
@@ -1163,12 +1736,16 @@ def dataframe_strategy(
                     )
 
         # collect all non-element-wise column checks with undefined strategies
+        # Constraint adapters fully describe the element distribution, so
+        # they don't need a redundant ``.filter`` pass on the dataframe.
         undefined_strat_column_checks: dict[str, list] = defaultdict(list)
         for col_name, column in expanded_columns.items():
             undefined_strat_column_checks[col_name].extend(
                 check
                 for check in column.checks
                 if STRATEGY_DISPATCHER.get((check.name, pd.DataFrame)) is None
+                and getattr(check, "constraint", None) is None
+                and CONSTRAINT_DISPATCHER.get((check.name, pd.Series)) is None
                 and not check.element_wise
             )
 
