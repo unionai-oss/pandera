@@ -137,12 +137,24 @@ class BaseCheck(metaclass=MetaCheck):
         if statistics is None:
             statistics = check_kwargs
 
-        return cls(
+        instance = cls(
             cls.get_builtin_check_fn(name),
             statistics=statistics,
             native=False,  # type: ignore[call-arg]
             **kws,
         )
+        # Remember the registry key for this built-in check independently of
+        # the user-supplied ``name`` kwarg. ``Check.__call__`` consults this
+        # to refresh ``self._check_fn`` against the live registry, which
+        # matters because schema validation deep-copies Check instances —
+        # the deep-copied :class:`Dispatcher` carries a stale per-type
+        # registry, while the original (mutated by lazy backend
+        # registration during ``validate()``) is the one that should run.
+        # Without this, ``Check.gt(0, name="my_check")`` reaches the check
+        # backend with a stale dispatcher and KeyErrors on the input
+        # dtype. See pandera issue #2042.
+        instance._builtin_check_name = name
+        return instance
 
     @classmethod
     def register_backend(cls, type_: type, backend: type[BaseCheckBackend]):

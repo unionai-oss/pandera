@@ -520,3 +520,38 @@ def test_check_output_dtype_with_empty_datetime():
     df = pd.DataFrame({"year_mon": pd.Series(dtype="datetime64[D]")})
     check_result = check(df)
     assert check_result.check_output.dtype == bool
+
+
+def test_builtin_check_with_user_supplied_name() -> None:
+    """Regression for #2042.
+
+    Built-in check builders (``Check.gt``, ``Check.lt``, ``Check.isin``…)
+    accept a ``name=`` kwarg used to label the check in error messages.
+    The factory routes through :py:meth:`BaseCheck.from_builtin_check_name`
+    which captures the underlying dispatcher into ``Check._check_fn``.
+
+    Before the fix, ``Check.__call__`` resolved the live dispatcher only
+    when ``self.name`` matched a registered built-in name — but with a
+    user-supplied label it never matched, so the schema kept the
+    deep-copied dispatcher whose per-type function map is missing entries
+    that backend registration adds to the original ``Dispatcher`` instance
+    during ``schema.validate``. The result was
+    ``KeyError: <class 'pandas.Series'>`` at validation time.
+
+    Verify both the green path (validation passes for valid input) and that
+    the rebuild still produces the right SchemaError on invalid input.
+    """
+    schema = DataFrameSchema(
+        columns={
+            "test": Column(
+                float, checks=[Check.gt(0, name="positive_check")]
+            )
+        }
+    )
+    pd.testing.assert_frame_equal(
+        schema.validate(pd.DataFrame({"test": [1.0, 2.0]})),
+        pd.DataFrame({"test": [1.0, 2.0]}),
+    )
+    with pytest.raises(errors.SchemaError) as exc:
+        schema.validate(pd.DataFrame({"test": [-1.0]}))
+    assert "greater_than(0)" in str(exc.value)

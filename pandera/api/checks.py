@@ -247,11 +247,22 @@ class Check(BaseCheck):
 
             ``failure_cases``: subset of the check_object that failed.
         """
-        if self.name is not None and self.is_builtin_check(self.name):
-            # we need to reload the function here in case additional
-            # type signatures have been registered for a specific built-in
-            # check.
-            self._check_fn = self.get_builtin_check_fn(self.name)
+        # Resolve the registry key for the underlying built-in check.
+        # ``self.name`` is unreliable: the user can override it via the
+        # ``name=`` kwarg on builders like :py:meth:`Check.gt`, in which case
+        # ``self.name`` is the user label rather than the built-in dispatch
+        # key. ``_builtin_check_name`` is set on instances created through
+        # :py:meth:`BaseCheck.from_builtin_check_name` and survives copy /
+        # deepcopy. Fall back to ``self.name`` for instances created
+        # directly (e.g. user-supplied check functions). See #2042.
+        builtin_key = getattr(self, "_builtin_check_name", None) or self.name
+        if builtin_key is not None and self.is_builtin_check(builtin_key):
+            # Refresh the dispatcher reference from the live class-level
+            # registry. Schema validation deep-copies Check instances, so
+            # ``self._check_fn`` may be a stale Dispatcher whose per-type
+            # function map is missing entries that backend registration
+            # added to the original after the deep-copy.
+            self._check_fn = self.get_builtin_check_fn(builtin_key)
         backend = self.get_backend(check_obj)(self)
         return backend(check_obj, column)
 
