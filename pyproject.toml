@@ -55,6 +55,10 @@ hypotheses = [
     "scipy",
 ]
 io = [
+    # The io module imports pandera.pandas internals (see pandera/io/pandas_io.py),
+    # so pandas + numpy are runtime requirements, not just extras of [pandas].
+    "numpy >= 1.24.4",
+    "pandas >= 2.1.1",
     "pyyaml >= 5.1",
 ]
 frictionless = [
@@ -111,6 +115,10 @@ all = [
     "ray",
     "dask[dataframe]",
     "distributed",
+    # `all` bundles every extra; the pandas backend is one of them, so list
+    # pandas alongside numpy. Without this, `pip install 'pandera[all]'` on
+    # a fresh environment fails to import the pandas-backed io module.
+    "pandas >= 2.1.1",
     "pandas-stubs",
     "fastapi",
     "geopandas",
