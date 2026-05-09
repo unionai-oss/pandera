@@ -1154,3 +1154,30 @@ def test_empty_nullable_schema(dtype, data):
     """Test that empty nullable schema strategy draws empty examples."""
     schema = pa.DataFrameSchema({"myval": pa.Column(dtype, nullable=True)})
     assert data.draw(schema.strategy(size=0)).empty
+
+
+def test_strategy_truthiness_check_uses_is_not_none():
+    """Regression for #2307: hypothesis strategies implement ``__bool__`` to
+    raise ``HypothesisWarning`` ('bool(from_dtype(...)) is always True, did
+    you mean to draw a value?'). The base series/dataframe strategy
+    entry-points used to write ``if strategy:`` to test for a chained parent
+    strategy; while harmless when called with the default ``strategy=None``,
+    the check is incorrect when a user passes an actual hypothesis strategy
+    and silently emits a HypothesisWarning before the BaseStrategyOnlyError
+    is raised. The condition is meant as a presence check, so it should be
+    written ``if strategy is not None``.
+
+    This is a structural test (we scan the module source) rather than a
+    behavioural one, because the bug only manifests when a caller passes a
+    parent strategy to a base entry-point — itself a usage error that
+    ``BaseStrategyOnlyError`` already handles."""
+    import inspect
+    from pandera.strategies import pandas_strategies
+
+    src = inspect.getsource(pandas_strategies)
+    matches = re.findall(r"^\s*if strategy:\s*$", src, flags=re.MULTILINE)
+    assert matches == [], (
+        "Found remaining ``if strategy:`` truthiness checks; replace with "
+        "``if strategy is not None:`` to avoid HypothesisWarning. Matches: "
+        f"{matches}"
+    )

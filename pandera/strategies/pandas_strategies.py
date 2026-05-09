@@ -1241,7 +1241,12 @@ def field_element_strategy(
         constrain the values of the data in the column/index.
     :returns: ``hypothesis`` strategy.
     """
-    if strategy:
+    # Use ``is not None`` rather than truthiness here: hypothesis strategies
+    # implement ``__bool__`` to raise HypothesisWarning ("bool(from_dtype(...))
+    # is always True, did you mean to draw a value?"). The truthy check
+    # produced spurious warnings during normal use even when no parent
+    # strategy was supplied. See issue #2307.
+    if strategy is not None:
         raise BaseStrategyOnlyError(
             "The series strategy is a base strategy. You cannot specify the "
             "strategy argument to chain it to a parent strategy."
@@ -1568,7 +1573,8 @@ def dataframe_strategy(
             "`n_regex_columns` must be a positive integer, found: "
             f"{n_regex_columns}"
         )
-    if strategy:
+    # See note above: avoid truthiness on hypothesis strategies (#2307).
+    if strategy is not None:
         raise BaseStrategyOnlyError(
             "The dataframe strategy is a base strategy. You cannot specify "
             "the strategy argument to chain it to a parent strategy."
@@ -1840,7 +1846,8 @@ def multiindex_strategy(
     :returns: ``hypothesis`` strategy.
     """
 
-    if strategy:
+    # See note above: avoid truthiness on hypothesis strategies (#2307).
+    if strategy is not None:
         raise BaseStrategyOnlyError(
             "The dataframe strategy is a base strategy. You cannot specify "
             "the strategy argument to chain it to a parent strategy."
