@@ -1002,6 +1002,65 @@ def test_check_types_union_args() -> None:
         validate_union_wrong_outputs(pd.DataFrame({"a": [0, 0]}))  # type: ignore [arg-type]
 
 
+def test_check_types_union_dispatches_past_strict_schema() -> None:
+    """Regression for #2325.
+
+    ``_check_arg_value_against_union`` used to catch only ``SchemaError``
+    (singular). When a strict-mode candidate schema rejects the dataframe
+    up-front (e.g. COLUMN_NOT_IN_SCHEMA), pandera raises ``SchemaErrors``
+    (plural) — *not* a subclass of ``SchemaError`` — so the dispatch
+    short-circuited on the first strict schema instead of trying the next
+    candidate.
+
+    Construct a Union[Strict, Extended] where the input only matches the
+    Extended schema. Before the fix, pandera raises SchemaErrors with the
+    Strict-schema "column not in schema" failure cases. After the fix,
+    Extended matches and the function returns the dataframe unchanged.
+    """
+
+    class StrictModel(DataFrameModel):
+        timestamp: Series[pd.Timestamp]
+        feature: Series[float] = Field(alias="value_.+", regex=True)
+
+        class Config:
+            strict = True
+
+    class ExtendedModel(DataFrameModel):
+        timestamp: Series[pd.Timestamp]
+        feature: Series[float] = Field(alias="value_.+", regex=True)
+        cluster: Series[int] = Field(alias="Cluster")
+
+        class Config:
+            strict = True
+
+    @check_types()
+    def process(
+        df: typing.Union[
+            DataFrame[StrictModel], DataFrame[ExtendedModel]
+        ],
+    ) -> typing.Union[DataFrame[StrictModel], DataFrame[ExtendedModel]]:
+        return df
+
+    df = pd.DataFrame(
+        {
+            "timestamp": [pd.Timestamp("2024-01-01")],
+            "value_x": [1.0],
+            "Cluster": [1],
+        }
+    )
+
+    # AFTER the fix: dispatch falls through to ExtendedModel and succeeds.
+    result = process(df)  # type: ignore[arg-type]
+    pd.testing.assert_frame_equal(result, df)
+
+    # An input matching neither schema still raises (so the catch-and-fall-
+    # through behaviour doesn't silently accept invalid data).
+    with pytest.raises(errors.SchemaErrors):
+        process(  # type: ignore[arg-type]
+            pd.DataFrame({"unrelated_col": [1, 2, 3]}),
+        )
+
+
 def test_check_types_tuple_args() -> None:
     """Test that the @check_types decorator works with
     tuple[pandera.typing.DataFrame[S1], pandera.typing.DataFrame[S2]] type inputs/outputs

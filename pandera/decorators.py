@@ -728,6 +728,14 @@ def check_types(
                 )
             except errors.SchemaError as e:
                 schema_errors.append(e)
+            except errors.SchemaErrors as e:
+                # ``SchemaErrors`` is raised (instead of ``SchemaError``) when
+                # a strict-mode schema rejects the dataframe up-front, e.g. for
+                # COLUMN_NOT_IN_SCHEMA. We must catch it here too so that
+                # Union[A, B] dispatch falls through to the next candidate
+                # schema instead of bubbling the strict failure of the first
+                # one. See issue #2325.
+                schema_errors.extend(e.schema_errors)
         if schema_errors:
             raise errors.SchemaErrors(
                 schema=child.dataframe_model.to_schema()
