@@ -21,22 +21,60 @@ import polars as pl
 import pytest
 
 
+def _purge_polars_ibis_backend_registry() -> None:
+    """Drop any pl/ibis BACKEND_REGISTRY entries left over from earlier imports.
+
+    ``Schema/Check.register_backend`` is first-write-wins. If something imports
+    ``pandera.polars`` (or ``pandera.ibis``) before this fixture flips
+    ``CONFIG.use_narwhals_backend = True``, the legacy backend wins and the
+    re-registration below is a no-op. Clearing the relevant entries lets the
+    Narwhals backend register itself cleanly regardless of import order.
+    """
+    import ibis
+
+    from pandera.api.checks import Check
+    from pandera.api.ibis.components import Column as IbisColumn
+    from pandera.api.ibis.container import (
+        DataFrameSchema as IbisDataFrameSchema,
+    )
+    from pandera.api.polars.components import Column as PolarsColumn
+    from pandera.api.polars.container import (
+        DataFrameSchema as PolarsDataFrameSchema,
+    )
+
+    keys_to_drop = {
+        (Check, pl.LazyFrame),
+        (Check, pl.DataFrame),
+        (Check, ibis.Table),
+        (Check, ibis.Column),
+        (PolarsDataFrameSchema, pl.LazyFrame),
+        (PolarsDataFrameSchema, pl.DataFrame),
+        (PolarsColumn, pl.LazyFrame),
+        (IbisDataFrameSchema, ibis.Table),
+        (IbisColumn, ibis.Table),
+    }
+    for registry_owner in (Check, PolarsDataFrameSchema, IbisDataFrameSchema):
+        registry = registry_owner.BACKEND_REGISTRY
+        for key in keys_to_drop:
+            registry.pop(key, None)
+
+
 @pytest.fixture(autouse=True, scope="module")
 def _ensure_narwhals_backends_registered():
     """Initialise narwhals backends before each test module in this directory.
 
     Forces ``CONFIG.use_narwhals_backend = True`` for the duration of the
-    module, clears the ``lru_cache`` on the register functions, and
-    re-registers so that:
+    module, clears the ``lru_cache`` and any leftover legacy entries from
+    ``BACKEND_REGISTRY``, and re-registers so that:
 
     - builtin_checks side-effect runs (populates Dispatcher._function_registry)
     - NarwhalsCheckBackend, ColumnBackend, DataFrameSchemaBackend are registered
     - Tests that call NarwhalsCheckBackend directly do not need to trigger
       schema.validate() first.
 
-    Setting the config flag here makes the suite usable when invoked
-    directly (e.g. ``pytest tests/narwhals/``) without relying on the
-    caller to export ``PANDERA_USE_NARWHALS_BACKEND=True`` first.
+    Setting the config flag (and purging the registry) here makes the suite
+    usable when invoked directly (e.g. ``pytest tests/narwhals/``) without
+    relying on the caller to export ``PANDERA_USE_NARWHALS_BACKEND=True``.
     """
     from pandera.backends.ibis.register import register_ibis_backends
     from pandera.backends.polars.register import register_polars_backends
@@ -44,6 +82,7 @@ def _ensure_narwhals_backends_registered():
 
     previous = CONFIG.use_narwhals_backend
     CONFIG.use_narwhals_backend = True
+    _purge_polars_ibis_backend_registry()
     register_polars_backends.cache_clear()
     register_ibis_backends.cache_clear()
     register_polars_backends()
@@ -52,6 +91,7 @@ def _ensure_narwhals_backends_registered():
         yield
     finally:
         CONFIG.use_narwhals_backend = previous
+        _purge_polars_ibis_backend_registry()
         register_polars_backends.cache_clear()
         register_ibis_backends.cache_clear()
 
