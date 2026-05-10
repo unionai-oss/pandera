@@ -29,8 +29,14 @@ def _purge_polars_ibis_backend_registry() -> None:
     ``CONFIG.use_narwhals_backend = True``, the legacy backend wins and the
     re-registration below is a no-op. Clearing the relevant entries lets the
     Narwhals backend register itself cleanly regardless of import order.
+
+    Cross-backend entries (``pd.DataFrame`` etc. against polars/ibis schemas)
+    are also purged so that toggling ``CONFIG.use_narwhals_backend`` mid-session
+    cleanly re-registers via the appropriate helper
+    (``register_pandas_via_narwhals``, etc.).
     """
     import ibis
+    import pandas as pd
 
     from pandera.api.checks import Check
     from pandera.api.ibis.components import Column as IbisColumn
@@ -49,9 +55,17 @@ def _purge_polars_ibis_backend_registry() -> None:
         (Check, ibis.Column),
         (PolarsDataFrameSchema, pl.LazyFrame),
         (PolarsDataFrameSchema, pl.DataFrame),
+        (PolarsDataFrameSchema, pd.DataFrame),
         (PolarsColumn, pl.LazyFrame),
+        (PolarsColumn, pd.DataFrame),
         (IbisDataFrameSchema, ibis.Table),
+        (IbisDataFrameSchema, pd.DataFrame),
+        (IbisDataFrameSchema, pl.DataFrame),
+        (IbisDataFrameSchema, pl.LazyFrame),
         (IbisColumn, ibis.Table),
+        (IbisColumn, pd.DataFrame),
+        (IbisColumn, pl.DataFrame),
+        (IbisColumn, pl.LazyFrame),
     }
     for registry_owner in (Check, PolarsDataFrameSchema, IbisDataFrameSchema):
         registry = registry_owner.BACKEND_REGISTRY
@@ -77,6 +91,7 @@ def _ensure_narwhals_backends_registered():
     relying on the caller to export ``PANDERA_USE_NARWHALS_BACKEND=True``.
     """
     from pandera.backends.ibis.register import register_ibis_backends
+    from pandera.backends.pandas.register import register_pandas_via_narwhals
     from pandera.backends.polars.register import register_polars_backends
     from pandera.config import CONFIG
 
@@ -85,6 +100,7 @@ def _ensure_narwhals_backends_registered():
     _purge_polars_ibis_backend_registry()
     register_polars_backends.cache_clear()
     register_ibis_backends.cache_clear()
+    register_pandas_via_narwhals.cache_clear()
     register_polars_backends()
     register_ibis_backends()
     try:
@@ -94,6 +110,7 @@ def _ensure_narwhals_backends_registered():
         _purge_polars_ibis_backend_registry()
         register_polars_backends.cache_clear()
         register_ibis_backends.cache_clear()
+        register_pandas_via_narwhals.cache_clear()
 
 
 @pytest.fixture(

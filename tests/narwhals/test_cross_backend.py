@@ -229,3 +229,78 @@ def test_validation_depth_defaults_to_schema_only_for_lazy():
     # the default validation depth is SCHEMA_ONLY so DATA-level checks
     # are skipped — this should pass without raising.
     schema.validate(pl.LazyFrame({"a": [0, -1, 2]}))
+
+
+# -------- registration ownership: pandas register owns pd.DataFrame ---------
+
+
+def test_register_pandas_via_narwhals_wires_pd_to_polars_schema(
+    monkeypatch, request
+):
+    """register_pandas_via_narwhals registers pd.DataFrame against polars schema.
+
+    Mirrors REGISTER-04 from tests/narwhals/test_container.py — when
+    ``CONFIG.use_narwhals_backend=True``, the pandas register's narwhals
+    helper makes pd.DataFrame a valid input to the polars schema via the
+    Narwhals ``DataFrameSchemaBackend``.
+    """
+    from pandera.api.polars.container import (
+        DataFrameSchema as PolarsDataFrameSchema,
+    )
+    from pandera.backends.narwhals.container import (
+        DataFrameSchemaBackend as NarwhalsDataFrameSchemaBackend,
+    )
+    from pandera.backends.pandas.register import register_pandas_via_narwhals
+    from pandera.config import CONFIG
+
+    monkeypatch.setattr(CONFIG, "use_narwhals_backend", True)
+    request.addfinalizer(register_pandas_via_narwhals.cache_clear)
+    register_pandas_via_narwhals.cache_clear()
+    register_pandas_via_narwhals()
+    backend = PolarsDataFrameSchema.get_backend(pd.DataFrame())
+    assert isinstance(backend, NarwhalsDataFrameSchemaBackend)
+
+
+def test_register_pandas_via_narwhals_wires_pd_to_ibis_schema(
+    monkeypatch, request
+):
+    """register_pandas_via_narwhals registers pd.DataFrame against ibis schema."""
+    from pandera.api.ibis.container import (
+        DataFrameSchema as IbisDataFrameSchema,
+    )
+    from pandera.backends.narwhals.container import (
+        DataFrameSchemaBackend as NarwhalsDataFrameSchemaBackend,
+    )
+    from pandera.backends.pandas.register import register_pandas_via_narwhals
+    from pandera.config import CONFIG
+
+    monkeypatch.setattr(CONFIG, "use_narwhals_backend", True)
+    request.addfinalizer(register_pandas_via_narwhals.cache_clear)
+    register_pandas_via_narwhals.cache_clear()
+    register_pandas_via_narwhals()
+    backend = IbisDataFrameSchema.get_backend(pd.DataFrame())
+    assert isinstance(backend, NarwhalsDataFrameSchemaBackend)
+
+
+def test_register_pandas_via_narwhals_no_op_when_flag_off(
+    monkeypatch, request
+):
+    """register_pandas_via_narwhals does nothing when the opt-in flag is False."""
+    from pandera.api.polars.container import (
+        DataFrameSchema as PolarsDataFrameSchema,
+    )
+    from pandera.backends.pandas.register import register_pandas_via_narwhals
+    from pandera.config import CONFIG
+
+    # Snapshot the registry; it must not gain a pd.DataFrame entry.
+    request.addfinalizer(register_pandas_via_narwhals.cache_clear)
+    monkeypatch.setattr(CONFIG, "use_narwhals_backend", False)
+    register_pandas_via_narwhals.cache_clear()
+    PolarsDataFrameSchema.BACKEND_REGISTRY.pop(
+        (PolarsDataFrameSchema, pd.DataFrame), None
+    )
+    register_pandas_via_narwhals()
+    assert (
+        PolarsDataFrameSchema,
+        pd.DataFrame,
+    ) not in PolarsDataFrameSchema.BACKEND_REGISTRY
