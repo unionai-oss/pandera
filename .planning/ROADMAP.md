@@ -69,7 +69,8 @@ See `.planning/milestones/v1.2-ROADMAP.md` for full phase details.
   2. When `pyspark_connect` is importable, its `DataFrame` type is also registered under the Narwhals backend
   3. Setting `PANDERA_USE_NARWHALS_BACKEND=False` (or leaving it unset) leaves existing native PySpark registrations in place unchanged
   4. The registration wiring follows the same conditional pattern as `register_polars_backends()` and `register_ibis_backends()` — no novel activation mechanism introduced
-**Plans**: TBD
+**Plans**: 1 plan
+- [ ] 01-01-PLAN.md — Wire conditional narwhals/native branches into register_pyspark_backends() and add 4 activation/fallback/connect/idempotency tests
 
 ### Phase 2: Test Coverage and CI
 **Goal**: The existing PySpark test suite runs cleanly under the Narwhals backend, with expected SQL-lazy limitations marked `xfail`, unexpected bugs fixed, and a CI nox session added
@@ -99,6 +100,6 @@ See `.planning/milestones/v1.2-ROADMAP.md` for full phase details.
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. PySpark Registration | 0/TBD | Not started | - |
+| 1. PySpark Registration | 0/1 | Not started | - |
 | 2. Test Coverage and CI | 0/TBD | Not started | - |
 | 3. Documentation | 0/TBD | Not started | - |
