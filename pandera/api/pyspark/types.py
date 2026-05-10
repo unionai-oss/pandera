@@ -15,10 +15,17 @@ from pandera.dtypes import DataType
 
 # Handles optional Spark Connect imports for pyspark>=3.4 (if available)
 if version.parse(pyspark.__version__) >= version.parse("3.4"):
-    from pyspark.sql.connect.dataframe import (
-        DataFrame as PySparkConnectDataFrame,
-    )
-    from pyspark.sql.connect.group import GroupedData
+    try:
+        from pyspark.sql.connect.dataframe import (
+            DataFrame as PySparkConnectDataFrame,
+        )
+        from pyspark.sql.connect.group import GroupedData
+    except Exception:
+        # grpcio-status or other Spark Connect deps not installed
+        from pyspark.sql import (
+            DataFrame as PySparkConnectDataFrame,
+        )
+        from pyspark.sql.group import GroupedData
 else:
     from pyspark.sql import (
         DataFrame as PySparkConnectDataFrame,

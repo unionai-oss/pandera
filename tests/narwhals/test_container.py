@@ -260,11 +260,21 @@ def test_pyspark_narwhals_activated_when_opted_in(monkeypatch, request):
     from pandera.backends.pyspark.register import register_pyspark_backends
     from pandera.config import CONFIG
 
-    monkeypatch.setattr(CONFIG, "use_narwhals_backend", True)
+    # Save and restore BACKEND_REGISTRY so tests don't bleed into each other.
+    # register_backend() uses first-registration-wins semantics, so we must
+    # remove the pyspark_sql.DataFrame key before re-registering.
+    registry_key = (PySparkDataFrameSchema, pyspark_sql.DataFrame)
+    saved = PySparkDataFrameSchema.BACKEND_REGISTRY.pop(registry_key, None)
     request.addfinalizer(register_pyspark_backends.cache_clear)
+    if saved is not None:
+        request.addfinalizer(
+            lambda: PySparkDataFrameSchema.BACKEND_REGISTRY.update({registry_key: saved})
+        )
+
+    monkeypatch.setattr(CONFIG, "use_narwhals_backend", True)
     register_pyspark_backends.cache_clear()
     register_pyspark_backends()
-    backend = PySparkDataFrameSchema.get_backend(pyspark_sql.DataFrame)
+    backend = PySparkDataFrameSchema.get_backend(check_type=pyspark_sql.DataFrame)
     assert isinstance(backend, NarwhalsDataFrameSchemaBackend)
 
 
@@ -281,11 +291,19 @@ def test_pyspark_native_unchanged_when_flag_off(monkeypatch, request):
     from pandera.backends.pyspark.register import register_pyspark_backends
     from pandera.config import CONFIG
 
-    monkeypatch.setattr(CONFIG, "use_narwhals_backend", False)
+    # Save and restore BACKEND_REGISTRY so tests don't bleed into each other.
+    registry_key = (PySparkDataFrameSchema, pyspark_sql.DataFrame)
+    saved = PySparkDataFrameSchema.BACKEND_REGISTRY.pop(registry_key, None)
     request.addfinalizer(register_pyspark_backends.cache_clear)
+    if saved is not None:
+        request.addfinalizer(
+            lambda: PySparkDataFrameSchema.BACKEND_REGISTRY.update({registry_key: saved})
+        )
+
+    monkeypatch.setattr(CONFIG, "use_narwhals_backend", False)
     register_pyspark_backends.cache_clear()
     register_pyspark_backends()
-    backend = PySparkDataFrameSchema.get_backend(pyspark_sql.DataFrame)
+    backend = PySparkDataFrameSchema.get_backend(check_type=pyspark_sql.DataFrame)
     assert isinstance(backend, NativeBackend)
 
 
@@ -297,7 +315,10 @@ def test_pyspark_connect_narwhals_activated_when_opted_in(monkeypatch, request):
     if version.parse(pyspark.__version__) < version.parse("3.4"):
         pytest.skip("pyspark.sql.connect requires pyspark >= 3.4")
 
-    from pyspark.sql.connect import dataframe as pyspark_connect
+    try:
+        from pyspark.sql.connect import dataframe as pyspark_connect
+    except Exception:
+        pytest.skip("pyspark.sql.connect dependencies (e.g. grpcio-status) not installed")
 
     from pandera.api.pyspark.container import (
         DataFrameSchema as PySparkDataFrameSchema,
@@ -308,11 +329,19 @@ def test_pyspark_connect_narwhals_activated_when_opted_in(monkeypatch, request):
     from pandera.backends.pyspark.register import register_pyspark_backends
     from pandera.config import CONFIG
 
-    monkeypatch.setattr(CONFIG, "use_narwhals_backend", True)
+    # Save and restore BACKEND_REGISTRY for pyspark_connect.DataFrame.
+    registry_key = (PySparkDataFrameSchema, pyspark_connect.DataFrame)
+    saved = PySparkDataFrameSchema.BACKEND_REGISTRY.pop(registry_key, None)
     request.addfinalizer(register_pyspark_backends.cache_clear)
+    if saved is not None:
+        request.addfinalizer(
+            lambda: PySparkDataFrameSchema.BACKEND_REGISTRY.update({registry_key: saved})
+        )
+
+    monkeypatch.setattr(CONFIG, "use_narwhals_backend", True)
     register_pyspark_backends.cache_clear()
     register_pyspark_backends()
-    backend = PySparkDataFrameSchema.get_backend(pyspark_connect.DataFrame)
+    backend = PySparkDataFrameSchema.get_backend(check_type=pyspark_connect.DataFrame)
     assert isinstance(backend, NarwhalsDataFrameSchemaBackend)
 
 
