@@ -5,10 +5,26 @@ These previously asserted that ``strategy()`` and ``example()`` raised
 delegating to the pandas strategies and converting the result to polars.
 """
 
+import warnings
+
 import polars as pl
 import pytest
 
 import pandera.polars as pa
+
+pytest.importorskip("hypothesis")
+import hypothesis  # noqa: E402
+
+
+@pytest.fixture(autouse=True)
+def _silence_noninteractive_example_warning():
+    """``.example()`` emits a noisy warning that is irrelevant for these tests."""
+    with warnings.catch_warnings():
+        warnings.simplefilter(
+            "ignore",
+            category=hypothesis.errors.NonInteractiveExampleWarning,
+        )
+        yield
 
 
 def test_dataframe_schema_strategy_emits_polars_dataframe():
