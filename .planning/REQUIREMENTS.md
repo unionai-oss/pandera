@@ -1,97 +1,69 @@
 # Requirements: Pandera Narwhals Backend
 
-**Defined:** 2026-03-29
+**Defined:** 2026-05-10
 **Core Value:** Users can validate any Narwhals-supported dataframe library through a single, consistent backend — reducing maintenance burden and unlocking lazy validation and future library support for free.
 
-## v1.2 Requirements
+## v1.3 Requirements
 
-Requirements for the PR Review Cleanup & Test Strategy milestone. Each maps to roadmap phases.
+Requirements for the Narwhals Backend for PySpark milestone. Each maps to roadmap phases.
 
-### Native Type Detection
+### Registration
 
-- [ ] **TYPES-01**: Unified constants (`EAGER_NATIVE_TYPES`, `LAZY_NATIVE_TYPES`, or equivalent) define which native frame types are eager vs lazy — used everywhere in place of ad-hoc `isinstance`/`hasattr` checks
-- [ ] **TYPES-02**: `_is_lazy(frame)` (or equivalent) utility replaces all scattered `hasattr(native, "execute")` and `isinstance(fc, nw.LazyFrame)` checks
-- [x] **TYPES-03**: Failure case result handling in `base.py`, `container.py`, and `components.py` uses a clean dispatch pattern backed by TYPES-01/02 rather than complex if/elif/else blocks
+- [ ] **REG-01**: `register_pyspark_backends()` conditionally registers `NarwhalsCheckBackend`, `ColumnBackend`, and `DataFrameSchemaBackend` for `pyspark_sql.DataFrame` (and `pyspark_connect.DataFrame` if available) when `PANDERA_USE_NARWHALS_BACKEND=True`; the `else` branch keeps existing native registrations untouched
 
-### Backend Isolation
+### Testing
 
-- [ ] **CLEAN-01**: `narwhals/checks.py` contains no Polars-specific imports or code paths
-- [ ] **CLEAN-02**: `narwhals/container.py` does not import from `pandera.api.polars.components`
-- [x] **CLEAN-03**: `narwhals/base.py` does not produce code paths that require Polars installed when validating Ibis frames (base.py:294 branch)
-- [x] **CLEAN-04**: All inner imports moved to top-level (stdlib in `container.py:449`; narwhals engine imports in `narwhals_engine.py:34,56`; any others)
+- [ ] **TEST-01**: The existing PySpark test suite runs under `PANDERA_USE_NARWHALS_BACKEND=True` with all failures either passing or `xfail`-marked with a justifying comment
+- [ ] **TEST-02**: Expected PySpark+Narwhals limitations are `xfail`-marked: element-wise checks (no `map_batches` on SQL-lazy), `sample=`/`tail=` params, row-index in `failure_cases`
+- [ ] **TEST-03**: Unexpected failures (true bugs in the narwhals backend or error-reporting layer) are investigated and fixed
 
-### Eager Execution
+### CI
 
-- [ ] **EAGER-01**: `narwhals_engine.py` does not call `.collect()` on entire frames; coerce/try_coerce do not materialize 100B-row datasets
-- [ ] **EAGER-02**: `container.py` does not call `.collect()` on `pl.DataFrame` inputs unnecessarily; `components.py` does not use `_materialize` solely to perform a lazy concat
-
-### Custom Checks
-
-- [ ] **CHECKS-01**: User-defined (custom) checks work through the Narwhals backend; root cause of current failure identified, fixed, and covered by a test
+- [ ] **CI-01**: A nox session (or parametrized entry) runs the PySpark test suite under `PANDERA_USE_NARWHALS_BACKEND=True` with pyspark + narwhals deps installed
 
 ### Documentation
 
-- [x] **DOCS-01**: `pandera/api/checks.py` `native` param docstring clarifies it only applies when using the Narwhals backend (not all backends)
-- [x] **DOCS-02**: "Narwhals" is consistently capitalized in all comments, docstrings, and `register.py` files
-
-### Testing Strategy
-
-- [ ] **TEST-01**: Existing Polars and Ibis backend tests pass (or are `xfail`-marked with justification) when Narwhals is installed in the same environment — CI infrastructure in place; xfails TBD in follow-up
-- [x] **TEST-02**: Narwhals backend tests parametrize across `pl.DataFrame`, `pl.LazyFrame`, and `ibis.Table`; all parametrized cases pass
-- [x] **TEST-03**: CI matrix covers: (a) existing backends without Narwhals installed (`unit-tests-dataframe-extras`), (b) existing backends with Narwhals installed (`unit-tests-narwhals-backend`), (c) narwhals-specific tests with all supported frame types (`unit-tests-narwhals`)
+- [ ] **DOCS-01**: Narwhals backend documentation lists PySpark as a supported SQL-lazy backend alongside Ibis/DuckDB, with a note on SQL-lazy limitations (no element-wise checks, no row sampling)
 
 ## Future Requirements
 
-These are deferred to future milestones and not included in the current roadmap.
+Deferred to future milestones and not included in the current roadmap.
 
 ### Additional Backend Support
 
 - pandas validation working via Narwhals backend (including lazy mode)
-- PySpark validation working via Narwhals backend (if feasible)
 
 ### Features
 
-- `add_missing_columns` parser
-- `set_default` for Column fields
-- Groupby-based checks via `group_by(...).agg()` pattern
+- `add_missing_columns` parser (FEAT-01)
+- `set_default` for Column fields (FEAT-02)
+- Groupby-based checks via `group_by(...).agg()` pattern (FEAT-04)
 
 ## Out of Scope
 
 | Feature | Reason |
 |---------|--------|
-| Narwhals-specific user-facing API | Narwhals is internal plumbing, not a user-facing target |
-| Immediate removal of library-native backends | Coexist until Narwhals backend is proven |
-| Strategies (Hypothesis) for Narwhals backend | Deferred to future milestone |
-| Schema IO (YAML/JSON) for Narwhals backend | Deferred to future milestone |
-| `narwhals stable.v2` migration | Monitor releases; migrate only when officially stabilized |
+| Narwhals-specific user-facing API | Narwhals is internal plumbing; users pass native frames |
+| Removal of native PySpark backend | Coexist until Narwhals backend is proven stable |
+| Strategies (Hypothesis) for PySpark via Narwhals | Defer to future milestone |
+| Schema IO (YAML/JSON) for PySpark via Narwhals | Defer to future milestone |
 
 ## Traceability
 
-Which phases cover which requirements. Updated during roadmap creation.
-
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| TYPES-01 | Phase 1 | Pending |
-| TYPES-02 | Phase 1 | Pending |
-| TYPES-03 | Phase 1 | Complete |
-| CLEAN-01 | Phase 1 | Pending |
-| CLEAN-02 | Phase 1 | Pending |
-| CLEAN-03 | Phase 1 | Complete |
-| CLEAN-04 | Phase 1 | Complete |
-| EAGER-01 | Phase 1 | Pending |
-| EAGER-02 | Phase 1 | Pending |
-| CHECKS-01 | Phase 1 | Pending |
-| DOCS-01 | Phase 2 | Complete |
-| DOCS-02 | Phase 2 | Complete |
-| TEST-01 | Phase 3 | Complete |
-| TEST-02 | Phase 3 | Complete |
-| TEST-03 | Phase 3 | Complete |
+| REG-01 | Phase 1 | Pending |
+| TEST-01 | Phase 2 | Pending |
+| TEST-02 | Phase 2 | Pending |
+| TEST-03 | Phase 2 | Pending |
+| CI-01 | Phase 2 | Pending |
+| DOCS-01 | Phase 3 | Pending |
 
 **Coverage:**
-- v1.2 requirements: 15 total
-- Mapped to phases: 15
+- v1.3 requirements: 6 total
+- Mapped to phases: 6
 - Unmapped: 0 ✓
 
 ---
-*Requirements defined: 2026-03-29*
-*Last updated: 2026-03-29 after roadmap creation*
+*Requirements defined: 2026-05-10*
+*Last updated: 2026-05-10 after roadmap creation*

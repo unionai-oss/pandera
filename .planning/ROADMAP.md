@@ -4,7 +4,8 @@
 
 - ✅ **v1.0 Narwhals Backend** — Phases 1-5 (shipped 2026-03-15)
 - ✅ **v1.1 Ibis Parity & Lazy-First Architecture** — Phases 1-9 (shipped 2026-03-25)
-- 🚧 **v1.2 PR Review Cleanup & Test Strategy** — Phases 1-3 (in progress)
+- ✅ **v1.2 PR Review Cleanup & Test Strategy** — Phases 1-3 (shipped 2026-04-10)
+- 🚧 **v1.3 Narwhals Backend for PySpark** — Phases 1-3 (in progress)
 
 ## Phases
 
@@ -38,67 +39,66 @@ See `.planning/milestones/v1.1-ROADMAP.md` for full phase details.
 
 </details>
 
-### 🚧 v1.2 PR Review Cleanup & Test Strategy (In Progress)
+<details>
+<summary>✅ v1.2 PR Review Cleanup & Test Strategy (Phases 1-3) — SHIPPED 2026-04-10</summary>
 
-**Milestone Goal:** Address all feedback from PR review 4027330818 — eliminate backend-specific coupling, unify native type detection, fix eager execution, fix custom checks, polish documentation, and establish a cohesive CI test strategy.
+- [x] Phase 1: Structural Cleanup (6/6 plans) — completed 2026-04-10
+- [x] Phase 2: Documentation Polish (2/2 plans) — completed 2026-04-10
+- [x] Phase 3: CI Test Strategy (3/3 plans) — completed 2026-04-10
 
-- [x] **Phase 1: Structural Cleanup** — Unify type detection, isolate backend code, eliminate eager execution, fix custom checks (completed 2026-03-30)
-- [x] **Phase 2: Documentation Polish** — Clarify `native` param scope, fix "Narwhals" capitalization everywhere (completed 2026-04-10)
-- [ ] **Phase 3: CI Test Strategy** — CI infrastructure in place; xfails for narwhals backend gaps pending
+See `.planning/milestones/v1.2-ROADMAP.md` for full phase details.
+
+</details>
+
+### 🚧 v1.3 Narwhals Backend for PySpark (In Progress)
+
+**Milestone Goal:** Wire PySpark into the Narwhals backend via registration, add CI coverage, and document SQL-lazy limitations — making PySpark a first-class supported backend alongside Ibis.
+
+- [ ] **Phase 1: PySpark Registration** — Conditionally wire Narwhals backends for PySpark DataFrames in `register_pyspark_backends()`
+- [ ] **Phase 2: Test Coverage and CI** — Run PySpark test suite under narwhals backend, triage failures, add nox session
+- [ ] **Phase 3: Documentation** — List PySpark as supported SQL-lazy backend with known limitations
 
 ## Phase Details
 
-### Phase 1: Structural Cleanup
-**Goal**: The narwhals backend has no Polars-specific coupling, no unnecessary eager execution, unified type detection utilities, and custom checks work end-to-end
-**Depends on**: Nothing (first phase of v1.2)
-**Requirements**: TYPES-01, TYPES-02, TYPES-03, CLEAN-01, CLEAN-02, CLEAN-03, CLEAN-04, EAGER-01, EAGER-02, CHECKS-01
+### Phase 1: PySpark Registration
+**Goal**: Users can activate the Narwhals backend for PySpark by setting `PANDERA_USE_NARWHALS_BACKEND=True`, with existing native PySpark behavior unchanged when the flag is off
+**Depends on**: Nothing (first phase of v1.3)
+**Requirements**: REG-01
 **Success Criteria** (what must be TRUE):
-  1. A single `_is_lazy(frame)` utility (or equivalent constants) is used everywhere in `narwhals/` in place of ad-hoc `isinstance`/`hasattr` checks — no inline lazy-detection logic remains in `base.py`, `container.py`, or `components.py`
-  2. `narwhals/checks.py`, `narwhals/container.py`, and `narwhals/base.py` contain no Polars-specific imports and no `pandera.api.polars` imports
-  3. `narwhals_engine.py` and `container.py`/`components.py` do not call `.collect()` on entire frames for coerce, concat, or dtype-check operations
-  4. All inner imports (stdlib and narwhals engine) in `container.py` and `narwhals_engine.py` are moved to module-level top-of-file
-  5. A user-defined custom check passes validation through the Narwhals backend for both `pl.DataFrame` and `ibis.Table` inputs, and a regression test covers this case
-**Plans**: 5 plans
-
-Plans:
-- [x] 01-01-PLAN.md — Create _is_lazy utility, hoist inner imports, add TYPE_CHECKING guard (TYPES-01, TYPES-02, CLEAN-04)
-- [x] 01-02-PLAN.md — Replace full-frame collect in try_coerce with head(1) probe; audit container/components materializations (EAGER-01, EAGER-02)
-- [x] 01-03-PLAN.md — Rewrite failure_cases_metadata dispatch to use _is_lazy; eliminate unconditional polars imports from base.py (TYPES-03, CLEAN-03)
-- [x] 01-04-PLAN.md — Add infer_columns() to DataFrameSchema base; wire container.py; add CLEAN-01/CLEAN-02 arch tests (CLEAN-01, CLEAN-02)
-- [x] 01-05-PLAN.md — Fix _normalize_native_output for pl.Series/pl.DataFrame returns; add regression tests (CHECKS-01)
-
-### Phase 2: Documentation Polish
-**Goal**: Docstrings and comments accurately describe the `native` parameter's scope and consistently spell "Narwhals" with a capital N
-**Depends on**: Phase 1
-**Requirements**: DOCS-01, DOCS-02
-**Success Criteria** (what must be TRUE):
-  1. The `native` parameter docstring in `pandera/api/checks.py` states explicitly that it only applies when using the Narwhals backend
-  2. All occurrences of "narwhals" in comments, docstrings, and `register.py` files that refer to the library name are capitalized as "Narwhals"
-**Plans**: 2 plans
-
-Plans:
-- [x] 02-01-PLAN.md — Append Narwhals-backend caveat to :param native: docstring in pandera/api/checks.py (DOCS-01)
-- [x] 02-02-PLAN.md — Capitalize "Narwhals" prose across pandera/ .py files, preserve code identifiers (DOCS-02)
-
-### Phase 3: CI Test Strategy
-**Goal**: The test suite is structured so existing Polars/Ibis backend tests run cleanly without Narwhals installed, and the Narwhals backend tests exercise all supported frame types with a documented CI matrix
-**Depends on**: Phase 1
-**Requirements**: TEST-01, TEST-02, TEST-03
-**Success Criteria** (what must be TRUE):
-  1. Existing Polars and Ibis backend tests (`tests/backends/polars/`, `tests/backends/ibis/`) pass (or are `xfail`-marked with a comment justifying the mark) when Narwhals is installed alongside those backends
-  2. Narwhals backend tests in `tests/backends/narwhals/` are parametrized and each test case runs against `pl.DataFrame`, `pl.LazyFrame`, and `ibis.Table` — no frame type is silently skipped
-  3. A CI matrix is documented (in code comments, a conftest note, or tox/pixi config) that covers: (a) existing backends tested in an environment without Narwhals installed, and (b) Narwhals backend tested with all supported frame types
+  1. Setting `PANDERA_USE_NARWHALS_BACKEND=True` causes `register_pyspark_backends()` to register `NarwhalsCheckBackend`, `ColumnBackend`, and `DataFrameSchemaBackend` for `pyspark_sql.DataFrame`
+  2. When `pyspark_connect` is importable, its `DataFrame` type is also registered under the Narwhals backend
+  3. Setting `PANDERA_USE_NARWHALS_BACKEND=False` (or leaving it unset) leaves existing native PySpark registrations in place unchanged
+  4. The registration wiring follows the same conditional pattern as `register_polars_backends()` and `register_ibis_backends()` — no novel activation mechanism introduced
 **Plans**: TBD
 
-Plans:
-- [ ] TBD (run /gsd:plan-phase 3 to break down)
+### Phase 2: Test Coverage and CI
+**Goal**: The existing PySpark test suite runs cleanly under the Narwhals backend, with expected SQL-lazy limitations marked `xfail`, unexpected bugs fixed, and a CI nox session added
+**Depends on**: Phase 1
+**Requirements**: TEST-01, TEST-02, TEST-03, CI-01
+**Success Criteria** (what must be TRUE):
+  1. Running `PANDERA_USE_NARWHALS_BACKEND=True pytest tests/pyspark/` produces no unexpected failures — every failure is either a passing test or an `xfail` with a justifying comment
+  2. Element-wise checks, `sample=`/`tail=` params, and row-index in `failure_cases` are each covered by at least one `xfail`-marked test documenting the SQL-lazy limitation
+  3. Any test failure that is not an expected SQL-lazy limitation (i.e., a true narwhals backend bug) is diagnosed and fixed before this phase closes
+  4. A nox session (or parametrized entry) runs `tests/pyspark/` under `PANDERA_USE_NARWHALS_BACKEND=True` with pyspark and narwhals dependencies installed, and that session is listed in the CI matrix
+**Plans**: TBD
+**UI hint**: no
+
+### Phase 3: Documentation
+**Goal**: The narwhals backend documentation clearly lists PySpark as a supported SQL-lazy backend alongside Ibis, with the same limitation notes users see for Ibis
+**Depends on**: Phase 1
+**Requirements**: DOCS-01
+**Success Criteria** (what must be TRUE):
+  1. The narwhals backend documentation page names PySpark as a supported SQL-lazy backend (alongside Ibis/DuckDB)
+  2. The documentation lists the same SQL-lazy limitations for PySpark that it lists for Ibis: no element-wise checks, no row sampling
+  3. A user reading only the narwhals backend docs can determine how to enable PySpark support and what constraints apply, without consulting source code
+**Plans**: TBD
 
 ## Progress
 
-**Execution Order:** 1 → 2 → 3 (Phase 2 and Phase 3 are independent once Phase 1 is complete)
+**Execution Order:** 1 → 2 → 3 (Phase 3 can begin as soon as Phase 1 is complete; Phase 2 requires Phase 1)
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Structural Cleanup | 6/6 | Complete   | 2026-04-10 |
-| 2. Documentation Polish | 2/2 | Complete   | 2026-04-10 |
-| 3. CI Test Strategy | 3/3 | In Progress | — |
+| 1. PySpark Registration | 0/TBD | Not started | - |
+| 2. Test Coverage and CI | 0/TBD | Not started | - |
+| 3. Documentation | 0/TBD | Not started | - |
