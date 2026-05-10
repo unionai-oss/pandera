@@ -25,22 +25,35 @@ import pytest
 def _ensure_narwhals_backends_registered():
     """Initialise narwhals backends before each test module in this directory.
 
-    Clears the lru_cache on the register functions and re-registers so that:
+    Forces ``CONFIG.use_narwhals_backend = True`` for the duration of the
+    module, clears the ``lru_cache`` on the register functions, and
+    re-registers so that:
+
     - builtin_checks side-effect runs (populates Dispatcher._function_registry)
     - NarwhalsCheckBackend, ColumnBackend, DataFrameSchemaBackend are registered
     - Tests that call NarwhalsCheckBackend directly do not need to trigger
       schema.validate() first.
 
-    Requires PANDERA_USE_NARWHALS_BACKEND=True (set by the nox session).
+    Setting the config flag here makes the suite usable when invoked
+    directly (e.g. ``pytest tests/narwhals/``) without relying on the
+    caller to export ``PANDERA_USE_NARWHALS_BACKEND=True`` first.
     """
     from pandera.backends.ibis.register import register_ibis_backends
     from pandera.backends.polars.register import register_polars_backends
+    from pandera.config import CONFIG
 
+    previous = CONFIG.use_narwhals_backend
+    CONFIG.use_narwhals_backend = True
     register_polars_backends.cache_clear()
     register_ibis_backends.cache_clear()
     register_polars_backends()
     register_ibis_backends()
-    yield
+    try:
+        yield
+    finally:
+        CONFIG.use_narwhals_backend = previous
+        register_polars_backends.cache_clear()
+        register_ibis_backends.cache_clear()
 
 
 @pytest.fixture(
