@@ -240,3 +240,85 @@ def test_ibis_backend_is_narwhals():
     t = ibis.memtable({"a": [1, 2, 3]})
     backend = IbisDataFrameSchema.get_backend(t)
     assert isinstance(backend, DataFrameSchemaBackend)
+
+
+# ---------------------------------------------------------------------------
+# REGISTER-04 (pyspark): narwhals backend activated when PANDERA_USE_NARWHALS_BACKEND=True
+# ---------------------------------------------------------------------------
+
+
+def test_pyspark_narwhals_activated_when_opted_in(monkeypatch, request):
+    """register_pyspark_backends() registers narwhals backends when opt-in is enabled."""
+    import pyspark.sql as pyspark_sql
+
+    from pandera.api.pyspark.container import (
+        DataFrameSchema as PySparkDataFrameSchema,
+    )
+    from pandera.backends.narwhals.container import (
+        DataFrameSchemaBackend as NarwhalsDataFrameSchemaBackend,
+    )
+    from pandera.backends.pyspark.register import register_pyspark_backends
+    from pandera.config import CONFIG
+
+    monkeypatch.setattr(CONFIG, "use_narwhals_backend", True)
+    request.addfinalizer(register_pyspark_backends.cache_clear)
+    register_pyspark_backends.cache_clear()
+    register_pyspark_backends()
+    backend = PySparkDataFrameSchema.get_backend(pyspark_sql.DataFrame)
+    assert isinstance(backend, NarwhalsDataFrameSchemaBackend)
+
+
+def test_pyspark_native_unchanged_when_flag_off(monkeypatch, request):
+    """register_pyspark_backends() registers native backends when opt-in is disabled."""
+    import pyspark.sql as pyspark_sql
+
+    from pandera.api.pyspark.container import (
+        DataFrameSchema as PySparkDataFrameSchema,
+    )
+    from pandera.backends.pyspark.container import (
+        DataFrameSchemaBackend as NativeBackend,
+    )
+    from pandera.backends.pyspark.register import register_pyspark_backends
+    from pandera.config import CONFIG
+
+    monkeypatch.setattr(CONFIG, "use_narwhals_backend", False)
+    request.addfinalizer(register_pyspark_backends.cache_clear)
+    register_pyspark_backends.cache_clear()
+    register_pyspark_backends()
+    backend = PySparkDataFrameSchema.get_backend(pyspark_sql.DataFrame)
+    assert isinstance(backend, NativeBackend)
+
+
+def test_pyspark_connect_narwhals_activated_when_opted_in(monkeypatch, request):
+    """register_pyspark_backends() registers narwhals backends for pyspark_connect.DataFrame."""
+    import pyspark
+    from packaging import version
+
+    if version.parse(pyspark.__version__) < version.parse("3.4"):
+        pytest.skip("pyspark.sql.connect requires pyspark >= 3.4")
+
+    from pyspark.sql.connect import dataframe as pyspark_connect
+
+    from pandera.api.pyspark.container import (
+        DataFrameSchema as PySparkDataFrameSchema,
+    )
+    from pandera.backends.narwhals.container import (
+        DataFrameSchemaBackend as NarwhalsDataFrameSchemaBackend,
+    )
+    from pandera.backends.pyspark.register import register_pyspark_backends
+    from pandera.config import CONFIG
+
+    monkeypatch.setattr(CONFIG, "use_narwhals_backend", True)
+    request.addfinalizer(register_pyspark_backends.cache_clear)
+    register_pyspark_backends.cache_clear()
+    register_pyspark_backends()
+    backend = PySparkDataFrameSchema.get_backend(pyspark_connect.DataFrame)
+    assert isinstance(backend, NarwhalsDataFrameSchemaBackend)
+
+
+def test_pyspark_register_is_idempotent():
+    """Calling register_pyspark_backends() twice does not raise or corrupt state."""
+    from pandera.backends.pyspark.register import register_pyspark_backends
+
+    register_pyspark_backends()
+    register_pyspark_backends()
