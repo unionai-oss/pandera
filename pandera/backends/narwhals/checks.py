@@ -1,7 +1,6 @@
 """Check backend for Narwhals."""
 
 from functools import partial
-from typing import Optional
 
 import narwhals.stable.v1 as nw
 

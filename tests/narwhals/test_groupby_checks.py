@@ -260,3 +260,21 @@ def test_ibis_schema_groupby_collects_then_groups():
     )
     out = schema.validate(t)
     assert out.execute().shape == (4, 2)
+
+
+def test_groupby_single_column_returns_scalar_keys_not_tuples(
+    make_narwhals_frame,
+):
+    """Mirrors pandas: single-column groupby keys are scalars, not 1-tuples.
+
+    Narwhals' native ``group_by`` always yields tuple keys; the backend
+    unpacks 1-tuples to a scalar to match the pandas contract.
+    """
+    frame = make_narwhals_frame({"v": [1, 2, 3], "g": ["A", "A", "B"]})
+    check = Check(lambda d: True, groupby="g")
+    backend = NarwhalsCheckBackend(check)
+    grouped = backend.groupby(frame)
+    for key in grouped:
+        assert not isinstance(key, tuple), (
+            f"Single-column groupby key should be a scalar, got tuple {key!r}"
+        )
