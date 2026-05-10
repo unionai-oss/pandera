@@ -351,6 +351,49 @@ class TestSubsample:
         assert set(range(10)).issubset(xs)
 
 
+def test_validate_with_sample_works_on_eager_polars(monkeypatch, request):
+    """``schema.validate(eager_df, sample=N)`` runs end-to-end via the
+    Narwhals container.
+
+    Regression test: the container originally always passed
+    ``nw.LazyFrame`` to ``subsample()``, which made the eager-only
+    ``sample=`` path unreachable in the public API. The container now
+    materializes the LazyFrame back to ``nw.DataFrame`` when the caller
+    originally passed an eager polars frame.
+    """
+    import pandera.polars as pa
+    from pandera.backends.polars.register import register_polars_backends
+    from pandera.config import CONFIG
+
+    monkeypatch.setattr(CONFIG, "use_narwhals_backend", True)
+    request.addfinalizer(register_polars_backends.cache_clear)
+    register_polars_backends.cache_clear()
+    register_polars_backends()
+
+    schema = pa.DataFrameSchema({"x": pa.Column(pl.Int64)})
+    df = pl.DataFrame({"x": list(range(20))})
+    out = schema.validate(df, sample=5)
+    assert isinstance(out, pl.DataFrame)
+    assert out.shape == (20, 1)
+
+
+def test_validate_with_sample_on_lazyframe_raises(monkeypatch, request):
+    """``sample=`` on a LazyFrame still raises (sample is eager-only)."""
+    import pandera.polars as pa
+    from pandera.backends.polars.register import register_polars_backends
+    from pandera.config import CONFIG
+
+    monkeypatch.setattr(CONFIG, "use_narwhals_backend", True)
+    request.addfinalizer(register_polars_backends.cache_clear)
+    register_polars_backends.cache_clear()
+    register_polars_backends()
+
+    schema = pa.DataFrameSchema({"x": pa.Column(pl.Int64)})
+    lf = pl.LazyFrame({"x": list(range(20))})
+    with pytest.raises(NotImplementedError, match="sample="):
+        schema.validate(lf, sample=5)
+
+
 # ---------------------------------------------------------------------------
 # Phase 6 RED baseline: failure_cases_metadata() returns ibis.Table for ibis input
 # ---------------------------------------------------------------------------

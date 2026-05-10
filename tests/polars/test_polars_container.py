@@ -620,11 +620,6 @@ def test_ordered(ldf_basic, ldf_schema_basic):
         invalid_order.pipe(ldf_schema_basic.validate).collect()
 
 
-@pytest.mark.xfail(
-    condition=CONFIG.use_narwhals_backend,
-    reason="sample= parameter not supported in Narwhals backend",
-    strict=True,
-)
 def test_sample_dataframe_schema(df_basic, ldf_basic, ldf_schema_basic):
     with pytest.raises(NotImplementedError):
         ldf_schema_basic.validate(ldf_basic, sample=1, random_state=1)
