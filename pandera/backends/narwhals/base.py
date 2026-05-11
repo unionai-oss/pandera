@@ -41,12 +41,28 @@ def _check_identifier(err: SchemaError) -> Any:
 def _concat_failure_cases(items: list) -> Any:
     """Concatenate per-error failure-case frames into a single frame.
 
-    Dispatches on the first item: ibis uses ``.union``; polars uses
-    ``pl.concat``. Returns an empty ``pl.DataFrame`` if the collection is
-    empty (SchemaErrors always constructs from polars by default).
+    Dispatches on frame type:
+    - PySpark DataFrames: detected first (before ibis) since PySpark also has
+      ``.union()``. All items are unioned using PySpark ``.union()``.
+    - ibis.Table: ``.union()`` dispatch.
+    - polars: ``pl.concat``.
+    Returns an empty ``pl.DataFrame`` if the collection is empty.
     """
     if not items:
         return pl.DataFrame() if pl is not None else None
+    if any(type(item).__module__.startswith("pyspark") for item in items):
+        # PySpark path: all items must be PySpark DataFrames. Items built by
+        # _build_scalar_failure_case are polars DataFrames (metadata-only, no
+        # data rows) — drop them from the concat since we cannot convert them
+        # to PySpark without an active SparkSession, and they carry no row data.
+        pyspark_items = [
+            item
+            for item in items
+            if type(item).__module__.startswith("pyspark")
+        ]
+        if not pyspark_items:
+            return pl.DataFrame() if pl is not None else None
+        return functools.reduce(lambda a, b: a.union(b), pyspark_items)
     first = items[0]
     if hasattr(first, "union"):  # ibis.Table
         return functools.reduce(lambda a, b: a.union(b), items)
@@ -121,7 +137,18 @@ class NarwhalsSchemaBackend(BaseSchemaBackend):
         check_result = check(check_obj, *args)
 
         passed_lf = check_result.check_passed  # nw.LazyFrame or nw.DataFrame
-        passed = bool(_materialize(passed_lf)[CHECK_OUTPUT_KEY][0])
+        if _is_sql_lazy(passed_lf) and passed_lf.implementation in (
+            nw.Implementation.PYSPARK,
+            nw.Implementation.PYSPARK_CONNECT,
+        ):
+            # PySpark: avoid narwhals _materialize() which calls .execute()
+            # (absent on pyspark.sql.DataFrame). Use PySpark-native .first()
+            # on the already-aggregated single-row result — bounded collect.
+            native_passed = nw.to_native(passed_lf)
+            row = native_passed.first()
+            passed = bool(row[CHECK_OUTPUT_KEY]) if row is not None else True
+        else:
+            passed = bool(_materialize(passed_lf)[CHECK_OUTPUT_KEY][0])
 
         message = None
         failure_cases = None

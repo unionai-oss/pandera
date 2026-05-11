@@ -238,6 +238,10 @@ class ColumnBackend(NarwhalsSchemaBackend):
 
         results = []
         schema_obj = check_obj.select(schema.selector).collect_schema()
+        is_pyspark = check_obj.implementation in (
+            nw.Implementation.PYSPARK,
+            nw.Implementation.PYSPARK_CONNECT,
+        )
 
         for column, nw_dtype in zip(schema_obj.names(), schema_obj.dtypes()):
             try:
@@ -258,20 +262,40 @@ class ColumnBackend(NarwhalsSchemaBackend):
             except TypeError:
                 passed = schema.dtype.check(col_pandera_dtype)
 
-            results.append(
-                CoreCheckResult(
-                    passed=bool(passed),
-                    check=f"dtype('{schema.dtype}')",
-                    reason_code=SchemaErrorReason.WRONG_DATATYPE,
-                    message=(
-                        f"expected column '{column}' to have type {schema.dtype}, "
-                        f"got {nw_dtype}"
-                        if not passed
-                        else None
-                    ),
-                    failure_cases=str(nw_dtype) if not passed else None,
+            if is_pyspark and not passed:
+                # Use PySpark-native dtype string to match test expectations
+                # (e.g. "IntegerType()", "LongType()") rather than narwhals
+                # dtype strings ("Int32", "Int64").
+                pyspark_dtype = str(
+                    nw.to_native(check_obj).schema[column].dataType
                 )
-            )
+                results.append(
+                    CoreCheckResult(
+                        passed=False,
+                        check=f"dtype('{schema.dtype}')",
+                        reason_code=SchemaErrorReason.WRONG_DATATYPE,
+                        message=(
+                            f"expected column '{column}' to have type "
+                            f"{schema.dtype}, got {pyspark_dtype}"
+                        ),
+                        failure_cases=pyspark_dtype,
+                    )
+                )
+            else:
+                results.append(
+                    CoreCheckResult(
+                        passed=bool(passed),
+                        check=f"dtype('{schema.dtype}')",
+                        reason_code=SchemaErrorReason.WRONG_DATATYPE,
+                        message=(
+                            f"expected column '{column}' to have type {schema.dtype}, "
+                            f"got {nw_dtype}"
+                            if not passed
+                            else None
+                        ),
+                        failure_cases=str(nw_dtype) if not passed else None,
+                    )
+                )
         return results
 
     @validate_scope(scope=ValidationScope.DATA)

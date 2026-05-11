@@ -99,6 +99,11 @@ class DataFrameSchemaBackend(NarwhalsSchemaBackend):
         # Convert to Narwhals LazyFrame — all parsers operate on LazyFrame
         check_lf = _to_lazy_nw(check_obj)
 
+        is_pyspark = check_lf.implementation in (
+            nw.Implementation.PYSPARK,
+            nw.Implementation.PYSPARK_CONNECT,
+        )
+
         if inplace:
             warnings.warn("setting inplace=True will have no effect.")
 
@@ -223,12 +228,22 @@ class DataFrameSchemaBackend(NarwhalsSchemaBackend):
                     check_obj_parsed, error_handler
                 )
                 return check_obj_parsed
+            elif is_pyspark:
+                # Mirror the native PySpark backend contract: set errors on the
+                # accessor and return the original frame rather than raising.
+                error_dicts = error_handler.summarize(schema_name=schema.name)
+                check_obj.pandera.errors = error_dicts
+                return check_obj
             else:
                 raise SchemaErrors(
                     schema=schema,
                     schema_errors=error_handler.schema_errors,
                     data=_to_frame_kind_nw(check_lf, return_type),
                 )
+
+        if is_pyspark:
+            check_obj.pandera.errors = {}
+            return check_obj
 
         return _to_frame_kind_nw(check_lf, return_type)
 
