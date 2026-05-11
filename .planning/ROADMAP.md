@@ -81,7 +81,10 @@ See `.planning/milestones/v1.2-ROADMAP.md` for full phase details.
   2. Element-wise checks, `sample=`/`tail=` params, and row-index in `failure_cases` are each covered by at least one `xfail`-marked test documenting the SQL-lazy limitation
   3. Any test failure that is not an expected SQL-lazy limitation (i.e., a true narwhals backend bug) is diagnosed and fixed before this phase closes
   4. A nox session (or parametrized entry) runs `tests/pyspark/` under `PANDERA_USE_NARWHALS_BACKEND=True` with pyspark and narwhals dependencies installed, and that session is listed in the CI matrix
-**Plans**: TBD
+**Plans**: 3 plans
+- [ ] 02-01-PLAN.md — Apply xfail markers to 11 expected SQL-lazy limitation tests across 4 pyspark test files (TEST-02)
+- [ ] 02-02-PLAN.md — Extend tests_narwhals_backend nox session and CI matrix to cover pyspark extra (CI-01)
+- [ ] 02-03-PLAN.md — Triage tests/pyspark/ under narwhals: produce TRIAGE.md, apply any additional xfails, fix true backend bugs (TEST-01, TEST-03)
 **UI hint**: no
 
 ### Phase 3: Documentation
@@ -101,5 +104,5 @@ See `.planning/milestones/v1.2-ROADMAP.md` for full phase details.
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. PySpark Registration | 0/1 | Not started | - |
-| 2. Test Coverage and CI | 0/TBD | Not started | - |
+| 2. Test Coverage and CI | 0/3 | Not started | - |
 | 3. Documentation | 0/TBD | Not started | - |
