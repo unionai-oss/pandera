@@ -8,7 +8,7 @@ import pytest
 from pyspark.sql import DataFrame
 
 from pandera.backends.pyspark.decorators import cache_check_obj
-from pandera.config import config_context
+from pandera.config import CONFIG, config_context
 from pandera.pyspark import Check, Column, DataFrameSchema
 from tests.pyspark.conftest import spark_df
 
@@ -64,6 +64,11 @@ class TestPanderaDecorators:
                 instance = FakeDataFrameSchemaBackend()
                 _ = instance.func_wo_check_obj("wrong")
 
+    @pytest.mark.xfail(
+        condition=CONFIG.use_narwhals_backend,
+        reason="Narwhals backend does not use PySpark caching decorators; cache/unpersist log messages are not emitted",
+        strict=True,
+    )
     @pytest.mark.parametrize(
         "cache_enabled,keep_cache_enabled,"
         "expected_caching_message,expected_unpersisting_message",

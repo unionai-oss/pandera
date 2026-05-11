@@ -26,6 +26,7 @@ from pyspark.sql.types import (
 
 import pandera.extensions
 import pandera.pyspark as pa
+from pandera.config import CONFIG
 from pandera.errors import PysparkSchemaError
 from pandera.pyspark import Column, DataFrameModel, DataFrameSchema, Field
 from pandera.validation_depth import ValidationScope, validate_scope
@@ -1841,6 +1842,11 @@ class TestCustomCheck(BaseClass):
             if df_out.pandera.errors:
                 raise PysparkSchemaError
 
+    @pytest.mark.xfail(
+        condition=CONFIG.use_narwhals_backend,
+        reason="Custom checks using PysparkDataframeColumnObject API are incompatible with narwhals backend (NarwhalsData has different interface)",
+        strict=True,
+    )
     def test_extension(self, spark_session, extra_registered_checks, request):  # pylint: disable=unused-argument
         """Test custom extension with DataFrameSchema way of defining schema"""
         spark = request.getfixturevalue(spark_session)
@@ -1863,6 +1869,11 @@ class TestCustomCheck(BaseClass):
             IntegerType(),
         )
 
+    @pytest.mark.xfail(
+        condition=CONFIG.use_narwhals_backend,
+        reason="Custom checks using PysparkDataframeColumnObject API are incompatible with narwhals backend (NarwhalsData has different interface)",
+        strict=True,
+    )
     def test_extension_dataframe_model(
         self, spark_session, extra_registered_checks, request
     ):  # pylint: disable=unused-argument
@@ -2004,6 +2015,11 @@ class TestUniqueValuesEqCheck(BaseClass):
             ],
         }
 
+    @pytest.mark.xfail(
+        condition=CONFIG.use_narwhals_backend,
+        reason="unique_values_eq not registered for Narwhals backend",
+        strict=True,
+    )
     @validate_scope(scope=ValidationScope.DATA)
     def test_unique_values_eq_check(
         self, spark_session, datatype, data, request
@@ -2019,6 +2035,11 @@ class TestUniqueValuesEqCheck(BaseClass):
             data["test_expression"],
         )
 
+    @pytest.mark.xfail(
+        condition=CONFIG.use_narwhals_backend,
+        reason="unique_values_eq not registered for Narwhals backend",
+        strict=True,
+    )
     @validate_scope(scope=ValidationScope.DATA)
     def test_failed_unaccepted_datatypes(
         self, spark_session, datatype, data, request

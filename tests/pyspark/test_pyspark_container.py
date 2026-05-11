@@ -11,7 +11,7 @@ from pyspark.sql import DataFrame, Row
 
 import pandera.errors
 import pandera.pyspark as pa
-from pandera.config import PanderaConfig, ValidationDepth
+from pandera.config import CONFIG, PanderaConfig, ValidationDepth
 from pandera.pyspark import Column, DataFrameModel, DataFrameSchema
 
 pytestmark = pytest.mark.parametrize(
@@ -134,6 +134,11 @@ def test_pyspark_column_metadata(
     assert schema.get_metadata() == expected
 
 
+@pytest.mark.xfail(
+    condition=CONFIG.use_narwhals_backend,
+    reason="sample= is not supported in the Narwhals backend; use head= instead",
+    strict=True,
+)
 def test_pyspark_sample(spark_session, request):
     """
     Test the sample functionality of pyspark
