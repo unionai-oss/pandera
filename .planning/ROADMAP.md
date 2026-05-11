@@ -78,7 +78,7 @@ See `.planning/milestones/v1.2-ROADMAP.md` for full phase details.
 **Requirements**: TEST-01, TEST-02, TEST-03, CI-01
 **Success Criteria** (what must be TRUE):
   1. Running `PANDERA_USE_NARWHALS_BACKEND=True pytest tests/pyspark/` produces no unexpected failures — every failure is either a passing test or an `xfail` with a justifying comment
-  2. Element-wise checks, `sample=`/`tail=` params, and row-index in `failure_cases` are each covered by at least one `xfail`-marked test documenting the SQL-lazy limitation
+  2. Element-wise checks and `sample=`/`tail=` params are each covered by at least one `xfail`-marked test documenting the SQL-lazy limitation. Row-index in `failure_cases` is inapplicable to PySpark — PySpark DataFrames are distributed and partitioned with no native integer row index; this clause applies only to polars/ibis backends (see 02-03-TRIAGE.md ## SC2c Decision)
   3. Any test failure that is not an expected SQL-lazy limitation (i.e., a true narwhals backend bug) is diagnosed and fixed before this phase closes
   4. A nox session (or parametrized entry) runs `tests/pyspark/` under `PANDERA_USE_NARWHALS_BACKEND=True` with pyspark and narwhals dependencies installed, and that session is listed in the CI matrix
 **Plans**: 4 plans

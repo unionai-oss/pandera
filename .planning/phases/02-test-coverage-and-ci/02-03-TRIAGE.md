@@ -246,3 +246,28 @@ Fix: Restructure to apply per-parametrization xfail marks for ArrayType (data1) 
 - A5 (spark_connect failures are pre-existing): confirmed — spark_connect tests filtered by -k, no narwhals-specific issues there
 - A6 (pyspark pulls pandas transitively): confirmed — no ImportError for pandas in the test run
 - A7 (TestCustomCheck tests fail because NarwhalsData doesn't have .column_name/.dataframe): confirmed — both TestCustomCheck tests XFAIL as expected
+
+## SC2c Decision
+
+- **Decision:** scope-out
+- **Date:** 2026-05-11
+- **Reference:** 02-VERIFICATION.md gap entry (Phase 2 SC2c human verification item)
+
+ROADMAP Phase 2 SC2 originally required that "row-index in `failure_cases`" be covered by at
+least one xfail-marked PySpark test. This clause was written in the context of polars/ibis, where
+integer row indices either exist (polars) or existed before the narwhals backend removed them
+(ibis — hence the existing xfail tests in `tests/ibis/test_ibis_container.py`).
+
+PySpark DataFrames are distributed and partitioned with no native integer row index. There is no
+`with_row_index` equivalent that produces a stable ordering across executors. Creating an xfail
+test asserting the absence of a row index would document a non-feature that can never be provided
+by any future narwhals version — adding noise without value.
+
+The ibis xfail pattern (e.g. `test_failed_cases_index_for_column_check`) xfails pre-existing tests
+where row-index *was* available in the native ibis backend and the narwhals backend removed it.
+PySpark never had this feature in its native backend either. Scope-out is the consistent choice.
+
+ROADMAP SC2 has been updated to: "Element-wise checks and `sample=`/`tail=` params are each
+covered by at least one `xfail`-marked test. Row-index in `failure_cases` is inapplicable to
+PySpark — PySpark DataFrames are distributed and partitioned with no native integer row index;
+this clause applies only to polars/ibis backends."
