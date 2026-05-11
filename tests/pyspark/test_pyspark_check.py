@@ -1959,11 +1959,15 @@ class TestUniqueValuesEqCheck(BaseClass):
         """This function passes the parameter for each function based on parameter form get_data_param function"""
         # called once per each test function
         funcarglist = self.get_data_param()[metafunc.function.__name__]
-        argnames = sorted(funcarglist[0])
+        # Filter out the reserved "marks" key when deriving argnames
+        argnames = sorted(k for k in funcarglist[0] if k != "marks")
         metafunc.parametrize(
             argnames,
             [
-                [funcargs[name] for name in argnames]
+                pytest.param(
+                    *[funcargs[name] for name in argnames],
+                    marks=funcargs.get("marks", []),
+                )
                 for funcargs in funcarglist
             ],
         )
@@ -1971,6 +1975,11 @@ class TestUniqueValuesEqCheck(BaseClass):
     def get_data_param(self):
         """Generate the params which will be used to test this function. All the acceptable
         data types would be tested"""
+        _xfail_unique_values_eq = pytest.mark.xfail(
+            condition=CONFIG.use_narwhals_backend,
+            reason="unique_values_eq not registered for Narwhals backend",
+            strict=True,
+        )
         return {
             "test_unique_values_eq_check": [
                 {"datatype": LongType(), "data": self.sample_numeric_data},
@@ -2003,14 +2012,21 @@ class TestUniqueValuesEqCheck(BaseClass):
                 {"datatype": StringType(), "data": self.sample_string_data},
             ],
             "test_failed_unaccepted_datatypes": [
+                # BooleanType: TypeError is raised even under narwhals backend
+                # (check type validation happens before narwhals dispatch),
+                # so no xfail needed.
                 {"datatype": BooleanType(), "data": self.sample_bolean_data},
+                # ArrayType and MapType: unique_values_eq is not registered in
+                # narwhals backend, so TypeError is not raised; the test xfails.
                 {
                     "datatype": ArrayType(StringType()),
                     "data": self.sample_array_data,
+                    "marks": [_xfail_unique_values_eq],
                 },
                 {
                     "datatype": MapType(StringType(), StringType()),
                     "data": self.sample_map_data,
+                    "marks": [_xfail_unique_values_eq],
                 },
             ],
         }
@@ -2035,11 +2051,6 @@ class TestUniqueValuesEqCheck(BaseClass):
             data["test_expression"],
         )
 
-    @pytest.mark.xfail(
-        condition=CONFIG.use_narwhals_backend,
-        reason="unique_values_eq not registered for Narwhals backend",
-        strict=True,
-    )
     @validate_scope(scope=ValidationScope.DATA)
     def test_failed_unaccepted_datatypes(
         self, spark_session, datatype, data, request
