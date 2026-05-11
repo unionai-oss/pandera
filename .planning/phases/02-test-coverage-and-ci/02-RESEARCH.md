@@ -399,22 +399,22 @@ from pandera.config import CONFIG
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **`unique_values_eq` — xfail or implement?**
    - What we know: Not in narwhals builtin_checks; already xfailed in `tests/common/`
    - What's unclear: Whether implementing it for narwhals (using aggregation) is in scope for this phase
-   - Recommendation: Default to xfail (matching common tests pattern); implementing it is a non-trivial addition and TEST-03 scope only if it surfaces as a blocking bug
+   - **RESOLVED:** Default to xfail (matching common tests pattern); implementing it is a non-trivial addition and TEST-03 scope only if it surfaces as a blocking bug during triage. Plan 02-01 applies the xfail; Plan 02-03 Task 3 revisits only if it blocks TEST-01.
 
 2. **Exact Python version matrix for pyspark narwhals CI**
    - What we know: Native pyspark CI excludes Python 3.12, 3.13, 3.14
    - What's unclear: Whether PySpark 4.x supports Python 3.12 (it may)
-   - Recommendation: Mirror the same excludes initially; can expand later
+   - **RESOLVED:** Mirror the same excludes as the native pyspark CI job (3.12 and 3.13 excluded). Can be expanded in a future milestone once narwhals+pyspark CI is stable. Plan 02-02 Task 2 implements this.
 
 3. **Error message string format divergence**
    - What we know: Narwhals backend uses `str(nw_dtype)` for dtype error strings
    - What's unclear: Whether narwhals' PySpark type strings match the native PySpark `str(T.ArrayType(...))` format
-   - Recommendation: Discover during triage run; update assertions or add xfails based on actual output
+   - **RESOLVED:** Defer to discovery during triage run (Plan 02-03 Task 1). Executor applies xfails or fixes assertions based on actual output. No pre-emptive changes.
 
 ---
 
