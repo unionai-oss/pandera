@@ -243,7 +243,35 @@ class ColumnBackend(NarwhalsSchemaBackend):
             nw.Implementation.PYSPARK_CONNECT,
         )
 
+        native_pyspark_schema = (
+            nw.to_native(check_obj).schema if is_pyspark else None
+        )
+
         for column, nw_dtype in zip(schema_obj.names(), schema_obj.dtypes()):
+            if is_pyspark:
+                # For PySpark, the narwhals dtype system cannot reliably compare
+                # PySpark-native types (e.g. IntegerType()) with narwhals dtypes
+                # (e.g. Int32). Compare native dtype strings directly instead —
+                # this mirrors what the native PySpark backend does.
+                pyspark_dtype = native_pyspark_schema[column].dataType
+                pyspark_dtype_str = str(pyspark_dtype)
+                passed = pyspark_dtype_str == str(schema.dtype)
+                results.append(
+                    CoreCheckResult(
+                        passed=bool(passed),
+                        check=f"dtype('{schema.dtype}')",
+                        reason_code=SchemaErrorReason.WRONG_DATATYPE,
+                        message=(
+                            f"expected column '{column}' to have type "
+                            f"{schema.dtype}, got {pyspark_dtype_str}"
+                            if not passed
+                            else None
+                        ),
+                        failure_cases=pyspark_dtype_str if not passed else None,
+                    )
+                )
+                continue
+
             try:
                 col_pandera_dtype = narwhals_engine.Engine.dtype(nw_dtype)
             except TypeError:
@@ -262,40 +290,20 @@ class ColumnBackend(NarwhalsSchemaBackend):
             except TypeError:
                 passed = schema.dtype.check(col_pandera_dtype)
 
-            if is_pyspark and not passed:
-                # Use PySpark-native dtype string to match test expectations
-                # (e.g. "IntegerType()", "LongType()") rather than narwhals
-                # dtype strings ("Int32", "Int64").
-                pyspark_dtype = str(
-                    nw.to_native(check_obj).schema[column].dataType
+            results.append(
+                CoreCheckResult(
+                    passed=bool(passed),
+                    check=f"dtype('{schema.dtype}')",
+                    reason_code=SchemaErrorReason.WRONG_DATATYPE,
+                    message=(
+                        f"expected column '{column}' to have type {schema.dtype}, "
+                        f"got {nw_dtype}"
+                        if not passed
+                        else None
+                    ),
+                    failure_cases=str(nw_dtype) if not passed else None,
                 )
-                results.append(
-                    CoreCheckResult(
-                        passed=False,
-                        check=f"dtype('{schema.dtype}')",
-                        reason_code=SchemaErrorReason.WRONG_DATATYPE,
-                        message=(
-                            f"expected column '{column}' to have type "
-                            f"{schema.dtype}, got {pyspark_dtype}"
-                        ),
-                        failure_cases=pyspark_dtype,
-                    )
-                )
-            else:
-                results.append(
-                    CoreCheckResult(
-                        passed=bool(passed),
-                        check=f"dtype('{schema.dtype}')",
-                        reason_code=SchemaErrorReason.WRONG_DATATYPE,
-                        message=(
-                            f"expected column '{column}' to have type {schema.dtype}, "
-                            f"got {nw_dtype}"
-                            if not passed
-                            else None
-                        ),
-                        failure_cases=str(nw_dtype) if not passed else None,
-                    )
-                )
+            )
         return results
 
     @validate_scope(scope=ValidationScope.DATA)

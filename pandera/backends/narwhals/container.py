@@ -310,7 +310,7 @@ class DataFrameSchemaBackend(NarwhalsSchemaBackend):
                     CoreCheckResult(
                         passed=False,
                         check="schema_component_checks",
-                        reason_code=SchemaErrorReason.SCHEMA_COMPONENT_CHECK,
+                        reason_code=err.reason_code,
                         schema_error=err,
                     )
                 )
@@ -320,7 +320,7 @@ class DataFrameSchemaBackend(NarwhalsSchemaBackend):
                         CoreCheckResult(
                             passed=False,
                             check="schema_component_checks",
-                            reason_code=SchemaErrorReason.SCHEMA_COMPONENT_CHECK,
+                            reason_code=schema_error.reason_code,
                             schema_error=schema_error,
                         )
                         for schema_error in err.schema_errors

@@ -9,34 +9,34 @@
 | File | Test ID | Outcome | Category | Disposition | Reason or Fix Reference |
 |---|---|---|---|---|---|
 | test_pyspark_accessor.py | test_modin_accessor_warning | PASSED | — | pass | Accessor warning works regardless of backend |
-| test_pyspark_accessor.py | test_dataframe_add_schema[...] | FAILED | C | [DEFERRED — exceeded per-run cap] | Narwhals backend raises SchemaErrors instead of setting df.pandera.errors |
+| test_pyspark_accessor.py | test_dataframe_add_schema[...] | FAILED | C | fixed in plan 02-04 (commit c6f3bb22) | Narwhals backend raises SchemaErrors instead of setting df.pandera.errors |
 | test_pyspark_check.py | TestCustomCheck::test_extension[spark] | XFAIL | A | already xfail (Plan 01) | Custom checks use PysparkDataframeColumnObject API |
 | test_pyspark_check.py | TestCustomCheck::test_extension_dataframe_model[spark] | XFAIL | A | already xfail (Plan 01) | Custom checks use PysparkDataframeColumnObject API |
-| test_pyspark_check.py | TestEqualToCheck::test_equal_to_check[data0..data10-spark] (22 tests) | FAILED | C | [DEFERRED — exceeded per-run cap] | Narwhals backend raises SchemaErrors instead of setting df.pandera.errors |
-| test_pyspark_check.py | TestEqualToCheck::test_failed_unaccepted_datatypes[data0..data1-spark] (4 tests) | FAILED | C | [DEFERRED — exceeded per-run cap] | Narwhals backend raises SchemaErrors instead of setting df.pandera.errors |
-| test_pyspark_check.py | TestNotEqualToCheck::test_not_equal_to_check[data0..data10-spark] (22 tests) | FAILED | C | [DEFERRED — exceeded per-run cap] | Narwhals backend raises SchemaErrors instead of setting df.pandera.errors |
-| test_pyspark_check.py | TestNotEqualToCheck::test_failed_unaccepted_datatypes[data0..data1-spark] (4 tests) | FAILED | C | [DEFERRED — exceeded per-run cap] | Narwhals backend raises SchemaErrors instead of setting df.pandera.errors |
-| test_pyspark_check.py | TestGreaterThanCheck::test_greater_than_check[data0..data8-spark] (18 tests) | FAILED | C | [DEFERRED — exceeded per-run cap] | Narwhals backend raises SchemaErrors instead of setting df.pandera.errors |
-| test_pyspark_check.py | TestGreaterThanCheck::test_failed_unaccepted_datatypes[data2..data3-spark] (4 tests) | FAILED | C | [DEFERRED — exceeded per-run cap] | Narwhals backend raises SchemaErrors instead of setting df.pandera.errors |
+| test_pyspark_check.py | TestEqualToCheck::test_equal_to_check[data0..data10-spark] (22 tests) | FAILED | C | fixed in plan 02-04 (commit c6f3bb22) | Narwhals backend raises SchemaErrors instead of setting df.pandera.errors |
+| test_pyspark_check.py | TestEqualToCheck::test_failed_unaccepted_datatypes[data0..data1-spark] (4 tests) | FAILED | C | fixed in plan 02-04 (commit c6f3bb22) | Narwhals backend raises SchemaErrors instead of setting df.pandera.errors |
+| test_pyspark_check.py | TestNotEqualToCheck::test_not_equal_to_check[data0..data10-spark] (22 tests) | FAILED | C | fixed in plan 02-04 (commit c6f3bb22) | Narwhals backend raises SchemaErrors instead of setting df.pandera.errors |
+| test_pyspark_check.py | TestNotEqualToCheck::test_failed_unaccepted_datatypes[data0..data1-spark] (4 tests) | FAILED | C | fixed in plan 02-04 (commit c6f3bb22) | Narwhals backend raises SchemaErrors instead of setting df.pandera.errors |
+| test_pyspark_check.py | TestGreaterThanCheck::test_greater_than_check[data0..data8-spark] (18 tests) | FAILED | C | fixed in plan 02-04 (commit c6f3bb22) | Narwhals backend raises SchemaErrors instead of setting df.pandera.errors |
+| test_pyspark_check.py | TestGreaterThanCheck::test_failed_unaccepted_datatypes[data2..data3-spark] (4 tests) | FAILED | C | fixed in plan 02-04 (commit c6f3bb22) | Narwhals backend raises SchemaErrors instead of setting df.pandera.errors |
 | test_pyspark_check.py | TestGreaterThanCheck::test_failed_unaccepted_datatypes[data0..data1-spark] (4 tests) | PASSED | — | pass | TypeError raised pre-validation |
-| test_pyspark_check.py | TestGreaterThanEqualToCheck::test_greater_than_or_equal_to_check[data0..data8-spark] (18 tests) | FAILED | C | [DEFERRED — exceeded per-run cap] | Narwhals backend raises SchemaErrors instead of setting df.pandera.errors |
+| test_pyspark_check.py | TestGreaterThanEqualToCheck::test_greater_than_or_equal_to_check[data0..data8-spark] (18 tests) | FAILED | C | fixed in plan 02-04 (commit c6f3bb22) | Narwhals backend raises SchemaErrors instead of setting df.pandera.errors |
 | test_pyspark_check.py | TestGreaterThanEqualToCheck::test_failed_unaccepted_datatypes[data0..data1-spark] (4 tests) | PASSED | — | pass | TypeError raised pre-validation |
-| test_pyspark_check.py | TestLessThanCheck::test_less_than_check[data0..data8-spark] (18 tests) | FAILED | C | [DEFERRED — exceeded per-run cap] | Narwhals backend raises SchemaErrors instead of setting df.pandera.errors |
-| test_pyspark_check.py | TestLessThanCheck::test_failed_unaccepted_datatypes[data0..data3-spark] (8 tests) | FAILED | C | [DEFERRED — exceeded per-run cap] | Narwhals backend raises SchemaErrors instead of setting df.pandera.errors |
+| test_pyspark_check.py | TestLessThanCheck::test_less_than_check[data0..data8-spark] (18 tests) | FAILED | C | fixed in plan 02-04 (commit c6f3bb22) | Narwhals backend raises SchemaErrors instead of setting df.pandera.errors |
+| test_pyspark_check.py | TestLessThanCheck::test_failed_unaccepted_datatypes[data0..data3-spark] (8 tests) | FAILED | C | fixed in plan 02-04 (commit c6f3bb22) | Narwhals backend raises SchemaErrors instead of setting df.pandera.errors |
 | test_pyspark_check.py | TestLessThanCheck::test_failed_none_expression[data0-spark] (2 tests) | PASSED | — | pass | Check construction raises ValueError pre-validation |
-| test_pyspark_check.py | TestLessThanOrEqualToCheck::test_less_than_or_equal_to_check[data0..data8-spark] (18 tests) | FAILED | C | [DEFERRED — exceeded per-run cap] | Narwhals backend raises SchemaErrors instead of setting df.pandera.errors |
-| test_pyspark_check.py | TestLessThanOrEqualToCheck::test_failed_unaccepted_datatypes[data0..data3-spark] (8 tests) | FAILED | C | [DEFERRED — exceeded per-run cap] | Narwhals backend raises SchemaErrors instead of setting df.pandera.errors |
+| test_pyspark_check.py | TestLessThanOrEqualToCheck::test_less_than_or_equal_to_check[data0..data8-spark] (18 tests) | FAILED | C | fixed in plan 02-04 (commit c6f3bb22) | Narwhals backend raises SchemaErrors instead of setting df.pandera.errors |
+| test_pyspark_check.py | TestLessThanOrEqualToCheck::test_failed_unaccepted_datatypes[data0..data3-spark] (8 tests) | FAILED | C | fixed in plan 02-04 (commit c6f3bb22) | Narwhals backend raises SchemaErrors instead of setting df.pandera.errors |
 | test_pyspark_check.py | TestLessThanOrEqualToCheck::test_failed_none_expression[data0-spark] (2 tests) | PASSED | — | pass | Check construction raises ValueError pre-validation |
-| test_pyspark_check.py | TestIsInCheck::test_isin_check[data0..data4-spark] (10 tests) | FAILED | C | [DEFERRED — exceeded per-run cap] | Narwhals backend raises SchemaErrors instead of setting df.pandera.errors |
+| test_pyspark_check.py | TestIsInCheck::test_isin_check[data0..data4-spark] (10 tests) | FAILED | C | fixed in plan 02-04 (commit c6f3bb22) | Narwhals backend raises SchemaErrors instead of setting df.pandera.errors |
 | test_pyspark_check.py | TestIsInCheck::test_failed_unaccepted_datatypes[data0-spark] | PASSED | — | pass | TypeError raised pre-validation |
-| test_pyspark_check.py | TestNotInCheck::test_notin_check[data0..data4-spark] (10 tests) | FAILED | C | [DEFERRED — exceeded per-run cap] | Narwhals backend raises SchemaErrors instead of setting df.pandera.errors |
+| test_pyspark_check.py | TestNotInCheck::test_notin_check[data0..data4-spark] (10 tests) | FAILED | C | fixed in plan 02-04 (commit c6f3bb22) | Narwhals backend raises SchemaErrors instead of setting df.pandera.errors |
 | test_pyspark_check.py | TestNotInCheck::test_failed_unaccepted_datatypes[data0-spark] | PASSED | — | pass | TypeError raised pre-validation |
-| test_pyspark_check.py | TestInRangeCheck::test_inrange_include_min_max_check[data0..data8-spark] (9 tests) | FAILED | C | [DEFERRED — exceeded per-run cap] | Narwhals backend raises SchemaErrors instead of setting df.pandera.errors |
-| test_pyspark_check.py | TestInRangeCheck::test_inrange_exclude_min_only_check[data0..data8-spark] (9 tests) | FAILED | C | [DEFERRED — exceeded per-run cap] | Narwhals backend raises SchemaErrors instead of setting df.pandera.errors |
-| test_pyspark_check.py | TestInRangeCheck::test_inrange_exclude_max_only_check[data0..data8-spark] (9 tests) | FAILED | C | [DEFERRED — exceeded per-run cap] | Narwhals backend raises SchemaErrors instead of setting df.pandera.errors |
-| test_pyspark_check.py | TestInRangeCheck::test_inrange_exclude_min_max_check[data0..data8-spark] (9 tests) | FAILED | C | [DEFERRED — exceeded per-run cap] | Narwhals backend raises SchemaErrors instead of setting df.pandera.errors |
+| test_pyspark_check.py | TestInRangeCheck::test_inrange_include_min_max_check[data0..data8-spark] (9 tests) | FAILED | C | fixed in plan 02-04 (commit c6f3bb22) | Narwhals backend raises SchemaErrors instead of setting df.pandera.errors |
+| test_pyspark_check.py | TestInRangeCheck::test_inrange_exclude_min_only_check[data0..data8-spark] (9 tests) | FAILED | C | fixed in plan 02-04 (commit c6f3bb22) | Narwhals backend raises SchemaErrors instead of setting df.pandera.errors |
+| test_pyspark_check.py | TestInRangeCheck::test_inrange_exclude_max_only_check[data0..data8-spark] (9 tests) | FAILED | C | fixed in plan 02-04 (commit c6f3bb22) | Narwhals backend raises SchemaErrors instead of setting df.pandera.errors |
+| test_pyspark_check.py | TestInRangeCheck::test_inrange_exclude_min_max_check[data0..data8-spark] (9 tests) | FAILED | C | fixed in plan 02-04 (commit c6f3bb22) | Narwhals backend raises SchemaErrors instead of setting df.pandera.errors |
 | test_pyspark_check.py | TestInRangeCheck::test_failed_unaccepted_datatypes[data0..data3-spark] (4 tests) | PASSED | — | pass | TypeError raised pre-validation |
-| test_pyspark_check.py | TestDecorator::test_datatype_check_decorator[spark] | FAILED | C | [DEFERRED — exceeded per-run cap] | Narwhals backend raises SchemaErrors instead of setting df.pandera.errors |
+| test_pyspark_check.py | TestDecorator::test_datatype_check_decorator[spark] | FAILED | C | fixed in plan 02-04 (commit c6f3bb22) | Narwhals backend raises SchemaErrors instead of setting df.pandera.errors |
 | test_pyspark_check.py | TestUniqueValuesEqCheck::test_unique_values_eq_check[data0..data9-spark] (10 tests) | XFAIL | A | already xfail (Plan 01) | unique_values_eq not registered for Narwhals backend |
 | test_pyspark_check.py | TestUniqueValuesEqCheck::test_failed_unaccepted_datatypes[data0-datatype0-spark] | XPASS(strict) | A-FIX | remove xfail for BooleanType param — TypeError still raised under narwhals | XPASS: xfail was too broad; BooleanType TypeError raised pre-validation |
 | test_pyspark_check.py | TestUniqueValuesEqCheck::test_failed_unaccepted_datatypes[data1-datatype1-spark] | XFAIL | A | already xfail (Plan 01) — ArrayType, TypeError not raised under narwhals | unique_values_eq not registered for Narwhals backend |
@@ -50,11 +50,11 @@
 | test_pyspark_config.py | TestPanderaConfig::test_cache_dataframe_settings[False-True-spark] | XFAIL | A | already xfail (Plan 01) | Config dict assertions hardcode use_narwhals_backend=False |
 | test_pyspark_config.py | TestPanderaConfig::test_cache_dataframe_settings[False-False-spark] | XFAIL | A | already xfail (Plan 01) | Config dict assertions hardcode use_narwhals_backend=False |
 | test_pyspark_container.py | test_pyspark_sample[spark] | XFAIL | A | already xfail (Plan 01) | sample= not supported in Narwhals backend |
-| test_pyspark_container.py | test_pyspark_dataframeschema[spark] | FAILED | C | [DEFERRED — exceeded per-run cap] | Narwhals raises SchemaErrors; dtype string mismatch (Int64 vs LongType()) |
-| test_pyspark_container.py | test_pyspark_dataframeschema_with_alias_types[spark] | FAILED | C | [DEFERRED — exceeded per-run cap] | Narwhals raises SchemaErrors; dtype string mismatch |
-| test_pyspark_container.py | test_pyspark_regex_column[spark] | FAILED | C | [DEFERRED — exceeded per-run cap] | Narwhals raises SchemaErrors instead of setting df.pandera.errors |
-| test_pyspark_container.py | test_pyspark_nullable[spark] | FAILED | C | [DEFERRED — exceeded per-run cap] | Narwhals raises SchemaErrors instead of setting df.pandera.errors |
-| test_pyspark_container.py | test_pyspark_unique_config[spark] | FAILED | C | [DEFERRED — exceeded per-run cap] | Narwhals raises SchemaErrors instead of setting df.pandera.errors |
+| test_pyspark_container.py | test_pyspark_dataframeschema[spark] | FAILED | C | fixed in plan 02-04 (commit c6f3bb22) | Narwhals raises SchemaErrors; dtype string mismatch (Int64 vs LongType()) |
+| test_pyspark_container.py | test_pyspark_dataframeschema_with_alias_types[spark] | FAILED | C | fixed in plan 02-04 (commit c6f3bb22) | Narwhals raises SchemaErrors; dtype string mismatch |
+| test_pyspark_container.py | test_pyspark_regex_column[spark] | FAILED | C | fixed in plan 02-04 (commit c6f3bb22) | Narwhals raises SchemaErrors instead of setting df.pandera.errors |
+| test_pyspark_container.py | test_pyspark_nullable[spark] | FAILED | C | fixed in plan 02-04 (commit c6f3bb22) | Narwhals raises SchemaErrors instead of setting df.pandera.errors |
+| test_pyspark_container.py | test_pyspark_unique_config[spark] | FAILED | C | fixed in plan 02-04 (commit c6f3bb22) | Narwhals raises SchemaErrors instead of setting df.pandera.errors |
 | test_pyspark_container.py | test_pyspark_column_metadata[spark] | PASSED | — | pass | Metadata test does not validate data |
 | test_pyspark_container.py | test_pyspark_unique_field[spark] | PASSED | — | pass | Does not trigger data validation |
 | test_pyspark_container.py | test_schema_to_structtype[spark] | PASSED | — | pass | Schema serialization only |
@@ -65,26 +65,26 @@
 | test_pyspark_decorators.py | TestPanderaDecorators::test_cache_dataframe_settings[True-False-True-True-spark] | XFAIL | A | already xfail (Plan 01) | Narwhals bypasses PySpark caching decorators |
 | test_pyspark_decorators.py | TestPanderaDecorators::test_cache_dataframe_settings[False-True-None-None-spark] | XFAIL | A | already xfail (Plan 01) | Narwhals bypasses PySpark caching decorators |
 | test_pyspark_decorators.py | TestPanderaDecorators::test_cache_dataframe_settings[False-False-None-None-spark] | XFAIL | A | already xfail (Plan 01) | Narwhals bypasses PySpark caching decorators |
-| test_pyspark_dtypes.py | TestAllNumericTypes::test_pyspark_all_float_types[data0..data4-spark] (5 tests) | FAILED | C | [DEFERRED — exceeded per-run cap] | Narwhals materializes data causing STRUCT_ARRAY_LENGTH_MISMATCH; also dtype mismatch |
-| test_pyspark_dtypes.py | TestAllNumericTypes::test_pyspark_all_double_types[data0..data3-spark] (4 tests) | FAILED | C | [DEFERRED — exceeded per-run cap] | Same root cause |
-| test_pyspark_dtypes.py | TestAllNumericTypes::test_pyspark_decimal_default_types[data0..data3-spark] (4 tests) | FAILED | C | [DEFERRED — exceeded per-run cap] | Same root cause |
-| test_pyspark_dtypes.py | TestAllNumericTypes::test_pyspark_decimal_parameterized_types[data0-spark] | FAILED | C | [DEFERRED — exceeded per-run cap] | Same root cause |
-| test_pyspark_dtypes.py | TestAllNumericTypes::test_pyspark_all_int_types[data0..data4-spark] (5 tests) | FAILED | C | [DEFERRED — exceeded per-run cap] | Same root cause |
-| test_pyspark_dtypes.py | TestAllNumericTypes::test_pyspark_all_longint_types[data0..data4-spark] (5 tests) | FAILED | C | [DEFERRED — exceeded per-run cap] | Same root cause |
-| test_pyspark_dtypes.py | TestAllNumericTypes::test_pyspark_all_shortint_types[data0..data4-spark] (5 tests) | FAILED | C | [DEFERRED — exceeded per-run cap] | Same root cause |
-| test_pyspark_dtypes.py | TestAllNumericTypes::test_pyspark_all_bytetint_types[data0..data4-spark] (5 tests) | FAILED | C | [DEFERRED — exceeded per-run cap] | Same root cause |
-| test_pyspark_dtypes.py | TestAllDatetimeTestClass::test_pyspark_all_date_types[data0..data3-spark] (4 tests) | FAILED | C | [DEFERRED — exceeded per-run cap] | Same root cause |
-| test_pyspark_dtypes.py | TestAllDatetimeTestClass::test_pyspark_all_datetime_types[data0..data8-spark] (9 tests) | FAILED | C | [DEFERRED — exceeded per-run cap] | Same root cause |
-| test_pyspark_dtypes.py | TestBinaryStringTypes::test_pyspark_all_binary_types[data0..data3-spark] (4 tests) | FAILED | C | [DEFERRED — exceeded per-run cap] | Same root cause |
-| test_pyspark_dtypes.py | TestBinaryStringTypes::test_pyspark_all_string_types[data0..data4-spark] (5 tests) | FAILED | C | [DEFERRED — exceeded per-run cap] | Same root cause |
-| test_pyspark_dtypes.py | TestComplexType::test_pyspark_array_type[data0-spark] | FAILED | C | [DEFERRED — exceeded per-run cap] | Same root cause |
-| test_pyspark_dtypes.py | TestComplexType::test_pyspark_map_type[data0-spark] | FAILED | C | [DEFERRED — exceeded per-run cap] | Same root cause |
+| test_pyspark_dtypes.py | TestAllNumericTypes::test_pyspark_all_float_types[data0..data4-spark] (5 tests) | FAILED | C | fixed in plan 02-04 (commit c6f3bb22) | Narwhals materializes data causing STRUCT_ARRAY_LENGTH_MISMATCH; also dtype mismatch |
+| test_pyspark_dtypes.py | TestAllNumericTypes::test_pyspark_all_double_types[data0..data3-spark] (4 tests) | FAILED | C | fixed in plan 02-04 (commit c6f3bb22) | Same root cause |
+| test_pyspark_dtypes.py | TestAllNumericTypes::test_pyspark_decimal_default_types[data0..data3-spark] (4 tests) | FAILED | C | fixed in plan 02-04 (commit c6f3bb22) | Same root cause |
+| test_pyspark_dtypes.py | TestAllNumericTypes::test_pyspark_decimal_parameterized_types[data0-spark] | FAILED | C | fixed in plan 02-04 (commit c6f3bb22) | Same root cause |
+| test_pyspark_dtypes.py | TestAllNumericTypes::test_pyspark_all_int_types[data0..data4-spark] (5 tests) | FAILED | C | fixed in plan 02-04 (commit c6f3bb22) | Same root cause |
+| test_pyspark_dtypes.py | TestAllNumericTypes::test_pyspark_all_longint_types[data0..data4-spark] (5 tests) | FAILED | C | fixed in plan 02-04 (commit c6f3bb22) | Same root cause |
+| test_pyspark_dtypes.py | TestAllNumericTypes::test_pyspark_all_shortint_types[data0..data4-spark] (5 tests) | FAILED | C | fixed in plan 02-04 (commit c6f3bb22) | Same root cause |
+| test_pyspark_dtypes.py | TestAllNumericTypes::test_pyspark_all_bytetint_types[data0..data4-spark] (5 tests) | FAILED | C | fixed in plan 02-04 (commit c6f3bb22) | Same root cause |
+| test_pyspark_dtypes.py | TestAllDatetimeTestClass::test_pyspark_all_date_types[data0..data3-spark] (4 tests) | FAILED | C | fixed in plan 02-04 (commit c6f3bb22) | Same root cause |
+| test_pyspark_dtypes.py | TestAllDatetimeTestClass::test_pyspark_all_datetime_types[data0..data8-spark] (9 tests) | FAILED | C | fixed in plan 02-04 (commit c6f3bb22) | Same root cause |
+| test_pyspark_dtypes.py | TestBinaryStringTypes::test_pyspark_all_binary_types[data0..data3-spark] (4 tests) | FAILED | C | fixed in plan 02-04 (commit c6f3bb22) | Same root cause |
+| test_pyspark_dtypes.py | TestBinaryStringTypes::test_pyspark_all_string_types[data0..data4-spark] (5 tests) | FAILED | C | fixed in plan 02-04 (commit c6f3bb22) | Same root cause |
+| test_pyspark_dtypes.py | TestComplexType::test_pyspark_array_type[data0-spark] | FAILED | C | fixed in plan 02-04 (commit c6f3bb22) | Same root cause |
+| test_pyspark_dtypes.py | TestComplexType::test_pyspark_map_type[data0-spark] | FAILED | C | fixed in plan 02-04 (commit c6f3bb22) | Same root cause |
 | test_pyspark_engine.py | test_pyspark_data_type[Bool/Double/MapType/ShortInt/...] (13 tests) | PASSED | — | pass | Engine dtype tests are backend-agnostic |
 | test_pyspark_error.py | test_dataframe_add_schema[spark] (not run — no spark param) | N/A | — | no spark fixture | Test uses inline data without spark fixture |
-| test_pyspark_error.py | test_pyspark_check_eq[spark] | FAILED | C | [DEFERRED — exceeded per-run cap] | Narwhals raises SchemaErrors + _concat_failure_cases crashes with _df AttributeError |
-| test_pyspark_error.py | test_pyspark_check_nullable[spark] | FAILED | C | [DEFERRED — exceeded per-run cap] | Narwhals raises SchemaErrors instead of setting df.pandera.errors |
-| test_pyspark_error.py | test_pyspark_schema_data_checks[spark] | FAILED | C | [DEFERRED — exceeded per-run cap] | Narwhals raises SchemaErrors instead of setting df.pandera.errors |
-| test_pyspark_error.py | test_pyspark_fields[spark] | FAILED | C | [DEFERRED — exceeded per-run cap] | Narwhals raises SchemaErrors instead of setting df.pandera.errors |
+| test_pyspark_error.py | test_pyspark_check_eq[spark] | FAILED | C | fixed in plan 02-04 (commit c6f3bb22) | Narwhals raises SchemaErrors + _concat_failure_cases crashes with _df AttributeError |
+| test_pyspark_error.py | test_pyspark_check_nullable[spark] | FAILED | C | fixed in plan 02-04 (commit c6f3bb22) | Narwhals raises SchemaErrors instead of setting df.pandera.errors |
+| test_pyspark_error.py | test_pyspark_schema_data_checks[spark] | FAILED | C | fixed in plan 02-04 (commit c6f3bb22) | Narwhals raises SchemaErrors instead of setting df.pandera.errors |
+| test_pyspark_error.py | test_pyspark_fields[spark] | FAILED | C | fixed in plan 02-04 (commit c6f3bb22) | Narwhals raises SchemaErrors instead of setting df.pandera.errors |
 | test_pyspark_error.py | test_pyspark__error_handler_lazy_validation[spark] | PASSED | — | pass | Only checks SchemaErrors is raised (not accessor pattern) |
 | test_pyspark_model.py | test_schema_with_bare_types[spark] | PASSED | — | pass | Schema definition only |
 | test_pyspark_model.py | test_schema_with_bare_types_and_field[spark] | PASSED | — | pass | Schema definition only |
@@ -95,17 +95,17 @@
 | test_pyspark_model.py | test_schema_to_structtype[spark] | PASSED | — | pass | Schema serialization only |
 | test_pyspark_model.py | test_schema_to_ddl[spark] | PASSED | — | pass | Schema serialization only |
 | test_pyspark_model.py | test_inherited_schema_to_structtype[spark] | PASSED | — | pass | Schema serialization only |
-| test_pyspark_model.py | test_schema_with_bare_types_field_and_checks[spark] | FAILED | C | [DEFERRED — exceeded per-run cap] | Narwhals raises SchemaErrors instead of setting df.pandera.errors |
-| test_pyspark_model.py | test_schema_with_bare_types_field_type[spark] | FAILED | C | [DEFERRED — exceeded per-run cap] | Narwhals raises SchemaErrors + dtype mismatch |
-| test_pyspark_model.py | test_pyspark_bare_fields[spark] | FAILED | C | [DEFERRED — exceeded per-run cap] | Narwhals raises SchemaErrors instead of setting df.pandera.errors |
-| test_pyspark_model.py | test_dataframe_schema_unique[no_data-spark] | FAILED | C | [DEFERRED — exceeded per-run cap] | Narwhals raises SchemaErrors + dtype mismatch (IntegerType() vs Int32) |
-| test_pyspark_model.py | test_dataframe_schema_unique[unique_data-spark] | FAILED | C | [DEFERRED — exceeded per-run cap] | Narwhals raises SchemaErrors + dtype mismatch |
-| test_pyspark_model.py | test_dataframe_schema_unique[duplicated_data-spark] | FAILED | C | [DEFERRED — exceeded per-run cap] | Narwhals raises SchemaErrors + dtype mismatch |
-| test_pyspark_model.py | test_dataframe_schema_unique_wrong_column[wrong_column-spark] | FAILED | C | [DEFERRED — exceeded per-run cap] | Narwhals raises SchemaErrors |
-| test_pyspark_model.py | test_dataframe_schema_unique_wrong_column[multiple_wrong_columns-spark] | FAILED | C | [DEFERRED — exceeded per-run cap] | Narwhals raises SchemaErrors |
-| test_pyspark_model.py | test_dataframe_schema_strict[spark] | FAILED | C | [DEFERRED — exceeded per-run cap] | Narwhals raises SchemaErrors instead of setting df.pandera.errors |
-| test_pyspark_model.py | test_validation_succeeds_with_missing_optional_column[spark] | FAILED | C | [DEFERRED — exceeded per-run cap] | Narwhals raises SchemaErrors instead of setting df.pandera.errors |
-| test_pyspark_model.py | test_registered_dataframemodel_checks[spark] | FAILED | C | [DEFERRED — exceeded per-run cap] | Narwhals raises SchemaErrors instead of setting df.pandera.errors |
+| test_pyspark_model.py | test_schema_with_bare_types_field_and_checks[spark] | FAILED | C | fixed in plan 02-04 (commit c6f3bb22) | Narwhals raises SchemaErrors instead of setting df.pandera.errors |
+| test_pyspark_model.py | test_schema_with_bare_types_field_type[spark] | FAILED | C | fixed in plan 02-04 (commit c6f3bb22) | Narwhals raises SchemaErrors + dtype mismatch |
+| test_pyspark_model.py | test_pyspark_bare_fields[spark] | FAILED | C | fixed in plan 02-04 (commit c6f3bb22) | Narwhals raises SchemaErrors instead of setting df.pandera.errors |
+| test_pyspark_model.py | test_dataframe_schema_unique[no_data-spark] | FAILED | C | fixed in plan 02-04 (commit c6f3bb22) | Narwhals raises SchemaErrors + dtype mismatch (IntegerType() vs Int32) |
+| test_pyspark_model.py | test_dataframe_schema_unique[unique_data-spark] | FAILED | C | fixed in plan 02-04 (commit c6f3bb22) | Narwhals raises SchemaErrors + dtype mismatch |
+| test_pyspark_model.py | test_dataframe_schema_unique[duplicated_data-spark] | FAILED | C | fixed in plan 02-04 (commit c6f3bb22) | Narwhals raises SchemaErrors + dtype mismatch |
+| test_pyspark_model.py | test_dataframe_schema_unique_wrong_column[wrong_column-spark] | FAILED | C | fixed in plan 02-04 (commit c6f3bb22) | Narwhals raises SchemaErrors |
+| test_pyspark_model.py | test_dataframe_schema_unique_wrong_column[multiple_wrong_columns-spark] | FAILED | C | fixed in plan 02-04 (commit c6f3bb22) | Narwhals raises SchemaErrors |
+| test_pyspark_model.py | test_dataframe_schema_strict[spark] | FAILED | C | fixed in plan 02-04 (commit c6f3bb22) | Narwhals raises SchemaErrors instead of setting df.pandera.errors |
+| test_pyspark_model.py | test_validation_succeeds_with_missing_optional_column[spark] | FAILED | C | fixed in plan 02-04 (commit c6f3bb22) | Narwhals raises SchemaErrors instead of setting df.pandera.errors |
+| test_pyspark_model.py | test_registered_dataframemodel_checks[spark] | FAILED | C | fixed in plan 02-04 (commit c6f3bb22) | Narwhals raises SchemaErrors instead of setting df.pandera.errors |
 | test_pyspark_sql_io.py | test_pyspark_yaml_json_roundtrip | PASSED | — | pass | Serialization only |
 | test_pyspark_sql_io.py | test_pyspark_full_serdes_includes_version | PASSED | — | pass | Serialization only |
 | test_pyspark_sql_io.py | test_pyspark_rejects_polars_schema_type | PASSED | — | pass | Serialization only |
@@ -162,7 +162,7 @@ Fix: Restructure to apply per-parametrization xfail marks for ArrayType (data1) 
   E               }
   ```
 - Likely source: pandera/backends/narwhals/container.py lines 219-233 (raises SchemaErrors instead of setting df.pandera.errors)
-- Fix approach: In DataFrameSchemaBackend.validate(), when the input is a PySpark DataFrame (detectable via `_is_sql_lazy(check_lf)`), adapt error handling to set `check_obj.pandera.errors = error_dicts` and return `check_obj` instead of raising SchemaErrors. Requires: (a) keeping the native check_obj reference, (b) building error_dicts via error_handler.summarize() like the native PySpark backend, (c) setting accessor errors on the native df. Estimated: 30-50 lines change in container.py + base.py. [DEFERRED — exceeded per-run cap]
+- Fix approach: In DataFrameSchemaBackend.validate(), when the input is a PySpark DataFrame (detectable via `_is_sql_lazy(check_lf)`), adapt error handling to set `check_obj.pandera.errors = error_dicts` and return `check_obj` instead of raising SchemaErrors. Requires: (a) keeping the native check_obj reference, (b) building error_dicts via error_handler.summarize() like the native PySpark backend, (c) setting accessor errors on the native df. Estimated: 30-50 lines change in container.py + base.py. fixed in plan 02-04 (commit c6f3bb22)
 
 ### Category C Entry 2: _concat_failure_cases crashes with AttributeError when PySpark DataFrames are in failure case collection
 
@@ -175,7 +175,7 @@ Fix: Restructure to apply per-parametrization xfail marks for ArrayType (data1) 
   ```
   Full traceback: `pl.concat(elems)` receives items containing a native PySpark DataFrame (from `_build_lazy_failure_case` → `nw.to_native(enriched)`) mixed with a `pl.DataFrame` (from `_build_scalar_failure_case`). Polars treats the first item as `pl.DataFrame` (isinstance check passes for data0), then calls `plr.concat_df(elems)` which internally accesses `._df` on the PySpark DataFrame.
 - Likely source: pandera/backends/narwhals/base.py:41-53 (_concat_failure_cases function)
-- Fix approach: Add a PySpark DataFrame detection guard in `_concat_failure_cases` — check `type(first).__module__.startswith('pyspark')` and use PySpark `.union()` for PySpark frames, similar to the ibis path. [DEFERRED — exceeded per-run cap]
+- Fix approach: Add a PySpark DataFrame detection guard in `_concat_failure_cases` — check `type(first).__module__.startswith('pyspark')` and use PySpark `.union()` for PySpark frames, similar to the ibis path. fixed in plan 02-04 (commit c6f3bb22)
 
 ### Category C Entry 3: Narwhals dtype string format differs from PySpark
 
@@ -212,7 +212,7 @@ Fix: Restructure to apply per-parametrization xfail marks for ArrayType (data1) 
   E   }
   ```
 - Likely source: pandera/backends/narwhals/components.py:268 (`f"got {nw_dtype}"` where nw_dtype is narwhals dtype string, not PySpark dtype string)
-- Fix approach: In `ColumnBackend.check_dtype()`, use the native PySpark dtype string (from `nw.to_native(frame).schema[column]`) instead of `str(nw_dtype)` for PySpark frames. [DEFERRED — exceeded per-run cap]
+- Fix approach: In `ColumnBackend.check_dtype()`, use the native PySpark dtype string (from `nw.to_native(frame).schema[column]`) instead of `str(nw_dtype)` for PySpark frames. fixed in plan 02-04 (commit c6f3bb22)
 
 ### Category C Entry 4: Narwhals materializes PySpark data during validation (STRUCT_ARRAY_LENGTH_MISMATCH)
 
@@ -224,7 +224,7 @@ Fix: Restructure to apply per-parametrization xfail marks for ArrayType (data1) 
   E   pyspark.errors.exceptions.captured.IllegalArgumentException: [STRUCT_ARRAY_LENGTH_MISMATCH] Input row doesn't have expected number of values required by the schema. 1 fields are required while 2 values are provided. SQLSTATE: 2201E
   ```
 - Likely source: pandera/backends/narwhals/base.py:124 (`_materialize(passed_lf)`) — this collects the PySpark DataFrame, triggering Spark to actually read the data and discover the schema mismatch that verifySchema=False suppressed.
-- Fix approach: The native PySpark backend never materializes/collects during validation — it only reads the schema. The narwhals backend must avoid materializing PySpark DataFrames in run_check(). However, the check result (pass/fail) requires executing the check expression. Resolution: use a lazy-only execution mode for PySpark (no collect during check, only during error reporting). [DEFERRED — exceeded per-run cap]
+- Fix approach: The native PySpark backend never materializes/collects during validation — it only reads the schema. The narwhals backend must avoid materializing PySpark DataFrames in run_check(). However, the check result (pass/fail) requires executing the check expression. Resolution: use a lazy-only execution mode for PySpark (no collect during check, only during error reporting). fixed in plan 02-04 (commit c6f3bb22)
 
 **PHASE SPLIT RECOMMENDED:** All 4 Category C entries share root cause: the narwhals backend was designed for polars/ibis which have different API contracts than the native PySpark backend. A follow-on Plan 04 should be created to rearchitect the narwhals DataFrameSchemaBackend.validate() for PySpark, making it:
 1. Set `check_obj.pandera.errors` instead of raising `SchemaErrors`

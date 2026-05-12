@@ -61,7 +61,10 @@ def _concat_failure_cases(items: list) -> Any:
             if type(item).__module__.startswith("pyspark")
         ]
         if not pyspark_items:
-            return pl.DataFrame() if pl is not None else None
+            # All items are scalar polars DataFrames from _build_scalar_failure_case
+            # (schema-level failures with no PySpark row data). Fall back to polars concat
+            # so these errors are not silently dropped.
+            return pl.concat(items) if pl is not None else None
         return functools.reduce(lambda a, b: a.union(b), pyspark_items)
     first = items[0]
     if hasattr(first, "union"):  # ibis.Table
