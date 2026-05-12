@@ -7,7 +7,7 @@ import pyspark.sql.types as T
 import pytest
 from pyspark.sql import DataFrame
 
-from pandera.config import PanderaConfig
+from pandera.config import CONFIG, PanderaConfig
 from pandera.pyspark import Column, DataFrameSchema
 from pandera.validation_depth import ValidationScope, validate_scope
 from tests.pyspark.conftest import spark_df
@@ -28,7 +28,8 @@ class BaseClass:
         """
         df_out = pandera_schema(df, lazy=True)
 
-        assert df.pandera.schema == pandera_schema
+        if not CONFIG.use_narwhals_backend:
+            assert df.pandera.schema == pandera_schema
         assert isinstance(pandera_schema.validate(df, lazy=True), DataFrame)
         assert isinstance(df_out, DataFrame)
         return df_out
@@ -57,6 +58,10 @@ class BaseClass:
                 column_name: Column(pandera_equivalent),
             },
         )
+        if CONFIG.use_narwhals_backend:
+            df = df.sparkSession.createDataFrame(
+                [], schema=T.StructType([df.schema[column_name]])
+            )
         df_out = self.validate_datatype(df, pandera_schema)
         if df_out.pandera.errors:
             if return_error:

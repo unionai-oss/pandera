@@ -158,7 +158,7 @@ class ColumnBackend(NarwhalsSchemaBackend):
                 check_output=combined_lf,
                 check="not_nullable",
                 reason_code=SchemaErrorReason.SERIES_CONTAINS_NULLS,
-                message=f"non-nullable column '{schema.selector}' contains null values",
+                message=f"non-nullable column '{schema.selector}' contains null",
                 failure_cases=failure_cases,
             )
         ]
