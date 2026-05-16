@@ -327,11 +327,14 @@ class TestEqualToCheck(BaseClass):
         """This function passes the parameter for each function based on parameter form get_data_param function"""
         # called once per each test function
         funcarglist = self.get_data_param()[metafunc.function.__name__]
-        argnames = sorted(funcarglist[0])
+        argnames = sorted(k for k in funcarglist[0] if k != "marks")
         metafunc.parametrize(
             argnames,
             [
-                [funcargs[name] for name in argnames]
+                pytest.param(
+                    *[funcargs[name] for name in argnames],
+                    marks=funcargs.get("marks", []),
+                )
                 for funcargs in funcarglist
             ],
         )
@@ -459,11 +462,14 @@ class TestNotEqualToCheck(BaseClass):
         """This function passes the parameter for each function based on parameter form get_data_param function"""
         # called once per each test function
         funcarglist = self.get_data_param()[metafunc.function.__name__]
-        argnames = sorted(funcarglist[0])
+        argnames = sorted(k for k in funcarglist[0] if k != "marks")
         metafunc.parametrize(
             argnames,
             [
-                [funcargs[name] for name in argnames]
+                pytest.param(
+                    *[funcargs[name] for name in argnames],
+                    marks=funcargs.get("marks", []),
+                )
                 for funcargs in funcarglist
             ],
         )
@@ -590,11 +596,14 @@ class TestGreaterThanCheck(BaseClass):
         """This function passes the parameter for each function based on parameter form get_data_param function"""
         # called once per each test function
         funcarglist = self.get_data_param()[metafunc.function.__name__]
-        argnames = sorted(funcarglist[0])
+        argnames = sorted(k for k in funcarglist[0] if k != "marks")
         metafunc.parametrize(
             argnames,
             [
-                [funcargs[name] for name in argnames]
+                pytest.param(
+                    *[funcargs[name] for name in argnames],
+                    marks=funcargs.get("marks", []),
+                )
                 for funcargs in funcarglist
             ],
         )
@@ -716,11 +725,14 @@ class TestGreaterThanEqualToCheck(BaseClass):
         """This function passes the parameter for each function based on parameter form get_data_param function"""
         # called once per each test function
         funcarglist = self.get_data_param()[metafunc.function.__name__]
-        argnames = sorted(funcarglist[0])
+        argnames = sorted(k for k in funcarglist[0] if k != "marks")
         metafunc.parametrize(
             argnames,
             [
-                [funcargs[name] for name in argnames]
+                pytest.param(
+                    *[funcargs[name] for name in argnames],
+                    marks=funcargs.get("marks", []),
+                )
                 for funcargs in funcarglist
             ],
         )
@@ -852,11 +864,14 @@ class TestLessThanCheck(BaseClass):
         """This function passes the parameter for each function based on parameter form get_data_param function"""
         # called once per each test function
         funcarglist = self.get_data_param()[metafunc.function.__name__]
-        argnames = sorted(funcarglist[0])
+        argnames = sorted(k for k in funcarglist[0] if k != "marks")
         metafunc.parametrize(
             argnames,
             [
-                [funcargs[name] for name in argnames]
+                pytest.param(
+                    *[funcargs[name] for name in argnames],
+                    marks=funcargs.get("marks", []),
+                )
                 for funcargs in funcarglist
             ],
         )
@@ -1007,11 +1022,14 @@ class TestLessThanOrEqualToCheck(BaseClass):
         """This function passes the parameter for each function based on parameter form get_data_param function"""
         # called once per each test function
         funcarglist = self.get_data_param()[metafunc.function.__name__]
-        argnames = sorted(funcarglist[0])
+        argnames = sorted(k for k in funcarglist[0] if k != "marks")
         metafunc.parametrize(
             argnames,
             [
-                [funcargs[name] for name in argnames]
+                pytest.param(
+                    *[funcargs[name] for name in argnames],
+                    marks=funcargs.get("marks", []),
+                )
                 for funcargs in funcarglist
             ],
         )
@@ -1178,11 +1196,14 @@ class TestIsInCheck(BaseClass):
         """This function passes the parameter for each function based on parameter form get_data_param function"""
         # called once per each test function
         funcarglist = self.get_data_param()[metafunc.function.__name__]
-        argnames = sorted(funcarglist[0])
+        argnames = sorted(k for k in funcarglist[0] if k != "marks")
         metafunc.parametrize(
             argnames,
             [
-                [funcargs[name] for name in argnames]
+                pytest.param(
+                    *[funcargs[name] for name in argnames],
+                    marks=funcargs.get("marks", []),
+                )
                 for funcargs in funcarglist
             ],
         )
@@ -1303,11 +1324,14 @@ class TestNotInCheck(BaseClass):
         """This function passes the parameter for each function based on parameter form get_data_param function"""
         # called once per each test function
         funcarglist = self.get_data_param()[metafunc.function.__name__]
-        argnames = sorted(funcarglist[0])
+        argnames = sorted(k for k in funcarglist[0] if k != "marks")
         metafunc.parametrize(
             argnames,
             [
-                [funcargs[name] for name in argnames]
+                pytest.param(
+                    *[funcargs[name] for name in argnames],
+                    marks=funcargs.get("marks", []),
+                )
                 for funcargs in funcarglist
             ],
         )
@@ -1645,11 +1669,14 @@ class TestInRangeCheck(BaseClass):
         """This function passes the parameter for each function based on parameter form get_data_param function"""
         # called once per each test function
         funcarglist = self.get_data_param()[metafunc.function.__name__]
-        argnames = sorted(funcarglist[0])
+        argnames = sorted(k for k in funcarglist[0] if k != "marks")
         metafunc.parametrize(
             argnames,
             [
-                [funcargs[name] for name in argnames]
+                pytest.param(
+                    *[funcargs[name] for name in argnames],
+                    marks=funcargs.get("marks", []),
+                )
                 for funcargs in funcarglist
             ],
         )
