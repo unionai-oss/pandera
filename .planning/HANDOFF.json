@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-05-12T03:44:03.137Z",
+  "timestamp": "2026-05-16T00:00:00.000Z",
   "phase": "02",
   "phase_name": "test-coverage-and-ci",
   "phase_dir": ".planning/phases/02-test-coverage-and-ci",
@@ -11,44 +11,60 @@
   "completed_tasks": [
     {"id": 1, "name": "Fix DataFrameSchemaBackend.validate() to set check_obj.pandera.errors for PySpark", "status": "done", "commit": "c6f3bb22"},
     {"id": 2, "name": "Fix _concat_failure_cases() PySpark dispatch and avoid PySpark materialization in run_check()", "status": "done", "commit": "c6f3bb22"},
-    {"id": 3, "name": "Fix dtype string format in ColumnBackend.check_dtype()", "status": "in_progress", "progress": "PySpark dtype comparison rewritten (uncommitted) — still failing on string alias cases (int/integer → IntegerType())"},
+    {"id": 3, "name": "Fix dtype string format in ColumnBackend.check_dtype()", "status": "in_progress", "progress": "is_pyspark branch still present. User confirmed: standard narwhals engine path should work. Task 6b handles removal — still pending."},
     {"id": 4, "name": "Checkpoint: SC2c row-index applicability decision — scope-out", "status": "done", "commit": "3ea211f6"},
     {"id": 5, "name": "Apply SC2c decision (scope-out) — ROADMAP and TRIAGE.md updated", "status": "done", "commit": "3ea211f6"},
-    {"id": 6, "name": "Human verification — full tests/pyspark/ suite clean", "status": "blocked", "progress": "Still failing — see remaining_tasks below"}
+    {"id": 6, "name": "Human verification — full tests/pyspark/ suite clean", "status": "in_progress", "progress": "Committed 8976a697: dtype tests fixed (empty DF projection), isin/notin frozenset→list, nullable message. Committed 096a1ea6: pytest_generate_tests updated to support marks in all 9 BaseClass subclasses. 49 failures remain at pause point (down from 128)."}
   ],
   "remaining_tasks": [
-    {"id": "6a", "name": "Fix test_pyspark_all_int_types: dtype string alias mismatch — 'int'/'integer' don't equal 'IntegerType()'. Need to resolve aliases before string comparison or use PySpark DataType.simpleString()/typeName() for normalization.", "status": "not_started"},
-    {"id": "6b", "name": "Fix test_pyspark_check_eq: error message format difference — narwhals produces \"Check '<Check ...>' failed.\" but test expects \"<Schema Column(...)> failed validation str_startswith('B')\". Xfail the test for narwhals backend (message format is backend-specific).", "status": "not_started"},
-    {"id": "6c", "name": "Fix test_pyspark_dataframeschema: probably same dtype alias issue as 6a, investigate separately.", "status": "not_started"},
-    {"id": "6d", "name": "Fix TestEqualToCheck::test_failed_unaccepted_datatypes: narwhals backend raises PysparkSchemaError (catches AnalysisException as SCHEMA_COMPONENT_CHECK) but test expects TypeError. Xfail for narwhals backend.", "status": "not_started"},
-    {"id": "6e", "name": "Run full suite, commit, write 02-04-SUMMARY.md", "status": "not_started"}
+    {
+      "id": "6e-marks",
+      "name": "Add xfail marks to test_failed_unaccepted_datatypes params for narwhals backend",
+      "status": "in_progress",
+      "notes": "pytest_generate_tests updated (commit 096a1ea6). Now need to add marks=[xfail] to params in get_data_param() for each failing class. Failing classes and their failing param indices:\n- TestGreaterThanEqualToCheck: data2 (ArrayType), data3 (MapType) × 2 check_fns = 4 failures\n- TestLessThanCheck: data0 (StringType), data1 (BooleanType), data2 (ArrayType), data3 (MapType) × 2 check_fns = 8 failures\n- TestLessThanOrEqualToCheck: data0 (StringType), data1 (BooleanType), data2 (ArrayType), data3 (MapType) × 2 check_fns = 8 failures\n- TestIsInCheck: data1 (ArrayType), data2 (MapType) = 2 failures\n- TestNotInCheck: data1 (ArrayType), data2 (MapType) = 2 failures\nPattern: Add _xfail_narwhals = pytest.mark.xfail(condition=CONFIG.use_narwhals_backend, reason='narwhals backend raises PysparkSchemaError not TypeError for unsupported types', strict=True) in each get_data_param() and add marks=[_xfail_narwhals] to the failing entries."
+    },
+    {
+      "id": "6c",
+      "name": "Fix error message format tests with backend-conditional expected values",
+      "status": "not_started",
+      "notes": "Affected: test_pyspark_error.py::test_pyspark_check_eq, test_pyspark_schema_data_checks, test_pyspark_fields. Narwhals: 'Check X failed.' Native: '<Schema Column...> failed validation X'. Use CONFIG.use_narwhals_backend to select expected string. Do NOT overwrite with narwhals format alone — breaks native backend. Pattern: use ternary or if/else to build expected dict."
+    },
+    {
+      "id": "6d",
+      "name": "Xfail test_pyspark_dataframeschema coerce=True case",
+      "status": "not_started",
+      "notes": "test_pyspark_container.py::test_pyspark_dataframeschema second assertion fails: Column(IntegerType(), coerce=True) expects coercion of string→int. Narwhals ColumnBackend.validate() has no coerce_dtype step. Xfail with CONFIG.use_narwhals_backend condition."
+    },
+    {
+      "id": "6f",
+      "name": "Investigate remaining failures: model tests, accessor, regex_column, TestDecorator, decorators",
+      "status": "not_started",
+      "notes": "test_pyspark_model.py::test_dataframe_schema_unique_wrong_column, test_dataframe_schema_strict, test_registered_dataframemodel_checks; test_pyspark_container.py::test_pyspark_regex_column; test_pyspark_decorators.py::TestPanderaDecorators::test_cache_dataframe_settings[False-True-None-None], [False-False-None-None]. Each needs individual diagnosis."
+    },
+    {
+      "id": "6g",
+      "name": "Run full suite, commit all fixes, write 02-04-SUMMARY.md",
+      "status": "not_started"
+    }
   ],
   "blockers": [
     {
-      "description": "Dtype alias mismatch: pandera schema Column('int') has schema.dtype.__str__() == 'int' but PySpark column has str(IntegerType()) == 'IntegerType()'. Need alias resolution before string comparison.",
+      "description": "Error message format: narwhals 'Check X failed.' vs native '<Schema Column...> failed validation X'. Multiple tests assert exact native strings.",
       "type": "technical",
-      "workaround": "Use PySpark DataType.typeName() or compare against a normalized form. Or look up PySpark aliases table. The uncommitted check_dtype() in components.py uses str(pyspark_dtype) == str(schema.dtype) which is too strict."
-    },
-    {
-      "description": "Error message format difference: narwhals backend generates 'Check X failed.' while native PySpark generates '<Schema Column(...)> failed validation X'. Test_pyspark_check_eq asserts exact string.",
-      "type": "technical",
-      "workaround": "Xfail test_pyspark_check_eq for narwhals backend with reason explaining the format difference."
+      "workaround": "Use CONFIG.use_narwhals_backend conditional to select which expected string to assert. Pattern already established in test_pyspark_check.py and test_pyspark_config.py."
     }
   ],
   "human_actions_pending": [],
   "decisions": [
-    {"decision": "Do NOT add backend-specific if/is_pyspark branches in narwhals backend code", "rationale": "User explicitly rejected this pattern. Accept limitations or fix upstream/tests instead.", "phase": "02"},
-    {"decision": "SC2c: scope out row-index in failure_cases clause for PySpark", "rationale": "PySpark has no native integer row index (distributed)", "phase": "02"},
-    {"decision": "verifySchema=False removal was too broad — reverted. Only safe for fixtures with exact type matches.", "rationale": "Some test fixtures use float data for DecimalType columns which genuinely need verifySchema=False at createDataFrame time.", "phase": "02"},
-    {"decision": "run_schema_component_checks: use err.reason_code instead of SCHEMA_COMPONENT_CHECK", "rationale": "Value check failures (DATAFRAME_CHECK) should be DATA-level, not SCHEMA-level. Uncommitted fix in container.py.", "phase": "02"}
+    {"decision": "Narwhals backend should align with other narwhals backends, not old PySpark backend", "rationale": "User confirmed. Old PySpark was nonstandard.", "phase": "02"},
+    {"decision": "dtype comparison: remove is_pyspark branch — use standard narwhals engine path", "rationale": "User confirmed. PySpark nw.Int32 maps cleanly via narwhals.", "phase": "02"},
+    {"decision": "Error message format differences: use backend-conditional expected values in tests, NOT xfail", "rationale": "Narwhals format IS correct behavior. xfail implies bug; conditional assertion is correct.", "phase": "02"},
+    {"decision": "Do NOT add is_pyspark branches in narwhals backend code", "rationale": "Carried from previous session. Accept limitations or fix tests.", "phase": "02"},
+    {"decision": "SC2c: scope out row-index in failure_cases for PySpark", "rationale": "PySpark has no native integer row index.", "phase": "02"},
+    {"decision": "df.pandera.schema accessor not maintained by narwhals backend (no add_schema call)", "rationale": "Polars/ibis don't have the pandera accessor either. PySpark-native-only feature. Test assertion skipped for narwhals via CONFIG.use_narwhals_backend.", "phase": "02"},
+    {"decision": "test_failed_unaccepted_datatypes xfails: narwhals raises PysparkSchemaError not TypeError for unsupported types", "rationale": "Native PySpark backend has type-validation decorator not present in narwhals. Narwhals is aligned with Polars/ibis (neither has this decorator). xfail is correct — behavioral difference, not a narwhals bug.", "phase": "02"}
   ],
-  "uncommitted_files": [
-    "pandera/backends/narwhals/base.py",
-    "pandera/backends/narwhals/components.py",
-    "pandera/backends/narwhals/container.py",
-    ".planning/STATE.md",
-    ".planning/phases/02-test-coverage-and-ci/02-03-TRIAGE.md"
-  ],
-  "next_action": "Fix dtype alias issue in components.py check_dtype(): when schema.dtype is a string alias like 'int', resolve it to PySpark DataType before string comparison — use spark.createDataFrame schema field lookup or PySpark's _parse_datatype_string() to normalize. OR use schema.dtype.check() if it works for PySpark native types.",
-  "context_notes": "Session discovered that the original Bug B diagnosis (concat_failure_cases) was partially wrong — the real issue for test_pyspark_check_eq is error categorization (SCHEMA_COMPONENT_CHECK vs DATAFRAME_CHECK). Both fixes are now uncommitted in container.py (reason_code fix) and base.py (fallback for empty pyspark_items). The dtype issue in components.py (check_dtype with is_pyspark branch) was rejected by user — the correct approach is to find a narwhals-native solution or accept the limitation. The current uncommitted check_dtype implementation uses string equality which fails for type aliases."
+  "uncommitted_files": [],
+  "next_action": "Add xfail marks to test_failed_unaccepted_datatypes params (task 6e-marks). In each failing class's get_data_param(), define _xfail_narwhals = pytest.mark.xfail(condition=CONFIG.use_narwhals_backend, reason='narwhals backend raises PysparkSchemaError not TypeError for unsupported types', strict=True) and add marks=[_xfail_narwhals] to the failing entries. Classes: TestGreaterThanEqualToCheck (data2,data3), TestLessThanCheck (data0-data3), TestLessThanOrEqualToCheck (data0-data3), TestIsInCheck (data1,data2), TestNotInCheck (data1,data2).",
+  "context_notes": "49 failures at pause point. Biggest win this session: dtype tests fixed (58 passing), isin/notin frozenset bug fixed, nullable message aligned. pytest_generate_tests updated for marks support. Remaining failures: ~24 from test_failed_unaccepted_datatypes (xfail needed), ~5 from error message format (conditional expected), ~3 from model tests, ~2 from decorator tests, 1 regex_column, 1 coerce xfail. JAVA_HOME: /Users/deepyaman/Library/Caches/rattler/cache/pkgs/openjdk-17.0.17-h99a4030_0/lib/jvm. Run: JAVA_HOME=<path> PANDERA_USE_NARWHALS_BACKEND=True python -m pytest tests/pyspark/ --ignore=tests/pyspark/test_schemas_on_pyspark_pandas.py -k 'spark and not spark_connect' --no-header -q"
 }
