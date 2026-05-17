@@ -689,6 +689,16 @@ class TestGreaterThanCheck(BaseClass):
             )
 
 
+_xfail_narwhals_type_restriction = pytest.mark.xfail(
+    condition=CONFIG.use_narwhals_backend,
+    reason=(
+        "narwhals backend does not enforce PySpark-native type restrictions "
+        "(@register_input_datatypes); aligned with Ibis behavior"
+    ),
+    strict=True,
+)
+
+
 class TestGreaterThanEqualToCheck(BaseClass):
     """This class is used to test the greater than equal to check"""
 
@@ -776,10 +786,12 @@ class TestGreaterThanEqualToCheck(BaseClass):
                 {
                     "datatype": ArrayType(StringType()),
                     "data": self.sample_array_data,
+                    "marks": [_xfail_narwhals_type_restriction],
                 },
                 {
                     "datatype": MapType(StringType(), StringType()),
                     "data": self.sample_map_data,
+                    "marks": [_xfail_narwhals_type_restriction],
                 },
             ],
         }
@@ -910,15 +922,25 @@ class TestLessThanCheck(BaseClass):
                 },
             ],
             "test_failed_unaccepted_datatypes": [
-                {"datatype": StringType(), "data": self.sample_string_data},
-                {"datatype": BooleanType(), "data": self.sample_bolean_data},
+                {
+                    "datatype": StringType(),
+                    "data": self.sample_string_data,
+                    "marks": [_xfail_narwhals_type_restriction],
+                },
+                {
+                    "datatype": BooleanType(),
+                    "data": self.sample_bolean_data,
+                    "marks": [_xfail_narwhals_type_restriction],
+                },
                 {
                     "datatype": ArrayType(StringType()),
                     "data": self.sample_array_data,
+                    "marks": [_xfail_narwhals_type_restriction],
                 },
                 {
                     "datatype": MapType(StringType(), StringType()),
                     "data": self.sample_map_data,
+                    "marks": [_xfail_narwhals_type_restriction],
                 },
             ],
             "test_failed_none_expression": [
@@ -1068,15 +1090,25 @@ class TestLessThanOrEqualToCheck(BaseClass):
                 },
             ],
             "test_failed_unaccepted_datatypes": [
-                {"datatype": StringType(), "data": self.sample_string_data},
-                {"datatype": BooleanType(), "data": self.sample_bolean_data},
+                {
+                    "datatype": StringType(),
+                    "data": self.sample_string_data,
+                    "marks": [_xfail_narwhals_type_restriction],
+                },
+                {
+                    "datatype": BooleanType(),
+                    "data": self.sample_bolean_data,
+                    "marks": [_xfail_narwhals_type_restriction],
+                },
                 {
                     "datatype": ArrayType(StringType()),
                     "data": self.sample_array_data,
+                    "marks": [_xfail_narwhals_type_restriction],
                 },
                 {
                     "datatype": MapType(StringType(), StringType()),
                     "data": self.sample_map_data,
+                    "marks": [_xfail_narwhals_type_restriction],
                 },
             ],
             "test_failed_none_expression": [
@@ -1247,10 +1279,12 @@ class TestIsInCheck(BaseClass):
                 {
                     "datatype": ArrayType(StringType()),
                     "data": self.sample_array_data,
+                    "marks": [_xfail_narwhals_type_restriction],
                 },
                 {
                     "datatype": MapType(StringType(), StringType()),
                     "data": self.sample_map_data,
+                    "marks": [_xfail_narwhals_type_restriction],
                 },
             ],
         }
@@ -1380,10 +1414,12 @@ class TestNotInCheck(BaseClass):
                 {
                     "datatype": ArrayType(StringType()),
                     "data": self.sample_array_data,
+                    "marks": [_xfail_narwhals_type_restriction],
                 },
                 {
                     "datatype": MapType(StringType(), StringType()),
                     "data": self.sample_map_data,
+                    "marks": [_xfail_narwhals_type_restriction],
                 },
             ],
         }
