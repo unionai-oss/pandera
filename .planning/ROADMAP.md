@@ -107,3 +107,16 @@ See `.planning/milestones/v1.2-ROADMAP.md` for full phase details.
 | 1. PySpark Registration | 0/1 | Not started | - |
 | 2. Test Coverage and CI | 3/4 | In progress (Plan 02-04 pending) | - |
 | 3. Documentation | 0/TBD | Not started | - |
+
+## Backlog
+
+### Phase 999.1: Relax PySpark native backend type restrictions (BACKLOG)
+
+**Goal:** Captured for future planning
+**Requirements:** TBD
+**Context:** The native PySpark backend's `@register_input_datatypes` decorator restricts `ge`/`gt`/`lt`/`le` to numeric+date types and `isin`/`notin` to numeric+date+string+binary — but PySpark SQL natively supports string and boolean comparisons, and Ibis imposes no such restrictions. The narwhals backend is already more permissive (aligned with Ibis), which is why several `test_failed_unaccepted_datatypes` tests need xfail under narwhals. Relaxing these restrictions in the native PySpark backend would bring it into alignment with Ibis and narwhals, and eliminate those xfails.
+**See:** `pandera/backends/pyspark/builtin_checks.py`, `pandera/backends/pyspark/decorators.py:register_input_datatypes`
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (promote with /gsd-review-backlog when ready)
