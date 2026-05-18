@@ -5,7 +5,7 @@
 - ✅ **v1.0 Narwhals Backend** — Phases 1-5 (shipped 2026-03-15)
 - ✅ **v1.1 Ibis Parity & Lazy-First Architecture** — Phases 1-9 (shipped 2026-03-25)
 - ✅ **v1.2 PR Review Cleanup & Test Strategy** — Phases 1-3 (shipped 2026-04-10)
-- 🚧 **v1.3 Narwhals Backend for PySpark** — Phases 1-3 (in progress)
+- ✅ **v1.3 Narwhals Backend for PySpark** — Phases 1-3 (completed 2026-05-18)
 
 ## Phases
 
@@ -50,13 +50,13 @@ See `.planning/milestones/v1.2-ROADMAP.md` for full phase details.
 
 </details>
 
-### 🚧 v1.3 Narwhals Backend for PySpark (In Progress)
+### ✅ v1.3 Narwhals Backend for PySpark (Complete — 2026-05-18)
 
 **Milestone Goal:** Wire PySpark into the Narwhals backend via registration, add CI coverage, and document SQL-lazy limitations — making PySpark a first-class supported backend alongside Ibis.
 
 - [x] **Phase 1: PySpark Registration** — Conditionally wire Narwhals backends for PySpark DataFrames in `register_pyspark_backends()` — completed 2026-05-10 (1/1 plans)
 - [x] **Phase 2: Test Coverage and CI** — Run PySpark test suite under narwhals backend, triage failures, add nox session — completed 2026-05-18 (4/4 plans)
-- [ ] **Phase 3: Documentation** — List PySpark as supported SQL-lazy backend with known limitations
+- [x] **Phase 3: Documentation** — List PySpark as supported SQL-lazy backend with known limitations — completed 2026-05-18 (1/1 plans)
 
 ## Phase Details
 
@@ -97,7 +97,7 @@ See `.planning/milestones/v1.2-ROADMAP.md` for full phase details.
   2. The documentation lists the same SQL-lazy limitations for PySpark that it lists for Ibis: no element-wise checks, no row sampling
   3. A user reading only the narwhals backend docs can determine how to enable PySpark support and what constraints apply, without consulting source code
 **Plans**: 1 plan
-- [ ] 03-01-PLAN.md — Add narwhals opt-in note to pyspark_sql.md and add PySpark to the narwhals-backends content in supported_libraries.md (DOCS-01)
+- [x] 03-01-PLAN.md — Add narwhals opt-in note to pyspark_sql.md and add PySpark to the narwhals-backends content in supported_libraries.md (DOCS-01) — complete 2026-05-18
 
 ## Progress
 
@@ -107,7 +107,7 @@ See `.planning/milestones/v1.2-ROADMAP.md` for full phase details.
 |-------|----------------|--------|-----------|
 | 1. PySpark Registration | 1/1 | Complete ✓ | 2026-05-10 |
 | 2. Test Coverage and CI | 4/4 | Complete ✓ | 2026-05-18 |
-| 3. Documentation | 0/1 | Not started | - |
+| 3. Documentation | 1/1 | Complete ✓ | 2026-05-18 |
 
 ## Backlog
 
