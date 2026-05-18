@@ -55,7 +55,7 @@ See `.planning/milestones/v1.2-ROADMAP.md` for full phase details.
 **Milestone Goal:** Wire PySpark into the Narwhals backend via registration, add CI coverage, and document SQL-lazy limitations — making PySpark a first-class supported backend alongside Ibis.
 
 - [x] **Phase 1: PySpark Registration** — Conditionally wire Narwhals backends for PySpark DataFrames in `register_pyspark_backends()` — completed 2026-05-10 (1/1 plans)
-- [ ] **Phase 2: Test Coverage and CI** — Run PySpark test suite under narwhals backend, triage failures, add nox session
+- [x] **Phase 2: Test Coverage and CI** — Run PySpark test suite under narwhals backend, triage failures, add nox session — completed 2026-05-18 (4/4 plans)
 - [ ] **Phase 3: Documentation** — List PySpark as supported SQL-lazy backend with known limitations
 
 ## Phase Details
@@ -85,7 +85,7 @@ See `.planning/milestones/v1.2-ROADMAP.md` for full phase details.
 - [x] 02-01-PLAN.md — Apply xfail markers to 11 expected SQL-lazy limitation tests across 4 pyspark test files (TEST-02)
 - [x] 02-02-PLAN.md — Extend tests_narwhals_backend nox session and CI matrix to cover pyspark extra (CI-01)
 - [x] 02-03-PLAN.md — Triage tests/pyspark/ under narwhals: produce TRIAGE.md, apply any additional xfails, fix true backend bugs (TEST-01, TEST-03)
-- [ ] 02-04-PLAN.md — Gap-closure: fix 4 Category C narwhals backend bugs from TRIAGE.md (SchemaErrors→pandera.errors, _concat_failure_cases PySpark dispatch, dtype string format, materialization avoidance) and resolve SC2c row-index applicability (TEST-01, TEST-03)
+- [x] 02-04-PLAN.md — Gap-closure: fix 4 Category C narwhals backend bugs from TRIAGE.md (SchemaErrors→pandera.errors, _concat_failure_cases PySpark dispatch, dtype string format, materialization avoidance) and resolve SC2c row-index applicability (TEST-01, TEST-03) — complete 2026-05-18
 **UI hint**: no
 
 ### Phase 3: Documentation
@@ -96,7 +96,8 @@ See `.planning/milestones/v1.2-ROADMAP.md` for full phase details.
   1. The narwhals backend documentation page names PySpark as a supported SQL-lazy backend (alongside Ibis/DuckDB)
   2. The documentation lists the same SQL-lazy limitations for PySpark that it lists for Ibis: no element-wise checks, no row sampling
   3. A user reading only the narwhals backend docs can determine how to enable PySpark support and what constraints apply, without consulting source code
-**Plans**: TBD
+**Plans**: 1 plan
+- [ ] 03-01-PLAN.md — Add narwhals opt-in note to pyspark_sql.md and add PySpark to the narwhals-backends content in supported_libraries.md (DOCS-01)
 
 ## Progress
 
@@ -104,9 +105,9 @@ See `.planning/milestones/v1.2-ROADMAP.md` for full phase details.
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. PySpark Registration | 0/1 | Not started | - |
-| 2. Test Coverage and CI | 3/4 | In progress (Plan 02-04 pending) | - |
-| 3. Documentation | 0/TBD | Not started | - |
+| 1. PySpark Registration | 1/1 | Complete ✓ | 2026-05-10 |
+| 2. Test Coverage and CI | 4/4 | Complete ✓ | 2026-05-18 |
+| 3. Documentation | 0/1 | Not started | - |
 
 ## Backlog
 
