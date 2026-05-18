@@ -285,6 +285,20 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
                 )
             except SchemaDefinitionError:
                 raise
+            except SchemaError as err:
+                # catch SchemaError exception that may be raised in custom check
+                err_msg = err.args[0] if err.args else ""
+                check_results.append(
+                    CoreCheckResult(
+                        passed=False,
+                        check=check,
+                        check_index=check_index,
+                        reason_code=SchemaErrorReason.DATAFRAME_CHECK,
+                        message=err_msg,
+                        failure_cases=err.failure_cases,
+                        original_exc=err,
+                    )
+                )
             except Exception as err:
                 # catch other exceptions that may occur when executing the check
                 err_msg = f'"{err.args[0]}"' if err.args else ""
