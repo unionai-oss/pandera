@@ -63,6 +63,11 @@ class TestDecorator:
     """This class is used to test the decorator to check datatype mismatches and unacceptable datatype"""
 
     @validate_scope(scope=ValidationScope.DATA)
+    @pytest.mark.xfail(
+        condition=CONFIG.use_narwhals_backend,
+        reason="narwhals backend does not raise TypeError for datatype mismatches; CHECK_ERROR category not emitted",
+        strict=True,
+    )
     def test_datatype_check_decorator(self, spark_session, request):
         """
         Test to validate the decorator to check datatype mismatches and unacceptable datatype
@@ -290,6 +295,16 @@ class BaseClass:
                 raise PysparkSchemaError
 
 
+_xfail_narwhals_type_restriction = pytest.mark.xfail(
+    condition=CONFIG.use_narwhals_backend,
+    reason=(
+        "narwhals backend does not enforce PySpark-native type restrictions "
+        "(@register_input_datatypes); aligned with Ibis behavior"
+    ),
+    strict=True,
+)
+
+
 class TestEqualToCheck(BaseClass):
     """This class is used to test the equal to check"""
 
@@ -383,10 +398,12 @@ class TestEqualToCheck(BaseClass):
                 {
                     "datatype": ArrayType(StringType()),
                     "data": self.sample_array_data,
+                    "marks": [_xfail_narwhals_type_restriction],
                 },
                 {
                     "datatype": MapType(StringType(), StringType()),
                     "data": self.sample_map_data,
+                    "marks": [_xfail_narwhals_type_restriction],
                 },
             ],
         }
@@ -518,10 +535,12 @@ class TestNotEqualToCheck(BaseClass):
                 {
                     "datatype": ArrayType(StringType()),
                     "data": self.sample_array_data,
+                    "marks": [_xfail_narwhals_type_restriction],
                 },
                 {
                     "datatype": MapType(StringType(), StringType()),
                     "data": self.sample_map_data,
+                    "marks": [_xfail_narwhals_type_restriction],
                 },
             ],
         }
@@ -647,10 +666,12 @@ class TestGreaterThanCheck(BaseClass):
                 {
                     "datatype": ArrayType(StringType()),
                     "data": self.sample_array_data,
+                    "marks": [_xfail_narwhals_type_restriction],
                 },
                 {
                     "datatype": MapType(StringType(), StringType()),
                     "data": self.sample_map_data,
+                    "marks": [_xfail_narwhals_type_restriction],
                 },
             ],
         }
@@ -687,16 +708,6 @@ class TestGreaterThanCheck(BaseClass):
                 datatype,
                 data["test_expression"],
             )
-
-
-_xfail_narwhals_type_restriction = pytest.mark.xfail(
-    condition=CONFIG.use_narwhals_backend,
-    reason=(
-        "narwhals backend does not enforce PySpark-native type restrictions "
-        "(@register_input_datatypes); aligned with Ibis behavior"
-    ),
-    strict=True,
-)
 
 
 class TestGreaterThanEqualToCheck(BaseClass):

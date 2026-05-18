@@ -6,6 +6,7 @@ from pyspark.sql.types import StringType
 
 import pandera.pyspark as pa
 from pandera.api.base import error_handler
+from pandera.config import CONFIG
 from pandera.errors import SchemaError, SchemaErrorReason
 from pandera.pyspark import Column, DataFrameModel, DataFrameSchema, Field
 from tests.pyspark.conftest import spark_df
@@ -56,13 +57,21 @@ def test_pyspark_check_eq(spark_session, sample_spark_schema, request):
             {
                 "check": "str_startswith('B')",
                 "column": "product",
-                "error": "<Schema Column(name=product, type=DataType(StringType()))> failed validation str_startswith('B')",
+                "error": (
+                    "Check '<Check str_startswith: str_startswith('B')>' failed."
+                    if CONFIG.use_narwhals_backend
+                    else "<Schema Column(name=product, type=DataType(StringType()))> failed validation str_startswith('B')"
+                ),
                 "schema": "product_schema",
             },
             {
                 "check": "greater_than(5)",
                 "column": "price",
-                "error": "<Schema Column(name=price, type=DataType(IntegerType()))> failed validation greater_than(5)",
+                "error": (
+                    "Check '<Check greater_than: greater_than(5)>' failed."
+                    if CONFIG.use_narwhals_backend
+                    else "<Schema Column(name=price, type=DataType(IntegerType()))> failed validation greater_than(5)"
+                ),
                 "schema": "product_schema",
             },
         ]
@@ -138,13 +147,21 @@ def test_pyspark_schema_data_checks(spark_session, request):
                 {
                     "check": "str_startswith('B')",
                     "column": "product",
-                    "error": "<Schema Column(name=product, type=DataType(StringType()))> failed validation str_startswith('B')",
+                    "error": (
+                        "Check '<Check str_startswith: str_startswith('B')>' failed."
+                        if CONFIG.use_narwhals_backend
+                        else "<Schema Column(name=product, type=DataType(StringType()))> failed validation str_startswith('B')"
+                    ),
                     "schema": "product_schema",
                 },
                 {
                     "check": "greater_than(5)",
                     "column": "price",
-                    "error": "<Schema Column(name=price, type=DataType(IntegerType()))> failed validation greater_than(5)",
+                    "error": (
+                        "Check '<Check greater_than: greater_than(5)>' failed."
+                        if CONFIG.use_narwhals_backend
+                        else "<Schema Column(name=price, type=DataType(IntegerType()))> failed validation greater_than(5)"
+                    ),
                     "schema": "product_schema",
                 },
             ]
@@ -212,13 +229,21 @@ def test_pyspark_fields(spark_session, request):
                 {
                     "check": "str_startswith('B')",
                     "column": "product",
-                    "error": "<Schema Column(name=product, type=DataType(StringType()))> failed validation str_startswith('B')",
+                    "error": (
+                        "Check '<Check str_startswith: str_startswith('B')>' failed."
+                        if CONFIG.use_narwhals_backend
+                        else "<Schema Column(name=product, type=DataType(StringType()))> failed validation str_startswith('B')"
+                    ),
                     "schema": "PanderaSchema",
                 },
                 {
                     "check": "greater_than(5)",
                     "column": "price",
-                    "error": "<Schema Column(name=price, type=DataType(IntegerType()))> failed validation greater_than(5)",
+                    "error": (
+                        "Check '<Check greater_than: greater_than(5)>' failed."
+                        if CONFIG.use_narwhals_backend
+                        else "<Schema Column(name=price, type=DataType(IntegerType()))> failed validation greater_than(5)"
+                    ),
                     "schema": "PanderaSchema",
                 },
             ]

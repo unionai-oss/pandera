@@ -120,3 +120,13 @@ See `.planning/milestones/v1.2-ROADMAP.md` for full phase details.
 
 Plans:
 - [ ] TBD (promote with /gsd-review-backlog when ready)
+
+### Phase 999.2: Test and verify narwhals ColumnBackend regex support across all backends (BACKLOG)
+
+**Goal:** Add explicit test coverage for `regex=True` columns under `use_narwhals_backend=True` for polars and ibis; confirm no gaps exist.
+**Context:** The narwhals `ColumnBackend` (`pandera/backends/narwhals/components.py`) is the shared column backend used by polars, ibis, and PySpark when `use_narwhals_backend=True`. Regex expansion logic was added during v1.3 PySpark work (missing from the original narwhals ColumnBackend). Polars/ibis regex tests only run against the native per-backend ColumnBackends (`use_narwhals_backend=False`), so the narwhals path has no regex test coverage for those backends. A follow-up PR should add those tests and fix any gaps found.
+**See:** `pandera/backends/narwhals/components.py`, `tests/polars/test_polars_components.py::test_column_schema_regex`
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (promote with /gsd-review-backlog when ready)

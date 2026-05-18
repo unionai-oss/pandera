@@ -75,15 +75,50 @@ class ColumnBackend(NarwhalsSchemaBackend):
                 "When drop_invalid_rows is True, lazy must be set to True."
             )
 
-        error_handler = self.run_checks_and_handle_errors(
-            error_handler,
-            schema,
-            check_lf,
-            head=head,
-            tail=tail,
-            sample=sample,
-            random_state=random_state,
-        )
+        if getattr(schema, "regex", False):
+            column_keys_to_check = list(self.get_regex_columns(schema, check_lf))
+            if not column_keys_to_check:
+                raise SchemaError(
+                    schema=schema,
+                    data=_to_native(check_lf),
+                    message=(
+                        f"Column regex name='{schema.selector}' did not match "
+                        "any columns in the dataframe. Update the regex "
+                        "pattern so that it matches at least one column."
+                    ),
+                    failure_cases=check_lf.collect_schema().names(),
+                    check=f"no_regex_column_match('{schema.selector}')",
+                    reason_code=SchemaErrorReason.INVALID_COLUMN_NAME,
+                )
+            _orig_name = schema.name
+            _orig_regex = schema.regex
+            for column_name in column_keys_to_check:
+                single_col_lf = check_lf.select(nw.col(column_name))
+                schema.name = column_name
+                schema.regex = False
+                try:
+                    error_handler = self.run_checks_and_handle_errors(
+                        error_handler,
+                        schema,
+                        single_col_lf,
+                        head=head,
+                        tail=tail,
+                        sample=sample,
+                        random_state=random_state,
+                    )
+                finally:
+                    schema.name = _orig_name
+                    schema.regex = _orig_regex
+        else:
+            error_handler = self.run_checks_and_handle_errors(
+                error_handler,
+                schema,
+                check_lf,
+                head=head,
+                tail=tail,
+                sample=sample,
+                random_state=random_state,
+            )
 
         if lazy and error_handler.collected_errors:
             if getattr(schema, "drop_invalid_rows", False):

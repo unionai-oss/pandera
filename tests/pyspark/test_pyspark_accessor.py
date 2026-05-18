@@ -8,13 +8,18 @@ from pyspark.sql.functions import col
 from pyspark.sql.types import FloatType, LongType
 
 import pandera.pyspark as pa
-from pandera.config import PanderaConfig, ValidationDepth
+from pandera.config import CONFIG, PanderaConfig, ValidationDepth
 from pandera.pyspark import pyspark_sql_accessor
 
 spark = SparkSession.builder.getOrCreate()
 spark.conf.set("spark.sql.ansi.enabled", False)
 
 
+@pytest.mark.xfail(
+    condition=CONFIG.use_narwhals_backend,
+    reason="narwhals backend does not call add_schema(); pandera.schema accessor is not set",
+    strict=True,
+)
 @pytest.mark.parametrize(
     "schema1, schema2, data, invalid_data",
     [

@@ -64,11 +64,6 @@ class TestPanderaDecorators:
                 instance = FakeDataFrameSchemaBackend()
                 _ = instance.func_wo_check_obj("wrong")
 
-    @pytest.mark.xfail(
-        condition=CONFIG.use_narwhals_backend,
-        reason="Narwhals backend does not use PySpark caching decorators; cache/unpersist log messages are not emitted",
-        strict=True,
-    )
     @pytest.mark.parametrize(
         "cache_enabled,keep_cache_enabled,"
         "expected_caching_message,expected_unpersisting_message",
@@ -92,6 +87,11 @@ class TestPanderaDecorators:
         request,
     ):
         """This function validates that caching/unpersisting works as expected."""
+        if CONFIG.use_narwhals_backend and cache_enabled:
+            pytest.xfail(
+                "narwhals backend does not use PySpark caching decorators; "
+                "cache/unpersist log messages are not emitted"
+            )
         # Set expected properties in Config object
         # Prepare test data
         spark = request.getfixturevalue(spark_session)

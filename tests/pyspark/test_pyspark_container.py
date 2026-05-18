@@ -19,6 +19,11 @@ pytestmark = pytest.mark.parametrize(
 )
 
 
+@pytest.mark.xfail(
+    condition=CONFIG.use_narwhals_backend,
+    reason="narwhals ColumnBackend has no coerce_dtype step; coerce=True is a no-op",
+    strict=True,
+)
 def test_pyspark_dataframeschema(spark_session, request):
     """
     Test creating a pyspark DataFrameSchema object

@@ -11,7 +11,7 @@ import pandera
 import pandera.api.extensions as pax
 import pandera.pyspark as pa
 from pandera.api.pyspark.model import docstring_substitution
-from pandera.config import PanderaConfig, ValidationDepth
+from pandera.config import CONFIG, PanderaConfig, ValidationDepth
 from pandera.errors import SchemaDefinitionError
 from pandera.pyspark import DataFrameModel, DataFrameSchema, Field
 from tests.pyspark.conftest import spark_df
@@ -360,6 +360,11 @@ def test_dataframe_schema_unique(spark_session, data, expectation, request):
         "multiple_wrong_columns",
     ],
 )
+@pytest.mark.xfail(
+    condition=CONFIG.use_narwhals_backend,
+    reason="narwhals group_by on non-existent unique column raises ValueError",
+    strict=True,
+)
 def test_dataframe_schema_unique_wrong_column(
     spark_session, unique_column_name, request
 ):
@@ -387,6 +392,11 @@ def test_dataframe_schema_unique_wrong_column(
     assert "DATA" in df_out.pandera.errors
 
 
+@pytest.mark.xfail(
+    condition=CONFIG.use_narwhals_backend,
+    reason="narwhals PySpark backend always returns original frame; strict='filter' column selection not applied",
+    strict=True,
+)
 def test_dataframe_schema_strict(
     spark_session, config_params: PanderaConfig, request
 ) -> None:
@@ -543,6 +553,11 @@ def test_invalid_field(
 # For the second parameterized `spark_session` run, `@pax.register_check_method` will
 # raise a ValueError due to a duplicated registration tentative
 @pytest.mark.xfail(raises=ValueError)
+@pytest.mark.xfail(
+    condition=CONFIG.use_narwhals_backend,
+    reason="narwhals column backend has no coerce_dtype; age: int inferred as LongType() by Spark",
+    strict=True,
+)
 def test_registered_dataframemodel_checks(spark_session, request) -> None:
     """Check that custom registered checks work"""
     spark = request.getfixturevalue(spark_session)

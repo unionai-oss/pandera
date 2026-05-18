@@ -350,7 +350,7 @@ class DataFrameSchemaBackend(NarwhalsSchemaBackend):
             if col_schema.regex:
                 try:
                     column_names.extend(
-                        col_schema.get_backend(check_obj).get_regex_columns(
+                        col_schema.get_backend(_to_native(check_obj)).get_regex_columns(
                             col_schema, check_obj
                         )
                     )
