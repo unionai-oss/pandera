@@ -1,65 +1,43 @@
 {
   "version": "1.0",
-  "timestamp": "2026-05-17T19:38:27.000Z",
+  "timestamp": "2026-05-18T19:00:00.000Z",
   "phase": "02",
   "phase_name": "test-coverage-and-ci",
   "phase_dir": ".planning/phases/02-test-coverage-and-ci",
   "plan": 4,
-  "task": 6,
+  "task": "6g",
   "total_tasks": 6,
   "status": "paused",
   "completed_tasks": [
-    {"id": 1, "name": "Fix DataFrameSchemaBackend.validate() to set check_obj.pandera.errors for PySpark", "status": "done", "commit": "c6f3bb22"},
-    {"id": 2, "name": "Fix _concat_failure_cases() PySpark dispatch and avoid PySpark materialization in run_check()", "status": "done", "commit": "c6f3bb22"},
+    {"id": 1, "name": "Fix DataFrameSchemaBackend.validate() pandera.errors for PySpark", "status": "done", "commit": "c6f3bb22"},
+    {"id": 2, "name": "Fix _concat_failure_cases() PySpark dispatch", "status": "done", "commit": "c6f3bb22"},
     {"id": 3, "name": "Fix dtype string format in ColumnBackend.check_dtype()", "status": "done", "commit": "8976a697"},
-    {"id": 4, "name": "Checkpoint: SC2c row-index applicability decision — scope-out", "status": "done", "commit": "3ea211f6"},
-    {"id": 5, "name": "Apply SC2c decision (scope-out) — ROADMAP and TRIAGE.md updated", "status": "done", "commit": "3ea211f6"},
-    {"id": "6e-marks", "name": "xfail test_failed_unaccepted_datatypes params for narwhals backend (5 classes)", "status": "done", "commit": "8705e58f"}
+    {"id": 4, "name": "SC2c scope-out decision", "status": "done", "commit": "3ea211f6"},
+    {"id": 5, "name": "ROADMAP and TRIAGE.md updated for SC2c", "status": "done", "commit": "3ea211f6"},
+    {"id": "6e-marks", "name": "xfail test_failed_unaccepted_datatypes (5 classes)", "status": "done", "commit": "8705e58f"},
+    {"id": "6c", "name": "Fix error message format tests (backend-conditional)", "status": "done", "commit": "378bd859"},
+    {"id": "6d", "name": "Xfail coerce=True in test_pyspark_dataframeschema", "status": "done", "commit": "378bd859"},
+    {"id": "6f", "name": "Fix regex (narwhals ColumnBackend), model/accessor/decorator/check xfails", "status": "done", "commit": "378bd859"}
   ],
   "remaining_tasks": [
     {
-      "id": "6c",
-      "name": "Fix error message format tests with backend-conditional expected values",
-      "status": "not_started",
-      "notes": "Affected: test_pyspark_error.py::test_pyspark_check_eq, test_pyspark_schema_data_checks, test_pyspark_fields. Narwhals: 'Check X failed.' Native: '<Schema Column...> failed validation X'. Use CONFIG.use_narwhals_backend to select expected string. Do NOT overwrite with narwhals format alone — breaks native backend. Pattern: use ternary or if/else to build expected dict."
-    },
-    {
-      "id": "6d",
-      "name": "Xfail test_pyspark_dataframeschema coerce=True case",
-      "status": "not_started",
-      "notes": "test_pyspark_container.py::test_pyspark_dataframeschema second assertion fails: Column(IntegerType(), coerce=True) expects coercion of string→int. Narwhals ColumnBackend.validate() has no coerce_dtype step. Xfail with CONFIG.use_narwhals_backend condition."
-    },
-    {
-      "id": "6f",
-      "name": "Investigate remaining failures: model tests, accessor, regex_column, TestDecorator, decorators",
-      "status": "not_started",
-      "notes": "test_pyspark_model.py::test_dataframe_schema_unique_wrong_column, test_dataframe_schema_strict, test_registered_dataframemodel_checks; test_pyspark_container.py::test_pyspark_regex_column; test_pyspark_decorators.py::TestPanderaDecorators::test_cache_dataframe_settings[False-True-None-None], [False-False-None-None]. Each needs individual diagnosis."
-    },
-    {
       "id": "6g",
-      "name": "Run full suite, commit all fixes, write 02-04-SUMMARY.md",
-      "status": "not_started"
+      "name": "Run full suite, confirm 0 failures, write 02-04-SUMMARY.md, delete HANDOFF.json and .continue-here.md",
+      "status": "not_started",
+      "notes": "All targeted fixes verified in commit 378bd859. Run: JAVA_HOME=/Users/deepyaman/Library/Caches/rattler/cache/pkgs/openjdk-17.0.17-h99a4030_0/lib/jvm PANDERA_USE_NARWHALS_BACKEND=True python -m pytest tests/pyspark/ -k 'not spark_connect' --no-header -q"
     }
   ],
-  "blockers": [
-    {
-      "description": "Error message format: narwhals 'Check X failed.' vs native '<Schema Column...> failed validation X'. Multiple tests assert exact native strings.",
-      "type": "technical",
-      "workaround": "Use CONFIG.use_narwhals_backend conditional to select which expected string to assert. Pattern already established in test_pyspark_check.py and test_pyspark_config.py."
-    }
-  ],
+  "blockers": [],
   "human_actions_pending": [],
   "decisions": [
-    {"decision": "Narwhals backend should align with other narwhals backends, not old PySpark backend", "rationale": "User confirmed. Old PySpark was nonstandard.", "phase": "02"},
-    {"decision": "dtype comparison: use standard narwhals engine path, no is_pyspark branch", "rationale": "User confirmed. PySpark nw.Int32 maps cleanly via narwhals.", "phase": "02"},
-    {"decision": "Error message format differences: use backend-conditional expected values in tests, NOT xfail", "rationale": "Narwhals format IS correct behavior. xfail implies bug; conditional assertion is correct.", "phase": "02"},
-    {"decision": "Do NOT add is_pyspark branches in narwhals backend code", "rationale": "Carried from previous session. Accept limitations or fix tests.", "phase": "02"},
-    {"decision": "SC2c: scope out row-index in failure_cases for PySpark", "rationale": "PySpark has no native integer row index.", "phase": "02"},
-    {"decision": "df.pandera.schema accessor not maintained by narwhals backend (no add_schema call)", "rationale": "Polars/ibis don't have the pandera accessor either. PySpark-native-only feature.", "phase": "02"},
-    {"decision": "@register_input_datatypes is PySpark-native-only; narwhals backend intentionally more permissive, aligned with Ibis. Backlog item 999.1 added to relax native backend eventually.", "rationale": "ge/lt/le restricted to numeric+date only in native PySpark backend. Ibis and narwhals impose no such restrictions. xfail is correct behavioral difference.", "phase": "02"},
-    {"decision": "_xfail_narwhals_type_restriction defined at module level before TestGreaterThanEqualToCheck class, shared across 5 classes", "rationale": "DRY — same mark reused in get_data_param of 5 classes without redefining inside each method.", "phase": "02"}
+    {"decision": "narwhals/components.py ColumnBackend is shared by polars/ibis/pyspark under use_narwhals_backend=True; regex fix belongs there", "rationale": "User confirmed. Each register.py has two paths: narwhals (shared) when flag on, native per-backend when off.", "phase": "02"},
+    {"decision": "Backlog 999.2 added: test polars/ibis regex under use_narwhals_backend=True in follow-up PR", "rationale": "narwhals ColumnBackend regex untested for polars/ibis paths", "phase": "02"},
+    {"decision": "test_cache_dataframe_settings: pytest.xfail() inside body when cache_enabled=True only", "rationale": "cache_enabled=False cases assert absence of messages — PASS under narwhals; class-level strict xfail caused XPASS failures", "phase": "02"},
+    {"decision": "_xfail_narwhals_type_restriction moved before TestEqualToCheck (~line 293)", "rationale": "Was defined after TestGreaterThanEqualToCheck — EqualTo/NotEqualTo/GreaterThan needed it too", "phase": "02"},
+    {"decision": "Error message format: backend-conditional expected values in tests, NOT xfail", "rationale": "Narwhals format IS correct behavior", "phase": "02"},
+    {"decision": "Do NOT add is_pyspark branches in narwhals backend code", "rationale": "Accept limitations or fix tests", "phase": "02"}
   ],
   "uncommitted_files": [],
-  "next_action": "Start with task 6c: grep test_pyspark_error.py and test_pyspark_container.py for '<Schema Column' or 'failed validation' strings. Add CONFIG.use_narwhals_backend conditional to select narwhals vs native expected string. Run targeted failures first: JAVA_HOME=/Users/deepyaman/Library/Caches/rattler/cache/pkgs/openjdk-17.0.17-h99a4030_0/lib/jvm PANDERA_USE_NARWHALS_BACKEND=True python -m pytest tests/pyspark/test_pyspark_error.py tests/pyspark/test_pyspark_container.py -k 'spark and not spark_connect' --no-header -q",
-  "context_notes": "~25 failures remain after 6e-marks (down from 49). Breakdown estimate: ~5 error message format (6c), 1 coerce xfail (6d), ~5-8 model/accessor/regex/decorator (6f). 6e-marks committed cleanly: 48 xfailed, 12 passed, 0 failures in targeted run. _xfail_narwhals_type_restriction is a module-level pytest.mark.xfail defined just before TestGreaterThanEqualToCheck class in test_pyspark_check.py. JAVA_HOME: /Users/deepyaman/Library/Caches/rattler/cache/pkgs/openjdk-17.0.17-h99a4030_0/lib/jvm"
+  "next_action": "Run full PySpark suite: JAVA_HOME=/Users/deepyaman/Library/Caches/rattler/cache/pkgs/openjdk-17.0.17-h99a4030_0/lib/jvm PANDERA_USE_NARWHALS_BACKEND=True python -m pytest tests/pyspark/ -k 'not spark_connect' --no-header -q. If 0 failures: write 02-04-SUMMARY.md and commit.",
+  "context_notes": "All 14 pre-378bd859 failures fixed. Key fix: narwhals ColumnBackend missing regex expansion (collect_column_info passed LazyFrame to get_backend — fixed with _to_native(); validate() added regex expansion block). narwhals ColumnBackend IS shared across polars/ibis/pyspark under use_narwhals_backend=True. JAVA_HOME: /Users/deepyaman/Library/Caches/rattler/cache/pkgs/openjdk-17.0.17-h99a4030_0/lib/jvm"
 }
