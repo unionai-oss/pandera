@@ -26,6 +26,26 @@ install `pandera` with the `pyspark` extra:
 pip install 'pandera[pyspark]'
 ```
 
+:::{note}
+Pandera ships an optional
+{ref}`Narwhals-powered backend <narwhals-backends>` that runs validation
+against the native PySpark SQL execution path and shares its check
+implementations with the Polars and Ibis backends. It is **opt-in**:
+install the `narwhals` extra and set
+`PANDERA_USE_NARWHALS_BACKEND=True` (or `pandera.config.CONFIG.use_narwhals_backend = True`)
+before importing `pandera.pyspark`. By default Pandera uses the native PySpark
+backend. The public API shown on this page is unchanged either way.
+
+Because the Narwhals backend for PySpark is SQL-lazy, it does not support
+element-wise checks and does not support row sampling (`sample=` / `tail=`
+parameters).
+
+```bash
+pip install 'pandera[pyspark,narwhals]' pyspark
+export PANDERA_USE_NARWHALS_BACKEND=True
+```
+:::
+
 ## What's different?
 
 Compared to the way `pandera` deals with pandas dataframes, there are some

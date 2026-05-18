@@ -30,7 +30,7 @@ Pandera supports validation of the following DataFrame libraries:
 :::{note}
 *new in 0.26.0* &mdash; Pandera ships an optional
 [Narwhals](https://narwhals-dev.github.io/narwhals/)-powered backend that
-unifies the Polars and Ibis validation paths behind a single implementation.
+unifies the Polars, Ibis, and PySpark SQL validation paths behind a single implementation.
 It is **opt-in**: set the `PANDERA_USE_NARWHALS_BACKEND=True` environment
 variable (or `pandera.config.CONFIG.use_narwhals_backend = True`) and install
 the `narwhals` extra. The user-facing API
@@ -124,19 +124,20 @@ Fugue <fugue>
 
 As of *0.26.0*, Pandera ships an optional
 [Narwhals](https://narwhals-dev.github.io/narwhals/)-based validation
-backend that powers both the {ref}`Polars <polars>` and {ref}`Ibis <ibis>`
-integrations behind a single unified code path. The Narwhals backend is
-**opt-in**: by default Pandera continues to use the native Polars and Ibis
-backends. The public API (`import pandera.polars as pa`,
-`import pandera.ibis as pa`) is unchanged regardless of which backend is
+backend that powers the {ref}`Polars <polars>`, {ref}`Ibis <ibis>`, and
+{ref}`Pyspark SQL <native-pyspark>` integrations behind a single unified code
+path. The Narwhals backend is **opt-in**: by default Pandera continues to use
+the native Polars, Ibis, and PySpark backends. The public API
+(`import pandera.polars as pa`, `import pandera.ibis as pa`,
+`import pandera.pyspark as pa`) is unchanged regardless of which backend is
 active.
 
 ### Enabling the Narwhals backend
 
-To switch the Polars and Ibis integrations onto the Narwhals-powered
-backend, install the `narwhals` extra and set the
+To switch the Polars, Ibis, and PySpark SQL integrations onto the
+Narwhals-powered backend, install the `narwhals` extra and set the
 `PANDERA_USE_NARWHALS_BACKEND` environment variable to `True` before
-importing `pandera.polars` or `pandera.ibis`:
+importing `pandera.polars`, `pandera.ibis`, or `pandera.pyspark`:
 
 ```bash
 pip install 'pandera[narwhals]'
@@ -145,7 +146,7 @@ export PANDERA_USE_NARWHALS_BACKEND=True
 
 You can also enable it programmatically by setting
 {py:attr}`pandera.config.CONFIG.use_narwhals_backend` to `True` before any
-`pandera.polars` / `pandera.ibis` schema is constructed:
+`pandera.polars` / `pandera.ibis` / `pandera.pyspark` schema is constructed:
 
 ```python
 import pandera.config
@@ -182,14 +183,17 @@ it executed natively by each supported engine.
 
 ### What it changes for you
 
-* **Unified checks across Polars and Ibis.** Built-in checks
+* **Unified checks across Polars, Ibis, and PySpark SQL.** Built-in checks
   (`isin`, `in_range`, `str_matches`, etc.) are implemented as Narwhals
-  expressions and run unchanged on both Polars LazyFrames and Ibis tables
-  when the Narwhals backend is enabled.
-* **Lazy validation stays lazy.** For Polars LazyFrames and Ibis tables,
-  Pandera threads validation through the native lazy API: no full-frame
-  `.collect()` / `.execute()` is triggered during validation. Only the
-  bounded `failure_cases` frame is materialized, and only on error.
+  expressions and run unchanged on Polars LazyFrames, Ibis tables, and
+  PySpark SQL DataFrames when the Narwhals backend is enabled. PySpark SQL
+  is a SQL-lazy backend: element-wise checks are not supported, and row
+  sampling (`sample=` / `tail=` parameters) is not supported.
+* **Lazy validation stays lazy.** For Polars LazyFrames, Ibis tables, and
+  PySpark SQL DataFrames, Pandera threads validation through the native lazy
+  API: no full-frame `.collect()` / `.execute()` is triggered during
+  validation. Only the bounded `failure_cases` frame is materialized, and
+  only on error.
 * **Custom checks become portable.** A check written against
   `pandera.polars` typically works against `pandera.ibis` (and vice versa)
   as long as it uses Narwhals expressions. Backend-native checks
@@ -219,9 +223,10 @@ backend. Follow-up milestones track each of the gaps below:
 * `coerce` for the Ibis backend (deferred; `Ibis` coerces eagerly today)
 * `add_missing_columns` parser and `set_default` for `Column` fields
 * `group_by`-based checks beyond element-wise and column-wise expressions
+* Element-wise checks for SQL-lazy backends (Ibis and PySpark SQL)
 * Schema IO (YAML/JSON) for Narwhals-backed schemas
 * Hypothesis data-synthesis strategies
-* `sample=` subsampling (only `head=` / `tail=` are supported today)
+* `sample=` / `tail=` row sampling for SQL-lazy backends (Ibis and PySpark SQL)
 
 See the {ref}`Supported DataFrame Libraries <supported-dataframe-libraries>`
 section above for the user-facing integrations; the Narwhals layer is an
