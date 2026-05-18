@@ -287,12 +287,13 @@ Source: [VERIFIED: docs/source/supported_libraries.md lines 125-133]
 
 **Discretion note on A1:** CONTEXT.md says "whether to add a version marker or leave it out is at Claude's discretion — match the style of the existing ibis.md note." The ibis.md note uses `*new in 0.32.0*`. If PySpark narwhals ships in a different version, the planner/implementer should confirm the correct version or omit the marker entirely.
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Version number for the `*new in ...*` marker**
    - What we know: ibis.md uses `*new in 0.32.0*`; polars.md also uses `*new in 0.32.0*`
    - What's unclear: PySpark narwhals support was added in Phase 1 (2026-05-10); which release version that maps to is not determined
    - Recommendation: Omit the version marker in the PySpark note (or use a placeholder) unless the implementer knows the exact version. Omitting is safe — ibis.md and polars.md already carry the narwhals-backend version note; the PySpark note is additive.
+   - **RESOLVED:** Omit the `*new in 0.XX.0*` marker — release version unconfirmed; plan explicitly documents this choice.
 
 ## Environment Availability
 
