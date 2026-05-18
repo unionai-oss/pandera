@@ -1,5 +1,7 @@
 """Unit tests for polars check class."""
 
+import datetime as dt
+
 import polars as pl
 import pytest
 
@@ -298,3 +300,137 @@ def test_polars_dataframe_check_n_failure_cases(lf):
         schema.validate(lf, lazy=True)
     except pa.errors.SchemaErrors as exc:
         assert exc.failure_cases.shape[0] == n_failure_cases
+
+
+@pytest.mark.xfail(
+    condition=CONFIG.use_narwhals_backend,
+    reason="Custom check signature incompatible with Narwhals backend",
+    strict=True,
+)
+@pytest.mark.parametrize(
+    "label, column, dtype, expected_substr",
+    [
+        (
+            "List[str]",
+            pl.Series([["gold", "magenta"], ["green"]]),
+            pl.List(pl.String),
+            '"magenta"',
+        ),
+        (
+            "Array[int, 2]",
+            pl.Series([[1, 2], [3, 4]], dtype=pl.Array(pl.Int64, 2)),
+            pl.Array(pl.Int64, 2),
+            "1",
+        ),
+        (
+            "Struct",
+            pl.Series([{"x": 1}, {"x": 2}]),
+            pl.Struct({"x": pl.Int64}),
+            '"x"',
+        ),
+        (
+            "List[Struct]",
+            pl.Series([[{"a": 1}], [{"a": 2}]]),
+            pl.List(pl.Struct({"a": pl.Int64})),
+            '"a"',
+        ),
+        (
+            "List[List[int]]",
+            pl.Series([[[1, 2]], [[3, 4]]]),
+            pl.List(pl.List(pl.Int64)),
+            "1",
+        ),
+        (
+            "Struct[List]",
+            pl.Series(
+                [{"items": [1, 2]}, {"items": [3]}],
+                dtype=pl.Struct({"items": pl.List(pl.Int64)}),
+            ),
+            pl.Struct({"items": pl.List(pl.Int64)}),
+            '"items"',
+        ),
+        (
+            "Array[Struct, 2]",
+            pl.Series(
+                [[{"a": 1}, {"a": 2}], [{"a": 3}, {"a": 4}]],
+                dtype=pl.Array(pl.Struct({"a": pl.Int64}), 2),
+            ),
+            pl.Array(pl.Struct({"a": pl.Int64}), 2),
+            '"a"',
+        ),
+        (
+            "List[Date]",
+            pl.Series(
+                [[dt.date(2026, 1, 1)], [dt.date(2026, 2, 2)]],
+                dtype=pl.List(pl.Date),
+            ),
+            pl.List(pl.Date),
+            "2026",
+        ),
+    ],
+)
+def test_polars_lazy_failure_cases_nested_column(
+    label, column, dtype, expected_substr
+):
+    """Regression: lazy=True must not crash when a column-level check
+    fails on a nested-dtype column (List, Array, Struct, and their
+    nestings). The failure-case formatter previously cast the offending
+    column to Utf8 directly, which Polars rejects for nested dtypes."""
+    del label
+
+    df = pl.DataFrame({"id": ["a", "b"], "nested": column})
+
+    class S(pa.DataFrameModel):
+        id: str
+        nested: dtype  # type: ignore[valid-type]
+
+        @pa.check("nested", name="always_fail")
+        @classmethod
+        def always_fail(cls, data: pa.PolarsData) -> pl.LazyFrame:
+            return data.lazyframe.select(pl.lit(False).alias(data.key))
+
+    with pytest.raises(pa.errors.SchemaErrors) as exc_info:
+        S.validate(df, lazy=True)
+
+    failure_cases = exc_info.value.failure_cases
+    assert failure_cases.shape[0] >= 1
+    assert "nested" in failure_cases["column"].to_list()
+    rendered = failure_cases["failure_case"].to_list()
+    assert any(expected_substr in str(v) for v in rendered)
+
+
+@pytest.mark.xfail(
+    condition=CONFIG.use_narwhals_backend,
+    reason="Custom check signature incompatible with Narwhals backend",
+    strict=True,
+)
+def test_polars_lazy_failure_cases_empty_and_null_list():
+    """Pin behaviour for empty lists and nulls inside lists in the
+    failure-case formatter."""
+
+    df = pl.DataFrame(
+        {
+            "id": ["a", "b", "c"],
+            "vals": pl.Series(
+                [[], [1, None, 2], [3]], dtype=pl.List(pl.Int64)
+            ),
+        }
+    )
+
+    class S(pa.DataFrameModel):
+        id: str
+        vals: pl.List = pa.Field(dtype_kwargs={"inner": pl.Int64})
+
+        @pa.check("vals", name="always_fail")
+        @classmethod
+        def always_fail(cls, data: pa.PolarsData) -> pl.LazyFrame:
+            return data.lazyframe.select(
+                pl.col(data.key).is_null().alias(data.key)
+            )
+
+    with pytest.raises(pa.errors.SchemaErrors) as exc_info:
+        S.validate(df, lazy=True)
+
+    rendered = exc_info.value.failure_cases["failure_case"].to_list()
+    assert "[]" in rendered
+    assert any("null" in str(v) for v in rendered)
