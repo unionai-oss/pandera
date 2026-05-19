@@ -520,3 +520,74 @@ def test_check_output_dtype_with_empty_datetime():
     df = pd.DataFrame({"year_mon": pd.Series(dtype="datetime64[D]")})
     check_result = check(df)
     assert check_result.check_output.dtype == bool
+
+
+def test_custom_check_raise_schema_error():
+    """Test that raising an SchemaError in a custom check is processed properly"""
+    from pandera.errors import SchemaError
+    from pandera.extensions import register_check_method
+
+    @register_check_method(statistics=["no_columns", "custom_error_message"])
+    def correct_columns_number(
+        pandas_obj, *, no_columns, custom_error_message
+    ):
+        result = pandas_obj.shape[1] == no_columns
+        if not result:
+            raise SchemaError(
+                None,
+                None,
+                message=f"{custom_error_message}. Number of columns given: '{pandas_obj.shape[1]}'",
+            )
+        return result
+
+    @register_check_method(statistics=["no_rows", "custom_error_message"])
+    def correct_rows_number(pandas_obj, *, no_rows, custom_error_message):
+        result = pandas_obj.shape[0] == no_rows
+        if not result:
+            raise SchemaError(
+                None,
+                None,
+                message=f"{custom_error_message}. Number of rows given: '{pandas_obj.shape[0]}'",
+            )
+        return result
+
+    test_schema = DataFrameSchema(
+        columns={
+            "a": Column(
+                str,
+                checks=[
+                    Check.correct_rows_number(
+                        no_rows=2,
+                        custom_error_message="Dataframe should have two rows",
+                    )
+                ],
+            )
+        },
+        checks=[
+            Check.correct_columns_number(
+                no_columns=1,
+                custom_error_message="Dataframe should have one column",
+            )
+        ],
+    )
+
+    df = pd.DataFrame(
+        [
+            {"a": "1", "b": None, "c": 1},
+            {"a": "2", "b": None, "c": 2},
+            {"a": "3", "b": 2, "c": 3},
+        ]
+    )
+
+    try:
+        test_schema.validate(df, lazy=True)
+    except errors.SchemaErrors as err:
+        assert err.error_counts == {"DATAFRAME_CHECK": 2}
+        assert (
+            err.message["DATA"]["DATAFRAME_CHECK"][0]["error"]
+            == "Dataframe should have two rows. Number of rows given: '3'"
+        )
+        assert (
+            err.message["DATA"]["DATAFRAME_CHECK"][1]["error"]
+            == "Dataframe should have one column. Number of columns given: '3'"
+        )
