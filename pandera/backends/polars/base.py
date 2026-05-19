@@ -188,6 +188,24 @@ class PolarsSchemaBackend(BaseSchemaBackend):
                         {err.failure_cases.columns[0]: "failure_case"}
                     )
 
+                # Nested dtypes (List, Array, Struct, and arbitrary
+                # nestings thereof) cannot be cast directly to Utf8.
+                # JSON-encode via a singleton struct wrapper, then
+                # strip the wrapper so the failure-case report keeps
+                # the column's own shape.
+                failure_case_dtype = failure_cases_df.schema["failure_case"]
+                if isinstance(
+                    failure_case_dtype, (pl.List, pl.Array, pl.Struct)
+                ):
+                    failure_cases_df = failure_cases_df.with_columns(
+                        failure_case=(
+                            pl.struct(pl.col("failure_case").alias("v"))
+                            .struct.json_encode()
+                            .str.slice(5)
+                            .str.head(-1)
+                        )
+                    )
+
                 failure_cases_df = failure_cases_df.with_columns(
                     schema_context=pl.lit(err.schema.__class__.__name__),
                     column=pl.lit(err.schema.name),
