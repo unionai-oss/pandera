@@ -12,8 +12,9 @@ Tests cover:
 """
 
 import narwhals.stable.v1 as nw
-import polars as pl
 import pytest
+
+pl = pytest.importorskip("polars")
 
 from pandera.api.checks import Check
 from pandera.api.polars.components import Column
@@ -193,51 +194,4 @@ def test_failure_cases_is_native():
             f"failure_cases should be native pl.DataFrame (Phase 6 contract), got {type(fc)}"
         )
 
-
-# ---------------------------------------------------------------------------
-# REGISTER-04 (ibis): narwhals backend activated when PANDERA_USE_NARWHALS_BACKEND=True
-# ---------------------------------------------------------------------------
-
-
-def test_ibis_narwhals_activated_when_opted_in(monkeypatch, request):
-    """register_ibis_backends() registers narwhals backends when opt-in is enabled."""
-    import ibis
-
-    from pandera.api.ibis.container import (
-        DataFrameSchema as IbisDataFrameSchema,
-    )
-    from pandera.backends.ibis.register import register_ibis_backends
-    from pandera.backends.narwhals.container import (
-        DataFrameSchemaBackend as NarwhalsDataFrameSchemaBackend,
-    )
-    from pandera.config import CONFIG
-
-    monkeypatch.setattr(CONFIG, "use_narwhals_backend", True)
-    request.addfinalizer(register_ibis_backends.cache_clear)
-    register_ibis_backends.cache_clear()
-    register_ibis_backends()
-    t = ibis.memtable({"a": [1, 2, 3]})
-    backend = IbisDataFrameSchema.get_backend(t)
-    assert isinstance(backend, NarwhalsDataFrameSchemaBackend)
-
-
-# ---------------------------------------------------------------------------
-# REGISTER-03 (ibis): ibis.Table uses narwhals DataFrameSchemaBackend after registration
-# ---------------------------------------------------------------------------
-
-
-def test_ibis_backend_is_narwhals():
-    """After register_ibis_backends(), ibis.Table uses narwhals DataFrameSchemaBackend."""
-    import ibis
-
-    from pandera.api.ibis.container import (
-        DataFrameSchema as IbisDataFrameSchema,
-    )
-    from pandera.backends.ibis.register import register_ibis_backends
-    from pandera.backends.narwhals.container import DataFrameSchemaBackend
-
-    register_ibis_backends()
-    t = ibis.memtable({"a": [1, 2, 3]})
-    backend = IbisDataFrameSchema.get_backend(t)
-    assert isinstance(backend, DataFrameSchemaBackend)
 

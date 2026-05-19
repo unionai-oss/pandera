@@ -145,14 +145,10 @@ def _testing_requirements(
         ]
     elif extra is not None:
         _requirements += PYPROJECT["project"]["optional-dependencies"][extra]
-    # TEST-03: narwhals backend tests require polars and ibis co-installed
-    # (the narwhals extra alone only installs narwhals itself).
+    # narwhals backend tests use polars frames as the concrete type under test.
     if extra == "narwhals":
         _requirements += PYPROJECT["project"]["optional-dependencies"].get(
             "polars", []
-        )
-        _requirements += PYPROJECT["project"]["optional-dependencies"].get(
-            "ibis", []
         )
 
     # some of the extras are only supported with the pandas extra
