@@ -320,7 +320,7 @@ def test_polars_dataframe_check_n_failure_cases(lf):
             "Array[int, 2]",
             pl.Series([[1, 2], [3, 4]], dtype=pl.Array(pl.Int64, 2)),
             pl.Array(pl.Int64, 2),
-            "1",
+            "[1,2]",
         ),
         (
             "Struct",
@@ -338,7 +338,7 @@ def test_polars_dataframe_check_n_failure_cases(lf):
             "List[List[int]]",
             pl.Series([[[1, 2]], [[3, 4]]]),
             pl.List(pl.List(pl.Int64)),
-            "1",
+            "[[1,2]]",
         ),
         (
             "Struct[List]",
