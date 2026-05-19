@@ -288,6 +288,7 @@ class ColumnBackend(NarwhalsSchemaBackend):
                 # PySpark-native types (e.g. IntegerType()) with narwhals dtypes
                 # (e.g. Int32). Compare native dtype strings directly instead —
                 # this mirrors what the native PySpark backend does.
+                assert native_pyspark_schema is not None
                 pyspark_dtype = native_pyspark_schema[column].dataType
                 pyspark_dtype_str = str(pyspark_dtype)
                 passed = pyspark_dtype_str == str(schema.dtype)
@@ -321,9 +322,9 @@ class ColumnBackend(NarwhalsSchemaBackend):
             # engine dtypes when the Narwhals backend is active.
             try:
                 schema_nw_dtype = narwhals_engine.Engine.dtype(schema.dtype)
-                passed = schema_nw_dtype.check(col_pandera_dtype)
+                passed = bool(schema_nw_dtype.check(col_pandera_dtype))
             except TypeError:
-                passed = schema.dtype.check(col_pandera_dtype)
+                passed = bool(schema.dtype.check(col_pandera_dtype))
 
             results.append(
                 CoreCheckResult(

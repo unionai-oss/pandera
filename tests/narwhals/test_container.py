@@ -249,6 +249,7 @@ def test_ibis_backend_is_narwhals():
 
 def test_pyspark_narwhals_activated_when_opted_in(monkeypatch, request):
     """register_pyspark_backends() registers narwhals backends when opt-in is enabled."""
+    pytest.importorskip("pyspark")
     import pyspark.sql as pyspark_sql
 
     from pandera.api.pyspark.container import (
@@ -280,6 +281,7 @@ def test_pyspark_narwhals_activated_when_opted_in(monkeypatch, request):
 
 def test_pyspark_native_unchanged_when_flag_off(monkeypatch, request):
     """register_pyspark_backends() registers native backends when opt-in is disabled."""
+    pytest.importorskip("pyspark")
     import pyspark.sql as pyspark_sql
 
     from pandera.api.pyspark.container import (
@@ -309,6 +311,7 @@ def test_pyspark_native_unchanged_when_flag_off(monkeypatch, request):
 
 def test_pyspark_connect_narwhals_activated_when_opted_in(monkeypatch, request):
     """register_pyspark_backends() registers narwhals backends for pyspark_connect.DataFrame."""
+    pytest.importorskip("pyspark")
     import pyspark
     from packaging import version
 
@@ -347,6 +350,7 @@ def test_pyspark_connect_narwhals_activated_when_opted_in(monkeypatch, request):
 
 def test_pyspark_register_is_idempotent():
     """Calling register_pyspark_backends() twice does not raise or corrupt state."""
+    pytest.importorskip("pyspark")
     from pandera.backends.pyspark.register import register_pyspark_backends
 
     register_pyspark_backends()

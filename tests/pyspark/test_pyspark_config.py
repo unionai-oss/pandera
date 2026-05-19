@@ -5,7 +5,12 @@ from dataclasses import asdict
 import pyspark.sql.types as T
 import pytest
 
-from pandera.config import CONFIG, ValidationDepth, config_context, get_config_context
+from pandera.config import (
+    CONFIG,
+    ValidationDepth,
+    config_context,
+    get_config_context,
+)
 from pandera.pyspark import (
     Check,
     Column,
