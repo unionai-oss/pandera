@@ -209,6 +209,11 @@ except pa.errors.SchemaError as exc:
     print(exc)
 ```
 
+`required=False` means that a column may be absent from the input
+DataFrame. It does not add the column during validation. To add missing
+columns, use {ref}`add_missing_columns=True <adding-missing-columns>`
+with required columns that specify a `default` value or `nullable=True`.
+
 (column-validation-1)=
 
 ### Stand-alone Column Validation
@@ -508,6 +513,9 @@ When you call `schema.validate(data)`, the schema will add any missing columns
 to the dataframe, defaulting to the `default` value if supplied at the column-level,
 or to `NaN` if the column is nullable.
 
+Columns declared with `required=False` are allowed to be absent from the
+input data and are not added to the validated output.
+
 ```{code-cell} python
 import pandas as pd
 import pandera.pandas as pa
@@ -517,6 +525,7 @@ schema = pa.DataFrameSchema(
         "a": pa.Column(int),
         "b": pa.Column(int, default=1),
         "c": pa.Column(float, nullable=True),
+        "d": pa.Column(str, required=False),
     },
     add_missing_columns=True,
     coerce=True,

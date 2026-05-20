@@ -427,6 +427,12 @@ df = pd.DataFrame({"a": ["2001", "2002", "2003"]})
 Schema.validate(df)
 ```
 
+`Optional` means that a field may be absent from the input DataFrame. It
+does not add the field during validation. To add missing fields, use
+{ref}`add_missing_columns=True <adding-missing-columns>` in the model
+`Config` with required fields that specify a `default` value or
+`nullable=True`.
+
 ## Schema Inheritance
 
 You can also use inheritance to build schemas on top of a base schema.
