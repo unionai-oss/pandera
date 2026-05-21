@@ -331,3 +331,39 @@ def test_custom_error_message(custom_check_teardown):
 
     check = Check.custom_check(error="custom error message")
     assert check.error == "custom error message"
+
+
+def test_register_check_rejects_extra_positional_args(
+    custom_check_teardown: None,
+) -> None:
+    """Regression test for #480.
+
+    Custom checks registered with no statistics (or fewer statistics than the
+    number of positional args supplied at call-time) used to silently drop the
+    extras, producing a check that looked configured but ignored its inputs.
+    The fix raises TypeError instead, matching standard Python call semantics.
+    """
+
+    @extensions.register_check_method()
+    def eq_1_no_stats(pandas_obj):
+        return pandas_obj == 1
+
+    # Extra positional args on a no-statistic check must raise.
+    with pytest.raises(TypeError, match="positional argument"):
+        Check.eq_1_no_stats("foo", "bar")
+
+    @extensions.register_check_method(statistics=["val"])
+    def eq_val_one_stat(pandas_obj, *, val):
+        return pandas_obj == val
+
+    # One declared statistic — passing two positional args must raise.
+    with pytest.raises(TypeError, match="positional argument"):
+        Check.eq_val_one_stat(1, 2)
+
+    # Passing a single positional value still works.
+    check = Check.eq_val_one_stat(1)
+    assert check(pd.Series([1, 1, 1])).check_passed
+
+    # Mixing positional + duplicate keyword for the same statistic must raise.
+    with pytest.raises(TypeError, match="multiple values"):
+        Check.eq_val_one_stat(1, val=2)
