@@ -1002,6 +1002,45 @@ def test_check_types_union_args() -> None:
         validate_union_wrong_outputs(pd.DataFrame({"a": [0, 0]}))  # type: ignore [arg-type]
 
 
+def test_check_types_union_with_strict_schema() -> None:
+    """
+    Test that the @check_types decorator falls through to the next member of
+    a Union when an earlier ``strict=True`` schema raises ``SchemaErrors``
+    (plural) due to extra columns. See issue #2325.
+    """
+
+    class StrictModel(DataFrameModel):
+        a: Series[int]
+
+        class Config:
+            strict = True
+
+    class ExtendedModel(DataFrameModel):
+        a: Series[int]
+        b: Series[int]
+
+        class Config:
+            strict = True
+
+    @check_types
+    def process(
+        df: typing.Union[DataFrame[StrictModel], DataFrame[ExtendedModel]],
+    ) -> typing.Union[DataFrame[StrictModel], DataFrame[ExtendedModel]]:
+        return df
+
+    # Matches ExtendedModel only; StrictModel raises SchemaErrors (plural)
+    # because of the extra "b" column. The decorator must catch that and
+    # try the next Union member.
+    process(pd.DataFrame({"a": [0, 1], "b": [2, 3]}))  # type: ignore [arg-type]
+
+    # Matches StrictModel only.
+    process(pd.DataFrame({"a": [0, 1]}))  # type: ignore [arg-type]
+
+    # Matches neither: collected errors should be raised as SchemaErrors.
+    with pytest.raises(errors.SchemaErrors):
+        process(pd.DataFrame({"a": [0, 1], "c": [4, 5]}))  # type: ignore [arg-type]
+
+
 def test_check_types_tuple_args() -> None:
     """Test that the @check_types decorator works with
     tuple[pandera.typing.DataFrame[S1], pandera.typing.DataFrame[S2]] type inputs/outputs
