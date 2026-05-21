@@ -327,6 +327,44 @@ PanderaSchema.get_metadata()
 This feature is available for `pyspark.sql` and `pandas` both.
 :::
 
+## Embedding `Field` metadata in `Annotated`
+
+You can also embed a {func}`~pandera.api.dataframe.model_components.Field`
+directly inside {data}`typing.Annotated` to attach column-level metadata
+— such as `description`, `title`, checks (`gt`, `ge`, `le`, `isin`, …),
+or custom `metadata` — without providing an explicit `= pa.Field(...)`
+assignment. This works for plain `pyspark.sql.types` as well as
+parameterized ones:
+
+```{code-cell} python
+from typing import Annotated
+
+import pyspark.sql.types as T
+
+
+class ProductsModel(DataFrameModel):
+    product_id: Annotated[T.IntegerType, pa.Field(title="Product ID")]
+    product_name: Annotated[
+        T.StringType, pa.Field(description="Product name")
+    ]
+    price: Annotated[T.DoubleType, pa.Field(gt=0.0, description="Unit price")]
+    # parameterized dtypes can be combined with FieldInfo
+    list_price: Annotated[
+        T.DecimalType, 20, 5, pa.Field(description="Listed price")
+    ]
+
+
+schema = ProductsModel.to_schema()
+assert schema.columns["product_name"].description == "Product name"
+assert schema.columns["price"].checks
+```
+
+:::{note}
+The `unique` argument is currently not supported in `Field(...)` for
+PySpark schemas (see [`unique` support](#unique-support) below). Use
+the model's `Config.unique` instead.
+:::
+
 ## `unique` support
 
 *new in 0.17.3*

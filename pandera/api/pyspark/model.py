@@ -273,7 +273,7 @@ class DataFrameModel(_DataFrameModel[PySparkFrame, DataFrameSchema]):
 
             dtype = None if dtype is Any else dtype
 
-            if annotation.origin is None:
+            if annotation.origin is None or annotation.is_annotated_type:
                 column_kwargs = (
                     field.column_properties(
                         dtype,
