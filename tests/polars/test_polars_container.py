@@ -321,6 +321,20 @@ def test_missing_required_column_when_lazy_is_true():
     )
 
 
+def test_missing_required_column_with_coerce_raises_schema_error():
+    """Test missing required columns with coerce=True raise SchemaError."""
+    schema = DataFrameSchema({"missing_column": Column(int, coerce=True)})
+    df = pl.DataFrame()
+
+    with pytest.raises(pa.errors.SchemaError) as exc:
+        schema.validate(df)
+
+    assert (
+        exc.value.reason_code
+        == pa.errors.SchemaErrorReason.COLUMN_NOT_IN_DATAFRAME
+    )
+
+
 def test_unique_column_names():
     """Test unique column names."""
     with pytest.warns(
@@ -604,6 +618,21 @@ def test_regex_coerce(
         column.coerce = True
 
     ldf_for_regex_match.pipe(ldf_schema_with_regex_name.validate).collect()
+
+
+@pytest.mark.xfail(
+    condition=CONFIG.use_narwhals_backend,
+    reason="Narwhals backend does not support coerce or regex column selection",
+    strict=True,
+)
+def test_required_regex_coerce():
+    """Test required regex columns are coerced by selector."""
+    schema = DataFrameSchema({r"^column_[0-9]+$": Column(int, coerce=True)})
+    ldf = pl.DataFrame({"column_1": ["1"]}).lazy()
+
+    result = ldf.pipe(schema.validate).collect()
+
+    assert result.schema["column_1"] == pl.Int64
 
 
 def test_ordered(ldf_basic, ldf_schema_basic):
