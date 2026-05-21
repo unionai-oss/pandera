@@ -1,7 +1,8 @@
 """Check backend for Narwhals."""
 
-from functools import partial
-from typing import Optional
+import inspect
+from functools import lru_cache, partial
+from typing import Any, Optional
 
 import narwhals.stable.v1 as nw
 
@@ -19,6 +20,99 @@ try:
 except ImportError:  # pragma: no cover — ibis is optional
     _HAS_IBIS = False
     ir = None  # type: ignore[assignment]
+
+
+def _unwrap_callable(fn: Any) -> Any:
+    """Unwrap ``functools.partial`` chains to reach the underlying callable.
+
+    The narwhals check backend wraps ``check._check_fn`` with
+    ``functools.partial(..., **check_kwargs)`` to bind check kwargs. Signature
+    introspection on the partial reports the *post-binding* signature, which is
+    what we want for arity detection, but we also unwrap to support callers
+    that compose multiple partials.
+    """
+    while isinstance(fn, partial):
+        fn = fn.func
+    return fn
+
+
+@lru_cache(maxsize=1024)
+def _required_positional_count(fn: Any) -> int | None:
+    """Return the number of required positional parameters for ``fn``.
+
+    Returns ``None`` when introspection is not possible (e.g. C-extension
+    callables or objects whose ``__call__`` cannot be inspected). Callers
+    should treat ``None`` as "use the legacy 2-arg narwhals convention".
+
+    A parameter counts as "required positional" only when it has no default
+    *and* its kind is ``POSITIONAL_ONLY`` or ``POSITIONAL_OR_KEYWORD``.
+    ``*args`` and ``**kwargs`` are excluded so functions like the
+    ``BaseCheckInfo._adapter`` (``def _adapter(arg, **kwargs)``) report
+    exactly one required positional.
+    """
+    try:
+        sig = inspect.signature(fn)
+    except (TypeError, ValueError):
+        return None
+    required = 0
+    for param in sig.parameters.values():
+        if param.kind not in (
+            inspect.Parameter.POSITIONAL_ONLY,
+            inspect.Parameter.POSITIONAL_OR_KEYWORD,
+        ):
+            continue
+        if param.default is inspect.Parameter.empty:
+            required += 1
+    return required
+
+
+def _is_polars_native(frame: Any) -> bool:
+    """Cheap polars detection without importing polars at module load.
+
+    Avoids a hard polars import: the narwhals backend is also reachable on
+    ibis-only installs where polars is not present.
+    """
+    mod = getattr(type(frame), "__module__", "") or ""
+    return mod.startswith("polars")
+
+
+def _is_ibis_native(frame: Any) -> bool:
+    """Cheap ibis detection that mirrors ``_is_polars_native``."""
+    if not _HAS_IBIS:
+        return False
+    return isinstance(frame, ibis.Table)
+
+
+def _wrap_native_frame_with_key(native_frame: Any, key: str | None) -> Any:
+    """Wrap ``(native_frame, key)`` into a polars/ibis-style data container.
+
+    Returns a ``PolarsData`` / ``IbisData`` matching the native frame type so
+    that polars-style or ibis-style user check functions (``def fn(data:
+    PolarsData)`` / ``def fn(data: IbisData)``) receive the same object they
+    would under the native polars/ibis backends.
+
+    When the frame type is unrecognised, returns ``None`` so the caller can
+    fall back to the legacy two-positional narwhals dispatch.
+
+    Polars is *not* imported at the module level here — narwhals must
+    continue to work on ibis-only installs, so we duck-type via
+    ``type(native_frame).__name__``.
+    """
+    if _is_polars_native(native_frame):
+        from pandera.api.polars.types import PolarsData
+
+        if type(native_frame).__name__ == "LazyFrame":
+            lf = native_frame
+        else:
+            lf = native_frame.lazy()
+        return PolarsData(lazyframe=lf, key=key or "*")
+
+    if _is_ibis_native(native_frame):
+        from pandera.api.ibis.types import IbisData
+
+        return IbisData(table=native_frame, key=key)
+
+    return None
 
 
 class NarwhalsCheckBackend(BaseCheckBackend):
@@ -72,9 +166,38 @@ class NarwhalsCheckBackend(BaseCheckBackend):
                 )
 
         elif self.check.native:
-            # native=True: unwrap to backend-native type, call (native_frame, key)
+            # native=True: unwrap to backend-native type and dispatch.
+            #
+            # Two calling conventions are supported, discriminated by the
+            # user check function's required-positional-arg count:
+            #
+            #   * 2+ positional → narwhals-native style:
+            #       check_fn(native_frame, key)
+            #     This is the documented narwhals backend convention used
+            #     throughout tests/narwhals/test_checks.py.
+            #
+            #   * 0-1 positional → polars/ibis style:
+            #       check_fn(PolarsData(lazyframe=…, key=…)) for polars
+            #       check_fn(IbisData(table=…, key=…))      for ibis
+            #     This matches what PolarsCheckBackend / IbisCheckBackend do
+            #     natively, so polars/ibis-style user functions and
+            #     ``@pa.check``-decorated model methods (whose ``_adapter``
+            #     accepts a single positional arg) work identically under
+            #     the narwhals backend.
             native_frame = nw.to_native(frame)
-            out = self.check_fn(native_frame, key)
+            arity = _required_positional_count(
+                _unwrap_callable(self.check._check_fn)
+            )
+            if arity is not None and arity <= 1:
+                data = _wrap_native_frame_with_key(native_frame, key)
+                if data is not None:
+                    out = self.check_fn(data)
+                else:
+                    # Unknown frame type — preserve legacy 2-arg behaviour
+                    # so error messages remain informative.
+                    out = self.check_fn(native_frame, key)
+            else:
+                out = self.check_fn(native_frame, key)
             return self._normalize_native_output(out, check_obj)
 
         else:
@@ -94,8 +217,13 @@ class NarwhalsCheckBackend(BaseCheckBackend):
 
         - **ibis**: ``ir.BooleanScalar`` (aggregate bool), ``ir.BooleanColumn``
           (row-level bool), or ``ibis.Table``.
-        - **polars**: ``pl.Series`` of booleans or ``pl.DataFrame`` containing
-          a ``CHECK_OUTPUT_KEY`` boolean column.
+        - **polars**: ``pl.Series`` of booleans, ``pl.DataFrame``, or
+          ``pl.LazyFrame``. Single-column boolean frames are renamed to
+          ``CHECK_OUTPUT_KEY``; multi-column boolean frames are AND-reduced
+          to a single ``CHECK_OUTPUT_KEY`` column (matching
+          :class:`PolarsCheckBackend` behaviour). If the frame already
+          contains a ``CHECK_OUTPUT_KEY`` column, that column is used
+          directly.
         - Any Python ``bool`` / scalar — passed through unchanged so
           ``postprocess_bool_output`` can handle it.
 
@@ -115,27 +243,55 @@ class NarwhalsCheckBackend(BaseCheckBackend):
                 return nw.from_native(out, eager_or_interchange_only=False)
 
         # Handle polars native return types from native=True checks.
-        # Both pl.Series and pl.DataFrame are attached to the original frame
-        # so that postprocess_lazyframe_output receives a WIDE table
-        # (original columns + CHECK_OUTPUT_KEY) — the same shape produced by
-        # the ibis BooleanColumn path.
-        # - pl.Series of booleans: aliased to CHECK_OUTPUT_KEY and added via
-        #   with_columns.
-        # - pl.DataFrame with CHECK_OUTPUT_KEY column: the boolean column is
-        #   extracted and then added to the original frame in the same way.
-        # Detection uses type.__module__ — avoids a hard polars import
-        # (polars is optional).
+        # Detection uses ``type(out).__module__`` and ``type(out).__name__``
+        # so polars (an optional dependency) does not need to be imported
+        # here — that would break ibis-only installs (see
+        # ``test_checks_has_no_polars_import``). All reductions / renames go
+        # through narwhals so polars-specific expression APIs stay out of
+        # this file.
         out_mod = getattr(type(out), "__module__", "") or ""
         if out_mod.startswith("polars"):
+            out_type_name = type(out).__name__
+
+            # Collect ``pl.LazyFrame`` to ``pl.DataFrame`` so we can attach
+            # an eager boolean column to the original frame. Polars-style
+            # user checks routinely return a ``pl.LazyFrame``.
+            if out_type_name == "LazyFrame":
+                out = out.collect()
+                out_type_name = type(out).__name__
+
             native = nw.to_native(check_obj.frame)
             # native may be a LazyFrame; collect to attach an eager column.
             if hasattr(native, "collect"):
                 native = native.collect()
-            if type(out).__name__ == "Series":
+
+            if out_type_name == "Series":
                 bool_col = out.alias(CHECK_OUTPUT_KEY)
-            else:
-                # DataFrame must contain a CHECK_OUTPUT_KEY column.
-                bool_col = out[CHECK_OUTPUT_KEY].alias(CHECK_OUTPUT_KEY)
+            elif out_type_name == "DataFrame":
+                out_cols = list(out.columns)
+                if CHECK_OUTPUT_KEY in out_cols:
+                    bool_col = out[CHECK_OUTPUT_KEY].alias(CHECK_OUTPUT_KEY)
+                elif len(out_cols) == 1:
+                    # Single-column boolean output — rename to the canonical
+                    # check-output key (matches ``PolarsCheckBackend.apply``).
+                    bool_col = out.to_series(0).alias(CHECK_OUTPUT_KEY)
+                else:
+                    # Multi-column boolean output — AND-reduce to a single
+                    # check-output column (matches ``PolarsCheckBackend.apply``)
+                    # using narwhals operators so this file stays
+                    # polars-agnostic.
+                    nw_out = nw.from_native(out, eager_only=True)
+                    reduced_native = nw.to_native(
+                        nw_out.select(
+                            nw.all_horizontal(
+                                [nw.col(c) for c in out_cols]
+                            ).alias(CHECK_OUTPUT_KEY)
+                        )
+                    )
+                    bool_col = reduced_native.to_series(0)
+            else:  # pragma: no cover — unexpected polars type
+                return out
+
             return nw.from_native(
                 native.with_columns(bool_col), eager_only=True
             )
@@ -246,9 +402,18 @@ class NarwhalsCheckBackend(BaseCheckBackend):
 
     def __call__(
         self,
-        check_obj: nw.LazyFrame,
+        check_obj,
         key: str | None = None,
     ) -> CheckResult:
+        # Accept either a Narwhals frame (the usual path from
+        # ``schema.validate``) or a native frame (e.g. ``pl.LazyFrame`` /
+        # ``ibis.Table``) so that direct check invocations
+        # — ``pa.Check(fn)(native_frame, column=…)`` — work identically to
+        # the native polars/ibis backends.
+        if not isinstance(check_obj, (nw.LazyFrame, nw.DataFrame)):
+            check_obj = nw.from_native(
+                check_obj, eager_or_interchange_only=False
+            )
         check_obj = self.preprocess(check_obj, key)
         narwhals_data = NarwhalsData(check_obj, key or "*")
         check_output = self.apply(narwhals_data)

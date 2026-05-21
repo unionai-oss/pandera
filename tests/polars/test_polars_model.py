@@ -213,11 +213,6 @@ def test_model_with_fields(ldf_model_with_fields, ldf_basic):
         invalid_df.pipe(ldf_model_with_fields.validate).collect()
 
 
-@pytest.mark.xfail(
-    condition=CONFIG.use_narwhals_backend,
-    reason="Polars-style custom check functions incompatible with Narwhals backend",
-    strict=True,
-)
 def test_model_with_custom_column_checks(
     ldf_model_with_custom_column_checks,
     ldf_basic,

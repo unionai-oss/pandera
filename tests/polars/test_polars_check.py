@@ -220,11 +220,6 @@ def test_polars_element_wise_dataframe_different_dtypes(column_lf):
         assert exc.failure_cases["failure_case"].to_list() == ["1", "2", "c"]
 
 
-@pytest.mark.xfail(
-    condition=CONFIG.use_narwhals_backend,
-    reason="Polars-style custom check functions incompatible with Narwhals backend",
-    strict=True,
-)
 def test_polars_custom_check():
     """Test that custom checks with more complex expressions are supported."""
 
@@ -262,11 +257,6 @@ def test_polars_custom_check():
         schema.validate(invalid_lf)
 
 
-@pytest.mark.xfail(
-    condition=CONFIG.use_narwhals_backend,
-    reason="Custom check signature incompatible with Narwhals backend",
-    strict=True,
-)
 def test_polars_column_check_n_failure_cases(column_lf):
     n_failure_cases = 2
     check = pa.Check(
@@ -281,11 +271,6 @@ def test_polars_column_check_n_failure_cases(column_lf):
         assert exc.failure_cases.shape[0] == n_failure_cases
 
 
-@pytest.mark.xfail(
-    condition=CONFIG.use_narwhals_backend,
-    reason="Custom check signature incompatible with Narwhals backend",
-    strict=True,
-)
 def test_polars_dataframe_check_n_failure_cases(lf):
     n_failure_cases = 2
     check = pa.Check(

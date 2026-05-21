@@ -347,11 +347,6 @@ def test_column_values_are_unique(ldf_basic, ldf_schema_basic):
         modified_data.pipe(ldf_schema_basic.validate).collect()
 
 
-@pytest.mark.xfail(
-    condition=CONFIG.use_narwhals_backend,
-    reason="Polars-style custom check functions incompatible with Narwhals backend",
-    strict=True,
-)
 def test_dataframe_level_checks():
     def custom_check(data: PolarsData):
         return data.lazyframe.select(pl.col("*").eq(0))
