@@ -14,6 +14,7 @@ dependencies:
   - typing_inspect >= 0.6.0
   - frictionless <= 4.40.8  # v5.* introduces breaking changes
   - pyarrow >= 13 # https://github.com/apache/arrow/pull/35113
+  - pyarrow-hotfix
   - pydantic
 
   # hypotheses extra
@@ -29,12 +30,18 @@ dependencies:
   # polars extra
   - polars >= 0.20.0
 
+  # xarray extra
+  - xarray >= 2024.10.0
+
+  # narwhals extra
+  - narwhals >= 1.26.0
+
   # modin extra
   - modin
   - protobuf
 
   # geopandas extra
-  - geopandas < 1.1.0
+  - geopandas
   - shapely
 
   # fastapi extra
@@ -81,7 +88,7 @@ dependencies:
   - asv >= 0.5.1
 
   # optional
-  - pre_commit
+  - prek
 
   - pip:
       # dask extra

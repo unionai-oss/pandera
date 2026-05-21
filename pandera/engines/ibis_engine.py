@@ -2,6 +2,7 @@
 
 import dataclasses
 import datetime
+import decimal
 import inspect
 import warnings
 from collections.abc import Iterable
@@ -57,7 +58,7 @@ class DataType(dtypes.DataType):
         data_container: ibis.Table | None = None,
     ) -> Union[bool, Iterable[bool]]:
         try:
-            return self.type == pandera_dtype.type
+            return self.type == Engine.dtype(pandera_dtype).type
         except TypeError:
             return False
 
@@ -297,6 +298,52 @@ class Float64(DataType, dtypes.Float64):
 
 
 ###############################################################################
+# decimal
+###############################################################################
+
+
+@Engine.register_dtype(
+    equivalents=[
+        "decimal",
+        decimal.Decimal,
+        dtypes.Decimal,
+        dtypes.Decimal(),
+        dt.Decimal,
+        dt.decimal,
+        dt.Decimal(nullable=False),
+    ]
+)
+@immutable(init=True)
+class Decimal(DataType, dtypes.Decimal):
+    """Semantic representation of a :class:`dt.Decimal`."""
+
+    type: type[dt.Decimal]
+
+    # Ibis Decimal doesn't have a rounding attribute.
+    rounding = None
+
+    def __init__(
+        self, precision: int = dtypes.DEFAULT_PYTHON_PREC, scale: int = 0
+    ):
+        object.__setattr__(
+            self, "type", dt.Decimal(precision=precision, scale=scale)
+        )
+
+    @classmethod
+    def from_parametrized_dtype(cls, ibis_dtype: dt.Decimal):
+        """Convert a :class:`dt.Decimal` to a Pandera
+        :class:`~pandera.engines.ibis_engine.Decimal`."""
+        # Ibis precision and scale may be nullable; Pandera imposes a default.
+        precision = (
+            ibis_dtype.precision
+            if ibis_dtype.precision is not None
+            else dtypes.DEFAULT_PYTHON_PREC
+        )
+        scale = ibis_dtype.scale if ibis_dtype.scale is not None else 0
+        return cls(precision=precision, scale=scale)
+
+
+###############################################################################
 # nominal
 ###############################################################################
 
@@ -404,10 +451,12 @@ class DateTime(DataType, dtypes.DateTime):
         dt.Time,
         dt.time,
         dt.Time(nullable=False),
+        dtypes.Time,
+        dtypes.Time(),
     ]
 )
 @immutable
-class Time(DataType):
+class Time(DataType, dtypes.Time):
     """Semantic representation of a :class:`dt.Time`."""
 
     type = dt.time
@@ -424,8 +473,8 @@ class Time(DataType):
     ]
 )
 @immutable(init=True)
-class Timedelta(DataType, dtypes.DateTime):
-    """Semantic representation of a :class:`dt.Timestamp`."""
+class Timedelta(DataType, dtypes.Timedelta):
+    """Semantic representation of a :class:`dt.Interval`."""
 
     type: type[dt.Interval]
 
@@ -437,3 +486,38 @@ class Timedelta(DataType, dtypes.DateTime):
         """Convert a :class:`dt.Interval` to a Pandera
         :class:`~pandera.engines.ibis_engine.Timedelta`."""
         return cls(unit=ibis_dtype.unit)
+
+
+###############################################################################
+# nested
+###############################################################################
+
+
+@Engine.register_dtype(
+    equivalents=[
+        dict,
+        dt.Map,
+    ]
+)
+@immutable(init=True)
+class Map(DataType):
+    """Semantic representation of a :class:`dt.Map`."""
+
+    type: dt.Map
+
+    def __init__(
+        self,
+        key_type: dt.DataType | None = None,
+        value_type: dt.DataType | None = None,
+    ):
+        if key_type is not None and value_type is not None:
+            object.__setattr__(self, "type", dt.Map(key_type, value_type))
+
+    @classmethod
+    def from_parametrized_dtype(cls, ibis_dtype: dt.Map):
+        """Convert a :class:`dt.Map` to a Pandera
+        :class:`~pandera.engines.ibis_engine.Map`."""
+        return cls(
+            key_type=ibis_dtype.key_type,
+            value_type=ibis_dtype.value_type,
+        )

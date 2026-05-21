@@ -6,6 +6,7 @@ import copy
 from collections.abc import Callable
 from datetime import datetime, timedelta
 from functools import partial
+from types import SimpleNamespace
 from typing import Any, Union
 
 import numpy as np
@@ -13,8 +14,11 @@ import pandas as pd
 import pytest
 
 from pandera.api.pandas.array import ArraySchema
+from pandera.backends.pandas.array import ArraySchemaBackend
 from pandera.dtypes import UniqueSettings
 from pandera.engines.pandas_engine import Engine
+from pandera.engines.utils import pandas_version
+from pandera.errors import SchemaErrorReason
 from pandera.pandas import (
     Category,
     Check,
@@ -30,6 +34,8 @@ from pandera.pandas import (
     String,
     errors,
 )
+
+PANDAS_3_0_0_PLUS = pandas_version().release >= (3, 0, 0)
 
 
 def test_dataframe_schema() -> None:
@@ -117,11 +123,12 @@ def test_dataframe_single_element_coerce() -> None:
     """Test that coercing a single element dataframe works correctly."""
     schema = DataFrameSchema({"x": Column(int, coerce=True)})
     assert isinstance(schema(pd.DataFrame({"x": [1]})), pd.DataFrame)
-    with pytest.raises(
-        errors.SchemaError,
-        match="Error while coercing 'x' to type int64",
-    ):
+    with pytest.raises(errors.SchemaErrors) as exc_info:
         schema(pd.DataFrame({"x": [None]}))
+    assert any(
+        "Error while coercing 'x' to type int64" in str(e.args[0])
+        for e in exc_info.value.schema_errors
+    )
 
 
 def test_dataframe_empty_coerce() -> None:
@@ -155,7 +162,7 @@ def test_dataframe_schema_strict() -> None:
     df = pd.DataFrame({"a": [1, 2, 3], "b": [1, 2, 3], "c": [1, 2, 3]})
 
     assert isinstance(schema.validate(df.loc[:, ["a", "b"]]), pd.DataFrame)
-    with pytest.raises(errors.SchemaError):
+    with pytest.raises(errors.SchemaErrors):
         schema.validate(df)
 
     schema.strict = "filter"
@@ -177,6 +184,32 @@ def test_dataframe_schema_strict() -> None:
         schema.validate(df.loc[:, ["a", "c"]])
 
 
+def test_dataframe_schema_strict_and_ordered_raises_both_errors() -> None:
+    """Regression test for #2213: strict=True and ordered=True raise both
+    COLUMN_NOT_ORDERED and COLUMN_NOT_IN_SCHEMA when dataframe has both."""
+    schema = DataFrameSchema(
+        columns={
+            "id": Column(int, nullable=False),
+            "name": Column(str, nullable=True),
+        },
+        strict=True,
+        ordered=True,
+    )
+    # Wrong order (name before id) and extra column
+    df = pd.DataFrame(
+        {
+            "name": ["Alice", "Bob", "Charlie"],
+            "id": [1, 2, 3],
+            "extra_column": ["extra1", "extra2", "extra3"],
+        }
+    )
+    with pytest.raises(errors.SchemaErrors) as exc_info:
+        schema.validate(df)
+    reason_codes = {e.reason_code for e in exc_info.value.schema_errors}
+    assert errors.SchemaErrorReason.COLUMN_NOT_ORDERED in reason_codes
+    assert errors.SchemaErrorReason.COLUMN_NOT_IN_SCHEMA in reason_codes
+
+
 def test_dataframe_schema_strict_regex() -> None:
     """Test that strict dataframe schema checks for regex matches."""
     schema = DataFrameSchema(
@@ -187,9 +220,9 @@ def test_dataframe_schema_strict_regex() -> None:
 
     assert isinstance(schema.validate(df), pd.DataFrame)
 
-    # Raise a SchemaError if schema is strict and a regex pattern yields
+    # Raise SchemaErrors if schema is strict and a regex pattern yields
     # no matches
-    with pytest.raises(errors.SchemaError):
+    with pytest.raises(errors.SchemaErrors):
         schema.validate(
             pd.DataFrame({f"bar_{i}": range(10) for i in range(5)})
         )
@@ -445,7 +478,7 @@ def test_add_missing_columns_order():
         data=[[1, 2, 3]], columns=["a", "missing", "c"]
     )
     with pytest.raises(
-        errors.SchemaError,
+        errors.SchemaErrors,
         match="column 'missing' not in DataFrameSchema",
     ):
         schema.validate(frame_unknown_col)
@@ -600,6 +633,138 @@ def test_series_schema() -> None:
         match="Error while coercing",
     ):
         SeriesSchema(float, coerce=True).validate(pd.Series(list("abcdefg")))
+
+
+class _FakePysparkSeries(pd.Series):
+    __module__ = "pyspark.pandas.series"
+
+    @property
+    def _constructor(self):
+        return _FakePysparkSeries
+
+
+class _DummyDtype:
+    def __init__(self, coerced):
+        self._coerced = coerced
+
+    def try_coerce(self, _check_obj):
+        return self._coerced
+
+    def __str__(self) -> str:
+        return "float64"
+
+
+class _BrokenMask:
+    def __and__(self, _other):
+        return self
+
+    def any(self):
+        raise RuntimeError("boom")
+
+
+class _CoercedWithBrokenMask:
+    def isna(self):
+        return _BrokenMask()
+
+
+def test_array_backend_coerce_detects_introduced_nulls() -> None:
+    """Raised error should include introduced-null failure cases."""
+
+    backend = ArraySchemaBackend()
+    check_obj = _FakePysparkSeries(["1.0", "bad"], name="distance")
+    coerced = _FakePysparkSeries([1.0, pd.NA], name="distance")
+    schema = SimpleNamespace(
+        dtype=_DummyDtype(coerced), coerce=True, name="distance"
+    )
+
+    with pytest.raises(errors.SchemaError) as exc_info:
+        backend.coerce_dtype(check_obj, schema=schema)
+
+    err = exc_info.value
+    assert err.reason_code == SchemaErrorReason.DATATYPE_COERCION
+    assert "coercion introduced null values" in str(err)
+    assert set(err.failure_cases["failure_case"].astype(str).tolist()) == {
+        "bad"
+    }
+
+
+def test_array_backend_coerce_returns_value_without_new_nulls() -> None:
+    """Successful coercion should return the coerced object."""
+
+    backend = ArraySchemaBackend()
+    check_obj = _FakePysparkSeries(["1.0", "2.0"], name="distance")
+    coerced = _FakePysparkSeries([1.0, 2.0], name="distance")
+    schema = SimpleNamespace(
+        dtype=_DummyDtype(coerced), coerce=True, name="distance"
+    )
+
+    result = backend.coerce_dtype(check_obj, schema=schema)
+
+    assert result is coerced
+
+
+def test_array_backend_coerce_wraps_inner_exception(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Unexpected errors are wrapped in SchemaError with failure cases."""
+
+    backend = ArraySchemaBackend()
+    check_obj = _FakePysparkSeries(["a"], name="distance")
+    schema = SimpleNamespace(
+        dtype=_DummyDtype(_CoercedWithBrokenMask()),
+        coerce=True,
+        name="distance",
+    )
+    failure_cases = pd.DataFrame(
+        {
+            "index": [0],
+            "failure_case": ["a"],
+            "column": ["distance"],
+        }
+    )
+
+    monkeypatch.setattr(
+        "pandera.engines.utils.numpy_pandas_coerce_failure_cases",
+        lambda *_args, **_kwargs: failure_cases,
+    )
+
+    with pytest.raises(errors.SchemaError) as exc_info:
+        backend.coerce_dtype(check_obj, schema=schema)
+
+    err = exc_info.value
+    assert err.reason_code == SchemaErrorReason.DATATYPE_COERCION
+    assert "boom" in str(err)
+    assert err.failure_cases is failure_cases
+
+
+def test_array_backend_coerce_handles_failure_case_extraction_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Failure-case extraction errors should not mask SchemaError."""
+
+    backend = ArraySchemaBackend()
+    check_obj = _FakePysparkSeries(["a"], name="distance")
+    schema = SimpleNamespace(
+        dtype=_DummyDtype(_CoercedWithBrokenMask()),
+        coerce=True,
+        name="distance",
+    )
+
+    def _raise(*_args, **_kwargs):
+        raise ValueError("cannot extract")
+
+    monkeypatch.setattr(
+        "pandera.engines.utils.numpy_pandas_coerce_failure_cases",
+        _raise,
+    )
+
+    with pytest.raises(errors.SchemaError) as exc_info:
+        backend.coerce_dtype(check_obj, schema=schema)
+
+    err = exc_info.value
+    assert err.reason_code == SchemaErrorReason.DATATYPE_COERCION
+    assert "boom" in str(err)
+    assert err.failure_cases is None
 
 
 def test_series_schema_checks() -> None:
@@ -783,12 +948,13 @@ def test_coerce_dtype_in_dataframe():
     # make sure that correct error is raised when null values are present
     # in a float column that's coerced to an int
     schema = DataFrameSchema({"column4": Column(int, coerce=True)})
-    with pytest.raises(
-        errors.SchemaError,
-        match=r"^Error while coercing .+ to type u{0,1}int[0-9]{1,2}: "
-        r"Could not coerce .+ data_container into type",
-    ):
+    with pytest.raises(errors.SchemaErrors) as exc_info:
         schema.validate(df)
+    assert len(exc_info.value.schema_errors) == 1
+    assert "Error while coercing" in str(
+        exc_info.value.schema_errors[0].args[0]
+    )
+    assert "Could not coerce" in str(exc_info.value.schema_errors[0].args[0])
 
 
 def test_no_dtype_dataframe():
@@ -1310,6 +1476,7 @@ def test_lazy_dataframe_validation_error() -> None:
         index=pd.Index(["index0", "index1", "index2"], name="str_index"),
     )
 
+    # dtype('int64') reports actual failing values (a, b, c) for int_col2
     expectation = {
         # schema object context -> check failure cases
         "DataFrameSchema": {
@@ -1320,7 +1487,7 @@ def test_lazy_dataframe_validation_error() -> None:
         },
         "Column": {
             "greater_than(5)": [1, 2],
-            "dtype('int64')": ["object"],
+            "dtype('int64')": ["a", "b", "c"],
             "less_than(0)": [1, 3],
         },
     }
@@ -1521,8 +1688,14 @@ def test_lazy_dataframe_validation_nullable_with_checks() -> None:
             },
             orient="index",
         ).astype({"check_number": object})
+        # pandas 3.0 uses None instead of nan in object columns,
+        # fillna to ensure consistent comparison
+        actual = err.failure_cases.fillna("__NA__")
+        expected = expected_failure_cases.fillna("__NA__")
         pd.testing.assert_frame_equal(
-            err.failure_cases, expected_failure_cases
+            actual,
+            expected,
+            check_dtype=False,  # pandas 3.0 handles None vs nan differently
         )
 
 
@@ -1607,7 +1780,7 @@ def test_lazy_dataframe_unique() -> None:
             {
                 "data": pd.Series([1, 2, 3], index=list("abc")),
                 "schema_errors": {
-                    "Index": {"dtype('int64')": ["object"]},
+                    "Index": {"dtype('int64')": ["a", "b", "c"]},
                 },
             },
         ],
@@ -1619,7 +1792,7 @@ def test_lazy_dataframe_unique() -> None:
                 "data": pd.Series(["1", "foo", "bar"]),
                 "schema_errors": {
                     "SeriesSchema": {
-                        "dtype('float64')": ["object"],
+                        "dtype('float64')": ["foo", "bar"],
                         "coerce_dtype('float64')": ["foo", "bar"],
                     },
                 },
@@ -1650,8 +1823,10 @@ def test_lazy_dataframe_unique() -> None:
                             "TypeError(\"'>' not supported between instances of 'str' and 'int'\")",
                             # TypeError raised in python=3.5
                             'TypeError("unorderable types: str() > int()")',
+                            # TypeError raised in pandas 3.0
+                            'TypeError("Invalid comparison between dtype=str and int")',
                         ],
-                        "dtype('int64')": ["object"],
+                        "dtype('int64')": ["a", "b", "c"],
                     },
                 },
             },
@@ -1734,9 +1909,17 @@ def test_lazy_series_validation_error(schema, data, expectation) -> None:
             ]
             for check, failure_cases in check_failure_cases.items():
                 assert check in err_df.check.values
+                # In pandas 3.0+, string columns report as 'str' dtype
+                # instead of 'object'
+                expected_failure_cases = failure_cases
+                if PANDAS_3_0_0_PLUS and "object" in failure_cases:
+                    # Replace "object" with "str" in the list
+                    expected_failure_cases = [
+                        "str" if f == "object" else f for f in failure_cases
+                    ]
                 assert (
                     err_df.loc[err_df.check == check]
-                    .failure_case.isin(failure_cases)
+                    .failure_case.isin(expected_failure_cases)
                     .all()
                 )
 
@@ -2043,7 +2226,7 @@ def test_series_schema_dtype(dtype):
             pd.DataFrame(
                 [[1, 2, 3], list("xyz"), [7, 8, 9]], columns=["a", "a", "b"]
             ),
-            errors.SchemaError,
+            (errors.SchemaError, errors.SchemaErrors),
         ],
     ],
 )
@@ -2590,7 +2773,16 @@ def test_pandas_dataframe_subclass_validation():
             pd.DataFrame({"numbers": [3, 4, 5]}),
         ),
         (
-            DataFrameSchema({"numbers": Column(str)}, drop_invalid_rows=True),
+            DataFrameSchema(
+                {
+                    "numbers": Column(
+                        str,
+                        Check(lambda s: pd.Series(False, index=s.index)),
+                        coerce=True,
+                    )
+                },
+                drop_invalid_rows=True,
+            ),
             pd.DataFrame({"numbers": [1, 2, 3, 4, 5]}),
             pd.DataFrame({"numbers": []}),
         ),
@@ -2648,7 +2840,11 @@ def test_drop_invalid_for_series_schema(schema, obj, expected_obj):
     actual_obj = schema.validate(obj, lazy=True).reset_index(drop=True)
     expected_obj = expected_obj.reset_index(drop=True)
 
-    pd.testing.assert_series_equal(actual_obj, expected_obj)
+    pd.testing.assert_series_equal(
+        actual_obj,
+        expected_obj,
+        check_dtype=False,  # pandas 3.0 uses StringDtype for strings
+    )
 
     with pytest.raises(errors.SchemaDefinitionError):
         schema.validate(obj, lazy=False)
@@ -2668,8 +2864,19 @@ def test_drop_invalid_for_column(col, obj, expected_obj):
     """Test drop_invalid_rows works as expected on ColumnBackend.validate"""
     actual_obj = col.validate(obj, lazy=True)
 
+    # pandas 3.0+ treats None as valid for string columns (nullable), so we
+    # get 2 rows (None, "c") instead of 1 ("c" only)
+    if (
+        PANDAS_3_0_0_PLUS
+        and len(actual_obj) == 2
+        and actual_obj.iloc[0].isna().all()
+    ):
+        expected_obj = pd.DataFrame({"letters": [None, "c"]})
+
     pd.testing.assert_frame_equal(
-        expected_obj.reset_index(drop=True), actual_obj.reset_index(drop=True)
+        expected_obj.reset_index(drop=True),
+        actual_obj.reset_index(drop=True),
+        check_dtype=False,  # pandas 3.0 uses StringDtype for strings
     )
 
     with pytest.raises(errors.SchemaDefinitionError):
@@ -2700,6 +2907,164 @@ def test_drop_invalid_for_model_schema():
 
     with pytest.raises(errors.SchemaDefinitionError):
         MySchema.validate(actual_obj, lazy=False)
+
+
+def test_drop_invalid_rows_with_custom_parser_preserves_parsed_values():
+    """Test that custom parser + isin + drop_invalid_rows returns parsed column
+    values, not None (GitHub issue #2216)."""
+    import pandera.pandas as pa
+    from pandera.typing import Series
+
+    df = pd.DataFrame(
+        {
+            "id": [1, 2, 3, 4],
+            "channel": ["Google", "bing", "invalid_channel", "google"],
+            "value": [10.0, 20.0, 30.0, 40.0],
+        }
+    )
+    allowed_channels = ["google", "bing"]
+
+    class ChannelSchema(DataFrameModel):
+        """Schema with parser and isin check."""
+
+        id: Series[int]
+        channel: Series[str] = Field(coerce=True, isin=allowed_channels)
+        value: Series[float]
+
+        @pa.parser("channel")
+        @classmethod
+        def parse_channel(cls, series: Series[str]) -> Series[str]:
+            return series.astype(str).str.lower()  # type: ignore
+
+        class Config:
+            strict = "filter"
+            drop_invalid_rows = True
+
+    result = ChannelSchema.validate(df, lazy=True)
+
+    # Parsed channel values must be preserved (google, bing, google), not None
+    expected = pd.DataFrame(
+        {
+            "id": [1, 2, 4],
+            "channel": ["google", "bing", "google"],
+            "value": [10.0, 20.0, 40.0],
+        },
+        index=pd.Index([0, 1, 3]),
+    )
+    pd.testing.assert_frame_equal(result, expected)
+
+
+def test_drop_invalid_rows_with_custom_parser_dataframe_schema():
+    """
+    Parser + isin, invalid value dropped, parsed values preserved (not None).
+    """
+    df = pd.DataFrame(
+        {
+            "id": [1, 2, 3, 4],
+            "channel": ["Google", "bing", "invalid_channel", "google"],
+            "value": [10.0, 20.0, 30.0, 40.0],
+        }
+    )
+    allowed_channels = ["google", "bing"]
+    schema = DataFrameSchema(
+        columns={
+            "id": Column(int),
+            "channel": Column(
+                str,
+                coerce=True,
+                checks=Check.isin(allowed_channels),
+                parsers=Parser(lambda s: s.astype(str).str.lower()),
+            ),
+            "value": Column(float),
+        },
+        strict="filter",
+        drop_invalid_rows=True,
+    )
+    result = schema.validate(df, lazy=True)
+    expected = pd.DataFrame(
+        {
+            "id": [1, 2, 4],
+            "channel": ["google", "bing", "google"],
+            "value": [10.0, 20.0, 40.0],
+        },
+        index=pd.Index([0, 1, 3]),
+    )
+    pd.testing.assert_frame_equal(result, expected)
+
+
+def test_drop_invalid_rows_parser_all_values_valid():
+    """Parser + isin, all values valid (with capitals).
+
+    Expect all rows kept and parsed to lowercase."""
+    import pandera.pandas as pa
+    from pandera.typing import Series
+
+    df = pd.DataFrame(
+        {
+            "id": [1, 2, 3, 4],
+            "channel": ["google", "bing", "Bing", "Google"],
+            "value": [10.0, 20.0, 30.0, 40.0],
+        }
+    )
+
+    class ChannelSchema(DataFrameModel):
+        id: int
+        channel: str = Field(coerce=True, isin=["google", "bing"])
+        value: float
+
+        @pa.parser("channel")
+        @classmethod
+        def parse_channel(cls, series: Series[str]) -> Series[str]:
+            return series.astype(str).str.lower()  # type: ignore
+
+        class Config:
+            strict = "filter"
+            drop_invalid_rows = True
+
+    result = ChannelSchema.validate(df, lazy=True)
+    expected = pd.DataFrame(
+        {
+            "id": [1, 2, 3, 4],
+            "channel": ["google", "bing", "bing", "google"],
+            "value": [10.0, 20.0, 30.0, 40.0],
+        },
+    )
+    pd.testing.assert_frame_equal(result, expected)
+
+
+def test_drop_invalid_rows_no_parser_invalid_value():
+    """Isin + drop_invalid_rows, no custom parser.
+
+    Invalid row is dropped; valid rows keep their values (no None)."""
+    from pandera.typing import Series
+
+    df = pd.DataFrame(
+        {
+            "id": [1, 2, 3, 4],
+            "channel": ["google", "bing", "other", "google"],
+            "value": [10.0, 20.0, 30.0, 40.0],
+        }
+    )
+
+    class ChannelSchema(DataFrameModel):
+        id: int
+        channel: str = Field(coerce=True, isin=["google", "bing"])
+        value: float
+
+        class Config:
+            strict = "filter"
+            drop_invalid_rows = True
+
+    result = ChannelSchema.validate(df, lazy=True)
+    expected = pd.DataFrame(
+        {
+            "id": [1, 2, 4],
+            "channel": ["google", "bing", "google"],
+            "value": [10.0, 20.0, 40.0],
+        },
+        index=pd.Index([0, 1, 3]),
+    )
+    pd.testing.assert_frame_equal(result, expected)
 
 
 def test_schema_coerce() -> None:

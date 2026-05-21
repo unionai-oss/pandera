@@ -7,7 +7,10 @@ import pandas as pd
 from pandera.api.base.error_handler import ErrorHandler, get_error_category
 from pandera.api.pandas.types import is_field
 from pandera.backends.base import CoreCheckResult, CoreParserResult
-from pandera.backends.pandas.base import PandasSchemaBackend
+from pandera.backends.pandas.base import (
+    PandasSchemaBackend,
+    _parsed_column_values,
+)
 from pandera.backends.pandas.error_formatters import reshape_failure_cases
 from pandera.backends.utils import convert_uniquesettings
 from pandera.config import ValidationScope
@@ -24,6 +27,66 @@ from pandera.validation_depth import validate_scope, validation_type
 
 class ArraySchemaBackend(PandasSchemaBackend):
     """Backend for pandas arrays."""
+
+    @staticmethod
+    def _is_default_type_compatible(default_value, schema_dtype):
+        """Check if the default value type is compatible with schema dtype.
+
+        Returns True if the default value's type matches what the schema
+        dtype expects (e.g., bool default for bool dtype).
+        """
+        if schema_dtype is None:
+            return False
+
+        # Map of schema dtype to compatible Python/numpy types
+        dtype_str = str(schema_dtype).lower()
+
+        if "bool" in dtype_str:
+            return isinstance(default_value, bool)
+        elif "int" in dtype_str:
+            # int but not bool (bool is subclass of int in Python)
+            return isinstance(default_value, int) and not isinstance(
+                default_value, bool
+            )
+        elif "float" in dtype_str:
+            return isinstance(default_value, (int, float)) and not isinstance(
+                default_value, bool
+            )
+        elif "str" in dtype_str or dtype_str == "object":
+            return isinstance(default_value, str)
+        else:
+            # For other types, don't try automatic conversion
+            return False
+
+    @staticmethod
+    def _try_convert_dtype_after_fillna(series, schema_dtype, default_value):
+        """Try to convert dtype after fillna for pandas >= 3.0 compatibility.
+
+        In pandas >= 3.0, fillna doesn't automatically coerce the dtype
+        when filling an all-null column. This function attempts to convert
+        to the schema's dtype only if the default value type is compatible.
+        """
+        if (
+            schema_dtype is None
+            or not (
+                pd.api.types.is_object_dtype(series.dtype)
+                or pd.api.types.is_string_dtype(series.dtype)
+            )
+            or series.isna().any()
+        ):
+            return series
+
+        # Only convert if the default value type is compatible
+        if not ArraySchemaBackend._is_default_type_compatible(
+            default_value, schema_dtype
+        ):
+            return series
+
+        try:
+            target_dtype = Engine.dtype(schema_dtype).type
+            return series.astype(target_dtype)
+        except (ValueError, TypeError):
+            return series  # Conversion failed - keep original
 
     def preprocess(self, check_obj, inplace: bool = False):
         return check_obj if inplace else check_obj.copy()
@@ -159,7 +222,55 @@ class ArraySchemaBackend(PandasSchemaBackend):
             return check_obj
 
         try:
-            return schema.dtype.try_coerce(check_obj)
+            coerced = schema.dtype.try_coerce(check_obj)
+
+            # pyspark.pandas can coerce invalid values to null without
+            # raising, which masks dtype errors when nullable=True.
+            if type(check_obj).__module__.startswith("pyspark.pandas"):
+                try:
+                    introduced_na = coerced.isna() & check_obj.notna()
+                    if introduced_na.any():
+                        failure_cases = reshape_failure_cases(
+                            check_obj[introduced_na], ignore_na=False
+                        )
+                        raise SchemaError(
+                            schema=schema,
+                            data=check_obj,
+                            message=(
+                                f"Error while coercing '{schema.name}' to type "
+                                f"{schema.dtype}: coercion introduced null values"
+                            ),
+                            failure_cases=failure_cases,
+                            check=f"coerce_dtype('{schema.dtype}')",
+                            reason_code=SchemaErrorReason.DATATYPE_COERCION,
+                        )
+                except SchemaError:
+                    raise
+                except Exception as exc:
+                    from pandera.engines import utils as engine_utils
+
+                    try:
+                        failure_cases = (
+                            engine_utils.numpy_pandas_coerce_failure_cases(
+                                check_obj, schema.dtype
+                            )
+                        )
+                    except Exception:
+                        failure_cases = None
+
+                    raise SchemaError(
+                        schema=schema,
+                        data=check_obj,
+                        message=(
+                            f"Error while coercing '{schema.name}' to type "
+                            f"{schema.dtype}: {exc}"
+                        ),
+                        failure_cases=failure_cases,
+                        check=f"coerce_dtype('{schema.dtype}')",
+                        reason_code=SchemaErrorReason.DATATYPE_COERCION,
+                    ) from exc
+
+            return coerced
         except ParserError as exc:
             raise SchemaError(
                 schema=schema,
@@ -183,7 +294,19 @@ class ArraySchemaBackend(PandasSchemaBackend):
                 parser_index,
                 *parser_args,
             )
-            check_obj = result.parser_output
+            if is_field(check_obj):
+                check_obj = result.parser_output
+            else:
+                # Column parsed in DataFrame context: update column in place
+                # so the full DataFrame is preserved (fixes custom parser +
+                # drop_invalid_rows returning None in parsed column).
+                check_obj[schema.name] = result.parser_output
+                # Store for drop_invalid_rows to restore if column is overwritten
+                parsed = _parsed_column_values.get()
+                if parsed is None:
+                    parsed = {}
+                    _parsed_column_values.set(parsed)
+                parsed[schema.name] = result.parser_output
             parser_results.append(result)
         return check_obj
 
@@ -286,8 +409,51 @@ class ArraySchemaBackend(PandasSchemaBackend):
             )
             if isinstance(dtype_check_results, bool):
                 passed = dtype_check_results
-                # TODO: optimize this so we don't have to create a whole dataframe
-                failure_cases = str(check_obj.dtype)
+                # When whole-series dtype check fails, get element-level failure
+                # cases so drop_invalid_rows and error reporting show actual values.
+                if not passed and schema.dtype is not None:
+                    try:
+                        from pandera.engines import utils as engine_utils
+
+                        failure_cases = (
+                            engine_utils.numpy_pandas_coerce_failure_cases(
+                                check_obj, schema.dtype
+                            )
+                        )
+                    except Exception:
+                        failure_cases = None
+                    if failure_cases is None or (
+                        hasattr(failure_cases, "empty") and failure_cases.empty
+                    ):
+                        # For str/string dtype, coercion can succeed (e.g. 3 -> "3");
+                        # report elements that are not already strings as failure cases.
+                        try:
+                            expected_dtype = Engine.dtype(schema.dtype)
+                            if str(expected_dtype) in (
+                                "str",
+                                "string",
+                                "string[pyarrow]",
+                            ):
+                                non_string = check_obj[
+                                    ~check_obj.map(
+                                        lambda x: (
+                                            isinstance(x, str) or pd.isna(x)
+                                        )
+                                    )
+                                ]
+                                if not non_string.empty:
+                                    failure_cases = reshape_failure_cases(
+                                        non_string, ignore_na=False
+                                    )
+                        except Exception:
+                            pass
+                        if failure_cases is None or (
+                            hasattr(failure_cases, "empty")
+                            and failure_cases.empty
+                        ):
+                            failure_cases = str(check_obj.dtype)
+                elif not passed:
+                    failure_cases = str(check_obj.dtype)
                 msg = (
                     f"expected series '{check_obj.name}' to have type "
                     f"{schema.dtype}, got {check_obj.dtype}"
@@ -350,11 +516,17 @@ class ArraySchemaBackend(PandasSchemaBackend):
             check_obj.dtype, pd.SparseDtype
         ):
             check_obj = check_obj.fillna(schema.default)
+            check_obj = self._try_convert_dtype_after_fillna(
+                check_obj, schema.dtype, schema.default
+            )
         elif not is_field(check_obj) and not isinstance(
             check_obj[schema.name].dtype, pd.SparseDtype
         ):
             check_obj[schema.name] = check_obj[schema.name].fillna(
                 schema.default
+            )
+            check_obj[schema.name] = self._try_convert_dtype_after_fillna(
+                check_obj[schema.name], schema.dtype, schema.default
             )
 
         return check_obj

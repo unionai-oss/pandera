@@ -8,7 +8,6 @@
 import os
 import shutil
 import sys
-from typing import Optional
 
 import nox
 from nox import Session
@@ -20,8 +19,8 @@ nox.options.sessions = (
     "docs",
 )
 
-PYTHON_VERSIONS = ["3.10", "3.11", "3.12", "3.13", "3.14.0"]
-PANDAS_VERSIONS = ["2.1.1", "2.3.3"]
+PYTHON_VERSIONS = ["3.10", "3.11", "3.12", "3.13", "3.14"]
+PANDAS_VERSIONS = ["2.3.3", "3.0.0"]
 PYDANTIC_VERSIONS = ["1.10.11", "2.12.3"]
 POLARS_VERSIONS = ["0.20.0", "1.33.1"]
 PACKAGE = "pandera"
@@ -34,6 +33,7 @@ EXTRAS_REQUIRING_PANDAS = frozenset(
         "fastapi",
         "hypotheses",
         "strategies",
+        "xarray",
     ]
 )
 
@@ -120,13 +120,40 @@ def _testing_requirements(
     pydantic: str | None = None,
     polars: str | None = None,
 ) -> list[str]:
-    pandas = pandas or PANDAS_VERSIONS[-1]
+    # pandas 3.0.0 requires Python >= 3.11, so use 2.3.3 for Python 3.10
+    if pandas is None:
+        if session.python == "3.10":
+            pandas = PANDAS_VERSIONS[0]  # Use 2.3.3 for Python 3.10
+        else:
+            pandas = PANDAS_VERSIONS[-1]  # Use 3.0.0 for Python >= 3.11
     pydantic = pydantic or PYDANTIC_VERSIONS[-1]
     polars = polars or POLARS_VERSIONS[-1]
 
     _requirements = PYPROJECT["project"]["dependencies"]
-    if extra is not None:
+    # Virtual extras combine multiple real extras; handle before the general lookup.
+    if extra == "polars-narwhals":
+        _requirements += PYPROJECT["project"]["optional-dependencies"][
+            "polars"
+        ]
+        _requirements += PYPROJECT["project"]["optional-dependencies"][
+            "narwhals"
+        ]
+    elif extra == "ibis-narwhals":
+        _requirements += PYPROJECT["project"]["optional-dependencies"]["ibis"]
+        _requirements += PYPROJECT["project"]["optional-dependencies"][
+            "narwhals"
+        ]
+    elif extra is not None:
         _requirements += PYPROJECT["project"]["optional-dependencies"][extra]
+    # TEST-03: narwhals backend tests require polars and ibis co-installed
+    # (the narwhals extra alone only installs narwhals itself).
+    if extra == "narwhals":
+        _requirements += PYPROJECT["project"]["optional-dependencies"].get(
+            "polars", []
+        )
+        _requirements += PYPROJECT["project"]["optional-dependencies"].get(
+            "ibis", []
+        )
 
     # some of the extras are only supported with the pandas extra
     if extra in EXTRAS_REQUIRING_PANDAS:
@@ -137,17 +164,18 @@ def _testing_requirements(
     _requirements = list(set(_requirements))
 
     _numpy: str | None = None
-    if pandas != "2.3.3" or (
-        extra == "pyspark" and session.python in ("3.10",)
-    ):
-        # constrain numpy < 2 for older versions of pandas and pyspark on py3.10
+    if extra in ("io", "pyspark") and session.python in ("3.10",):
+        # constrain numpy < 2 for older versions of pyspark on py3.10
+        # pandas 3.0.0 requires numpy >= 2.3.3, so don't apply this constraint
         _numpy = "< 2"
 
     _updated_requirements = []
+    _has_pandas = False
     for req in _requirements:
         req = req.strip()
         if req == "pandas" or req.startswith("pandas "):
             req = f"pandas=={pandas}"
+            _has_pandas = True
         if req == "pydantic" or req.startswith("pydantic "):
             req = f"pydantic=={pydantic}"
         if req.startswith("numpy") and _numpy is not None:
@@ -156,7 +184,7 @@ def _testing_requirements(
         if req == "pyarrow" or req.startswith("pyarrow "):
             req = "pyarrow >= 13"
         if req == "ibis-framework" or req.startswith("ibis-framework "):
-            req = "ibis-framework[duckdb,polars]"
+            req = "ibis-framework[duckdb] >= 11.0.0"
         if req == "polars":
             req = f"polars=={polars}"
 
@@ -169,6 +197,11 @@ def _testing_requirements(
 
         if req not in _updated_requirements:
             _updated_requirements.append(req)
+
+    # Ensure pandas is explicitly constrained if it's not already in requirements
+    # This prevents uv from resolving to the latest version when installing -e .
+    if not _has_pandas and pandas is not None:
+        _updated_requirements.append(f"pandas=={pandas}")
 
     return [
         *_updated_requirements,
@@ -187,6 +220,8 @@ DATAFRAME_EXTRAS = {
     "polars",
     "dask",
     "ibis",
+    "xarray",
+    "narwhals",  # TEST-03: narwhals backend runs with polars+ibis co-installed
 }
 for extra in OPTIONAL_DEPENDENCIES:
     if extra == "pandas":
@@ -205,15 +240,23 @@ for extra in OPTIONAL_DEPENDENCIES:
     elif extra == "polars":
         EXTRA_PYTHON_PYDANTIC.extend(
             [
-                (extra, PANDAS_VERSIONS[-1], PYDANTIC_VERSIONS[-1], polars)
+                (extra, pandas, PYDANTIC_VERSIONS[-1], polars)
                 for polars in POLARS_VERSIONS
+                for pandas in PANDAS_VERSIONS[:-1]
             ]
         )
-    elif extra in DATAFRAME_EXTRAS:
+    elif extra == "narwhals":
+        # Use pandas=None so the session ID matches CI invocation and
+        # _testing_requirements auto-selects the version-appropriate pandas.
         EXTRA_PYTHON_PYDANTIC.append((extra, None, None, None))
+    elif extra in DATAFRAME_EXTRAS:
+        EXTRA_PYTHON_PYDANTIC.append((extra, PANDAS_VERSIONS[0], None, None))
     else:
-        EXTRA_PYTHON_PYDANTIC.append(
-            (extra, PANDAS_VERSIONS[-1], PYDANTIC_VERSIONS[-1], None)
+        EXTRA_PYTHON_PYDANTIC.extend(
+            [
+                (extra, pandas, PYDANTIC_VERSIONS[-1], None)
+                for pandas in PANDAS_VERSIONS
+            ]
         )
 
 
@@ -237,6 +280,9 @@ def tests(
 
     env = {}
     test_dir = "base" if extra is None else extra
+    if extra == "narwhals":
+        test_dir = "narwhals"
+        env["PANDERA_USE_NARWHALS_BACKEND"] = "True"
 
     if extra and extra.startswith("modin"):
         modin_split = extra.split("-")
@@ -254,16 +300,16 @@ def tests(
         args = session.posargs
     else:
         path = f"tests/{test_dir}/" if extra != "all" else "tests"
-        args = []
+        cov_args = []
         if extra == "strategies":
             profile = "ci"
             # enable threading via pytest-xdist
-            args = [
+            cov_args = [
                 "-n=auto",
                 "-q",
                 f"--hypothesis-profile={profile}",
             ]
-        args += [
+        cov_args += [
             f"--cov={PACKAGE}",
             "--cov-report=term-missing",
             "--cov-report=xml",
@@ -271,10 +317,63 @@ def tests(
             "--verbosity=10",
         ]
         if not CI_RUN:
-            args.append("--cov-report=html")
-        args.append(path)
+            cov_args.append("--cov-report=html")
+        args = [*cov_args, path]
 
     session.run("pytest", *args, env=env)
+    if not session.posargs and extra in ("polars", "ibis"):
+        session.run("pytest", *cov_args, "tests/common/", "-m", extra, env=env)
+
+
+@nox.session(venv_backend="uv", python=PYTHON_VERSIONS)
+@nox.parametrize("extra", ["polars", "ibis"])
+def tests_narwhals_backend(session: Session, extra: str) -> None:
+    """Run existing backend tests with narwhals co-installed and opt-in enabled.
+
+    Installs <extra> + narwhals and sets PANDERA_USE_NARWHALS_BACKEND=True so
+    that register_polars_backends() / register_ibis_backends() activate the
+    narwhals backend for that library's frame types. The existing tests/polars/
+    or tests/ibis/ suite then exercises the narwhals backend rather than the
+    native one. Tests that expose narwhals backend gaps should be marked
+    xfail in the test files.
+    """
+    deps = PYPROJECT["project"]["optional-dependencies"]
+    requirements = [
+        *PYPROJECT["project"]["dependencies"],
+        *deps[extra],
+        *deps["narwhals"],
+        *nox.project.dependency_groups(PYPROJECT, *["dev", "testing"]),
+    ]
+    # pin polars to its latest tested version when installing polars
+    if extra == "polars":
+        requirements = [
+            f"polars=={POLARS_VERSIONS[-1]}" if r == "polars" else r
+            for r in requirements
+        ]
+    if extra == "ibis":
+        requirements = [
+            "ibis-framework[duckdb,polars]"
+            if r == "ibis-framework" or r.startswith("ibis-framework ")
+            else r
+            for r in requirements
+        ]
+    session.install(*list(set(requirements)))
+    session.install("-e", ".", "--config-settings", "editable_mode=compat")
+    session.run("uv", "pip", "list")
+
+    path = f"tests/{extra}/"
+    cov_args = [
+        f"--cov={PACKAGE}",
+        "--cov-report=term-missing",
+        "--cov-report=xml",
+        "--cov-append",
+        "--verbosity=10",
+    ]
+    if not CI_RUN:
+        cov_args.append("--cov-report=html")
+    env = {"PANDERA_USE_NARWHALS_BACKEND": "True"}
+    session.run("pytest", *cov_args, path, env=env)
+    session.run("pytest", *cov_args, "tests/common/", "-m", extra, env=env)
 
 
 @nox.session(venv_backend="uv", python=PYTHON_VERSIONS)
@@ -284,9 +383,12 @@ def docs(session: Session) -> None:
 
     session.install("-e", ".")
     session.install(
-        *_testing_requirements(session, extra="all"),
+        *_testing_requirements(
+            session, extra="all", pandas=PANDAS_VERSIONS[0]
+        ),
         *nox.project.dependency_groups(PYPROJECT, "dev", "testing", "docs"),
     )
+    session.run("uv", "pip", "list")
     session.chdir("docs")
 
     # build html docs

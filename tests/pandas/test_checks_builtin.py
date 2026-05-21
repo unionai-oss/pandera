@@ -6,6 +6,11 @@ from collections.abc import Iterable
 import pandas as pd
 import pytest
 
+# Register pandas backends before running tests
+from pandera.backends.pandas.register import register_pandas_backends
+
+register_pandas_backends("pandera.typing.pandas.Series")
+
 from pandera.api.checks import Check
 from pandera.api.pandas.array import SeriesSchema
 from pandera.api.pandas.components import Column
@@ -409,6 +414,35 @@ class TestInRange:
             Check.in_range(*args)
 
     @staticmethod
+    def test_positional_and_keyword_args():
+        """Test that positional and keyword arguments produce equivalent checks."""
+        # Test with positional args
+        check_positional = Check.in_range(0, 1)
+        check_keyword = Check.in_range(min_value=0, max_value=1)
+
+        series = pd.Series([0, 0.5, 1])
+        assert check_positional(series).check_passed
+        assert check_keyword(series).check_passed
+
+        # Both should fail on the same invalid data
+        invalid_series = pd.Series([0, 0.5, 2])
+        assert not check_positional(invalid_series).check_passed
+        assert not check_keyword(invalid_series).check_passed
+
+    @staticmethod
+    def test_mixed_positional_and_keyword_args():
+        """Test mixing positional and keyword arguments."""
+        # Min value as positional, max value as keyword should also work
+        # by first setting min via positional, then using keyword for include options
+        check = Check.in_range(0, 10, include_min=True, include_max=False)
+        series = pd.Series([0, 5, 9])
+        assert check(series).check_passed
+
+        # 10 should fail since include_max=False
+        invalid_series = pd.Series([0, 5, 10])
+        assert not check(invalid_series).check_passed
+
+    @staticmethod
     @pytest.mark.parametrize(
         "values, check_args",
         [
@@ -582,17 +616,36 @@ class TestIsin:
     """Tests for Check.isin"""
 
     @staticmethod
-    @pytest.mark.parametrize(
-        "args",
-        [
-            (1,),  # Not Iterable
-            (None,),  # None should also not be accepted
-        ],
-    )
-    def test_argument_check(args):
-        """Test invalid arguments"""
+    def test_no_argument_check():
+        """Test that calling isin with no arguments raises ValueError"""
         with pytest.raises(ValueError):
-            Check.isin(*args)
+            Check.isin()
+
+    @staticmethod
+    def test_positional_and_keyword_args():
+        """Test that positional and keyword arguments produce equivalent checks."""
+        # Test with list as positional arg
+        check_positional = Check.isin([1, 2, 3])
+        check_keyword = Check.isin(allowed_values=[1, 2, 3])
+
+        series = pd.Series([1, 2, 3])
+        assert check_positional(series).check_passed
+        assert check_keyword(series).check_passed
+
+        # Both should fail on the same invalid data
+        invalid_series = pd.Series([1, 2, 4])
+        assert not check_positional(invalid_series).check_passed
+        assert not check_keyword(invalid_series).check_passed
+
+    @staticmethod
+    def test_tuple_as_allowed_values():
+        """Test that tuples work as allowed values."""
+        check = Check.isin((1, 2, 3))
+        series = pd.Series([1, 2, 3])
+        assert check(series).check_passed
+
+        invalid_series = pd.Series([1, 2, 4])
+        assert not check(invalid_series).check_passed
 
     @staticmethod
     @pytest.mark.parametrize(
@@ -669,17 +722,10 @@ class TestNotin:
     """Tests for Check.notin"""
 
     @staticmethod
-    @pytest.mark.parametrize(
-        "args",
-        [
-            (1,),  # Not Iterable
-            (None,),  # None should also not be accepted
-        ],
-    )
-    def test_argument_check(args):
-        """Test invalid arguments"""
+    def test_no_argument_check():
+        """Test that calling notin with no arguments raises ValueError"""
         with pytest.raises(ValueError):
-            Check.notin(*args)
+            Check.notin()
 
     @staticmethod
     @pytest.mark.parametrize(
@@ -948,90 +994,95 @@ class TestStrLength:
     """Tests for Check.str_length"""
 
     @staticmethod
-    @pytest.mark.parametrize(
-        "abs_len, min_len, max_len",
-        [
-            (None, None, None),
-            (3, 1, None),
-        ],
-    )
-    def test_argument_check(abs_len, min_len, max_len):
-        """Test if correct argument are enforced"""
+    def test_argument_check():
+        """Test if at least one argument is enforced"""
         with pytest.raises(ValueError):
-            Check.str_length(
-                value=abs_len,
-                min_value=min_len,
-                max_value=max_len,
-            )
+            Check.str_length()
+
+    @staticmethod
+    def test_too_many_args():
+        """Test that too many positional args raises error"""
+        with pytest.raises(ValueError, match="at most 2 positional arguments"):
+            Check.str_length(1, 2, 3)
 
     @staticmethod
     @pytest.mark.parametrize(
-        "series_values, abs_len, min_len, max_len",
+        "series_values, min_len, max_len",
         [
-            (("abc", "defabc"), None, 1, 6),
-            (("abc", "defabc"), None, None, 6),
-            (("abc", "defabc"), None, 1, None),
-            (("abc", "def"), 3, None, None),
+            (("abc", "defabc"), 1, 6),
+            (("abc", "defabc"), None, 6),
+            (("abc", "defabc"), 1, None),
         ],
     )
-    def test_succeeding(series_values, abs_len, min_len, max_len):
+    def test_succeeding(series_values, min_len, max_len):
         """Run checks which should succeed"""
         check_values(
-            series_values,
-            Check.str_length(
-                value=abs_len, min_value=min_len, max_value=max_len
-            ),
-            True,
-            {},
+            series_values, Check.str_length(min_len, max_len), True, {}
         )
 
     @staticmethod
     @pytest.mark.parametrize(
-        "series_values, abs_len, min_len, max_len, failure_cases",
+        "series_values, exact_len",
         [
-            (("abc", "defabc"), None, 1, 5, {"defabc"}),
-            (("abc", "defabc"), None, None, 5, {"defabc"}),
-            (("abc", "defabc"), None, 4, None, {"abc"}),
-            (("abc", "defabc"), 3, None, None, {"defabc"}),
+            (("abc", "def"), 3),  # exact length with single positional arg
+            (("ab", "cd"), 2),
         ],
     )
-    def test_failing(series_values, abs_len, min_len, max_len, failure_cases):
+    def test_exact_length_succeeding(series_values, exact_len):
+        """Test exact length matching with single positional arg"""
+        check_values(series_values, Check.str_length(exact_len), True, {})
+
+    @staticmethod
+    @pytest.mark.parametrize(
+        "series_values, exact_len, failure_cases",
+        [
+            (("abc", "defabc"), 3, {"defabc"}),  # "defabc" is 6 chars
+            (("ab", "abc"), 2, {"abc"}),
+        ],
+    )
+    def test_exact_length_failing(series_values, exact_len, failure_cases):
+        """Test exact length matching failures"""
+        check_values(
+            series_values, Check.str_length(exact_len), False, failure_cases
+        )
+        check_raise_error_or_warning(
+            series_values, Check.str_length(exact_len)
+        )
+
+    @staticmethod
+    @pytest.mark.parametrize(
+        "series_values, min_len, max_len, failure_cases",
+        [
+            (("abc", "defabc"), 1, 5, {"defabc"}),
+            (("abc", "defabc"), None, 5, {"defabc"}),
+            (("abc", "defabc"), 4, None, {"abc"}),
+        ],
+    )
+    def test_failing(series_values, min_len, max_len, failure_cases):
         """Run checks which should fail"""
         check_values(
             series_values,
-            Check.str_length(
-                value=abs_len, min_value=min_len, max_value=max_len
-            ),
+            Check.str_length(min_len, max_len),
             False,
             failure_cases,
         )
         check_raise_error_or_warning(
-            series_values,
-            Check.str_length(
-                value=abs_len, min_value=min_len, max_value=max_len
-            ),
+            series_values, Check.str_length(min_len, max_len)
         )
 
     @staticmethod
     @pytest.mark.parametrize(
-        "series_values, abs_len, min_len, max_len",
+        "series_values, min_len, max_len",
         [
-            ((None, "defabc"), None, 1, 6),
-            ((None, "defabc"), None, None, 6),
-            ((None, "defabc"), None, 1, None),
-            ((None, "defabc"), 6, None, None),
+            ((None, "defabc"), 1, 6),
+            ((None, "defabc"), None, 6),
+            ((None, "defabc"), 1, None),
         ],
     )
-    def test_failing_with_none(series_values, abs_len, min_len, max_len):
+    def test_failing_with_none(series_values, min_len, max_len):
         """Run checks which should succeed"""
         check_none_failures(
-            series_values,
-            Check.str_length(
-                value=abs_len,
-                min_value=min_len,
-                max_value=max_len,
-                ignore_na=False,
-            ),
+            series_values, Check.str_length(min_len, max_len, ignore_na=False)
         )
 
 

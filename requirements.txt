@@ -9,15 +9,18 @@ pyyaml >= 5.1
 typing_inspect >= 0.6.0
 frictionless <= 4.40.8
 pyarrow >= 13
+pyarrow-hotfix
 pydantic
 scipy
 pandas-stubs
 scipy-stubs
 pyspark[connect] >= 3.2.0
 polars >= 0.20.0
+xarray >= 2024.10.0
+narwhals >= 1.26.0
 modin
 protobuf
-geopandas < 1.1.0
+geopandas
 shapely
 fastapi
 black >= 24.0
@@ -46,7 +49,7 @@ recommonmark
 myst-nb
 twine
 asv >= 0.5.1
-pre_commit
+prek
 dask[dataframe]
 distributed
 ibis-framework >= 9.0.0

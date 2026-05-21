@@ -312,8 +312,8 @@ def test_pydantic_model_empty_dataframe():
         PydanticSchema.validate(empty_df)
 
     invalid_column_names = pd.DataFrame(columns=columns[:1])
-    with pytest.raises(
-        pa.errors.SchemaError,
-        match=".+Missing columns in .+data_container.+ ['y', 'z'].+",
-    ):
+    with pytest.raises(pa.errors.SchemaErrors) as exc_info:
         PydanticSchema.validate(invalid_column_names)
+    err_msg = exc_info.value.schema_errors[0].args[0]
+    assert "Missing columns" in err_msg
+    assert "y" in err_msg and "z" in err_msg

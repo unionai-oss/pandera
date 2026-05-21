@@ -6,12 +6,16 @@
 
 # API
 
+## DataFrames
+
 ```{eval-rst}
 .. list-table::
    :widths: 30 70
 
    * - :ref:`Core <api-core>`
      - The core objects for defining pandera schemas
+   * - :ref:`GeoPandas <api-geopandas>`
+     - ``GeoDataFrameSchema`` and ``GeoDataFrameModel`` entry point
    * - :ref:`Data Types <api-dtypes>`
      - Data types for type checking and coercion.
    * - :ref:`DataFrame Models <api-dataframe-models>`
@@ -30,10 +34,45 @@
      - Pandera-specific exceptions
 ```
 
+## Configuration
+
+```{eval-rst}
+.. list-table::
+   :widths: 30 70
+
+   * - :class:`~pandera.config.PanderaConfig`
+     - Global configuration (validation enabled, depth, caching)
+   * - :class:`~pandera.config.ValidationDepth`
+     - Whether to apply checks at schema-level, data-level, or both
+   * - :class:`~pandera.config.ValidationScope`
+     - Indicates whether a check operates at schema or data level
+   * - :func:`~pandera.config.config_context`
+     - Context manager to temporarily override config settings
+   * - :func:`~pandera.config.get_config_context`
+     - Get the current configuration context
+   * - :func:`~pandera.config.get_config_global`
+     - Get the global configuration
+   * - :func:`~pandera.config.reset_config_context`
+     - Reset context configuration to the global default
+```
+
+See :ref:`api-core` for full details.
+
+## Multi-dimensional arrays
+
+```{eval-rst}
+.. list-table::
+   :widths: 30 70
+
+   * - :ref:`Xarray <api-xarray>`
+     - Schemas for labelled N-dimensional :mod:`xarray` arrays, datasets, and datatrees
+```
+
 ```{toctree}
 :hidden: true
 
 core
+geopandas
 dtypes
 dataframe_models
 decorators
@@ -42,4 +81,5 @@ io
 strategies
 extensions
 errors
+xarray
 ```

@@ -1,7 +1,8 @@
 """Built-in checks for PySpark."""
 
+import re
 from collections.abc import Iterable
-from typing import Any, TypeVar
+from typing import Any, TypeVar, Union
 
 import pyspark.sql.types as pst
 from pyspark.sql.functions import col
@@ -273,6 +274,33 @@ def notin(
 
 
 @register_builtin_check(
+    error="str_matches('{pattern}')",
+)
+@register_input_datatypes(acceptable_datatypes=convert_to_list(STRING_TYPE))
+def str_matches(
+    data: PysparkDataframeColumnObject,
+    pattern: Union[str, re.Pattern],
+) -> bool:
+    """Ensure that all values start with a match of a regular expression pattern.
+
+    Remember it can be a compute intensive check on large dataset. So, use it with caution.
+
+    :param data: NamedTuple PysparkDataframeColumnObject contains the dataframe and column name for the check. The key
+        to access the dataframe is "dataframe", and the key to access the column name is "column_name".
+    :param pattern: Regular expression pattern to use for matching.
+    """
+    pattern = pattern.pattern if isinstance(pattern, re.Pattern) else pattern
+    if not pattern.startswith("^"):
+        pattern = f"^{pattern}"
+    return (
+        data.dataframe.filter(~col(data.column_name).rlike(pattern))
+        .limit(1)
+        .count()
+        == 0
+    )
+
+
+@register_builtin_check(
     error="str_contains('{pattern}')",
 )
 @register_input_datatypes(acceptable_datatypes=convert_to_list(STRING_TYPE))
@@ -323,3 +351,72 @@ def str_endswith(data: PysparkDataframeColumnObject, string: str) -> bool:
     """
     cond = col(data.column_name).endswith(string)
     return data.dataframe.filter(~cond).limit(1).count() == 0
+
+
+@register_builtin_check()
+@register_input_datatypes(acceptable_datatypes=convert_to_list(STRING_TYPE))
+def str_length(
+    data: PysparkDataframeColumnObject,
+    min_value: int | None = None,
+    max_value: int | None = None,
+    exact_value: int | None = None,
+) -> bool:
+    """Ensure that the length of strings is within a specified range.
+
+    Remember it can be a compute intensive check on large dataset. So, use it with caution.
+
+    :param data: NamedTuple PysparkDataframeColumnObject contains the dataframe and column name for the check. The key
+        to access the dataframe is "dataframe", and the key to access the column name is "column_name".
+    :param min_value: Minimum length of strings (inclusive). (default: no minimum)
+    :param max_value: Maximum length of strings (inclusive). (default: no maximum)
+    :param exact_value: Exact length of strings. (default: no exact value)
+    """
+    from pyspark.sql.functions import length
+
+    str_len = length(col(data.column_name))
+    if exact_value is not None:
+        cond = str_len == exact_value
+        return data.dataframe.filter(~cond).limit(1).count() == 0
+
+    if min_value is None and max_value is None:
+        raise ValueError(
+            "Must provide at least one of 'min_value' and 'max_value'"
+        )
+    elif min_value is None:
+        cond = str_len <= max_value
+    elif max_value is None:
+        cond = str_len >= min_value
+    else:
+        cond = (str_len >= min_value) & (str_len <= max_value)
+
+    return data.dataframe.filter(~cond).limit(1).count() == 0
+
+
+@register_builtin_check(
+    error="unique_values_eq({values})",
+)
+@register_input_datatypes(
+    acceptable_datatypes=convert_to_list(
+        ALL_NUMERIC_TYPE, ALL_DATE_TYPE, STRING_TYPE, BINARY_TYPE
+    )
+)
+def unique_values_eq(
+    data: PysparkDataframeColumnObject, values: Iterable
+) -> bool:
+    """Ensure that unique values in the data object contain all values.
+
+    Remember it can be a compute intensive check on large dataset. So, use it with caution.
+
+    .. note::
+        In contrast with :func:`isin`, this check makes sure that all the items
+        in the ``values`` iterable are contained within the series.
+
+    :param data: NamedTuple PysparkDataframeColumnObject contains the dataframe and column name for the check. The key
+        to access the dataframe is "dataframe", and the key to access the column name is "column_name".
+    :param values: The set of values that must be present. May be any iterable.
+    """
+    unique_values = {
+        row[data.column_name]
+        for row in data.dataframe.select(data.column_name).distinct().collect()
+    }
+    return unique_values == set(values)

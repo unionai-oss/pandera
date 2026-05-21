@@ -2,9 +2,16 @@
 
 import warnings
 from collections import defaultdict
+from contextvars import ContextVar
 from typing import Optional, TypeVar, Union
 
 import pandas as pd
+
+# Context var to preserve parsed column values when drop_invalid_rows is used
+# with custom parsers (fixes #2216: parsed values otherwise lost after drop).
+_parsed_column_values: ContextVar[dict[str, pd.Series] | None] = ContextVar(
+    "pandera_parsed_column_values", default=None
+)
 
 from pandera.api.base.checks import CheckResult
 from pandera.api.base.error_handler import ErrorHandler
@@ -193,13 +200,41 @@ class PandasSchemaBackend(BaseSchemaBackend):
                 # if the failure cases are a string, it means the error is
                 # a schema-level error.
                 continue
-            if isinstance(check_obj.index, pd.MultiIndex):
+            # failure_cases may be a DataFrame (with "index" column) or a Series (use .index)
+            if isinstance(err.failure_cases, pd.Series):
+                # Series: use .index to get failing row indices
+                index_values = err.failure_cases.index
+            elif isinstance(check_obj.index, pd.MultiIndex):
                 index_tuples = err.failure_cases["index"].apply(eval)
                 index_values = pd.MultiIndex.from_tuples(index_tuples)
             else:
                 index_values = err.failure_cases["index"]
+                # align dtypes so isin() matches (e.g. "1" vs 1)
+                try:
+                    if hasattr(check_obj.index, "dtype") and hasattr(
+                        index_values, "astype"
+                    ):
+                        index_values = index_values.astype(
+                            check_obj.index.dtype
+                        )
+                except (TypeError, ValueError):
+                    pass
 
             mask = ~check_obj.index.isin(index_values)
             check_obj = check_obj.loc[mask]
+
+        # Restore parsed column values that may have been overwritten (e.g. custom
+        # parser + drop_invalid_rows returning None in parsed column, #2216).
+        parsed = _parsed_column_values.get()
+        if parsed:
+            for colname, series in parsed.items():
+                if colname not in check_obj.columns:
+                    continue
+                try:
+                    restored = series.reindex(check_obj.index)
+                    check_obj.loc[:, colname] = restored.values
+                except Exception:
+                    pass
+            _parsed_column_values.set(None)
 
         return check_obj

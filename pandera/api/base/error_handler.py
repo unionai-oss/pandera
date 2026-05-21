@@ -7,7 +7,6 @@ from typing import Any, Optional, Union
 from pandera.api.checks import Check
 from pandera.config import ValidationDepth, get_config_context
 from pandera.errors import SchemaError, SchemaErrorReason
-from pandera.validation_depth import ValidationScope, validation_type
 
 
 class ErrorCategory(Enum):
@@ -36,7 +35,7 @@ ERROR_CATEGORY_MAP = {
     SchemaErrorReason.NO_ERROR: ErrorCategory.SCHEMA,
     SchemaErrorReason.ADD_MISSING_COLUMN_NO_DEFAULT: ErrorCategory.DATA,
     SchemaErrorReason.INVALID_COLUMN_NAME: ErrorCategory.SCHEMA,
-    SchemaErrorReason.MISMATCH_INDEX: ErrorCategory.DATA,
+    SchemaErrorReason.MISMATCH_INDEX: ErrorCategory.SCHEMA,
     SchemaErrorReason.PARSER_ERROR: ErrorCategory.DATA,
 }
 
@@ -68,6 +67,26 @@ class ErrorHandler:
     def lazy(self) -> bool:
         """Whether or not the schema error handler raises errors immediately."""
         return self._lazy
+
+    @staticmethod
+    def _get_column(schema_error: SchemaError) -> Any:
+        """Get the column name from a schema error."""
+        if schema_error.column_name is not None:
+            return schema_error.column_name
+        if (
+            schema_error.reason_code
+            == SchemaErrorReason.COLUMN_NOT_IN_DATAFRAME
+        ):
+            fc = schema_error.failure_cases
+            if isinstance(fc, str) and fc:
+                return fc
+            if isinstance(fc, dict):
+                cases = fc.get("failure_case")
+                if isinstance(cases, list) and cases:
+                    first = cases[0]
+                    if first is not None:
+                        return first
+        return schema_error.schema.name
 
     @staticmethod
     def _count_failure_cases(failure_cases: Any) -> int:
@@ -116,7 +135,7 @@ class ErrorHandler:
         self._collected_errors.append(
             {
                 "type": error_type,
-                "column": schema_error.schema.name,
+                "column": self._get_column(schema_error),
                 "check": schema_error.check,
                 "reason_code": reason_code,
                 "error": schema_error,
@@ -202,12 +221,12 @@ class ErrorHandler:
             return False
         elif (
             config.validation_depth == ValidationDepth.DATA_ONLY
-            and category == ValidationScope.DATA.name
+            and category == ErrorCategory.DATA.name
         ):
             return False
         elif (
             config.validation_depth == ValidationDepth.SCHEMA_ONLY
-            and category == ValidationScope.SCHEMA.name
+            and category == ErrorCategory.SCHEMA.name
         ):
             return False
 

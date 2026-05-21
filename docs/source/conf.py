@@ -16,6 +16,7 @@ import logging as pylogging
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -26,6 +27,55 @@ from sphinx.util import logging
 import pandera
 
 sys.path.insert(0, os.path.abspath("../.."))
+
+
+def _java_specification_major() -> int | None:
+    """Return Java major version, or None if java is missing or unparsable."""
+    try:
+        proc = subprocess.run(
+            ["java", "-XshowSettings:properties", "-version"],
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        err = proc.stderr or ""
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    for line in err.splitlines():
+        line = line.strip()
+        if not line.startswith("java.specification.version"):
+            continue
+        parts = line.split("=", 1)
+        if len(parts) != 2:
+            continue
+        raw = parts[1].strip()
+        try:
+            if raw.startswith("1."):
+                return int(raw.split(".", 1)[1])
+            return int(re.match(r"(\d+)", raw).group(1))
+        except (ValueError, AttributeError):
+            return None
+    return None
+
+
+def _ensure_pyspark_jdk24_jvm_opts() -> None:
+    """Let local Spark start on JDK 24+ (Hadoop UGI / Subject.getSubject).
+
+    See JEP 486. Notebook kernels inherit this process env. No-op on JDK < 24.
+    """
+    flag = "-Djava.security.manager=allow"
+    if flag in os.environ.get("JAVA_TOOL_OPTIONS", ""):
+        return
+    major = _java_specification_major()
+    if major is None or major < 24:
+        return
+    prev = os.environ.get("JAVA_TOOL_OPTIONS", "").strip()
+    os.environ["JAVA_TOOL_OPTIONS"] = (
+        f"{prev} {flag}".strip() if prev else flag
+    )
+
+
+_ensure_pyspark_jdk24_jvm_opts()
 
 
 # -- Project information -----------------------------------------------------
@@ -87,6 +137,11 @@ try:
 except ImportError:
     SKIP_PYSPARK_TYPING = True
 
+try:
+    import frictionless
+    SKIP_FRICTIONLESS_TESTS = False
+except ImportError:
+    SKIP_FRICTIONLESS_TESTS = True
 
 SKIP = sys.version_info < (3, 6)
 PY36 = sys.version_info < (3, 7)
@@ -152,9 +207,9 @@ html_theme = "furo"
 # documentation.
 
 announcement = """
-📢 Pandera 0.25.0 introduces the <i>🦩 pandera-ibis integration </i>!
-Validate all supported Ibis backends, including Snowflake, BigQuery, and more.
-Learn more details <a href='./ibis.html'>here</a>
+📢 Pandera 0.31.0 introduces the <i> pandera-xarray integration </i>!
+Validate all supported xarray data structures, including Dataset, DataArray, and DataTree.
+Learn more details <a href='./xarray_guide/index.html'>here</a>
 """
 
 html_logo = "_static/pandera-banner.png"
@@ -205,12 +260,13 @@ autosummary_filename_map = {
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3/", None),
     "numpy": ("https://numpy.org/doc/stable/", None),
-    "pandas": ("https://pandas.pydata.org/pandas-docs/stable/", None),
+    "pandas": ("https://pandas.pydata.org/docs/", None),
     "dask": ("https://docs.dask.org/en/latest/", None),
     "pyspark": ("https://spark.apache.org/docs/latest/api/python/", None),
     "modin": ("https://modin.readthedocs.io/en/latest/", None),
     "polars": ("https://docs.pola.rs/py-polars/html/", None),
     "typeguard": ("https://typeguard.readthedocs.io/en/stable/", None),
+    "xarray": ("https://docs.xarray.dev/en/stable/", None),
 }
 
 # strip prompts

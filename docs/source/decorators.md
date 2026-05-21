@@ -119,6 +119,92 @@ zero_column_1_dict(preprocessed_df)
 zero_column_1_custom(preprocessed_df)
 ```
 
+## Check Inputs And Outputs
+
+The {func}`~pandera.decorators.check_types` decorator validates both inputs and outputs
+using type annotations. This is especially useful when working with
+{class}`~pandera.pandas.DataFrameModel` schemas and the {class}`~pandera.typing.DataFrame`
+generic type.
+
+```{code-cell} python
+import pandas as pd
+import pandera.pandas as pa
+from pandera.typing import DataFrame, Series
+
+
+class InputSchema(pa.DataFrameModel):
+    column1: Series[int] = pa.Field(ge=0, le=10)
+    column2: Series[float] = pa.Field(lt=-1.0)
+
+
+class OutputSchema(InputSchema):
+    column3: Series[float]
+
+
+@pa.check_types
+def preprocessor(df: DataFrame[InputSchema]) -> DataFrame[OutputSchema]:
+    return df.assign(column3=df["column1"] + df["column2"])
+
+
+df = pd.DataFrame({
+    "column1": [1, 4, 0, 10, 9],
+    "column2": [-1.3, -1.4, -2.9, -10.1, -20.4],
+})
+
+preprocessed_df = preprocessor(df)
+print(preprocessed_df)
+```
+
+## Collection Types
+
+The {func}`~pandera.decorators.check_input`, {func}`~pandera.decorators.check_output`, and {func}`~pandera.decorators.check_types` decorators all support validating DataFrames inside both `Union` and collection types (ex. `tuple`, `list`, `dict`).
+
+### Union Types
+
+```{code-cell} python
+import typing
+
+
+class OnlyZeroesSchema(pa.DataFrameModel):
+    a: Series[int] = pa.Field(eq=0)
+
+
+class OnlyOnesSchema(pa.DataFrameModel):
+    a: Series[int] = pa.Field(eq=1)
+
+
+@pa.check_types
+def process_either(
+    df: typing.Union[DataFrame[OnlyZeroesSchema], DataFrame[OnlyOnesSchema]],
+) -> typing.Union[DataFrame[OnlyZeroesSchema], DataFrame[OnlyOnesSchema]]:
+    return df
+
+
+# Both of these are valid:
+process_either(pd.DataFrame({"a": [0, 0, 0]}))
+process_either(pd.DataFrame({"a": [1, 1, 1]}))
+```
+
+### Collection Types
+
+```{code-cell} python
+@pa.check_types
+def process_tuple_and_return_dict(
+    dfs: tuple[DataFrame[OnlyZeroesSchema], DataFrame[OnlyOnesSchema]],
+) -> dict[str, DataFrame[OnlyZeroesSchema]]:
+    return {
+        "foo": dfs[0],
+        "bar": dfs[0]
+    }
+
+
+result = process_tuple_and_return_dict((
+    pd.DataFrame({"a": [0, 0]}),
+    pd.DataFrame({"a": [1, 1]}),
+))
+print(result)
+```
+
 ## Check IO
 
 For convenience, you can also use the {func}`~pandera.decorators.check_io`

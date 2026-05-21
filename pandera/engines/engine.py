@@ -244,6 +244,11 @@ class Engine(ABCMeta):
 
         registry = cls._registry[cls]
 
+        # Exact equivalent match first (e.g. np.str_ -> NpString before str -> STRING)
+        equivalent_data_type = registry.get_equivalent(data_type)
+        if equivalent_data_type is not None:
+            return equivalent_data_type
+
         # handle python generic types, e.g. typing.Dict[str, str]
         datatype_origin = get_origin(data_type)
         if datatype_origin is not None:
@@ -260,21 +265,18 @@ class Engine(ABCMeta):
             or ((NamedTuple,) if _is_namedtuple(data_type) else ())
             or typing_inspect.get_generic_bases(data_type)
         )
-        if datatype_generic_bases:
-            equivalent_data_type = None
-            for base in datatype_generic_bases:
-                equivalent_data_type = registry.get_equivalent(base)
-                break
-            if equivalent_data_type is None:
-                raise TypeError(
-                    f"Type '{data_type}' not understood by {cls.__name__}."
-                )
-            return type(equivalent_data_type)(data_type)  # type: ignore
+        if datatype_generic_bases and inspect.getmodule(
+            base := datatype_generic_bases[0]
+        ).__name__ in {  # type: ignore[union-attr]
+            *sys.stdlib_module_names,
+            "typing_extensions",
+        }:
+            equivalent_data_type = registry.get_equivalent(base)
+            if equivalent_data_type is not None:
+                return type(equivalent_data_type)(data_type)  # type: ignore
+            # fall through if base has no equivalent
 
-        equivalent_data_type = registry.get_equivalent(data_type)
-        if equivalent_data_type is not None:
-            return equivalent_data_type
-        elif isinstance(data_type, DataType):
+        if isinstance(data_type, DataType):
             # in the case where data_type is a parameterized dtypes.DataType instance that isn't
             # in the equivalents registry, use its type to get the equivalent, and feed
             # the parameters into the recognized data type class.

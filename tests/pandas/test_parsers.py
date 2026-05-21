@@ -11,6 +11,7 @@ import pandera.pandas as pa
 from pandera.api.pandas.array import SeriesSchema
 from pandera.api.pandas.container import DataFrameSchema
 from pandera.api.parsers import Parser
+from pandera.engines.pandas_engine import PANDAS_3_0_0_PLUS
 from pandera.typing import Series
 
 
@@ -21,7 +22,9 @@ def test_dataframe_schema_parse() -> None:
     schema_check_return_bool = DataFrameSchema(
         parsers=Parser(lambda df: df.transform("sqrt"))
     )
-    assert schema_check_return_bool.validate(data).equals(data.apply(np.sqrt))
+    assert schema_check_return_bool.validate(data).equals(
+        data.transform("sqrt")
+    )
 
 
 def test_dataframe_schema_parse_with_element_wise() -> None:
@@ -30,9 +33,7 @@ def test_dataframe_schema_parse_with_element_wise() -> None:
     schema_check_return_bool = DataFrameSchema(
         parsers=Parser(np.sqrt, element_wise=True)
     )
-    result = (
-        data.map(np.sqrt) if hasattr(data, "map") else data.applymap(np.sqrt)
-    )
+    result = data.map(np.sqrt)
     assert schema_check_return_bool.validate(data).equals(result)
 
 
@@ -41,9 +42,8 @@ def test_series_schema_parse_with_element_wise() -> None:
     schema_check_return_bool = SeriesSchema(
         parsers=Parser(np.sqrt, element_wise=True)
     )
-    result = (
-        data.map(np.sqrt) if hasattr(data, "map") else data.applymap(np.sqrt)
-    )
+    # Series always has map, but for consistency with DataFrame test
+    result = data.map(np.sqrt)
     assert schema_check_return_bool.validate(data).equals(result)
 
 
@@ -156,7 +156,12 @@ def test_parser_with_coercion():
     assert validated_df["col1"].dtype == pd.CategoricalDtype(
         categories=["category1", "category2"]
     )
-    assert validated_df["col2"].dtype == pd.StringDtype()
+    if PANDAS_3_0_0_PLUS:
+        import numpy as np
+
+        assert validated_df["col2"].dtype == pd.StringDtype(na_value=np.nan)
+    else:
+        assert validated_df["col2"].dtype == pd.StringDtype()
 
 
 def test_parser_with_add_missing_columns():
@@ -193,9 +198,11 @@ def test_parser_with_add_missing_columns():
             return df
 
     validated_df = Schema.validate(pd.DataFrame({"a": ["xxx"], "b": 0}))
-    assert_frame_equal(
-        validated_df, pd.DataFrame({"a": ["xxx"], "b": 0, "c": 0})
-    )
+    expected = pd.DataFrame({"a": ["xxx"], "b": 0, "c": 0})
+    # With pandas < 3, str columns coerce to object (NpString); pandas >= 3 to str
+    if PANDAS_3_0_0_PLUS:
+        expected["a"] = expected["a"].astype("str")
+    assert_frame_equal(validated_df, expected)
 
     with pytest.raises(pa.errors.SchemaError, match="No `b` or `c` in"):
         Schema.validate(pd.DataFrame({"a": ["xxx"]}))

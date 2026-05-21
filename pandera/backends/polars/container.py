@@ -278,14 +278,25 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
         column_info: ColumnInfo,
     ):
         """Collects all schema components to use for validation."""
+        from pydantic import BaseModel
 
         from pandera.api.polars.components import Column
+        from pandera.engines import polars_engine
 
         columns: dict[str, Column] = schema.columns
 
-        if not schema.columns and schema.dtype is not None:
+        try:
+            is_pydantic = issubclass(
+                polars_engine.Engine.dtype(schema.dtype).type, BaseModel
+            )
+        except TypeError:
+            is_pydantic = False
+
+        if not schema.columns and schema.dtype is not None and not is_pydantic:
             # set schema components to dataframe dtype if columns are not
             # specified but the dataframe-level dtype is specified.
+            # PydanticModel applies row-wise, so per-column components
+            # are not created for it.
             columns = {}
             for col_name in get_lazyframe_column_names(check_obj):
                 columns[col_name] = Column(schema.dtype, name=str(col_name))
@@ -294,7 +305,7 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
         for col_name, col in columns.items():
             if (
                 col.required  # type: ignore
-                or col_name in check_obj
+                or col_name in check_obj.collect_schema().names()
                 or (
                     column_info.regex_match_patterns is not None
                     and col.selector in column_info.regex_match_patterns
@@ -421,19 +432,26 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
 
         return check_obj
 
-    def coerce_dtype(self, check_obj: pl.LazyFrame, schema=None):
-        """Coerce dataframe columns to the correct dtype."""
+    def coerce_dtype(self, check_obj: PolarsFrame, schema=None) -> PolarsFrame:
+        """Coerce dataframe columns to the correct dtype.
+
+        Preserves the input frame kind: a ``pl.DataFrame`` in returns a
+        ``pl.DataFrame`` out; a ``pl.LazyFrame`` in returns a ``pl.LazyFrame``
+        out.
+        """
         assert schema is not None, "The `schema` argument must be provided."
 
-        error_handler = ErrorHandler(lazy=True)
+        return_type = type(check_obj)
+        check_lf = _to_lazy(check_obj)
 
         if not (
             schema.coerce or any(col.coerce for col in schema.columns.values())
         ):
-            return check_obj
+            return _to_frame_kind(check_lf, return_type)
 
+        error_handler = ErrorHandler(lazy=True)
         try:
-            check_obj = self._coerce_dtype_helper(check_obj, schema)
+            check_lf = self._coerce_dtype_helper(check_lf, schema)
         except SchemaErrors as err:
             for schema_error in err.schema_errors:
                 error_handler.collect_error(
@@ -456,10 +474,10 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
             raise SchemaErrors(
                 schema=schema,
                 schema_errors=error_handler.schema_errors,
-                data=check_obj,
+                data=check_lf,
             )
 
-        return check_obj
+        return _to_frame_kind(check_lf, return_type)
 
     def _coerce_dtype_helper(
         self,

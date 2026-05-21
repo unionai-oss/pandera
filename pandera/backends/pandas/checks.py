@@ -1,5 +1,6 @@
 """Check backend for pandas."""
 
+from collections.abc import Hashable
 from functools import partial
 from typing import Optional, Union, cast
 
@@ -46,7 +47,7 @@ class PandasCheckBackend(BaseCheckBackend):
     def _format_groupby_input(
         groupby_obj: GroupbyObject,
         groups: list[str] | None,
-    ) -> Union[dict[str, pd.Series], dict[str, pd.DataFrame]]:
+    ) -> dict[Hashable, pd.Series] | dict[Hashable, pd.DataFrame]:
         """Format groupby object into dict of groups to Series or DataFrame.
 
         :param groupby_obj: a pandas groupby object.
@@ -56,7 +57,7 @@ class PandasCheckBackend(BaseCheckBackend):
         # NOTE: this behavior should be deprecated such that the user deals with
         # pandas groupby objects instead of dicts.
         if groups is None:
-            return {  # type: ignore[return-value]
+            return {
                 (k if isinstance(k, bool) else k[0] if len(k) == 1 else k): v
                 for k, v in groupby_obj  # type: ignore[union-attr]
             }

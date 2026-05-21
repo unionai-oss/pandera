@@ -4,8 +4,14 @@ import ibis
 import pytest
 
 import pandera.ibis as pa
+from pandera.config import CONFIG
 
 
+@pytest.mark.xfail(
+    condition=CONFIG.use_narwhals_backend,
+    reason="Narwhals backend uses operations not supported by ibis sqlite backend (IsNan)",
+    strict=True,
+)
 def test_ibis_sqlite_backend():
     con = ibis.sqlite.connect()
     schema = ibis.schema(dict(x="int64", y="float64", z="string"))

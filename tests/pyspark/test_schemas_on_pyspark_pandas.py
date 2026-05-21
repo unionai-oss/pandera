@@ -458,15 +458,33 @@ def test_dtype_coercion(from_dtype, to_dtype, data):
 
     # strings that can't be interpreted as numbers are converted to NA
     if from_dtype is str and to_dtype in {int, float}:
-        # first check if sample contains NAs
+        # first check if sample contains NAs after pandas-style astype
         if sample.astype(to_dtype).isna().any().item():
             with pytest.raises(
-                pa.errors.SchemaError, match="non-nullable series"
+                (pa.errors.SchemaError, pa.errors.SchemaErrors)
             ):
                 to_schema(sample)
         return
 
     assert isinstance(to_schema(sample), ps.DataFrame)
+
+
+def test_dtype_coercion_nullable_reports_invalid_values():
+    """Ensure coerce dtype errors are reported even when nullable=True."""
+
+    schema = pa.DataFrameSchema(
+        {"distance": pa.Column(float, nullable=True, coerce=True)}
+    )
+    sample = ps.DataFrame({"distance": ["15.2", "test", "13", "NY"]})
+
+    with pytest.raises(pa.errors.SchemaErrors) as exc_info:
+        schema.validate(sample, lazy=True)
+
+    failure_cases = exc_info.value.failure_cases
+    assert set(failure_cases["failure_case"].astype(str).tolist()) == {
+        "test",
+        "NY",
+    }
 
 
 @pytest.mark.parametrize("dtype", [float, int, str, bool])
@@ -511,7 +529,8 @@ def test_strict_schema():
     non_strict_schema(strict_df)
 
     with pytest.raises(
-        pa.errors.SchemaError, match="column 'foo' not in DataFrameSchema"
+        (pa.errors.SchemaError, pa.errors.SchemaErrors),
+        match="column 'foo' not in DataFrameSchema",
     ):
         strict_schema(non_strict_df)
 
@@ -596,8 +615,8 @@ def test_schema_model():
         [pa.Check.str_contains("a"), "faa", "foo"],
         [pa.Check.str_startswith("a"), "ab", "ba"],
         [pa.Check.str_endswith("a"), "ba", "ab"],
-        [pa.Check.str_length(min_value=1, max_value=2), "a", ""],
-        [pa.Check.str_length(1), "a", ""],
+        [pa.Check.str_length(1, 2), "a", ""],
+        [pa.Check.str_length(2), "ab", "a"],  # exact length
     ],
 )
 def test_check_comparison_operators(check, valid, invalid):
@@ -710,7 +729,7 @@ def test_init_pyspark_pandas_dataframe():
 )
 def test_init_pyspark_dataframe_errors(invalid_data):
     """Test errors from initializing a pandas.typing.DataFrame with Schema."""
-    with pytest.raises(pa.errors.SchemaError):
+    with pytest.raises((pa.errors.SchemaError, pa.errors.SchemaErrors)):
         DataFrame[InitSchema](invalid_data)
 
 

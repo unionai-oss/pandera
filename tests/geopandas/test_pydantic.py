@@ -6,14 +6,14 @@ import pytest
 from pydantic import BaseModel, ValidationError
 from shapely.geometry import Point
 
-import pandera.pandas as pa
+import pandera.geopandas as pg
 from pandera.typing.geopandas import GeoDataFrame, GeoSeries
 
 
 def test_pydantic_active_geometry():
     """Test that GeoDataFrame type can be used in a Pydantic model with geometry activated"""
 
-    class Schema(pa.DataFrameModel):
+    class Schema(pg.DataFrameModel):
         # pylint: disable=missing-class-docstring
         geometry: GeoSeries
 
@@ -49,7 +49,7 @@ def test_pydantic_inactive_geometry():
     """Test that GeoDataFrame type can be used in a Pydantic model with geometry not activated"""
 
     # Geometry column exists but non-standard name
-    class Schema(pa.DataFrameModel):
+    class Schema(pg.DataFrameModel):
         # pylint: disable=missing-class-docstring
         random: GeoSeries
 
@@ -74,7 +74,7 @@ def test_pydantic_inactive_geometry():
         _ = obj.data.geometry
 
     # Geometry column doesn't exist
-    class Schema(pa.DataFrameModel):
+    class Schema(pg.DataFrameModel):
         # pylint: disable=missing-class-docstring
         random: str
 
@@ -99,10 +99,30 @@ def test_pydantic_inactive_geometry():
         _ = obj.data.geometry
 
 
+def test_pydantic_geodataframe_model_schema():
+    """GeoDataFrame[Schema] works when Schema subclasses GeoDataFrameModel."""
+
+    class GeoSchema(pg.GeoDataFrameModel):
+        # pylint: disable=missing-class-docstring
+        geometry: GeoSeries
+
+        class Config:
+            coerce = True
+
+    class MyModel(BaseModel):
+        # pylint: disable=missing-class-docstring
+        data: GeoDataFrame[GeoSchema]
+
+    obj = MyModel(
+        data=pd.DataFrame({"geometry": [Point(0, 0)]}),
+    )
+    assert isinstance(obj.data, gpd.GeoDataFrame)
+
+
 def test_pydantic_garbage_input():
     """Test that GeoDataFrame type in a Pydantic model will throw an exception with garbage input"""
 
-    class Schema(pa.DataFrameModel):
+    class Schema(pg.DataFrameModel):
         # pylint: disable=missing-class-docstring
         geometry: GeoSeries
 

@@ -147,7 +147,7 @@ schema = pa.DataFrameSchema({
 
 try:
     schema.validate(df)
-except pa.errors.SchemaError as exc:
+except (pa.errors.SchemaError, pa.errors.SchemaErrors) as exc:
     print(exc)
 ```
 
@@ -208,6 +208,11 @@ try:
 except pa.errors.SchemaError as exc:
     print(exc)
 ```
+
+`required=False` means that a column may be absent from the input
+DataFrame. It does not add the column during validation. To add missing
+columns, use {ref}`add_missing_columns=True <adding-missing-columns>`
+with required columns that specify a `default` value or `nullable=True`.
 
 (column-validation-1)=
 
@@ -320,7 +325,9 @@ schema.validate(dataframe).head()
 
 By default, columns that aren’t specified in the schema aren’t checked.
 If you want to check that the DataFrame *only* contains columns in the
-schema, specify `strict=True`:
+schema, specify `strict=True`. Unexpected columns are reported as
+{class}`~pandera.errors.SchemaErrors` (see {attr}`~pandera.errors.SchemaErrors.schema_errors`),
+which may list more than one column when several are not in the schema.
 
 ```{code-cell} python
 import pandas as pd
@@ -335,8 +342,10 @@ df = pd.DataFrame({"column2": [1, 2, 3]})
 
 try:
     schema.validate(df)
-except pa.errors.SchemaError as exc:
-    print(exc)
+except pa.errors.SchemaErrors as exc:
+    # Strict column checks are reported as SchemaErrors (one or more entries)
+    for err in exc.schema_errors:
+        print(err)
 ```
 
 Alternatively, if your DataFrame contains columns that are not in the schema,
@@ -367,7 +376,9 @@ For some applications the order of the columns is important. For example:
 - Machine learning: Many ML libraries will cast a Dataframe to numpy arrays,
   for which order becomes crucial.
 
-To validate the order of the Dataframe columns, specify `ordered=True`:
+To validate the order of the Dataframe columns, specify `ordered=True`.
+Out-of-order columns are reported as {class}`~pandera.errors.SchemaErrors`
+(one entry per schema column that is not in the expected position).
 
 ```{code-cell} python
 import pandas as pd
@@ -380,9 +391,65 @@ df = pd.DataFrame({"b": [1], "a": [1]})
 
 try:
     schema.validate(df)
-except pa.errors.SchemaError as exc:
-    print(exc)
+except pa.errors.SchemaErrors as exc:
+    for err in exc.schema_errors:
+        print(err)
 ```
+
+(strict-and-ordered)=
+
+### Using `strict=True` and `ordered=True` together
+
+When both flags are set, pandera checks **every** column in the dataframe for:
+
+- **Extra columns** (`strict`): columns not defined in the schema.
+- **Column order** (`ordered`): schema columns must appear left-to-right in the
+  same order as in the schema.
+
+If the data has more than one problem (for example, columns out of order *and*
+an unexpected column), validation raises a single {class}`~pandera.errors.SchemaErrors`
+whose {attr}`~pandera.errors.SchemaErrors.schema_errors` list contains all
+relevant issues. Each entry is a {class}`~pandera.errors.SchemaError` with a
+{attr}`~pandera.errors.SchemaError.reason_code` of either
+`SchemaErrorReason.COLUMN_NOT_ORDERED` or
+`SchemaErrorReason.COLUMN_NOT_IN_SCHEMA`.
+
+```{code-cell} python
+import pandas as pd
+import pandera.pandas as pa
+from pandera.errors import SchemaErrorReason
+
+schema = pa.DataFrameSchema(
+    columns={
+        "id": pa.Column(pa.Int64, nullable=False),
+        "name": pa.Column(pa.String, nullable=True),
+    },
+    strict=True,
+    ordered=True,
+)
+
+# Wrong order (name before id) and an extra column
+df = pd.DataFrame(
+    {
+        "name": ["Alice", "Bob"],
+        "id": [1, 2],
+        "extra": ["x", "y"],
+    }
+)
+
+try:
+    schema.validate(df)
+except pa.errors.SchemaErrors as exc:
+    reasons = {e.reason_code for e in exc.schema_errors}
+    assert SchemaErrorReason.COLUMN_NOT_ORDERED in reasons
+    assert SchemaErrorReason.COLUMN_NOT_IN_SCHEMA in reasons
+```
+
+With `lazy=True`, these column checks are still collected into
+{class}`~pandera.errors.SchemaErrors` together with later validation errors
+(checks, dtypes, etc.) when applicable. With the default `lazy=False`, any
+`SchemaErrors` raised during this phase is raised immediately so you see every
+strict/ordered issue at once.
 
 (index)=
 
@@ -446,6 +513,9 @@ When you call `schema.validate(data)`, the schema will add any missing columns
 to the dataframe, defaulting to the `default` value if supplied at the column-level,
 or to `NaN` if the column is nullable.
 
+Columns declared with `required=False` are allowed to be absent from the
+input data and are not added to the validated output.
+
 ```{code-cell} python
 import pandas as pd
 import pandera.pandas as pa
@@ -455,6 +525,7 @@ schema = pa.DataFrameSchema(
         "a": pa.Column(int),
         "b": pa.Column(int, default=1),
         "c": pa.Column(float, nullable=True),
+        "d": pa.Column(str, required=False),
     },
     add_missing_columns=True,
     coerce=True,
@@ -729,3 +800,22 @@ The available methods for altering the schema are:
 - {func}`~pandera.api.dataframe.container.DataFrameSchema.rename_indexes`
 - {func}`~pandera.api.dataframe.container.DataFrameSchema.set_index`
 - {func}`~pandera.api.dataframe.container.DataFrameSchema.reset_index`
+
+Additionally, for {class}`~pandera.api.pandas.container.DataFrameSchema`, you can use the following example to see how `add_missing_columns` works with different column types:
+
+```{code-cell} python
+import pandas as pd
+import pandera.pandas as pa
+
+schema = pa.DataFrameSchema(
+    columns={
+        "a": pa.Column(int),
+        "b": pa.Column(int, default=1),
+        "c": pa.Column(float, nullable=True),
+    },
+    add_missing_columns=True,
+    coerce=True,
+)
+df = pd.DataFrame({"a": [1, 2, 3]})
+schema.validate(df)
+```

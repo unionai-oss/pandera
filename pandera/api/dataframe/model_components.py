@@ -3,7 +3,6 @@
 from collections.abc import Callable, Iterable
 from typing import (
     Any,
-    Optional,
     Union,
     cast,
 )
@@ -92,6 +91,7 @@ class FieldInfo(BaseFieldInfo):
             title=self.title,
             description=self.description,
             default=self.default,
+            metadata=self.metadata,
         )
 
     @property
@@ -119,12 +119,25 @@ def Field(
     ge: Any | None = None,
     lt: Any | None = None,
     le: Any | None = None,
-    in_range: dict[str, Any] | None = None,
+    in_range: Union[
+        tuple[Any, Any],
+        tuple[Any, Any, bool, bool],
+        tuple[Any, Any, bool, bool, bool],
+        tuple[Any, Any, bool, bool, bool, bool],
+        dict[str, Any],
+        None,
+    ] = None,
     isin: Iterable[Any] | None = None,
     notin: Iterable[Any] | None = None,
     str_contains: str | None = None,
     str_endswith: str | None = None,
-    str_length: int | dict[str, Any] | None = None,
+    str_length: Union[
+        int,
+        tuple[int],
+        tuple[int, int],
+        dict[str, int],
+        None,
+    ] = None,
     str_matches: str | None = None,
     str_startswith: str | None = None,
     nullable: bool = False,
@@ -150,9 +163,38 @@ def Field(
     Some arguments apply only to numeric dtypes and some apply only to ``str``.
     See the :ref:`User Guide <dataframe-models>` for more information.
 
-    The keyword-only arguments from ``eq`` to ``str_startswith`` are dispatched
-    to the built-in :py:class:`~pandera.api.checks.Check` methods.
+    The keyword-only arguments for argument names ``eq`` to ``str_startswith`` are dispatched
+    to the built-in :py:class:`~pandera.api.checks.Check` methods if the value
+    is a dictionary. If the value is a tuple, it is unpacked as positional arguments.
 
+    :param eq: Check that the column/index is equal to a value.
+        See :func:`~pandera.api.checks.Check.equal_to` for more information.
+    :param ne: Check that the column/index is not equal to a value.
+        See :func:`~pandera.api.checks.Check.not_equal_to` for more information.
+    :param gt: Check that the column/index is greater than a value.
+        See :func:`~pandera.api.checks.Check.greater_than` for more information.
+    :param ge: Check that the column/index is greater than or equal to a value.
+        See :func:`~pandera.api.checks.Check.greater_than_or_equal_to` for more information.
+    :param lt: Check that the column/index is less than a value.
+        See :func:`~pandera.api.checks.Check.less_than` for more information.
+    :param le: Check that the column/index is less than or equal to a value.
+        See :func:`~pandera.api.checks.Check.less_than_or_equal_to` for more information.
+    :param in_range: Check that the column/index is within a range.
+        See :func:`~pandera.api.checks.Check.in_range` for more information.
+    :param isin: Check that the column/index is in a set of values.
+        See :func:`~pandera.api.checks.Check.isin` for more information.
+    :param notin: Check that the column/index is not in a set of values.
+        See :func:`~pandera.api.checks.Check.notin` for more information.
+    :param str_contains: Check that the column/index contains a substring.
+        See :func:`~pandera.api.checks.Check.str_contains` for more information.
+    :param str_endswith: Check that the column/index ends with a substring.
+        See :func:`~pandera.api.checks.Check.str_endswith` for more information.
+    :param str_length: Check that the length of the column/index is within a range.
+        See :func:`~pandera.api.checks.Check.str_length` for more information.
+    :param str_matches: Check that the column/index matches a regex pattern.
+        See :func:`~pandera.api.checks.Check.str_matches` for more information.
+    :param str_startswith: Check that the column/index starts with a substring.
+        See :func:`~pandera.api.checks.Check.str_startswith` for more information.
     :param nullable: Whether or not the column/index can contain null values.
     :param unique: Whether column values should be unique.
     :param coerce: coerces the data type if ``True``.
@@ -197,6 +239,9 @@ def Field(
             continue
         if isinstance(arg_value, dict):
             check_ = check_constructor(**arg_value, **check_kwargs)
+        elif isinstance(arg_value, tuple):
+            # Unpack tuples as positional args (e.g., str_length=(1, 5))
+            check_ = check_constructor(*arg_value, **check_kwargs)
         else:
             check_ = check_constructor(arg_value, **check_kwargs)
         checks.append(check_)

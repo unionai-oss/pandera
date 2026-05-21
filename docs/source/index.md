@@ -4,7 +4,7 @@ file_format: mystnb
 
 % pandera documentation entrypoint
 
-# The Open-source Framework for Validating DataFrame-like Objects
+# The Open-source Framework for Dataset Validation
 
 > *Data validation for scientists, engineers, and analysts seeking correctness.*
 
@@ -145,37 +145,40 @@ Installing additional functionality:
 
 :::{tab-item} pip
 ```{code} bash
-pip install 'pandera[hypotheses]'  # hypothesis checks
-pip install 'pandera[io]'          # yaml/script schema io utilities
-pip install 'pandera[strategies]'  # data synthesis strategies
-pip install 'pandera[mypy]'        # enable static type-linting of pandas
-pip install 'pandera[fastapi]'     # fastapi integration
-pip install 'pandera[dask]'        # validate dask dataframes
-pip install 'pandera[pyspark]'     # validate pyspark dataframes
-pip install 'pandera[modin]'       # validate modin dataframes
-pip install 'pandera[modin-ray]'   # validate modin dataframes with ray
-pip install 'pandera[modin-dask]'  # validate modin dataframes with dask
-pip install 'pandera[geopandas]'   # validate geopandas geodataframes
-pip install 'pandera[polars]'      # validate polars dataframes
-pip install 'pandera[ibis]'        # validate ibis tables
+pip install 'pandera[hypotheses]'   # hypothesis checks
+pip install 'pandera[io]'           # yaml/script schema io utilities
+pip install 'pandera[frictionless]' # frictionless schema serialization/deserialization
+pip install 'pandera[strategies]'   # data synthesis strategies
+pip install 'pandera[mypy]'         # enable static type-linting of pandas
+pip install 'pandera[fastapi]'      # fastapi integration
+pip install 'pandera[dask]'         # validate dask dataframes
+pip install 'pandera[pyspark]'      # validate pyspark dataframes
+pip install 'pandera[modin]'        # validate modin dataframes
+pip install 'pandera[modin-ray]'    # validate modin dataframes with ray
+pip install 'pandera[modin-dask]'   # validate modin dataframes with dask
+pip install 'pandera[geopandas]'    # validate geopandas geodataframes
+pip install 'pandera[polars]'       # validate polars dataframes
+pip install 'pandera[ibis]'         # validate ibis tables
+pip install 'pandera[xarray]'       # validate xarray data structures
 ```
 :::
 
 :::{tab-item} conda
 ```{code} bash
-conda install -c conda-forge pandera-hypotheses  # hypothesis checks
-conda install -c conda-forge pandera-io          # yaml/script schema io utilities
-conda install -c conda-forge pandera-strategies  # data synthesis strategies
-conda install -c conda-forge pandera-mypy        # enable static type-linting of pandas
-conda install -c conda-forge pandera-fastapi     # fastapi integration
-conda install -c conda-forge pandera-dask        # validate dask dataframes
-conda install -c conda-forge pandera-pyspark     # validate pyspark dataframes
-conda install -c conda-forge pandera-modin       # validate modin dataframes
-conda install -c conda-forge pandera-modin-ray   # validate modin dataframes with ray
-conda install -c conda-forge pandera-modin-dask  # validate modin dataframes with dask
-conda install -c conda-forge pandera-geopandas   # validate geopandas geodataframes
-conda install -c conda-forge pandera-polars      # validate polars dataframes
-conda install -c conda-forge pandera-ibis        # validate ibis tables
+conda install -c conda-forge pandera-hypotheses   # hypothesis checks
+conda install -c conda-forge pandera-io           # yaml/script schema io utilities
+conda install -c conda-forge pandera-frictionless # frictionless schema serialization/deserialization
+conda install -c conda-forge pandera-strategies   # data synthesis strategies
+conda install -c conda-forge pandera-mypy         # enable static type-linting of pandas
+conda install -c conda-forge pandera-fastapi      # fastapi integration
+conda install -c conda-forge pandera-dask         # validate dask dataframes
+conda install -c conda-forge pandera-pyspark      # validate pyspark dataframes
+conda install -c conda-forge pandera-modin        # validate modin dataframes
+conda install -c conda-forge pandera-modin-ray    # validate modin dataframes with ray
+conda install -c conda-forge pandera-modin-dask   # validate modin dataframes with dask
+conda install -c conda-forge pandera-geopandas    # validate geopandas geodataframes
+conda install -c conda-forge pandera-polars       # validate polars dataframes
+conda install -c conda-forge pandera-ibis         # validate ibis tables
 ```
 :::
 ::::
@@ -424,7 +427,7 @@ Official Website <https://union.ai/pandera>
 ```
 
 ```{toctree}
-:caption: User Guide
+:caption: Basics
 :hidden: true
 :maxdepth: 6
 
@@ -433,20 +436,35 @@ dataframe_models
 series_schemas
 dtype_validation
 checks
+dtypes
+lazy_validation
+error_report
+```
+
+```{toctree}
+:caption: Advanced
+:hidden: true
+:maxdepth: 6
+
 hypothesis
 parsers
-dtypes
 decorators
 drop_invalid_rows
 schema_inference
-lazy_validation
-error_report
 data_synthesis_strategies
-extensions
 data_format_conversion
-supported_libraries
-integrations
+extensions
 configuration
+```
+
+```{toctree}
+:caption: Integrations
+:hidden: true
+:maxdepth: 6
+
+supported_libraries
+xarray_guide/index
+integrations
 ```
 
 ```{toctree}

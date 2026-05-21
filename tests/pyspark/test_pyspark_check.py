@@ -1435,6 +1435,186 @@ class TestStringType(BaseClass):
             spark, check_func, pass_data, fail_data, StringType(), check_value
         )
 
+    @validate_scope(scope=ValidationScope.DATA)
+    def test_str_matches_check(self, spark_session, request) -> None:
+        """Test the Check to see if values match a regex pattern from the start"""
+        spark = request.getfixturevalue(spark_session)
+        check_func = pa.Check.str_matches
+        # Pattern to match strings starting with uppercase letter followed by lowercase letters
+        check_value = r"^[A-Z][a-z]+"
+
+        pass_data = [("Bal", "Bread"), ("Bal", "Butter")]
+        fail_data = [
+            ("Bal", "bread"),
+            ("Bal", "Butter"),
+        ]  # "bread" doesn't start with uppercase
+        BaseClass.check_function(
+            spark, check_func, pass_data, fail_data, StringType(), check_value
+        )
+
+    @validate_scope(scope=ValidationScope.DATA)
+    def test_str_matches_check_without_caret(
+        self, spark_session, request
+    ) -> None:
+        """Test str_matches automatically prepends ^ if not present"""
+        spark = request.getfixturevalue(spark_session)
+        check_func = pa.Check.str_matches
+        # Pattern without ^ - should be automatically added
+        check_value = r"[0-9]{3}"  # Match 3 digits at the start
+
+        pass_data = [("Bal", "123abc"), ("Bal", "456def")]
+        fail_data = [
+            ("Bal", "abc123"),
+            ("Bal", "456def"),
+        ]  # "abc123" doesn't start with digits
+        BaseClass.check_function(
+            spark, check_func, pass_data, fail_data, StringType(), check_value
+        )
+
+    @validate_scope(scope=ValidationScope.DATA)
+    def test_str_matches_check_with_caret(
+        self, spark_session, request
+    ) -> None:
+        """Test str_matches works correctly when ^ is already present"""
+        spark = request.getfixturevalue(spark_session)
+        check_func = pa.Check.str_matches
+        # Pattern with ^ already present
+        check_value = r"^test_"
+
+        pass_data = [("Bal", "test_123"), ("Bal", "test_abc")]
+        fail_data = [
+            ("Bal", "Test_123"),
+            ("Bal", "test_abc"),
+        ]  # "Test_123" has uppercase T
+        BaseClass.check_function(
+            spark, check_func, pass_data, fail_data, StringType(), check_value
+        )
+
+    @validate_scope(scope=ValidationScope.DATA)
+    def test_str_matches_email_pattern(self, spark_session, request) -> None:
+        """Test str_matches with an email-like regex pattern"""
+        spark = request.getfixturevalue(spark_session)
+        check_func = pa.Check.str_matches
+        # Email pattern
+        check_value = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
+
+        pass_data = [
+            ("Bal", "test@example.com"),
+            ("Bal", "user.name@domain.org"),
+        ]
+        fail_data = [
+            ("Bal", "invalid-email"),
+            ("Bal", "test@example.com"),
+        ]  # "invalid-email" is not an email
+        BaseClass.check_function(
+            spark, check_func, pass_data, fail_data, StringType(), check_value
+        )
+
+    @validate_scope(scope=ValidationScope.DATA)
+    def test_str_matches_with_compiled_pattern(
+        self, spark_session, request
+    ) -> None:
+        """Test str_matches with a pre-compiled regex pattern"""
+        import re
+
+        spark = request.getfixturevalue(spark_session)
+        # Using compiled pattern
+        check_value = re.compile(r"^[A-Z]{2,3}[0-9]+")
+
+        schema = DataFrameSchema(
+            {
+                "product": Column(StringType()),
+                "code": Column(
+                    StringType(), pa.Check.str_matches(check_value)
+                ),
+            }
+        )
+        spark_schema = StructType(
+            [
+                StructField("product", StringType(), False),
+                StructField("code", StringType(), False),
+            ],
+        )
+
+        # Pass case: strings starting with 2-3 uppercase letters followed by digits
+        pass_data = [("foo", "AB123"), ("bar", "XYZ99")]
+        df = spark.createDataFrame(data=pass_data, schema=spark_schema)
+        df_out = schema.validate(df)
+        assert not df_out.pandera.errors
+
+        # Fail case: "ab123" starts with lowercase
+        fail_data = [("foo", "ab123"), ("bar", "XYZ99")]
+        with pytest.raises(PysparkSchemaError):
+            df_fail = spark.createDataFrame(
+                data=fail_data, schema=spark_schema
+            )
+            df_out = schema.validate(df_fail)
+            if df_out.pandera.errors:
+                raise PysparkSchemaError
+
+
+@validate_scope(scope=ValidationScope.DATA)
+def test_str_length_check_with_pyspark_schemas(spark_session, request) -> None:
+    """Check.str_length should work for pyspark DataFrameSchema checks."""
+    spark = request.getfixturevalue(spark_session)
+    schema = DataFrameSchema(
+        {
+            "participant_id": Column(
+                StringType(),
+                checks=[pa.Check.str_length(32)],
+            )
+        }
+    )
+    spark_schema = StructType(
+        [StructField("participant_id", StringType(), False)],
+    )
+
+    df = spark.createDataFrame(
+        data=[("a" * 32,), ("b" * 32,)],
+        schema=spark_schema,
+    )
+    df_out = schema.validate(df)
+    assert not df_out.pandera.errors
+
+    df = spark.createDataFrame(
+        data=[("a" * 31,), ("b" * 32,)],
+        schema=spark_schema,
+    )
+    df_out = schema.validate(df)
+    assert (
+        dict(df_out.pandera.errors)["DATA"]["DATAFRAME_CHECK"][0]["check"]
+        == "str_length(32)"
+    )
+
+
+@validate_scope(scope=ValidationScope.DATA)
+def test_field_str_length_with_pyspark_schema_fields(
+    spark_session, request
+) -> None:
+    """Field(str_length=...) should work for pyspark DataFrameModel."""
+    spark = request.getfixturevalue(spark_session)
+
+    # pylint: disable=too-few-public-methods
+    class ProductSchema(DataFrameModel):
+        product_name: StringType() = Field(
+            str_length={"min_value": 1, "max_value": 2}
+        )
+
+    spark_schema = StructType(
+        [StructField("product_name", StringType(), False)],
+    )
+
+    df = spark.createDataFrame(data=[("a",), ("bb",)], schema=spark_schema)
+    df_out = ProductSchema.validate(df)
+    assert not df_out.pandera.errors
+
+    df = spark.createDataFrame(data=[("bbb",)], schema=spark_schema)
+    df_out = ProductSchema.validate(df)
+    assert (
+        dict(df_out.pandera.errors)["DATA"]["DATAFRAME_CHECK"][0]["check"]
+        == "str_length(1, 2)"
+    )
+
 
 class TestInRangeCheck(BaseClass):
     """This class is used to test the value in range check"""
@@ -1706,3 +1886,151 @@ class TestCustomCheck(BaseClass):
             self.sample_numeric_data["test_fail_data"],
             IntegerType(),
         )
+
+
+class TestUniqueValuesEqCheck(BaseClass):
+    """This class is used to test the unique_values_eq check"""
+
+    sample_numeric_data = {
+        "test_pass_data": [("foo", 31), ("bar", 32)],
+        "test_fail_data": [
+            ("foo", 31),
+            ("bar", 31),
+        ],  # Missing 32, only has 31
+        "test_expression": [31, 32],
+    }
+
+    sample_timestamp_data = {
+        "test_pass_data": [
+            ("foo", datetime.datetime(2020, 10, 1, 10, 0)),
+            ("bar", datetime.datetime(2020, 10, 2, 10, 0)),
+        ],
+        "test_fail_data": [
+            ("foo", datetime.datetime(2020, 10, 1, 10, 0)),
+            (
+                "bar",
+                datetime.datetime(2020, 10, 1, 10, 0),
+            ),  # Missing second date
+        ],
+        "test_expression": [
+            datetime.datetime(2020, 10, 1, 10, 0),
+            datetime.datetime(2020, 10, 2, 10, 0),
+        ],
+    }
+
+    sample_date_data = {
+        "test_pass_data": [
+            ("foo", datetime.date(2020, 10, 1)),
+            ("bar", datetime.date(2020, 10, 2)),
+        ],
+        "test_fail_data": [
+            ("foo", datetime.date(2020, 10, 1)),
+            ("bar", datetime.date(2020, 10, 1)),  # Missing second date
+        ],
+        "test_expression": [
+            datetime.date(2020, 10, 1),
+            datetime.date(2020, 10, 2),
+        ],
+    }
+
+    sample_string_data = {
+        "test_pass_data": [("foo", "b"), ("bar", "c")],
+        "test_fail_data": [("foo", "b"), ("bar", "b")],  # Missing 'c'
+        "test_expression": ["b", "c"],
+    }
+
+    sample_bolean_data = {
+        "test_pass_data": [("foo", [True]), ("bar", [True])],
+        "test_expression": [True],
+    }
+
+    def pytest_generate_tests(self, metafunc):
+        """This function passes the parameter for each function based on parameter form get_data_param function"""
+        # called once per each test function
+        funcarglist = self.get_data_param()[metafunc.function.__name__]
+        argnames = sorted(funcarglist[0])
+        metafunc.parametrize(
+            argnames,
+            [
+                [funcargs[name] for name in argnames]
+                for funcargs in funcarglist
+            ],
+        )
+
+    def get_data_param(self):
+        """Generate the params which will be used to test this function. All the acceptable
+        data types would be tested"""
+        return {
+            "test_unique_values_eq_check": [
+                {"datatype": LongType(), "data": self.sample_numeric_data},
+                {"datatype": IntegerType(), "data": self.sample_numeric_data},
+                {"datatype": ByteType(), "data": self.sample_numeric_data},
+                {"datatype": ShortType(), "data": self.sample_numeric_data},
+                {
+                    "datatype": DoubleType(),
+                    "data": self.convert_numeric_data(
+                        self.sample_numeric_data, "double"
+                    ),
+                },
+                {
+                    "datatype": TimestampType(),
+                    "data": self.sample_timestamp_data,
+                },
+                {"datatype": DateType(), "data": self.sample_date_data},
+                {
+                    "datatype": DecimalType(),
+                    "data": self.convert_numeric_data(
+                        self.sample_numeric_data, "decimal"
+                    ),
+                },
+                {
+                    "datatype": FloatType(),
+                    "data": self.convert_numeric_data(
+                        self.sample_numeric_data, "float"
+                    ),
+                },
+                {"datatype": StringType(), "data": self.sample_string_data},
+            ],
+            "test_failed_unaccepted_datatypes": [
+                {"datatype": BooleanType(), "data": self.sample_bolean_data},
+                {
+                    "datatype": ArrayType(StringType()),
+                    "data": self.sample_array_data,
+                },
+                {
+                    "datatype": MapType(StringType(), StringType()),
+                    "data": self.sample_map_data,
+                },
+            ],
+        }
+
+    @validate_scope(scope=ValidationScope.DATA)
+    def test_unique_values_eq_check(
+        self, spark_session, datatype, data, request
+    ) -> None:
+        """Test the Check to see if all unique values match the defined values exactly"""
+        spark = request.getfixturevalue(spark_session)
+        self.check_function(
+            spark,
+            pa.Check.unique_values_eq,
+            data["test_pass_data"],
+            data["test_fail_data"],
+            datatype,
+            data["test_expression"],
+        )
+
+    @validate_scope(scope=ValidationScope.DATA)
+    def test_failed_unaccepted_datatypes(
+        self, spark_session, datatype, data, request
+    ) -> None:
+        """Test the Check to see if error is raised for datatypes which are not accepted for this function"""
+        spark = request.getfixturevalue(spark_session)
+        with pytest.raises(TypeError):
+            self.check_function(
+                spark,
+                pa.Check.unique_values_eq,
+                data["test_pass_data"],
+                None,
+                datatype,
+                data["test_expression"],
+            )

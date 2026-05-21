@@ -158,6 +158,24 @@ def get_series_schema_statistics(series_schema):
 
 def parse_checks(checks) -> Union[list[dict[str, Any]], None]:
     """Convert Check object to check statistics including options."""
+
+    def _has_custom_error(check: Check) -> bool:
+        """Determine whether a check has a user-defined error message."""
+        if check.error is None:
+            return False
+
+        if check.name is None or not Check.is_builtin_check(check.name):
+            return True
+
+        try:
+            default_check = getattr(Check, check.name)(
+                **(check.statistics or {})
+            )
+        except (AttributeError, TypeError, ValueError):
+            return True
+
+        return check.error != default_check.error
+
     check_statistics = []
 
     for check in checks:
@@ -179,6 +197,8 @@ def parse_checks(checks) -> Union[list[dict[str, Any]], None]:
             "n_failure_cases": check.n_failure_cases,
             "ignore_na": check.ignore_na,
         }
+        if _has_custom_error(check):
+            check_options["error"] = check.error
 
         # Filter out None values from options
         check_options = {
@@ -189,31 +209,6 @@ def parse_checks(checks) -> Union[list[dict[str, Any]], None]:
         if check_options:
             base_stats["options"] = check_options
             check_statistics.append(base_stats)
-
-    # Check for incompatible checks
-    incompatibile_checks = {
-        "equal_to": "eq",
-        "greater_than": "gt",
-        "less_than": "lt",
-        "greater_than_or_equal_to": "lt",
-        "less_than_or_equal_to": "le",
-        "in_range": "between",
-    }
-
-    incompatibile_checks_count = sum(
-        map(
-            lambda check: check["options"]["check_name"]
-            in incompatibile_checks,
-            check_statistics,
-        )
-    )
-    if incompatibile_checks_count > 1:
-        error_message = ", ".join(
-            [f"{key} ({value})" for key, value in incompatibile_checks.items()]
-        )
-        warnings.warn(
-            f"You do not need more than one check out of {error_message}."
-        )
 
     return check_statistics if check_statistics else None
 

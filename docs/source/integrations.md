@@ -1,6 +1,6 @@
 (integrations)=
 
-# Integrations
+# Ecosystem Integrations
 
 Pandera ships with integrations with other tools in the Python ecosystem, with
 the goal of interoperating with libraries that you know and love.

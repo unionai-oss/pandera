@@ -28,7 +28,7 @@ VALIDATION_DEPTH_ERROR_CODE_MAP = {
     SchemaErrorReason.NO_ERROR: ValidationScope.SCHEMA,
     SchemaErrorReason.ADD_MISSING_COLUMN_NO_DEFAULT: ValidationScope.DATA,
     SchemaErrorReason.INVALID_COLUMN_NAME: ValidationScope.SCHEMA,
-    SchemaErrorReason.MISMATCH_INDEX: ValidationScope.DATA,
+    SchemaErrorReason.MISMATCH_INDEX: ValidationScope.SCHEMA,
     SchemaErrorReason.PARSER_ERROR: ValidationScope.DATA,
 }
 

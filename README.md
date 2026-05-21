@@ -2,7 +2,7 @@
 <div align="center"><a href="https://www.union.ai/pandera"><img src="docs/source/_static/pandera-banner.png" width="400"></a></div>
 
 <h1 align="center">
-  The Open-source Framework for Validating DataFrame-like Objects
+  The Open-source Framework for Dataset Validation
 </h1>
 
 <p align="center">

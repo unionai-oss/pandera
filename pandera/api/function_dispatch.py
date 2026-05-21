@@ -1,5 +1,6 @@
 """Multidispatcher implementation."""
 
+import types
 from collections.abc import Callable
 from inspect import signature
 from typing import Union, get_args, get_origin
@@ -55,7 +56,8 @@ def get_first_arg_type(fn):
     if get_origin(data_type) in (tuple, tuple):
         data_type, *_ = get_args(data_type)
 
-    if get_origin(data_type) is Union:
+    origin = get_origin(data_type)
+    if origin is Union or origin is types.UnionType:
         data_types = get_args(data_type)
     else:
         data_types = (data_type,)

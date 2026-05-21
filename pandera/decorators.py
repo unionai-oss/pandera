@@ -5,10 +5,13 @@ import inspect
 import sys
 import types
 from collections.abc import Callable, Iterable
-from typing import (
+from typing import (  # noqa
     Any,
+    Dict,
+    List,
     NoReturn,
     Optional,
+    Tuple,
     TypeVar,
     Union,
     cast,
@@ -20,6 +23,7 @@ from pydantic import validate_arguments
 
 from pandera import errors
 from pandera.api.base.error_handler import ErrorHandler, get_error_category
+from pandera.api.base.model import BaseModel
 from pandera.api.dataframe.components import ComponentSchema
 from pandera.api.dataframe.container import DataFrameSchema
 from pandera.api.dataframe.model import DataFrameModel
@@ -30,7 +34,7 @@ from pandera.inspection_utils import (
 from pandera.typing import AnnotationInfo
 from pandera.validation_depth import validation_type
 
-Schemas = Union[DataFrameSchema, ComponentSchema]
+Schemas = Any
 InputGetter = Union[str, int]
 OutputGetter = Union[str, int, Callable]
 F = TypeVar("F", bound=Callable)
@@ -90,7 +94,7 @@ def _get_fn_argnames(fn: Callable) -> list[str]:
 def _handle_schema_error(
     decorator_name,
     fn: Callable,
-    schema: Union[DataFrameSchema, ComponentSchema],
+    schema: Any,
     data_obj: Any,
     schema_error: errors.SchemaError,
 ) -> NoReturn:
@@ -116,7 +120,7 @@ def _handle_schema_error(
 def _parse_schema_error(
     decorator_name,
     fn: Callable,
-    schema: Union[DataFrameSchema, ComponentSchema],
+    schema: Any,
     data_obj: Any,
     schema_error: errors.SchemaError,
     reason_code: errors.SchemaErrorReason,
@@ -361,8 +365,10 @@ def check_output(
     # the output to the coerced data.
 
     if callable(obj_getter) and (
-        schema.coerce
-        or (schema.index is not None and schema.index.coerce)  # type: ignore[union-attr]
+        getattr(schema, "coerce", False)
+        or (
+            getattr(schema, "index", None) is not None and schema.index.coerce  # type: ignore[union-attr]
+        )
         or (
             isinstance(schema, DataFrameSchema)
             and any(col.coerce for col in schema.columns.values())
@@ -486,7 +492,7 @@ def check_io(
             out_schemas = out
             if isinstance(out, list):
                 out_schemas = out
-            elif isinstance(out, (DataFrameSchema, ComponentSchema)):
+            elif hasattr(out, "validate"):
                 out_schemas = [(None, out)]  # type: ignore
             elif isinstance(out, tuple):
                 out_schemas = [out]
@@ -589,48 +595,238 @@ def check_types(
             inplace=inplace,
         )
 
+    class _AnnotationInfoWithModelTree:
+        def __init__(
+            self,
+            annotation_info: AnnotationInfo,
+            children: list["_AnnotationInfoWithModelTree"] | None = None,
+            schema_model: BaseModel | None = None,
+        ) -> None:
+            if children and schema_model:
+                raise ValueError(
+                    "At most one of children or schema_model should be set"
+                )
+            self._children = children
+            self._schema_model = schema_model
+            self._annotation_info = annotation_info
+
+        def __repr__(self) -> str:
+            return f"_AnnotationInfoWithModelTree(annotation_info={self._annotation_info}, children={self._children}, schema_model={self._schema_model})"
+
+        @property
+        def annotation_info(self) -> AnnotationInfo:
+            return self._annotation_info
+
+        @property
+        def dataframe_model(self) -> BaseModel | None:
+            return self._schema_model
+
+        @property
+        def children(
+            self,
+        ) -> list["_AnnotationInfoWithModelTree"] | None:
+            return self._children
+
+        def child_at_index(
+            self, index: int
+        ) -> Union["_AnnotationInfoWithModelTree", None]:
+            """
+            Returns the child at the given index, if it exists. Otherwise None.
+            """
+            if self.children and len(self.children) > index:
+                return self.children[index]
+            else:
+                return None
+
+        @staticmethod
+        def from_annotation(
+            annotation: type,
+        ) -> "_AnnotationInfoWithModelTree":
+            annotation_info = AnnotationInfo(annotation)
+            if annotation_info.is_generic_model:
+                return _AnnotationInfoWithModelTree(
+                    annotation_info=annotation_info,
+                    schema_model=cast(BaseModel, annotation_info.arg),
+                )
+            elif annotation_info.args and len(annotation_info.args) > 0:
+                return _AnnotationInfoWithModelTree(
+                    annotation_info=annotation_info,
+                    children=[
+                        _AnnotationInfoWithModelTree.from_annotation(arg)
+                        for arg in annotation_info.args
+                    ],
+                )
+            else:
+                return _AnnotationInfoWithModelTree(
+                    annotation_info=annotation_info, children=None
+                )
+
     # Front-load annotation parsing
     # @functools.lru_cache
     def _get_annotated_schema_models(
         wrapped: Callable,
     ) -> dict[
         str,
-        Iterable[
-            tuple[Union[DataFrameModel, None], Union[AnnotationInfo, None]]
-        ],
+        _AnnotationInfoWithModelTree,
     ]:
-        annotated_schema_models: dict[
-            str,
-            Iterable[
-                tuple[Union[DataFrameModel, None], Union[AnnotationInfo, None]]
-            ],
-        ] = {}
-        for arg_name_, annotation in get_type_hints(
-            wrapped, include_extras=True
-        ).items():
-            annotation_info = AnnotationInfo(annotation)
-            if not annotation_info.is_generic_df:
-                if annotation_info.origin == Union:
-                    annotation_model_pairs = []
-                    for annot in annotation_info.args:  # type: ignore[union-attr]
-                        sub_annotation_info = AnnotationInfo(annot)
-                        if not sub_annotation_info.is_generic_df:
-                            continue
+        return {
+            arg_name: _AnnotationInfoWithModelTree.from_annotation(annotation)
+            for arg_name, annotation in get_type_hints(
+                wrapped, include_extras=True
+            ).items()
+        }
 
-                        schema_model = cast(
-                            DataFrameModel, sub_annotation_info.arg
-                        )
-                        annotation_model_pairs.append(
-                            (schema_model, sub_annotation_info)
-                        )
-                else:
-                    continue
-            else:
-                schema_model = cast(DataFrameModel, annotation_info.arg)
-                annotation_model_pairs = [(schema_model, annotation_info)]
+    def _check_arg_value_against_model(
+        arg_value: Any,
+        schema_model: BaseModel | None,
+        annotation_info: AnnotationInfo,
+    ) -> Any:
+        if schema_model is None or (
+            annotation_info.optional and arg_value is None
+        ):
+            return arg_value
 
-            annotated_schema_models[arg_name_] = annotation_model_pairs
-        return annotated_schema_models
+        config = schema_model.__config__
+        data_container_type = annotation_info.origin
+        schema = schema_model.to_schema()
+
+        from_format = getattr(config, "from_format", None) if config else None
+        if data_container_type and from_format:
+            arg_value = data_container_type.from_format(arg_value, config)
+
+        if isinstance(
+            arg_value, (int, str, bool, float, dict, list, tuple, set)
+        ):
+            return arg_value
+
+        arg_value = schema.validate(
+            arg_value,
+            head,
+            tail,
+            sample,
+            random_state,
+            lazy,
+            inplace,
+        )
+
+        to_format = getattr(config, "to_format", None) if config else None
+        if data_container_type and to_format:
+            arg_value = data_container_type.to_format(arg_value, config)
+
+        return arg_value
+
+    def _check_arg_value_against_union(
+        arg_value: Any,
+        union_child_nodes: list[_AnnotationInfoWithModelTree],
+    ) -> Any:
+        # Check if the arg value matches any of the children
+        schema_errors = []
+        for child in union_child_nodes:
+            try:
+                return _check_arg_value_against_model(
+                    arg_value, child.dataframe_model, child.annotation_info
+                )
+            except errors.SchemaError as e:
+                schema_errors.append(e)
+            except errors.SchemaErrors as e:
+                schema_errors.extend(e.schema_errors)
+        if schema_errors:
+            raise errors.SchemaErrors(
+                schema=child.dataframe_model.to_schema()
+                if child.dataframe_model
+                else None,
+                schema_errors=schema_errors,
+                data=arg_value,
+            )
+        return arg_value
+
+    def _check_arg_value_against_tuple(
+        arg_value: Any,
+        tuple_child_nodes: list[_AnnotationInfoWithModelTree],
+    ) -> Any:
+        # Pass through if not a tuple. This handles:
+        # 1. None values in union types like tuple[X, Y] | None
+        # 2. Type mismatches (e.g., passing a scalar to tuple[X, Y] | None)
+        # We don't validate Python types, only DataFrame schemas.
+        if not isinstance(arg_value, tuple):
+            return arg_value
+
+        # Each of the children should match their respective schema
+        for child_arg_value, child_annotation_model_tree in zip(
+            arg_value, tuple_child_nodes
+        ):
+            _check_arg_value(child_arg_value, child_annotation_model_tree)
+        return arg_value
+
+    def _check_arg_value_against_list(
+        arg_value: Any,
+        list_child_node: _AnnotationInfoWithModelTree | None,
+    ) -> Any:
+        if not list_child_node:
+            # List of no specific type
+            return arg_value
+
+        # Pass through if not a list. This handles:
+        # 1. None values in union types like list[X] | None
+        # 2. Type mismatches (e.g., passing a scalar to list[X] | None)
+        # We don't validate Python types, only DataFrame schemas.
+        if not isinstance(arg_value, list):
+            return arg_value
+
+        # Check all children conform to the schema
+        for x in arg_value:
+            _check_arg_value(x, list_child_node)
+        return arg_value
+
+    def _check_arg_value_against_dict(
+        arg_value: Any,
+        dict_child_node: _AnnotationInfoWithModelTree | None,
+    ) -> Any:
+        if not dict_child_node:
+            # Dict of no specific value type
+            return arg_value
+
+        # Pass through if not a dict. This handles:
+        # 1. None values in union types like dict[K, V] | None
+        # 2. Type mismatches (e.g., passing a scalar to dict[K, V] | None)
+        # We don't validate Python types, only DataFrame schemas.
+        if not isinstance(arg_value, dict):
+            return arg_value
+
+        # Check all children conform to the schema
+        for _, x in arg_value.items():
+            _check_arg_value(x, dict_child_node)
+        return arg_value
+
+    def _check_arg_value(
+        arg_value: Any,
+        annotation_model_tree: _AnnotationInfoWithModelTree,
+    ) -> Any:
+        if annotation_model_tree.annotation_info.origin == Union:
+            return _check_arg_value_against_union(
+                arg_value, annotation_model_tree.children or []
+            )
+        # NOTE: We use string literals for Tuple, List, and Dict here to prevent
+        #       pyupgrade from (incorrectly) converting them to tuple, list, and dict.
+        #       This is important because we want to match both list and List, for example.
+        elif annotation_model_tree.annotation_info.origin in [tuple, "Tuple"]:
+            return _check_arg_value_against_tuple(
+                arg_value, annotation_model_tree.children or []
+            )
+        elif annotation_model_tree.annotation_info.origin in [list, "List"]:
+            return _check_arg_value_against_list(
+                arg_value, annotation_model_tree.child_at_index(0)
+            )
+        elif annotation_model_tree.annotation_info.origin in [dict, "Dict"]:
+            return _check_arg_value_against_dict(
+                arg_value, annotation_model_tree.child_at_index(1)
+            )
+        else:
+            return _check_arg_value_against_model(
+                arg_value,
+                annotation_model_tree.dataframe_model,
+                annotation_model_tree.annotation_info,
+            )
 
     def _check_arg(arg_name: str, arg_value: Any) -> Any:
         """
@@ -638,90 +834,13 @@ def check_types(
         pass-through.
         """
         annotated_schema_models = _get_annotated_schema_models(wrapped)
-        annotation_model_pairs = annotated_schema_models.get(
-            arg_name, [(None, None)]
-        )
 
-        if not annotation_model_pairs:
+        if arg_name not in annotated_schema_models:
             return arg_value
 
-        error_handler = ErrorHandler(lazy=True)
-        for schema_model, annotation_info in annotation_model_pairs:
-            if schema_model is None:
-                return arg_value
+        annotation_model_tree = annotated_schema_models[arg_name]
 
-            if (
-                annotation_info
-                and not (annotation_info.optional and arg_value is None)
-                # the pandera.schema attribute should only be available when
-                # schema.validate has been called in the DF. There's probably
-                # a better way of doing this
-            ):
-                config = schema_model.__config__
-                data_container_type = annotation_info.origin
-                schema = schema_model.to_schema()
-
-                if data_container_type and config and config.from_format:
-                    arg_value = data_container_type.from_format(
-                        arg_value, config
-                    )
-
-                # Don't do checks if value is still a built-in type
-                if isinstance(
-                    arg_value, (int, str, bool, float, dict, list, tuple, set)
-                ):
-                    return arg_value
-
-                if (
-                    not hasattr(arg_value, "pandera")
-                    or arg_value.pandera.schema is None
-                    # don't re-validate a dataframe that contains the same
-                    # exact schema
-                    or arg_value.pandera.schema != schema
-                ):
-                    try:
-                        arg_value = schema.validate(
-                            arg_value,
-                            head,
-                            tail,
-                            sample,
-                            random_state,
-                            lazy,
-                            inplace,
-                        )
-                    except errors.SchemaError as e:
-                        error_handler.collect_error(
-                            get_error_category(
-                                errors.SchemaErrorReason.INVALID_TYPE
-                            ),
-                            errors.SchemaErrorReason.INVALID_TYPE,
-                            _parse_schema_error(
-                                "check_types",
-                                wrapped,
-                                schema,
-                                arg_value,
-                                e,
-                                errors.SchemaErrorReason.INVALID_TYPE,
-                            ),
-                        )
-                        continue
-
-                if data_container_type and config and config.to_format:
-                    arg_value = data_container_type.to_format(
-                        arg_value, config
-                    )
-
-                return arg_value
-
-        if error_handler.schema_errors:
-            if len(error_handler.schema_errors) == 1:
-                raise error_handler.schema_errors[0]
-
-            raise errors.SchemaErrors(
-                schema=schema,
-                schema_errors=error_handler.schema_errors,
-                data=arg_value,
-            )
+        return _check_arg_value(arg_value, annotation_model_tree)
 
     sig = inspect.signature(wrapped)
 

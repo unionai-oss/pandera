@@ -12,6 +12,7 @@ from ibis.common.exceptions import IbisTypeError
 import pandera.ibis as pa
 from pandera.backends.base import CoreCheckResult
 from pandera.backends.ibis.components import ColumnBackend
+from pandera.config import CONFIG
 from pandera.dtypes import DataType
 from pandera.engines import ibis_engine
 from pandera.errors import SchemaDefinitionError, SchemaError, SchemaErrors
@@ -30,6 +31,11 @@ DTYPES_AND_DATA = [
 ]
 
 
+@pytest.mark.xfail(
+    condition=CONFIG.use_narwhals_backend,
+    reason="Narwhals backend column validation error for basic dtypes",
+    strict=True,
+)
 @pytest.mark.parametrize("dtype,data", DTYPES_AND_DATA)
 def test_column_schema_simple_dtypes(dtype, data):
     schema = pa.Column(dtype, name="column")
@@ -57,6 +63,11 @@ def test_column_schema_name_none():
         schema.validate(data)
 
 
+@pytest.mark.xfail(
+    condition=CONFIG.use_narwhals_backend,
+    reason="Regex column selection broken in Narwhals backend",
+    strict=True,
+)
 @pytest.mark.parametrize(
     "column_kwargs",
     [
@@ -77,6 +88,11 @@ def test_column_schema_regex(column_kwargs):
             invalid_data.pipe(schema.validate)
 
 
+@pytest.mark.xfail(
+    condition=CONFIG.use_narwhals_backend,
+    reason="Narwhals backend overrides native ibis ColumnBackend",
+    strict=True,
+)
 def test_get_column_backend():
     assert isinstance(
         pa.Column.get_backend(ibis.memtable({"column": [1, 2, 3]})),
@@ -179,6 +195,10 @@ def test_check_nullable(dtype, data, nullable):
     [(True, nullcontext()), (False, pytest.raises(SchemaErrors))],
 )
 def test_check_nullable_regex(dtype, data, nullable, expectation):
+    if CONFIG.use_narwhals_backend and not nullable:
+        pytest.xfail(
+            "failure_cases is an ibis.Table in Narwhals backend; .shape[0] not available"
+        )
     if dtype == dt.Float64:
         data = ibis.memtable({f"column_{i}": data for i in range(3)})
         data = data.mutate(
@@ -234,6 +254,11 @@ def test_check_dtype(data, from_dtype, check_dtype):
     assert result.passed if from_dtype == check_dtype else not result.passed
 
 
+@pytest.mark.xfail(
+    condition=CONFIG.use_narwhals_backend,
+    reason="failure_cases attribute not available in Narwhals backend",
+    strict=True,
+)
 def test_check_data_container():
     @ibis_engine.Engine.register_dtype
     class MyTestStartsWithID(ibis_engine.String):

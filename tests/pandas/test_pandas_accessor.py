@@ -1,5 +1,6 @@
 """Unit tests for pandas_accessor module."""
 
+import io
 from typing import Union
 from unittest.mock import patch
 
@@ -74,3 +75,27 @@ def test_dataframe_series_add_schema(
 
             with pytest.raises(BackendNotFoundError):
                 schema2(invalid_data)  # type: ignore
+
+
+def test_validate_does_not_pollute_attrs():
+    """Validation should not add non-serializable objects to df.attrs."""
+    schema = pa.DataFrameSchema(
+        columns={
+            "a": pa.Column(int, pa.Check(lambda x: x > 0)),
+            "b": pa.Column(int, pa.Check(lambda x: x > 0)),
+        }
+    )
+    df = pd.DataFrame({"a": [1, 2], "b": [3, 4]})
+    original_attrs = df.attrs.copy()
+
+    cleaned_df = schema.validate(df)
+
+    assert cleaned_df.attrs == original_attrs
+    assert cleaned_df.pandera.schema == schema
+
+    buf = io.BytesIO()
+    cleaned_df.to_parquet(buf)
+    buf.seek(0)
+    roundtripped = pd.read_parquet(buf)
+    pd.testing.assert_frame_equal(cleaned_df, roundtripped)
+    schema.validate(roundtripped)

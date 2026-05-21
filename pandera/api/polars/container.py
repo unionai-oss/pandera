@@ -1,7 +1,11 @@
 """DataFrame Schema for Polars."""
 
+from __future__ import annotations
+
+import os
+import sys
 import warnings
-from typing import Optional
+from typing import TYPE_CHECKING, overload
 
 from pandera.api.dataframe.container import DataFrameSchema as _DataFrameSchema
 from pandera.api.polars.types import PolarsCheckObjects, PolarsFrame
@@ -9,6 +13,14 @@ from pandera.api.polars.utils import get_validation_depth
 from pandera.backends.polars.register import register_polars_backends
 from pandera.config import config_context, get_config_context
 from pandera.engines import polars_engine
+
+if sys.version_info < (3, 11):
+    from typing_extensions import Self
+else:
+    from typing import Self
+
+if TYPE_CHECKING:  # pragma: no cover
+    import polars as pl
 
 
 class DataFrameSchema(_DataFrameSchema[PolarsCheckObjects]):
@@ -67,6 +79,13 @@ class DataFrameSchema(_DataFrameSchema[PolarsCheckObjects]):
 
         return output
 
+    @overload  # type: ignore[override]
+    def coerce_dtype(self, check_obj: pl.LazyFrame) -> pl.LazyFrame: ...
+    @overload
+    def coerce_dtype(self, check_obj: pl.DataFrame) -> pl.DataFrame: ...
+    def coerce_dtype(self, check_obj):
+        return super().coerce_dtype(check_obj)
+
     @_DataFrameSchema.dtype.setter  # type: ignore[attr-defined]
     def dtype(self, value) -> None:
         """Set the dtype property."""
@@ -100,3 +119,53 @@ class DataFrameSchema(_DataFrameSchema[PolarsCheckObjects]):
         raise NotImplementedError(
             "Data synthesis is not supported in with polars schemas."
         )
+
+    #####################
+    # Schema IO Methods #
+    #####################
+
+    @classmethod
+    def from_yaml(cls, yaml_schema) -> Self:
+        """Load schema from YAML (see :mod:`pandera.io.polars_io`)."""
+        from pandera.io import polars_io
+
+        return polars_io.from_yaml(yaml_schema)
+
+    def to_yaml(
+        self, stream: os.PathLike | None = None, *, minimal: bool = True
+    ) -> str | None:
+        """Write schema to YAML (see :mod:`pandera.io.polars_io`)."""
+        from pandera.io import polars_io
+
+        return polars_io.to_yaml(self, stream=stream, minimal=minimal)
+
+    @classmethod
+    def from_json(cls, source) -> Self:
+        """Load schema from JSON (see :mod:`pandera.io.polars_io`)."""
+        from pandera.io import polars_io
+
+        return polars_io.from_json(source)
+
+    @overload
+    def to_json(
+        self, target: None = None, *, minimal: bool = True, **kwargs
+    ) -> str:  # pragma: no cover
+        ...
+
+    @overload
+    def to_json(
+        self, target: os.PathLike, *, minimal: bool = True, **kwargs
+    ) -> None:  # pragma: no cover
+        ...
+
+    def to_json(
+        self,
+        target: os.PathLike | None = None,
+        *,
+        minimal: bool = True,
+        **kwargs,
+    ) -> str | None:
+        """Write schema to JSON (see :mod:`pandera.io.polars_io`)."""
+        from pandera.io import polars_io
+
+        return polars_io.to_json(self, target, minimal=minimal, **kwargs)

@@ -1,6 +1,7 @@
 """Extensions module."""
 
 import inspect
+import types
 import warnings
 from collections.abc import Callable
 from enum import Enum
@@ -9,6 +10,7 @@ from inspect import signature
 from typing import Optional, Union, get_args, get_origin
 
 from pandera.api.checks import Check
+from pandera.api.function_dispatch import get_first_arg_type
 from pandera.api.hypotheses import Hypothesis
 
 
@@ -23,6 +25,7 @@ class BuiltinCheckRegistrationError(Exception):
 def register_builtin_check(
     fn=None,
     strategy: Callable | None = None,
+    constraint: Callable | None = None,
     _check_cls: type = Check,
     aliases: list[str] | None = None,
     **outer_kwargs,
@@ -31,13 +34,27 @@ def register_builtin_check(
 
     This is the primary way for extending the Check api to define additional
     built-in checks.
+
+    :param strategy: legacy hypothesis strategy adapter with the signature
+        ``(pandera_dtype, strategy=None, **statistics) -> SearchStrategy``.
+    :param constraint: optional constraint adapter that takes the check's
+        statistics as kwargs and returns a
+        :class:`~pandera.strategies.constraints.FieldConstraints`. When
+        present, the constraint aggregator merges this with sibling
+        constraints and emits a single hypothesis strategy, avoiding
+        ``.filter`` chaining for built-in checks. See
+        ``specs/optimized-strategies.md``.
     """
-    from pandera.strategies.base_strategies import STRATEGY_DISPATCHER
+    from pandera.strategies.base_strategies import (
+        CONSTRAINT_DISPATCHER,
+        STRATEGY_DISPATCHER,
+    )
 
     if fn is None:
         return partial(
             register_builtin_check,
             strategy=strategy,
+            constraint=constraint,
             _check_cls=_check_cls,
             aliases=aliases,
             **outer_kwargs,
@@ -58,7 +75,8 @@ def register_builtin_check(
     if get_origin(data_type) is tuple:
         data_type, *_ = get_args(data_type)
 
-    if get_origin(data_type) is Union:
+    origin = get_origin(data_type)
+    if origin is Union or origin is types.UnionType:
         data_types = get_args(data_type)
     else:
         data_types = (data_type,)
@@ -66,6 +84,10 @@ def register_builtin_check(
     if strategy is not None:
         for dt in data_types:
             STRATEGY_DISPATCHER[(name, dt)] = strategy
+
+    if constraint is not None:
+        for dt in data_types:
+            CONSTRAINT_DISPATCHER[(name, dt)] = constraint
 
     if check_dispatcher is None:  # pragma: no cover
         raise BuiltinCheckRegistrationError(
@@ -138,6 +160,7 @@ def register_check_method(
     supported_types: Union[type, tuple, list] | None = None,
     check_type: Union[CheckType, str] = "vectorized",
     strategy=None,
+    constraint=None,
 ):
     """Registers a function as a :class:`~pandera.api.checks.Check` method.
 
@@ -169,10 +192,21 @@ def register_check_method(
 
     :param strategy: data-generation strategy associated with the check
         function.
+    :param constraint: optional constraint adapter for the optimised
+        constraint-aggregator path. Receives the check's statistics as
+        kwargs and returns a
+        :class:`~pandera.strategies.constraints.FieldConstraints`. When
+        present, sibling built-in checks no longer chain ``.filter`` calls
+        on top of one another; the merged constraint set is compiled to a
+        single hypothesis strategy. See
+        ``specs/optimized-strategies.md``.
     :return: register check function wrapper.
     """
 
-    from pandera.strategies.pandas_strategies import register_check_strategy
+    from pandera.strategies.pandas_strategies import (
+        register_check_constraint,
+        register_check_strategy,
+    )
 
     # NOTE: this needs to handle different dataframe types more elegantly
 
@@ -240,6 +274,7 @@ def register_check_method(
             supported_types=supported_types,
             check_type=check_type,
             strategy=strategy,
+            constraint=constraint,
         )
     else:
         sig = signature(check_fn)
@@ -313,6 +348,9 @@ def register_check_method(
 
         if strategy is not None:
             check_method = register_check_strategy(strategy)(check_method)
+
+        if constraint is not None:
+            check_method = register_check_constraint(constraint)(check_method)
 
         Check.REGISTERED_CUSTOM_CHECKS[check_fn.__name__] = partial(
             check_method, Check

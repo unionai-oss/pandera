@@ -56,7 +56,8 @@ hypotheses = [
 ]
 io = [
     "pyyaml >= 5.1",
-    "black",
+]
+frictionless = [
     "frictionless <= 4.40.8",
 ]
 mypy = [
@@ -65,7 +66,7 @@ mypy = [
 ]
 fastapi = ["fastapi"]
 geopandas = [
-    "geopandas < 1.1.0",
+    "geopandas",
     "shapely",
 ]
 pyspark = ["pyspark[connect] >= 3.2.0"]
@@ -88,8 +89,16 @@ dask = [
     "dask[dataframe]",
     "distributed",
 ]
-ibis = ["ibis-framework >= 9.0.0"]
+ibis = [
+    "ibis-framework >= 9.0.0",
+    "pyarrow-hotfix",
+]
 polars = ["polars >= 0.20.0"]
+xarray = [
+    "xarray >= 2024.10.0",
+    "numpy >= 1.24.4",
+]
+narwhals = ["narwhals >= 1.26.0"]
 all = [
     "hypothesis >= 6.92.7",
     "scipy",
@@ -104,14 +113,20 @@ all = [
     "distributed",
     "pandas-stubs",
     "fastapi",
-    "geopandas < 1.1.0",
+    "geopandas",
     "shapely",
     "ibis-framework >= 9.0.0",
+    "pyarrow-hotfix",
     "polars >= 0.20.0",
+    "xarray >= 2024.10.0",
+    "numpy >= 1.24.4",
 ]
 
 [dependency-groups]
 dev = [
+    "black",
+    "cf_xarray",
+    "frictionless <= 4.40.8",
     "duckdb",
     "hypothesis >= 6.92.7",
     "ipdb",
@@ -120,7 +135,7 @@ dev = [
     "nox",
     "pip",
     "polars >= 0.20.0",
-    "pre_commit",
+    "prek",
     "pyarrow >= 13",
     "python-multipart",
     "pytz",
@@ -135,11 +150,12 @@ testing = [
     "pytest-xdist",
     "pytest-asyncio",
     "sphinx",
-    "ibis-framework[duckdb,sqlite] >= 11.0.0",
+    "numpy >= 1.24.4",
 ]
 docs = [
     "setuptools",
-    "sphinx",
+    "pyarrow-hotfix",
+    "sphinx<9",
     "sphinx-design",
     "sphinx-autodoc-typehints <= 1.14.1",
     "sphinx-copybutton",
@@ -168,6 +184,10 @@ exclude = [".nox/**", ".nox-*/**"]
 [tool.pytest.ini_options]
 log_cli = true
 log_cli_level = 20
+markers = [
+    "polars: tests for the Polars backend",
+    "ibis: tests for the Ibis backend",
+]
 
 [tool.ruff]
 line-length = 79
@@ -187,4 +207,4 @@ ignore = [
 ]
 
 [tool.codespell]
-ignore-words-list = ["notin", "splitted", "fo", "strat"]
+ignore-words-list = ["notin", "splitted", "fo", "strat", "ttest", "coo", "ser"]

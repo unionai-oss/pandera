@@ -10,6 +10,7 @@ import pyarrow
 
 from pandera import dtypes
 from pandera.dtypes import immutable
+from pandera.engines.engine import StrictEquivalent
 from pandera.engines.pandas_engine import BOOL, DataType, Engine
 from pandera.engines.type_aliases import PandasObject
 
@@ -103,8 +104,10 @@ class ArrowInt8(ArrowInt16):
     equivalents=[
         pyarrow.string,
         pyarrow.utf8,
-        pd.ArrowDtype(pyarrow.string()),
-        pd.ArrowDtype(pyarrow.utf8()),
+        # Use StrictEquivalent to avoid collision with pandas_engine.STRING
+        # since pd.ArrowDtype(pyarrow.string()) == "string[pyarrow]" in pandas
+        StrictEquivalent(pd.ArrowDtype(pyarrow.string())),
+        StrictEquivalent(pd.ArrowDtype(pyarrow.utf8())),
     ]
 )
 @immutable

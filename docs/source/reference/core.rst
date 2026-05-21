@@ -12,6 +12,7 @@ Schemas
    :nosignatures:
 
    pandera.api.pandas.container.DataFrameSchema
+   pandera.api.geopandas.container.GeoDataFrameSchema
    pandera.api.pandas.array.SeriesSchema
    pandera.api.polars.container.DataFrameSchema
    pandera.api.pyspark.container.DataFrameSchema
@@ -65,5 +66,12 @@ Configuration
    pandera.config.PanderaConfig
    pandera.config.ValidationDepth
    pandera.config.ValidationScope
+
+.. autosummary::
+   :toctree: generated
+   :nosignatures:
+
    pandera.config.config_context
    pandera.config.get_config_context
+   pandera.config.get_config_global
+   pandera.config.reset_config_context

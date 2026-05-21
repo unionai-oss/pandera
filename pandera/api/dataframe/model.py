@@ -189,7 +189,17 @@ class _SchemaDescriptor:
             else:
                 kwargs = {}
 
-            MODEL_CACHE[(cls, thread_id)] = cls.build_schema_(**kwargs)
+            try:
+                MODEL_CACHE[(cls, thread_id)] = cls.build_schema_(**kwargs)
+            except NotImplementedError as e:
+                # Raise AttributeError to signal that this attribute is not available
+                # for abstract/incomplete model classes. This allows introspection tools
+                # like pydoc to continue without crashing.
+                raise AttributeError(
+                    f"'{cls.__name__}' does not implement build_schema_() and cannot "
+                    f"generate a schema. To be able to generate a schema, subclass the"
+                    "DataFrameModel for a specific backend."
+                ) from e
 
         return MODEL_CACHE[(cls, thread_id)]  # type: ignore
 
@@ -278,16 +288,8 @@ class DataFrameModel(Generic[TDataFrame, TSchema], BaseModel):
             cls.Config = type("Config", (cls.Config,), {"name": cls.__name__})
 
         super().__init_subclass__(**kwargs)
-        subclass_annotations = getattr(
-            cls,
-            "__annotations__",
-            getattr(
-                cls,
-                "__annotations_cache__",
-                # for py < 3.14
-                cls.__dict__.get("__annotations__", {}),
-            ),
-        )
+        subclass_annotations = inspect.get_annotations(cls)
+
         for field_name, annotation in subclass_annotations.items():
             if _is_field(field_name) and field_name not in cls.__dict__:
                 # No explicit Field assignment. If the annotation is an
@@ -350,10 +352,35 @@ class DataFrameModel(Generic[TDataFrame, TSchema], BaseModel):
 
     @classmethod
     def to_yaml(cls, stream: os.PathLike | None = None):
-        """
-        Convert `Schema` to yaml using `io.to_yaml`.
-        """
+        """Convert this model's schema to YAML."""
         return cls.__schema__.to_yaml(stream)
+
+    @classmethod
+    def from_yaml(cls, yaml_schema):
+        """Load a schema from YAML.
+
+        :param yaml_schema: str, Path, or file stream with YAML content.
+        :returns: the backend-specific schema object.
+        """
+        return type(cls.__schema__).from_yaml(yaml_schema)
+
+    @classmethod
+    def to_json(
+        cls,
+        target: os.PathLike | None = None,
+        **kwargs,
+    ):
+        """Convert this model's schema to JSON."""
+        return cls.__schema__.to_json(target, **kwargs)
+
+    @classmethod
+    def from_json(cls, source):
+        """Load a schema from JSON.
+
+        :param source: str, Path, or file stream with JSON content.
+        :returns: the backend-specific schema object.
+        """
+        return type(cls.__schema__).from_json(source)
 
     @classmethod
     @docstring_substitution(validate_doc=BaseSchema.validate.__doc__)
@@ -375,30 +402,21 @@ class DataFrameModel(Generic[TDataFrame, TSchema], BaseModel):
             ),
         )
 
-    # TODO: add docstring_substitution using generic class
     @classmethod
+    @docstring_substitution(strategy_doc=BaseSchema.strategy.__doc__)
     @strategy_import_error
     def strategy(cls: type[Self], **kwargs):
-        """Create a ``hypothesis`` strategy for generating a DataFrame.
-
-        :param size: number of elements to generate
-        :param n_regex_columns: number of regex columns to generate.
-        :returns: a strategy that generates DataFrame objects.
-        """
+        """%(strategy_doc)s"""
         return cls.__schema__.strategy(**kwargs)
 
-    # TODO: add docstring_substitution using generic class
     @classmethod
+    @docstring_substitution(example_doc=BaseSchema.example.__doc__)
     @strategy_import_error
     def example(
         cls: type[Self],
         **kwargs,
     ) -> DataFrameBase[Self]:
-        """Generate an example of a particular size.
-
-        :param size: number of elements in the generated DataFrame.
-        :returns: DataFrame object.
-        """
+        """%(example_doc)s"""
         return cast(DataFrameBase[Self], cls.to_schema().example(**kwargs))
 
     @classmethod

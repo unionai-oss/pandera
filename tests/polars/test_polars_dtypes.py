@@ -20,19 +20,6 @@ from pandera.constants import CHECK_OUTPUT_KEY
 from pandera.engines import polars_engine as pe
 from pandera.engines.polars_engine import polars_object_coercible
 
-
-def convert_object_to_decimal(
-    number: Union[Decimal, float, str, tuple[int, Sequence[int], int]],
-    precision: int,
-    scale: int,
-) -> decimal.Decimal:
-    """Convert number to decimal with precision and scale."""
-    decimal.getcontext().prec = precision
-    return decimal.Decimal(number).quantize(
-        decimal.Decimal(f"1e-{scale}"), decimal.ROUND_HALF_UP
-    )
-
-
 POLARS_NUMERIC_DTYPES = [
     pl.Int8,
     pl.Int16,
@@ -45,7 +32,6 @@ POLARS_NUMERIC_DTYPES = [
     pl.Float32,
     pl.Float64,
 ]
-
 
 numeric_dtypes = [
     pe.Int8,
@@ -346,6 +332,20 @@ def test_polars_object_coercible(to_dtype, container, result):
 
 
 @pytest.mark.parametrize(
+    "polars_dtype, expected_dtype",
+    [
+        (pl.Decimal(5, 2), pe.Decimal(5, 2)),
+        (pl.Decimal(None, 2), pe.Decimal(38, 2)),
+    ],
+)
+def test_polars_decimal_from_parametrized_dtype(polars_dtype, expected_dtype):
+    pandera_dtype = pe.Engine.dtype(polars_dtype)
+
+    assert pandera_dtype.precision == expected_dtype.precision
+    assert pandera_dtype.scale == expected_dtype.scale
+
+
+@pytest.mark.parametrize(
     "inner_dtype_cls",
     [
         pl.Utf8,
@@ -354,7 +354,7 @@ def test_polars_object_coercible(to_dtype, container, result):
 )
 @given(st.integers(min_value=2, max_value=10))
 @settings(max_examples=5)
-def test_polars_nested_array_type_check(inner_dtype_cls, width):
+def test_polars_array_nested_type(inner_dtype_cls, width):
     polars_dtype = pl.Array(inner_dtype_cls(), width)
     pandera_dtype = pe.Engine.dtype(polars_dtype)
 
@@ -540,3 +540,28 @@ def test_datetime_time_zone_agnostic(dtype):
         dtype.type, "time_zone", None
     ):
         assert not tz_sensitive_utc.check(dtype)
+
+
+def test_polars_import_no_warnings():
+    """Regression test for https://github.com/unionai-oss/pandera/issues/2104.
+
+    Importing pandera.polars should not emit DeprecationWarning or
+    FutureWarning related to polars Categorical/Enum changes.
+    """
+    import subprocess
+    import sys
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-W",
+            "error::DeprecationWarning",
+            "-W",
+            "error::FutureWarning",
+            "-c",
+            "import pandera.polars",
+        ],
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0, f"Import raised a warning:\n{result.stderr}"

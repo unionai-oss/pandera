@@ -48,6 +48,8 @@ class TestPandasDataFrameConfig:
             "keep_cached_dataframe": False,
             "validation_enabled": False,
             "validation_depth": ValidationDepth.SCHEMA_AND_DATA,
+            "use_narwhals_backend": False,
+            "silenced_warnings": [],
         }
 
         assert asdict(get_config_context()) == expected
@@ -68,6 +70,8 @@ class TestPandasSeriesConfig:
             "keep_cached_dataframe": False,
             "validation_enabled": False,
             "validation_depth": ValidationDepth.SCHEMA_AND_DATA,
+            "use_narwhals_backend": False,
+            "silenced_warnings": [],
         }
         pandera_schema = SeriesSchema(
             int, pa.Check(lambda s: s.value_counts() == 2, element_wise=False)

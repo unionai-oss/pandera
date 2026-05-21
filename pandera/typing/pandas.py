@@ -2,6 +2,7 @@
 
 import functools
 import io
+from collections.abc import Mapping, Sequence
 from typing import (  # type: ignore[attr-defined]
     TYPE_CHECKING,
     Any,
@@ -160,6 +161,20 @@ class DataFrame(DataFrameBase, pd.DataFrame, Generic[T]):
         _type_check(item, "Parameters to generic types must be types.")
         return _GenericAlias(cls, item)
 
+    def _before_schema_validate(self, schema):
+        if self.empty:
+            dtype_map = {}
+            for column_name, dtype in schema.dtypes.items():
+                if (
+                    dtype is not None
+                    and column_name in self.columns
+                    and self[column_name].dtype == np.dtype("float64")
+                ):
+                    dtype_map[column_name] = dtype.type
+            if dtype_map:
+                return self.astype(dtype_map)
+        return self
+
     @classmethod
     def from_format(cls, obj: Any, config) -> pd.DataFrame:
         """
@@ -230,6 +245,7 @@ class DataFrame(DataFrameBase, pd.DataFrame, Generic[T]):
             }[Formats(config.to_format)]
 
         args = [] if buffer is None else [buffer]
+
         out = writer(*args, **(config.to_format_kwargs or {}))  # type: ignore
         if buffer is None:
             return out
@@ -361,7 +377,11 @@ class DataFrame(DataFrameBase, pd.DataFrame, Generic[T]):
     def from_records(  # type: ignore
         schema: type[T],
         data: Union[  # type: ignore
-            np.ndarray, list[tuple[Any, ...]], dict[Any, Any], pd.DataFrame
+            np.ndarray,
+            list[tuple[Any, ...]],
+            dict[Any, Any],
+            pd.DataFrame,
+            Sequence[Mapping[str, Any]],
         ],
         **kwargs,
     ) -> "DataFrame[T]":
@@ -374,12 +394,19 @@ class DataFrame(DataFrameBase, pd.DataFrame, Generic[T]):
         See :doc:`pandas:reference/api/pandas.DataFrame.from_records` for
         more details.
         """
-        schema = schema.to_schema()  # type: ignore[attr-defined]
-        schema_index = schema.index.names if schema.index is not None else None
+        schema_model = schema
+        dataframe_schema = schema_model.to_schema()  # type: ignore[attr-defined]
+        schema_index = (
+            dataframe_schema.index.names
+            if dataframe_schema.index is not None
+            else None
+        )
         if "index" not in kwargs:
             kwargs["index"] = schema_index
         data_df = pd.DataFrame.from_records(data=data, **kwargs)
-        return DataFrame[schema](  # type: ignore
+        return DataFrame[schema_model](  # type: ignore
             # set the column order according to schema
-            data_df[[c for c in schema.columns if c in data_df.columns]]
+            data_df[
+                [c for c in dataframe_schema.columns if c in data_df.columns]
+            ]
         )

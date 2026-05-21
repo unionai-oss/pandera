@@ -64,7 +64,7 @@ There are two ways of persisting schemas, inferred or otherwise.
 
 ### Write to a Python script
 
-You can also write your schema to a python script with {func}`~pandera.io.to_script`:
+You can also write your schema to a python script with {func}`~pandera.io.pandas_io.to_script`:
 
 ```{code-cell} python
 # supply a file-like object, Path, or str to write to a file. If not
@@ -78,8 +78,8 @@ validate data once you are satisfied with your schema definition.
 
 ### Write to YAML
 
-You can also write the schema object to a yaml file with {func}`~pandera.io.to_yaml`,
-and you can then read it into memory with {func}`~pandera.io.from_yaml`. The
+You can also write the schema object to a yaml file with {func}`~pandera.io.pandas_io.to_yaml`,
+and you can then read it into memory with {func}`~pandera.io.pandas_io.from_yaml`. The
 {func}`~pandera.api.pandas.container.DataFrameSchema.to_yaml` and {func}`~pandera.api.pandas.container.DataFrameSchema.from_yaml`
 is a convenience method for this functionality.
 
@@ -101,8 +101,8 @@ Currently, only built-in {class}`~pandera.api.checks.Check` methods are supporte
 
 ### Write to JSON
 
-Finally, you can also write the schema object to a json file with {func}`~pandera.io.to_json`,
-and you can then read it into memory with {func}`~pandera.io.from_json`. The
+Finally, you can also write the schema object to a json file with {func}`~pandera.io.pandas_io.to_json`,
+and you can then read it into memory with {func}`~pandera.io.pandas_io.from_json`. The
 {func}`~pandera.api.pandas.container.DataFrameSchema.to_json` and {func}`~pandera.api.pandas.container.DataFrameSchema.from_json`
 is a convenience method for this functionality.
 
@@ -114,5 +114,5 @@ print(json_schema)
 ```
 
 You can edit this json file to update the schema as needed, and then load
-it back into a pandera schema object with {func}`~pandera.io.from_json` or
+it back into a pandera schema object with {func}`~pandera.io.pandas_io.from_json` or
 {func}`~pandera.api.pandas.container.DataFrameSchema.from_json`.

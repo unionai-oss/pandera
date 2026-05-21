@@ -45,19 +45,48 @@ def _create_dataframe(
     else:
         index = pd.Index([10, 11, 12], name="int_index")  # type: ignore
 
-    df = pd.DataFrame(
-        data={
-            "int": [1, 2, 3],
-            "float": [1.0, 2.0, 3.0],
-            "boolean": [True, False, True],
-            "string": ["a", "b", "c"],
-            "datetime": pd.to_datetime(["20180101", "20180102", "20180103"]),
-        },
-        index=index,
-    )
-
     if nullable:
-        df.iloc[0, :] = None  # type: ignore
+        if pa.pandas_version().release >= (3, 0, 0):
+            # pandas 3.0 doesn't allow setting None in boolean columns directly
+            # Create DataFrame with nullable types from the start
+            df = pd.DataFrame(
+                data={
+                    "int": pd.array([None, 2, 3], dtype="Int64"),
+                    "float": [None, 2.0, 3.0],
+                    "boolean": pd.array([None, False, True], dtype="boolean"),
+                    "string": [None, "b", "c"],
+                    "datetime": pd.to_datetime([None, "20180102", "20180103"]),
+                },
+                index=index,
+            )
+        else:
+            # pandas < 3.0: nullable ints become floats, booleans become objects
+            df = pd.DataFrame(
+                data={
+                    "int": [1, 2, 3],
+                    "float": [1.0, 2.0, 3.0],
+                    "boolean": [True, False, True],
+                    "string": ["a", "b", "c"],
+                    "datetime": pd.to_datetime(
+                        ["20180101", "20180102", "20180103"]
+                    ),
+                },
+                index=index,
+            )
+            df.iloc[0] = None
+    else:
+        df = pd.DataFrame(
+            data={
+                "int": [1, 2, 3],
+                "float": [1.0, 2.0, 3.0],
+                "boolean": [True, False, True],
+                "string": ["a", "b", "c"],
+                "datetime": pd.to_datetime(
+                    ["20180101", "20180102", "20180103"]
+                ),
+            },
+            index=index,
+        )
 
     return df
 
@@ -77,7 +106,14 @@ def test_infer_dataframe_statistics(multi_index: bool, nullable: bool) -> None:
     statistics = schema_statistics.infer_dataframe_statistics(dataframe)
     stat_columns = statistics["columns"]
 
-    if pa.pandas_version().release >= (1, 3, 0):
+    if pa.pandas_version().release >= (3, 0, 0):
+        # pandas 3.0 uses nullable Int64 for nullable integers
+        if nullable:
+            int64_dtype = pandas_engine.Engine.dtype("Int64")
+            assert int64_dtype.check(stat_columns["int"]["dtype"])
+        else:
+            assert DEFAULT_INT.check(stat_columns["int"]["dtype"])
+    elif pa.pandas_version().release >= (1, 3, 0):
         if nullable:
             assert DEFAULT_FLOAT.check(stat_columns["int"]["dtype"])
         else:
@@ -251,29 +287,22 @@ def test_infer_series_schema_statistics(series, expectation) -> None:
             ]
             for data_type in INTEGER_TYPES
         ],
-        [
-            # introducing nans to bool arrays upcasts to float except
-            # for pandas >= 1.3.0
+        pytest.param(
+            # introducing nans to bool arrays upcasts to object for pandas 1.3+
+            # but pandas 3.0 doesn't allow setting None in bool arrays
             0,
             pd.Series([True, False, True, False]),
             {
-                "dtype": (
-                    pandas_engine.Engine.dtype(pa.Object)
-                    if pa.PANDAS_1_3_0_PLUS
-                    else DEFAULT_FLOAT
-                ),
+                "dtype": pandas_engine.Engine.dtype(pa.Object),
                 "nullable": True,
-                "checks": (
-                    None
-                    if pa.PANDAS_1_3_0_PLUS
-                    else {
-                        "greater_than_or_equal_to": 0,
-                        "less_than_or_equal_to": 1,
-                    }
-                ),
+                "checks": None,
                 "name": None,
             },
-        ],
+            marks=pytest.mark.skipif(
+                pa.pandas_version().release >= (3, 0, 0),
+                reason="pandas 3.0 doesn't allow setting None in bool arrays",
+            ),
+        ),
         [
             0,
             pd.Series(["a", "b", "c", "a"], dtype="category"),
@@ -379,7 +408,12 @@ def test_empty_series_schema_statistics(null_values, dtype):
             [
                 {
                     "name": "str_index",
-                    "dtype": pandas_engine.Engine.dtype("object"),
+                    # pandas 3.0 uses StringDtype for string indices
+                    "dtype": (
+                        pandas_engine.Engine.dtype(str)
+                        if pa.pandas_version().release >= (3, 0, 0)
+                        else pandas_engine.Engine.dtype("object")
+                    ),
                     "nullable": False,
                     "checks": None,
                 },
@@ -690,8 +724,7 @@ def test_get_index_schema_statistics(index_schema_component, expectation):
                 pa.Check.str_contains("foobar"),
                 pa.Check.str_startswith("foobar"),
                 pa.Check.str_endswith("foobar"),
-                pa.Check.str_length(min_value=5, max_value=10),
-                pa.Check.str_length(5),
+                pa.Check.str_length(5, 10),
             ]
         ],
         # multiple checks at once
@@ -782,3 +815,42 @@ def test_parse_checks_and_statistics_no_param(extra_registered_checks):
             sorted(check_list, key=lambda x: x.name),
         )
     )
+
+
+def test_parse_checks_custom_error_for_registered_custom_check(
+    extra_registered_checks,
+):
+    """Ensure custom check errors are serialized for registered checks."""
+    checks = [pa.Check.no_param_check(error="custom check error")]
+    expectation = [
+        {
+            "options": {
+                "check_name": "no_param_check",
+                "ignore_na": True,
+                "raise_warning": False,
+                "error": "custom check error",
+            }
+        }
+    ]
+
+    assert schema_statistics.parse_checks(checks) == expectation
+
+
+def test_parse_checks_invalid_builtin_stats_keeps_custom_error():
+    """Ensure invalid built-in stats do not drop custom error messages."""
+    check = pa.Check.greater_than(1, error="custom gt error")
+    check.statistics = {"bad_key": 1}
+
+    expectation = [
+        {
+            "bad_key": 1,
+            "options": {
+                "check_name": "greater_than",
+                "ignore_na": True,
+                "raise_warning": False,
+                "error": "custom gt error",
+            },
+        }
+    ]
+
+    assert schema_statistics.parse_checks([check]) == expectation

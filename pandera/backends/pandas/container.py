@@ -12,7 +12,10 @@ from pydantic import BaseModel
 from pandera.api.base.error_handler import ErrorHandler, get_error_category
 from pandera.api.pandas.types import is_table
 from pandera.backends.base import ColumnInfo, CoreCheckResult, CoreParserResult
-from pandera.backends.pandas.base import PandasSchemaBackend
+from pandera.backends.pandas.base import (
+    PandasSchemaBackend,
+    _parsed_column_values,
+)
 from pandera.backends.pandas.error_formatters import (
     reshape_failure_cases,
 )
@@ -67,6 +70,9 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
 
         error_handler = ErrorHandler(lazy)
 
+        # Clear parsed-column context so drop_invalid_rows restores only this run
+        _parsed_column_values.set(None)
+
         check_obj = self.preprocess(check_obj, inplace=inplace)
         if hasattr(check_obj, "pandera"):
             check_obj = check_obj.pandera.add_schema(schema)
@@ -92,7 +98,10 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
                     get_error_category(exc.reason_code), exc.reason_code, exc
                 )
             except SchemaErrors as exc:
-                error_handler.collect_errors(exc.schema_errors)
+                if lazy:
+                    error_handler.collect_errors(exc.schema_errors)
+                else:
+                    raise
 
         # We may have modified columns, for example by
         # add_missing_columns, so regenerate column info
@@ -276,6 +285,20 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
                 )
             except SchemaDefinitionError:
                 raise
+            except SchemaError as err:
+                # catch SchemaError exception that may be raised in custom check
+                err_msg = err.args[0] if err.args else ""
+                check_results.append(
+                    CoreCheckResult(
+                        passed=False,
+                        check=check,
+                        check_index=check_index,
+                        reason_code=SchemaErrorReason.DATAFRAME_CHECK,
+                        message=err_msg,
+                        failure_cases=err.failure_cases,
+                        original_exc=err,
+                    )
+                )
             except Exception as err:
                 # catch other exceptions that may occur when executing the check
                 err_msg = f'"{err.args[0]}"' if err.args else ""
@@ -521,19 +544,23 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
 
         filter_out_columns = []
         sorted_column_names = iter(column_info.sorted_column_names)
+        column_errors = []
+
         for column in column_info.destuttered_column_names:
             is_schema_col = column in column_info.expanded_column_names
             if schema.strict is True and not is_schema_col:
-                raise SchemaError(
-                    schema=schema,
-                    data=check_obj,
-                    message=(
-                        f"column '{column}' not in {schema.__class__.__name__}"
-                        f" {schema.columns}"
-                    ),
-                    failure_cases=column,
-                    check="column_in_schema",
-                    reason_code=SchemaErrorReason.COLUMN_NOT_IN_SCHEMA,
+                column_errors.append(
+                    SchemaError(
+                        schema=schema,
+                        data=check_obj,
+                        message=(
+                            f"column '{column}' not in {schema.__class__.__name__}"
+                            f" {schema.columns}"
+                        ),
+                        failure_cases=column,
+                        check="column_in_schema",
+                        reason_code=SchemaErrorReason.COLUMN_NOT_IN_SCHEMA,
+                    )
                 )
             if schema.strict == "filter" and not is_schema_col:
                 filter_out_columns.append(column)
@@ -541,16 +568,37 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
                 try:
                     next_ordered_col = next(sorted_column_names)
                 except StopIteration:
-                    pass
-                if next_ordered_col != column:
-                    raise SchemaError(
-                        schema=schema,
-                        data=check_obj,
-                        message=f"column '{column}' out-of-order",
-                        failure_cases=column,
-                        check="column_ordered",
-                        reason_code=SchemaErrorReason.COLUMN_NOT_ORDERED,
+                    # Schema column appears again after the ordered run of
+                    # expected columns (e.g. ... a, b, c, a with schema a, b).
+                    column_errors.append(
+                        SchemaError(
+                            schema=schema,
+                            data=check_obj,
+                            message=f"column '{column}' out-of-order",
+                            failure_cases=column,
+                            check="column_ordered",
+                            reason_code=SchemaErrorReason.COLUMN_NOT_ORDERED,
+                        )
                     )
+                else:
+                    if next_ordered_col != column:
+                        column_errors.append(
+                            SchemaError(
+                                schema=schema,
+                                data=check_obj,
+                                message=f"column '{column}' out-of-order",
+                                failure_cases=column,
+                                check="column_ordered",
+                                reason_code=SchemaErrorReason.COLUMN_NOT_ORDERED,
+                            )
+                        )
+
+        if column_errors:
+            raise SchemaErrors(
+                schema=schema,
+                schema_errors=column_errors,
+                data=check_obj,
+            )
 
         if schema.strict == "filter":
             if type(check_obj).__module__.startswith("pyspark.pandas"):
@@ -564,6 +612,8 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
 
     def set_defaults(self, check_obj: pd.DataFrame, schema):
         """Sets default values for missing values."""
+        from pandera.backends.pandas.array import ArraySchemaBackend
+
         assert schema is not None, "The `schema` argument must be provided."
 
         for col_name, col_schema in schema.columns.items():
@@ -574,6 +624,14 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
                 continue
             check_obj[col_name] = check_obj[col_name].fillna(
                 col_schema.default
+            )
+            # In pandas >= 3.0, fillna doesn't automatically coerce the dtype
+            # when filling an all-null column. Try to convert to the schema's
+            # dtype if the column is all non-null after fillna.
+            check_obj[col_name] = (
+                ArraySchemaBackend._try_convert_dtype_after_fillna(
+                    check_obj[col_name], col_schema.dtype, col_schema.default
+                )
             )
 
         return check_obj

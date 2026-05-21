@@ -21,7 +21,7 @@ documentation for more information on this standard.
 :::
 
 ```{eval-rst}
-.. autofunction:: pandera.io.from_frictionless_schema
+.. autofunction:: pandera.io.pandas_io.from_frictionless_schema
 ```
 
 under the hood, this uses the {class}`~pandera.io.pandas_io.FrictionlessFieldParser` class

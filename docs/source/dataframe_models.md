@@ -78,6 +78,9 @@ As you can see in the examples above, you can define a schema by sub-classing
 The {func}`~pandera.decorators.check_types` decorator is required to perform validation of the dataframe at
 run-time.
 
+The {func}`~pandera.api.dataframe.model_components.Field` class is used to define the schema
+specification for a column or index.
+
 Note that {class}`~pandera.api.dataframe.model_components.Field` s apply to both
 {class}`~pandera.api.pandas.components.Column` and {class}`~pandera.api.pandas.components.Index`
 objects, exposing the built-in {class}`Check` s via key-word arguments.
@@ -155,6 +158,20 @@ DataFrame[Schema](
 
 Refer to {ref}`supported-dataframe-libraries` to see how this syntax applies
 to other supported dataframe types.
+
+## GeoPandas `GeoDataFrameModel`
+
+For {class}`geopandas.GeoDataFrame` workflows, use ``import pandera.geopandas as pg``
+(the module includes the full :mod:`pandera.pandas` API) and subclass
+{py:class}`~pandera.geopandas.GeoDataFrameModel` instead of
+{py:class}`~pandera.api.pandas.model.DataFrameModel` when you need
+{meth}`~pandera.api.geopandas.model.GeoDataFrameModel.validate` (and
+{meth}`~pandera.api.geopandas.model.GeoDataFrameModel.example`,
+{meth}`~pandera.api.geopandas.model.GeoDataFrameModel.empty`) to return a
+`GeoDataFrame`, preserving active geometry and CRS metadata after validation.
+For the object-based API, use {py:class}`~pandera.geopandas.GeoDataFrameSchema`.
+Field definitions, checks, parsers, and `Config` work the same as for
+`DataFrameModel`; see {ref}`supported-lib-geopandas` and :ref:`api-geopandas`.
 
 ## Converting to DataFrameSchema
 
@@ -409,6 +426,12 @@ class Schema(pa.DataFrameModel):
 df = pd.DataFrame({"a": ["2001", "2002", "2003"]})
 Schema.validate(df)
 ```
+
+`Optional` means that a field may be absent from the input DataFrame. It
+does not add the field during validation. To add missing fields, use
+{ref}`add_missing_columns=True <adding-missing-columns>` in the model
+`Config` with required fields that specify a `default` value or
+`nullable=True`.
 
 ## Schema Inheritance
 

@@ -66,9 +66,9 @@ def test_pydantic_model():
 
     try:
         func(invalid_df)
-    except pa.errors.SchemaError as exc:
+    except pa.errors.SchemaErrors as exc:
         pd.testing.assert_frame_equal(
-            exc.failure_cases, expected_failure_cases
+            exc.schema_errors[0].failure_cases, expected_failure_cases
         )
 
 

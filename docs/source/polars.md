@@ -28,17 +28,19 @@ pip install 'pandera[polars]'
 As of `pandera >= 0.21.0`, only `polars >= 1.0.0` is supported.
 :::
 
-:::{important}
-If you're on an Apple Silicon machine, you'll need to install polars via
-`pip install polars-lts-cpu`.
+:::{note}
+*new in 0.32.0*; Pandera ships an optional
+{ref}`Narwhals-powered backend <narwhals-backends>` that keeps validation
+fully lazy and unifies the implementation with the Ibis backend. It is
+**opt-in**: install the `narwhals` extra and set
+`PANDERA_USE_NARWHALS_BACKEND=True` (or `pandera.config.CONFIG.use_narwhals_backend = True`)
+before importing `pandera.polars`. By default Pandera uses the native
+Polars backend. The public API shown on this page is unchanged either way.
 
-You may have to delete `polars` if it's already installed:
-
+```bash
+pip install 'pandera[polars,narwhals]'
+export PANDERA_USE_NARWHALS_BACKEND=True
 ```
-pip uninstall polars
-pip install polars-lts-cpu
-```
-
 :::
 
 Then you can use pandera schemas to validate polars dataframes. In the example

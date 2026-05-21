@@ -5,7 +5,7 @@ import datetime
 import operator
 import re
 from collections.abc import Callable
-from typing import Any, Optional
+from typing import Any, Optional, cast
 from unittest.mock import MagicMock
 from warnings import catch_warnings
 
@@ -46,7 +46,7 @@ UNSUPPORTED_DTYPE_CLS: set[Any] = {
     pandas_engine.PythonNamedTuple,
 }
 
-if pandas_engine.PYARROW_INSTALLED and pandas_engine.PANDAS_2_0_0_PLUS:
+if pandas_engine.PYARROW_INSTALLED:
     UNSUPPORTED_DTYPE_CLS.update(
         [
             pandas_engine.ArrowBool,
@@ -391,13 +391,29 @@ def test_str_length_checks(chained, data, value_range):
             max_value=max_value + 5,
         )
     str_length_st = strategies.str_length_strategy(
-        pa.String,
-        base_st,
-        min_value=min_value,
-        max_value=max_value,
+        pa.String, base_st, min_value=min_value, max_value=max_value
     )
     example = data.draw(str_length_st)
     assert min_value <= len(example) <= max_value
+
+
+def test_str_length_exact_value_example() -> None:
+    """Ensure example generation supports Check.str_length(exact_value=...)."""
+    schema = pa.DataFrameSchema(
+        {"colA": pa.Column(str, checks=[Check.str_length(exact_value=3)])}
+    )
+
+    example = schema.example(size=5)
+    assert example["colA"].map(len).eq(3).all()
+
+
+def test_str_length_requires_bounds_or_exact_value() -> None:
+    """Ensure strategy errors when no length constraints are provided."""
+    with pytest.raises(
+        ValueError,
+        match="At least one of min_value/max_value or exact_value",
+    ):
+        strategies.str_length_strategy(cast(Any, pa.String))
 
 
 @hypothesis.given(st.data())
@@ -759,7 +775,7 @@ def test_check_nullable_dataframe_strategy(data_type, nullable, data):
     )
     example = data.draw(strat)
     if nullable:
-        assert example.isna().sum(axis=None).item() >= 0
+        assert example.isna().sum().item() >= 0
     else:
         assert example.notna().all(axis=None)
 
@@ -900,7 +916,8 @@ def test_defined_check_strategy(
         """Custom range check."""
         if isinstance(pandas_obj, pd.Series):
             return pandas_obj.between(min_val, max_val)
-        return pandas_obj.applymap(lambda x: min_val <= x <= max_val)
+        # pandas 3.0 removed applymap, use map instead
+        return pandas_obj.map(lambda x: min_val <= x <= max_val)
 
     if register_check:
         check = Check.custom_check_with_strategy(0, 10)
@@ -945,14 +962,24 @@ def test_defined_check_strategy(
 
 
 def test_unsatisfiable_checks():
-    """Test that unsatisfiable checks raise an exception."""
+    """Test that unsatisfiable checks raise an exception.
+
+    Joint-unsatisfiable check stacks now fail fast at strategy
+    construction time as a ``SchemaDefinitionError`` (per
+    ``specs/optimized-strategies.md`` §6) instead of after hypothesis
+    exhausts itself with ``Unsatisfiable``.
+    """
+    from pandera.errors import SchemaDefinitionError
+
     schema = pa.DataFrameSchema(
         columns={
             "col1": pa.Column(int, checks=[pa.Check.gt(0), pa.Check.lt(0)])
         }
     )
     for _ in range(5):
-        with pytest.raises(hypothesis.errors.Unsatisfiable):
+        with pytest.raises(
+            (SchemaDefinitionError, hypothesis.errors.Unsatisfiable),
+        ):
             schema.example(size=10)
 
 

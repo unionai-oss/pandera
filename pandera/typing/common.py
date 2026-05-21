@@ -102,6 +102,7 @@ def __patched_generic_alias_call(self, *args, **kwargs):
     except (
         TypeError,
         errors.SchemaError,
+        errors.SchemaErrors,
         errors.SchemaInitError,
         errors.SchemaDefinitionError,
     ):
@@ -123,6 +124,9 @@ class DataFrameBase(Generic[T]):
     """
 
     default_dtype: type | None = None
+
+    def _before_schema_validate(self, schema):
+        return self
 
     def __setattr__(self, name: str, value: Any) -> None:
         object.__setattr__(self, name, value)
@@ -147,7 +151,8 @@ class DataFrameBase(Generic[T]):
                 or pandera_accessor.schema is None
                 or pandera_accessor.schema != schema
             ):
-                self.__dict__.update(schema.validate(self).__dict__)
+                check_obj = self._before_schema_validate(schema)
+                self.__dict__.update(schema.validate(check_obj).__dict__)
                 if pandera_accessor is None:
                     pandera_accessor = getattr(self, "pandera")
                 pandera_accessor.add_schema(schema)
@@ -205,6 +210,23 @@ class AnnotationInfo:
         except TypeError:
             return False
 
+    @property
+    def is_generic_xarray(self) -> bool:
+        """True if the annotation is an xarray model container."""
+        try:
+            from pandera.typing.xarray import XarrayAnnotationBase
+
+            if self.origin is None:
+                return False
+            return issubclass(self.origin, XarrayAnnotationBase)
+        except (TypeError, ImportError):
+            return False
+
+    @property
+    def is_generic_model(self) -> bool:
+        """True if the annotation wraps a pandera model class."""
+        return self.is_generic_df or self.is_generic_xarray
+
     def _parse_annotation(self, raw_annotation: type) -> None:
         """Parse key information from annotation.
 
@@ -232,10 +254,11 @@ class AnnotationInfo:
 
         if metadata:
             self.is_annotated_type = True
-            try:
-                inspect.signature(self.arg)
-            except ValueError:
-                metadata = None
+            if self.arg is not None:
+                try:
+                    inspect.signature(self.arg)
+                except ValueError:
+                    metadata = None
 
         elif metadata := getattr(self.arg, "__metadata__", None):
             self.arg = get_args(self.arg)[0]

@@ -159,6 +159,12 @@ class IbisCheckBackend(BaseCheckBackend):
     ) -> CheckResult:
         """Postprocesses the result of applying the check function."""
         check_output = check_output.name(CHECK_OUTPUT_KEY)
+
+        # Handle null values according to ignore_na setting
+        if self.check.ignore_na and check_obj.key:
+            isna = check_obj.table[check_obj.key].isnull()
+            check_output = check_output | isna
+
         failure_cases = check_obj.table.filter(~check_output)
         if check_obj.key is not None:
             failure_cases = failure_cases.select(check_obj.key)
@@ -179,6 +185,26 @@ class IbisCheckBackend(BaseCheckBackend):
         check_output: ibis.Table,
     ) -> CheckResult:
         """Postprocesses the result of applying the check function."""
+
+        # Handle null values according to ignore_na setting
+        if self.check.ignore_na and check_obj.key:
+            # Get the original column from check_obj.table (not from check_output which has check columns)
+            orig_col = check_obj.table[check_obj.key]
+            isna = orig_col.isnull()
+            # Mutate to update the check output column - OR with isna
+            check_output = check_output.mutate(
+                {CHECK_OUTPUT_KEY: check_output[CHECK_OUTPUT_KEY] | isna}
+            )
+        elif self.check.ignore_na:
+            # For table-level checks, all columns in output might be affected
+            # Apply isnull to each check column
+            for col in check_output.columns:
+                if col.endswith(CHECK_OUTPUT_SUFFIX):
+                    isna = check_output[col].isnull()
+                    check_output = check_output.mutate(
+                        {col: check_output[col] | isna}
+                    )
+
         passed = check_output[CHECK_OUTPUT_KEY].all()
         failure_cases = check_output.filter(~_[CHECK_OUTPUT_KEY]).drop(
             s.endswith(CHECK_OUTPUT_SUFFIX) | select_column(CHECK_OUTPUT_KEY)

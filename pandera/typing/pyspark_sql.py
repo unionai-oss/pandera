@@ -9,7 +9,9 @@ try:
     import pyspark.sql as ps
 
     PYSPARK_SQL_INSTALLED = True
-except ImportError:  # pragma: no cover
+except (ImportError, AttributeError):  # pragma: no cover
+    # AttributeError can occur when pyspark is installed but incompatible
+    # with the current pandas version
     PYSPARK_SQL_INSTALLED = False
 
 if PYSPARK_SQL_INSTALLED:

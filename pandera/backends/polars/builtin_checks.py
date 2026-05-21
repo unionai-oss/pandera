@@ -2,7 +2,7 @@
 
 import re
 from collections.abc import Collection, Iterable
-from typing import Any, Optional, TypeVar, Union
+from typing import Any, TypeVar, Union
 
 import polars as pl
 
@@ -246,38 +246,31 @@ def str_endswith(data: PolarsData, string: str) -> pl.LazyFrame:
     return data.lazyframe.select(pl.col(data.key).str.ends_with(string))
 
 
-@register_builtin_check(
-    error="str_length({min_value}, {max_value})",
-)
+@register_builtin_check()
 def str_length(
     data: PolarsData,
-    value: int | None = None,
-    *,
     min_value: int | None = None,
     max_value: int | None = None,
+    exact_value: int | None = None,
 ) -> pl.LazyFrame:
     """Ensure that the length of strings is within a specified range.
 
     :param data: NamedTuple PolarsData contains the dataframe and column name for the check. The key
         to access the dataframe is "dataframe", and the key the to access the column name is "key".
-    :param value: Absolute length of strings (inclusive). (default: no absolute)
     :param min_value: Minimum length of strings (inclusive). (default: no minimum)
     :param max_value: Maximum length of strings (inclusive). (default: no maximum)
+    :param exact_value: Exact length of strings. (default: no exact value)
     """
-    if value is None and min_value is None and max_value is None:
-        raise ValueError(
-            "At least an absolute or a minimum or a maximum need to be specified. Got "
-            "None."
-        )
-
-    if value is not None and (min_value is not None or max_value is not None):
-        raise ValueError(
-            "A minimum or a maximum cannot be specified when absolute is specified."
-        )
-
     n_chars = pl.col(data.key).str.len_chars()
-    if value is not None:
-        expr = n_chars.eq(value)
+    if exact_value is not None:
+        expr = n_chars.eq(exact_value)
+        return data.lazyframe.select(expr)
+
+    if min_value is None and max_value is None:
+        raise ValueError(
+            "Must provide at least one of 'min_value' and 'max_value'"
+        )
+
     elif min_value is None:
         expr = n_chars.le(max_value)
     elif max_value is None:

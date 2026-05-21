@@ -7,6 +7,13 @@ from contextlib import contextmanager
 
 from pyspark.sql import DataFrame
 
+try:
+    from pyspark.sql.connect.dataframe import DataFrame as ConnectDataFrame
+
+    _dataframe_types = (DataFrame, ConnectDataFrame)
+except ImportError:
+    _dataframe_types = (DataFrame,)
+
 from pandera.api.pyspark.types import PysparkDefaultTypes
 from pandera.config import ValidationDepth, get_config_context
 from pandera.errors import SchemaError
@@ -96,65 +103,6 @@ def register_input_datatypes(
     return wrapper
 
 
-# def validate_scope(scope: ValidationScope):
-#     """This decorator decides if a function needs to be run or skipped based on params
-
-#     :param params: The configuration parameters to which define how pandera has to be used
-#     :param scope: the scope for which the function is valid. i.e. "DATA" scope function only works to validate the data,
-#                  "SCHEMA"  scope runs for schema checks function.
-#     """
-
-#     def _wrapper(func):
-#         @functools.wraps(func)
-#         def wrapper(self, *args, **kwargs):
-#             def _get_check_obj():
-#                 """
-#                 Get dataframe object passed as arg to the decorated func.
-
-#                 Returns:
-#                     The DataFrame object.
-#                 """
-#                 if args:
-#                     for value in args:
-#                         if isinstance(value, DataFrame):
-#                             return value
-
-#             config = get_config_context()
-#             if scope == ValidationScope.SCHEMA:
-#                 if config.validation_depth in (
-#                     ValidationDepth.SCHEMA_AND_DATA,
-#                     ValidationDepth.SCHEMA_ONLY,
-#                 ):
-#                     return func(self, *args, **kwargs)
-#                 else:
-#                     warnings.warn(
-#                         f"Skipping execution of function {func.__name__} as validation depth is set to DATA_ONLY ",
-#                         stacklevel=2,
-#                     )
-#                     # If the function was skip, return the `check_obj` value anyway,
-#                     # given that some return value is expected
-#                     return _get_check_obj()
-
-#             elif scope == ValidationScope.DATA:
-#                 if config.validation_depth in (
-#                     ValidationDepth.SCHEMA_AND_DATA,
-#                     ValidationDepth.DATA_ONLY,
-#                 ):
-#                     return func(self, *args, **kwargs)
-#                 else:
-#                     warnings.warn(
-#                         f"Skipping execution of function {func.__name__} as validation depth is set to SCHEMA_ONLY",
-#                         stacklevel=2,
-#                     )
-#                     # If the function was skip, return the `check_obj` value anyway,
-#                     # given that some return value is expected
-#                     return _get_check_obj()
-
-#         return wrapper
-
-#     return _wrapper
-
-
 def cache_check_obj():
     """This decorator evaluates if `check_obj` should be cached before validation.
 
@@ -187,7 +135,7 @@ def cache_check_obj():
 
             # Check if decorated function has a dataframe object as an positional arg
             for arg in args:
-                if isinstance(arg, DataFrame):
+                if isinstance(arg, _dataframe_types):
                     check_obj = arg
                     break
 
@@ -195,7 +143,7 @@ def cache_check_obj():
             if check_obj is None:
                 check_obj = kwargs.get("check_obj", None)
 
-            if not isinstance(check_obj, DataFrame):
+            if not isinstance(check_obj, _dataframe_types):
                 raise ValueError(
                     "Expected to find a DataFrame object in a arg or a `check_obj` "
                     "kwarg in the decorated function "

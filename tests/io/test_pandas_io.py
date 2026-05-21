@@ -10,18 +10,16 @@ import pandas as pd
 import pytest
 from packaging import version
 
-import pandera
+import pandera as pandera_base
 import pandera.api.extensions as pa_ext
+import pandera.pandas as pandera
 import pandera.typing as pat
 from pandera.api.pandas.container import DataFrameSchema
 from pandera.engines import pandas_engine
+from pandera.engines.utils import pandas_version
+from pandera.io import pandas_io as io
 
-try:
-    from pandera import io
-except ImportError:
-    HAS_IO = False
-else:
-    HAS_IO = True
+HAS_IO = True
 
 
 try:
@@ -33,6 +31,11 @@ else:
 
 
 SKIP_YAML_TESTS = PYYAML_VERSION is None or PYYAML_VERSION.release < (5, 1, 0)  # type: ignore
+
+PANDAS_3_0_0_PLUS = pandas_version().release >= (3, 0, 0)
+
+_PANDERA_VERSION = pandera_base.__version__
+_PANDERA_STR_DTYPE = str(pandas_engine.Engine.dtype(pandera.String))
 
 
 # skip all tests in module if "io" depends aren't installed
@@ -81,7 +84,7 @@ def _create_schema(index="single"):
                 pandera.String,
                 checks=[
                     pandera.Check.isin(["foo", "bar", "x", "xy"]),
-                    pandera.Check.str_length(min_value=1, max_value=3),
+                    pandera.Check.str_length(1, 3),
                 ],
             ),
             "datetime_column": pandera.Column(
@@ -105,7 +108,7 @@ def _create_schema(index="single"):
                 coerce=True,
                 required=False,
                 regex=True,
-                checks=[pandera.Check.str_length(3)],
+                checks=[pandera.Check.str_length(1, 3)],
             ),
             "notype_column": pandera.Column(
                 checks=pandera.Check.isin(["foo", "bar", "x", "xy"]),
@@ -119,163 +122,107 @@ def _create_schema(index="single"):
 
 YAML_SCHEMA = f"""
 schema_type: dataframe
-version: {pandera.__version__}
+version: {_PANDERA_VERSION}
 columns:
   int_column:
     title: integer_col
     description: Integer column with title
     dtype: int64
     nullable: false
-    checks:
-    - value: 0
-      options:
-        check_name: greater_than
-        raise_warning: false
-        ignore_na: true
-    - value: 10
-      options:
-        check_name: less_than
-        raise_warning: false
-        ignore_na: true
-    - min_value: 0
-      max_value: 10
-      include_min: true
-      include_max: true
-      options:
-        check_name: in_range
-        raise_warning: false
-        ignore_na: true
     unique: false
     coerce: false
     required: true
     regex: false
+    greater_than: 0
+    less_than: 10
+    in_range:
+      min_value: 0
+      max_value: 10
+      include_min: true
+      include_max: true
   float_column:
     title: null
     description: Float col no title
     dtype: float64
     nullable: false
-    checks:
-    - value: -10
-      options:
-        check_name: greater_than
-        raise_warning: false
-        ignore_na: true
-    - value: 20
-      options:
-        check_name: less_than
-        raise_warning: false
-        ignore_na: true
-    - min_value: -10
+    unique: false
+    coerce: false
+    required: true
+    regex: false
+    greater_than: -10
+    less_than: 20
+    in_range:
+      min_value: -10
       max_value: 20
       include_min: true
       include_max: true
-      options:
-        check_name: in_range
-        raise_warning: false
-        ignore_na: true
-    unique: false
-    coerce: false
-    required: true
-    regex: false
   str_column:
     title: null
     description: null
-    dtype: str
+    dtype: {_PANDERA_STR_DTYPE}
     nullable: false
-    checks:
-    - value:
-      - foo
-      - bar
-      - x
-      - xy
-      options:
-        check_name: isin
-        raise_warning: false
-        ignore_na: true
-    - min_value: 1
-      max_value: 3
-      options:
-        check_name: str_length
-        raise_warning: false
-        ignore_na: true
     unique: false
     coerce: false
     required: true
     regex: false
+    isin:
+    - foo
+    - bar
+    - x
+    - xy
+    str_length:
+      min_value: 1
+      max_value: 3
+      exact_value: null
   datetime_column:
     title: null
     description: null
     dtype: datetime64[ns]
     nullable: false
-    checks:
-    - value: '2010-01-01 00:00:00'
-      options:
-        check_name: greater_than
-        raise_warning: false
-        ignore_na: true
-    - value: '2020-01-01 00:00:00'
-      options:
-        check_name: less_than
-        raise_warning: false
-        ignore_na: true
     unique: false
     coerce: false
     required: true
     regex: false
+    greater_than: '2010-01-01 00:00:00'
+    less_than: '2020-01-01 00:00:00'
   timedelta_column:
     title: null
     description: null
     dtype: timedelta64[ns]
     nullable: false
-    checks:
-    - value: 1000
-      options:
-        check_name: greater_than
-        raise_warning: false
-        ignore_na: true
-    - value: 10000
-      options:
-        check_name: less_than
-        raise_warning: false
-        ignore_na: true
     unique: false
     coerce: false
     required: true
     regex: false
+    greater_than: 1000
+    less_than: 10000
   optional_props_column:
     title: null
     description: null
-    dtype: str
+    dtype: {_PANDERA_STR_DTYPE}
     nullable: true
-    checks:
-    - value: 3
-      options:
-        check_name: str_length
-        raise_warning: false
-        ignore_na: true
     unique: false
     coerce: true
     required: false
     regex: true
+    str_length:
+      min_value: 1
+      max_value: 3
+      exact_value: null
   notype_column:
     title: null
     description: null
     dtype: null
     nullable: false
-    checks:
-    - value:
-      - foo
-      - bar
-      - x
-      - xy
-      options:
-        check_name: isin
-        raise_warning: false
-        ignore_na: true
     unique: false
     coerce: false
     required: true
     regex: false
+    isin:
+    - foo
+    - bar
+    - x
+    - xy
 checks: null
 index:
 - title: null
@@ -301,7 +248,7 @@ description: null
 
 YAML_SCHEMA_DICT_CHECK = f"""
 schema_type: dataframe
-version: {pandera.__version__}
+version: {_PANDERA_VERSION}
 columns:
   int_column:
     title: integer_col
@@ -362,7 +309,7 @@ columns:
   str_column:
     title: null
     description: null
-    dtype: str
+    dtype: {_PANDERA_STR_DTYPE}
     nullable: false
     checks:
       isin:
@@ -427,11 +374,12 @@ columns:
   optional_props_column:
     title: null
     description: null
-    dtype: str
+    dtype: {_PANDERA_STR_DTYPE}
     nullable: true
     checks:
       str_length:
-        value: 3
+        min_value: 1
+        max_value: 3
         options:
           raise_warning: false
           ignore_na: true
@@ -497,7 +445,7 @@ def _create_schema_null_index():
                 pandera.String,
                 checks=[
                     pandera.Check.isin(["foo", "bar", "x", "xy"]),
-                    pandera.Check.str_length(min_value=1, max_value=3),
+                    pandera.Check.str_length(1, 3),
                 ],
             ),
         },
@@ -507,7 +455,7 @@ def _create_schema_null_index():
 
 YAML_SCHEMA_NULL_INDEX = f"""
 schema_type: dataframe
-version: {pandera.__version__}
+version: {_PANDERA_VERSION}
 columns:
   float_column:
     dtype: float64
@@ -526,7 +474,7 @@ columns:
       options:
         check_name: in_range
   str_column:
-    dtype: str
+    dtype: {_PANDERA_STR_DTYPE}
     nullable: false
     checks:
     - value:
@@ -540,6 +488,7 @@ columns:
         ignore_na: true
     - min_value: 1
       max_value: 3
+      exact_value: null
       options:
         check_name: str_length
         raise_warning: false
@@ -552,7 +501,7 @@ strict: false
 
 YAML_SCHEMA_NULL_INDEX_DICT_CHECK = f"""
 schema_type: dataframe
-version: {pandera.__version__}
+version: {_PANDERA_VERSION}
 columns:
   float_column:
     dtype: float64
@@ -564,7 +513,7 @@ columns:
         min_value: -10
         max_value: 20
   str_column:
-    dtype: str
+    dtype: {_PANDERA_STR_DTYPE}
     nullable: false
     checks:
       isin:
@@ -602,14 +551,14 @@ def _create_schema_python_types():
 
 YAML_SCHEMA_PYTHON_TYPES = f"""
 schema_type: dataframe
-version: {pandera.__version__}
+version: {_PANDERA_VERSION}
 columns:
   int_column:
     dtype: int64
   float_column:
     dtype: float64
   str_column:
-    dtype: str
+    dtype: {_PANDERA_STR_DTYPE}
   object_column:
     dtype: object
 checks: null
@@ -621,14 +570,14 @@ strict: false
 
 YAML_SCHEMA_MISSING_GLOBAL_CHECK = f"""
 schema_type: dataframe
-version: {pandera.__version__}
+version: {_PANDERA_VERSION}
 columns:
   int_column:
     dtype: int64
   float_column:
     dtype: float64
   str_column:
-    dtype: str
+    dtype: {_PANDERA_STR_DTYPE}
   object_column:
     dtype: object
 checks:
@@ -643,14 +592,14 @@ strict: false
 
 YAML_SCHEMA_MISSING_GLOBAL_CHECK_DICT_CHECK = f"""
 schema_type: dataframe
-version: {pandera.__version__}
+version: {_PANDERA_VERSION}
 columns:
   int_column:
     dtype: int64
   float_column:
     dtype: float64
   str_column:
-    dtype: str
+    dtype: {_PANDERA_STR_DTYPE}
   object_column:
     dtype: object
 checks:
@@ -664,7 +613,7 @@ strict: false
 
 YAML_SCHEMA_MISSING_COLUMN_CHECK = f"""
 schema_type: dataframe
-version: {pandera.__version__}
+version: {_PANDERA_VERSION}
 columns:
   int_column:
     dtype: int64
@@ -676,7 +625,7 @@ columns:
   float_column:
     dtype: float64
   str_column:
-    dtype: str
+    dtype: {_PANDERA_STR_DTYPE}
   object_column:
     dtype: object
 index: null
@@ -686,7 +635,7 @@ strict: false
 
 YAML_SCHEMA_MISSING_COLUMN_CHECK_DICT_CHECK = f"""
 schema_type: dataframe
-version: {pandera.__version__}
+version: {_PANDERA_VERSION}
 columns:
   int_column:
     dtype: int64
@@ -697,7 +646,7 @@ columns:
   float_column:
     dtype: float64
   str_column:
-    dtype: str
+    dtype: {_PANDERA_STR_DTYPE}
   object_column:
     dtype: object
 index: null
@@ -708,7 +657,7 @@ strict: false
 
 YAML_SCHEMA_NO_DESCR_NO_TITLE = f"""
 schema_type: dataframe
-version: {pandera.__version__}
+version: {_PANDERA_VERSION}
 columns:
   int_column:
     title: null
@@ -769,7 +718,7 @@ columns:
   str_column:
     title: null
     description: null
-    dtype: str
+    dtype: {_PANDERA_STR_DTYPE}
     nullable: false
     checks:
     - value:
@@ -781,7 +730,9 @@ columns:
         check_name: isin
         raise_warning: false
         ignore_na: true
-    - value: 3
+    - min_value: 1
+      max_value: 3
+      exact_value: null
       options:
         check_name: str_length
         raise_warning: false
@@ -833,11 +784,12 @@ columns:
   optional_props_column:
     title: null
     description: null
-    dtype: str
+    dtype: {_PANDERA_STR_DTYPE}
     nullable: true
     checks:
     - min_value: 1
       max_value: 3
+      exact_value: null
       options:
         check_name: str_length
         raise_warning: false
@@ -890,7 +842,7 @@ description: null
 
 YAML_SCHEMA_NO_DESCR_NO_TITLE_DICT_CHECK = f"""
 schema_type: dataframe
-version: {pandera.__version__}
+version: {_PANDERA_VERSION}
 columns:
   int_column:
     title: null
@@ -951,7 +903,7 @@ columns:
   str_column:
     title: null
     description: null
-    dtype: str
+    dtype: {_PANDERA_STR_DTYPE}
     nullable: false
     checks:
       isin:
@@ -964,7 +916,8 @@ columns:
           raise_warning: false
           ignore_na: true
       str_length:
-        value: 3
+        min_value: 1
+        max_value: 3
         options:
           raise_warning: false
           ignore_na: true
@@ -1015,7 +968,7 @@ columns:
   optional_props_column:
     title: null
     description: null
-    dtype: str
+    dtype: {_PANDERA_STR_DTYPE}
     nullable: true
     checks:
       str_length:
@@ -1108,7 +1061,7 @@ def _create_schema_no_descr_no_title(index="single"):
                 pandera.String,
                 checks=[
                     pandera.Check.isin(["foo", "bar", "x", "xy"]),
-                    pandera.Check.str_length(value=3),
+                    pandera.Check.str_length(1, 3),
                 ],
             ),
             "datetime_column": pandera.Column(
@@ -1132,7 +1085,7 @@ def _create_schema_no_descr_no_title(index="single"):
                 coerce=True,
                 required=False,
                 regex=True,
-                checks=[pandera.Check.str_length(min_value=1, max_value=3)],
+                checks=[pandera.Check.str_length(1, 3)],
             ),
             "notype_column": pandera.Column(
                 checks=pandera.Check.isin(["foo", "bar", "x", "xy"]),
@@ -1170,14 +1123,14 @@ def test_inferred_schema_io():
 def test_to_yaml():
     """Test that to_yaml writes to yaml string."""
     schema = _create_schema()
-    yaml_str = io.to_yaml(schema)
+    yaml_str = io.to_yaml(schema, minimal=False)
     with tempfile.NamedTemporaryFile("w+") as f:
         f.write(yaml_str)
     with tempfile.NamedTemporaryFile("w+") as f:
         f.write(YAML_SCHEMA)
     assert yaml_str.strip() == YAML_SCHEMA.strip()
 
-    yaml_str_schema_method = schema.to_yaml()
+    yaml_str_schema_method = schema.to_yaml(minimal=False)
     assert yaml_str_schema_method.strip() == YAML_SCHEMA.strip()
 
 
@@ -1248,7 +1201,7 @@ def test_from_yaml_load_required_fields():
 @pytest.mark.parametrize(
     "is_ordered,test_data,expected",
     [
-        (True, {"b": [1], "a": [1]}, pandera.errors.SchemaError),
+        (True, {"b": [1], "a": [1]}, pandera.errors.SchemaErrors),
         (True, {"a": [1], "b": [1]}, pd.DataFrame(data={"a": [1], "b": [1]})),
         (False, {"b": [1], "a": [1]}, pd.DataFrame(data={"b": [1], "a": [1]})),
         (False, {"a": [1], "b": [1]}, pd.DataFrame(data={"a": [1], "b": [1]})),
@@ -1258,7 +1211,7 @@ def test_from_yaml_retains_ordered_keyword(is_ordered, test_data, expected):
     """Test that from_yaml() retains the 'ordered' keyword."""
     yaml_schema = f"""
     schema_type: dataframe
-    version: {pandera.__version__}
+    version: {_PANDERA_VERSION}
     columns:
         a:
             dtype: int64
@@ -1387,6 +1340,113 @@ def test_io_json(index):
         assert schema_from_json == schema
 
 
+def test_io_json_with_multiindex_column_labels():
+    """Test JSON serialization for schemas with tuple column labels."""
+    import json
+
+    schema = pandera.DataFrameSchema(
+        {
+            ("level1", "col_a"): pandera.Column(float),
+            ("level1", "col_b"): pandera.Column(float),
+            ("level2", "col_c"): pandera.Column(int),
+        }
+    )
+    dataframe = pd.DataFrame(
+        {
+            ("level1", "col_a"): [1.0, 2.0, 3.0],
+            ("level1", "col_b"): [4.0, 5.0, 6.0],
+            ("level2", "col_c"): [7, 8, 9],
+        }
+    )
+
+    validated = schema.validate(dataframe)
+    serialized = schema.to_json()
+    restored = schema.from_json(serialized)
+
+    assert isinstance(serialized, str)
+    assert isinstance(json.loads(serialized)["columns"], list)
+    assert restored == schema
+    pd.testing.assert_frame_equal(restored.validate(validated), validated)
+
+
+def test_check_custom_error_json_serialization_roundtrip():
+    """Test that custom check errors are serialized and deserialized via JSON."""
+    import json
+
+    schema = pandera.DataFrameSchema(
+        {
+            "default_error": pandera.Column(
+                pandera.Int,
+                checks=[pandera.Check.greater_than(10)],
+            ),
+            "custom_error": pandera.Column(
+                pandera.Int,
+                checks=[
+                    pandera.Check.greater_than(
+                        10,
+                        error="column must be greater than 10",
+                    )
+                ],
+            ),
+        }
+    )
+
+    schema_dict = json.loads(schema.to_json())
+    default_gt = schema_dict["columns"]["default_error"]["greater_than"]
+    custom_gt = schema_dict["columns"]["custom_error"]["greater_than"]
+
+    assert default_gt == 10
+    assert isinstance(custom_gt, dict)
+    assert custom_gt["min_value"] == 10
+    assert custom_gt["error"] == "column must be greater than 10"
+
+    restored = io.from_json(json.dumps(schema_dict))
+    restored_checks = restored.columns["custom_error"].checks
+    assert restored_checks is not None
+    assert restored_checks[0].error == "column must be greater than 10"
+
+
+@pytest.mark.skipif(
+    SKIP_YAML_TESTS,
+    reason="pyyaml >= 5.1.0 required",
+)
+def test_check_custom_error_yaml_serialization_roundtrip():
+    """Test that custom check errors are serialized and deserialized via YAML."""
+    schema = pandera.DataFrameSchema(
+        {
+            "default_error": pandera.Column(
+                pandera.Int,
+                checks=[pandera.Check.greater_than(10)],
+            ),
+            "custom_error": pandera.Column(
+                pandera.Int,
+                checks=[
+                    pandera.Check.greater_than(
+                        10,
+                        error="column must be greater than 10",
+                    )
+                ],
+            ),
+        }
+    )
+
+    yaml_str = schema.to_yaml()
+    schema_dict = yaml.safe_load(yaml_str)
+
+    default_gt = schema_dict["columns"]["default_error"]["greater_than"]
+    custom_gt = schema_dict["columns"]["custom_error"]["greater_than"]
+
+    assert default_gt == 10
+    assert isinstance(custom_gt, dict)
+    assert custom_gt["min_value"] == 10
+    assert custom_gt["error"] == "column must be greater than 10"
+
+    restored = io.from_yaml(yaml_str)
+    restored_checks = restored.columns["custom_error"].checks
+    assert restored_checks is not None
+    assert restored_checks[0].error == "column must be greater than 10"
+
+
 @pytest.mark.skipif(
     platform.system() == "Windows",
     reason="skipping due to issues with opening file names for temp files.",
@@ -1396,7 +1456,10 @@ def test_to_script(index):
     """Test writing DataFrameSchema to a script."""
     schema_to_write = _create_schema(index)
 
-    for script in [io.to_script(schema_to_write), schema_to_write.to_script()]:
+    for script in [
+        io.to_script(schema_to_write, minimal=False),
+        schema_to_write.to_script(minimal=False),
+    ]:
         local_dict = {}
         # pylint: disable=exec-used
         exec(script, globals(), local_dict)
@@ -1407,7 +1470,7 @@ def test_to_script(index):
         assert schema == schema_to_write
 
     with tempfile.NamedTemporaryFile("w+") as f:
-        schema_to_write.to_script(Path(f.name))
+        schema_to_write.to_script(Path(f.name), minimal=False)
         # pylint: disable=exec-used
         exec(f.read(), globals(), local_dict)
         schema = local_dict["schema"]
@@ -1428,7 +1491,7 @@ def test_to_script_lambda_check():
     )
 
     with pytest.warns(UserWarning):
-        pandera.io.to_script(schema1)
+        io.to_script(schema1)
 
     schema2 = pandera.DataFrameSchema(
         {
@@ -1440,7 +1503,7 @@ def test_to_script_lambda_check():
     )
 
     with pytest.warns(UserWarning, match=".*registered checks.*"):
-        pandera.io.to_script(schema2)
+        io.to_script(schema2)
 
 
 def test_to_yaml_lambda_check():
@@ -1457,7 +1520,7 @@ def test_to_yaml_lambda_check():
     )
 
     with pytest.warns(UserWarning):
-        pandera.io.to_yaml(schema)
+        io.to_yaml(schema)
 
 
 def test_format_checks_warning():
@@ -1499,8 +1562,8 @@ def test_to_yaml_registered_dataframe_check(_):
         checks=[pandera.Check.ncols_gt(column_count=5)],
     )
 
-    serialized = pandera.io.to_yaml(schema)
-    loaded = pandera.io.from_yaml(serialized)
+    serialized = io.to_yaml(schema)
+    loaded = io.from_yaml(serialized)
 
     assert len(loaded.checks) == 1, "global check was stripped"
 
@@ -1523,7 +1586,7 @@ def test_to_yaml_custom_dataframe_check():
     )
 
     with pytest.warns(UserWarning, match=".*registered checks.*"):
-        pandera.io.to_yaml(schema)
+        io.to_yaml(schema)
 
     # the unregistered column check case is tested in
     # `test_to_yaml_lambda_check`
@@ -1549,7 +1612,7 @@ def test_to_yaml_bugfix_warn_unregistered_global_checks():
 @pytest.mark.parametrize(
     "is_ordered,test_data,expected",
     [
-        (True, {"b": [1], "a": [1]}, pandera.errors.SchemaError),
+        (True, {"b": [1], "a": [1]}, pandera.errors.SchemaErrors),
         (True, {"a": [1], "b": [1]}, pd.DataFrame(data={"a": [1], "b": [1]})),
         (False, {"b": [1], "a": [1]}, pd.DataFrame(data={"b": [1], "a": [1]})),
         (False, {"a": [1], "b": [1]}, pd.DataFrame(data={"a": [1], "b": [1]})),
@@ -1566,7 +1629,7 @@ def test_to_yaml_retains_ordered_keyword(is_ordered, test_data, expected):
     )
 
     # make sure the schema contains the ordered key word
-    yaml_schema = schema.to_yaml()
+    yaml_schema = schema.to_yaml(minimal=False)
     assert "ordered" in yaml_schema  # pylint: disable=E1135
 
     # raise the error only when the ordered condition is violated
@@ -1697,128 +1760,100 @@ FRICTIONLESS_JSON = {
 
 # pandas dtype aliases to support testing across multiple pandas versions:
 STR_DTYPE = pandas_engine.Engine.dtype("string")
-STR_DTYPE_ALIAS = str(pandas_engine.Engine.dtype("string"))
+STR_DTYPE_ALIAS = pandas_engine.Engine.dtype("string").type
 INT_DTYPE = pandas_engine.Engine.dtype("int")
 INT_DTYPE_ALIAS = str(pandas_engine.Engine.dtype("int"))
 
 YAML_FROM_FRICTIONLESS = f"""
 schema_type: dataframe
-version: {pandera.__version__}
+version: {_PANDERA_VERSION}
 columns:
   integer_col:
     title: null
     description: null
     dtype: {INT_DTYPE}
     nullable: false
-    checks:
-    - min_value: 10
-      max_value: 99
-      include_min: true
-      include_max: true
-      options:
-        check_name: in_range
-        raise_warning: false
-        ignore_na: true
     unique: true
     coerce: true
     required: true
     regex: false
+    in_range:
+      min_value: 10
+      max_value: 99
+      include_min: true
+      include_max: true
   integer_col_2:
     title: null
     description: null
     dtype: {INT_DTYPE}
     nullable: true
-    checks:
-    - value: 30
-      options:
-        check_name: less_than_or_equal_to
-        raise_warning: false
-        ignore_na: true
     unique: false
     coerce: true
     required: true
     regex: false
+    less_than_or_equal_to: 30
   string_col:
     title: null
     description: null
     dtype: {STR_DTYPE}
     nullable: true
-    checks:
-    - min_value: 3
-      max_value: 80
-      options:
-        check_name: str_length
-        raise_warning: false
-        ignore_na: true
     unique: false
     coerce: true
     required: true
     regex: false
+    str_length:
+      min_value: 3
+      max_value: 80
+      exact_value: null
   string_col_2:
     title: null
     description: null
     dtype: {STR_DTYPE}
     nullable: true
-    checks:
-    - value: ^\\d{{3}}[A-Z]$
-      options:
-        check_name: str_matches
-        raise_warning: false
-        ignore_na: true
     unique: false
     coerce: true
     required: true
     regex: false
+    str_matches: ^\\d{{3}}[A-Z]$
   string_col_3:
     title: null
     description: null
     dtype: {STR_DTYPE}
     nullable: true
-    checks:
-    - min_value: 3
-      max_value: null
-      options:
-        check_name: str_length
-        raise_warning: false
-        ignore_na: true
     unique: false
     coerce: true
     required: true
     regex: false
+    str_length:
+      min_value: 3
+      max_value: null
+      exact_value: null
   string_col_4:
     title: null
     description: null
     dtype: {STR_DTYPE}
     nullable: true
-    checks:
-    - min_value: null
-      max_value: 3
-      options:
-        check_name: str_length
-        raise_warning: false
-        ignore_na: true
     unique: false
     coerce: true
     required: true
     regex: false
+    str_length:
+      min_value: null
+      max_value: 3
+      exact_value: null
   float_col:
     title: null
     description: null
     dtype: category
     nullable: false
-    checks:
-    - value:
-      - 1.0
-      - 2.0
-      - 3.0
-      options:
-        check_name: isin
-        raise_warning: false
-        ignore_na: true
     unique: false
     coerce: true
     required: true
     regex: false
+    isin:
+    - 1.0
+    - 2.0
+    - 3.0
   float_col_2:
     title: null
     description: null
@@ -1834,16 +1869,11 @@ columns:
     description: null
     dtype: {STR_DTYPE}
     nullable: true
-    checks:
-    - value: '20201231'
-      options:
-        check_name: greater_than_or_equal_to
-        raise_warning: false
-        ignore_na: true
     unique: false
     coerce: true
     required: true
     regex: false
+    greater_than_or_equal_to: '20201231'
 checks: null
 index: null
 dtype: null
@@ -1899,9 +1929,12 @@ INVALID_FRICTIONLESS_DF = pd.DataFrame(
 )
 def test_frictionless_schema_parses_correctly(frictionless_schema):
     """Test parsing frictionless schema from yaml and json."""
-    schema = pandera.io.from_frictionless_schema(frictionless_schema)
+    schema = io.from_frictionless_schema(frictionless_schema)
 
-    assert str(schema.to_yaml()).strip() == YAML_FROM_FRICTIONLESS.strip()
+    assert (
+        str(schema.to_yaml(minimal=False)).strip()
+        == YAML_FROM_FRICTIONLESS.strip()
+    )
 
     assert isinstance(schema, DataFrameSchema), (
         "schema object not loaded successfully"
@@ -1925,34 +1958,38 @@ def test_frictionless_schema_parses_correctly(frictionless_schema):
     with pytest.raises(pandera.errors.SchemaErrors) as err:
         schema.validate(INVALID_FRICTIONLESS_DF, lazy=True)
     # check we're capturing all errors according to the frictionless schema:
-    assert err.value.failure_cases[["check", "failure_case"]].fillna(
-        "NaN"
-    ).to_dict(orient="records") == [
-        {"check": "column_in_dataframe", "failure_case": "date_col"},
-        {"check": "column_in_schema", "failure_case": "unexpected_column"},
-        {"check": "coerce_dtype('float64')", "failure_case": "a"},
-        {"check": "str_length(3, None)", "failure_case": "1A"},
-        {"check": "isin([1.0, 2.0, 3.0])", "failure_case": 3.8},
-        {"check": "isin([1.0, 2.0, 3.0])", "failure_case": 1.1},
-        {"check": "not_nullable", "failure_case": "NaN"},
-        {"check": "str_length(None, 3)", "failure_case": "123A"},
-        {
-            "check": "str_matches('^\\d{3}[A-Z]$')",
-            "failure_case": "789c",
-        },
-        {"check": "field_uniqueness", "failure_case": 12},
-        {
-            "check": "str_length(3, 80)",
-            "failure_case": "dddddddddddddddddddddddddddddddddddddddddddddddddddd"
+    # Convert failure cases to a set of tuples for order-independent comparison
+    actual_failure_cases = {
+        (row["check"], row["failure_case"])
+        for row in err.value.failure_cases[["check", "failure_case"]]
+        .fillna("NaN")
+        .to_dict(orient="records")
+    }
+    expected_failure_cases = {
+        ("column_in_dataframe", "date_col"),
+        ("column_in_schema", "unexpected_column"),
+        ("coerce_dtype('float64')", "a"),
+        ("dtype('float64')", "a"),
+        ("str_length(3, None)", "1A"),
+        ("isin([1.0, 2.0, 3.0])", 3.8),
+        ("isin([1.0, 2.0, 3.0])", 1.1),
+        ("not_nullable", "NaN"),
+        ("str_length(None, 3)", "123A"),
+        ("str_matches('^\\d{3}[A-Z]$')", "789c"),
+        ("field_uniqueness", 12),
+        (
+            "str_length(3, 80)",
+            "dddddddddddddddddddddddddddddddddddddddddddddddddddd"
             "dddddddddddddddddddddddddddddddddddddddddddddddd",
-        },
-        {"check": "str_length(3, 80)", "failure_case": "a"},
-        {"check": "less_than_or_equal_to(30)", "failure_case": 113},
-        {"check": "in_range(10, 99)", "failure_case": 180},
-        {"check": "in_range(10, 99)", "failure_case": 1},
-        {"check": "field_uniqueness", "failure_case": 12},
-        {"check": "dtype('float64')", "failure_case": "object"},
-    ], "validation failure cases not as expected"
+        ),
+        ("str_length(3, 80)", "a"),
+        ("less_than_or_equal_to(30)", 113),
+        ("in_range(10, 99)", 180),
+        ("in_range(10, 99)", 1),
+    }
+    assert actual_failure_cases == expected_failure_cases, (
+        "validation failure cases not as expected"
+    )
 
 
 @pytest.mark.parametrize(
@@ -1980,7 +2017,7 @@ def test_frictionless_schema_primary_key(frictionless_schema):
     If the primary key is only one field, the unique field should be in the
     column level and not the dataframe level.
     """
-    schema = pandera.io.from_frictionless_schema(frictionless_schema)
+    schema = io.from_frictionless_schema(frictionless_schema)
     if len(frictionless_schema["primaryKey"]) == 1:
         assert schema.columns[frictionless_schema["primaryKey"][0]].unique
         assert schema.unique is None
@@ -2026,7 +2063,7 @@ def test_frictionless_schema_primary_key(frictionless_schema):
 def test_frictionless_schema_with_description_and_title(
     frictionless_schema: dict[str, str],
 ):
-    schema = pandera.io.from_frictionless_schema(frictionless_schema)
+    schema = io.from_frictionless_schema(frictionless_schema)
     assert schema.columns["street_id"].description == "Id of the street"
     assert schema.columns["street_id"].title == "street identifier"
 
@@ -2053,25 +2090,13 @@ def test_enum_isin_json_serialization():
         # Should not raise TypeError
         json_output = schema.to_json()
 
-        # Verify the enum values are properly serialized
+        # Verify the enum values are properly serialized (flat ``isin`` key)
         schema_dict = json.loads(json_output)
         assert "columns" in schema_dict
         assert "status" in schema_dict["columns"]
-        status_checks = schema_dict["columns"]["status"]["checks"]
-        assert len(status_checks) > 0
-
-        # Find the isin check
-        isin_check = None
-        for check in status_checks:
-            if isinstance(check, dict) and "options" in check:
-                if check["options"]["check_name"] == "isin":
-                    isin_check = check
-                    break
-
-        assert isin_check is not None
-        # The enum should be serialized as a list of values
-        assert "value" in isin_check
-        assert set(isin_check["value"]) == {"active", "inactive", "pending"}
+        status_col = schema_dict["columns"]["status"]
+        assert "isin" in status_col
+        assert set(status_col["isin"]) == {"active", "inactive", "pending"}
 
     # Test with regular Enum (available in all Python versions)
     from enum import Enum
@@ -2088,25 +2113,13 @@ def test_enum_isin_json_serialization():
     # Should not raise TypeError
     json_output = schema.to_json()
 
-    # Verify the enum values are properly serialized
+    # Verify the enum values are properly serialized (flat ``isin`` key)
     schema_dict = json.loads(json_output)
     assert "columns" in schema_dict
     assert "priority" in schema_dict["columns"]
-    priority_checks = schema_dict["columns"]["priority"]["checks"]
-    assert len(priority_checks) > 0
-
-    # Find the isin check
-    isin_check = None
-    for check in priority_checks:
-        if isinstance(check, dict) and "options" in check:
-            if check["options"]["check_name"] == "isin":
-                isin_check = check
-                break
-
-    assert isin_check is not None
-    # The enum should be serialized as a list of values
-    assert "value" in isin_check
-    assert set(isin_check["value"]) == {"high", "medium", "low"}
+    priority_col = schema_dict["columns"]["priority"]
+    assert "isin" in priority_col
+    assert set(priority_col["isin"]) == {"high", "medium", "low"}
 
 
 def test_enum_isin_dataframe_model_json_serialization():
@@ -2133,22 +2146,84 @@ def test_enum_isin_dataframe_model_json_serialization():
         schema = ColorTable.to_schema()
         json_output = schema.to_json()  # Should not raise TypeError
 
-        # Verify the enum values are in the JSON
+        # Verify the enum values are in the JSON (flat ``isin`` key)
         schema_dict = json.loads(json_output)
         assert "columns" in schema_dict
         assert "color" in schema_dict["columns"]
-        color_checks = schema_dict["columns"]["color"]["checks"]
-        assert len(color_checks) > 0
+        color_col = schema_dict["columns"]["color"]
+        assert "isin" in color_col
+        assert set(color_col["isin"]) == {"red", "green", "blue"}
 
-        # Find the isin check
-        isin_check = None
-        for check in color_checks:
-            if isinstance(check, dict) and "options" in check:
-                if check["options"]["check_name"] == "isin":
-                    isin_check = check
-                    break
 
-        assert isin_check is not None
-        # The enum should be serialized as a list of values
-        assert "value" in isin_check
-        assert set(isin_check["value"]) == {"red", "green", "blue"}
+def test_dataframe_library_metadata_roundtrip():
+    """Non-default dataframe_library is stored on disk and restored on load."""
+    import json
+
+    import pandera as pd
+
+    schema = pd.DataFrameSchema({"x": pd.Column(int)})
+    from pandera.io import pandas_io
+
+    payload = pandas_io.serialize_schema(schema, dataframe_library="dask")
+    assert payload["dataframe_library"] == "dask"
+
+    restored = pandas_io.deserialize_schema(payload)
+    assert restored.metadata is not None
+    assert restored.metadata.get("dataframe_library") == "dask"
+
+    as_json = json.loads(pandas_io.to_json(schema, dataframe_library="modin"))
+    assert as_json["dataframe_library"] == "modin"
+
+
+class TestDataFrameModelIO:
+    """Test to/from_yaml and to/from_json on pandas DataFrameModel."""
+
+    def test_model_to_yaml(self):
+        class MyModel(pandera.DataFrameModel):
+            a: pat.Series[pat.Int64]
+            b: pat.Series[pat.String]
+
+        yaml_str = MyModel.to_yaml()
+        assert isinstance(yaml_str, str)
+        assert "a" in yaml_str
+        assert "b" in yaml_str
+
+    def test_model_to_json(self):
+        import json
+
+        class MyModel(pandera.DataFrameModel):
+            a: pat.Series[pat.Int64]
+
+        json_str = MyModel.to_json()
+        assert isinstance(json_str, str)
+        parsed = json.loads(json_str)
+        assert "a" in parsed["columns"]
+
+    def test_model_from_yaml(self):
+        class MyModel(pandera.DataFrameModel):
+            a: pat.Series[pat.Int64]
+            b: pat.Series[pat.String]
+
+        yaml_str = MyModel.to_yaml()
+        schema = MyModel.from_yaml(yaml_str)
+        assert isinstance(schema, DataFrameSchema)
+        assert "a" in schema.columns
+        assert "b" in schema.columns
+
+    def test_model_from_json(self):
+        class MyModel(pandera.DataFrameModel):
+            a: pat.Series[pat.Int64]
+
+        json_str = MyModel.to_json()
+        schema = MyModel.from_json(json_str)
+        assert isinstance(schema, DataFrameSchema)
+        assert "a" in schema.columns
+
+    def test_model_yaml_roundtrip(self):
+        class MyModel(pandera.DataFrameModel):
+            a: pat.Series[pat.Int64] = pandera.Field(ge=0)
+
+        yaml_str = MyModel.to_yaml()
+        schema = MyModel.from_yaml(yaml_str)
+        df = pd.DataFrame({"a": [1, 2, 3]})
+        schema.validate(df)

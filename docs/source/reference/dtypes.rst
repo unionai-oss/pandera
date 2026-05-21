@@ -206,6 +206,19 @@ Utility functions
    pandera.dtypes.is_timedelta
    pandera.dtypes.immutable
 
+Xarray dtypes
+-------------
+
+xarray uses NumPy-like dtypes; :class:`~pandera.engines.xarray_engine.DataType`
+wraps resolution for :class:`xarray.DataArray` validation.
+
+.. autosummary::
+   :toctree: generated
+   :template: dtype.rst
+   :nosignatures:
+
+   pandera.engines.xarray_engine.DataType
+
 Engines
 -------
 
@@ -219,3 +232,4 @@ Engines
    pandera.engines.pandas_engine.Engine
    pandera.engines.polars_engine.Engine
    pandera.engines.pyspark_engine.Engine
+   pandera.engines.xarray_engine.Engine

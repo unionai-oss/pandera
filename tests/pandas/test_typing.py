@@ -8,6 +8,7 @@ import pandas as pd
 import pytest
 
 import pandera.pandas as pa
+from pandera.api.pandas.model import _get_nullable_coercion_dtype
 from pandera.dtypes import DataType
 from pandera.typing import DataFrame, Index, Series
 
@@ -328,18 +329,11 @@ class SchemaAnnotatedCategoricalDtype(pa.DataFrameModel):
 
 
 class SchemaAnnotatedDatetimeTZDtype(pa.DataFrameModel):
-    col: Series[Annotated[pd.DatetimeTZDtype, "ns", "est"]]
+    col: Series[Annotated[pd.DatetimeTZDtype, "ns", "UTC"]]
 
 
-if pa.PANDAS_1_3_0_PLUS:
-
-    class SchemaAnnotatedIntervalDtype(pa.DataFrameModel):
-        col: Series[Annotated[pd.IntervalDtype, "int32", "both"]]
-
-else:
-
-    class SchemaAnnotatedIntervalDtype(pa.DataFrameModel):  # type: ignore
-        col: Series[Annotated[pd.IntervalDtype, "int32"]]
+class SchemaAnnotatedIntervalDtype(pa.DataFrameModel):
+    col: Series[Annotated[pd.IntervalDtype, "int32", "both"]]
 
 
 class SchemaAnnotatedPeriodDtype(pa.DataFrameModel):
@@ -361,16 +355,12 @@ class SchemaAnnotatedSparseDtype(pa.DataFrameModel):
         (
             SchemaAnnotatedDatetimeTZDtype,
             pd.DatetimeTZDtype,
-            {"unit": "ns", "tz": "EST"},
+            {"unit": "ns", "tz": "UTC"},
         ),
         (
             SchemaAnnotatedIntervalDtype,
             pd.IntervalDtype,
-            (
-                {"subtype": "int32", "closed": "both"}
-                if pa.PANDAS_1_3_0_PLUS
-                else {"subtype": "int32"}
-            ),
+            {"subtype": "int32", "closed": "both"},
         ),
         (SchemaAnnotatedPeriodDtype, pd.PeriodDtype, {"freq": "D"}),
         (
@@ -493,12 +483,51 @@ class InitSchema(pa.DataFrameModel):
     index: Index[int]
 
 
+class EmptyBoolSchema(pa.DataFrameModel):
+    blah_not_foo: Series[bool]
+
+
+class NullableCoerceBoolSchema(pa.DataFrameModel):
+    col: Series[bool] = pa.Field(nullable=True)
+
+    class Config:
+        coerce = True
+
+
+class NullableCoerceBoolAliasSchema(pa.DataFrameModel):
+    col: Series[pa.typing.Bool] = pa.Field(nullable=True)
+
+    class Config:
+        coerce = True
+
+
+class NullableCoerceIntSchema(pa.DataFrameModel):
+    col: Series[int] = pa.Field(nullable=True)
+
+    class Config:
+        coerce = True
+
+
+class NullableCoerceIntAliasSchema(pa.DataFrameModel):
+    col: Series[pa.typing.Int64] = pa.Field(nullable=True)
+
+    class Config:
+        coerce = True
+
+
 def test_init_pandas_dataframe():
     """Test initialization of pandas.typing.DataFrame with Schema."""
     assert isinstance(
         DataFrame[InitSchema]({"col1": [1], "col2": [1.0], "col3": ["1"]}),
         DataFrame,
     )
+
+
+def test_init_pandas_dataframe_empty_dict_data():
+    """Ensure empty list inputs don't fail due to pandas float64 inference."""
+    data = DataFrame[EmptyBoolSchema]({"blah_not_foo": []})
+
+    assert isinstance(data, DataFrame)
 
 
 @pytest.mark.parametrize(
@@ -514,3 +543,52 @@ def test_init_pandas_dataframe_errors(invalid_data):
     """Test errors from initializing a pandas.typing.DataFrame with Schema."""
     with pytest.raises(pa.errors.SchemaError):
         DataFrame[InitSchema](invalid_data)
+
+
+@pytest.mark.parametrize(
+    "model,values,expected_dtype",
+    [
+        (NullableCoerceBoolSchema, [True, None, False], "boolean"),
+        (NullableCoerceBoolAliasSchema, [True, None, False], "boolean"),
+        (NullableCoerceIntSchema, [1, None, 0], "Int64"),
+        (NullableCoerceIntAliasSchema, [1, None, 0], "Int64"),
+    ],
+)
+def test_nullable_coerce_uses_nullable_pandas_dtypes(
+    model: type[pa.DataFrameModel],
+    values: list[Any],
+    expected_dtype: str,
+):
+    """Ensure nullable typed fields preserve nulls when coercion is enabled."""
+    validated = model.validate(pd.DataFrame({"col": values}))
+
+    assert str(validated["col"].dtype) == expected_dtype
+    assert validated["col"].isna().tolist() == [False, True, False]
+
+
+def test_nullable_coerce_dtype_passthrough_for_non_nullable_mapping() -> None:
+    """Unmapped dtypes should be returned unchanged."""
+    assert (
+        _get_nullable_coercion_dtype(
+            pa.String,
+            nullable=True,
+            coerce=True,
+        )
+        is pa.String
+    )
+
+
+def test_nullable_coerce_dtype_passthrough_for_unknown_dtype() -> None:
+    """Unknown dtypes should be returned unchanged on engine resolution error."""
+
+    class UnknownType:
+        """Dummy dtype used to exercise fallback behavior."""
+
+    assert (
+        _get_nullable_coercion_dtype(
+            UnknownType,
+            nullable=True,
+            coerce=True,
+        )
+        is UnknownType
+    )

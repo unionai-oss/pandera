@@ -6,6 +6,8 @@ from collections.abc import Iterable
 from typing import Any, Optional, TypeVar, Union
 
 import ibis
+import ibis.expr.datatypes as dt
+import ibis.expr.types as ir
 from ibis import _
 from ibis import selectors as s
 
@@ -14,6 +16,11 @@ from pandera.api.ibis.types import IbisData
 from pandera.backends.ibis.utils import select_column
 
 T = TypeVar("T")
+
+
+def _time_col(col):
+    """Cast column to TIME for DuckDB compatibility (TIME_NS from pandas memtable)."""
+    return col.cast(dt.String()).cast(dt.Time())
 
 
 def _infer_interval_with_mixed_units(value: Any) -> Any:
@@ -49,6 +56,8 @@ def equal_to(data: IbisData, value: Any) -> ibis.Table:
         equal to this value.
     """
     value = _infer_interval_with_mixed_units(value)
+    if isinstance(value, datetime.time):
+        return _across(data.table, data.key, lambda c: _time_col(c) == value)
     return _across(data.table, data.key, _ == value)
 
 
@@ -64,6 +73,8 @@ def not_equal_to(data: IbisData, value: Any) -> ibis.Table:
     :param value: This value must not occur in the checked data structure.
     """
     value = _infer_interval_with_mixed_units(value)
+    if isinstance(value, datetime.time):
+        return _across(data.table, data.key, lambda c: _time_col(c) != value)
     return _across(data.table, data.key, _ != value)
 
 
@@ -81,6 +92,8 @@ def greater_than(data: IbisData, min_value: Any) -> ibis.Table:
         to the dtype of the :class:`ibis.Column` to be validated.
     """
     value = _infer_interval_with_mixed_units(min_value)
+    if isinstance(value, datetime.time):
+        return _across(data.table, data.key, lambda c: _time_col(c) > value)
     return _across(data.table, data.key, _ > value)
 
 
@@ -97,6 +110,8 @@ def greater_than_or_equal_to(data: IbisData, min_value: Any) -> ibis.Table:
         to the dtype of the :class:`ibis.Column` to be validated.
     """
     value = _infer_interval_with_mixed_units(min_value)
+    if isinstance(value, datetime.time):
+        return _across(data.table, data.key, lambda c: _time_col(c) >= value)
     return _across(data.table, data.key, _ >= value)
 
 
@@ -114,6 +129,8 @@ def less_than(data: IbisData, max_value: Any) -> ibis.Table:
         :class:`ibis.Column` to be validated.
     """
     value = _infer_interval_with_mixed_units(max_value)
+    if isinstance(value, datetime.time):
+        return _across(data.table, data.key, lambda c: _time_col(c) < value)
     return _across(data.table, data.key, _ < value)
 
 
@@ -130,6 +147,8 @@ def less_than_or_equal_to(data: IbisData, max_value: Any) -> ibis.Table:
         :class:`ibis.Column` to be validated.
     """
     value = _infer_interval_with_mixed_units(max_value)
+    if isinstance(value, datetime.time):
+        return _across(data.table, data.key, lambda c: _time_col(c) <= value)
     return _across(data.table, data.key, _ <= value)
 
 
@@ -163,6 +182,20 @@ def in_range(
     """
     min_value = _infer_interval_with_mixed_units(min_value)
     max_value = _infer_interval_with_mixed_units(max_value)
+    use_time_cast = isinstance(min_value, datetime.time) or isinstance(
+        max_value, datetime.time
+    )
+    if use_time_cast:
+
+        def _time_between(c):
+            tc = _time_col(c)
+            if include_min and include_max:
+                return tc.between(min_value, max_value)
+            cm = tc >= min_value if include_min else tc > min_value
+            cx = tc <= max_value if include_max else tc < max_value
+            return cm & cx
+
+        return _across(data.table, data.key, _time_between)
     if include_min and include_max:
         func = _.between(min_value, max_value)
     else:
@@ -193,6 +226,14 @@ def isin(data: IbisData, allowed_values: Iterable) -> ibis.Table:
     allowed_values = [
         _infer_interval_with_mixed_units(value) for value in allowed_values
     ]
+    if allowed_values and any(
+        isinstance(v, datetime.time) for v in allowed_values
+    ):
+        return _across(
+            data.table,
+            data.key,
+            lambda c: _time_col(c).isin(allowed_values),
+        )
     return _across(data.table, data.key, _.isin(allowed_values))
 
 
@@ -215,6 +256,14 @@ def notin(data: IbisData, forbidden_values: Iterable) -> ibis.Table:
     forbidden_values = [
         _infer_interval_with_mixed_units(value) for value in forbidden_values
     ]
+    if forbidden_values and any(
+        isinstance(v, datetime.time) for v in forbidden_values
+    ):
+        return _across(
+            data.table,
+            data.key,
+            lambda c: _time_col(c).notin(forbidden_values),
+        )
     return _across(data.table, data.key, _.notin(forbidden_values))
 
 
@@ -280,37 +329,29 @@ def str_endswith(data: IbisData, string: str) -> ibis.Table:
     return _across(data.table, data.key, _.endswith(string))
 
 
-@register_builtin_check(
-    error="str_length({length})",
-)
+@register_builtin_check()
 def str_length(
     data: IbisData,
-    value: int | None = None,
-    *,
     min_value: int | None = None,
     max_value: int | None = None,
+    exact_value: int | None = None,
 ) -> ibis.Table:
     """Ensure that the length of strings is within a specified range.
 
     :param data: NamedTuple IbisData contains the table and column name for the check. The key
         to access the table is "table", and the key to access the column name is "key".
-    :param value: Absolute length of strings (inclusive). (default: no absolute)
     :param min_value: Minimum length of strings (inclusive). (default: no minimum)
     :param max_value: Maximum length of strings (inclusive). (default: no maximum)
+    :param exact_value: Exact length of strings. (default: no exact value)
     """
-    if value is None and min_value is None and max_value is None:
-        raise ValueError(
-            "At least an absolute or a minimum or a maximum need to be specified. Got "
-            "None."
-        )
+    if exact_value is not None:
+        func = _.length() == exact_value
+        return _across(data.table, data.key, func)
 
-    if value is not None and (min_value is not None or max_value is not None):
+    if min_value is None and max_value is None:
         raise ValueError(
-            "A minimum or a maximum cannot be specified when absolute is specified."
+            "Must provide at least one of 'min_value' and 'max_value'"
         )
-
-    if value is not None:
-        func = _.length() == value
     elif min_value is None:
         func = _.length() <= max_value
     elif max_value is None:
@@ -324,7 +365,7 @@ def str_length(
 @register_builtin_check(
     error="unique_values_eq({values})",
 )
-def unique_values_eq(data: IbisData, values: Iterable) -> ibis.Table:
+def unique_values_eq(data: IbisData, values: Iterable) -> bool:
     """Ensure that unique values in the data object contain all values.
 
     .. note::
@@ -335,6 +376,9 @@ def unique_values_eq(data: IbisData, values: Iterable) -> ibis.Table:
         to access the table is "table", and the key to access the column name is "key".
     :param values: The set of values that must be present. May be any iterable.
     """
+    resolved = frozenset(
+        v.execute() if isinstance(v, ir.Expr) else v for v in values
+    )
     return (
         set(
             data.table.select(data.key)
@@ -342,5 +386,5 @@ def unique_values_eq(data: IbisData, values: Iterable) -> ibis.Table:
             .to_pyarrow()
             .to_pylist()
         )
-        == values
+        == resolved
     )

@@ -25,6 +25,7 @@ class Check(BaseCheck):
         groupby: Union[str, list[str], Callable] | None = None,
         ignore_na: bool = True,
         element_wise: bool = False,
+        native: bool = True,
         name: str | None = None,
         error: str | None = None,
         raise_warning: bool = False,
@@ -33,6 +34,7 @@ class Check(BaseCheck):
         description: str | None = None,
         statistics: dict[str, Any] | None = None,
         strategy: Any | None = None,
+        constraint: Any | None = None,
         determined_by_unique: bool = False,
         **check_kwargs,
     ) -> None:
@@ -82,6 +84,14 @@ class Check(BaseCheck):
             element-wise fashion. If bool, assumes that all checks should be
             applied to the column element-wise. If list, should be the same
             number of elements as checks.
+        :param native: If True (default), the check function receives the raw
+            native frame and the column key as positional args:
+            ``check_fn(native_frame, key)``. If False, the check function
+            receives a Narwhals expression ``nw.col(key)`` (a ``nw.Expr``)
+            as its sole argument: ``check_fn(nw.col(key))``. Builtin checks
+            use ``native=False``. Note: This parameter only applies when
+            using the Narwhals backend; it is ignored by the native pandas,
+            polars, and ibis backends.
         :param name: optional name for the check.
         :param error: custom error message if series fails validation
             check.
@@ -98,6 +108,13 @@ class Check(BaseCheck):
         :param strategy: A hypothesis strategy, used for implementing data
             synthesis strategies for this check. See the
             :ref:`User Guide <custom-strategies>` for more details.
+        :param constraint: An optional constraint adapter that returns a
+            ``FieldConstraints`` value describing the bounds/membership/regex
+            constraints this check encodes. When present, the strategy
+            builder aggregates this with sibling constraints and emits a
+            single hypothesis strategy in one shot, avoiding ``.filter``
+            chaining. See :ref:`User Guide <custom-strategies>` for more
+            details.
         :param determined_by_unique: If True, indicates that this check's
             result is fully determined by the unique values in the data, meaning
             duplicate values don't affect the outcome. This enables significant
@@ -175,6 +192,7 @@ class Check(BaseCheck):
         self._check_fn = check_fn
         self._check_kwargs = check_kwargs
         self.element_wise = element_wise
+        self.native = native
         self.name = name or getattr(
             self._check_fn, "__name__", self._check_fn.__class__.__name__
         )
@@ -201,6 +219,7 @@ class Check(BaseCheck):
         self.statistics = statistics or check_kwargs or {}
         self.statistics_args = [*self.statistics.keys()]
         self.strategy = strategy
+        self.constraint = constraint
 
     def __call__(
         self,
@@ -342,8 +361,9 @@ class Check(BaseCheck):
     @classmethod
     def in_range(
         cls,
-        min_value: T,
-        max_value: T,
+        *args,
+        min_value: T | None = None,
+        max_value: T | None = None,
         include_min: bool = True,
         include_max: bool = True,
         **kwargs,
@@ -353,6 +373,12 @@ class Check(BaseCheck):
         Both endpoints must be a type comparable to the dtype of the
         data object to be validated.
 
+        :param args: Positional arguments. If a single value is provided, it
+            represents the exact value. If two values are provided, they
+            represent min_value and max_value respectively. If three values
+            are provided, they represent min_value, max_value, and include_min
+            respectively. If four values are provided, they represent min_value,
+            max_value, include_min, and include_max respectively.
         :param min_value: Left / lower endpoint of the interval.
         :param max_value: Right / upper endpoint of the interval. Must not be
             smaller than min_value.
@@ -362,7 +388,63 @@ class Check(BaseCheck):
         :param include_max: Defines whether min_value is also an allowed value
             (the default) or whether all values must be strictly smaller than
             max_value.
+
+        :example:
+
+        >>> import pandera as pa
+        >>>
+        >>> positional_check = pa.Check.in_range(0, 1)
+        >>> positional_include_min_check = pa.Check.in_range(0, 1, True)
+        >>> positional_include_min_max_check = pa.Check.in_range(0, 1, True, True)
+        >>> keyword_check = pa.Check.in_range(min_value=0, max_value=1)
+        >>> keyword_include_min_check = pa.Check.in_range(min_value=0, max_value=1, include_min=True)
+        >>> keyword_include_min_max_check = pa.Check.in_range(min_value=0, max_value=1, include_min=True, include_max=True)
         """
+        # Handle positional arguments for backward compatibility
+        # in_range(0, 1) or in_range(0, 1, True, False) should work
+        # Track whether values were provided (vs being default None)
+        min_value_provided = min_value is not None
+        max_value_provided = max_value is not None
+
+        if len(args) >= 2:
+            min_value = args[0]
+            max_value = args[1]
+            min_value_provided = True
+            max_value_provided = True
+        elif len(args) == 1:
+            # If only one positional arg is provided without keyword args,
+            # raise TypeError to match original behavior
+            if not min_value_provided and not max_value_provided:
+                raise TypeError(
+                    "in_range() missing required argument: 'max_value'"
+                )
+            # One positional arg with one keyword arg
+            if not min_value_provided:
+                min_value = args[0]
+                min_value_provided = True
+            elif not max_value_provided:
+                max_value = args[0]
+                max_value_provided = True
+        if len(args) >= 3:
+            include_min = args[2]
+        if len(args) >= 4:
+            include_max = args[3]
+
+        # Check for missing required arguments
+        if not min_value_provided and not max_value_provided:
+            raise TypeError(
+                "in_range() missing required arguments: 'min_value' and 'max_value'"
+            )
+        if not min_value_provided:
+            raise TypeError(
+                "in_range() missing required argument: 'min_value'"
+            )
+        if not max_value_provided:
+            raise TypeError(
+                "in_range() missing required argument: 'max_value'"
+            )
+
+        # Check for invalid None values (explicitly passed)
         if min_value is None:
             raise ValueError("min_value must not be None")
         if max_value is None:
@@ -386,7 +468,9 @@ class Check(BaseCheck):
         )
 
     @classmethod
-    def isin(cls, allowed_values: Iterable, **kwargs) -> "Check":
+    def isin(
+        cls, *args, allowed_values: Iterable | None = None, **kwargs
+    ) -> "Check":
         """Ensure only allowed values occur within a series.
 
         This checks whether all elements of a data object
@@ -396,26 +480,54 @@ class Check(BaseCheck):
         in allowed_values at least once can meet this condition. If you
         want to check for substrings use :meth:`Check.str_contains`.
 
+        :param args: Positional arguments. If a single list/tuple is provided, it
+            represents the allowed values. If multiple values are provided, they
+            represent the allowed values.
         :param allowed_values: The set of allowed values. May be any iterable.
         :param kwargs: key-word arguments passed into the `Check` initializer.
+
+        :example:
+
+        >>> import pandera as pa
+        >>>
+        >>> positional_check = pa.Check.isin([1, 2, 3])
+        >>> positional_values_check = pa.Check.isin(1, 2, 3)
+        >>> keyword_check = pa.Check.isin(allowed_values=[1, 2, 3])
+        >>> keyword_values_check = pa.Check.isin(allowed_values=[1, 2, 3])
         """
+        values: Iterable
+        if allowed_values is not None:
+            values = allowed_values
+        elif len(args) == 1 and hasattr(args[0], "__iter__"):
+            # Single iterable passed as positional arg (including strings)
+            values = args[0]
+        elif args:
+            # Multiple values passed as positional args
+            values = args
+        else:
+            raise ValueError(
+                "Argument allowed_values must be provided. "
+                "Use Check.isin([1, 2, 3]) or Check.isin(allowed_values=[1, 2, 3])"
+            )
         try:
-            allowed_values_mod = frozenset(allowed_values)
+            allowed_values_mod = frozenset(values)
         except TypeError as exc:
             raise ValueError(
-                f"Argument allowed_values must be iterable. Got {allowed_values}"
+                f"Argument allowed_values must be iterable. Got {values}"
             ) from exc
         return cls.from_builtin_check_name(
             "isin",
             kwargs,
-            error=f"isin({allowed_values})",
+            error=f"isin({values})",
             defaults={"determined_by_unique": True},
-            statistics={"allowed_values": allowed_values},
+            statistics={"allowed_values": values},
             allowed_values=allowed_values_mod,
         )
 
     @classmethod
-    def notin(cls, forbidden_values: Iterable, **kwargs) -> "Check":
+    def notin(
+        cls, *args, forbidden_values: Iterable | None = None, **kwargs
+    ) -> "Check":
         """Ensure some defined values don't occur within a series.
 
         Like :meth:`Check.isin` this check operates on single characters if
@@ -423,24 +535,48 @@ class Check(BaseCheck):
         understood as set of prohibited characters. Any string of length > 1
         can't be in it by design.
 
+        :param args: Positional arguments. If a single list/tuple is provided, it
+            represents the forbidden values. If multiple values are provided, they
+            represent the forbidden values.
         :param forbidden_values: The set of values which should not occur. May
             be any iterable.
         :param raise_warning: if True, check raises SchemaWarning instead of
             SchemaError on validation.
+
+        :example:
+
+        >>> import pandera as pa
+        >>>
+        >>> positional_check = pa.Check.notin([1, 2, 3])
+        >>> positional_values_check = pa.Check.notin(1, 2, 3)
+        >>> keyword_check = pa.Check.notin(forbidden_values=[1, 2, 3])
         """
+        values: Iterable
+        if forbidden_values is not None:
+            values = forbidden_values
+        elif len(args) == 1 and hasattr(args[0], "__iter__"):
+            # Single iterable passed as positional arg (including strings)
+            values = args[0]
+        elif args:
+            # Multiple values passed as positional args
+            values = args
+        else:
+            raise ValueError(
+                "Argument forbidden_values must be provided. "
+                "Use Check.notin([1, 2, 3]) or Check.notin(forbidden_values=[1, 2, 3])"
+            )
         try:
-            forbidden_values_mod = frozenset(forbidden_values)
+            forbidden_values_mod = frozenset(values)
         except TypeError as exc:
             raise ValueError(
-                "Argument forbidden_values must be iterable. "
-                f"Got {forbidden_values}"
+                f"Argument forbidden_values must be iterable. Got {values}"
             ) from exc
         return cls.from_builtin_check_name(
             "notin",
             kwargs,
-            error=f"notin({forbidden_values})",
+            error=f"notin({values})",
             defaults={"determined_by_unique": True},
-            statistics={"forbidden_values": forbidden_values},
+            statistics={"forbidden_values": values},
             forbidden_values=forbidden_values_mod,
         )
 
@@ -524,49 +660,68 @@ class Check(BaseCheck):
     @classmethod
     def str_length(
         cls,
-        value: int | None = None,
-        *,
+        *args,
         min_value: int | None = None,
         max_value: int | None = None,
+        exact_value: int | None = None,
         **kwargs,
     ) -> "Check":
         """Ensure that the length of strings is within a specified range.
 
-        :param value: Absolute length of strings (default: no absolute)
+        This method supports multiple calling conventions:
+
+        .. code-block:: python
+
+            Check.str_length(5)  # exact length of 5
+            Check.str_length(1, 5)  # length between 1 and 5 (inclusive)
+            Check.str_length(min_value=1, max_value=5)  # same as above
+            Check.str_length(min_value=1)  # length >= 1
+            Check.str_length(max_value=5)  # length <= 5
+
+        :param args: Positional arguments. If one value is provided, it
+            represents the exact length. If two values are provided, they
+            represent min_value and max_value respectively.
         :param min_value: Minimum length of strings (default: no minimum)
         :param max_value: Maximum length of strings (default: no maximum)
+        :param exact_value: Exact length of strings. (default: no exact value)
+        :param kwargs: key-word arguments passed into the `Check` initializer.
         """
-
-        if value is None and min_value is None and max_value is None:
+        if len(args) == 1:
+            # Single positional arg means exact length
+            exact_value = args[0]
+        elif len(args) == 2:
+            # Two positional args means min and max
+            min_value = args[0]
+            max_value = args[1]
+        elif len(args) > 2:
             raise ValueError(
-                "At least an absolute or a minimum or a maximum need to be specified. Got "
+                "str_length accepts at most 2 positional arguments "
+                f"(min_value, max_value), got {len(args)}"
+            )
+
+        if exact_value is not None:
+            return cls.from_builtin_check_name(
+                "str_length",
+                kwargs,
+                error=f"str_length({exact_value})",
+                defaults={"determined_by_unique": True},
+                exact_value=exact_value,
+            )
+
+        if min_value is None and max_value is None:
+            raise ValueError(
+                "At least a minimum or a maximum need to be specified. Got "
                 "None."
             )
-
-        if value is not None and (
-            min_value is not None or max_value is not None
-        ):
-            raise ValueError(
-                "A minimum or a maximum cannot be specified when absolute is specified."
-            )
-
-        if value is not None:
-            return cls.from_builtin_check_name(
-                "str_length",
-                kwargs,
-                error=f"str_length({value})",
-                defaults={"determined_by_unique": True},
-                value=value,
-            )
-        else:
-            return cls.from_builtin_check_name(
-                "str_length",
-                kwargs,
-                error=f"str_length({min_value}, {max_value})",
-                defaults={"determined_by_unique": True},
-                min_value=min_value,
-                max_value=max_value,
-            )
+        return cls.from_builtin_check_name(
+            "str_length",
+            kwargs,
+            error=f"str_length({min_value}, {max_value})",
+            defaults={"determined_by_unique": True},
+            min_value=min_value,
+            max_value=max_value,
+            exact_value=exact_value,
+        )
 
     @classmethod
     def unique_values_eq(cls, values: Iterable, **kwargs) -> "Check":
@@ -591,6 +746,251 @@ class Check(BaseCheck):
             defaults={"determined_by_unique": True},
             statistics={"values": values_mod},
             values=values_mod,
+        )
+
+    @classmethod
+    def has_dims(
+        cls,
+        dims: Union[tuple[str, ...], list[str]],
+        **kwargs,
+    ) -> "Check":
+        """Require dimension names (order-independent) on an xarray object.
+
+        :param dims: Tuple or list of dimension name strings.
+
+        Prefer :class:`~pandera.api.xarray.container.DataArraySchema` /
+        :class:`~pandera.api.xarray.container.DatasetSchema` ``dims=`` when
+        defining a schema; use this for dataset-level or ad hoc checks.
+        """
+        d_t = tuple(dims)
+        return cls.from_builtin_check_name(
+            "has_dims",
+            kwargs,
+            error=f"has_dims{d_t}",
+            statistics={"dims": d_t},
+            dims=d_t,
+        )
+
+    @classmethod
+    def has_coords(
+        cls,
+        coords: Union[tuple[str, ...], list[str]],
+        **kwargs,
+    ) -> "Check":
+        """Require coordinate names on an xarray object.
+
+        :param coords: Tuple or list of coordinate name strings.
+
+        Prefer schema ``coords=`` when declaring a full
+        :class:`~pandera.api.xarray.container.DataArraySchema` /
+        :class:`~pandera.api.xarray.container.DatasetSchema`.
+        """
+        c_t = tuple(coords)
+        return cls.from_builtin_check_name(
+            "has_coords",
+            kwargs,
+            error=f"has_coords{c_t}",
+            statistics={"coords": c_t},
+            coords=c_t,
+        )
+
+    @classmethod
+    def has_attrs(
+        cls,
+        attrs: dict[str, Any],
+        **kwargs,
+    ) -> "Check":
+        """Match key-value pairs on ``.attrs`` (xarray).
+
+        :param attrs: Dictionary of attribute name-value pairs to require.
+
+        Prefer schema ``attrs=`` on
+        :class:`~pandera.api.xarray.container.DataArraySchema` /
+        :class:`~pandera.api.xarray.container.DatasetSchema` when that is the
+        primary contract.
+        """
+        return cls.from_builtin_check_name(
+            "has_attrs",
+            kwargs,
+            error=f"has_attrs({attrs})",
+            statistics={"attrs": attrs},
+            attrs=attrs,
+        )
+
+    @classmethod
+    def has_encoding(
+        cls,
+        encoding: dict[str, Any],
+        **kwargs,
+    ) -> "Check":
+        """Match key-value pairs on ``.encoding`` (xarray).
+
+        :param encoding: Dictionary of encoding key-value pairs
+            to require.
+
+        Prefer schema ``encoding=`` on
+        :class:`~pandera.api.xarray.container.DataArraySchema` /
+        :class:`~pandera.api.xarray.container.DatasetSchema`
+        when that is the primary contract.
+        """
+        return cls.from_builtin_check_name(
+            "has_encoding",
+            kwargs,
+            error=f"has_encoding({encoding})",
+            statistics={"encoding": encoding},
+            encoding=encoding,
+        )
+
+    @classmethod
+    def ndim(cls, n: int, **kwargs) -> "Check":
+        """Assert dimensionality (``DataArray.ndim`` or ``len(Dataset.dims)``).
+
+        Often redundant with an explicit ``dims=`` tuple on the schema; kept for
+        dataset-level checks and parity with a single scalar constraint.
+        """
+        return cls.from_builtin_check_name(
+            "ndim",
+            kwargs,
+            error=f"ndim({n})",
+            statistics={"n": n},
+            n=n,
+        )
+
+    @classmethod
+    def dim_size(cls, dim: str, size: int, **kwargs) -> "Check":
+        """Assert ``data.sizes[dim] == size``.
+
+        Prefer schema ``sizes={dim: size}`` when defining a
+        :class:`~pandera.api.xarray.container.DataArraySchema` or
+        :class:`~pandera.api.xarray.container.DatasetSchema`.
+        """
+        return cls.from_builtin_check_name(
+            "dim_size",
+            kwargs,
+            error=f"dim_size({dim!r}, {size})",
+            statistics={"dim": dim, "size": size},
+            dim=dim,
+            size=size,
+        )
+
+    @classmethod
+    def is_monotonic(
+        cls,
+        dim: str,
+        increasing: bool = True,
+        **kwargs,
+    ) -> "Check":
+        """Assert a 1-D coordinate is strictly monotonic along ``dim``.
+
+        This is a **value** constraint on coordinate labels, not usually expressed
+        by ``dims`` / ``sizes`` alone.
+        """
+        return cls.from_builtin_check_name(
+            "is_monotonic",
+            kwargs,
+            error=f"is_monotonic({dim!r}, increasing={increasing})",
+            statistics={"dim": dim, "increasing": increasing},
+            dim=dim,
+            increasing=increasing,
+        )
+
+    @classmethod
+    def no_duplicates_in_coord(cls, coord: str, **kwargs) -> "Check":
+        """Assert coordinate values are unique.
+
+        A **value**-level constraint on the coordinate index; not implied by
+        schema ``dims`` or ``coords`` presence alone.
+        """
+        return cls.from_builtin_check_name(
+            "no_duplicates_in_coord",
+            kwargs,
+            error=f"no_duplicates_in_coord({coord!r})",
+            statistics={"coord": coord},
+            coord=coord,
+        )
+
+    # ------------------------------------------------------------------
+    # CF (Climate & Forecast) convention checks
+    # ------------------------------------------------------------------
+
+    @classmethod
+    def cf_standard_name(
+        cls,
+        expected_name: str,
+        **kwargs,
+    ) -> "Check":
+        """Require ``standard_name`` attr equals *expected_name*.
+
+        Lightweight CF check that inspects
+        ``.attrs["standard_name"]`` without requiring
+        ``cf_xarray``.
+        """
+        return cls.from_builtin_check_name(
+            "cf_standard_name",
+            kwargs,
+            error=f"cf_standard_name({expected_name!r})",
+            statistics={"expected_name": expected_name},
+            expected_name=expected_name,
+        )
+
+    @classmethod
+    def cf_units(
+        cls,
+        expected_units: str,
+        **kwargs,
+    ) -> "Check":
+        """Require ``units`` attr equals *expected_units*.
+
+        Lightweight CF check that inspects ``.attrs["units"]``
+        without requiring ``cf_xarray``.
+        """
+        return cls.from_builtin_check_name(
+            "cf_units",
+            kwargs,
+            error=f"cf_units({expected_units!r})",
+            statistics={
+                "expected_units": expected_units,
+            },
+            expected_units=expected_units,
+        )
+
+    @classmethod
+    def cf_has_standard_names(
+        cls,
+        names: Union[tuple[str, ...], list[str]],
+        **kwargs,
+    ) -> "Check":
+        """Require ``cf_xarray`` can resolve each standard name.
+
+        Needs ``cf_xarray`` installed. Each name must be
+        resolvable via ``data.cf[name]``.
+        """
+        n_t = tuple(names)
+        return cls.from_builtin_check_name(
+            "cf_has_standard_names",
+            kwargs,
+            error=f"cf_has_standard_names({n_t})",
+            statistics={"names": n_t},
+            names=n_t,
+        )
+
+    @classmethod
+    def cf_has_cell_methods(
+        cls,
+        expected: str,
+        **kwargs,
+    ) -> "Check":
+        """Require ``cell_methods`` attr equals *expected*.
+
+        Lightweight CF check that inspects
+        ``.attrs["cell_methods"]``.
+        """
+        return cls.from_builtin_check_name(
+            "cf_has_cell_methods",
+            kwargs,
+            error=f"cf_has_cell_methods({expected!r})",
+            statistics={"expected": expected},
+            expected=expected,
         )
 
     # Aliases

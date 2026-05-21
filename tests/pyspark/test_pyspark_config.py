@@ -49,6 +49,8 @@ class TestPanderaConfig:
             "validation_depth": ValidationDepth.SCHEMA_AND_DATA,
             "cache_dataframe": False,
             "keep_cached_dataframe": False,
+            "use_narwhals_backend": False,
+            "silenced_warnings": [],
         }
 
         with config_context(validation_enabled=False):
@@ -71,6 +73,8 @@ class TestPanderaConfig:
             "validation_depth": ValidationDepth.SCHEMA_ONLY,
             "cache_dataframe": False,
             "keep_cached_dataframe": False,
+            "use_narwhals_backend": False,
+            "silenced_warnings": [],
         }
         input_df = spark_df(spark, self.sample_data, sample_spark_schema)
 
@@ -86,7 +90,7 @@ class TestPanderaConfig:
                 "COLUMN_NOT_IN_DATAFRAME": [
                     {
                         "check": "column_in_dataframe",
-                        "column": None,
+                        "column": "price_val",
                         "error": "column "
                         "'price_val' not "
                         "in dataframe "
@@ -123,7 +127,7 @@ class TestPanderaConfig:
                 "COLUMN_NOT_IN_DATAFRAME": [
                     {
                         "check": "column_in_dataframe",
-                        "column": "TestSchema",
+                        "column": "price_val",
                         "error": "column "
                         "'price_val' not "
                         "in dataframe "
@@ -157,6 +161,8 @@ class TestPanderaConfig:
             "validation_depth": ValidationDepth.DATA_ONLY,
             "cache_dataframe": False,
             "keep_cached_dataframe": False,
+            "use_narwhals_backend": False,
+            "silenced_warnings": [],
         }
 
         input_df = spark_df(spark, self.sample_data, sample_spark_schema)
@@ -240,6 +246,8 @@ class TestPanderaConfig:
             "validation_depth": ValidationDepth.SCHEMA_AND_DATA,
             "cache_dataframe": False,
             "keep_cached_dataframe": False,
+            "use_narwhals_backend": False,
+            "silenced_warnings": [],
         }
 
         input_df = spark_df(spark, self.sample_data, sample_spark_schema)
@@ -266,7 +274,7 @@ class TestPanderaConfig:
                 "COLUMN_NOT_IN_DATAFRAME": [
                     {
                         "check": "column_in_dataframe",
-                        "column": None,
+                        "column": "price_val",
                         "error": "column 'price_val' not in dataframe Row(product='Bread', price=9)",
                         "schema": None,
                     }
@@ -310,7 +318,7 @@ class TestPanderaConfig:
                 "COLUMN_NOT_IN_DATAFRAME": [
                     {
                         "check": "column_in_dataframe",
-                        "column": "TestSchema",
+                        "column": "price_val",
                         "error": "column "
                         "'price_val' "
                         "not "
@@ -349,6 +357,8 @@ class TestPanderaConfig:
             "validation_depth": ValidationDepth.SCHEMA_AND_DATA,
             "cache_dataframe": cache_dataframe,
             "keep_cached_dataframe": keep_cached_dataframe,
+            "use_narwhals_backend": False,
+            "silenced_warnings": [],
         }
         with config_context(
             cache_dataframe=cache_dataframe,

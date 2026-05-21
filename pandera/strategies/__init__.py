@@ -1,10 +1,5 @@
-"""Data synthesis strategies for pandera, powered by the hypothesis package."""
+"""Hypothesis-based data synthesis (import backend modules explicitly).
 
-import warnings
-
-try:
-    import pandas
-
-    from pandera.strategies.pandas_strategies import *
-except ImportError:
-    pass
+Example: ``import pandera.strategies.pandas_strategies`` or
+``import pandera.strategies.xarray_strategies``.
+"""

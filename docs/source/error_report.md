@@ -99,3 +99,8 @@ df_out = PysparkPanderSchema.validate(check_obj=df)
 
 print(json.dumps(dict(df_out.pandera.errors), indent=4))
 ```
+
+## See also
+
+- {ref}`xarray-error-reporting` — error reports for {class}`~xarray.DataArray`
+  and {class}`~xarray.Dataset` validation (`SchemaErrors`, `lazy=True`)

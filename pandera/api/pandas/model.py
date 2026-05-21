@@ -1,6 +1,5 @@
 """Class-based API for pandas models."""
 
-import copy
 import sys
 from typing import Any, Optional, Union, cast
 
@@ -17,7 +16,9 @@ from pandera.api.pandas.components import Column, Index, MultiIndex
 from pandera.api.pandas.container import DataFrameSchema
 from pandera.api.pandas.model_config import BaseConfig
 from pandera.api.parsers import Parser
-from pandera.engines.pandas_engine import Engine
+from pandera.dtypes import DataType
+from pandera.engines import numpy_engine, pandas_engine
+from pandera.engines.pandas_engine import Engine, PythonGenericType
 from pandera.errors import SchemaInitError
 from pandera.typing import (
     AnnotationInfo,
@@ -34,6 +35,40 @@ else:
     from typing import Self
 
 SchemaIndex = Union[Index, MultiIndex]
+
+
+def _get_nullable_coercion_dtype(
+    dtype: Any,
+    *,
+    nullable: bool,
+    coerce: bool,
+) -> Any:
+    """Use nullable pandas dtypes for nullable fields when coercing."""
+    if dtype is None or not nullable or not coerce:
+        return dtype
+
+    try:
+        pandera_dtype = Engine.dtype(dtype)
+    except (TypeError, ValueError):
+        return dtype
+
+    nullable_dtype_map = {
+        numpy_engine.Bool: pandas_engine.BOOL,
+        numpy_engine.Int8: pandas_engine.INT8,
+        numpy_engine.Int16: pandas_engine.INT16,
+        numpy_engine.Int32: pandas_engine.INT32,
+        numpy_engine.Int64: pandas_engine.INT64,
+        numpy_engine.UInt8: pandas_engine.UINT8,
+        numpy_engine.UInt16: pandas_engine.UINT16,
+        numpy_engine.UInt32: pandas_engine.UINT32,
+        numpy_engine.UInt64: pandas_engine.UINT64,
+    }
+
+    for numpy_dtype, nullable_dtype in nullable_dtype_map.items():
+        if isinstance(pandera_dtype, numpy_dtype):
+            return nullable_dtype
+
+    return dtype
 
 
 class DataFrameModel(_DataFrameModel[pd.DataFrame, DataFrameSchema]):
@@ -134,6 +169,13 @@ class DataFrameModel(_DataFrameModel[pd.DataFrame, DataFrameSchema]):
                         f"'check_name' is not supported for {field_name}."
                     )
 
+                dtype = _get_nullable_coercion_dtype(
+                    dtype,
+                    nullable=field.nullable,
+                    coerce=field.coerce
+                    or bool(getattr(cls.__config__, "coerce", False)),
+                )
+
                 column_kwargs = (
                     field.column_properties(
                         dtype,
@@ -214,9 +256,17 @@ class DataFrameModel(_DataFrameModel[pd.DataFrame, DataFrameSchema]):
             FastAPI integration.
         """
         schema = cls.to_schema()
-        empty = pd.DataFrame(columns=schema.columns.keys()).astype(
-            {k: v.type if v else None for k, v in schema.dtypes.items()}
-        )
+        dtypes = {
+            k: (
+                v.type
+                if not isinstance(v.type, PythonGenericType)
+                else "object"
+            )
+            if v
+            else None
+            for k, v in schema.dtypes.items()
+        }
+        empty = pd.DataFrame(columns=schema.columns.keys()).astype(dtypes)
         table_schema = pd.io.json.build_table_schema(empty)
 
         def _field_json_schema(field):
@@ -243,21 +293,45 @@ class DataFrameModel(_DataFrameModel[pd.DataFrame, DataFrameSchema]):
     @classmethod
     def empty(cls: type[Self], *_args) -> DataFrame[Self]:
         """Create an empty DataFrame with the schema of this model."""
-        schema = copy.deepcopy(cls.to_schema())
-        schema.coerce = True
+        schema = cls.to_schema()
+
+        data = {}
+        for col_name, col_schema in schema.columns.items():
+            dtype = (
+                col_schema.dtype.type
+                if not isinstance(col_schema.dtype, PythonGenericType)
+                else "object"
+            )
+            if col_schema.dtype is not None:
+                data[col_name] = pd.array([], dtype=dtype)
+            else:
+                data[col_name] = pd.array([])
 
         if isinstance(schema.index, MultiIndex):
             index = pd.MultiIndex.from_arrays(
-                [pd.Index([], name=idx.name) for idx in schema.index.indexes]
+                [
+                    pd.Index(
+                        [],
+                        dtype=idx.dtype.type
+                        if idx.dtype is not None
+                        else None,
+                        name=idx.name,
+                    )
+                    for idx in schema.index.indexes
+                ]
             )
         elif isinstance(schema.index, Index):
-            index = pd.Index([], name=schema.index.name)
+            index = pd.Index(
+                [],
+                dtype=schema.index.dtype.type
+                if schema.index.dtype is not None
+                else None,
+                name=schema.index.name,
+            )
         else:
             index = None
 
-        empty_df = schema.coerce_dtype(
-            pd.DataFrame(columns=[*schema.columns], index=index)
-        )
+        empty_df = pd.DataFrame(data, index=index)
         return DataFrame[Self](empty_df)
 
 

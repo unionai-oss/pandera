@@ -5,6 +5,8 @@ import dataclasses
 import datetime
 import decimal
 import inspect
+import logging
+import types
 import warnings
 from collections.abc import Iterable, Mapping, Sequence
 from typing import (
@@ -20,13 +22,16 @@ import polars as pl
 from packaging import version
 from polars._typing import ColumnNameOrSelector, PythonDataType
 from polars.datatypes import DataTypeClass
+from pydantic import BaseModel, ValidationError
 from typing_extensions import NotRequired
 
 from pandera import dtypes, errors
 from pandera.api.polars.types import PolarsData
 from pandera.constants import CHECK_OUTPUT_KEY
 from pandera.dtypes import immutable
-from pandera.engines import engine
+from pandera.engines import PYDANTIC_V2, engine
+
+logger = logging.getLogger(__name__)
 
 PolarsDataContainer = Union[pl.LazyFrame, PolarsData]
 PolarsDataType = Union[DataTypeClass, pl.DataType]
@@ -384,14 +389,12 @@ class Decimal(DataType, dtypes.Decimal):
 
     type = pl.Decimal
 
-    # polars Decimal doesn't have a rounding attribute
+    # Polars Decimal doesn't have a rounding attribute.
     rounding = None
-
-    _default_precision: int = dtypes.DEFAULT_PYTHON_PREC
 
     def __init__(
         self,
-        precision: int = _default_precision,
+        precision: int = dtypes.DEFAULT_PYTHON_PREC,
         scale: int = 0,
     ) -> None:
         object.__setattr__(self, "precision", precision)
@@ -404,11 +407,11 @@ class Decimal(DataType, dtypes.Decimal):
     def from_parametrized_dtype(cls, polars_dtype: pl.Decimal):
         """Convert a :class:`polars.Decimal` to
         a Pandera :class:`pandera.engines.polars_engine.Decimal`."""
-        # polars precision may be nullable, pandera imposes a default.
+        # Polars precision may be nullable; Pandera imposes a default.
         precision = (
             polars_dtype.precision
             if polars_dtype.precision is not None
-            else cls._default_precision
+            else dtypes.DEFAULT_PYTHON_PREC
         )
         return cls(precision=precision, scale=polars_dtype.scale)
 
@@ -535,10 +538,12 @@ class DateTime(DataType, dtypes.DateTime):
         "time",
         datetime.time,
         pl.Time,
+        dtypes.Time,
+        dtypes.Time(),
     ]
 )
 @immutable
-class Time(DataType):
+class Time(DataType, dtypes.Time):
     """Polars time data type."""
 
     type = pl.Time
@@ -625,7 +630,7 @@ class Array(DataType):
         elif shape is not None:
             kwargs["shape"] = shape
 
-        if inner:
+        if inner is not None:
             object.__setattr__(self, "type", pl.Array(inner=inner, **kwargs))
 
     @classmethod
@@ -657,7 +662,7 @@ class List(DataType):
         self,
         inner: PolarsDataType | None = None,
     ) -> None:
-        if inner:
+        if inner is not None:
             object.__setattr__(self, "type", pl.List(inner=inner))
 
     @classmethod
@@ -676,7 +681,7 @@ class Struct(DataType):
         self,
         fields: Union[Sequence[pl.Field], SchemaDict] | None = None,
     ) -> None:
-        if fields:
+        if fields is not None:
             object.__setattr__(self, "type", pl.Struct(fields=fields))
 
     @classmethod
@@ -726,24 +731,18 @@ class Categorical(DataType):
 
     type = pl.Categorical
 
-    ordering = None
-
-    def __init__(
-        self,
-        ordering: Literal["physical", "lexical"] | None = "lexical",
-    ) -> None:
-        object.__setattr__(self, "ordering", ordering)
+    def __init__(self) -> None:
         object.__setattr__(self, "type", pl.Categorical())
 
     def __deepcopy__(self, memo):
         """Custom deepcopy to avoid pickling issues with pl.Categorical()."""
-        return self.__class__(ordering=self.ordering)
+        return self.__class__()
 
     @classmethod
     def from_parametrized_dtype(cls, polars_dtype: pl.Categorical):
         """Convert a :class:`polars.Categorical` to
         a Pandera :class:`pandera.engines.polars_engine.Categorical`."""
-        return cls(ordering=polars_dtype.ordering)
+        return cls()
 
 
 @Engine.register_dtype(equivalents=[pl.Enum])
@@ -881,3 +880,142 @@ class Object(DataType):
     """Semantic representation of a :class:`numpy.object_`."""
 
     type = pl.Object
+
+
+###############################################################################
+# pydantic
+###############################################################################
+
+
+@Engine.register_dtype
+@dtypes.immutable(init=True)
+class PydanticModel(DataType):
+    """A pydantic model datatype applying to rows in a polars dataframe."""
+
+    type: builtins.type[BaseModel] = dataclasses.field(
+        default=None, init=False
+    )  # type: ignore[assignment]
+    auto_coerce = True
+
+    def __init__(self, model: builtins.type[BaseModel]) -> None:
+        object.__setattr__(self, "type", model)
+
+    def _get_column_names(self) -> list[str]:
+        if PYDANTIC_V2:
+            return list(self.type.model_fields.keys())  # type: ignore[attr-defined]
+        return list(self.type.__fields__.keys())  # type: ignore[attr-defined]
+
+    def _get_polars_schema(self) -> dict[str, DataTypeClass]:
+        """Derive a {col_name: polars_dtype} mapping from the Pydantic model."""
+        from typing import Union, get_args, get_origin
+
+        annotations: dict[str, Any] = {}
+        if hasattr(self.type, "model_fields"):
+            for name, info in self.type.model_fields.items():
+                annotations[name] = info.annotation
+        else:
+            # TODO: remove pydantic v1 branch after dropping v1 support
+            for name, info in getattr(self.type, "__fields__").items():
+                annotations[name] = getattr(info, "outer_type_")
+
+        schema: dict[str, DataTypeClass] = {}
+        for name, ann in annotations.items():
+            origin = get_origin(ann)
+            if origin is Union or isinstance(ann, types.UnionType):
+                non_none = [a for a in get_args(ann) if a is not type(None)]
+                if len(non_none) == 1:
+                    ann = non_none[0]
+            try:
+                schema[name] = convert_py_dtype_to_polars_dtype(ann)
+            except (TypeError, ValueError):
+                schema[name] = pl.Null
+        return schema
+
+    def _check_column_names(
+        self,
+        data_container: pl.LazyFrame,
+        column_names: list[str],
+    ) -> None:
+        lf_columns = data_container.collect_schema().names()
+        absent_columns = [col for col in column_names if col not in lf_columns]
+
+        if absent_columns:
+            raise errors.ParserError(
+                f"Missing columns in LazyFrame: {absent_columns}",
+                failure_cases=absent_columns,
+            )
+
+    def coerce(self, data_container: PolarsDataContainer) -> pl.LazyFrame:
+        """Coerce polars dataframe with pydantic record model."""
+        if isinstance(data_container, pl.LazyFrame):
+            data_container = PolarsData(data_container)
+
+        lf = data_container.lazyframe
+
+        from pandera.config import (
+            SILENCE_WARNING_PYDANTIC_MODEL,
+            get_config_context,
+        )
+
+        if not get_config_context().is_warning_silenced(
+            SILENCE_WARNING_PYDANTIC_MODEL
+        ):
+            logger.warning(
+                "PydanticModel will materialize a LazyFrame with a "
+                "collect() call, which may be slow for large "
+                "datasets. For better performance, define column "
+                "types and checks with native DataFrameModel field "
+                "annotations instead. Silence this warning with "
+                "export SILENCE_WARNING_PYDANTIC_MODEL=true"
+            )
+        df = lf.collect()
+
+        if df.is_empty():
+            warnings.warn(
+                "PydanticModel cannot validate an empty dataframe "
+                "because it requires at least one row of data to "
+                "coerce. The PydanticModel will perform no type "
+                "checking on the empty dataframe.",
+                UserWarning,
+            )
+            column_names = self._get_column_names()
+            self._check_column_names(lf, column_names)
+            return lf
+
+        coerced_rows: list[dict[str, Any]] = []
+        failure_cases: list[str] = []
+        row_passed: list[bool] = []
+
+        for row in df.iter_rows(named=True):
+            try:
+                if PYDANTIC_V2:
+                    coerced = self.type.model_validate(row).model_dump()
+                else:
+                    coerced = self.type.parse_obj(row).dict()
+                coerced_rows.append(coerced)
+                row_passed.append(True)
+            except ValidationError as exc:
+                failed_fields = {
+                    k: row.get(k, "<missing>")
+                    for k in (x["loc"][0] for x in exc.errors())
+                }
+                failure_cases.append(str(failed_fields))
+                coerced_rows.append(row)
+                row_passed.append(False)
+
+        if failure_cases:
+            check_output = pl.DataFrame({CHECK_OUTPUT_KEY: row_passed})
+            fc_df = pl.DataFrame(coerced_rows).filter(
+                pl.lit(pl.Series(row_passed)).not_()
+            )
+            raise errors.ParserError(
+                f"Could not coerce LazyFrame into type {self.type.__name__}",
+                failure_cases=fc_df,
+                parser_output=check_output,
+            )
+
+        return pl.DataFrame(coerced_rows).lazy()
+
+    def try_coerce(self, data_container: PolarsDataContainer) -> pl.LazyFrame:
+        """Coerce data container, raising ParserError on failure."""
+        return self.coerce(data_container)

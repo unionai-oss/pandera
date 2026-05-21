@@ -1,9 +1,17 @@
 """Core pandas dataframe container specification."""
 
+import os
+import sys
 import warnings
-from typing import Optional
+from pathlib import Path
+from typing import Optional, overload
 
 import pandas as pd
+
+if sys.version_info < (3, 11):
+    from typing_extensions import Self
+else:
+    from typing import Self
 
 from pandera.api.dataframe.container import DataFrameSchema as _DataFrameSchema
 from pandera.api.pandas.types import PandasDtypeInputTypes
@@ -205,3 +213,87 @@ class DataFrameSchema(_DataFrameSchema[pd.DataFrame]):
             return self.strategy(
                 size=size, n_regex_columns=n_regex_columns
             ).example()
+
+    #####################
+    # Schema IO Methods #
+    #####################
+
+    def to_script(
+        self, fp: str | Path | None = None, *, minimal: bool = True
+    ) -> str | None:
+        """Write :class:`DataFrameSchema` to a Python script via ``pandas_io``."""
+        from pandera.io import pandas_io
+
+        return pandas_io.to_script(self, fp, minimal=minimal)
+
+    @classmethod
+    def from_yaml(cls, yaml_schema) -> Self:
+        """Load schema from YAML (see :mod:`pandera.io.pandas_io`)."""
+        from pandera.io import pandas_io
+
+        return pandas_io.from_yaml(yaml_schema)
+
+    def to_yaml(
+        self,
+        stream: os.PathLike | None = None,
+        dataframe_library: str | None = None,
+        *,
+        minimal: bool = True,
+    ) -> str | None:
+        """Write schema to YAML (see :mod:`pandera.io.pandas_io`)."""
+        from pandera.io import pandas_io
+
+        return pandas_io.to_yaml(
+            self,
+            stream=stream,
+            dataframe_library=dataframe_library,
+            minimal=minimal,
+        )
+
+    @classmethod
+    def from_json(cls, source) -> Self:
+        """Load schema from JSON (see :mod:`pandera.io.pandas_io`)."""
+        from pandera.io import pandas_io
+
+        return pandas_io.from_json(source)
+
+    @overload
+    def to_json(
+        self,
+        target: None = None,
+        dataframe_library: str | None = None,
+        *,
+        minimal: bool = True,
+        **kwargs,
+    ) -> str:  # pragma: no cover
+        ...
+
+    @overload
+    def to_json(
+        self,
+        target: os.PathLike,
+        dataframe_library: str | None = None,
+        *,
+        minimal: bool = True,
+        **kwargs,
+    ) -> None:  # pragma: no cover
+        ...
+
+    def to_json(
+        self,
+        target: os.PathLike | None = None,
+        dataframe_library: str | None = None,
+        *,
+        minimal: bool = True,
+        **kwargs,
+    ) -> str | None:
+        """Write schema to JSON (see :mod:`pandera.io.pandas_io`)."""
+        from pandera.io import pandas_io
+
+        return pandas_io.to_json(
+            self,
+            target,
+            dataframe_library=dataframe_library,
+            minimal=minimal,
+            **kwargs,
+        )
