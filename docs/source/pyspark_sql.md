@@ -26,6 +26,44 @@ install `pandera` with the `pyspark` extra:
 pip install 'pandera[pyspark]'
 ```
 
+(pyspark-environment-variables)=
+
+## Environment variables
+
+Pandera does not set or modify any pyspark-related environment variables when
+it is imported. Spark's default behavior is left untouched, which matters for
+distributed (e.g. standalone or Kubernetes) clusters where executors must
+reach the driver on its real network address.
+
+Depending on your setup, you may want to set the following variables yourself
+**before** starting Spark or importing `pyspark.pandas`:
+
+| Variable | Typical value | When you need it |
+|----------|---------------|------------------|
+| `PYARROW_IGNORE_TIMEZONE` | `1` | Silences the warning `pyspark.pandas` emits on import when this is unset. |
+| `SPARK_LOCAL_IP` | `127.0.0.1` | Local development only, when Spark can't resolve your machine's hostname (e.g. on some laptops or VPNs). **Don't** set this on a distributed cluster: executors would try to reach the driver on localhost. |
+
+For example, in a shell:
+
+```bash
+export PYARROW_IGNORE_TIMEZONE=1
+export SPARK_LOCAL_IP=127.0.0.1  # local development only
+```
+
+or at the very top of a script, before importing pyspark or pandera:
+
+```python
+import os
+
+os.environ.setdefault("PYARROW_IGNORE_TIMEZONE", "1")
+os.environ.setdefault("SPARK_LOCAL_IP", "127.0.0.1")  # local development only
+```
+
+:::{note}
+Pandera versions before this change set these variables automatically on
+import. If you relied on that behavior, set them explicitly as shown above.
+:::
+
 :::{note}
 *new in 0.32.0*; Pandera ships an optional
 {ref}`Narwhals-powered backend <narwhals-backend>` that keeps validation
