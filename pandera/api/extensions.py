@@ -327,8 +327,28 @@ def register_check_method(
             """Wrapper function that serves as the Check method."""
             stats, check_kwargs = {}, {}
 
+            # Reject silent argument loss: if the user passes more positional
+            # arguments than the check declares statistics for, the extras
+            # would otherwise be dropped on the floor by ``zip`` (issue #480),
+            # producing checks that look configured but ignore their inputs.
+            if len(args) > len(statistics):
+                raise TypeError(
+                    f"{check_fn.__name__}() takes at most "
+                    f"{len(statistics)} positional argument(s) "
+                    f"({list(statistics)}), but {len(args)} were given."
+                )
+
             if args:
                 stats = dict(zip(statistics, args))
+
+            # Statistics passed by keyword that duplicate a positional value
+            # would also be silently lost without this guard.
+            duplicate = set(stats) & set(kwargs)
+            if duplicate:
+                raise TypeError(
+                    f"{check_fn.__name__}() got multiple values for "
+                    f"argument(s): {sorted(duplicate)}"
+                )
 
             for k, v in kwargs.items():
                 if k in statistics:
