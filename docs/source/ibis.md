@@ -273,6 +273,28 @@ The ``time_zone_agnostic`` argument for the timestamp data type is not yet
 supported in the Ibis integration.
 :::
 
+### Embedding `Field` metadata in `Annotated`
+
+You can embed a {func}`~pandera.api.dataframe.model_components.Field`
+directly inside {data}`typing.Annotated` to attach column-level metadata
+— such as `description`, `title`, `unique`, checks (`ge`, `le`, `isin`,
+…), or custom `metadata` — without providing an explicit `= pa.Field(...)`
+assignment:
+
+```{code-cell} python
+from typing import Annotated
+
+
+class ProductsModel(pa.DataFrameModel):
+    name: Annotated[str, pa.Field(description="Product name")]
+    price: Annotated[float, pa.Field(ge=0.0, description="Unit price")]
+    sku: Annotated[int, pa.Field(unique=True, title="SKU")]
+
+
+schema = ProductsModel.to_schema()
+schema.columns["price"].checks
+```
+
 
 ## Custom checks
 
