@@ -1,7 +1,7 @@
 """Unit tests for DataFrameModel module."""
 
 from contextlib import nullcontext as does_not_raise
-from typing import Optional
+from typing import Annotated, Optional
 
 import pyspark.sql.types as T
 import pytest
@@ -142,6 +142,53 @@ def test_schema_with_bare_types_field_type(spark_session, request):
     df_fail = spark_df(spark, data_fail, spark_schema)
     df_out = Model.validate(check_obj=df_fail)
     assert df_out.pandera.errors is not None
+
+
+def test_annotated_field_metadata_propagation(spark_session, request):
+    """``Annotated[T, pa.Field(...)]`` should propagate the embedded
+    ``FieldInfo`` metadata (description, title, checks, etc.) to the
+    pyspark schema. See
+    https://github.com/unionai-oss/pandera/issues/2110.
+    """
+
+    class ProductsModel(DataFrameModel):
+        """Test schema using ``typing.Annotated`` for metadata."""
+
+        product_id: Annotated[T.IntegerType, Field(title="Product ID")]
+        product_name: Annotated[
+            T.StringType, Field(description="Product name")
+        ]
+        price: Annotated[T.DoubleType, Field(gt=0.0, description="Unit price")]
+        list_price: Annotated[
+            T.DecimalType, 20, 5, Field(description="Listed price")
+        ]
+
+    schema = ProductsModel.to_schema()
+    assert schema.columns["product_id"].title == "Product ID"
+    assert schema.columns["product_name"].description == "Product name"
+    assert schema.columns["price"].description == "Unit price"
+    assert len(schema.columns["price"].checks) == 1
+    assert isinstance(schema.columns["list_price"].dtype.type, T.DecimalType)
+
+
+def test_annotated_field_no_metadata_dedup(spark_session, request):
+    """Two ``Annotated`` annotations using independent ``Field(...)``
+    calls must not be deduplicated by Python's ``typing.Annotated`` cache.
+    """
+
+    class ModelA(DataFrameModel):
+        value: Annotated[T.IntegerType, Field(gt=18)]
+
+    class ModelB(DataFrameModel):
+        value: Annotated[T.IntegerType, Field(title="ID")]
+
+    schema_a = ModelA.to_schema()
+    schema_b = ModelB.to_schema()
+
+    assert len(schema_a.columns["value"].checks) == 1
+    assert schema_b.columns["value"].title == "ID"
+    # ModelB should not have inherited ModelA's range check.
+    assert schema_b.columns["value"].checks == []
 
 
 def test_pyspark_bare_fields(spark_session, request):

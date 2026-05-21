@@ -561,6 +561,33 @@ class DateTimeModel(pa.DataFrameModel):
 
 ::::
 
+### Embedding `Field` metadata in `Annotated`
+
+You can also embed a {func}`~pandera.api.dataframe.model_components.Field`
+directly inside {data}`typing.Annotated` to attach column-level metadata
+— such as `description`, `title`, `unique`, checks (`ge`, `le`, `isin`,
+…), or custom `metadata` — without providing an explicit `= pa.Field(...)`
+assignment. This works for plain types as well as parameterized polars
+dtypes:
+
+```{testcode} polars
+import polars as pl
+
+
+class ProductsModel(pa.DataFrameModel):
+    name: Annotated[str, pa.Field(description="Product name")]
+    price: Annotated[float, pa.Field(ge=0.0, description="Unit price")]
+    sku: Annotated[int, pa.Field(unique=True, title="SKU")]
+    created_at: Annotated[
+        pl.Datetime, "ms", "UTC", pa.Field(description="Created timestamp")
+    ]
+
+
+schema = ProductsModel.to_schema()
+assert schema.columns["name"].description == "Product name"
+assert schema.columns["sku"].unique is True
+```
+
 
 ## Custom checks
 

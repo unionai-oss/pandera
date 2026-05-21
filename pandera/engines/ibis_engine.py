@@ -81,8 +81,17 @@ class Engine(
         Pandera :class:`~pandera.dtypes.DataType` object."""
         try:
             return engine.Engine.dtype(cls, data_type)
-        except TypeError:
-            np_dtype = data_type().to_numpy()
+        except TypeError as exc:
+            # Fallback for numpy-scalar-like dtypes that need to be
+            # instantiated before they expose ``.to_numpy()``. If the
+            # fallback itself fails (e.g. for ``typing.Annotated`` types
+            # that can't be resolved this way), re-raise the original
+            # TypeError so callers (such as ``DataFrameModel``) can
+            # take their own fallback path.
+            try:
+                np_dtype = data_type().to_numpy()
+            except (AttributeError, TypeError, ValueError):
+                raise exc from None
 
         return engine.Engine.dtype(cls, np_dtype)
 

@@ -105,13 +105,25 @@ class BaseFieldInfo:
         )
 
     def __hash__(self):
+        # Use identity-based hashing for un-named fields so that distinct
+        # ``FieldInfo`` instances embedded in ``typing.Annotated`` are not
+        # treated as equal by Python's ``Annotated`` cache (which would
+        # cause ``Annotated[T, pa.Field(...)]`` to be deduplicated across
+        # different model classes).
+        if self.original_name is None:
+            return id(self)
         return str(self.name).__hash__()
 
     def __eq__(self, other):
+        # Preserve the historical behavior of comparing named ``FieldInfo``
+        # instances to strings, but fall back to identity comparison for
+        # un-named instances (see ``__hash__`` for rationale).
+        if self.original_name is None:
+            return self is other
         return self.name == other
 
     def __ne__(self, other):
-        return self.name != other
+        return not self.__eq__(other)
 
     def __set__(self, instance: Any, value: Any) -> None:  # pragma: no cover
         raise AttributeError(f"Can't set the {self.original_name} field.")

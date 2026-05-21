@@ -405,6 +405,61 @@ class SchemaFieldDatetimeTZDtype(pa.DataFrameModel):
 Schema.to_schema()
 ```
 
+### Embedding `Field` metadata in `Annotated`
+
+You can also embed a {func}`~pandera.api.dataframe.model_components.Field`
+directly inside {data}`typing.Annotated` to attach field-level metadata —
+such as `description`, `title`, `unique`, checks (`ge`, `le`, `isin`,
+etc.), or custom `metadata` — without having to provide an explicit `=
+pa.Field(...)` assignment. This is useful when you want the type
+annotation itself to fully describe the column.
+
+```{code-cell} python
+from typing import Annotated
+
+import pandas as pd
+import pandera.pandas as pa
+
+
+class Schema(pa.DataFrameModel):
+    name: Annotated[str, pa.Field(description="Name of the person")]
+    age: Annotated[int, pa.Field(ge=0, description="Age of the person")]
+    month: Annotated[int, pa.Field(ge=1, le=12)]
+    identifier: Annotated[int, pa.Field(unique=True, title="Identifier")]
+
+
+schema = Schema.to_schema()
+schema.columns["name"].description
+```
+
+```{code-cell} python
+schema.columns["month"].checks
+```
+
+When the annotation also carries dtype parameters (e.g.
+`Annotated[pd.DatetimeTZDtype, "ns", "est"]`), you can still append a
+`Field` at the end:
+
+```{code-cell} python
+class SchemaWithDtypeParamsAndField(pa.DataFrameModel):
+    ts: Annotated[
+        pd.DatetimeTZDtype, "ns", "est", pa.Field(description="Timestamp")
+    ]
+```
+
+If both an embedded `Field` and an explicit assignment are provided,
+the explicit assignment takes precedence:
+
+```{code-cell} python
+class SchemaExplicitWins(pa.DataFrameModel):
+    value: Annotated[int, pa.Field(description="from annotated")] = (
+        pa.Field(description="from assignment")
+    )
+
+
+SchemaExplicitWins.to_schema().columns["value"].description
+```
+
 ## Required Columns
 
 By default all columns specified in the schema are {ref}`required<required>`, meaning

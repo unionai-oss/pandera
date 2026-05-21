@@ -7,8 +7,10 @@ import pandas as pd
 
 from pandera.api.base.schema import BaseSchema
 from pandera.api.checks import Check
-from pandera.api.dataframe.model import DataFrameModel as _DataFrameModel
-from pandera.api.dataframe.model import get_dtype_kwargs
+from pandera.api.dataframe.model import (
+    DataFrameModel as _DataFrameModel,
+)
+from pandera.api.dataframe.model import _dtype_metadata, get_dtype_kwargs
 from pandera.api.dataframe.model_components import FieldInfo
 from pandera.api.pandas.components import Column, Index, MultiIndex
 from pandera.api.pandas.container import DataFrameSchema
@@ -133,8 +135,14 @@ class DataFrameModel(_DataFrameModel[pd.DataFrame, DataFrameSchema]):
                         + f"for {annotation.raw_annotation}."
                         + "\n Usage Tip: Drop 'typing.Annotated'."
                     )
-                dtype_kwargs = get_dtype_kwargs(annotation)
-                dtype = annotation.arg(**dtype_kwargs)  # type: ignore
+                # ``Annotated`` may carry only a FieldInfo (e.g.
+                # ``Annotated[str, pa.Field(...)]``) without any dtype
+                # parameters. In that case, use the annotated type as-is.
+                if _dtype_metadata(annotation):
+                    dtype_kwargs = get_dtype_kwargs(annotation)
+                    dtype = annotation.arg(**dtype_kwargs)  # type: ignore
+                else:
+                    dtype = annotation.arg
             elif annotation.default_dtype:
                 dtype = annotation.default_dtype
             else:

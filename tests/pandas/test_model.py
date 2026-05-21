@@ -6,7 +6,7 @@ import runpy
 from collections.abc import Iterable
 from copy import deepcopy
 from enum import Enum
-from typing import Any, Generic, Optional, TypeVar
+from typing import Annotated, Any, Generic, Optional, TypeVar
 
 import numpy as np
 import pandas as pd
@@ -2081,6 +2081,87 @@ def test_pandas_fields_metadata():
         }
     }
     assert PanderaSchema.get_metadata() == expected
+
+
+def test_annotated_field_metadata_propagation():
+    """``Annotated[T, pa.Field(...)]`` should propagate the embedded
+    ``FieldInfo`` metadata (description, title, unique, checks, etc.) to
+    the resulting schema. See https://github.com/unionai-oss/pandera/issues/2110.
+    """
+
+    class Schema(pa.DataFrameModel):
+        name: Annotated[str, pa.Field(description="Name of the person")]
+        age: int = pa.Field(ge=0, description="Age of the person")
+        month: Annotated[
+            int, pa.Field(ge=1, le=12, description="Month of the year")
+        ]
+        identifier: Annotated[int, pa.Field(unique=True, title="Identifier")]
+        tag: Annotated[str, pa.Field(metadata={"k": "v"})]
+
+    schema = Schema.to_schema()
+
+    assert schema.columns["name"].description == "Name of the person"
+    assert schema.columns["age"].description == "Age of the person"
+    assert schema.columns["month"].description == "Month of the year"
+    assert schema.columns["identifier"].unique is True
+    assert schema.columns["identifier"].title == "Identifier"
+    assert schema.columns["tag"].metadata == {"k": "v"}
+
+    # ``ge``/``le`` checks defined inside the Annotated FieldInfo should
+    # also be applied during validation.
+    valid = pd.DataFrame(
+        {
+            "name": ["Alice"],
+            "age": [25],
+            "month": [3],
+            "identifier": [1],
+            "tag": ["x"],
+        }
+    )
+    Schema.validate(valid)
+
+    invalid = valid.copy()
+    invalid["month"] = [13]
+    with pytest.raises(SchemaError):
+        Schema.validate(invalid)
+
+
+def test_annotated_field_no_metadata_dedup():
+    """Two ``Annotated`` annotations using independent ``pa.Field(...)``
+    calls must not be deduplicated by Python's ``typing.Annotated`` cache.
+    Without unique hashing on un-named ``FieldInfo`` instances, the second
+    model would inadvertently inherit the first model's field configuration.
+    """
+
+    class ModelA(pa.DataFrameModel):
+        value: Annotated[int, pa.Field(ge=18, le=100)]
+
+    class ModelB(pa.DataFrameModel):
+        value: Annotated[int, pa.Field(unique=True, title="ID")]
+
+    schema_a = ModelA.to_schema()
+    schema_b = ModelB.to_schema()
+
+    assert len(schema_a.columns["value"].checks) == 2
+    assert schema_b.columns["value"].unique is True
+    assert schema_b.columns["value"].title == "ID"
+    # ModelB should not have inherited ModelA's range checks.
+    assert schema_b.columns["value"].checks == []
+
+
+def test_annotated_field_explicit_assignment_wins():
+    """When a field is annotated with ``Annotated[T, pa.Field(...)]`` and
+    also explicitly assigned a ``pa.Field(...)``, the explicit assignment
+    takes precedence.
+    """
+
+    class Schema(pa.DataFrameModel):
+        value: Annotated[int, pa.Field(description="from annotated")] = (
+            pa.Field(description="from assignment")
+        )
+
+    schema = Schema.to_schema()
+    assert schema.columns["value"].description == "from assignment"
 
 
 def test_index_field_metadata_persistence() -> None:
