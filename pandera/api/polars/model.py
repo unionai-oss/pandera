@@ -9,8 +9,10 @@ from typing_extensions import Self
 
 from pandera.api.base.schema import BaseSchema
 from pandera.api.checks import Check
-from pandera.api.dataframe.model import DataFrameModel as _DataFrameModel
-from pandera.api.dataframe.model import get_dtype_kwargs
+from pandera.api.dataframe.model import (
+    DataFrameModel as _DataFrameModel,
+)
+from pandera.api.dataframe.model import _dtype_metadata, get_dtype_kwargs
 from pandera.api.dataframe.model_components import FieldInfo
 from pandera.api.polars.components import Column
 from pandera.api.polars.container import DataFrameSchema
@@ -74,8 +76,15 @@ class DataFrameModel(_DataFrameModel[pl.LazyFrame, DataFrameSchema]):
                             + f"for {annotation.raw_annotation}."
                             + "\n Usage Tip: Drop 'typing.Annotated'."
                         ) from exc
-                    dtype_kwargs = get_dtype_kwargs(annotation)
-                    dtype = annotation.arg(**dtype_kwargs)  # type: ignore
+                    # ``Annotated`` may carry only a FieldInfo (e.g.
+                    # ``Annotated[float, pa.Field(...)]``) without any
+                    # dtype parameters. In that case, use the annotated
+                    # type as-is.
+                    if _dtype_metadata(annotation):
+                        dtype_kwargs = get_dtype_kwargs(annotation)
+                        dtype = annotation.arg(**dtype_kwargs)  # type: ignore
+                    else:
+                        dtype = annotation.arg  # type: ignore
                 elif annotation.default_dtype:
                     dtype = annotation.default_dtype
                 else:

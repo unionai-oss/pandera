@@ -354,7 +354,7 @@ def test_dataframe_schema_with_tz_agnostic_dates(time_zone, data):
 
 def test_model_field_access_returns_string():
     """Test that accessing DataFrameModel fields returns column names as strings.
-    
+
     Regression test for issue #2297.
     """
     from pandera.typing.polars import Series
@@ -378,3 +378,67 @@ def test_model_field_access_returns_string():
     assert ModelWithSeries.b == "b"
     assert ModelWithBareTypes.x == "x"
     assert ModelWithBareTypes.y == "y"
+
+
+def test_annotated_field_metadata_propagation():
+    """``Annotated[T, pa.Field(...)]`` should propagate the embedded
+    ``FieldInfo`` metadata (description, title, unique, checks, etc.) to
+    the polars schema. See
+    https://github.com/unionai-oss/pandera/issues/2110.
+    """
+
+    class Schema(DataFrameModel):
+        name: Annotated[str, Field(description="Name of the person")]
+        age: int = Field(ge=0, description="Age of the person")
+        val: Annotated[float, Field(ge=0.0, description="A value")]
+        identifier: Annotated[int, Field(unique=True, title="Identifier")]
+        tag: Annotated[str, Field(metadata={"k": "v"})]
+
+    schema = Schema.to_schema()
+
+    assert schema.columns["name"].description == "Name of the person"
+    assert schema.columns["age"].description == "Age of the person"
+    assert schema.columns["val"].description == "A value"
+    assert schema.columns["identifier"].unique is True
+    assert schema.columns["identifier"].title == "Identifier"
+    assert schema.columns["tag"].metadata == {"k": "v"}
+
+    # ``ge`` check defined inside the Annotated FieldInfo should also
+    # be applied during validation.
+    valid = pl.DataFrame(
+        {
+            "name": ["Alice"],
+            "age": [25],
+            "val": [1.0],
+            "identifier": [1],
+            "tag": ["x"],
+        }
+    )
+    Schema.validate(valid)
+
+    invalid = valid.with_columns(pl.lit(-1.0).alias("val"))
+    with pytest.raises(SchemaError):
+        Schema.validate(invalid)
+
+
+def test_annotated_field_no_metadata_dedup():
+    """Two ``Annotated`` annotations using independent ``Field(...)``
+    calls must not be deduplicated by Python's ``typing.Annotated`` cache.
+    Without unique hashing on un-named ``FieldInfo`` instances, the second
+    model would inadvertently inherit the first model's field configuration.
+    """
+
+    class ModelA(DataFrameModel):
+        value: Annotated[int, Field(ge=18, le=100)]
+
+    class ModelB(DataFrameModel):
+        value: Annotated[int, Field(unique=True, title="ID")]
+
+    schema_a = ModelA.to_schema()
+    schema_b = ModelB.to_schema()
+
+    assert len(schema_a.columns["value"].checks) == 2
+    assert schema_b.columns["value"].unique is True
+    assert schema_b.columns["value"].title == "ID"
+    # ModelB should not have inherited ModelA's range checks.
+    assert schema_b.columns["value"].checks == []
