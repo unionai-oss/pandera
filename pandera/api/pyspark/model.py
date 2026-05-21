@@ -18,7 +18,10 @@ from typing_extensions import Self
 
 from pandera.api.base.schema import BaseSchema
 from pandera.api.checks import Check
-from pandera.api.dataframe.model import DataFrameModel as _DataFrameModel
+from pandera.api.dataframe.model import (
+    DataFrameModel as _DataFrameModel,
+)
+from pandera.api.dataframe.model import _dtype_metadata
 from pandera.api.dataframe.model_components import Field, FieldInfo
 from pandera.errors import SchemaInitError
 from pandera.typing import AnnotationInfo
@@ -255,8 +258,14 @@ class DataFrameModel(_DataFrameModel[PySparkFrame, DataFrameSchema]):
                         + f"for {annotation.raw_annotation}."
                         + "\n Usage Tip: Drop 'typing.Annotated'."
                     )
-                dtype_kwargs = _get_dtype_kwargs(annotation)
-                dtype = annotation.arg(**dtype_kwargs)  # type: ignore
+                # ``Annotated`` may carry only a FieldInfo (e.g.
+                # ``Annotated[str, pa.Field(...)]``) without any dtype
+                # parameters. In that case, use the annotated type as-is.
+                if _dtype_metadata(annotation):
+                    dtype_kwargs = _get_dtype_kwargs(annotation)
+                    dtype = annotation.arg(**dtype_kwargs)  # type: ignore
+                else:
+                    dtype = annotation.arg
             elif annotation.default_dtype:
                 dtype = annotation.default_dtype
             else:
@@ -294,17 +303,15 @@ class DataFrameModel(_DataFrameModel[PySparkFrame, DataFrameSchema]):
 
 def _get_dtype_kwargs(annotation: AnnotationInfo) -> dict[str, Any]:
     """Extract dtype keyword arguments from a Pandera annotation."""
-    # Check if this is a built-in type that doesn't support parameterization
-    if annotation.arg in (str, int, float, bool, type(None)) or \
-            hasattr(annotation.arg, '__module__') and annotation.arg.__module__ == 'builtins':
+    dtype_params = _dtype_metadata(annotation)
+    if not dtype_params:
         return {}
 
     sig = inspect.signature(annotation.arg)  # type: ignore
     dtype_arg_names = list(sig.parameters.keys())
-    if len(annotation.metadata) != len(dtype_arg_names):  # type: ignore
+    if len(dtype_params) != len(dtype_arg_names):
         raise TypeError(
             f"Annotation '{annotation.arg.__name__}' requires "  # type: ignore
             + f"all positional arguments {dtype_arg_names}."
         )
-    return dict(zip(dtype_arg_names, annotation.metadata))  # type: ignore
-
+    return dict(zip(dtype_arg_names, dtype_params))

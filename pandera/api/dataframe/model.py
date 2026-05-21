@@ -64,20 +64,41 @@ GENERIC_SCHEMA_CACHE: dict[
 ] = {}
 
 
-def get_dtype_kwargs(annotation: AnnotationInfo) -> dict[str, Any]:
+def _dtype_metadata(annotation: AnnotationInfo) -> tuple[Any, ...]:
+    """Return ``annotation.metadata`` with any ``FieldInfo`` entries removed.
 
-    if annotation.arg in (str, int, float, bool, type(None)) or \
-                hasattr(annotation.arg, '__module__') and annotation.arg.__module__ == 'builtins':
-            return {}
+    ``Annotated`` types can carry a ``FieldInfo`` alongside dtype parameters
+    (e.g. ``Annotated[Decimal, 19, 4, pa.Field(...)]``). The FieldInfo is
+    consumed elsewhere and must not be forwarded as a dtype argument.
+    """
+    metadata = annotation.metadata or ()
+    return tuple(item for item in metadata if not isinstance(item, FieldInfo))
+
+
+def _extract_annotated_field_info(annotation: Any) -> FieldInfo | None:
+    """Return the first ``FieldInfo`` embedded in an ``Annotated`` annotation.
+
+    Returns ``None`` if the annotation is not an ``Annotated`` type or has no
+    embedded ``FieldInfo``. The returned instance is copied so that mutating
+    the model's class attribute does not affect the original.
+    """
+    metadata = getattr(annotation, "__metadata__", None)
+    if not metadata:
+        return None
+    for item in metadata:
+        if isinstance(item, FieldInfo):
+            return copy.deepcopy(item)
+    return None
+
+
+def get_dtype_kwargs(annotation: AnnotationInfo) -> dict[str, Any]:
+    dtype_params = _dtype_metadata(annotation)
+    if not dtype_params:
+        return {}
 
     sig = inspect.signature(annotation.arg)  # type: ignore
     dtype_arg_names = list(sig.parameters.keys())
-
-    dtype_params = [
-        item for item in annotation.metadata
-        if not isinstance(item, FieldInfo)
-    ]
-    if len(dtype_params) != len(dtype_arg_names):  # type: ignore
+    if len(dtype_params) != len(dtype_arg_names):
         raise TypeError(
             f"Annotation '{annotation.arg.__name__}' requires "  # type: ignore
             + f"all positional arguments {dtype_arg_names}."
@@ -267,10 +288,13 @@ class DataFrameModel(Generic[TDataFrame, TSchema], BaseModel):
                 cls.__dict__.get("__annotations__", {}),
             ),
         )
-        for field_name in subclass_annotations.keys():
+        for field_name, annotation in subclass_annotations.items():
             if _is_field(field_name) and field_name not in cls.__dict__:
-                # Field omitted
-                field = Field()
+                # No explicit Field assignment. If the annotation is an
+                # ``Annotated`` type that embeds a FieldInfo (e.g.
+                # ``Annotated[str, pa.Field(...)]``), use that FieldInfo so
+                # its metadata (description, title, etc.) is preserved.
+                field = _extract_annotated_field_info(annotation) or Field()
                 field.__set_name__(cls, field_name)
                 setattr(cls, field_name, field)
 
@@ -420,14 +444,8 @@ class DataFrameModel(Generic[TDataFrame, TSchema], BaseModel):
                     f"'{field_name}' can only be assigned a 'Field', "
                     + f"not a '{type(field)}.'"
                 )
-            
-            if hasattr(cls, '__annotation_infos__') and field_name in cls.__annotation_infos__:  
-                annotation_info = cls.__annotation_infos__[field_name]  
-            else:
-                # Fallback to creating new AnnotationInfo if cache doesn't exist
-                annotation_info = AnnotationInfo(annotation)
 
-            fields[field.name] = (annotation_info, field)
+            fields[field.name] = (AnnotationInfo(annotation), field)
         return fields
 
     @classmethod
