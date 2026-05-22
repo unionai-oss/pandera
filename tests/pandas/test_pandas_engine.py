@@ -390,6 +390,64 @@ def test_dt_time_zone_agnostic(examples, tz, coerce, expected_output, raises):
         )
 
 
+def test_pandas_datetime_coerce_mixed_timezones_to_target_timezone():
+    """Test coercion of mixed timezones to a target timezone."""
+
+    class SimpleSchema(DataFrameModel):
+        # pylint: disable=unexpected-keyword-arg,no-value-for-parameter
+        timestamp: pandas_engine.DateTime(
+            tz=pytz.timezone("America/Chicago")
+        ) = Field(coerce=True)
+
+    data = pd.DataFrame(
+        {
+            "timestamp": [
+                pytz.timezone("America/Chicago").localize(
+                    dt.datetime(2023, 3, 1, 13)
+                ),
+                pytz.timezone("America/New_York").localize(
+                    dt.datetime(2023, 3, 1, 13)
+                ),
+            ]
+        }
+    )
+
+    validated_df = SimpleSchema.validate(data)
+
+    expected = [
+        pytz.timezone("America/Chicago").localize(dt.datetime(2023, 3, 1, 13)),
+        pytz.timezone("America/Chicago").localize(dt.datetime(2023, 3, 1, 12)),
+    ]
+    assert validated_df["timestamp"].tolist() == expected
+
+
+def test_pandas_datetime_time_zone_agnostic_coerce_mixed_offset_strings():
+    """Test timezone-agnostic coercion of mixed-offset strings."""
+
+    class SimpleSchema(DataFrameModel):
+        # pylint: disable=unexpected-keyword-arg,no-value-for-parameter
+        timestamp: pandas_engine.DateTime(
+            time_zone_agnostic=True, tz=pytz.UTC
+        ) = Field(coerce=True)
+
+    data = pd.DataFrame(
+        {
+            "timestamp": [
+                "2023-10-30T11:27:20.082372+01:00",
+                "2023-10-27T15:37:25.562608+02:00",
+            ]
+        }
+    )
+
+    validated_df = SimpleSchema.validate(data)
+
+    expected = [
+        pd.Timestamp("2023-10-30T10:27:20.082372Z"),
+        pd.Timestamp("2023-10-27T13:37:25.562608Z"),
+    ]
+    assert validated_df["timestamp"].tolist() == expected
+
+
 @hypothesis.settings(max_examples=1000)
 @pytest.mark.parametrize("to_df", [True, False])
 @given(

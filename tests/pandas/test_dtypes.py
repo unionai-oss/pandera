@@ -530,6 +530,25 @@ def test_coerce_dt(examples, type_, has_tz, is_index):
     assert data_type.try_coerce(data).to_list() == expected
 
 
+def test_coerce_dt_with_mixed_offsets():
+    """Test coercion of mixed-offset strings to a timezone-naive DateTime."""
+    data = pd.Series(
+        [
+            "2023-10-30T11:27:20.082372+01:00",
+            "2023-10-27T15:37:25.562608+02:00",
+        ]
+    )
+    data_type = pandas_engine.Engine.dtype(pandas_engine.DateTime)
+
+    coerced = data_type.try_coerce(data)
+
+    expected = [
+        to_datetime("2023-10-30T10:27:20.082372"),
+        to_datetime("2023-10-27T13:37:25.562608"),
+    ]
+    assert coerced.to_list() == expected
+
+
 def test_coerce_string():
     """Test that strings can be coerced."""
     data = pd.Series([1, None], dtype="Int32")

@@ -965,7 +965,9 @@ class DateTime(_BaseDateTime, dtypes.Timestamp):
         }
 
         def _to_datetime(col: PandasObject) -> PandasObject:
-            col = to_datetime_fn(col, **self.to_datetime_kwargs)
+            col = self._coerce_mixed_timezones(
+                to_datetime_fn=to_datetime_fn, data_container=col
+            )
             pdtype_tz = getattr(pandas_dtype, "tz", None)
             coltype_tz = getattr(col.dtype, "tz", None)
             if pdtype_tz is not None or coltype_tz is not None:
@@ -999,6 +1001,89 @@ class DateTime(_BaseDateTime, dtypes.Timestamp):
             return data_container.transform(_to_datetime)
 
         return _to_datetime(data_container)
+
+    def _coerce_mixed_timezones(
+        self,
+        to_datetime_fn: Callable[..., PandasObject],
+        data_container: PandasObject,
+    ) -> PandasObject:
+        try:
+            col, should_try_utc = self._call_to_datetime(
+                to_datetime_fn=to_datetime_fn, data_container=data_container
+            )
+        except ValueError as exc:
+            if not self._should_try_utc_conversion(exc):
+                raise
+            col = to_datetime_fn(
+                data_container, **self.to_datetime_kwargs, utc=True
+            )
+        else:
+            if should_try_utc:
+                col = to_datetime_fn(
+                    data_container, **self.to_datetime_kwargs, utc=True
+                )
+
+        if self._should_convert_object_dtype_with_utc(col):
+            col = to_datetime_fn(
+                data_container, **self.to_datetime_kwargs, utc=True
+            )
+
+        return col
+
+    def _call_to_datetime(
+        self,
+        to_datetime_fn: Callable[..., PandasObject],
+        data_container: PandasObject,
+    ) -> tuple[PandasObject, bool]:
+        if "utc" in self.to_datetime_kwargs:
+            return to_datetime_fn(
+                data_container, **self.to_datetime_kwargs
+            ), False
+
+        with warnings.catch_warnings(record=True) as captured_warnings:
+            warnings.simplefilter("always", FutureWarning)
+            col = to_datetime_fn(data_container, **self.to_datetime_kwargs)
+
+        should_try_utc = False
+        for warning in captured_warnings:
+            if self._should_try_utc_conversion_warning(warning.message):
+                should_try_utc = True
+            else:
+                warnings.warn(warning.message, warning.category, stacklevel=2)
+
+        return col, should_try_utc
+
+    def _should_try_utc_conversion(self, exc: ValueError) -> bool:
+        return "utc=True" in str(exc) and "utc" not in self.to_datetime_kwargs
+
+    @staticmethod
+    def _should_try_utc_conversion_warning(warning: Any) -> bool:
+        return "unless `utc=True`" in str(warning)
+
+    def _should_convert_object_dtype_with_utc(
+        self, data_container: PandasObject
+    ) -> bool:
+        if (
+            getattr(data_container, "dtype", None) != object
+            or "utc" in self.to_datetime_kwargs
+        ):
+            return False
+
+        return all(
+            pd.isna(value)
+            or (
+                self._to_datetime_scalar(value) is not pd.NaT
+                and self._to_datetime_scalar(value).tzinfo is not None
+            )
+            for value in data_container
+        )
+
+    def _to_datetime_scalar(self, value: Any) -> Any:
+        if pd.isna(value):
+            return pd.NaT
+        return self._get_to_datetime_fn(value)(
+            value, **self.to_datetime_kwargs
+        )
 
     @classmethod
     def from_parametrized_dtype(cls, pd_dtype: pd.DatetimeTZDtype):
@@ -1036,23 +1121,19 @@ class DateTime(_BaseDateTime, dtypes.Timestamp):
             object.__setattr__(self, "tz", tz)
             object.__setattr__(self, "type", type_)
         # If there are multiple timezones, convert them to the specified tz and set the type accordingly
-        elif all(isinstance(x, datetime.datetime) for x in data_container):
-            container_type = type(data_container)
+        elif all(self._is_datetime_like_value(x) for x in data_container):
             tz = self.tz
             unit = (
                 self.unit
                 if self.unit
                 else getattr(data_container.dtype, "unit", "ns")
             )
-            data_container = container_type(
+            data_container = self._rebuild_data_container(
+                data_container,
                 [
-                    (
-                        pd.Timestamp(ts).tz_convert(tz)  # type: ignore[arg-type]
-                        if pd.Timestamp(ts).tzinfo
-                        else pd.Timestamp(ts).tz_localize(tz)  # type: ignore[arg-type, call-overload]
-                    )
+                    self._coerce_scalar_to_timezone(ts, tz)
                     for ts in data_container
-                ]
+                ],
             )
             type_ = pd.DatetimeTZDtype(unit, tz)  # type: ignore[arg-type]
             object.__setattr__(self, "tz", tz)
@@ -1068,6 +1149,35 @@ class DateTime(_BaseDateTime, dtypes.Timestamp):
                 ),
             )
         return data_container
+
+    @staticmethod
+    def _rebuild_data_container(
+        data_container: PandasObject, values: list[Any]
+    ) -> PandasObject:
+        if isinstance(data_container, pd.Series):
+            return pd.Series(
+                values, index=data_container.index, name=data_container.name
+            )
+        if isinstance(data_container, pd.Index):
+            return pd.Index(values, name=data_container.name)
+        return type(data_container)(values)
+
+    def _coerce_scalar_to_timezone(
+        self, value: Any, tz: datetime.tzinfo
+    ) -> Any:
+        value = self._to_datetime_scalar(value)
+        if value is pd.NaT:
+            return value
+        if value.tzinfo is not None:
+            return value.tz_convert(tz)
+        return value.tz_localize(tz)  # type: ignore[call-overload]
+
+    def _is_datetime_like_value(self, value: Any) -> bool:
+        try:
+            self._to_datetime_scalar(value)
+        except (TypeError, ValueError):
+            return False
+        return True
 
     def coerce_value(self, value: Any) -> Any:
         """Coerce an value to specified datatime type."""
