@@ -1,6 +1,7 @@
 """Test pandas engine."""
 
 import datetime as dt
+import warnings
 from typing import Any, Optional
 
 import hypothesis
@@ -388,6 +389,222 @@ def test_dt_time_zone_agnostic(examples, tz, coerce, expected_output, raises):
         assert sorted(validated_df["datetime_column"].tolist()) == sorted(
             expected_output
         )
+
+
+def test_pandas_datetime_coerce_mixed_timezones_to_target_timezone():
+    """Test coercion of mixed timezones to a target timezone."""
+
+    class SimpleSchema(DataFrameModel):
+        # pylint: disable=unexpected-keyword-arg,no-value-for-parameter
+        timestamp: pandas_engine.DateTime(
+            tz=pytz.timezone("America/Chicago")
+        ) = Field(coerce=True)
+
+    data = pd.DataFrame(
+        {
+            "timestamp": [
+                pytz.timezone("America/Chicago").localize(
+                    dt.datetime(2023, 3, 1, 13)
+                ),
+                pytz.timezone("America/New_York").localize(
+                    dt.datetime(2023, 3, 1, 13)
+                ),
+            ]
+        }
+    )
+
+    validated_df = SimpleSchema.validate(data)
+
+    expected = [
+        pytz.timezone("America/Chicago").localize(dt.datetime(2023, 3, 1, 13)),
+        pytz.timezone("America/Chicago").localize(dt.datetime(2023, 3, 1, 12)),
+    ]
+    assert validated_df["timestamp"].tolist() == expected
+
+
+def test_pandas_datetime_time_zone_agnostic_coerce_mixed_offset_strings():
+    """Test timezone-agnostic coercion of mixed-offset strings."""
+
+    class SimpleSchema(DataFrameModel):
+        # pylint: disable=unexpected-keyword-arg,no-value-for-parameter
+        timestamp: pandas_engine.DateTime(
+            time_zone_agnostic=True, tz=pytz.UTC
+        ) = Field(coerce=True)
+
+    data = pd.DataFrame(
+        {
+            "timestamp": [
+                "2023-10-30T11:27:20.082372+01:00",
+                "2023-10-27T15:37:25.562608+02:00",
+            ]
+        }
+    )
+
+    validated_df = SimpleSchema.validate(data)
+
+    expected = [
+        pd.Timestamp("2023-10-30T10:27:20.082372Z"),
+        pd.Timestamp("2023-10-27T13:37:25.562608Z"),
+    ]
+    assert validated_df["timestamp"].tolist() == expected
+
+
+def test_pandas_datetime_call_to_datetime_respects_explicit_utc():
+    """Test datetime parsing when utc is already specified."""
+    dtype = pandas_engine.DateTime(to_datetime_kwargs={"utc": True})
+    data = pd.Series(
+        [
+            "2023-10-30T11:27:20.082372+01:00",
+            "2023-10-27T15:37:25.562608+02:00",
+        ]
+    )
+
+    result, should_try_utc = dtype._call_to_datetime(pd.to_datetime, data)
+
+    assert not should_try_utc
+    assert isinstance(result.dtype, pd.DatetimeTZDtype)
+    assert str(result.dtype.tz) == "UTC"
+
+
+def test_pandas_datetime_coerce_mixed_timezones_retries_with_utc():
+    """Test mixed-timezone coercion retries with utc on pandas errors."""
+    dtype = pandas_engine.DateTime()
+    data = pd.Series(
+        [
+            "2023-10-30T11:27:20.082372+01:00",
+            "2023-10-27T15:37:25.562608+02:00",
+        ]
+    )
+
+    def to_datetime_fn(data_container, **kwargs):
+        if kwargs.get("utc"):
+            return pd.to_datetime(data_container, utc=True)
+        raise ValueError(
+            "parsing datetimes with mixed time zones requires utc=True"
+        )
+
+    result = dtype._coerce_mixed_timezones(to_datetime_fn, data)
+
+    assert isinstance(result.dtype, pd.DatetimeTZDtype)
+    assert str(result.dtype.tz) == "UTC"
+
+
+def test_pandas_datetime_coerce_mixed_timezones_reraises_other_errors():
+    """Test mixed-timezone coercion re-raises unrelated parse errors."""
+    dtype = pandas_engine.DateTime()
+    data = pd.Series(["not_a_datetime"])
+
+    def to_datetime_fn(data_container, **kwargs):
+        raise ValueError("other error")
+
+    with pytest.raises(ValueError, match="other error"):
+        dtype._coerce_mixed_timezones(to_datetime_fn, data)
+
+
+def test_pandas_datetime_coerce_object_dtype_with_utc():
+    """Test mixed-timezone coercion retries when parsing returns object."""
+    dtype = pandas_engine.DateTime()
+    data = pd.Series(
+        [
+            "2023-10-30T11:27:20.082372+01:00",
+            "2023-10-27T15:37:25.562608+02:00",
+        ]
+    )
+
+    def to_datetime_fn(data_container, **kwargs):
+        if kwargs.get("utc"):
+            return pd.to_datetime(data_container, utc=True)
+        return pd.Series(data_container, dtype=object)
+
+    result = dtype._coerce_mixed_timezones(to_datetime_fn, data)
+
+    assert isinstance(result.dtype, pd.DatetimeTZDtype)
+    assert str(result.dtype.tz) == "UTC"
+
+
+def test_pandas_datetime_coerce_mixed_timezones_retries_after_warning():
+    """Test mixed-timezone coercion retries with utc after warnings."""
+    dtype = pandas_engine.DateTime()
+    data = pd.Series(
+        [
+            "2023-10-30T11:27:20.082372+01:00",
+            "2023-10-27T15:37:25.562608+02:00",
+        ]
+    )
+
+    def to_datetime_fn(data_container, **kwargs):
+        if kwargs.get("utc"):
+            return pd.to_datetime(data_container, utc=True)
+        warnings.warn(
+            "parsing datetimes with mixed time zones will raise an error "
+            "unless `utc=True`",
+            FutureWarning,
+            stacklevel=2,
+        )
+        return pd.Series(data_container, dtype=object)
+
+    result = dtype._coerce_mixed_timezones(to_datetime_fn, data)
+
+    assert isinstance(result.dtype, pd.DatetimeTZDtype)
+    assert str(result.dtype.tz) == "UTC"
+
+
+def test_pandas_datetime_call_to_datetime_reemits_other_warnings():
+    """Test non-UTC warnings are re-emitted during datetime parsing."""
+    dtype = pandas_engine.DateTime()
+    data = pd.Series(["2023-10-30T11:27:20.082372+01:00"])
+
+    def to_datetime_fn(data_container, **kwargs):
+        warnings.warn("other warning", FutureWarning, stacklevel=2)
+        return pd.to_datetime(data_container, **kwargs)
+
+    with pytest.warns(FutureWarning, match="other warning"):
+        result, should_try_utc = dtype._call_to_datetime(to_datetime_fn, data)
+
+    assert not should_try_utc
+    assert result.tolist() == pd.to_datetime(data).tolist()
+
+
+def test_pandas_datetime_helper_methods():
+    """Test helper methods used by mixed-timezone coercion."""
+    dtype = pandas_engine.DateTime()
+
+    assert not dtype._should_try_utc_conversion(ValueError("other error"))
+    assert not dtype._should_try_utc_conversion_warning(
+        UserWarning("other warning")
+    )
+    assert dtype._to_datetime_scalar(pd.NaT) is pd.NaT
+    assert not dtype._is_datetime_like_value("not_a_date")
+    assert not dtype._should_convert_object_dtype_with_utc(
+        pd.Series(pd.to_datetime(["2022-04-30T00:00:00Z"], utc=True))
+    )
+    assert not pandas_engine.DateTime(
+        to_datetime_kwargs={"utc": True}
+    )._should_convert_object_dtype_with_utc(
+        pd.Series(["2023-10-30T11:27:20.082372+01:00"])
+    )
+
+    rebuilt = dtype._rebuild_data_container(
+        pd.Index(["a", "b"], name="timestamp"), [1, 2]
+    )
+    assert isinstance(rebuilt, pd.Index)
+    assert rebuilt.name == "timestamp"
+
+    rebuilt_df = dtype._rebuild_data_container(
+        pd.DataFrame({"timestamp": [1, 2]}),
+        [{"timestamp": 3}, {"timestamp": 4}],
+    )
+    assert isinstance(rebuilt_df, pd.DataFrame)
+    assert rebuilt_df["timestamp"].tolist() == [3, 4]
+    assert dtype._coerce_scalar_to_timezone(pd.NaT, pytz.UTC) is pd.NaT
+
+
+def test_pandas_datetime_time_zone_agnostic_invalid_data_raises():
+    """Test timezone-agnostic coercion rejects non-datetime-like data."""
+    dtype = pandas_engine.DateTime(time_zone_agnostic=True, tz=pytz.UTC)
+
+    with pytest.raises(errors.ParserError, match="time_zone_agnostic=True"):
+        dtype._prepare_coerce_time_zone_agnostic(pd.Series(["not_a_datetime"]))
 
 
 @hypothesis.settings(max_examples=1000)
