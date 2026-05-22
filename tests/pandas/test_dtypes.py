@@ -709,6 +709,45 @@ class TestArrowStringSerializationRoundTrip:
             roundtripped.columns["col"].dtype, pandas_engine.STRING
         )
 
+    def test_pyarrow_dtype_lookup_does_not_change_arrow_string_resolution(
+        self,
+    ):
+        """Resolving another pyarrow-backed dtype should not replace
+        pandas ArrowString with the pyarrow-engine variant."""
+        import pyarrow
+
+        pandas_engine.Engine.dtype(
+            pd.ArrowDtype(pyarrow.list_(pyarrow.string()))
+        )
+
+        resolved = pandas_engine.Engine.dtype(pd.ArrowDtype(pyarrow.string()))
+
+        assert isinstance(resolved, pandas_engine.ArrowString)
+        assert str(resolved) == "arrow_string"
+
+    def test_schema_arrow_string_stays_stable_after_pyarrow_dtype_lookup(
+        self,
+    ):
+        """Schema construction should keep using pandas ArrowString after
+        resolving another pyarrow-backed dtype."""
+        import pyarrow
+
+        from pandera.pandas import DataFrameModel
+        from pandera.typing import Series as TypedSeries
+
+        pandas_engine.Engine.dtype(
+            pd.ArrowDtype(pyarrow.list_(pyarrow.string()))
+        )
+
+        class ArrowModel(DataFrameModel):
+            col: TypedSeries[pyarrow.string]
+
+        schema = ArrowModel.to_schema()
+
+        assert isinstance(
+            schema.columns["col"].dtype, pandas_engine.ArrowString
+        )
+
 
 def test_default_numeric_dtypes():
     """
