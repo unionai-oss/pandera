@@ -461,7 +461,8 @@ def test_pandas_datetime_call_to_datetime_respects_explicit_utc():
     result, should_try_utc = dtype._call_to_datetime(pd.to_datetime, data)
 
     assert not should_try_utc
-    assert str(result.dtype) == "datetime64[ns, UTC]"
+    assert isinstance(result.dtype, pd.DatetimeTZDtype)
+    assert str(result.dtype.tz) == "UTC"
 
 
 def test_pandas_datetime_coerce_mixed_timezones_retries_with_utc():
@@ -483,7 +484,8 @@ def test_pandas_datetime_coerce_mixed_timezones_retries_with_utc():
 
     result = dtype._coerce_mixed_timezones(to_datetime_fn, data)
 
-    assert str(result.dtype) == "datetime64[ns, UTC]"
+    assert isinstance(result.dtype, pd.DatetimeTZDtype)
+    assert str(result.dtype.tz) == "UTC"
 
 
 def test_pandas_datetime_helper_methods():
