@@ -6,7 +6,12 @@ from pydantic import BaseModel
 
 import pandera.pandas as pa
 from pandera.api.pandas.array import ArraySchema
+from pandera.engines import pydantic_version
 from pandera.engines.pandas_engine import PydanticModel
+
+PYDANTIC_V2 = pydantic_version().release >= (2, 0, 0)
+if PYDANTIC_V2:
+    from pydantic import ConfigDict
 
 
 class Record(BaseModel):
@@ -89,3 +94,34 @@ def test_pydantic_model_coerce(coerce: bool):
         dtype=PydanticModel(Record), coerce=coerce
     )
     assert dataframe_schema.coerce is True
+
+
+@pytest.mark.skipif(
+    not PYDANTIC_V2,
+    reason="Pydantic <2 already coerces numbers to strings by default",
+)
+def test_pydantic_model_coerce_numbers_to_str():
+    """Test that pydantic v2 string coercion can be enabled explicitly."""
+
+    class Row(BaseModel):
+        model_config = ConfigDict(coerce_numbers_to_str=True)
+
+        name: str
+        age: int
+        city: str
+
+    schema = pa.DataFrameSchema(dtype=PydanticModel(Row), coerce=True)
+    data = pd.DataFrame(
+        {
+            "name": [1, "Bob", "Charlie"],
+            "age": [25, 30, 22],
+            "city": ["New York", "London", "Paris"],
+        }
+    )
+
+    validated = schema.validate(data)
+    assert validated.to_dict(orient="list") == {
+        "name": ["1", "Bob", "Charlie"],
+        "age": [25, 30, 22],
+        "city": ["New York", "London", "Paris"],
+    }
