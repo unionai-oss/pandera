@@ -448,6 +448,70 @@ def test_pandas_datetime_time_zone_agnostic_coerce_mixed_offset_strings():
     assert validated_df["timestamp"].tolist() == expected
 
 
+def test_pandas_datetime_call_to_datetime_respects_explicit_utc():
+    """Test datetime parsing when utc is already specified."""
+    dtype = pandas_engine.DateTime(to_datetime_kwargs={"utc": True})
+    data = pd.Series(
+        [
+            "2023-10-30T11:27:20.082372+01:00",
+            "2023-10-27T15:37:25.562608+02:00",
+        ]
+    )
+
+    result, should_try_utc = dtype._call_to_datetime(pd.to_datetime, data)
+
+    assert not should_try_utc
+    assert str(result.dtype) == "datetime64[ns, UTC]"
+
+
+def test_pandas_datetime_coerce_mixed_timezones_retries_with_utc():
+    """Test mixed-timezone coercion retries with utc on pandas errors."""
+    dtype = pandas_engine.DateTime()
+    data = pd.Series(
+        [
+            "2023-10-30T11:27:20.082372+01:00",
+            "2023-10-27T15:37:25.562608+02:00",
+        ]
+    )
+
+    def to_datetime_fn(data_container, **kwargs):
+        if kwargs.get("utc"):
+            return pd.to_datetime(data_container, utc=True)
+        raise ValueError(
+            "parsing datetimes with mixed time zones requires utc=True"
+        )
+
+    result = dtype._coerce_mixed_timezones(to_datetime_fn, data)
+
+    assert str(result.dtype) == "datetime64[ns, UTC]"
+
+
+def test_pandas_datetime_helper_methods():
+    """Test helper methods used by mixed-timezone coercion."""
+    dtype = pandas_engine.DateTime()
+
+    assert not dtype._should_try_utc_conversion(ValueError("other error"))
+    assert not dtype._should_try_utc_conversion_warning(
+        UserWarning("other warning")
+    )
+    assert dtype._to_datetime_scalar(pd.NaT) is pd.NaT
+    assert not dtype._is_datetime_like_value("not_a_date")
+    assert not dtype._should_convert_object_dtype_with_utc(
+        pd.Series(pd.to_datetime(["2022-04-30T00:00:00Z"], utc=True))
+    )
+    assert not pandas_engine.DateTime(
+        to_datetime_kwargs={"utc": True}
+    )._should_convert_object_dtype_with_utc(
+        pd.Series(["2023-10-30T11:27:20.082372+01:00"])
+    )
+
+    rebuilt = dtype._rebuild_data_container(
+        pd.Index(["a", "b"], name="timestamp"), [1, 2]
+    )
+    assert isinstance(rebuilt, pd.Index)
+    assert rebuilt.name == "timestamp"
+
+
 @hypothesis.settings(max_examples=1000)
 @pytest.mark.parametrize("to_df", [True, False])
 @given(
