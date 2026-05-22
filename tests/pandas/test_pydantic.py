@@ -24,6 +24,7 @@ if pydantic_version().release >= (2, 0, 0):
     PYDANTIC_V2 = True
     import pydantic_core
     from packaging import version
+    from pydantic import ConfigDict
 
 
 class SimpleSchema(pa.DataFrameModel):
@@ -317,3 +318,38 @@ def test_pydantic_model_empty_dataframe():
     err_msg = exc_info.value.schema_errors[0].args[0]
     assert "Missing columns" in err_msg
     assert "y" in err_msg and "z" in err_msg
+
+
+@pytest.mark.skipif(
+    not PYDANTIC_V2,
+    reason="Pydantic <2 already coerces numbers to strings by default",
+)
+def test_dataframemodel_with_pydantic_model_coerce_numbers_to_str():
+    """Test DataFrameModel validation with explicit pydantic v2 string coercion."""
+
+    class Record(BaseModel):
+        model_config = ConfigDict(coerce_numbers_to_str=True)
+
+        name: str
+        age: int
+        city: str
+
+    class Schema(pa.DataFrameModel):
+        class Config:
+            dtype = pa.engines.pandas_engine.PydanticModel(Record)
+            coerce = True
+
+    data = pd.DataFrame(
+        {
+            "name": [1, "Bob", "Charlie"],
+            "age": [25, 30, 22],
+            "city": ["New York", "London", "Paris"],
+        }
+    )
+
+    validated = Schema.validate(data)
+    assert validated.to_dict(orient="list") == {
+        "name": ["1", "Bob", "Charlie"],
+        "age": [25, 30, 22],
+        "city": ["New York", "London", "Paris"],
+    }

@@ -101,6 +101,24 @@ apply the pydantic model validation process to each row of the dataframe,
 converting the model back to a dictionary with the `BaseModel.dict()` method.
 :::
 
+:::{note}
+`PydanticModel` coercion follows the pydantic model's own validation
+semantics. On pydantic v2, numeric values are not coerced to strings by
+default. If you want row-wise validation to coerce values like `1` into
+`"1"` for `str` fields, configure the pydantic model explicitly:
+
+```python
+from pydantic import ConfigDict
+
+
+class Record(BaseModel):
+    model_config = ConfigDict(coerce_numbers_to_str=True)
+    name: str
+    xcoord: int
+    ycoord: int
+```
+:::
+
 The equivalent pandera schema would look like this:
 
 ```{code-cell} python
