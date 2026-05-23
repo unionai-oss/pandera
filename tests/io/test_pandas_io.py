@@ -1340,6 +1340,52 @@ def test_io_json(index):
         assert schema_from_json == schema
 
 
+def test_io_json_roundtrip_preserves_drop_invalid_rows():
+    """Test JSON roundtrip preserves dataframe and column drop_invalid_rows."""
+    import json
+
+    schema = pandera.DataFrameSchema(
+        {"x": pandera.Column(int, drop_invalid_rows=True)},
+        drop_invalid_rows=True,
+    )
+
+    text = schema.to_json()
+    assert text is not None
+
+    payload = json.loads(text)
+    assert payload["drop_invalid_rows"] is True
+    assert payload["columns"]["x"]["drop_invalid_rows"] is True
+
+    restored = schema.from_json(text)
+    assert restored.drop_invalid_rows is True
+    assert restored.columns["x"].drop_invalid_rows is True
+    assert restored == schema
+
+
+@pytest.mark.skipif(
+    SKIP_YAML_TESTS,
+    reason="pyyaml >= 5.1.0 required",
+)
+def test_io_yaml_roundtrip_preserves_drop_invalid_rows():
+    """Test YAML roundtrip preserves dataframe and column drop_invalid_rows."""
+    schema = pandera.DataFrameSchema(
+        {"x": pandera.Column(int, drop_invalid_rows=True)},
+        drop_invalid_rows=True,
+    )
+
+    yaml_text = schema.to_yaml()
+    assert yaml_text is not None
+
+    payload = yaml.safe_load(yaml_text)
+    assert payload["drop_invalid_rows"] is True
+    assert payload["columns"]["x"]["drop_invalid_rows"] is True
+
+    restored = schema.from_yaml(yaml_text)
+    assert restored.drop_invalid_rows is True
+    assert restored.columns["x"].drop_invalid_rows is True
+    assert restored == schema
+
+
 def test_io_json_with_multiindex_column_labels():
     """Test JSON serialization for schemas with tuple column labels."""
     import json
