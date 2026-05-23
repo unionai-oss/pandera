@@ -1194,3 +1194,32 @@ def test_python_std_list_dict_error():
                 "bar": "2",
             }
             assert exc.failure_cases["failure_case"].iloc[1] == ["1.0", 2.0]
+
+
+def test_direct_pyarrow_engine_import_registers_pyarrow_dtypes():
+    """Test direct pyarrow engine import without leaking registry mutation."""
+    import copy
+
+    import pyarrow
+
+    from pandera.engines import engine
+
+    registry_snapshot = copy.deepcopy(
+        engine.Engine._registry[pandas_engine.Engine]
+    )
+
+    try:
+        from pandera.engines import pyarrow_engine
+
+        assert isinstance(
+            pyarrow_engine.Engine.dtype(pd.ArrowDtype(pyarrow.string())),
+            pyarrow_engine.ArrowString,
+        )
+        assert isinstance(
+            pyarrow_engine.Engine.dtype(
+                pd.ArrowDtype(pyarrow.list_(pyarrow.string()))
+            ),
+            pyarrow_engine.ArrowList,
+        )
+    finally:
+        engine.Engine._registry[pandas_engine.Engine] = registry_snapshot
