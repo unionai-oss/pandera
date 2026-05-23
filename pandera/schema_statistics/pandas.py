@@ -111,6 +111,7 @@ def get_dataframe_schema_statistics(dataframe_schema):
                 "unique": column.unique,
                 "description": column.description,
                 "title": column.title,
+                "drop_invalid_rows": column.drop_invalid_rows,
             }
             for col_name, column in dataframe_schema.columns.items()
         },
@@ -135,6 +136,7 @@ def _get_series_base_schema_statistics(series_schema_base):
         "unique": series_schema_base.unique,
         "title": series_schema_base.title,
         "description": series_schema_base.description,
+        "drop_invalid_rows": series_schema_base.drop_invalid_rows,
     }
 
 
