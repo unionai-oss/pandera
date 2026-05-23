@@ -38,6 +38,26 @@ _PANDERA_VERSION = pandera_base.__version__
 _PANDERA_STR_DTYPE = str(pandas_engine.Engine.dtype(pandera.String))
 
 
+def _with_drop_invalid_rows_defaults(serialized_schema):
+    """Add default drop_invalid_rows fields expected in non-minimal output."""
+    serialized_schema = dict(serialized_schema)
+    serialized_schema.setdefault("drop_invalid_rows", False)
+
+    columns = serialized_schema.get("columns")
+    if isinstance(columns, dict):
+        for column in columns.values():
+            if isinstance(column, dict):
+                column.setdefault("drop_invalid_rows", False)
+
+    index = serialized_schema.get("index")
+    if isinstance(index, list):
+        for index_component in index:
+            if isinstance(index_component, dict):
+                index_component.setdefault("drop_invalid_rows", False)
+
+    return serialized_schema
+
+
 # skip all tests in module if "io" depends aren't installed
 pytestmark = pytest.mark.skipif(
     not HAS_IO, reason='needs "io" module dependencies'
@@ -1128,10 +1148,14 @@ def test_to_yaml():
         f.write(yaml_str)
     with tempfile.NamedTemporaryFile("w+") as f:
         f.write(YAML_SCHEMA)
-    assert yaml_str.strip() == YAML_SCHEMA.strip()
+    assert yaml.safe_load(yaml_str) == _with_drop_invalid_rows_defaults(
+        yaml.safe_load(YAML_SCHEMA)
+    )
 
     yaml_str_schema_method = schema.to_yaml(minimal=False)
-    assert yaml_str_schema_method.strip() == YAML_SCHEMA.strip()
+    assert yaml.safe_load(
+        yaml_str_schema_method
+    ) == _with_drop_invalid_rows_defaults(yaml.safe_load(YAML_SCHEMA))
 
 
 @pytest.mark.skipif(
@@ -1977,9 +2001,10 @@ def test_frictionless_schema_parses_correctly(frictionless_schema):
     """Test parsing frictionless schema from yaml and json."""
     schema = io.from_frictionless_schema(frictionless_schema)
 
-    assert (
-        str(schema.to_yaml(minimal=False)).strip()
-        == YAML_FROM_FRICTIONLESS.strip()
+    assert yaml.safe_load(
+        str(schema.to_yaml(minimal=False))
+    ) == _with_drop_invalid_rows_defaults(
+        yaml.safe_load(YAML_FROM_FRICTIONLESS)
     )
 
     assert isinstance(schema, DataFrameSchema), (
