@@ -81,6 +81,7 @@ def test_direct_ibis_style_check_receives_ibis_data(ibis_invalid_table):
     receive an ``IbisData`` (not ``(frame, key)``) under the Narwhals
     backend."""
     import ibis
+
     import pandera.ibis as pa_ibis
     from pandera.api.ibis.types import IbisData
 
