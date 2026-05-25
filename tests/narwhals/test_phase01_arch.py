@@ -284,3 +284,116 @@ def test_infer_columns_returns_correct_column_type_for_polars():
     assert all(isinstance(c, PolarsColumn) for c in cols), (
         f"infer_columns() returned {[type(c) for c in cols]}, expected PolarsColumn"
     )
+
+
+# ---------------------------------------------------------------------------
+# ARCH-04 (Phase 04-04): _handle_pyspark_validation_result method contract
+# ---------------------------------------------------------------------------
+
+
+def test_handle_pyspark_validation_result_exists():
+    """DataFrameSchemaBackend must have a _handle_pyspark_validation_result method.
+
+    ARCH-04 requirement: inline PySpark error-setting blocks in validate()
+    are extracted to a named method with a docstring explaining the PySpark
+    protocol difference.
+    """
+    from pandera.backends.narwhals.container import DataFrameSchemaBackend
+
+    assert hasattr(DataFrameSchemaBackend, "_handle_pyspark_validation_result"), (
+        "DataFrameSchemaBackend must have _handle_pyspark_validation_result method"
+    )
+
+
+def test_handle_pyspark_validation_result_error_path():
+    """_handle_pyspark_validation_result sets errors dict and returns check_obj on error path.
+
+    Behavior 1: when has_errors=True, summarize() is called, errors are set on
+    check_obj.pandera.errors, and check_obj (the original frame) is returned.
+    """
+    from unittest.mock import MagicMock
+
+    from pandera.backends.narwhals.container import DataFrameSchemaBackend
+
+    backend = DataFrameSchemaBackend()
+    check_obj = MagicMock()
+    schema = MagicMock()
+    schema.name = "test_schema"
+    error_handler = MagicMock()
+    error_dicts = {"DATA": {"DATAFRAME_CHECK": [{"check": "gt(5)"}]}}
+    error_handler.summarize.return_value = error_dicts
+
+    result = backend._handle_pyspark_validation_result(
+        check_obj, error_handler, schema, has_errors=True
+    )
+
+    error_handler.summarize.assert_called_once_with(schema_name="test_schema")
+    assert check_obj.pandera.errors == error_dicts
+    assert result is check_obj
+
+
+def test_handle_pyspark_validation_result_success_path():
+    """_handle_pyspark_validation_result sets empty errors and returns check_obj on success path.
+
+    Behavior 2: when has_errors=False, check_obj.pandera.errors is set to {}
+    and check_obj (the original frame) is returned.
+    """
+    from unittest.mock import MagicMock
+
+    from pandera.backends.narwhals.container import DataFrameSchemaBackend
+
+    backend = DataFrameSchemaBackend()
+    check_obj = MagicMock()
+    schema = MagicMock()
+    error_handler = MagicMock()
+
+    result = backend._handle_pyspark_validation_result(
+        check_obj, error_handler, schema, has_errors=False
+    )
+
+    error_handler.summarize.assert_not_called()
+    assert check_obj.pandera.errors == {}
+    assert result is check_obj
+
+
+def test_handle_pyspark_validation_result_has_docstring():
+    """_handle_pyspark_validation_result must have a docstring explaining the PySpark protocol.
+
+    The docstring must mention the protocol difference (PySpark sets errors/returns frame
+    rather than raising SchemaErrors). Behavior 6 of the method contract.
+    """
+    import inspect
+
+    from pandera.backends.narwhals.container import DataFrameSchemaBackend
+
+    doc = DataFrameSchemaBackend._handle_pyspark_validation_result.__doc__
+    assert doc is not None, (
+        "_handle_pyspark_validation_result must have a docstring"
+    )
+    # Docstring should explain the PySpark protocol difference
+    keywords = ("pyspark", "protocol", "contract", "errors")
+    doc_lower = doc.lower()
+    assert any(kw in doc_lower for kw in keywords), (
+        f"Docstring must reference the PySpark protocol difference. Got: {doc!r}"
+    )
+
+
+def test_validate_calls_handle_pyspark_validation_result():
+    """validate() must call _handle_pyspark_validation_result, not have inline blocks.
+
+    Behavior 6: source inspection confirms the two former inline is_pyspark blocks
+    are replaced by method calls — no assignment to check_obj.pandera.errors in validate().
+    """
+    import inspect
+
+    from pandera.backends.narwhals.container import DataFrameSchemaBackend
+
+    src = inspect.getsource(DataFrameSchemaBackend.validate)
+    assert "_handle_pyspark_validation_result" in src, (
+        "validate() must call _handle_pyspark_validation_result"
+    )
+    # The inline assignments must no longer appear in validate() body
+    assert "check_obj.pandera.errors" not in src, (
+        "validate() must not directly assign check_obj.pandera.errors; "
+        "use _handle_pyspark_validation_result instead"
+    )
