@@ -41,35 +41,57 @@ def _check_identifier(err: SchemaError) -> Any:
 def _concat_failure_cases(items: list) -> Any:
     """Concatenate per-error failure-case frames into a single frame.
 
-    Dispatches on frame type:
-    - PySpark DataFrames: detected first (before ibis) since PySpark also has
-      ``.union()``. All items are unioned using PySpark ``.union()``.
-    - ibis.Table: ``.union()`` dispatch.
-    - polars: ``pl.concat``.
+    Items are one of:
+    - ``nw.DataFrame`` / ``nw.LazyFrame`` — from ``_build_lazy_failure_case``
+      (polars LazyFrame, ibis, PySpark). Dispatch on ``item.implementation``.
+    - ``pl.DataFrame`` — from ``_build_eager_failure_case`` and
+      ``_build_scalar_failure_case`` (eager polars path).
+
+    For PySpark-backed narwhals frames: unwrap to native PySpark DataFrames
+    and union via ``pyspark.sql.DataFrame.union()``. Scalar ``pl.DataFrame``
+    items from ``_build_scalar_failure_case`` cannot be converted to PySpark
+    without a SparkSession — they are skipped for the PySpark path.
+    For ibis-backed narwhals frames: unwrap to native ibis Tables and union
+    via ``ibis.Table.union()``.
+    For polars-backed narwhals LazyFrame: use ``nw.concat()`` to stay lazy,
+    then unwrap to native ``pl.LazyFrame``.
+    For native ``pl.DataFrame`` items: ``pl.concat``.
     Returns an empty ``pl.DataFrame`` if the collection is empty.
     """
     if not items:
         return pl.DataFrame() if pl is not None else None
-    if any(type(item).__module__.startswith("pyspark") for item in items):
-        # PySpark path: all items must be PySpark DataFrames. Items built by
-        # _build_scalar_failure_case are polars DataFrames (metadata-only, no
-        # data rows) — drop them from the concat since we cannot convert them
-        # to PySpark without an active SparkSession, and they carry no row data.
-        pyspark_items = [
-            item
-            for item in items
-            if type(item).__module__.startswith("pyspark")
-        ]
-        if not pyspark_items:
-            # All items are scalar polars DataFrames from _build_scalar_failure_case
-            # (schema-level failures with no PySpark row data). Fall back to polars concat
-            # so these errors are not silently dropped.
-            return pl.concat(items) if pl is not None else None
-        return functools.reduce(lambda a, b: a.union(b), pyspark_items)
-    first = items[0]
-    if hasattr(first, "union"):  # ibis.Table
-        return functools.reduce(lambda a, b: a.union(b), items)
-    return pl.concat(items)
+
+    # Separate narwhals-wrapped items from native polars items
+    nw_items = [
+        item for item in items if isinstance(item, (nw.DataFrame, nw.LazyFrame))
+    ]
+    pl_items = [
+        item
+        for item in items
+        if not isinstance(item, (nw.DataFrame, nw.LazyFrame))
+    ]
+
+    if nw_items:
+        first_nw = nw_items[0]
+        if first_nw.implementation in (
+            nw.Implementation.PYSPARK,
+            nw.Implementation.PYSPARK_CONNECT,
+        ):
+            # PySpark path: unwrap to native PySpark DataFrames and union.
+            # Scalar polars items (from _build_scalar_failure_case) cannot be
+            # converted to PySpark without a SparkSession — they are skipped.
+            native_items = [nw.to_native(item) for item in nw_items]
+            return functools.reduce(lambda a, b: a.union(b), native_items)
+        elif first_nw.implementation == nw.Implementation.POLARS:
+            # Polars lazy path: use nw.concat to stay lazy, then unwrap.
+            return nw.to_native(nw.concat(nw_items))
+        else:
+            # SQL-lazy path (ibis, DuckDB, etc.): unwrap to native and union.
+            native_items = [nw.to_native(item) for item in nw_items]
+            return functools.reduce(lambda a, b: a.union(b), native_items)
+
+    # All-polars path: pl.DataFrame items from eager/scalar builders
+    return pl.concat(pl_items) if pl is not None else None
 
 
 class NarwhalsSchemaBackend(BaseSchemaBackend):
@@ -140,18 +162,7 @@ class NarwhalsSchemaBackend(BaseSchemaBackend):
         check_result = check(check_obj, *args)
 
         passed_lf = check_result.check_passed  # nw.LazyFrame or nw.DataFrame
-        if _is_sql_lazy(passed_lf) and passed_lf.implementation in (
-            nw.Implementation.PYSPARK,
-            nw.Implementation.PYSPARK_CONNECT,
-        ):
-            # PySpark: avoid narwhals _materialize() which calls .execute()
-            # (absent on pyspark.sql.DataFrame). Use PySpark-native .first()
-            # on the already-aggregated single-row result — bounded collect.
-            native_passed = nw.to_native(passed_lf)
-            row = native_passed.first()
-            passed = bool(row[CHECK_OUTPUT_KEY]) if row is not None else True
-        else:
-            passed = bool(_materialize(passed_lf)[CHECK_OUTPUT_KEY][0])
+        passed = bool(_materialize(passed_lf)[CHECK_OUTPUT_KEY][0])
 
         message = None
         failure_cases = None
@@ -299,6 +310,10 @@ class NarwhalsSchemaBackend(BaseSchemaBackend):
         Works uniformly for ``polars.LazyFrame`` and ``ibis.Table`` — no
         Arrow roundtrip, no polars import. Row index is always ``None``
         since SQL has no natural row ordering.
+
+        Returns a narwhals-wrapped frame (not a native frame) so that
+        ``_concat_failure_cases`` can dispatch on ``item.implementation``
+        instead of module-string sniffing.
         """
         col_names = fc.collect_schema().names()
         if len(col_names) == 1:
@@ -319,7 +334,10 @@ class NarwhalsSchemaBackend(BaseSchemaBackend):
             nw.lit(err.check_index).cast(nw.Int32).alias("check_number"),
             nw.lit(None).cast(nw.Int32).alias("index"),
         )
-        return nw.to_native(enriched)
+        # Return narwhals-wrapped frame — _concat_failure_cases dispatches on
+        # item.implementation to handle PySpark vs ibis vs polars without
+        # module-string sniffing.
+        return enriched
 
     @staticmethod
     def _build_eager_failure_case(fc, err: SchemaError, check_identifier):
