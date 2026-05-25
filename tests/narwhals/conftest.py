@@ -40,6 +40,17 @@ def _ensure_narwhals_backends_registered():
     register_ibis_backends.cache_clear()
     register_polars_backends()
     register_ibis_backends()
+
+    try:
+        import pyspark.sql  # noqa: F401
+
+        from pandera.backends.pyspark.register import register_pyspark_backends
+
+        register_pyspark_backends.cache_clear()
+        register_pyspark_backends()
+    except ImportError:
+        pass
+
     yield
 
 
