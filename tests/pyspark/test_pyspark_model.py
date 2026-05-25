@@ -392,11 +392,6 @@ def test_dataframe_schema_unique_wrong_column(
     assert "DATA" in df_out.pandera.errors
 
 
-@pytest.mark.xfail(
-    condition=CONFIG.use_narwhals_backend,
-    reason="narwhals PySpark backend always returns original frame; strict='filter' column selection not applied",
-    strict=True,
-)
 def test_dataframe_schema_strict(
     spark_session, config_params: PanderaConfig, request
 ) -> None:

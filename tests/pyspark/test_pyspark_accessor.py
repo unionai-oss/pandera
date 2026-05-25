@@ -15,11 +15,6 @@ spark = SparkSession.builder.getOrCreate()
 spark.conf.set("spark.sql.ansi.enabled", False)
 
 
-@pytest.mark.xfail(
-    condition=CONFIG.use_narwhals_backend,
-    reason="narwhals backend does not call add_schema(); pandera.schema accessor is not set",
-    strict=True,
-)
 @pytest.mark.parametrize(
     "schema1, schema2, data, invalid_data",
     [
