@@ -328,6 +328,7 @@ def test_handle_pyspark_validation_result_error_path():
     )
 
     error_handler.summarize.assert_called_once_with(schema_name="test_schema")
+    check_obj.pandera.add_schema.assert_called_once_with(schema)
     assert check_obj.pandera.errors == error_dicts
     assert result is check_obj
 
@@ -352,6 +353,7 @@ def test_handle_pyspark_validation_result_success_path():
     )
 
     error_handler.summarize.assert_not_called()
+    check_obj.pandera.add_schema.assert_called_once_with(schema)
     assert check_obj.pandera.errors == {}
     assert result is check_obj
 
