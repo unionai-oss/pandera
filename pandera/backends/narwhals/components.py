@@ -270,24 +270,31 @@ class ColumnBackend(NarwhalsSchemaBackend):
 
         # Import inside method to avoid circular import chains
         from pandera.engines import narwhals_engine
+        from pandera.engines import pyspark_engine as _pyspark_engine
 
         results = []
         schema_obj = check_obj.select(schema.selector).collect_schema()
-        is_pyspark = check_obj.implementation in (
-            nw.Implementation.PYSPARK,
-            nw.Implementation.PYSPARK_CONNECT,
-        )
+        # Schema-configured with a PySpark dtype (e.g. T.IntegerType()) — the
+        # narwhals dtype engine cannot resolve cross-engine PySpark types, so
+        # compare the column's native dtype string against the schema's PySpark
+        # dtype string. This dispatch is schema-driven (what the user configured)
+        # rather than frame-driven (what backend is present), per ARCH-03 in
+        # .planning/phases/04-eliminate-backend-specific-dispatch-branches/.
+        uses_pyspark_dtype = isinstance(schema.dtype, _pyspark_engine.DataType)
 
         native_pyspark_schema = (
-            nw.to_native(check_obj).schema if is_pyspark else None
+            nw.to_native(check_obj).schema if uses_pyspark_dtype else None
         )
 
         for column, nw_dtype in zip(schema_obj.names(), schema_obj.dtypes()):
-            if is_pyspark:
-                # For PySpark, the narwhals dtype system cannot reliably compare
-                # PySpark-native types (e.g. IntegerType()) with narwhals dtypes
-                # (e.g. Int32). Compare native dtype strings directly instead —
-                # this mirrors what the native PySpark backend does.
+            if uses_pyspark_dtype:
+                # Schema configured with a PySpark dtype (e.g. T.IntegerType()) —
+                # the narwhals dtype engine cannot resolve cross-engine PySpark types,
+                # so compare the column's native dtype string against the schema's
+                # PySpark dtype string. This dispatch is schema-driven (what the user
+                # configured) rather than frame-driven (what backend is present),
+                # per ARCH-03 in
+                # .planning/phases/04-eliminate-backend-specific-dispatch-branches/.
                 assert native_pyspark_schema is not None
                 pyspark_dtype = native_pyspark_schema[column].dataType
                 pyspark_dtype_str = str(pyspark_dtype)
