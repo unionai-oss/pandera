@@ -44,9 +44,9 @@ Users can validate any Narwhals-supported dataframe library through a single, co
 **v1.3 Narwhals Backend for PySpark — Phases 4-6 (pre-merge review fixes):**
 - [ ] No `is_pyspark`/`is_ibis` dispatch branches in narwhals backend — 4 violations removed or properly abstracted (ARCH-01..04)
 - [ ] `_concat_failure_cases` does not silently drop non-PySpark scalar frames (ARCH-02)
-- [ ] `strict='filter'` applies column filtering for PySpark narwhals success path (CORR-01)
-- [ ] `df.pandera.schema` is set after narwhals PySpark validation (CORR-02)
-- [ ] `test_pyspark_config.py` band-aid xfails removed (TEST-FIX-01)
+- [x] `strict='filter'` applies column filtering for PySpark narwhals success path (CORR-01) — Validated in Phase 05
+- [x] `df.pandera.schema` is set after narwhals PySpark validation (CORR-02) — Validated in Phase 05
+- [x] `test_pyspark_config.py` band-aid xfails removed (TEST-FIX-01) — Validated in Phase 05
 - [ ] PySpark coverage in `tests/narwhals/test_e2e.py` (TEST-E2E-01)
 - [ ] Minor nits resolved: CI comment, error message, registration assertions, stacked xfails, `supported_types()` (NITS-01)
 
@@ -142,4 +142,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-05-24 after v1.4 milestone start*
+*Last updated: 2026-05-25 after Phase 05 complete*
