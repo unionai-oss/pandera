@@ -3,14 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: Narwhals Backend for PySpark
 status: executing
-stopped_at: "v1.3 Phases 1-3 complete; Phases 4-6 added from PR #2339 self-review findings."
-last_updated: "2026-05-25T23:44:29.366Z"
+last_updated: "2026-05-25T23:47:37.747Z"
 progress:
-  total_phases: 9
-  completed_phases: 5
-  total_plans: 14
-  completed_plans: 12
-  percent: 56
+  total_phases: 10
+  completed_phases: 8
+  total_plans: 25
+  completed_plans: 23
+  percent: 80
 ---
 
 # Project State
@@ -20,14 +19,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-24 after extending v1.3 with PR review phases)
 
 **Core value:** Users can validate any Narwhals-supported dataframe library through a single, consistent backend — reducing maintenance burden and unlocking lazy validation and future library support for free.
-**Current focus:** Phase 6 — test coverage and minor fixes
+**Current focus:** Phase 06 — test-coverage-and-minor-fixes
 
 ## Current Position
 
-Phase: 6
-Plan: Not started
+Phase: 06 (test-coverage-and-minor-fixes) — EXECUTING
+Plan: 1 of 2
 Milestone: v1.3 Narwhals Backend for PySpark — IN PROGRESS (Phases 1-3 complete, 4-6 remaining before merge)
-Status: Ready to execute
+Status: Executing Phase 06
 
 Progress: [█████░░░░░] 50%
 
