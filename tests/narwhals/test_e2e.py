@@ -30,7 +30,6 @@ Key behavioural notes
 import polars as pl
 import pytest
 
-import pandera.ibis as pa_ibis
 import pandera.polars as pa_pl
 from pandera.backends.narwhals.checks import NarwhalsCheckBackend
 from pandera.config import ValidationDepth, config_context
@@ -43,6 +42,8 @@ try:
     import ibis
     import ibis.expr.datatypes as dt
     import ibis.expr.types as ir
+
+    import pandera.ibis as pa_ibis
 
     HAS_IBIS = True
 except ImportError:

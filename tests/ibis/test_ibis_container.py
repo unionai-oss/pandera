@@ -467,11 +467,6 @@ def _failure_type(column: str):
     raise ValueError(f"unexpected column name: {column}")
 
 
-@pytest.mark.xfail(
-    condition=CONFIG.use_narwhals_backend,
-    reason="Regex column selection broken in Narwhals backend",
-    strict=True,
-)
 @pytest.mark.parametrize(
     "transform_fn,exception_msg",
     [
@@ -481,10 +476,15 @@ def _failure_type(column: str):
             ),
             None,
         ],
-        [
+        pytest.param(
             lambda t, col: t.mutate(**{col: _failure_value(col)}),
             "Column '.+' failed element-wise validator number",
-        ],
+            marks=pytest.mark.xfail(
+                condition=CONFIG.use_narwhals_backend,
+                reason="Regex column selection broken in Narwhals backend",
+                strict=True,
+            ),
+        ),
         [
             lambda t, col: t.mutate(**{col: _failure_type(col)}),
             "expected column '.+' to have type",

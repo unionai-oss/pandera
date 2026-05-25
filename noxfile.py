@@ -360,6 +360,8 @@ def tests_narwhals_backend(session: Session, extra: str) -> None:
             else r
             for r in requirements
         ]
+        # pyspark requires pandas >= 2.2.0 but does not support pandas 3.x
+        requirements.append("pandas < 3.0")
         if session.python in ("3.10",):
             requirements = [
                 f"{r}, < 2" if r.startswith("numpy") else r
