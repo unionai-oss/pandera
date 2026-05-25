@@ -229,11 +229,9 @@ class DataFrameSchemaBackend(NarwhalsSchemaBackend):
                 )
                 return check_obj_parsed
             elif is_pyspark:
-                # Mirror the native PySpark backend contract: set errors on the
-                # accessor and return the original frame rather than raising.
-                error_dicts = error_handler.summarize(schema_name=schema.name)
-                check_obj.pandera.errors = error_dicts
-                return check_obj
+                return self._handle_pyspark_validation_result(
+                    check_obj, error_handler, schema, has_errors=True
+                )
             else:
                 raise SchemaErrors(
                     schema=schema,
@@ -242,10 +240,36 @@ class DataFrameSchemaBackend(NarwhalsSchemaBackend):
                 )
 
         if is_pyspark:
-            check_obj.pandera.errors = {}
-            return check_obj
+            return self._handle_pyspark_validation_result(
+                check_obj, error_handler, schema, has_errors=False
+            )
 
         return _to_frame_kind_nw(check_lf, return_type)
+
+    def _handle_pyspark_validation_result(
+        self,
+        check_obj,
+        error_handler,
+        schema,
+        has_errors: bool,
+    ):
+        """Record validation outcome on PySpark DataFrame via the pandera accessor.
+
+        PySpark uses a different validation contract from other narwhals backends:
+        errors are set on ``check_obj.pandera.errors`` and the original frame is
+        returned, rather than raising ``SchemaErrors``. This is a genuine protocol
+        difference — ``_is_sql_lazy()`` would incorrectly catch Ibis, which uses
+        the raise protocol.
+
+        Mirrors the native PySpark backend contract; required for the existing
+        PySpark test suite to pass. See ARCH-04 in 04-RESEARCH.md.
+        """
+        if has_errors:
+            error_dicts = error_handler.summarize(schema_name=schema.name)
+            check_obj.pandera.errors = error_dicts
+        else:
+            check_obj.pandera.errors = {}
+        return check_obj
 
     @validate_scope(scope=ValidationScope.DATA)
     def run_checks(
