@@ -27,6 +27,8 @@ Key behavioural notes
   The simplest portable pattern is to return a ``bool``.
 """
 
+import os
+
 import polars as pl
 import pytest
 
@@ -50,6 +52,21 @@ except ImportError:
     HAS_IBIS = False
 
 ibis_only = pytest.mark.skipif(not HAS_IBIS, reason="ibis not installed")
+
+# ---------------------------------------------------------------------------
+# pyspark is an optional dependency — skip all pyspark tests if not installed.
+# ---------------------------------------------------------------------------
+try:
+    import pyspark.sql
+    from pyspark.sql import SparkSession
+
+    import pandera.pyspark as pa_pyspark
+
+    HAS_PYSPARK = True
+except ImportError:
+    HAS_PYSPARK = False
+
+pyspark_only = pytest.mark.skipif(not HAS_PYSPARK, reason="pyspark not installed")
 
 
 # ===========================================================================
@@ -679,3 +696,131 @@ def test_ibis_lazy_failure_cases_is_ibis_table():
         "SchemaErrors.failure_cases should be ibis.Table for ibis inputs, "
         f"got {type(fc)}"
     )
+
+
+# ===========================================================================
+# PySpark fixtures
+# ===========================================================================
+
+
+@pytest.fixture(autouse=True, scope="function")
+def _spark_env_vars():
+    """Set environment variables required by PySpark before each test.
+
+    No-ops when pyspark is not installed so polars/ibis tests are unaffected.
+    """
+    if HAS_PYSPARK:
+        os.environ["SPARK_LOCAL_IP"] = "127.0.0.1"
+        os.environ["PYARROW_IGNORE_TIMEZONE"] = "1"
+
+
+@pytest.fixture(scope="module")
+@pyspark_only
+def spark():
+    """Create a SparkSession for the module, mirroring tests/pyspark/conftest.py."""
+    import pyspark
+    from packaging import version
+
+    PYSPARK_VERSION = version.parse(pyspark.__version__)
+    builder = SparkSession.builder.config("spark.sql.ansi.enabled", False)
+    if PYSPARK_VERSION >= version.parse("4.0.0"):
+        builder = builder.config("spark.hadoop.fs.defaultFS", "file:///")
+        builder = builder.config(
+            "spark.sql.warehouse.dir", "file:///tmp/spark-warehouse"
+        )
+    spark_session = builder.getOrCreate()
+    yield spark_session
+    spark_session.stop()
+
+
+@pytest.fixture()
+def pyspark_df(spark):
+    """Return a pyspark.sql.DataFrame with integer columns x and y."""
+    from pyspark.sql.types import IntegerType, StructField, StructType
+
+    schema = StructType(
+        [
+            StructField("x", IntegerType(), True),
+            StructField("y", IntegerType(), True),
+        ]
+    )
+    return spark.createDataFrame([(1, 10), (2, 20), (3, 30)], schema=schema)
+
+
+# ===========================================================================
+# 8. PySpark — backend registration, return-type preservation, checks
+# ===========================================================================
+
+
+@pyspark_only
+def test_narwhals_backend_registered_for_pyspark_dataframe(spark):
+    """NarwhalsCheckBackend is the active backend for pyspark.sql.DataFrame."""
+    from pandera.api.checks import Check
+
+    backend = Check.get_backend(spark.createDataFrame([(1,)], "x int"))
+    assert backend is NarwhalsCheckBackend
+
+
+@pyspark_only
+def test_pyspark_dataframe_returns_pyspark_dataframe(pyspark_df):
+    """schema.validate(spark_df) returns a pyspark.sql.DataFrame."""
+    schema = pa_pyspark.DataFrameSchema(
+        {"x": pa_pyspark.Column("int"), "y": pa_pyspark.Column("int")}
+    )
+    result = schema.validate(pyspark_df)
+    assert isinstance(result, pyspark.sql.DataFrame)
+
+
+@pyspark_only
+def test_pyspark_builtin_check_passes(pyspark_df):
+    """Check.greater_than(0) on all-positive ints leaves pandera.errors == {}."""
+    schema = pa_pyspark.DataFrameSchema(
+        {"x": pa_pyspark.Column("int", pa_pyspark.Check.greater_than(0))}
+    )
+    df_out = schema.validate(pyspark_df)
+    assert df_out.pandera.errors == {}
+
+
+@pyspark_only
+def test_pyspark_builtin_check_fails(spark):
+    """Check.greater_than(0) on a column with negatives records DATAFRAME_CHECK errors."""
+    df_fail = spark.createDataFrame([(-1,), (2,), (-3,)], "x int")
+    schema = pa_pyspark.DataFrameSchema(
+        {"x": pa_pyspark.Column("int", pa_pyspark.Check.greater_than(0))}
+    )
+    df_out = schema.validate(df_fail)
+    data_errors = dict(df_out.pandera.errors["DATA"])
+    check_errors = data_errors["DATAFRAME_CHECK"]
+    assert len(check_errors) > 0
+    first_error = check_errors[0]
+    assert first_error["column"] == "x"
+    assert first_error["check"] == "greater_than(0)"
+    assert "greater_than" in first_error["error"]
+
+
+@pyspark_only
+def test_pyspark_nullable_false_fails(spark):
+    """nullable=False records a failure when a null value is present."""
+    from pyspark.sql.types import IntegerType, StructField, StructType
+
+    schema_struct = StructType(
+        [StructField("x", IntegerType(), True)]  # nullable at Spark level
+    )
+    df_with_null = spark.createDataFrame([(1,), (None,), (3,)], schema=schema_struct)
+    schema = pa_pyspark.DataFrameSchema(
+        {"x": pa_pyspark.Column("int", nullable=False)}
+    )
+    df_out = schema.validate(df_with_null)
+    assert df_out.pandera.errors != {}
+
+
+@pyspark_only
+def test_pyspark_unique_constraint_fails(spark):
+    """unique="x" on DataFrameSchema records a failure when duplicate values are present."""
+    df_with_dupes = spark.createDataFrame([(1,), (1,), (3,)], "x int")
+    schema = pa_pyspark.DataFrameSchema(
+        {"x": pa_pyspark.Column("int")},
+        unique="x",
+    )
+    df_out = schema.validate(df_with_dupes)
+    assert df_out.pandera.errors != {}
