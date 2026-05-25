@@ -102,7 +102,6 @@ def supported_types() -> SupportedTypes:
     table_types = [PySparkSQLDataFrame]
 
     try:
-        table_types.append(PySparkSQLDataFrame)
         table_types.append(PySparkConnectDataFrame)
 
     except ImportError:  # pragma: no cover

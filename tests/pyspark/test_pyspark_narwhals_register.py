@@ -13,8 +13,14 @@ def test_pyspark_narwhals_activated_when_opted_in(monkeypatch, request):
     """register_pyspark_backends() registers narwhals backends when opt-in is enabled."""
     import pyspark.sql as pyspark_sql
 
+    from pandera.api.checks import Check
+    from pandera.api.pyspark.components import Column as PySparkColumn
     from pandera.api.pyspark.container import (
         DataFrameSchema as PySparkDataFrameSchema,
+    )
+    from pandera.backends.narwhals.checks import NarwhalsCheckBackend
+    from pandera.backends.narwhals.components import (
+        ColumnBackend as NarwhalsColumnBackend,
     )
     from pandera.backends.narwhals.container import (
         DataFrameSchemaBackend as NarwhalsDataFrameSchemaBackend,
@@ -22,6 +28,7 @@ def test_pyspark_narwhals_activated_when_opted_in(monkeypatch, request):
     from pandera.backends.pyspark.register import register_pyspark_backends
     from pandera.config import CONFIG
 
+    # Save and restore DataFrameSchema registry entry
     registry_key = (PySparkDataFrameSchema, pyspark_sql.DataFrame)
     saved = PySparkDataFrameSchema.BACKEND_REGISTRY.pop(registry_key, None)
     request.addfinalizer(register_pyspark_backends.cache_clear)
@@ -32,11 +39,39 @@ def test_pyspark_narwhals_activated_when_opted_in(monkeypatch, request):
             )
         )
 
+    # Save and restore Column registry entry
+    column_registry_key = (PySparkColumn, pyspark_sql.DataFrame)
+    saved_column = PySparkColumn.BACKEND_REGISTRY.pop(column_registry_key, None)
+    if saved_column is not None:
+        request.addfinalizer(
+            lambda: PySparkColumn.BACKEND_REGISTRY.update(
+                {column_registry_key: saved_column}
+            )
+        )
+
+    # Save and restore Check registry entry
+    check_registry_key = (Check, pyspark_sql.DataFrame)
+    saved_check = Check.BACKEND_REGISTRY.pop(check_registry_key, None)
+    if saved_check is not None:
+        request.addfinalizer(
+            lambda: Check.BACKEND_REGISTRY.update(
+                {check_registry_key: saved_check}
+            )
+        )
+
     monkeypatch.setattr(CONFIG, "use_narwhals_backend", True)
     register_pyspark_backends.cache_clear()
     register_pyspark_backends()
+
+    # Assert all three backends are registered with their narwhals implementations
     backend = PySparkDataFrameSchema.get_backend(check_type=pyspark_sql.DataFrame)
     assert isinstance(backend, NarwhalsDataFrameSchemaBackend)
+
+    column_backend = PySparkColumn.get_backend(check_type=pyspark_sql.DataFrame)
+    assert isinstance(column_backend, NarwhalsColumnBackend)
+
+    assert check_registry_key in Check.BACKEND_REGISTRY
+    assert Check.BACKEND_REGISTRY[check_registry_key] is NarwhalsCheckBackend
 
 
 def test_pyspark_native_unchanged_when_flag_off(monkeypatch, request):

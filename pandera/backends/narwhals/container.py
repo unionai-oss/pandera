@@ -591,7 +591,7 @@ class DataFrameSchemaBackend(NarwhalsSchemaBackend):
                         check="column_in_dataframe",
                         reason_code=SchemaErrorReason.COLUMN_NOT_IN_DATAFRAME,
                         message=(
-                            f"column '{colname}' not in dataframe"
+                            f"column '{colname}' not found"
                             f"\n{_to_native(check_obj.head())}"
                         ),
                         failure_cases=colname,

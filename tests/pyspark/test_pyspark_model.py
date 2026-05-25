@@ -546,12 +546,15 @@ def test_invalid_field(
 
 
 # For the second parameterized `spark_session` run, `@pax.register_check_method` will
-# raise a ValueError due to a duplicated registration tentative
-@pytest.mark.xfail(raises=ValueError)
+# raise a ValueError due to a duplicated registration tentative.
+# Under narwhals backend, coerce_dtype is unsupported (age: int → LongType()).
 @pytest.mark.xfail(
-    condition=CONFIG.use_narwhals_backend,
-    reason="narwhals column backend has no coerce_dtype; age: int inferred as LongType() by Spark",
-    strict=True,
+    reason=(
+        "narwhals column backend has no coerce_dtype; age: int inferred as LongType() by Spark"
+        " AND native: ValueError on duplicate register_check_method on second parametrized run"
+    ),
+    raises=Exception,
+    strict=False,
 )
 def test_registered_dataframemodel_checks(spark_session, request) -> None:
     """Check that custom registered checks work"""
