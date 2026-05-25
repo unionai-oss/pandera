@@ -269,16 +269,17 @@ class ColumnBackend(NarwhalsSchemaBackend):
             ]
 
         # Import inside method to avoid circular import chains
-        from pandera.engines import narwhals_engine, pyspark_engine as _pyspark_engine
+        from pandera.engines import narwhals_engine
+        from pandera.engines import pyspark_engine as _pyspark_engine
 
         results = []
         schema_obj = check_obj.select(schema.selector).collect_schema()
-
-        # Dispatch on what the user configured (schema.dtype) rather than what
-        # backend is present (check_obj.implementation). A schema configured with
-        # PySpark-native types (e.g. T.IntegerType()) needs PySpark-native string
-        # comparison because the narwhals dtype system cannot map PySpark types to
-        # narwhals dtypes without wrapping a DataFrame.
+        # Schema-configured with a PySpark dtype (e.g. T.IntegerType()) — the
+        # narwhals dtype engine cannot resolve cross-engine PySpark types, so
+        # compare the column's native dtype string against the schema's PySpark
+        # dtype string. This dispatch is schema-driven (what the user configured)
+        # rather than frame-driven (what backend is present), per ARCH-03 in
+        # .planning/phases/04-eliminate-backend-specific-dispatch-branches/.
         uses_pyspark_dtype = isinstance(schema.dtype, _pyspark_engine.DataType)
 
         native_pyspark_schema = (
@@ -287,10 +288,13 @@ class ColumnBackend(NarwhalsSchemaBackend):
 
         for column, nw_dtype in zip(schema_obj.names(), schema_obj.dtypes()):
             if uses_pyspark_dtype:
-                # For PySpark-native schema dtypes, the narwhals dtype system
-                # cannot reliably compare PySpark types (e.g. IntegerType()) with
-                # narwhals dtypes (e.g. Int32). Compare native dtype strings
-                # directly — this mirrors what the native PySpark backend does.
+                # Schema configured with a PySpark dtype (e.g. T.IntegerType()) —
+                # the narwhals dtype engine cannot resolve cross-engine PySpark types,
+                # so compare the column's native dtype string against the schema's
+                # PySpark dtype string. This dispatch is schema-driven (what the user
+                # configured) rather than frame-driven (what backend is present),
+                # per ARCH-03 in
+                # .planning/phases/04-eliminate-backend-specific-dispatch-branches/.
                 assert native_pyspark_schema is not None
                 pyspark_dtype = native_pyspark_schema[column].dataType
                 pyspark_dtype_str = str(pyspark_dtype)
