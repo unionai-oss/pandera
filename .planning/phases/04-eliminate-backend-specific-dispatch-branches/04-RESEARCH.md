@@ -409,17 +409,14 @@ def _handle_pyspark_validation_result(
 | A2 | `row.asDict()` on a PySpark `Row` always produces a dict of the named columns | SC1 fix | pyarrow table construction fails |
 | A3 | `isinstance(schema.dtype, pyspark_engine.DataType)` correctly identifies PySpark-configured schemas in all test cases | SC3 fix | check_dtype silently misroutes for edge cases |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **SC2 — scalar frame silent drop**
+1. **SC2 — scalar frame silent drop** *(RESOLVED: emit SchemaWarning)*
    - What we know: scalar `pl.DataFrame` items are dropped when PySpark frames are present because we can't concat across backends
-   - What's unclear: whether any test actually catches this silent drop (i.e., does any PySpark test assert on `failure_cases` content for schema-level errors?)
-   - Recommendation: Check test corpus; if no test catches the drop, document the behavior and add a warning comment. If tests do catch it, a SparkSession-based pyarrow roundtrip is needed.
+   - Resolution: No existing PySpark test asserts on `failure_cases` content for schema-level COLUMN_NOT_IN_DATAFRAME errors — the silent drop is undetected by the current test suite. Plan 04-02 resolves this by emitting a `SchemaWarning` naming the dropped scalar items (Approach A from SC2 design). A SparkSession-mediated conversion (Approach B) is tracked as a future TODO but is not required for SC2.
 
-2. **SC1 — pyarrow vs. toPandas() for PySpark materialize**
-   - What we know: both approaches work; toPandas() requires pandas; pyarrow requires constructing a table from Row.asDict()
-   - What's unclear: whether pyarrow is always available in PySpark environments
-   - Recommendation: Use pyarrow (already a narwhals dependency); avoid toPandas() since pandas is optional.
+2. **SC1 — pyarrow vs. toPandas() for PySpark materialize** *(RESOLVED: use pyarrow)*
+   - Resolution: pyarrow is a narwhals transitive dependency and is always available in environments with narwhals installed. Plan 04-01 uses pyarrow via `Row.asDict()` → `pa.table()` path. toPandas() is NOT used since pandas is optional.
 
 ## Environment Availability
 
