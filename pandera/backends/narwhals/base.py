@@ -140,18 +140,7 @@ class NarwhalsSchemaBackend(BaseSchemaBackend):
         check_result = check(check_obj, *args)
 
         passed_lf = check_result.check_passed  # nw.LazyFrame or nw.DataFrame
-        if _is_sql_lazy(passed_lf) and passed_lf.implementation in (
-            nw.Implementation.PYSPARK,
-            nw.Implementation.PYSPARK_CONNECT,
-        ):
-            # PySpark: avoid narwhals _materialize() which calls .execute()
-            # (absent on pyspark.sql.DataFrame). Use PySpark-native .first()
-            # on the already-aggregated single-row result — bounded collect.
-            native_passed = nw.to_native(passed_lf)
-            row = native_passed.first()
-            passed = bool(row[CHECK_OUTPUT_KEY]) if row is not None else True
-        else:
-            passed = bool(_materialize(passed_lf)[CHECK_OUTPUT_KEY][0])
+        passed = bool(_materialize(passed_lf)[CHECK_OUTPUT_KEY][0])
 
         message = None
         failure_cases = None
