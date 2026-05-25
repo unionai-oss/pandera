@@ -57,7 +57,7 @@ See `.planning/milestones/v1.2-ROADMAP.md` for full phase details.
 - [x] **Phase 1: PySpark Registration** — Conditionally wire Narwhals backends for PySpark DataFrames in `register_pyspark_backends()` — completed 2026-05-10 (1/1 plans)
 - [x] **Phase 2: Test Coverage and CI** — Run PySpark test suite under narwhals backend, triage failures, add nox session — completed 2026-05-18 (4/4 plans)
 - [x] **Phase 3: Documentation** — List PySpark as supported SQL-lazy backend with known limitations — completed 2026-05-18 (1/1 plans)
-- [ ] **Phase 4: Eliminate Backend-Specific Dispatch Branches** — Remove or fix the four `is_pyspark` dispatch violations in `base.py`, `components.py`, and `container.py`; fix `_concat_failure_cases` silent-drop bug (0/4 plans)
+- [x] **Phase 4: Eliminate Backend-Specific Dispatch Branches** — Remove or fix the four `is_pyspark` dispatch violations in `base.py`, `components.py`, and `container.py`; fix `_concat_failure_cases` silent-drop bug (0/4 plans) (completed 2026-05-25)
 - [ ] **Phase 5: Correctness and Behavioral Parity** — Fix `strict='filter'` no-op, add `pandera.schema` after narwhals validation, fix `test_pyspark_config.py` band-aid xfails (0/0 plans)
 - [ ] **Phase 6: Test Coverage and Minor Fixes** — Add PySpark to `tests/narwhals/test_e2e.py`, fix CI Python version comment, fix "not in dataframe" message, fix registration test, fix stacked xfails, fix `supported_types()` double-append (0/0 plans)
 
@@ -112,10 +112,10 @@ See `.planning/milestones/v1.2-ROADMAP.md` for full phase details.
   3. `check_dtype` in `components.py` uses narwhals-native dtype comparison rather than a PySpark-specific `str(pyspark_dtype) == str(schema.dtype)` path; the test workaround in `test_pyspark_dtypes.py` is explained or removed
   4. The PySpark error-setting logic in `container.py:validate()` is extracted to a method rather than an inline `is_pyspark` test
 **Plans**: 4 plans
-- [ ] 04-01-PLAN.md — Fix `_materialize()` in `pandera/api/narwhals/utils.py` to handle PySpark via `.first()` + pyarrow; delete the PySpark branch in `run_check` (ARCH-01)
-- [ ] 04-02-PLAN.md — Refactor `_build_lazy_failure_case` to return narwhals-wrapped frames; rewrite `_concat_failure_cases` to dispatch on `nw.Implementation` instead of module-string sniffing; surface dropped scalar items via `SchemaWarning` (ARCH-02)
-- [ ] 04-03-PLAN.md — Replace frame-implementation probe in `check_dtype` with `isinstance(schema.dtype, pyspark_engine.DataType)` schema-driven probe; add explanatory comment to the verifySchema=False workaround in `test_pyspark_dtypes.py` (ARCH-03)
-- [ ] 04-04-PLAN.md — Extract `_handle_pyspark_validation_result()` instance method on `DataFrameSchemaBackend`; replace the two inline `is_pyspark` blocks in `validate()` with method calls; keep the `is_pyspark` dispatch detection (ARCH-04)
+- [x] 04-01-PLAN.md — Fix `_materialize()` in `pandera/api/narwhals/utils.py` to handle PySpark via `.first()` + pyarrow; delete the PySpark branch in `run_check` (ARCH-01)
+- [x] 04-02-PLAN.md — Refactor `_build_lazy_failure_case` to return narwhals-wrapped frames; rewrite `_concat_failure_cases` to dispatch on `nw.Implementation` instead of module-string sniffing; surface dropped scalar items via `SchemaWarning` (ARCH-02)
+- [x] 04-03-PLAN.md — Replace frame-implementation probe in `check_dtype` with `isinstance(schema.dtype, pyspark_engine.DataType)` schema-driven probe; add explanatory comment to the verifySchema=False workaround in `test_pyspark_dtypes.py` (ARCH-03)
+- [x] 04-04-PLAN.md — Extract `_handle_pyspark_validation_result()` instance method on `DataFrameSchemaBackend`; replace the two inline `is_pyspark` blocks in `validate()` with method calls; keep the `is_pyspark` dispatch detection (ARCH-04)
 
 ### Phase 5: Correctness and Behavioral Parity
 **Goal**: The narwhals PySpark success path has behavioral parity with the native backend — `strict='filter'` applies filtering, `df.pandera.schema` is set, and band-aid xfails in config tests are removed
@@ -150,7 +150,7 @@ See `.planning/milestones/v1.2-ROADMAP.md` for full phase details.
 | 1. PySpark Registration | 1/1 | Complete ✓ | 2026-05-10 |
 | 2. Test Coverage and CI | 4/4 | Complete ✓ | 2026-05-18 |
 | 3. Documentation | 1/1 | Complete ✓ | 2026-05-18 |
-| 4. Eliminate Backend-Specific Dispatch Branches | 0/4 | Planned | — |
+| 4. Eliminate Backend-Specific Dispatch Branches | 4/4 | Complete   | 2026-05-25 |
 | 5. Correctness and Behavioral Parity | 0/TBD | Planned | — |
 | 6. Test Coverage and Minor Fixes | 0/TBD | Planned | — |
 
