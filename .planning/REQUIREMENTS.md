@@ -25,6 +25,24 @@ Requirements for the Narwhals Backend for PySpark milestone. Each maps to roadma
 
 - [ ] **DOCS-01**: Narwhals backend documentation lists PySpark as a supported SQL-lazy backend alongside Ibis/DuckDB, with a note on SQL-lazy limitations (no element-wise checks, no row sampling)
 
+### Architecture (Phase 4 — Pre-Merge Review Fixes)
+
+- [ ] **ARCH-01**: `run_check` in `pandera/backends/narwhals/base.py` has no PySpark-specific implementation branch (`Implementation in (PYSPARK, PYSPARK_CONNECT)` check removed or eliminated via `_materialize()` fix)
+- [ ] **ARCH-02**: `_concat_failure_cases` in `pandera/backends/narwhals/base.py` uses narwhals-native dispatch (`nw.Implementation`) instead of module-string sniffing; scalar polars frames are not silently dropped when PySpark frames are present
+- [ ] **ARCH-03**: `check_dtype` in `pandera/backends/narwhals/components.py` uses schema-driven detection (`isinstance(schema.dtype, pyspark_engine.DataType)`) instead of frame-implementation probe
+- [ ] **ARCH-04**: PySpark error-setting logic in `pandera/backends/narwhals/container.py` is extracted to a `_handle_pyspark_validation_result()` method rather than an inline `is_pyspark` block
+
+### Correctness (Phase 5 — Pre-Merge Review Fixes)
+
+- [ ] **CORR-01**: `strict='filter'` returns filtered columns for PySpark narwhals in the success path
+- [ ] **CORR-02**: `df.pandera.schema` is set after narwhals PySpark validation (behavioral parity with native backend)
+- [ ] **TEST-FIX-01**: `test_pyspark_config.py` band-aid xfails removed (hardcoded `use_narwhals_backend: False` in expected dicts replaced with dynamic or key-removed assertions)
+
+### Test Coverage (Phase 6 — Pre-Merge Review Fixes)
+
+- [ ] **TEST-E2E-01**: `tests/narwhals/test_e2e.py` includes a PySpark section with backend registration, return-type preservation, passing/failing check with failure cases, and nullable/unique behavior
+- [ ] **NITS-01**: Minor pre-merge nits resolved: CI Python version exclusion comment, "not in dataframe" message, registration test completeness, stacked xfail marks, `supported_types()` double-append
+
 ## Future Requirements
 
 Deferred to future milestones and not included in the current roadmap.

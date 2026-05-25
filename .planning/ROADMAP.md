@@ -5,7 +5,7 @@
 - ✅ **v1.0 Narwhals Backend** — Phases 1-5 (shipped 2026-03-15)
 - ✅ **v1.1 Ibis Parity & Lazy-First Architecture** — Phases 1-9 (shipped 2026-03-25)
 - ✅ **v1.2 PR Review Cleanup & Test Strategy** — Phases 1-3 (shipped 2026-04-10)
-- ✅ **v1.3 Narwhals Backend for PySpark** — Phases 1-3 (completed 2026-05-18)
+- 🔄 **v1.3 Narwhals Backend for PySpark** — Phases 1-6 (in progress — PR #2339 open)
 
 ## Phases
 
@@ -50,13 +50,16 @@ See `.planning/milestones/v1.2-ROADMAP.md` for full phase details.
 
 </details>
 
-### ✅ v1.3 Narwhals Backend for PySpark (Complete — 2026-05-18)
+### 🔄 v1.3 Narwhals Backend for PySpark (In Progress — PR #2339)
 
-**Milestone Goal:** Wire PySpark into the Narwhals backend via registration, add CI coverage, and document SQL-lazy limitations — making PySpark a first-class supported backend alongside Ibis.
+**Milestone Goal:** Wire PySpark into the Narwhals backend via registration, add CI coverage, document SQL-lazy limitations, and address all pre-merge review findings before the PR ships.
 
 - [x] **Phase 1: PySpark Registration** — Conditionally wire Narwhals backends for PySpark DataFrames in `register_pyspark_backends()` — completed 2026-05-10 (1/1 plans)
 - [x] **Phase 2: Test Coverage and CI** — Run PySpark test suite under narwhals backend, triage failures, add nox session — completed 2026-05-18 (4/4 plans)
 - [x] **Phase 3: Documentation** — List PySpark as supported SQL-lazy backend with known limitations — completed 2026-05-18 (1/1 plans)
+- [ ] **Phase 4: Eliminate Backend-Specific Dispatch Branches** — Remove or fix the four `is_pyspark` dispatch violations in `base.py`, `components.py`, and `container.py`; fix `_concat_failure_cases` silent-drop bug (0/4 plans)
+- [ ] **Phase 5: Correctness and Behavioral Parity** — Fix `strict='filter'` no-op, add `pandera.schema` after narwhals validation, fix `test_pyspark_config.py` band-aid xfails (0/0 plans)
+- [ ] **Phase 6: Test Coverage and Minor Fixes** — Add PySpark to `tests/narwhals/test_e2e.py`, fix CI Python version comment, fix "not in dataframe" message, fix registration test, fix stacked xfails, fix `supported_types()` double-append (0/0 plans)
 
 ## Phase Details
 
@@ -99,17 +102,69 @@ See `.planning/milestones/v1.2-ROADMAP.md` for full phase details.
 **Plans**: 1 plan
 - [x] 03-01-PLAN.md — Add narwhals opt-in note to pyspark_sql.md and add PySpark to the narwhals-backends content in supported_libraries.md (DOCS-01) — complete 2026-05-18
 
+### Phase 4: Eliminate Backend-Specific Dispatch Branches
+**Goal**: The narwhals backend has no `is_pyspark` special-casing — all four dispatch violations from PR review are removed or properly abstracted
+**Depends on**: Phase 1
+**Requirements**: ARCH-01, ARCH-02, ARCH-03, ARCH-04
+**Success Criteria** (what must be TRUE):
+  1. The `run_check` PySpark branch in `base.py:143-154` is either removed (if the `_materialize()` comment is stale) or replaced with a concrete justification and failing test; no module-level `implementation in (PYSPARK, PYSPARK_CONNECT)` check remains in `run_check`
+  2. `_concat_failure_cases` uses narwhals-native concatenation without module-string sniffing; non-PySpark scalar frames (e.g. `_build_scalar_failure_case` output) are no longer silently dropped when PySpark frames are present
+  3. `check_dtype` in `components.py` uses narwhals-native dtype comparison rather than a PySpark-specific `str(pyspark_dtype) == str(schema.dtype)` path; the test workaround in `test_pyspark_dtypes.py` is explained or removed
+  4. The PySpark error-setting logic in `container.py:validate()` is extracted to a method rather than an inline `is_pyspark` test
+**Plans**: 4 plans
+- [ ] 04-01-PLAN.md — Fix `_materialize()` in `pandera/api/narwhals/utils.py` to handle PySpark via `.first()` + pyarrow; delete the PySpark branch in `run_check` (ARCH-01)
+- [ ] 04-02-PLAN.md — Refactor `_build_lazy_failure_case` to return narwhals-wrapped frames; rewrite `_concat_failure_cases` to dispatch on `nw.Implementation` instead of module-string sniffing; surface dropped scalar items via `SchemaWarning` (ARCH-02)
+- [ ] 04-03-PLAN.md — Replace frame-implementation probe in `check_dtype` with `isinstance(schema.dtype, pyspark_engine.DataType)` schema-driven probe; add explanatory comment to the verifySchema=False workaround in `test_pyspark_dtypes.py` (ARCH-03)
+- [ ] 04-04-PLAN.md — Extract `_handle_pyspark_validation_result()` instance method on `DataFrameSchemaBackend`; replace the two inline `is_pyspark` blocks in `validate()` with method calls; keep the `is_pyspark` dispatch detection (ARCH-04)
+
+### Phase 5: Correctness and Behavioral Parity
+**Goal**: The narwhals PySpark success path has behavioral parity with the native backend — `strict='filter'` applies filtering, `df.pandera.schema` is set, and band-aid xfails in config tests are removed
+**Depends on**: Phase 4
+**Requirements**: CORR-01, CORR-02, TEST-FIX-01
+**Success Criteria** (what must be TRUE):
+  1. `strict='filter'` returns filtered columns for PySpark narwhals in the success path — `_to_frame_kind_nw(check_lf, return_type)` is returned with `errors = {}` attached; the corresponding xfail in `test_pyspark_model.py` is removed or converted to a passing test
+  2. `check_obj.pandera.add_schema(schema)` is called before returning from narwhals PySpark validation; the xfail in `test_pyspark_accessor.py` is removed or converted to a passing test
+  3. The five `test_pyspark_config.py` tests that xfail due to hardcoded `"use_narwhals_backend": False` in expected dicts are fixed — either updated to use `CONFIG.use_narwhals_backend` dynamically or the key is removed from the assertion
+**Plans**: 0 plans
+**UI hint**: no
+
+### Phase 6: Test Coverage and Minor Fixes
+**Goal**: PySpark narwhals coverage exists in `tests/narwhals/test_e2e.py` and all minor issues from the PR review are resolved
+**Depends on**: Phase 5
+**Requirements**: TEST-E2E-01, NITS-01
+**Success Criteria** (what must be TRUE):
+  1. `tests/narwhals/test_e2e.py` includes a PySpark section with at minimum: backend registration assertion, return-type preservation (validate → returns original PySpark DataFrame), a passing and failing built-in check with failure cases inspected, and nullable/unique check behavior
+  2. The CI Python version exclusion for PySpark (3.12, 3.13) has a comment explaining PySpark's maximum supported Python version
+  3. `container.py` emits a backend-neutral "column 'X' not found" message instead of hardcoding "not in dataframe" — the corresponding xfail in `test_ibis_container.py` is removed
+  4. `test_pyspark_narwhals_register.py::test_pyspark_narwhals_activated_when_opted_in` asserts all three backends (`NarwhalsCheckBackend`, `ColumnBackend`, `DataFrameSchemaBackend`) are registered
+  5. The stacked `@pytest.mark.xfail` decorators in `test_pyspark_model.py::test_registered_dataframemodel_checks` are combined into a single conditional xfail
+  6. The `supported_types()` double-append of `PySparkSQLDataFrame` in `pandera/api/pyspark/types.py` is fixed
+**Plans**: 0 plans
+
 ## Progress
 
-**Execution Order:** 1 → 2 → 3 (Phase 3 can begin as soon as Phase 1 is complete; Phase 2 requires Phase 1)
+**Execution Order:** 1 → 2 → 3 (Phase 3 can start after Phase 1); 4 → 5 → 6
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. PySpark Registration | 1/1 | Complete ✓ | 2026-05-10 |
 | 2. Test Coverage and CI | 4/4 | Complete ✓ | 2026-05-18 |
 | 3. Documentation | 1/1 | Complete ✓ | 2026-05-18 |
+| 4. Eliminate Backend-Specific Dispatch Branches | 0/4 | Planned | — |
+| 5. Correctness and Behavioral Parity | 0/TBD | Planned | — |
+| 6. Test Coverage and Minor Fixes | 0/TBD | Planned | — |
 
 ## Backlog
+
+### Phase 999.3: Define PySparkData wrapper for native=True checks (BACKLOG)
+
+**Goal:** Provide a typed `PySparkData` wrapper analogous to `PolarsData`/`IbisData` for users writing `native=True` checks under the narwhals backend for PySpark.
+**Context:** `_wrap_native_frame_with_key()` in `checks.py` returns `None` for PySpark frames, causing `native=True` checks to receive a raw `pyspark.sql.DataFrame` via the 2-arg legacy fallback. This is undocumented and inconsistent with Polars/Ibis convention. Requires defining a `PySparkData` NamedTuple and wiring it through `_wrap_native_frame_with_key`.
+**See:** `pandera/backends/narwhals/checks.py:_wrap_native_frame_with_key`, `pandera/typing/pyspark_sql.py`
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (promote with /gsd-review-backlog when ready)
 
 ### Phase 999.1: Relax PySpark native backend type restrictions (BACKLOG)
 

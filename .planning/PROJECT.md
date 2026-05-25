@@ -41,11 +41,14 @@ Users can validate any Narwhals-supported dataframe library through a single, co
 
 ### Active
 
-**v1.3 Narwhals Backend for PySpark:**
-- [ ] Conditional registration in `register_pyspark_backends()` for Narwhals backend (REG-01)
-- [ ] PySpark test suite passes or is xfail-marked under narwhals backend (TEST-01, TEST-02, TEST-03)
-- [ ] Nox/CI session for PySpark under `PANDERA_USE_NARWHALS_BACKEND=True` (CI-01)
-- [ ] Docs: PySpark listed as supported SQL-lazy backend with limitations (DOCS-01)
+**v1.3 Narwhals Backend for PySpark — Phases 4-6 (pre-merge review fixes):**
+- [ ] No `is_pyspark`/`is_ibis` dispatch branches in narwhals backend — 4 violations removed or properly abstracted (ARCH-01..04)
+- [ ] `_concat_failure_cases` does not silently drop non-PySpark scalar frames (ARCH-02)
+- [ ] `strict='filter'` applies column filtering for PySpark narwhals success path (CORR-01)
+- [ ] `df.pandera.schema` is set after narwhals PySpark validation (CORR-02)
+- [ ] `test_pyspark_config.py` band-aid xfails removed (TEST-FIX-01)
+- [ ] PySpark coverage in `tests/narwhals/test_e2e.py` (TEST-E2E-01)
+- [ ] Minor nits resolved: CI comment, error message, registration assertions, stacked xfails, `supported_types()` (NITS-01)
 
 **Deferred (future milestones):**
 - [ ] pandas validation working via Narwhals backend (including lazy mode via Narwhals lazy graph)
@@ -111,13 +114,15 @@ Known remaining items:
 
 ## Current Milestone: v1.3 Narwhals Backend for PySpark
 
-**Goal:** Wire PySpark into the Narwhals backend via registration, add CI coverage, and document SQL-lazy limitations — making PySpark a first-class supported backend alongside Ibis.
+**Goal:** Wire PySpark into the Narwhals backend via registration, add CI coverage, document SQL-lazy limitations, and address all pre-merge review findings before the PR ships (PR #2339).
 
-**Target features:**
-- Conditional registration in `register_pyspark_backends()` routing to Narwhals backend when `PANDERA_USE_NARWHALS_BACKEND=True`
-- Nox/CI session running PySpark test suite under narwhals backend
-- Test triage: xfail expected limitations (element-wise, sample=/tail=, row-index), fix unexpected bugs
-- Docs: PySpark listed as supported SQL-lazy backend with same limitation notes as Ibis
+**Phases 1-3 complete.** Phases 4-6 added after self-review of the open PR:
+- Remove/refactor the 4 `is_pyspark` dispatch violations in `base.py`, `components.py`, `container.py`
+- Fix `_concat_failure_cases` silent-drop of non-PySpark frames when PySpark items are present
+- Fix `strict='filter'` no-op and `df.pandera.schema` regression for PySpark narwhals
+- Fix `test_pyspark_config.py` band-aid xfails
+- Add PySpark section to `tests/narwhals/test_e2e.py`
+- Resolve minor nits (CI comment, error message, registration assertions, stacked xfails, `supported_types()` double-append)
 
 ## Evolution
 
@@ -137,4 +142,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-05-10 after v1.3 milestone start*
+*Last updated: 2026-05-24 after v1.4 milestone start*
