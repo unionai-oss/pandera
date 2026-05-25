@@ -195,15 +195,10 @@ def test_unique_column_names():
         DataFrameSchema(unique_column_names=True)
 
 
-@pytest.mark.xfail(
-    condition=CONFIG.use_narwhals_backend,
-    reason="Error message format differs: 'not in dataframe' vs 'not in table' in Narwhals backend",
-    strict=True,
-)
 def test_column_absent_error(t_basic, t_schema_basic):
     """Test column presence."""
     with pytest.raises(
-        pa.errors.SchemaError, match="column 'int_col' not in table"
+        pa.errors.SchemaError, match="column 'int_col' not found"
     ):
         t_basic.drop("int_col").pipe(t_schema_basic.validate)
 

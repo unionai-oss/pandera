@@ -383,7 +383,7 @@ class DataFrameSchemaBackend(IbisSchemaBackend):
                         check="column_in_dataframe",
                         reason_code=SchemaErrorReason.COLUMN_NOT_IN_DATAFRAME,
                         message=(
-                            f"column '{colname}' not in table. "
+                            f"column '{colname}' not found. "
                             f"Columns in table: {check_obj.columns}"
                         ),
                         failure_cases=colname,
