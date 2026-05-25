@@ -82,7 +82,7 @@ Deferred to future milestones and not included in the current roadmap.
 | ARCH-04 | Phase 4 | Complete |
 | CORR-01 | Phase 5 | Pending |
 | CORR-02 | Phase 5 | Pending |
-| TEST-FIX-01 | Phase 6 | Pending |
+| TEST-FIX-01 | Phase 5 | Pending |
 | TEST-E2E-01 | Phase 6 | Pending |
 | NITS-01 | Phase 6 | Pending |
 
