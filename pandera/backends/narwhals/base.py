@@ -50,7 +50,8 @@ def _concat_failure_cases(items: list) -> Any:
     For PySpark-backed narwhals frames: unwrap to native PySpark DataFrames
     and union via ``pyspark.sql.DataFrame.union()``. Scalar ``pl.DataFrame``
     items from ``_build_scalar_failure_case`` cannot be converted to PySpark
-    without a SparkSession — they are skipped for the PySpark path.
+    without a SparkSession — they are skipped for the PySpark path and a
+    ``SchemaWarning`` is emitted naming the affected columns.
     For ibis-backed narwhals frames: unwrap to native ibis Tables and union
     via ``ibis.Table.union()``.
     For polars-backed narwhals LazyFrame: use ``nw.concat()`` to stay lazy,
@@ -79,7 +80,28 @@ def _concat_failure_cases(items: list) -> Any:
         ):
             # PySpark path: unwrap to native PySpark DataFrames and union.
             # Scalar polars items (from _build_scalar_failure_case) cannot be
-            # converted to PySpark without a SparkSession — they are skipped.
+            # converted to PySpark without a SparkSession — they are skipped,
+            # but a SchemaWarning is emitted so users know about the loss.
+            if pl_items:
+                dropped_info = []
+                for item in pl_items:
+                    if isinstance(item, pl.DataFrame) and "column" in item.columns:
+                        dropped_info.extend(item["column"].to_list())
+                warnings.warn(
+                    "Some schema-level failure cases (columns: "
+                    + repr(dropped_info)
+                    + ") could not be included in the PySpark failure_cases "
+                    "output because scalar polars frames cannot be converted "
+                    "to PySpark without a SparkSession. These schema errors "
+                    "are still reported in df.pandera.errors but their "
+                    "failure_cases rows are omitted from the combined frame. "
+                    # TODO(ARCH-02 follow-up): SparkSession-mediated
+                    # conversion (Approach B) when a SparkSession reference
+                    # is available.
+                    "See ARCH-02 follow-up for a full resolution.",
+                    SchemaWarning,
+                    stacklevel=3,
+                )
             native_items = [nw.to_native(item) for item in nw_items]
             return functools.reduce(lambda a, b: a.union(b), native_items)
         elif first_nw.implementation == nw.Implementation.POLARS:
