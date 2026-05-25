@@ -30,11 +30,6 @@ class TestPanderaConfig:
 
     sample_data = [("Bread", 9), ("Cutter", 15)]
 
-    @pytest.mark.xfail(
-        condition=CONFIG.use_narwhals_backend,
-        reason="Narwhals backend sets use_narwhals_backend=True; config dict assertions hardcode False",
-        strict=True,
-    )
     def test_disable_validation(
         self, spark_session, sample_spark_schema, request
     ):
@@ -59,7 +54,7 @@ class TestPanderaConfig:
             "validation_depth": ValidationDepth.SCHEMA_AND_DATA,
             "cache_dataframe": False,
             "keep_cached_dataframe": False,
-            "use_narwhals_backend": False,
+            "use_narwhals_backend": CONFIG.use_narwhals_backend,
             "silenced_warnings": [],
         }
 
@@ -68,11 +63,6 @@ class TestPanderaConfig:
             assert pandera_schema.validate(input_df) == input_df
             assert TestSchema.validate(input_df) == input_df
 
-    @pytest.mark.xfail(
-        condition=CONFIG.use_narwhals_backend,
-        reason="Narwhals backend sets use_narwhals_backend=True; config dict assertions hardcode False",
-        strict=True,
-    )
     def test_schema_only(self, spark_session, sample_spark_schema, request):
         """This function validates that only schema related checks are run not data level"""
         spark = request.getfixturevalue(spark_session)
@@ -88,7 +78,7 @@ class TestPanderaConfig:
             "validation_depth": ValidationDepth.SCHEMA_ONLY,
             "cache_dataframe": False,
             "keep_cached_dataframe": False,
-            "use_narwhals_backend": False,
+            "use_narwhals_backend": CONFIG.use_narwhals_backend,
             "silenced_warnings": [],
         }
         input_df = spark_df(spark, self.sample_data, sample_spark_schema)
@@ -162,11 +152,6 @@ class TestPanderaConfig:
             == expected_dataframemodel["SCHEMA"]
         )
 
-    @pytest.mark.xfail(
-        condition=CONFIG.use_narwhals_backend,
-        reason="Narwhals backend sets use_narwhals_backend=True; config dict assertions hardcode False",
-        strict=True,
-    )
     def test_data_only(self, spark_session, sample_spark_schema, request):
         """This function validates that only data related checks are run not schema level"""
         spark = request.getfixturevalue(spark_session)
@@ -181,7 +166,7 @@ class TestPanderaConfig:
             "validation_depth": ValidationDepth.DATA_ONLY,
             "cache_dataframe": False,
             "keep_cached_dataframe": False,
-            "use_narwhals_backend": False,
+            "use_narwhals_backend": CONFIG.use_narwhals_backend,
             "silenced_warnings": [],
         }
 
@@ -249,11 +234,6 @@ class TestPanderaConfig:
             == expected_dataframemodel["DATA"]
         )
 
-    @pytest.mark.xfail(
-        condition=CONFIG.use_narwhals_backend,
-        reason="Narwhals backend sets use_narwhals_backend=True; config dict assertions hardcode False",
-        strict=True,
-    )
     def test_schema_and_data(
         self, spark_session, sample_spark_schema, request
     ):
@@ -271,7 +251,7 @@ class TestPanderaConfig:
             "validation_depth": ValidationDepth.SCHEMA_AND_DATA,
             "cache_dataframe": False,
             "keep_cached_dataframe": False,
-            "use_narwhals_backend": False,
+            "use_narwhals_backend": CONFIG.use_narwhals_backend,
             "silenced_warnings": [],
         }
 
@@ -366,11 +346,6 @@ class TestPanderaConfig:
             == expected_dataframemodel["SCHEMA"]
         )
 
-    @pytest.mark.xfail(
-        condition=CONFIG.use_narwhals_backend,
-        reason="Narwhals backend sets use_narwhals_backend=True; config dict assertions hardcode False",
-        strict=True,
-    )
     @pytest.mark.parametrize("cache_dataframe", [True, False])
     @pytest.mark.parametrize("keep_cached_dataframe", [True, False])
     def test_cache_dataframe_settings(
@@ -387,7 +362,7 @@ class TestPanderaConfig:
             "validation_depth": ValidationDepth.SCHEMA_AND_DATA,
             "cache_dataframe": cache_dataframe,
             "keep_cached_dataframe": keep_cached_dataframe,
-            "use_narwhals_backend": False,
+            "use_narwhals_backend": CONFIG.use_narwhals_backend,
             "silenced_warnings": [],
         }
         with config_context(
