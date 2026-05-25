@@ -59,7 +59,7 @@ See `.planning/milestones/v1.2-ROADMAP.md` for full phase details.
 - [x] **Phase 3: Documentation** — List PySpark as supported SQL-lazy backend with known limitations — completed 2026-05-18 (1/1 plans)
 - [x] **Phase 4: Eliminate Backend-Specific Dispatch Branches** — Remove or fix the four `is_pyspark` dispatch violations in `base.py`, `components.py`, and `container.py`; fix `_concat_failure_cases` silent-drop bug (0/4 plans) (completed 2026-05-25)
 - [x] **Phase 5: Correctness and Behavioral Parity** — Fix `strict='filter'` no-op, add `pandera.schema` after narwhals validation, fix `test_pyspark_config.py` band-aid xfails (0/2 plans) (completed 2026-05-25)
-- [ ] **Phase 6: Test Coverage and Minor Fixes** — Add PySpark to `tests/narwhals/test_e2e.py`, fix CI Python version comment, fix "not in dataframe" message, fix registration test, fix stacked xfails, fix `supported_types()` double-append (0/0 plans)
+- [ ] **Phase 6: Test Coverage and Minor Fixes** — Add PySpark to `tests/narwhals/test_e2e.py`, fix CI Python version comment, fix "not in dataframe" message, fix registration test, fix stacked xfails, fix `supported_types()` double-append (0/2 plans)
 
 ## Phase Details
 
@@ -163,7 +163,10 @@ See `.planning/milestones/v1.2-ROADMAP.md` for full phase details.
   5. The stacked `@pytest.mark.xfail` decorators in `test_pyspark_model.py::test_registered_dataframemodel_checks` are combined into a single conditional xfail
   6. The `supported_types()` double-append of `PySparkSQLDataFrame` in `pandera/api/pyspark/types.py` is fixed
 
-**Plans**: 0 plans
+**Plans**: 2 plans
+
+- [ ] 06-01-PLAN.md — Add PySpark section to tests/narwhals/test_e2e.py (registration, return-type, passing+failing check, nullable, unique) (TEST-E2E-01)
+- [ ] 06-02-PLAN.md — Resolve five pre-merge nits: CI Python comment, backend-neutral column error message, expanded registration test, collapsed stacked xfail, supported_types() double-append (NITS-01)
 
 ## Progress
 
@@ -176,7 +179,7 @@ See `.planning/milestones/v1.2-ROADMAP.md` for full phase details.
 | 3. Documentation | 1/1 | Complete ✓ | 2026-05-18 |
 | 4. Eliminate Backend-Specific Dispatch Branches | 4/4 | Complete    | 2026-05-25 |
 | 5. Correctness and Behavioral Parity | 2/2 | Complete    | 2026-05-25 |
-| 6. Test Coverage and Minor Fixes | 0/TBD | Planned | — |
+| 6. Test Coverage and Minor Fixes | 0/2 | Planned | — |
 
 ## Backlog
 
