@@ -150,7 +150,7 @@ See `.planning/milestones/v1.2-ROADMAP.md` for full phase details.
 | 1. PySpark Registration | 1/1 | Complete ✓ | 2026-05-10 |
 | 2. Test Coverage and CI | 4/4 | Complete ✓ | 2026-05-18 |
 | 3. Documentation | 1/1 | Complete ✓ | 2026-05-18 |
-| 4. Eliminate Backend-Specific Dispatch Branches | 4/4 | Complete   | 2026-05-25 |
+| 4. Eliminate Backend-Specific Dispatch Branches | 4/4 | Complete    | 2026-05-25 |
 | 5. Correctness and Behavioral Parity | 0/TBD | Planned | — |
 | 6. Test Coverage and Minor Fixes | 0/TBD | Planned | — |
 

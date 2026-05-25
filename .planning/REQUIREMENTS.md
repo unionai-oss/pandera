@@ -27,10 +27,10 @@ Requirements for the Narwhals Backend for PySpark milestone. Each maps to roadma
 
 ### Architecture (Phase 4 — Pre-Merge Review Fixes)
 
-- [ ] **ARCH-01**: `run_check` in `pandera/backends/narwhals/base.py` has no PySpark-specific implementation branch (`Implementation in (PYSPARK, PYSPARK_CONNECT)` check removed or eliminated via `_materialize()` fix)
-- [ ] **ARCH-02**: `_concat_failure_cases` in `pandera/backends/narwhals/base.py` uses narwhals-native dispatch (`nw.Implementation`) instead of module-string sniffing; scalar polars frames are not silently dropped when PySpark frames are present
-- [ ] **ARCH-03**: `check_dtype` in `pandera/backends/narwhals/components.py` uses schema-driven detection (`isinstance(schema.dtype, pyspark_engine.DataType)`) instead of frame-implementation probe
-- [ ] **ARCH-04**: PySpark error-setting logic in `pandera/backends/narwhals/container.py` is extracted to a `_handle_pyspark_validation_result()` method rather than an inline `is_pyspark` block
+- [x] **ARCH-01**: `run_check` in `pandera/backends/narwhals/base.py` has no PySpark-specific implementation branch (`Implementation in (PYSPARK, PYSPARK_CONNECT)` check removed or eliminated via `_materialize()` fix)
+- [x] **ARCH-02**: `_concat_failure_cases` in `pandera/backends/narwhals/base.py` uses narwhals-native dispatch (`nw.Implementation`) instead of module-string sniffing; scalar polars frames are not silently dropped when PySpark frames are present
+- [x] **ARCH-03**: `check_dtype` in `pandera/backends/narwhals/components.py` uses schema-driven detection (`isinstance(schema.dtype, pyspark_engine.DataType)`) instead of frame-implementation probe
+- [x] **ARCH-04**: PySpark error-setting logic in `pandera/backends/narwhals/container.py` is extracted to a `_handle_pyspark_validation_result()` method rather than an inline `is_pyspark` block
 
 ### Correctness (Phase 5 — Pre-Merge Review Fixes)
 
@@ -76,12 +76,21 @@ Deferred to future milestones and not included in the current roadmap.
 | TEST-03 | Phase 2 | Pending |
 | CI-01 | Phase 2 | Pending |
 | DOCS-01 | Phase 3 | Pending |
+| ARCH-01 | Phase 4 | Complete |
+| ARCH-02 | Phase 4 | Complete |
+| ARCH-03 | Phase 4 | Complete |
+| ARCH-04 | Phase 4 | Complete |
+| CORR-01 | Phase 5 | Pending |
+| CORR-02 | Phase 5 | Pending |
+| TEST-FIX-01 | Phase 6 | Pending |
+| TEST-E2E-01 | Phase 6 | Pending |
+| NITS-01 | Phase 6 | Pending |
 
 **Coverage:**
-- v1.3 requirements: 6 total
-- Mapped to phases: 6
+- v1.3 requirements: 15 total
+- Mapped to phases: 15
 - Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-05-10*
-*Last updated: 2026-05-10 after roadmap creation*
+*Last updated: 2026-05-25 after Phase 4 completion*
