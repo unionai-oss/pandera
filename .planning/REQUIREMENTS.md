@@ -34,9 +34,9 @@ Requirements for the Narwhals Backend for PySpark milestone. Each maps to roadma
 
 ### Correctness (Phase 5 — Pre-Merge Review Fixes)
 
-- [ ] **CORR-01**: `strict='filter'` returns filtered columns for PySpark narwhals in the success path
-- [ ] **CORR-02**: `df.pandera.schema` is set after narwhals PySpark validation (behavioral parity with native backend)
-- [ ] **TEST-FIX-01**: `test_pyspark_config.py` band-aid xfails removed (hardcoded `use_narwhals_backend: False` in expected dicts replaced with dynamic or key-removed assertions)
+- [x] **CORR-01**: `strict='filter'` returns filtered columns for PySpark narwhals in the success path
+- [x] **CORR-02**: `df.pandera.schema` is set after narwhals PySpark validation (behavioral parity with native backend)
+- [x] **TEST-FIX-01**: `test_pyspark_config.py` band-aid xfails removed (hardcoded `use_narwhals_backend: False` in expected dicts replaced with dynamic or key-removed assertions)
 
 ### Test Coverage (Phase 6 — Pre-Merge Review Fixes)
 
@@ -80,9 +80,9 @@ Deferred to future milestones and not included in the current roadmap.
 | ARCH-02 | Phase 4 | Complete |
 | ARCH-03 | Phase 4 | Complete |
 | ARCH-04 | Phase 4 | Complete |
-| CORR-01 | Phase 5 | Pending |
-| CORR-02 | Phase 5 | Pending |
-| TEST-FIX-01 | Phase 5 | Pending |
+| CORR-01 | Phase 5 | Complete |
+| CORR-02 | Phase 5 | Complete |
+| TEST-FIX-01 | Phase 5 | Complete |
 | TEST-E2E-01 | Phase 6 | Pending |
 | NITS-01 | Phase 6 | Pending |
 
