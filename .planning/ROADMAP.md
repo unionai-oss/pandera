@@ -58,7 +58,7 @@ See `.planning/milestones/v1.2-ROADMAP.md` for full phase details.
 - [x] **Phase 2: Test Coverage and CI** — Run PySpark test suite under narwhals backend, triage failures, add nox session — completed 2026-05-18 (4/4 plans)
 - [x] **Phase 3: Documentation** — List PySpark as supported SQL-lazy backend with known limitations — completed 2026-05-18 (1/1 plans)
 - [x] **Phase 4: Eliminate Backend-Specific Dispatch Branches** — Remove or fix the four `is_pyspark` dispatch violations in `base.py`, `components.py`, and `container.py`; fix `_concat_failure_cases` silent-drop bug (0/4 plans) (completed 2026-05-25)
-- [ ] **Phase 5: Correctness and Behavioral Parity** — Fix `strict='filter'` no-op, add `pandera.schema` after narwhals validation, fix `test_pyspark_config.py` band-aid xfails (0/0 plans)
+- [ ] **Phase 5: Correctness and Behavioral Parity** — Fix `strict='filter'` no-op, add `pandera.schema` after narwhals validation, fix `test_pyspark_config.py` band-aid xfails (0/2 plans)
 - [ ] **Phase 6: Test Coverage and Minor Fixes** — Add PySpark to `tests/narwhals/test_e2e.py`, fix CI Python version comment, fix "not in dataframe" message, fix registration test, fix stacked xfails, fix `supported_types()` double-append (0/0 plans)
 
 ## Phase Details
@@ -125,7 +125,9 @@ See `.planning/milestones/v1.2-ROADMAP.md` for full phase details.
   1. `strict='filter'` returns filtered columns for PySpark narwhals in the success path — `_to_frame_kind_nw(check_lf, return_type)` is returned with `errors = {}` attached; the corresponding xfail in `test_pyspark_model.py` is removed or converted to a passing test
   2. `check_obj.pandera.add_schema(schema)` is called before returning from narwhals PySpark validation; the xfail in `test_pyspark_accessor.py` is removed or converted to a passing test
   3. The five `test_pyspark_config.py` tests that xfail due to hardcoded `"use_narwhals_backend": False` in expected dicts are fixed — either updated to use `CONFIG.use_narwhals_backend` dynamically or the key is removed from the assertion
-**Plans**: 0 plans
+**Plans**: 2 plans
+- [ ] 05-01-PLAN.md — Fix CORR-01 + CORR-02 in narwhals container.py (pass `_to_frame_kind_nw(check_lf, return_type)` at both PySpark return sites; call `check_obj.pandera.add_schema(schema)` in `_handle_pyspark_validation_result`), extend ARCH-04 unit tests with `add_schema` assertions, and remove the two now-passing xfails in `test_pyspark_model.py` and `test_pyspark_accessor.py` (CORR-01, CORR-02)
+- [ ] 05-02-PLAN.md — Remove 5 band-aid xfail decorators on `TestPanderaConfig` in `test_pyspark_config.py` and replace hardcoded `"use_narwhals_backend": False` with `CONFIG.use_narwhals_backend` in the five `expected` dicts (TEST-FIX-01)
 **UI hint**: no
 
 ### Phase 6: Test Coverage and Minor Fixes
@@ -151,7 +153,7 @@ See `.planning/milestones/v1.2-ROADMAP.md` for full phase details.
 | 2. Test Coverage and CI | 4/4 | Complete ✓ | 2026-05-18 |
 | 3. Documentation | 1/1 | Complete ✓ | 2026-05-18 |
 | 4. Eliminate Backend-Specific Dispatch Branches | 4/4 | Complete    | 2026-05-25 |
-| 5. Correctness and Behavioral Parity | 0/TBD | Planned | — |
+| 5. Correctness and Behavioral Parity | 0/2 | Planned | — |
 | 6. Test Coverage and Minor Fixes | 0/TBD | Planned | — |
 
 ## Backlog
