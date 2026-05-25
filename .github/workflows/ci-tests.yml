@@ -344,6 +344,7 @@ jobs:
       matrix:
         python-version: ["3.10", "3.11", "3.12", "3.13"]
         extra: [polars, ibis, pyspark]
+        # PySpark's maximum supported Python version is 3.11; 3.12 and 3.13 are not yet on the official PySpark support matrix.
         exclude:
         - extra: pyspark
           python-version: "3.12"
