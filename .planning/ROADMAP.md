@@ -179,7 +179,7 @@ See `.planning/milestones/v1.2-ROADMAP.md` for full phase details.
 | 3. Documentation | 1/1 | Complete ✓ | 2026-05-18 |
 | 4. Eliminate Backend-Specific Dispatch Branches | 4/4 | Complete    | 2026-05-25 |
 | 5. Correctness and Behavioral Parity | 2/2 | Complete    | 2026-05-25 |
-| 6. Test Coverage and Minor Fixes | 2/2 | Complete   | 2026-05-25 |
+| 6. Test Coverage and Minor Fixes | 2/2 | Complete    | 2026-05-26 |
 
 ## Backlog
 

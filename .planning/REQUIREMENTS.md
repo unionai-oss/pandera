@@ -40,8 +40,8 @@ Requirements for the Narwhals Backend for PySpark milestone. Each maps to roadma
 
 ### Test Coverage (Phase 6 — Pre-Merge Review Fixes)
 
-- [ ] **TEST-E2E-01**: `tests/narwhals/test_e2e.py` includes a PySpark section with backend registration, return-type preservation, passing/failing check with failure cases, and nullable/unique behavior
-- [ ] **NITS-01**: Minor pre-merge nits resolved: CI Python version exclusion comment, "not in dataframe" message, registration test completeness, stacked xfail marks, `supported_types()` double-append
+- [x] **TEST-E2E-01**: `tests/narwhals/test_e2e.py` includes a PySpark section with backend registration, return-type preservation, passing/failing check with failure cases, and nullable/unique behavior
+- [x] **NITS-01**: Minor pre-merge nits resolved: CI Python version exclusion comment, "not in dataframe" message, registration test completeness, stacked xfail marks, `supported_types()` double-append
 
 ## Future Requirements
 
@@ -83,8 +83,8 @@ Deferred to future milestones and not included in the current roadmap.
 | CORR-01 | Phase 5 | Complete |
 | CORR-02 | Phase 5 | Complete |
 | TEST-FIX-01 | Phase 5 | Complete |
-| TEST-E2E-01 | Phase 6 | Pending |
-| NITS-01 | Phase 6 | Pending |
+| TEST-E2E-01 | Phase 6 | Complete |
+| NITS-01 | Phase 6 | Complete |
 
 **Coverage:**
 - v1.3 requirements: 15 total
