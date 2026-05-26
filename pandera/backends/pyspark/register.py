@@ -59,6 +59,10 @@ def register_pyspark_backends(
         DataFrameSchema.register_backend(pyspark_sql.DataFrame, DataFrameSchemaBackend)
         Column.register_backend(pyspark_sql.DataFrame, ColumnBackend)
         Check.register_backend(pyspark_sql.DataFrame, NarwhalsCheckBackend)
+        # nw.DataFrame is intentionally NOT registered: PySpark SQL frames are always
+        # SQL-lazy under narwhals (exposed as nw.LazyFrame, never nw.DataFrame). This
+        # mirrors pandera/backends/ibis/register.py; contrast with polars, which also
+        # registers nw.DataFrame because polars frames can be eager.
         Check.register_backend(nw.LazyFrame, NarwhalsCheckBackend)
 
         if PYSPARK_CONNECT_AVAILABLE:
