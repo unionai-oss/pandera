@@ -23,7 +23,7 @@ Pandera supports validation of the following DataFrame libraries:
   - Validate Polars dataframes. Polars is a blazingly fast dataframe library.
 * - {ref}`Ibis <ibis>`
   - Validate Ibis tables. Ibis is the portable Python dataframe library.
-* - {ref}`Pyspark SQL <native-pyspark>`
+* - {ref}`PySpark SQL <native-pyspark>`
   - A data processing library for large-scale data.
 :::
 
@@ -46,7 +46,7 @@ details.
 
 Polars <polars>
 Ibis <ibis>
-Pyspark SQL <pyspark_sql>
+PySpark SQL <pyspark_sql>
 ```
 
 ## Validating Pandas-like DataFrames
@@ -125,7 +125,7 @@ Fugue <fugue>
 As of *0.26.0*, Pandera ships an optional
 [Narwhals](https://narwhals-dev.github.io/narwhals/)-based validation
 backend that powers the {ref}`Polars <polars>`, {ref}`Ibis <ibis>`, and
-{ref}`Pyspark SQL <native-pyspark>` integrations behind a single unified code
+{ref}`PySpark SQL <native-pyspark>` integrations behind a single unified code
 path. The Narwhals backend is **opt-in**: by default Pandera continues to use
 the native Polars, Ibis, and PySpark backends. The public API
 (`import pandera.polars as pa`, `import pandera.ibis as pa`,
