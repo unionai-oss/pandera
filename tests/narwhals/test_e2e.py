@@ -484,8 +484,8 @@ class TestCustomChecksIbis:
         )
         assert key == "x"
 
-    def test_schema_level_check_passes(self, ibis_table):
-        """Schema-level ibis check (key='*') passes on valid data."""
+    def test_schema_level_check_fails_on_invalid_data(self, ibis_table):
+        """Schema-level ibis check (key='*') raises SchemaError when check condition fails."""
 
         def x_gt_y(table, key):
             return bool((table["x"] > table["y"]).all().execute())
