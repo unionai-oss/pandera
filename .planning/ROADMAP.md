@@ -180,7 +180,7 @@ See `.planning/milestones/v1.2-ROADMAP.md` for full phase details.
 | 4. Eliminate Backend-Specific Dispatch Branches | 4/4 | Complete    | 2026-05-25 |
 | 5. Correctness and Behavioral Parity | 2/2 | Complete    | 2026-05-25 |
 | 6. Test Coverage and Minor Fixes | 2/2 | Complete    | 2026-05-26 |
-| 7. CI Fixes and Post-Review Quick Fixes | 0/2 | Not started | — |
+| 7. CI Fixes and Post-Review Quick Fixes | 2/2 | Complete   | 2026-05-26 |
 | 8. Test Quality Improvements | 0/? | Not started | — |
 
 ### Phase 7: CI Fixes and Post-Review Quick Fixes
@@ -196,11 +196,11 @@ See `.planning/milestones/v1.2-ROADMAP.md` for full phase details.
   4. The `tests/common/` exclusion for PySpark in the noxfile `tests_narwhals_backend` session has an inline comment explaining why (e.g. no `pyspark` marker exists in `tests/common/`)
   5. "Pyspark SQL" occurrences in `docs/source/supported_libraries.md` are corrected to "PySpark SQL"
 
-**Plans:** 2 plans
+**Plans:** 2/2 plans complete
 Plans:
 
-- [ ] 07-01-PLAN.md — Revert narwhals container COLUMN_NOT_IN_DATAFRAME message to "not in dataframe" + restore ibis test xfail + fix _spark_env_vars yield (CI-FIX-01, CI-FIX-02)
-- [ ] 07-02-PLAN.md — Remove redundant non-None assert in check_dtype + add noxfile tests/common/ exclusion comment + fix Pyspark SQL casing in supported_libraries.md (NITS-02)
+- [x] 07-01-PLAN.md — Revert narwhals container COLUMN_NOT_IN_DATAFRAME message to "not in dataframe" + restore ibis test xfail + fix _spark_env_vars yield (CI-FIX-01, CI-FIX-02)
+- [x] 07-02-PLAN.md — Remove redundant non-None assert in check_dtype + add noxfile tests/common/ exclusion comment + fix Pyspark SQL casing in supported_libraries.md (NITS-02)
 
 ### Phase 8: Test Quality Improvements
 
