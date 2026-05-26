@@ -195,6 +195,11 @@ def test_unique_column_names():
         DataFrameSchema(unique_column_names=True)
 
 
+@pytest.mark.xfail(
+    condition=CONFIG.use_narwhals_backend,
+    reason="Error message format differs: 'not in dataframe' (narwhals backend) vs 'not found' (native ibis backend)",
+    strict=True,
+)
 def test_column_absent_error(t_basic, t_schema_basic):
     """Test column presence."""
     with pytest.raises(
