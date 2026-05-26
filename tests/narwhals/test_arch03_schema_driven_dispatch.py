@@ -1,102 +1,84 @@
-"""Tests for Phase 04 Plan 03 — ARCH-03: Schema-driven dispatch in check_dtype.
+"""Behavioral tests for ARCH-03: schema-driven dispatch in ColumnBackend.check_dtype.
 
-ARCH-03: check_dtype must dispatch on schema.dtype type (schema-driven) instead
-of check_obj.implementation (frame-driven). The probe
-    isinstance(schema.dtype, pyspark_engine.DataType)
-replaces the frame-based
-    check_obj.implementation in (nw.Implementation.PYSPARK, nw.Implementation.PYSPARK_CONNECT)
+ColumnBackend.check_dtype dispatches on schema.dtype type (schema-driven), not on
+check_obj.implementation (frame-driven). These tests verify the behavioral contract:
 
-These tests enforce the architectural contract:
-- is_pyspark probe is gone from check_dtype source
-- uses_pyspark_dtype probe (schema-driven) is present
-- pyspark_engine.DataType isinstance check is used
+- Narwhals-engine dtype path: polars LazyFrame + narwhals_engine.Int64 schema -> pass
+- PySpark-engine dtype path: PySpark frame + pyspark_engine-wrapped T.LongType schema
+  -> pass when types match, fail with WRONG_DATATYPE when they don't
+
+Source-inspection tests that used the inspect module to grep ColumnBackend.check_dtype for
+internal variable names (is_pyspark, uses_pyspark_dtype, etc.) were removed in Phase 08
+because they tested intermediate implementation state, not the behavioral contract.
 """
 
-import inspect
+import os
 
 import polars as pl
 import pytest
 
 # ---------------------------------------------------------------------------
-# ARCH-03 / Task 04-03-01
-# check_dtype must use schema-driven probe, not frame-implementation probe
+# PySpark optional-dependency guard
+# ---------------------------------------------------------------------------
+try:
+    import pyspark.sql
+    from pyspark.sql import SparkSession
+
+    HAS_PYSPARK = True
+except ImportError:
+    HAS_PYSPARK = False
+
+pyspark_only = pytest.mark.skipif(not HAS_PYSPARK, reason="pyspark not installed")
+
+
+# ---------------------------------------------------------------------------
+# PySpark fixtures (copied inline from tests/narwhals/test_e2e.py — narwhals
+# conftest.py does not define a spark fixture)
 # ---------------------------------------------------------------------------
 
 
-def test_check_dtype_has_no_is_pyspark_variable():
-    """check_dtype source must not contain the 'is_pyspark' variable name.
+@pytest.fixture(autouse=True, scope="function")
+def _spark_env_vars():
+    """Set environment variables required by PySpark before each test.
 
-    The old frame-driven probe assigned:
-        is_pyspark = check_obj.implementation in (PYSPARK, PYSPARK_CONNECT)
-    After ARCH-03, this variable is replaced with `uses_pyspark_dtype`.
+    No-ops when pyspark is not installed so polars/ibis tests are unaffected.
     """
-    from pandera.backends.narwhals.components import ColumnBackend
-
-    src = inspect.getsource(ColumnBackend.check_dtype)
-    # Exclude comment lines from the check
-    non_comment_lines = [
-        line for line in src.splitlines() if not line.lstrip().startswith("#")
-    ]
-    non_comment_src = "\n".join(non_comment_lines)
-    assert "is_pyspark" not in non_comment_src, (
-        "check_dtype must not use 'is_pyspark' variable — "
-        "replace with schema-driven 'uses_pyspark_dtype = isinstance(schema.dtype, ...)'"
-    )
-
-
-def test_check_dtype_uses_pyspark_dtype_variable():
-    """check_dtype source must contain the 'uses_pyspark_dtype' variable name.
-
-    After ARCH-03, the schema-driven probe:
-        uses_pyspark_dtype = isinstance(schema.dtype, _pyspark_engine.DataType)
-    replaces the frame-based is_pyspark probe.
-    """
-    from pandera.backends.narwhals.components import ColumnBackend
-
-    src = inspect.getsource(ColumnBackend.check_dtype)
-    assert "uses_pyspark_dtype" in src, (
-        "check_dtype must use 'uses_pyspark_dtype' variable for schema-driven dispatch"
-    )
+    if not HAS_PYSPARK:
+        yield
+        return  # noqa: return-after-yield needed to prevent fall-through
+    prev = {k: os.environ.get(k) for k in ("SPARK_LOCAL_IP", "PYARROW_IGNORE_TIMEZONE")}
+    os.environ["SPARK_LOCAL_IP"] = "127.0.0.1"
+    os.environ["PYARROW_IGNORE_TIMEZONE"] = "1"
+    yield
+    for k, v in prev.items():
+        if v is None:
+            os.environ.pop(k, None)
+        else:
+            os.environ[k] = v
 
 
-def test_check_dtype_has_no_frame_implementation_probe_for_pyspark():
-    """check_dtype must not probe check_obj.implementation for PySpark detection.
+@pytest.fixture(scope="module")
+def spark():
+    """Create a SparkSession for the module, mirroring tests/pyspark/conftest.py."""
+    pytest.importorskip("pyspark")
+    import pyspark
+    from packaging import version
 
-    The frame-based probe:
-        check_obj.implementation in (nw.Implementation.PYSPARK, ...)
-    must be absent from check_dtype. Dispatch must be schema-driven.
-    """
-    from pandera.backends.narwhals.components import ColumnBackend
-
-    src = inspect.getsource(ColumnBackend.check_dtype)
-    # Exclude comment lines
-    non_comment_lines = [
-        line for line in src.splitlines() if not line.lstrip().startswith("#")
-    ]
-    non_comment_src = "\n".join(non_comment_lines)
-    assert "check_obj.implementation in" not in non_comment_src, (
-        "check_dtype must not use 'check_obj.implementation in (PYSPARK, ...)' — "
-        "use isinstance(schema.dtype, _pyspark_engine.DataType) instead"
-    )
+    PYSPARK_VERSION = version.parse(pyspark.__version__)
+    builder = SparkSession.builder.config("spark.sql.ansi.enabled", False)
+    if PYSPARK_VERSION >= version.parse("4.0.0"):
+        builder = builder.config("spark.hadoop.fs.defaultFS", "file:///")
+        builder = builder.config(
+            "spark.sql.warehouse.dir", "file:///tmp/spark-warehouse"
+        )
+    spark_session = builder.getOrCreate()
+    yield spark_session
+    spark_session.stop()
 
 
-def test_check_dtype_uses_pyspark_engine_isinstance_probe():
-    """check_dtype source must use isinstance probe against pyspark_engine.DataType.
-
-    The schema-driven probe must be:
-        isinstance(schema.dtype, _pyspark_engine.DataType)
-    or equivalent. This ensures dispatch is based on what the user configured,
-    not what backend executes the frame.
-    """
-    from pandera.backends.narwhals.components import ColumnBackend
-
-    src = inspect.getsource(ColumnBackend.check_dtype)
-    assert "pyspark_engine" in src, (
-        "check_dtype must import and use pyspark_engine for the isinstance probe"
-    )
-    assert "isinstance" in src, (
-        "check_dtype must use isinstance() for the schema-driven PySpark dispatch probe"
-    )
+# ---------------------------------------------------------------------------
+# Narwhals-engine dtype path (always runs — no pyspark dependency)
+# ---------------------------------------------------------------------------
 
 
 def test_check_dtype_narwhals_schema_takes_narwhals_engine_path():
@@ -134,3 +116,64 @@ def test_check_dtype_narwhals_schema_takes_narwhals_engine_path():
     assert results[0].passed is True, (
         "check_dtype with narwhals_engine.Int64 schema should pass for Int64 column"
     )
+
+
+# ---------------------------------------------------------------------------
+# PySpark-engine dtype path (gated — skipped when pyspark not installed)
+# ---------------------------------------------------------------------------
+
+
+@pyspark_only
+def test_check_dtype_pyspark_schema_pass(spark):
+    """check_dtype with matching PySpark dtype passes (schema-driven dispatch)."""
+    import pyspark.sql.types as T
+    from types import SimpleNamespace
+
+    import narwhals.stable.v1 as nw
+
+    from pandera.backends.narwhals.components import ColumnBackend
+    from pandera.engines import pyspark_engine
+
+    df = spark.createDataFrame([(1,), (2,)], schema=["col"])
+    frame = nw.from_native(df, eager_or_interchange_only=False)
+    schema = SimpleNamespace(
+        selector="col",
+        name="col",
+        nullable=True,
+        unique=False,
+        dtype=pyspark_engine.Engine.dtype(T.LongType()),
+        checks=[],
+    )
+    backend = ColumnBackend()
+    results = backend.check_dtype(frame, schema)
+    assert len(results) == 1
+    assert results[0].passed is True
+
+
+@pyspark_only
+def test_check_dtype_pyspark_schema_fail(spark):
+    """check_dtype with mismatched PySpark dtype fails (schema-driven dispatch)."""
+    import pyspark.sql.types as T
+    from types import SimpleNamespace
+
+    import narwhals.stable.v1 as nw
+
+    from pandera.backends.narwhals.components import ColumnBackend
+    from pandera.engines import pyspark_engine
+    from pandera.errors import SchemaErrorReason
+
+    df = spark.createDataFrame([(1,), (2,)], schema=["col"])  # LongType column
+    frame = nw.from_native(df, eager_or_interchange_only=False)
+    schema = SimpleNamespace(
+        selector="col",
+        name="col",
+        nullable=True,
+        unique=False,
+        dtype=pyspark_engine.Engine.dtype(T.StringType()),  # wrong type
+        checks=[],
+    )
+    backend = ColumnBackend()
+    results = backend.check_dtype(frame, schema)
+    assert len(results) == 1
+    assert results[0].passed is False
+    assert results[0].reason_code == SchemaErrorReason.WRONG_DATATYPE
