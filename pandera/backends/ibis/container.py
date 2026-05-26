@@ -327,8 +327,6 @@ class DataFrameSchemaBackend(IbisSchemaBackend):
                 try:
                     next_ordered_col = next(sorted_column_names)
                 except StopIteration:
-                    pass
-                if next_ordered_col != column:
                     raise SchemaError(
                         schema=schema,
                         data=check_obj,
@@ -337,6 +335,16 @@ class DataFrameSchemaBackend(IbisSchemaBackend):
                         check="column_ordered",
                         reason_code=SchemaErrorReason.COLUMN_NOT_ORDERED,
                     )
+                else:
+                    if next_ordered_col != column:
+                        raise SchemaError(
+                            schema=schema,
+                            data=check_obj,
+                            message=f"column '{column}' out-of-order",
+                            failure_cases=column,
+                            check="column_ordered",
+                            reason_code=SchemaErrorReason.COLUMN_NOT_ORDERED,
+                        )
 
         if schema.strict == "filter":
             check_obj = check_obj.drop(filter_out_columns)
