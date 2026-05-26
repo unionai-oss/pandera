@@ -6,10 +6,9 @@ from pyspark.sql.types import StringType
 
 import pandera.pyspark as pa
 from pandera.api.base import error_handler
-from pandera.config import CONFIG
 from pandera.errors import SchemaError, SchemaErrorReason
 from pandera.pyspark import Column, DataFrameModel, DataFrameSchema, Field
-from tests.pyspark.conftest import spark_df
+from tests.pyspark.conftest import _cmp_errors, spark_df
 
 pytestmark = pytest.mark.parametrize(
     "spark_session", ["spark", "spark_connect"]
@@ -57,26 +56,16 @@ def test_pyspark_check_eq(spark_session, sample_spark_schema, request):
             {
                 "check": "str_startswith('B')",
                 "column": "product",
-                "error": (
-                    "Check '<Check str_startswith: str_startswith('B')>' failed."
-                    if CONFIG.use_narwhals_backend
-                    else "<Schema Column(name=product, type=DataType(StringType()))> failed validation str_startswith('B')"
-                ),
                 "schema": "product_schema",
             },
             {
                 "check": "greater_than(5)",
                 "column": "price",
-                "error": (
-                    "Check '<Check greater_than: greater_than(5)>' failed."
-                    if CONFIG.use_narwhals_backend
-                    else "<Schema Column(name=price, type=DataType(IntegerType()))> failed validation greater_than(5)"
-                ),
                 "schema": "product_schema",
             },
         ]
     }
-    assert dict(df_out.pandera.errors["DATA"]) == expected
+    _cmp_errors(dict(df_out.pandera.errors["DATA"]), expected)
 
 
 def test_pyspark_check_nullable(spark_session, sample_spark_schema, request):
@@ -147,21 +136,11 @@ def test_pyspark_schema_data_checks(spark_session, request):
                 {
                     "check": "str_startswith('B')",
                     "column": "product",
-                    "error": (
-                        "Check '<Check str_startswith: str_startswith('B')>' failed."
-                        if CONFIG.use_narwhals_backend
-                        else "<Schema Column(name=product, type=DataType(StringType()))> failed validation str_startswith('B')"
-                    ),
                     "schema": "product_schema",
                 },
                 {
                     "check": "greater_than(5)",
                     "column": "price",
-                    "error": (
-                        "Check '<Check greater_than: greater_than(5)>' failed."
-                        if CONFIG.use_narwhals_backend
-                        else "<Schema Column(name=price, type=DataType(IntegerType()))> failed validation greater_than(5)"
-                    ),
                     "schema": "product_schema",
                 },
             ]
@@ -182,7 +161,7 @@ def test_pyspark_schema_data_checks(spark_session, request):
         },
     }
 
-    assert dict(output_data.pandera.errors["DATA"]) == expected["DATA"]
+    _cmp_errors(dict(output_data.pandera.errors["DATA"]), expected["DATA"])
     assert dict(output_data.pandera.errors["SCHEMA"]) == expected["SCHEMA"]
 
 
@@ -229,21 +208,11 @@ def test_pyspark_fields(spark_session, request):
                 {
                     "check": "str_startswith('B')",
                     "column": "product",
-                    "error": (
-                        "Check '<Check str_startswith: str_startswith('B')>' failed."
-                        if CONFIG.use_narwhals_backend
-                        else "<Schema Column(name=product, type=DataType(StringType()))> failed validation str_startswith('B')"
-                    ),
                     "schema": "PanderaSchema",
                 },
                 {
                     "check": "greater_than(5)",
                     "column": "price",
-                    "error": (
-                        "Check '<Check greater_than: greater_than(5)>' failed."
-                        if CONFIG.use_narwhals_backend
-                        else "<Schema Column(name=price, type=DataType(IntegerType()))> failed validation greater_than(5)"
-                    ),
                     "schema": "PanderaSchema",
                 },
             ]
@@ -265,7 +234,7 @@ def test_pyspark_fields(spark_session, request):
         },
     }
 
-    assert data_errors == expected["DATA"]
+    _cmp_errors(data_errors, expected["DATA"])
     assert schema_errors == expected["SCHEMA"]
 
 

@@ -189,3 +189,19 @@ def sample_check_data():
 def config_params():
     """This function creates config parameters"""
     return PanderaConfig()
+
+
+def _cmp_errors(actual, expected):
+    """Compare pandera error dicts ignoring the exact error message text.
+
+    Error message format varies by backend (narwhals vs native PySpark),
+    so only structural fields (check, column, schema) are compared.
+    """
+
+    def drop_error(entries):
+        return [{k: v for k, v in e.items() if k != "error"} for e in entries]
+
+    assert set(actual) == set(expected)
+    for key in expected:
+        assert drop_error(actual[key]) == drop_error(expected[key])
+        assert all(e["error"] for e in actual[key])

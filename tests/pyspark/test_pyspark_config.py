@@ -18,7 +18,7 @@ from pandera.pyspark import (
     DataFrameSchema,
     Field,
 )
-from tests.pyspark.conftest import spark_df
+from tests.pyspark.conftest import _cmp_errors, spark_df
 
 pytestmark = pytest.mark.parametrize(
     "spark_session", ["spark", "spark_connect"]
@@ -32,19 +32,8 @@ class TestPanderaConfig:
 
     @staticmethod
     def _cmp_errors(actual, expected):
-        """Compare pandera error dicts ignoring the exact error message text.
-
-        Error message format varies by backend (narwhals vs native PySpark),
-        so only structural fields (check, column, schema) are compared.
-        """
-
-        def drop_error(entries):
-            return [{k: v for k, v in e.items() if k != "error"} for e in entries]
-
-        assert set(actual) == set(expected)
-        for key in expected:
-            assert drop_error(actual[key]) == drop_error(expected[key])
-            assert all(e["error"] for e in actual[key])
+        """Delegates to module-level _cmp_errors in conftest."""
+        _cmp_errors(actual, expected)
 
     def test_disable_validation(
         self, spark_session, sample_spark_schema, request
