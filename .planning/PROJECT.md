@@ -67,6 +67,8 @@ Users can validate any Narwhals-supported dataframe library through a single, co
 
 ## Context
 
+**Phase 08 complete (2026-05-26):** Test quality improvements — TQ-01: eliminated 6 CONFIG ternaries from PySpark error tests via shared `_cmp_errors` conftest helper; TQ-02: fixed silent `pl_items` drop in `_concat_failure_cases` polars branch (now merges via `pl.concat`), with 3 regression tests; TQ-03: replaced 4 brittle source-inspection tests in `test_arch03_schema_driven_dispatch.py` with 2 PySpark-gated behavioral tests; TQ-04: documented intentional `nw.DataFrame` omission in `register.py` citing ibis precedent.
+
 **v1.2 milestone phase 03 in progress:** CI infrastructure corrected — `unit-tests-narwhals-backend` job runs tests/polars/ and tests/ibis/ with narwhals active (TEST-03); Python version matrix expanded to 3.10–3.13; broken isolation fixtures removed. xfail markers for narwhals backend gaps are a follow-up.
 
 **v1.1 shipped (2026-03-25):** 9 phases, 22 plans, 21 Python files changed, +2,376 / -626 lines over 10 days. 221 tests passing.
