@@ -181,7 +181,7 @@ See `.planning/milestones/v1.2-ROADMAP.md` for full phase details.
 | 5. Correctness and Behavioral Parity | 2/2 | Complete    | 2026-05-25 |
 | 6. Test Coverage and Minor Fixes | 2/2 | Complete    | 2026-05-26 |
 | 7. CI Fixes and Post-Review Quick Fixes | 2/2 | Complete    | 2026-05-26 |
-| 8. Test Quality Improvements | 0/? | Not started | — |
+| 8. Test Quality Improvements | 0/3 | Planned     | — |
 
 ### Phase 7: CI Fixes and Post-Review Quick Fixes
 
@@ -204,7 +204,7 @@ Plans:
 
 ### Phase 8: Test Quality Improvements
 
-**Goal:** Replace test anti-patterns identified in the updated PR review with idiomatic, maintainable alternatives — no production code changes, only test improvements
+**Goal:** Replace test anti-patterns identified in the updated PR review with idiomatic, maintainable alternatives — no production code changes except the `_concat_failure_cases` polars-branch fix, only test improvements
 **Requirements**: TQ-01, TQ-02, TQ-03, TQ-04
 **Depends on:** Phase 7
 **Success Criteria** (what must be TRUE):
@@ -214,11 +214,12 @@ Plans:
   3. `tests/narwhals/test_arch03_schema_driven_dispatch.py` source-inspection tests that assert the presence or absence of specific variable names inside method bodies are replaced with behavioral equivalents — call `check_dtype` directly with a schema and frame combination that exercises the relevant code path
   4. The PySpark narwhals registration either registers `Check.register_backend(nw.DataFrame, NarwhalsCheckBackend)` to match the polars narwhals path, or adds a comment in `register_pyspark_backends()` explaining why `nw.DataFrame` is not needed for PySpark
 
-**Plans:** 0 plans
-
+**Plans:** 3 plans
 Plans:
 
-- [ ] TBD (run /gsd-plan-phase 8 to break down)
+- [ ] 08-01-PLAN.md — Extract `_cmp_errors` to `tests/pyspark/conftest.py` as a module-level function; convert `TestPanderaConfig._cmp_errors` to a delegation call; replace 6 CONFIG ternaries in `test_pyspark_error.py` DATA assertions with `_cmp_errors`; drop redundant `error` keys; remove unused CONFIG import (TQ-01)
+- [ ] 08-02-PLAN.md — Add regression test for `_concat_failure_cases` polars branch (RED), then fix the polars branch in `pandera/backends/narwhals/base.py` to merge `pl_items` via `pl.concat([lazy_result.collect()] + pl_items)` without warning (TQ-02)
+- [ ] 08-03-PLAN.md — Delete 4 source-inspection tests in `tests/narwhals/test_arch03_schema_driven_dispatch.py`; keep the 5th behavioral test; add 2 PySpark-gated behavioral tests for the PySpark-dtype dispatch path; add a comment in `pandera/backends/pyspark/register.py` documenting the intentional `nw.DataFrame` omission (consistent with ibis precedent) (TQ-03, TQ-04)
 
 ## Backlog
 

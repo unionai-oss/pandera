@@ -2,12 +2,12 @@
 gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: Narwhals Backend for PySpark
-status: planning
-last_updated: "2026-05-26T05:44:13.756Z"
+status: executing
+last_updated: "2026-05-26T06:08:34.594Z"
 progress:
   total_phases: 12
   completed_phases: 10
-  total_plans: 27
+  total_plans: 30
   completed_plans: 27
   percent: 83
 ---
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-05-24 after extending v1.3 with PR revie
 Phase: 08
 Plan: Not started
 Milestone: v1.3 Narwhals Backend for PySpark — IN PROGRESS (Phases 1-3 complete, 4-6 remaining before merge)
-Status: Ready to plan
+Status: Ready to execute
 
 Progress: [█████░░░░░] 50%
 
