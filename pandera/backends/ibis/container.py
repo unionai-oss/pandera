@@ -178,12 +178,11 @@ class DataFrameSchemaBackend(IbisSchemaBackend):
     ) -> list[CoreCheckResult]:
         """Run checks for all schema components."""
         check_results = []
-        check_passed = []
         # schema-component-level checks
         for schema_component in schema_components:
             try:
-                result = schema_component.validate(check_obj, lazy=lazy)
-                check_passed.append(isinstance(result, ibis.Table))
+                schema_component.validate(check_obj, lazy=lazy)
+                # The component validate() not raising is the success signal.
             except SchemaError as err:
                 check_results.append(
                     CoreCheckResult(
@@ -205,7 +204,6 @@ class DataFrameSchemaBackend(IbisSchemaBackend):
                         for schema_error in err.schema_errors
                     ]
                 )
-        assert all(check_passed)
         return check_results
 
     def collect_column_info(

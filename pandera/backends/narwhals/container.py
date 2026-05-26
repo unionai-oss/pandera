@@ -331,7 +331,6 @@ class DataFrameSchemaBackend(NarwhalsSchemaBackend):
     ) -> list[CoreCheckResult]:
         """Run checks for all schema components."""
         check_results = []
-        check_passed = []
         # Convert to native frame for column component dispatch.
         # Column.validate() calls get_backend(check_obj) which looks up by native
         # type — native polars LazyFrame for polars schemas, ibis.Table for ibis schemas.
@@ -339,10 +338,8 @@ class DataFrameSchemaBackend(NarwhalsSchemaBackend):
         # schema-component-level checks
         for schema_component in schema_components:
             try:
-                result = schema_component.validate(native_obj, lazy=lazy)
-                # Narwhals backend returns a Narwhals frame, not pl.LazyFrame.
+                schema_component.validate(native_obj, lazy=lazy)
                 # The component validate() not raising is the success signal.
-                check_passed.append(result is not None)
             except SchemaError as err:
                 check_results.append(
                     CoreCheckResult(
@@ -364,7 +361,6 @@ class DataFrameSchemaBackend(NarwhalsSchemaBackend):
                         for schema_error in err.schema_errors
                     ]
                 )
-        assert all(check_passed)
         return check_results
 
     def collect_column_info(self, check_obj, schema):
