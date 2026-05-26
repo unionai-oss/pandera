@@ -709,9 +709,17 @@ def _spark_env_vars():
 
     No-ops when pyspark is not installed so polars/ibis tests are unaffected.
     """
-    if HAS_PYSPARK:
-        os.environ["SPARK_LOCAL_IP"] = "127.0.0.1"
-        os.environ["PYARROW_IGNORE_TIMEZONE"] = "1"
+    if not HAS_PYSPARK:
+        return
+    prev = {k: os.environ.get(k) for k in ("SPARK_LOCAL_IP", "PYARROW_IGNORE_TIMEZONE")}
+    os.environ["SPARK_LOCAL_IP"] = "127.0.0.1"
+    os.environ["PYARROW_IGNORE_TIMEZONE"] = "1"
+    yield
+    for k, v in prev.items():
+        if v is None:
+            os.environ.pop(k, None)
+        else:
+            os.environ[k] = v
 
 
 @pytest.fixture(scope="module")
