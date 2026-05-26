@@ -54,8 +54,10 @@ def _concat_failure_cases(items: list) -> Any:
     ``SchemaWarning`` is emitted naming the affected columns.
     For ibis-backed narwhals frames: unwrap to native ibis Tables and union
     via ``ibis.Table.union()``.
-    For polars-backed narwhals LazyFrame: use ``nw.concat()`` to stay lazy,
-    then unwrap to native ``pl.LazyFrame``.
+    For polars-backed narwhals LazyFrame: stays lazy when only narwhals items
+    are present; collects and merges eager ``pl.DataFrame`` items (from
+    ``_build_eager_failure_case`` / ``_build_scalar_failure_case``) when both
+    are present — both sources can coexist in a single polars validation run.
     For native ``pl.DataFrame`` items: ``pl.concat``.
     Returns an empty ``pl.DataFrame`` if the collection is empty.
     """
@@ -106,7 +108,18 @@ def _concat_failure_cases(items: list) -> Any:
             return functools.reduce(lambda a, b: a.union(b), native_items)
         elif first_nw.implementation == nw.Implementation.POLARS:
             # Polars lazy path: use nw.concat to stay lazy, then unwrap.
-            return nw.to_native(nw.concat(nw_items))
+            # When pl_items are also present (schema-level failure cases from
+            # _build_eager_failure_case / _build_scalar_failure_case producing
+            # pl.DataFrame alongside data-check failure cases from
+            # _build_lazy_failure_case producing nw.LazyFrame), collect the
+            # lazy result and concatenate via pl.concat. Polars has no
+            # SparkSession barrier — both sources merge cleanly, so no
+            # SchemaWarning is needed (unlike the PySpark branch which
+            # warns-and-drops because it cannot create a SparkSession).
+            lazy_result = nw.to_native(nw.concat(nw_items))
+            if pl_items:
+                return pl.concat([lazy_result.collect()] + pl_items)
+            return lazy_result
         else:
             # SQL-lazy path (ibis, DuckDB, etc.): unwrap to native and union.
             native_items = [nw.to_native(item) for item in nw_items]
