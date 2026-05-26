@@ -443,7 +443,7 @@ def test_drop_invalid_rows(
     expected_valid_data = modified_data.filter(filter_expr)
     got = validated_data.execute()
     expected = expected_valid_data.execute()
-    assert validated_data.execute().equals(expected_valid_data.execute())
+    assert got.equals(expected)
 
 
 def _failure_value(column: str, dtype: ibis.DataType | None = None):
