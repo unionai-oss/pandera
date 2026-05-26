@@ -148,7 +148,7 @@ def test_strict_filter(t_basic, t_schema_basic):
     # setting strict to "filter" should remove the extra column
     t_schema_basic.strict = "filter"
     filtered_data = modified_data.pipe(t_schema_basic.validate)
-    filtered_data.execute().equals(t_basic.execute())
+    assert filtered_data.execute().equals(t_basic.execute())
 
 
 def test_required_columns():
