@@ -142,4 +142,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-05-25 after Phase 05 complete*
+*Last updated: 2026-05-25 after Phase 06 complete — PySpark E2E tests added to tests/narwhals/test_e2e.py, all 5 PR #2339 review nits resolved*
