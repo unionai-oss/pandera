@@ -320,6 +320,7 @@ def tests(
         args = [*cov_args, path]
 
     session.run("pytest", *args, env=env)
+    # tests/common/ has no pyspark marker — pytest -m pyspark would deselect every test there
     if not session.posargs and extra in ("polars", "ibis"):
         session.run("pytest", *cov_args, "tests/common/", "-m", extra, env=env)
 
@@ -386,6 +387,7 @@ def tests_narwhals_backend(session: Session, extra: str) -> None:
         cov_args.append("--cov-report=html")
     env = {"PANDERA_USE_NARWHALS_BACKEND": "True"}
     session.run("pytest", *cov_args, path, env=env)
+    # tests/common/ has no pyspark marker — pytest -m pyspark would deselect every test there
     if extra in ("polars", "ibis"):
         session.run("pytest", *cov_args, "tests/common/", "-m", extra, env=env)
 
