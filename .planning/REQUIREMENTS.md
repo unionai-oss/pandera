@@ -87,6 +87,7 @@ Deferred to future milestones and not included in the current roadmap.
 | NITS-01 | Phase 6 | Complete |
 
 **Coverage:**
+
 - v1.3 requirements: 15 total
 - Mapped to phases: 15
 - Unmapped: 0 ✓

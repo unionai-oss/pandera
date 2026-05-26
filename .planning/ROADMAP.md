@@ -181,7 +181,7 @@ See `.planning/milestones/v1.2-ROADMAP.md` for full phase details.
 | 5. Correctness and Behavioral Parity | 2/2 | Complete    | 2026-05-25 |
 | 6. Test Coverage and Minor Fixes | 2/2 | Complete    | 2026-05-26 |
 | 7. CI Fixes and Post-Review Quick Fixes | 2/2 | Complete    | 2026-05-26 |
-| 8. Test Quality Improvements | 3/3 | Complete   | 2026-05-26 |
+| 8. Test Quality Improvements | 3/3 | Complete    | 2026-05-26 |
 
 ### Phase 7: CI Fixes and Post-Review Quick Fixes
 
