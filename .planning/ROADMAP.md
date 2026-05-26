@@ -170,7 +170,7 @@ See `.planning/milestones/v1.2-ROADMAP.md` for full phase details.
 
 ## Progress
 
-**Execution Order:** 1 → 2 → 3 (Phase 3 can start after Phase 1); 4 → 5 → 6
+**Execution Order:** 1 → 2 → 3 (Phase 3 can start after Phase 1); 4 → 5 → 6 → 7 → 8
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
@@ -180,6 +180,45 @@ See `.planning/milestones/v1.2-ROADMAP.md` for full phase details.
 | 4. Eliminate Backend-Specific Dispatch Branches | 4/4 | Complete    | 2026-05-25 |
 | 5. Correctness and Behavioral Parity | 2/2 | Complete    | 2026-05-25 |
 | 6. Test Coverage and Minor Fixes | 2/2 | Complete    | 2026-05-26 |
+| 7. CI Fixes and Post-Review Quick Fixes | 0/2 | Not started | — |
+| 8. Test Quality Improvements | 0/? | Not started | — |
+
+### Phase 7: CI Fixes and Post-Review Quick Fixes
+
+**Goal:** Fix the two CI failures introduced by Phase 6 and resolve mechanical post-review nits — no architectural decisions, just correct the branch so CI goes green
+**Requirements**: CI-FIX-01, CI-FIX-02, NITS-02
+**Depends on:** Phase 6
+**Success Criteria** (what must be TRUE):
+
+  1. `Unit Tests Narwhals Backend (polars)` passes — `test_column_absent_error` is updated to match the current "not found" message, OR the narwhals container reverts to "not in dataframe" and the polars test requires no change (decision: revert to "not in dataframe" since pandera is a dataframe library and the message is not wrong)
+  2. `Unit Tests Narwhals` passes — the `_spark_env_vars` autouse fixture in `tests/narwhals/test_e2e.py` yields instead of returning on the `HAS_PYSPARK=False` early-exit path, so pytest does not raise `ValueError: fixture did not yield a value`
+  3. The redundant `assert native_pyspark_schema is not None` in `pandera/backends/narwhals/components.py::check_dtype` is removed — the surrounding `if uses_pyspark_dtype:` guard makes it structurally unreachable; use a proper `if`/`raise` or simply trust the guard
+  4. The `tests/common/` exclusion for PySpark in the noxfile `tests_narwhals_backend` session has an inline comment explaining why (e.g. no `pyspark` marker exists in `tests/common/`)
+  5. "Pyspark SQL" occurrences in `docs/source/supported_libraries.md` are corrected to "PySpark SQL"
+
+**Plans:** 2 plans
+Plans:
+
+- [ ] 07-01-PLAN.md — Revert narwhals container COLUMN_NOT_IN_DATAFRAME message to "not in dataframe" + restore ibis test xfail + fix _spark_env_vars yield (CI-FIX-01, CI-FIX-02)
+- [ ] 07-02-PLAN.md — Remove redundant non-None assert in check_dtype + add noxfile tests/common/ exclusion comment + fix Pyspark SQL casing in supported_libraries.md (NITS-02)
+
+### Phase 8: Test Quality Improvements
+
+**Goal:** Replace test anti-patterns identified in the updated PR review with idiomatic, maintainable alternatives — no production code changes, only test improvements
+**Requirements**: TQ-01, TQ-02, TQ-03, TQ-04
+**Depends on:** Phase 7
+**Success Criteria** (what must be TRUE):
+
+  1. `tests/pyspark/test_pyspark_error.py` no longer contains inline `if CONFIG.use_narwhals_backend else` ternaries for expected error strings — the six assertions are updated to use the `_cmp_errors` helper pattern from `test_pyspark_config.py` (or an equivalent that asserts structural fields and only that `error` is non-empty)
+  2. `_concat_failure_cases` in `pandera/backends/narwhals/base.py` — the polars branch either (a) gains a comment proving that `pl_items` is always empty for polars narwhals validation (so the silent drop is safe), or (b) is fixed to concatenate `pl_items` as well, matching the PySpark branch which at least warns
+  3. `tests/narwhals/test_arch03_schema_driven_dispatch.py` source-inspection tests that assert the presence or absence of specific variable names inside method bodies are replaced with behavioral equivalents — call `check_dtype` directly with a schema and frame combination that exercises the relevant code path
+  4. The PySpark narwhals registration either registers `Check.register_backend(nw.DataFrame, NarwhalsCheckBackend)` to match the polars narwhals path, or adds a comment in `register_pyspark_backends()` explaining why `nw.DataFrame` is not needed for PySpark
+
+**Plans:** 0 plans
+
+Plans:
+
+- [ ] TBD (run /gsd-plan-phase 8 to break down)
 
 ## Backlog
 
