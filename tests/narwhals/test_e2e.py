@@ -723,9 +723,9 @@ def _spark_env_vars():
 
 
 @pytest.fixture(scope="module")
-@pyspark_only
 def spark():
     """Create a SparkSession for the module, mirroring tests/pyspark/conftest.py."""
+    pytest.importorskip("pyspark")
     import pyspark
     from packaging import version
 

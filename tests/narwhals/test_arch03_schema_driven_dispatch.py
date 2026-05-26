@@ -17,7 +17,6 @@ import inspect
 import polars as pl
 import pytest
 
-
 # ---------------------------------------------------------------------------
 # ARCH-03 / Task 04-03-01
 # check_dtype must use schema-driven probe, not frame-implementation probe

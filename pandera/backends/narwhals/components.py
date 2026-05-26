@@ -270,17 +270,16 @@ class ColumnBackend(NarwhalsSchemaBackend):
 
         # Import inside method to avoid circular import chains
         from pandera.engines import narwhals_engine
-        from pandera.engines import pyspark_engine as _pyspark_engine
+
+        try:
+            from pandera.engines import pyspark_engine as _pyspark_engine
+
+            uses_pyspark_dtype = isinstance(schema.dtype, _pyspark_engine.DataType)
+        except ImportError:
+            uses_pyspark_dtype = False
 
         results = []
         schema_obj = check_obj.select(schema.selector).collect_schema()
-        # Schema-configured with a PySpark dtype (e.g. T.IntegerType()) — the
-        # narwhals dtype engine cannot resolve cross-engine PySpark types, so
-        # compare the column's native dtype string against the schema's PySpark
-        # dtype string. This dispatch is schema-driven (what the user configured)
-        # rather than frame-driven (what backend is present), per ARCH-03 in
-        # .planning/phases/04-eliminate-backend-specific-dispatch-branches/.
-        uses_pyspark_dtype = isinstance(schema.dtype, _pyspark_engine.DataType)
 
         native_pyspark_schema = (
             nw.to_native(check_obj).schema if uses_pyspark_dtype else None
