@@ -216,10 +216,8 @@ def test_column_values_are_unique(t_basic, t_schema_basic):
 @pytest.mark.parametrize(
     "unique,answers",
     [
-        # unique is True -- default is to report all unique violations except the first
         ("exclude_first", [4, 5, 6, 7]),
         ("all", [0, 1, 2, 4, 5, 6, 7]),
-        ("exclude_first", [4, 5, 6, 7]),
         ("exclude_last", [0, 1, 2, 4]),
     ],
 )
