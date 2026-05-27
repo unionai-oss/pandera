@@ -294,6 +294,7 @@ class ColumnBackend(NarwhalsSchemaBackend):
                 # configured) rather than frame-driven (what backend is present),
                 # per ARCH-03 in
                 # .planning/phases/04-eliminate-backend-specific-dispatch-branches/.
+                assert native_pyspark_schema is not None
                 pyspark_dtype = native_pyspark_schema[column].dataType
                 pyspark_dtype_str = str(pyspark_dtype)
                 passed = pyspark_dtype_str == str(schema.dtype)
