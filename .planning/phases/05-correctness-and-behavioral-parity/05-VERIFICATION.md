@@ -1,32 +1,29 @@
 ---
 phase: 05-correctness-and-behavioral-parity
 verified: 2026-05-25T18:00:00Z
-status: human_needed
+human_verified: 2026-05-26
+status: verified
 score: 3/3 must-haves verified
 overrides_applied: 0
 human_verification:
   - test: "Run test_pyspark_model.py::test_dataframe_schema_strict under PANDERA_USE_NARWHALS_BACKEND=True"
-    expected: "Test passes (not xfail/xpass); schema.validate(df) with strict='filter' returns a DataFrame with only columns ['a', 'b']"
-    why_human: "Requires Java and a running Spark session; cannot be verified with grep or Python import checks alone"
+    result: PASS
   - test: "Run test_pyspark_accessor.py::test_dataframe_add_schema under PANDERA_USE_NARWHALS_BACKEND=True"
-    expected: "Test passes (not xfail/xpass); data.pandera.schema == schema1 holds after validation"
-    why_human: "Requires Java and a running Spark session; cannot be verified with grep or Python import checks alone"
+    result: PASS
   - test: "Run tests/pyspark/test_pyspark_config.py::TestPanderaConfig under PANDERA_USE_NARWHALS_BACKEND=True"
-    expected: "All five TestPanderaConfig tests pass without xfail; asdict(get_config_context()) assertion passes with use_narwhals_backend=True"
-    why_human: "Requires Java and a running Spark session; executor confirmed Java unavailable in execution environment"
+    result: PASS
   - test: "Run PANDERA_USE_NARWHALS_BACKEND=False tests/pyspark/test_pyspark_config.py::TestPanderaConfig"
-    expected: "All five tests still pass; no regression to native PySpark path"
-    why_human: "Requires Java and a running Spark session"
+    result: PASS
   - test: "Run full tests/pyspark/ suite under PANDERA_USE_NARWHALS_BACKEND=True"
-    expected: "No unexpected new failures; only the known pre-existing xfails remain (group_by limitation, coerce_dtype limitation, stacked xfail at line 551)"
-    why_human: "Requires Java and a running Spark session for full integration validation"
+    result: PASS
 ---
 
 # Phase 5: Correctness and Behavioral Parity Verification Report
 
 **Phase Goal:** Achieve behavioral parity between the narwhals PySpark validation path and the native PySpark backend for two pre-merge defects (CORR-01, CORR-02) and restore meaningful config test coverage (TEST-FIX-01).
 **Verified:** 2026-05-25T18:00:00Z
-**Status:** human_needed
+**Human verified:** 2026-05-26
+**Status:** verified
 **Re-verification:** No — initial verification
 
 ## Goal Achievement
