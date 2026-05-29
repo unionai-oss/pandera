@@ -290,6 +290,7 @@ of boolean values.
 ```{code-cell} python
 from pandera.extensions import register_check_method
 import pyspark.sql.types as T
+from pyspark.sql.functions import col
 
 @register_check_method
 def new_pyspark_check(pyspark_obj, *, max_value) -> bool:
