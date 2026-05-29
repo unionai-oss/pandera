@@ -68,8 +68,36 @@ class TestPanderaDecorators:
         "cache_enabled,keep_cache_enabled,"
         "expected_caching_message,expected_unpersisting_message",
         [
-            (True, True, True, None),
-            (True, False, True, True),
+            pytest.param(
+                True,
+                True,
+                True,
+                None,
+                marks=pytest.mark.xfail(
+                    CONFIG.use_narwhals_backend,
+                    reason=(
+                        "narwhals backend does not use PySpark caching "
+                        "decorators; cache/unpersist log messages are not "
+                        "emitted"
+                    ),
+                    strict=False,
+                ),
+            ),
+            pytest.param(
+                True,
+                False,
+                True,
+                True,
+                marks=pytest.mark.xfail(
+                    CONFIG.use_narwhals_backend,
+                    reason=(
+                        "narwhals backend does not use PySpark caching "
+                        "decorators; cache/unpersist log messages are not "
+                        "emitted"
+                    ),
+                    strict=False,
+                ),
+            ),
             (False, True, None, None),
             (False, False, None, None),
         ],
@@ -87,11 +115,6 @@ class TestPanderaDecorators:
         request,
     ):
         """This function validates that caching/unpersisting works as expected."""
-        if CONFIG.use_narwhals_backend and cache_enabled:
-            pytest.xfail(
-                "narwhals backend does not use PySpark caching decorators; "
-                "cache/unpersist log messages are not emitted"
-            )
         # Set expected properties in Config object
         # Prepare test data
         spark = request.getfixturevalue(spark_session)
