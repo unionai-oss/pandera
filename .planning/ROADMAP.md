@@ -60,7 +60,7 @@ See `.planning/milestones/v1.2-ROADMAP.md` for full phase details.
 - [x] **Phase 4: Eliminate Backend-Specific Dispatch Branches** — Remove or fix the four `is_pyspark` dispatch violations in `base.py`, `components.py`, and `container.py`; fix `_concat_failure_cases` silent-drop bug (0/4 plans) (completed 2026-05-25)
 - [x] **Phase 5: Correctness and Behavioral Parity** — Fix `strict='filter'` no-op, add `pandera.schema` after narwhals validation, fix `test_pyspark_config.py` band-aid xfails (0/2 plans) (completed 2026-05-25)
 - [x] **Phase 6: Test Coverage and Minor Fixes** — Add PySpark to `tests/narwhals/test_e2e.py`, fix CI Python version comment, fix "not in dataframe" message, fix registration test, fix stacked xfails, fix `supported_types()` double-append (0/2 plans) (completed 2026-05-25)
-- [ ] **Phase 10: Round-3 PR Review Fixes** — Expand narwhals opt-in note with `coerce=True` no-op, `PysparkDataframeColumnObject` incompatibility, and `lazy=True` contract divergence; add rationale comment for the `is_pyspark` accessor-protocol branch; note the `_materialize()` PySpark `nw.DataFrame` dead-code branch (0/1 plans)
+- [x] **Phase 10: Round-3 PR Review Fixes** — Expand narwhals opt-in note with `coerce=True` no-op, `PysparkDataframeColumnObject` incompatibility, and `lazy=True` contract divergence; add rationale comment for the `is_pyspark` accessor-protocol branch; note the `_materialize()` PySpark `nw.DataFrame` dead-code branch (0/1 plans) (completed 2026-05-29)
 
 ## Phase Details
 
@@ -236,11 +236,11 @@ Plans:
   4. `pandera/backends/narwhals/container.py` `is_pyspark`/`is_pyspark_connect` dispatch branch carries a comment explaining the accessor-protocol is PySpark-only and cannot be abstracted via `_is_sql_lazy` (L1)
   5. `pandera/api/narwhals/utils.py` `_materialize()` docstring or inline comment explains that the `nw.DataFrame` PySpark branch is effectively dead code because PySpark frames are always converted to `nw.LazyFrame` before `_materialize()` is called (L2)
 
-**Plans:** 2 plans
+**Plans:** 2/2 plans complete
 Plans:
 
-- [ ] 10-01-PLAN.md — Expand narwhals opt-in note in docs/source/pyspark_sql.md with three behavioral-difference bullets: coerce=True no-op, PysparkDataframeColumnObject incompatibility, df.pandera.errors vs SchemaErrors under lazy=True (DOC-M1, DOC-M2, DOC-M3)
-- [ ] 10-02-PLAN.md — Add accessor-protocol rationale comments to is_pyspark dispatch sites in pandera/backends/narwhals/container.py and dead-code clarification to _materialize() PySpark nw.DataFrame branch in pandera/api/narwhals/utils.py (COMMENT-L1, COMMENT-L2)
+- [x] 10-01-PLAN.md — Expand narwhals opt-in note in docs/source/pyspark_sql.md with three behavioral-difference bullets: coerce=True no-op, PysparkDataframeColumnObject incompatibility, df.pandera.errors vs SchemaErrors under lazy=True (DOC-M1, DOC-M2, DOC-M3)
+- [x] 10-02-PLAN.md — Add accessor-protocol rationale comments to is_pyspark dispatch sites in pandera/backends/narwhals/container.py and dead-code clarification to _materialize() PySpark nw.DataFrame branch in pandera/api/narwhals/utils.py (COMMENT-L1, COMMENT-L2)
 
 ## Backlog
 
