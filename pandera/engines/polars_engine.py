@@ -982,6 +982,34 @@ class PydanticModel(DataType):
             self._check_column_names(lf, column_names)
             return lf
 
+        input_schema = df.collect_schema()
+        # Dtypes the pydantic model produces after coercion. Preferred over the
+        # input schema when repairing fully-null columns, since the model may
+        # coerce a column to a different type (e.g. Utf8 input -> int field).
+        model_schema = self._get_polars_schema()
+
+        def _repair_dtype(name: str) -> DataTypeClass | pl.DataType | None:
+            for candidate in (model_schema.get(name), input_schema.get(name)):
+                if candidate is not None and candidate != pl.Null:
+                    return candidate
+            return None
+
+        def _build_frame(rows: list[dict[str, Any]]) -> pl.DataFrame:
+            # Scan every row (infer_schema_length=None) so a nullable column
+            # whose first ``infer_schema_length`` rows are all None is not
+            # mis-inferred from too small a sample. A fully-null column still
+            # infers as pl.Null, so repair those using the model's coerced
+            # output dtype (falling back to the input frame's known dtype).
+            frame = pl.DataFrame(rows, infer_schema_length=None)
+            casts = [
+                pl.col(name).cast(repair)
+                for name, dtype in frame.schema.items()
+                if dtype == pl.Null and (repair := _repair_dtype(name))
+            ]
+            if casts:
+                frame = frame.with_columns(casts)
+            return frame
+
         coerced_rows: list[dict[str, Any]] = []
         failure_cases: list[str] = []
         row_passed: list[bool] = []
@@ -1005,7 +1033,7 @@ class PydanticModel(DataType):
 
         if failure_cases:
             check_output = pl.DataFrame({CHECK_OUTPUT_KEY: row_passed})
-            fc_df = pl.DataFrame(coerced_rows).filter(
+            fc_df = _build_frame(coerced_rows).filter(
                 pl.lit(pl.Series(row_passed)).not_()
             )
             raise errors.ParserError(
@@ -1014,7 +1042,7 @@ class PydanticModel(DataType):
                 parser_output=check_output,
             )
 
-        return pl.DataFrame(coerced_rows).lazy()
+        return _build_frame(coerced_rows).lazy()
 
     def try_coerce(self, data_container: PolarsDataContainer) -> pl.LazyFrame:
         """Coerce data container, raising ParserError on failure."""
