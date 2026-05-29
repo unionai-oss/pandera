@@ -99,6 +99,13 @@ class DataFrameSchemaBackend(NarwhalsSchemaBackend):
         # Convert to Narwhals LazyFrame — all parsers operate on LazyFrame
         check_lf = _to_lazy_nw(check_obj)
 
+        # PySpark uses an accessor-error protocol (`df.pandera.errors`) for
+        # surfacing validation results, while every other backend (including
+        # the SQL-lazy ibis backend) raises `SchemaErrors`. This is a genuine
+        # protocol difference, not a backend-capability difference, so it
+        # cannot be abstracted via `_is_sql_lazy(check_lf)` — ibis is also
+        # SQL-lazy but uses the raise-SchemaErrors protocol. See
+        # `_handle_pyspark_validation_result` below for the full rationale.
         is_pyspark = check_lf.implementation in (
             nw.Implementation.PYSPARK,
             nw.Implementation.PYSPARK_CONNECT,
@@ -228,6 +235,8 @@ class DataFrameSchemaBackend(NarwhalsSchemaBackend):
                     check_obj_parsed, error_handler
                 )
                 return check_obj_parsed
+            # PySpark error path: attach errors to df.pandera.errors instead of
+            # raising SchemaErrors (accessor protocol — see is_pyspark above).
             elif is_pyspark:
                 return self._handle_pyspark_validation_result(
                     _to_frame_kind_nw(check_lf, return_type), error_handler, schema, has_errors=True
@@ -239,6 +248,8 @@ class DataFrameSchemaBackend(NarwhalsSchemaBackend):
                     data=_to_frame_kind_nw(check_lf, return_type),
                 )
 
+        # PySpark success path: set df.pandera.errors = {} via accessor protocol;
+        # other backends just return the parsed frame.
         if is_pyspark:
             return self._handle_pyspark_validation_result(
                 _to_frame_kind_nw(check_lf, return_type), error_handler, schema, has_errors=False
