@@ -239,6 +239,183 @@ def test_pydantic_model_schema_validate():
         schema.validate(invalid_df)
 
 
+def test_pydantic_model_nullable_column_late_value():
+    """Regression: a nullable string column whose first 100+ rows are None
+    must not be inferred as pl.Null, which would drop later real values."""
+
+    class Record(BaseModel):
+        name: str | None = None
+        code: str | None = None
+
+    class RecordSchema(pa.DataFrameModel):
+        class Config:
+            dtype = PydanticModel(Record)
+            coerce = True
+            strict = False
+
+    # First 120 rows have code=None; a later row carries a real string value
+    # beyond the default infer_schema_length window of 100.
+    rows = [{"name": "A", "code": None} for _ in range(120)]
+    rows.append({"name": "B", "code": "00435L108"})
+    df = pl.DataFrame(rows, schema={"name": pl.Utf8, "code": pl.Utf8})
+
+    validated = RecordSchema.validate(df)
+    assert isinstance(validated, pl.DataFrame)
+    assert validated.schema["code"] == pl.String
+    assert validated["code"].to_list()[-1] == "00435L108"
+    assert validated.shape == (121, 2)
+
+
+def test_pydantic_model_fully_null_column_keeps_dtype():
+    """Regression: a fully-null nullable column infers as pl.Null on its own.
+    It should be repaired to a concrete dtype so downstream ops don't break."""
+
+    class Record(BaseModel):
+        name: str | None = None
+        code: str | None = None
+
+    class RecordSchema(pa.DataFrameModel):
+        class Config:
+            dtype = PydanticModel(Record)
+            coerce = True
+            strict = False
+
+    rows = [{"name": "A", "code": None} for _ in range(5)]
+    df = pl.DataFrame(rows, schema={"name": pl.Utf8, "code": pl.Utf8})
+
+    validated = RecordSchema.validate(df)
+    assert isinstance(validated, pl.DataFrame)
+    assert validated.schema["code"] == pl.String
+    assert validated["code"].to_list() == [None] * 5
+
+
+def test_pydantic_model_fully_null_column_uses_coerced_dtype():
+    """A fully-null column should be repaired to the pydantic model's coerced
+    output dtype, not the (possibly different) input dtype.
+
+    Here the input is Utf8 but the field is `int | None`, so the output column
+    should be an integer type, consistent with PydanticModel.empty().
+    """
+
+    class Record(BaseModel):
+        code: int | None = None
+
+    class RecordSchema(pa.DataFrameModel):
+        class Config:
+            dtype = PydanticModel(Record)
+            coerce = True
+            strict = False
+
+    df = pl.DataFrame({"code": pl.Series([None, None], dtype=pl.Utf8)})
+
+    validated = RecordSchema.validate(df)
+    assert isinstance(validated, pl.DataFrame)
+    assert validated.schema["code"] == pl.Int64
+    assert validated["code"].to_list() == [None, None]
+
+
+def test_pydantic_model_fully_null_column_unrepairable_dtype():
+    """When a fully-null column maps to pl.Null in both the model schema and
+    the input schema, there is no concrete dtype to repair it with, so it is
+    left as pl.Null (exercises the _repair_dtype fall-through)."""
+
+    class Custom:
+        pass
+
+    class Record(BaseModel):
+        class Config:
+            arbitrary_types_allowed = True
+
+        blob: Custom | None = None
+
+    class RecordSchema(pa.DataFrameModel):
+        class Config:
+            dtype = PydanticModel(Record)
+            coerce = True
+            strict = False
+
+    # No explicit schema: an all-None column infers as pl.Null on input too,
+    # and Custom is unsupported so the model schema is pl.Null as well.
+    df = pl.DataFrame({"blob": [None, None]})
+    assert df.schema["blob"] == pl.Null
+
+    validated = RecordSchema.validate(df)
+    assert isinstance(validated, pl.DataFrame)
+    assert validated.schema["blob"] == pl.Null
+    assert validated["blob"].to_list() == [None, None]
+
+
+def test_pydantic_model_nullable_late_value_failure_path():
+    """The failure-path frame construction must also scan all rows so the
+    ParserError surfaces real parser failure cases rather than the polars
+    "could not append value" inference error from a Null-typed builder."""
+
+    class Record(BaseModel):
+        name: str | None = None
+        code: str | None = None
+        xcoord: int
+
+    class RecordSchema(pa.DataFrameModel):
+        class Config:
+            dtype = PydanticModel(Record)
+            coerce = True
+            strict = False
+
+    rows = [{"name": "A", "code": None, "xcoord": 1} for _ in range(120)]
+    rows.append({"name": "B", "code": "00435L108", "xcoord": 2})
+    # One invalid row triggers the failure path (fc_df) construction.
+    rows.append({"name": "C", "code": "X", "xcoord": "not-an-int"})
+    df = pl.DataFrame(
+        rows,
+        schema={"name": pl.Utf8, "code": pl.Utf8, "xcoord": pl.Utf8},
+    )
+
+    with pytest.raises(pa.errors.SchemaError) as exc_info:
+        RecordSchema.validate(df)
+
+    # The error must be the intended parser failure, not the polars
+    # "could not append value" inference error that the bug produced.
+    assert "could not append value" not in str(exc_info.value)
+
+    # The failure_cases frame must carry the genuinely-invalid row (the bad
+    # xcoord), and the late "code" value must have been preserved as a string
+    # rather than dropped by a Null-typed builder.
+    failure_cases = exc_info.value.failure_cases
+    assert failure_cases.schema["code"] == pl.String
+    assert failure_cases["xcoord"].to_list() == ["not-an-int"]
+
+
+def test_pydantic_model_failure_cases_preserves_model_output_columns():
+    """failure_cases must retain model-output columns contributed by the valid
+    rows even when those fields are absent from the raw input (e.g. fields with
+    defaults). Regression guard: building the failure frame from only the
+    failing rows would drop such columns."""
+
+    class Record(BaseModel):
+        xcoord: int
+        defaulted: str | None = None  # absent from the input frame
+
+    class RecordSchema(pa.DataFrameModel):
+        class Config:
+            dtype = PydanticModel(Record)
+            coerce = True
+            strict = False
+
+    # Input lacks the model's "defaulted" field; one valid row, one invalid.
+    df = pl.DataFrame(
+        {"xcoord": ["1", "not-an-int"]}, schema={"xcoord": pl.Utf8}
+    )
+
+    with pytest.raises(pa.errors.SchemaError) as exc_info:
+        RecordSchema.validate(df)
+
+    failure_cases = exc_info.value.failure_cases
+    # The valid row's model output establishes "defaulted"; it must survive
+    # into the failure frame rather than disappearing.
+    assert "defaulted" in failure_cases.columns
+    assert failure_cases["xcoord"].to_list() == ["not-an-int"]
+
+
 def test_pydantic_model_with_check_types():
     """Test PydanticModel with @check_types decorator."""
     from pandera.typing.polars import DataFrame as PolarsDataFrame
