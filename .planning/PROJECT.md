@@ -144,4 +144,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-05-26 after Phase 07 complete — CI fixes: narwhals container message reverted to "not in dataframe", _spark_env_vars fixture yields on all branches, ibis xfail restored; post-review nits: redundant assert removed, noxfile comments added, PySpark capitalisation fixed in docs*
+*Last updated: 2026-05-29 after Phase 09 complete — Round 2 PR review fixes: B-01 (`.lazy()` guard for PySpark), M-01 (3× `except ImportError`), M-02 (pytestmark skipif), M-03 (fixtures consolidated to conftest), M-04 (`_cmp_errors` wrapper removed), M-05 (Union dedupe), M-06 (dead `try/except` removed), M-07 (inline xfail → parametrize mark)*
