@@ -30,11 +30,6 @@ class TestPanderaConfig:
 
     sample_data = [("Bread", 9), ("Cutter", 15)]
 
-    @staticmethod
-    def _cmp_errors(actual, expected):
-        """Delegates to module-level _cmp_errors in conftest."""
-        _cmp_errors(actual, expected)
-
     def test_disable_validation(
         self, spark_session, sample_spark_schema, request
     ):
@@ -110,7 +105,7 @@ class TestPanderaConfig:
         assert (
             "DATA" not in dict(output_dataframeschema_df.pandera.errors).keys()
         )
-        self._cmp_errors(
+        _cmp_errors(
             dict(output_dataframeschema_df.pandera.errors["SCHEMA"]),
             expected_dataframeschema["SCHEMA"],
         )
@@ -142,7 +137,7 @@ class TestPanderaConfig:
         assert (
             "DATA" not in dict(output_dataframemodel_df.pandera.errors).keys()
         )
-        self._cmp_errors(
+        _cmp_errors(
             dict(output_dataframemodel_df.pandera.errors["SCHEMA"]),
             expected_dataframemodel["SCHEMA"],
         )
@@ -189,7 +184,7 @@ class TestPanderaConfig:
             "SCHEMA"
             not in dict(output_dataframeschema_df.pandera.errors).keys()
         )
-        self._cmp_errors(
+        _cmp_errors(
             dict(output_dataframeschema_df.pandera.errors["DATA"]),
             expected_dataframeschema["DATA"],
         )
@@ -222,7 +217,7 @@ class TestPanderaConfig:
             "SCHEMA"
             not in dict(output_dataframemodel_df.pandera.errors).keys()
         )
-        self._cmp_errors(
+        _cmp_errors(
             dict(output_dataframemodel_df.pandera.errors["DATA"]),
             expected_dataframemodel["DATA"],
         )
@@ -278,11 +273,11 @@ class TestPanderaConfig:
             },
         }
 
-        self._cmp_errors(
+        _cmp_errors(
             dict(output_dataframeschema_df.pandera.errors["DATA"]),
             expected_dataframeschema["DATA"],
         )
-        self._cmp_errors(
+        _cmp_errors(
             dict(output_dataframeschema_df.pandera.errors["SCHEMA"]),
             expected_dataframeschema["SCHEMA"],
         )
@@ -320,11 +315,11 @@ class TestPanderaConfig:
             },
         }
 
-        self._cmp_errors(
+        _cmp_errors(
             dict(output_dataframemodel_df.pandera.errors["DATA"]),
             expected_dataframemodel["DATA"],
         )
-        self._cmp_errors(
+        _cmp_errors(
             dict(output_dataframemodel_df.pandera.errors["SCHEMA"]),
             expected_dataframemodel["SCHEMA"],
         )
