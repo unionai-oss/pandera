@@ -92,7 +92,7 @@ def _register_accessor(name, cls):
         if hasattr(cls, name):
             msg = (
                 f"registration of accessor {accessor} under name '{name}' for "
-                "type {cls.__name__} is overriding a preexisting attribute "
+                f"type {cls.__name__} is overriding a preexisting attribute "
                 "with the same name."
             )
 
