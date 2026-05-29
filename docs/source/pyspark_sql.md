@@ -36,9 +36,30 @@ install the `narwhals` extra and set
 before importing `pandera.pyspark`. By default Pandera uses the native PySpark
 backend. The public API shown on this page is unchanged either way.
 
-Because the Narwhals backend for PySpark is SQL-lazy, it does not support
-element-wise checks and does not support row sampling (`sample=` / `tail=`
-parameters).
+Because the Narwhals backend for PySpark shares its check implementations with
+the Polars and Ibis backends, several behaviours differ from the native PySpark
+backend:
+
+- **SQL-lazy execution.** No element-wise checks (no `map_batches` on SQL-lazy
+  frames), and no row sampling via `sample=` / `tail=` parameters.
+- **`coerce=True` is a no-op.** The Narwhals `ColumnBackend` has no coercion
+  step, so setting `coerce=True` (on `Field`, `Column`, or `Config`) silently
+  performs no coercion and raises no error. This matches the contract of the
+  Polars narwhals backend. If you rely on `coerce=True` to convert column
+  dtypes, use the native PySpark backend (`PANDERA_USE_NARWHALS_BACKEND=False`).
+- **Custom checks using `PysparkDataframeColumnObject` are incompatible.**
+  Custom checks registered via `@register_check_method` that expect a
+  `pyspark_obj: PysparkDataframeColumnObject` argument will not work under the
+  Narwhals backend. The Narwhals backend passes a `NarwhalsData(frame, key)`
+  named tuple to check functions instead, so the custom check signature and
+  body must be rewritten against the Narwhals frame API (or kept on the
+  native backend).
+- **Error reporting uses `df.pandera.errors`, not `SchemaErrors`.** Even with
+  `lazy=True`, the Narwhals backend for PySpark attaches errors to
+  `df.pandera.errors` on the returned DataFrame instead of raising
+  `SchemaErrors`. This matches the native PySpark backend contract (see
+  "What's different?" below) and differs from the Polars and Ibis narwhals
+  backends, which raise `SchemaErrors` when `lazy=True`.
 
 ```bash
 pip install 'pandera[pyspark,narwhals]' pyspark
