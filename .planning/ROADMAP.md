@@ -182,7 +182,7 @@ See `.planning/milestones/v1.2-ROADMAP.md` for full phase details.
 | 6. Test Coverage and Minor Fixes | 2/2 | Complete    | 2026-05-26 |
 | 7. CI Fixes and Post-Review Quick Fixes | 2/2 | Complete    | 2026-05-26 |
 | 8. Test Quality Improvements | 3/3 | Complete    | 2026-05-26 |
-| 9. Round 2 PR Review Fixes | 2/2 | Complete   | 2026-05-29 |
+| 9. Round 2 PR Review Fixes | 2/2 | Complete    | 2026-05-29 |
 
 ### Phase 7: CI Fixes and Post-Review Quick Fixes
 
@@ -229,7 +229,7 @@ Plans:
 **Goal:** Provide a typed `PySparkData` wrapper analogous to `PolarsData`/`IbisData` for users writing `native=True` checks under the narwhals backend for PySpark.
 **Context:** `_wrap_native_frame_with_key()` in `checks.py` returns `None` for PySpark frames, causing `native=True` checks to receive a raw `pyspark.sql.DataFrame` via the 2-arg legacy fallback. This is undocumented and inconsistent with Polars/Ibis convention. Requires defining a `PySparkData` NamedTuple and wiring it through `_wrap_native_frame_with_key`.
 **See:** `pandera/backends/narwhals/checks.py:_wrap_native_frame_with_key`, `pandera/typing/pyspark_sql.py`
-**Plans:** 0 plans
+**Plans:** 2/2 plans complete
 
 Plans:
 
