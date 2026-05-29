@@ -20,7 +20,7 @@ if version.parse(pyspark.__version__) >= version.parse("3.4"):
             DataFrame as PySparkConnectDataFrame,
         )
         from pyspark.sql.connect.group import GroupedData
-    except Exception:
+    except ImportError:
         # grpcio-status or other Spark Connect deps not installed
         from pyspark.sql import (
             DataFrame as PySparkConnectDataFrame,

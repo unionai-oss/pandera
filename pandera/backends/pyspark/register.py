@@ -13,7 +13,7 @@ PYSPARK_CONNECT_AVAILABLE = CURRENT_PYSPARK_VERSION >= version.parse("3.4")
 if PYSPARK_CONNECT_AVAILABLE:
     try:
         from pyspark.sql.connect import dataframe as pyspark_connect
-    except Exception:
+    except ImportError:
         # grpcio-status or other Spark Connect deps not installed
         PYSPARK_CONNECT_AVAILABLE = False
 
