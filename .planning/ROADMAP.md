@@ -182,7 +182,7 @@ See `.planning/milestones/v1.2-ROADMAP.md` for full phase details.
 | 6. Test Coverage and Minor Fixes | 2/2 | Complete    | 2026-05-26 |
 | 7. CI Fixes and Post-Review Quick Fixes | 2/2 | Complete    | 2026-05-26 |
 | 8. Test Quality Improvements | 3/3 | Complete    | 2026-05-26 |
-| 9. Round 2 PR Review Fixes | 1/2 | In Progress|  |
+| 9. Round 2 PR Review Fixes | 2/2 | Complete   | 2026-05-29 |
 
 ### Phase 7: CI Fixes and Post-Review Quick Fixes
 
@@ -263,7 +263,7 @@ Plans:
 **Goal:** All findings from the Round 2 review of PR #2339 are resolved: the ColumnBackend.validate() lazy-conversion correctness bug is fixed, exception guards are tightened, test fixtures are cleaned up, and style inconsistencies are addressed before merge
 **Requirements**: TBD
 **Depends on:** Phase 8
-**Plans:** 1/2 plans executed
+**Plans:** 2/2 plans complete
 Plans:
 **Wave 1**
 
@@ -271,4 +271,4 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 09-02-PLAN.md — Test code fixes: replace inline `if CONFIG.use_narwhals_backend:` in `test_pyspark_dtypes.py` with module-level `pytest.mark.skipif` (M-02); consolidate `_spark_env_vars`/`spark` fixtures into `tests/narwhals/conftest.py` (M-03); remove `TestPanderaConfig._cmp_errors` static wrapper, call module-level `_cmp_errors` directly (M-04); convert inline `pytest.xfail()` in `test_pyspark_decorators.py` to `pytest.param(..., marks=pytest.mark.xfail(...))` (M-07)
+- [x] 09-02-PLAN.md — Test code fixes: replace inline `if CONFIG.use_narwhals_backend:` in `test_pyspark_dtypes.py` with module-level `pytest.mark.skipif` (M-02); consolidate `_spark_env_vars`/`spark` fixtures into `tests/narwhals/conftest.py` (M-03); remove `TestPanderaConfig._cmp_errors` static wrapper, call module-level `_cmp_errors` directly (M-04); convert inline `pytest.xfail()` in `test_pyspark_decorators.py` to `pytest.param(..., marks=pytest.mark.xfail(...))` (M-07)
