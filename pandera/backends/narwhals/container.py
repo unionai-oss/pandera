@@ -233,6 +233,13 @@ class DataFrameSchemaBackend(NarwhalsSchemaBackend):
                 check_obj_parsed = self.drop_invalid_rows(
                     check_obj_parsed, error_handler
                 )
+                if is_pyspark:
+                    # PySpark drop_invalid_rows path: still must populate the
+                    # accessor protocol (df.pandera.errors / df.pandera.schema)
+                    # even after invalid rows are filtered out.
+                    return self._handle_pyspark_validation_result(
+                        check_obj_parsed, error_handler, schema, has_errors=True
+                    )
                 return check_obj_parsed
             # PySpark error path: attach errors to df.pandera.errors instead of
             # raising SchemaErrors (accessor protocol — see is_pyspark above).
