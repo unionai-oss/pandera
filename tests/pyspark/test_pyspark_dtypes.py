@@ -5,6 +5,7 @@ from typing import Any
 import pyspark
 import pyspark.sql.types as T
 import pytest
+from packaging import version as _version
 from pyspark.sql import DataFrame
 
 from pandera.config import CONFIG, PanderaConfig
@@ -273,7 +274,7 @@ class TestAllDatetimeTestClass(BaseClass):
             {"pandera_equivalent": T.TimestampNTZType},
             {"pandera_equivalent": T.TimestampNTZType()},
         ]
-        if pyspark.__version__ >= "3.4"
+        if _version.parse(pyspark.__version__) >= _version.parse("3.4")
         else []
     )
 
