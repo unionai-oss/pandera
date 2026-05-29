@@ -68,7 +68,6 @@ PySparkDtypeInputTypes = Union[
     bool,
     type,
     DataType,
-    type,
     pst.BooleanType,
     pst.StringType,
     pst.IntegerType,
@@ -99,14 +98,7 @@ class PysparkDataframeColumnObject(NamedTuple):
 def supported_types() -> SupportedTypes:
     """Get the types supported by pandera schemas."""
     # pylint: disable=import-outside-toplevel
-    table_types = [PySparkSQLDataFrame]
-
-    try:
-        table_types.append(PySparkConnectDataFrame)
-
-    except ImportError:  # pragma: no cover
-        pass
-
+    table_types = [PySparkSQLDataFrame, PySparkConnectDataFrame]
     return SupportedTypes(
         tuple(table_types),
     )
