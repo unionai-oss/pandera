@@ -3,14 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: Narwhals Backend for PySpark
 status: executing
-stopped_at: Phase 08 context gathered
-last_updated: "2026-05-26T14:30:40.842Z"
+last_updated: "2026-05-29T14:26:49.243Z"
 progress:
-  total_phases: 11
-  completed_phases: 8
-  total_plans: 19
-  completed_plans: 19
-  percent: 73
+  total_phases: 13
+  completed_phases: 11
+  total_plans: 32
+  completed_plans: 30
+  percent: 85
 ---
 
 # Project State
@@ -27,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-05-24 after extending v1.3 with PR revie
 Phase: 999.3
 Plan: Not started
 Milestone: v1.3 Narwhals Backend for PySpark — IN PROGRESS (Phases 1-3 complete, 4-6 remaining before merge)
-Status: Executing Phase 08
+Status: Ready to execute
 
 Progress: [█████░░░░░] 50%
 
@@ -43,6 +42,7 @@ Progress: [█████░░░░░] 50%
 
 - Phase 7 added: CI Fixes and Post-Review Quick Fixes — revert narwhals container message, fix _spark_env_vars yield, remove redundant assert, noxfile comment, casing
 - Phase 8 added: Test Quality Improvements — _cmp_errors in test_pyspark_error, _concat_failure_cases pl_items polars branch, replace source-inspection tests, nw.DataFrame registration comment
+- Phase 9 added: Round 2 PR Review Fixes
 
 ### Decisions
 
