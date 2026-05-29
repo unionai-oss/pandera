@@ -182,7 +182,7 @@ See `.planning/milestones/v1.2-ROADMAP.md` for full phase details.
 | 6. Test Coverage and Minor Fixes | 2/2 | Complete    | 2026-05-26 |
 | 7. CI Fixes and Post-Review Quick Fixes | 2/2 | Complete    | 2026-05-26 |
 | 8. Test Quality Improvements | 3/3 | Complete    | 2026-05-26 |
-| 9. Round 2 PR Review Fixes | 0/2 | Planned     | —          |
+| 9. Round 2 PR Review Fixes | 1/2 | In Progress|  |
 
 ### Phase 7: CI Fixes and Post-Review Quick Fixes
 
@@ -263,11 +263,11 @@ Plans:
 **Goal:** All findings from the Round 2 review of PR #2339 are resolved: the ColumnBackend.validate() lazy-conversion correctness bug is fixed, exception guards are tightened, test fixtures are cleaned up, and style inconsistencies are addressed before merge
 **Requirements**: TBD
 **Depends on:** Phase 8
-**Plans:** 2 plans
+**Plans:** 1/2 plans executed
 Plans:
 **Wave 1**
 
-- [ ] 09-01-PLAN.md — Production code fixes: guard `ColumnBackend.validate()` `.lazy()` with `_is_sql_lazy` (B-01); narrow three `except Exception:` guards to `except ImportError:` in `pandera/api/pyspark/types.py`, `pandera/backends/pyspark/register.py`, `pandera/accessors/pyspark_sql_accessor.py` (M-01); dedupe `type` in `PySparkDtypeInputTypes` (M-05); remove dead `try/except ImportError` in `supported_types()` (M-06)
+- [x] 09-01-PLAN.md — Production code fixes: guard `ColumnBackend.validate()` `.lazy()` with `_is_sql_lazy` (B-01); narrow three `except Exception:` guards to `except ImportError:` in `pandera/api/pyspark/types.py`, `pandera/backends/pyspark/register.py`, `pandera/accessors/pyspark_sql_accessor.py` (M-01); dedupe `type` in `PySparkDtypeInputTypes` (M-05); remove dead `try/except ImportError` in `supported_types()` (M-06)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
