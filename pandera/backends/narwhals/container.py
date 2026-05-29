@@ -7,14 +7,13 @@ import re
 import traceback
 import warnings
 from collections.abc import Callable
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any
 
 import narwhals.stable.v1 as nw
 
 from pandera.api.base.error_handler import get_error_category
 from pandera.api.narwhals.error_handler import ErrorHandler
 from pandera.api.narwhals.utils import (
-    _is_lazy,
     _is_sql_lazy,
     _materialize,
     _to_native,
@@ -39,7 +38,7 @@ from pandera.errors import (
     SchemaErrors,
 )
 from pandera.utils import is_regex
-from pandera.validation_depth import validate_scope, validation_type
+from pandera.validation_depth import validate_scope
 
 
 def _to_lazy_nw(check_obj) -> nw.LazyFrame:
