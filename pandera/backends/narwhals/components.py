@@ -10,7 +10,6 @@ import narwhals.stable.v1 as nw
 from pandera.api.base.error_handler import get_error_category
 from pandera.api.narwhals.error_handler import ErrorHandler
 from pandera.api.narwhals.utils import (
-    _is_lazy,
     _is_sql_lazy,
     _materialize,
     _to_native,
@@ -24,7 +23,6 @@ from pandera.errors import (
     SchemaError,
     SchemaErrorReason,
     SchemaErrors,
-    SchemaWarning,
 )
 from pandera.validation_depth import validate_scope
 
