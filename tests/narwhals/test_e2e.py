@@ -703,45 +703,6 @@ def test_ibis_lazy_failure_cases_is_ibis_table():
 # ===========================================================================
 
 
-@pytest.fixture(autouse=True, scope="function")
-def _spark_env_vars():
-    """Set environment variables required by PySpark before each test.
-
-    No-ops when pyspark is not installed so polars/ibis tests are unaffected.
-    """
-    if not HAS_PYSPARK:
-        yield
-        return  # noqa: return-after-yield needed to prevent fall-through
-    prev = {k: os.environ.get(k) for k in ("SPARK_LOCAL_IP", "PYARROW_IGNORE_TIMEZONE")}
-    os.environ["SPARK_LOCAL_IP"] = "127.0.0.1"
-    os.environ["PYARROW_IGNORE_TIMEZONE"] = "1"
-    yield
-    for k, v in prev.items():
-        if v is None:
-            os.environ.pop(k, None)
-        else:
-            os.environ[k] = v
-
-
-@pytest.fixture(scope="module")
-def spark():
-    """Create a SparkSession for the module, mirroring tests/pyspark/conftest.py."""
-    pytest.importorskip("pyspark")
-    import pyspark
-    from packaging import version
-
-    PYSPARK_VERSION = version.parse(pyspark.__version__)
-    builder = SparkSession.builder.config("spark.sql.ansi.enabled", False)
-    if PYSPARK_VERSION >= version.parse("4.0.0"):
-        builder = builder.config("spark.hadoop.fs.defaultFS", "file:///")
-        builder = builder.config(
-            "spark.sql.warehouse.dir", "file:///tmp/spark-warehouse"
-        )
-    spark_session = builder.getOrCreate()
-    yield spark_session
-    spark_session.stop()
-
-
 @pytest.fixture()
 def pyspark_df(spark):
     """Return a pyspark.sql.DataFrame with integer columns x and y."""
