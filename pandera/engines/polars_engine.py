@@ -1011,7 +1011,6 @@ class PydanticModel(DataType):
             return frame
 
         coerced_rows: list[dict[str, Any]] = []
-        failure_cases: list[str] = []
         row_passed: list[bool] = []
 
         for row in df.iter_rows(named=True):
@@ -1022,17 +1021,22 @@ class PydanticModel(DataType):
                     coerced = self.type.parse_obj(row).dict()
                 coerced_rows.append(coerced)
                 row_passed.append(True)
-            except ValidationError as exc:
-                failed_fields = {
-                    k: row.get(k, "<missing>")
-                    for k in (x["loc"][0] for x in exc.errors())
-                }
-                failure_cases.append(str(failed_fields))
+            except ValidationError:
                 coerced_rows.append(row)
                 row_passed.append(False)
 
-        if failure_cases:
+        # The input frame is no longer needed once every row has been read;
+        # drop it before rebuilding so its buffers don't coexist with the new
+        # frame.
+        del df
+
+        if not all(row_passed):
             check_output = pl.DataFrame({CHECK_OUTPUT_KEY: row_passed})
+            # Build from all coerced rows, then filter to the failing ones, so
+            # the failure_cases frame keeps every column it would otherwise
+            # have: model-output fields contributed by the successful rows
+            # (e.g. fields with defaults that are absent from the raw input)
+            # stay present rather than vanishing with a failed-rows-only build.
             fc_df = _build_frame(coerced_rows).filter(
                 pl.lit(pl.Series(row_passed)).not_()
             )

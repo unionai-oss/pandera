@@ -385,6 +385,37 @@ def test_pydantic_model_nullable_late_value_failure_path():
     assert failure_cases["xcoord"].to_list() == ["not-an-int"]
 
 
+def test_pydantic_model_failure_cases_preserves_model_output_columns():
+    """failure_cases must retain model-output columns contributed by the valid
+    rows even when those fields are absent from the raw input (e.g. fields with
+    defaults). Regression guard: building the failure frame from only the
+    failing rows would drop such columns."""
+
+    class Record(BaseModel):
+        xcoord: int
+        defaulted: str | None = None  # absent from the input frame
+
+    class RecordSchema(pa.DataFrameModel):
+        class Config:
+            dtype = PydanticModel(Record)
+            coerce = True
+            strict = False
+
+    # Input lacks the model's "defaulted" field; one valid row, one invalid.
+    df = pl.DataFrame(
+        {"xcoord": ["1", "not-an-int"]}, schema={"xcoord": pl.Utf8}
+    )
+
+    with pytest.raises(pa.errors.SchemaError) as exc_info:
+        RecordSchema.validate(df)
+
+    failure_cases = exc_info.value.failure_cases
+    # The valid row's model output establishes "defaulted"; it must survive
+    # into the failure frame rather than disappearing.
+    assert "defaulted" in failure_cases.columns
+    assert failure_cases["xcoord"].to_list() == ["not-an-int"]
+
+
 def test_pydantic_model_with_check_types():
     """Test PydanticModel with @check_types decorator."""
     from pandera.typing.polars import DataFrame as PolarsDataFrame
