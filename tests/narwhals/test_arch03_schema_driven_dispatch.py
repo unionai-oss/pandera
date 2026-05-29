@@ -78,10 +78,10 @@ def test_check_dtype_narwhals_schema_takes_narwhals_engine_path():
 @pyspark_only
 def test_check_dtype_pyspark_schema_pass(spark):
     """check_dtype with matching PySpark dtype passes (schema-driven dispatch)."""
-    import pyspark.sql.types as T
     from types import SimpleNamespace
 
     import narwhals.stable.v1 as nw
+    import pyspark.sql.types as T
 
     from pandera.backends.narwhals.components import ColumnBackend
     from pandera.engines import pyspark_engine
@@ -105,10 +105,10 @@ def test_check_dtype_pyspark_schema_pass(spark):
 @pyspark_only
 def test_check_dtype_pyspark_schema_fail(spark):
     """check_dtype with mismatched PySpark dtype fails (schema-driven dispatch)."""
-    import pyspark.sql.types as T
     from types import SimpleNamespace
 
     import narwhals.stable.v1 as nw
+    import pyspark.sql.types as T
 
     from pandera.backends.narwhals.components import ColumnBackend
     from pandera.engines import pyspark_engine

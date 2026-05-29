@@ -63,7 +63,7 @@ class ColumnBackend(NarwhalsSchemaBackend):
 
         # Wrap to Narwhals for uniform handling
         check_lf = nw.from_native(check_obj, eager_or_interchange_only=False)
-        if isinstance(check_lf, nw.DataFrame) and not _is_sql_lazy(check_lf):
+        if isinstance(check_lf, nw.DataFrame):
             check_lf = check_lf.lazy()
 
         error_handler = ErrorHandler(lazy)

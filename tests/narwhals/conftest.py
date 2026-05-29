@@ -111,7 +111,7 @@ def _spark_env_vars():
     """
     if not HAS_PYSPARK:
         yield
-        return  # noqa: return-after-yield needed to prevent fall-through
+        return  # return-after-yield needed to prevent fall-through
     prev = {k: os.environ.get(k) for k in ("SPARK_LOCAL_IP", "PYARROW_IGNORE_TIMEZONE")}
     os.environ["SPARK_LOCAL_IP"] = "127.0.0.1"
     os.environ["PYARROW_IGNORE_TIMEZONE"] = "1"
