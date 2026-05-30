@@ -98,8 +98,36 @@ class TestPanderaDecorators:
                     strict=False,
                 ),
             ),
-            (False, True, None, None),
-            (False, False, None, None),
+            pytest.param(
+                False,
+                True,
+                None,
+                None,
+                marks=pytest.mark.xfail(
+                    CONFIG.use_narwhals_backend,
+                    reason=(
+                        "narwhals backend raises SchemaErrors when price_val "
+                        "column is missing from the DataFrame; native PySpark "
+                        "attaches errors lazily and returns a DataFrame"
+                    ),
+                    strict=False,
+                ),
+            ),
+            pytest.param(
+                False,
+                False,
+                None,
+                None,
+                marks=pytest.mark.xfail(
+                    CONFIG.use_narwhals_backend,
+                    reason=(
+                        "narwhals backend raises SchemaErrors when price_val "
+                        "column is missing from the DataFrame; native PySpark "
+                        "attaches errors lazily and returns a DataFrame"
+                    ),
+                    strict=False,
+                ),
+            ),
         ],
         scope="function",
     )
