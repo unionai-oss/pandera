@@ -11,7 +11,7 @@ from pyspark.sql import DataFrame
 from pandera.config import CONFIG, PanderaConfig
 from pandera.pyspark import Column, DataFrameSchema
 from pandera.validation_depth import ValidationScope, validate_scope
-from tests.pyspark.conftest import spark_df
+from tests.pyspark.conftest import spark_df, validate_collecting_errors
 
 pytestmark = [
     pytest.mark.parametrize("spark_session", ["spark", "spark_connect"]),
@@ -70,11 +70,12 @@ class BaseClass:
             },
         )
         df_out = self.validate_datatype(df, pandera_schema)
-        if df_out.pandera.errors:
+        _, errors = validate_collecting_errors(pandera_schema, df)
+        if errors:
             if return_error:
-                return df_out.pandera.errors
+                return errors
             else:
-                print(df_out.pandera.errors)
+                print(errors)
                 assert False
 
 

@@ -221,7 +221,12 @@ def validate_collecting_errors(schema, df, **validate_kwargs):
         # Narwhals path: rebuild the same nested dict structure from the exception.
         handler = ErrorHandler(lazy=True)
         handler.collect_errors(exc.schema_errors)
-        schema_name = getattr(schema, "name", None)
+        # DataFrameModel is a class; DataFrameSchema is an instance.
+        # Use __name__ for classes (DataFrameModel subclasses) so the schema
+        # name in errors matches the class name (e.g. "PanderaSchema").
+        schema_name = getattr(schema, "name", None) or getattr(
+            schema, "__name__", None
+        )
         errors = handler.summarize(schema_name=schema_name)
         return (None, dict(errors))
 

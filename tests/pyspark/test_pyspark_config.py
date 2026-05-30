@@ -18,7 +18,7 @@ from pandera.pyspark import (
     DataFrameSchema,
     Field,
 )
-from tests.pyspark.conftest import _cmp_errors, spark_df
+from tests.pyspark.conftest import _cmp_errors, spark_df, validate_collecting_errors
 
 pytestmark = pytest.mark.parametrize(
     "spark_session", ["spark", "spark_connect"]
@@ -88,7 +88,7 @@ class TestPanderaConfig:
             validation_depth=ValidationDepth.SCHEMA_ONLY,
         ):
             assert asdict(get_config_context()) == expected
-            output_dataframeschema_df = pandera_schema.validate(input_df)
+            _, schema_errors = validate_collecting_errors(pandera_schema, input_df)
 
         expected_dataframeschema = {
             "SCHEMA": {
@@ -102,11 +102,9 @@ class TestPanderaConfig:
             }
         }
 
-        assert (
-            "DATA" not in dict(output_dataframeschema_df.pandera.errors).keys()
-        )
+        assert "DATA" not in dict(schema_errors).keys()
         _cmp_errors(
-            dict(output_dataframeschema_df.pandera.errors["SCHEMA"]),
+            dict(schema_errors["SCHEMA"]),
             expected_dataframeschema["SCHEMA"],
         )
 
@@ -120,7 +118,7 @@ class TestPanderaConfig:
             validation_enabled=True,
             validation_depth=ValidationDepth.SCHEMA_ONLY,
         ):
-            output_dataframemodel_df = TestSchema.validate(input_df)
+            _, model_errors = validate_collecting_errors(TestSchema, input_df)
 
         expected_dataframemodel = {
             "SCHEMA": {
@@ -134,11 +132,9 @@ class TestPanderaConfig:
             }
         }
 
-        assert (
-            "DATA" not in dict(output_dataframemodel_df.pandera.errors).keys()
-        )
+        assert "DATA" not in dict(model_errors).keys()
         _cmp_errors(
-            dict(output_dataframemodel_df.pandera.errors["SCHEMA"]),
+            dict(model_errors["SCHEMA"]),
             expected_dataframemodel["SCHEMA"],
         )
 
@@ -166,7 +162,7 @@ class TestPanderaConfig:
             validation_depth=ValidationDepth.DATA_ONLY,
         ):
             assert asdict(get_config_context()) == expected
-            output_dataframeschema_df = pandera_schema.validate(input_df)
+            _, schema_errors = validate_collecting_errors(pandera_schema, input_df)
 
         expected_dataframeschema = {
             "DATA": {
@@ -180,12 +176,9 @@ class TestPanderaConfig:
             }
         }
 
-        assert (
-            "SCHEMA"
-            not in dict(output_dataframeschema_df.pandera.errors).keys()
-        )
+        assert "SCHEMA" not in dict(schema_errors).keys()
         _cmp_errors(
-            dict(output_dataframeschema_df.pandera.errors["DATA"]),
+            dict(schema_errors["DATA"]),
             expected_dataframeschema["DATA"],
         )
 
@@ -199,7 +192,7 @@ class TestPanderaConfig:
             validation_enabled=True,
             validation_depth=ValidationDepth.DATA_ONLY,
         ):
-            output_dataframemodel_df = TestSchema.validate(input_df)
+            _, model_errors = validate_collecting_errors(TestSchema, input_df)
 
         expected_dataframemodel = {
             "DATA": {
@@ -213,12 +206,9 @@ class TestPanderaConfig:
             }
         }
 
-        assert (
-            "SCHEMA"
-            not in dict(output_dataframemodel_df.pandera.errors).keys()
-        )
+        assert "SCHEMA" not in dict(model_errors).keys()
         _cmp_errors(
-            dict(output_dataframemodel_df.pandera.errors["DATA"]),
+            dict(model_errors["DATA"]),
             expected_dataframemodel["DATA"],
         )
 
@@ -250,7 +240,7 @@ class TestPanderaConfig:
             validation_depth=ValidationDepth.SCHEMA_AND_DATA,
         ):
             assert asdict(get_config_context()) == expected
-            output_dataframeschema_df = pandera_schema.validate(input_df)
+            _, schema_errors = validate_collecting_errors(pandera_schema, input_df)
 
         expected_dataframeschema = {
             "DATA": {
@@ -274,11 +264,11 @@ class TestPanderaConfig:
         }
 
         _cmp_errors(
-            dict(output_dataframeschema_df.pandera.errors["DATA"]),
+            dict(schema_errors["DATA"]),
             expected_dataframeschema["DATA"],
         )
         _cmp_errors(
-            dict(output_dataframeschema_df.pandera.errors["SCHEMA"]),
+            dict(schema_errors["SCHEMA"]),
             expected_dataframeschema["SCHEMA"],
         )
 
@@ -292,7 +282,7 @@ class TestPanderaConfig:
             validation_enabled=True,
             validation_depth=ValidationDepth.SCHEMA_AND_DATA,
         ):
-            output_dataframemodel_df = TestSchema.validate(input_df)
+            _, model_errors = validate_collecting_errors(TestSchema, input_df)
 
         expected_dataframemodel = {
             "DATA": {
@@ -316,11 +306,11 @@ class TestPanderaConfig:
         }
 
         _cmp_errors(
-            dict(output_dataframemodel_df.pandera.errors["DATA"]),
+            dict(model_errors["DATA"]),
             expected_dataframemodel["DATA"],
         )
         _cmp_errors(
-            dict(output_dataframemodel_df.pandera.errors["SCHEMA"]),
+            dict(model_errors["SCHEMA"]),
             expected_dataframemodel["SCHEMA"],
         )
 

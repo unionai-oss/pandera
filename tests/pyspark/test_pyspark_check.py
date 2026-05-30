@@ -30,6 +30,7 @@ from pandera.config import CONFIG
 from pandera.errors import PysparkSchemaError
 from pandera.pyspark import Column, DataFrameModel, DataFrameSchema, Field
 from pandera.validation_depth import ValidationScope, validate_scope
+from tests.pyspark.conftest import validate_collecting_errors
 
 pytestmark = pytest.mark.parametrize(
     "spark_session", ["spark", "spark_connect"]
@@ -108,7 +109,7 @@ class TestDecorator:
         )
         fail_case_data = [["foo", 1], ["bar", 2]]
         df = spark.createDataFrame(data=fail_case_data, schema=spark_schema)
-        df_out = schema.validate(df)
+        _, errors = validate_collecting_errors(schema, df)
         expected = {
             "DATA": {
                 "CHECK_ERROR": [
@@ -141,8 +142,8 @@ class TestDecorator:
                 ]
             },
         }
-        assert dict(df_out.pandera.errors["DATA"]) == expected["DATA"]
-        assert dict(df_out.pandera.errors["SCHEMA"]) == expected["SCHEMA"]
+        assert dict(errors["DATA"]) == expected["DATA"]
+        assert dict(errors["SCHEMA"]) == expected["SCHEMA"]
 
         df = spark.createDataFrame(data=fail_case_data, schema=spark_schema)
         try:
@@ -281,17 +282,17 @@ class BaseClass:
             ],
         )
         df = spark.createDataFrame(data=pass_case_data, schema=spark_schema)
-        df_out = schema.validate(df)
-        if df_out.pandera.errors:
-            print(df_out.pandera.errors)
+        _, errors = validate_collecting_errors(schema, df)
+        if errors:
+            print(errors)
             raise PysparkSchemaError
 
         with pytest.raises(PysparkSchemaError):
             df_fail = spark.createDataFrame(
                 data=fail_case_data, schema=spark_schema
             )
-            df_out = schema.validate(df_fail)
-            if df_out.pandera.errors:
+            _, fail_errors = validate_collecting_errors(schema, df_fail)
+            if fail_errors:
                 raise PysparkSchemaError
 
 
@@ -1611,8 +1612,8 @@ class TestStringType(BaseClass):
         # Pass case: strings starting with 2-3 uppercase letters followed by digits
         pass_data = [("foo", "AB123"), ("bar", "XYZ99")]
         df = spark.createDataFrame(data=pass_data, schema=spark_schema)
-        df_out = schema.validate(df)
-        assert not df_out.pandera.errors
+        _, errors = validate_collecting_errors(schema, df)
+        assert errors == {}
 
         # Fail case: "ab123" starts with lowercase
         fail_data = [("foo", "ab123"), ("bar", "XYZ99")]
@@ -1620,8 +1621,8 @@ class TestStringType(BaseClass):
             df_fail = spark.createDataFrame(
                 data=fail_data, schema=spark_schema
             )
-            df_out = schema.validate(df_fail)
-            if df_out.pandera.errors:
+            _, fail_errors = validate_collecting_errors(schema, df_fail)
+            if fail_errors:
                 raise PysparkSchemaError
 
 
@@ -1645,16 +1646,16 @@ def test_str_length_check_with_pyspark_schemas(spark_session, request) -> None:
         data=[("a" * 32,), ("b" * 32,)],
         schema=spark_schema,
     )
-    df_out = schema.validate(df)
-    assert not df_out.pandera.errors
+    _, errors = validate_collecting_errors(schema, df)
+    assert errors == {}
 
     df = spark.createDataFrame(
         data=[("a" * 31,), ("b" * 32,)],
         schema=spark_schema,
     )
-    df_out = schema.validate(df)
+    _, errors = validate_collecting_errors(schema, df)
     assert (
-        dict(df_out.pandera.errors)["DATA"]["DATAFRAME_CHECK"][0]["check"]
+        dict(errors)["DATA"]["DATAFRAME_CHECK"][0]["check"]
         == "str_length(32)"
     )
 
@@ -1677,13 +1678,13 @@ def test_field_str_length_with_pyspark_schema_fields(
     )
 
     df = spark.createDataFrame(data=[("a",), ("bb",)], schema=spark_schema)
-    df_out = ProductSchema.validate(df)
-    assert not df_out.pandera.errors
+    _, errors = validate_collecting_errors(ProductSchema, df)
+    assert errors == {}
 
     df = spark.createDataFrame(data=[("bbb",)], schema=spark_schema)
-    df_out = ProductSchema.validate(df)
+    _, errors = validate_collecting_errors(ProductSchema, df)
     assert (
-        dict(df_out.pandera.errors)["DATA"]["DATAFRAME_CHECK"][0]["check"]
+        dict(errors)["DATA"]["DATAFRAME_CHECK"][0]["check"]
         == "str_length(1, 2)"
     )
 
@@ -1903,17 +1904,17 @@ class TestCustomCheck(BaseClass):
             ],
         )
         df = spark.createDataFrame(data=pass_case_data, schema=spark_schema)
-        df_out = schema.validate(df)
-        if df_out.pandera.errors:
-            print(df_out.pandera.errors)
+        _, errors = validate_collecting_errors(schema, df)
+        if errors:
+            print(errors)
             raise PysparkSchemaError
 
         with pytest.raises(PysparkSchemaError):
             df_fail = spark.createDataFrame(
                 data=fail_case_data, schema=spark_schema
             )
-            df_out = schema.validate(df_fail)
-            if df_out.pandera.errors:
+            _, fail_errors = validate_collecting_errors(schema, df_fail)
+            if fail_errors:
                 raise PysparkSchemaError
 
     @pytest.mark.xfail(
