@@ -61,6 +61,7 @@ try:
     from pyspark.sql import SparkSession
 
     import pandera.pyspark as pa_pyspark
+    from tests.pyspark.conftest import validate_collecting_errors
 
     HAS_PYSPARK = True
 except ImportError:
@@ -743,12 +744,12 @@ def test_pyspark_dataframe_returns_pyspark_dataframe(pyspark_df):
 
 @pyspark_only
 def test_pyspark_builtin_check_passes(pyspark_df):
-    """Check.greater_than(0) on all-positive ints leaves pandera.errors == {}."""
+    """Check.greater_than(0) on all-positive ints produces no errors."""
     schema = pa_pyspark.DataFrameSchema(
         {"x": pa_pyspark.Column("int", pa_pyspark.Check.greater_than(0))}
     )
-    df_out = schema.validate(pyspark_df)
-    assert df_out.pandera.errors == {}
+    _, errors = validate_collecting_errors(schema, pyspark_df)
+    assert errors == {}
 
 
 @pyspark_only
@@ -758,8 +759,8 @@ def test_pyspark_builtin_check_fails(spark):
     schema = pa_pyspark.DataFrameSchema(
         {"x": pa_pyspark.Column("int", pa_pyspark.Check.greater_than(0))}
     )
-    df_out = schema.validate(df_fail)
-    data_errors = dict(df_out.pandera.errors["DATA"])
+    _, errors = validate_collecting_errors(schema, df_fail)
+    data_errors = dict(errors["DATA"])
     check_errors = data_errors["DATAFRAME_CHECK"]
     assert len(check_errors) > 0
     first_error = check_errors[0]
@@ -780,8 +781,8 @@ def test_pyspark_nullable_false_fails(spark):
     schema = pa_pyspark.DataFrameSchema(
         {"x": pa_pyspark.Column("int", nullable=False)}
     )
-    df_out = schema.validate(df_with_null)
-    assert df_out.pandera.errors != {}
+    _, errors = validate_collecting_errors(schema, df_with_null)
+    assert errors != {}
 
 
 @pyspark_only
@@ -792,5 +793,5 @@ def test_pyspark_unique_constraint_fails(spark):
         {"x": pa_pyspark.Column("int")},
         unique="x",
     )
-    df_out = schema.validate(df_with_dupes)
-    assert df_out.pandera.errors != {}
+    _, errors = validate_collecting_errors(schema, df_with_dupes)
+    assert errors != {}

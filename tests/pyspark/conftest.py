@@ -9,7 +9,9 @@ import pytest
 from packaging import version
 from pyspark.sql import SparkSession
 
-from pandera.config import PanderaConfig
+from pandera.api.base.error_handler import ErrorHandler
+from pandera.config import CONFIG, PanderaConfig
+from pandera.errors import SchemaErrors
 
 PYSPARK_VERSION = version.parse(pyspark.__version__)
 
@@ -189,6 +191,39 @@ def sample_check_data():
 def config_params():
     """This function creates config parameters"""
     return PanderaConfig()
+
+
+def validate_collecting_errors(schema, df, **validate_kwargs):
+    """Backend-aware validation helper that returns ``(out_df, errors_dict)``.
+
+    Abstracts the difference between:
+    - Native PySpark backend: validation attaches errors to ``df.pandera.errors``
+      and returns the DataFrame.
+    - Narwhals backend (``CONFIG.use_narwhals_backend=True``): validation raises
+      ``pandera.errors.SchemaErrors`` on failure.
+
+    :param schema: A ``DataFrameSchema`` or ``DataFrameModel`` with a
+        ``.validate()`` method.
+    :param df: The PySpark DataFrame to validate.
+    :param validate_kwargs: Additional keyword arguments forwarded to
+        ``schema.validate()``.
+    :returns: A ``(out_df, errors_dict)`` tuple where ``errors_dict`` is a
+        ``dict`` with ``"SCHEMA"`` and/or ``"DATA"`` keys (same format as
+        ``df.pandera.errors`` under the native backend).  On success the dict
+        is empty (``{}``).  On narwhals-backend failure ``out_df`` is ``None``;
+        on native-backend failure ``out_df`` is the annotated DataFrame.
+    """
+    try:
+        out_df = schema.validate(df, **validate_kwargs)
+        errors = out_df.pandera.errors
+        return (out_df, dict(errors) if errors is not None else {})
+    except SchemaErrors as exc:
+        # Narwhals path: rebuild the same nested dict structure from the exception.
+        handler = ErrorHandler(lazy=True)
+        handler.collect_errors(exc.schema_errors)
+        schema_name = getattr(schema, "name", None)
+        errors = handler.summarize(schema_name=schema_name)
+        return (None, dict(errors))
 
 
 def _cmp_errors(actual, expected):

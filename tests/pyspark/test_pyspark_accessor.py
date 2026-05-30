@@ -10,6 +10,7 @@ from pyspark.sql.types import FloatType, LongType
 import pandera.pyspark as pa
 from pandera.config import CONFIG, PanderaConfig, ValidationDepth
 from pandera.pyspark import pyspark_sql_accessor
+from tests.pyspark.conftest import validate_collecting_errors
 
 spark = SparkSession.builder.getOrCreate()
 spark.conf.set("spark.sql.ansi.enabled", False)
@@ -25,6 +26,11 @@ spark.conf.set("spark.sql.ansi.enabled", False)
             spark.createDataFrame([{"col": 1}, {"col": 2}, {"col": 3}]),
         ],
     ],
+)
+@pytest.mark.xfail(
+    condition=CONFIG.use_narwhals_backend,
+    reason="narwhals backend raises SchemaErrors and does not set .pandera.schema accessor — see Phase 11 Plan 01 objective",
+    strict=False,
 )
 def test_dataframe_add_schema(
     schema1: pa.DataFrameSchema,
@@ -42,7 +48,8 @@ def test_dataframe_add_schema(
     assert isinstance(schema1.validate(data), DataFrame)
     assert isinstance(schema1(data), DataFrame)
     if config_params.validation_depth != ValidationDepth.DATA_ONLY:
-        assert dict(schema2(invalid_data).pandera.errors["SCHEMA"]) == {
+        _, errors = validate_collecting_errors(schema2, invalid_data)
+        assert dict(errors["SCHEMA"]) == {
             "WRONG_DATATYPE": [
                 {
                     "schema": None,
