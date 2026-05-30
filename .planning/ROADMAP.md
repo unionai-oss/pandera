@@ -262,7 +262,7 @@ Plans:
 - `HAS_PYSPARK` guard in `tests/narwhals/conftest.py` — appropriate given PySpark's JVM dependency; unlike pure-Python Polars/Ibis, PySpark may fail at import if Java is absent
 - Deeper `_concat_failure_cases` unification — `pl.DataFrame` items are intentional (from `_build_scalar_failure_case` / `_build_eager_failure_case` on the eager Polars path); unifying to pure Narwhals requires a larger refactor
 
-**Plans:** 2/3 plans executed
+**Plans:** 3/3 plans complete
 Plans:
 **Wave 1**
 
@@ -274,7 +274,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 11-03-PLAN.md — Documentation and capitalization fixes: pyspark_sql.md SchemaErrors note + simplified install, supported_libraries.md 0.32.0 version, NIT-01 proper-noun capitalization, NIT-04 ibis container comment removal (SE-03, NIT-01, NIT-02, NIT-03, NIT-04)
+- [x] 11-03-PLAN.md — Documentation and capitalization fixes: pyspark_sql.md SchemaErrors note + simplified install, supported_libraries.md 0.32.0 version, NIT-01 proper-noun capitalization, NIT-04 ibis container comment removal (SE-03, NIT-01, NIT-02, NIT-03, NIT-04)
 
 ## Backlog
 
