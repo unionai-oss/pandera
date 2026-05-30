@@ -45,7 +45,7 @@ backend:
 - **`coerce=True` is a no-op.** The Narwhals `ColumnBackend` has no coercion
   step, so setting `coerce=True` (on `Field`, `Column`, or `Config`) silently
   performs no coercion and raises no error. This matches the contract of the
-  Polars narwhals backend. If you rely on `coerce=True` to convert column
+  Polars Narwhals backend. If you rely on `coerce=True` to convert column
   dtypes, use the native PySpark backend (`PANDERA_USE_NARWHALS_BACKEND=False`).
 - **Custom checks using `PysparkDataframeColumnObject` are incompatible.**
   Custom checks registered via `@register_check_method` that expect a
@@ -54,15 +54,16 @@ backend:
   named tuple to check functions instead, so the custom check signature and
   body must be rewritten against the Narwhals frame API (or kept on the
   native backend).
-- **Error reporting uses `df.pandera.errors`, not `SchemaErrors`.** Even with
-  `lazy=True`, the Narwhals backend for PySpark attaches errors to
-  `df.pandera.errors` on the returned DataFrame instead of raising
-  `SchemaErrors`. This matches the native PySpark backend contract (see
-  "What's different?" below) and differs from the Polars and Ibis narwhals
-  backends, which raise `SchemaErrors` when `lazy=True`.
+- **Unified `SchemaErrors` contract.** Like the Polars and Ibis Narwhals
+  backends, the PySpark Narwhals backend raises `pandera.errors.SchemaErrors`
+  on validation failure (or `SchemaError` for the first error when
+  `lazy=False`). This differs from the native PySpark backend, which attaches
+  errors to `dataframe.pandera.errors`. If you depend on the
+  `dataframe.pandera.errors` accessor, use the native PySpark backend
+  (`PANDERA_USE_NARWHALS_BACKEND=False`).
 
 ```bash
-pip install 'pandera[pyspark,narwhals]' pyspark
+pip install 'pandera[pyspark,narwhals]'
 export PANDERA_USE_NARWHALS_BACKEND=True
 ```
 :::
