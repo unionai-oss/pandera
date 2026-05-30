@@ -386,8 +386,6 @@ def test_validate_calls_handle_pyspark_validation_result():
     Behavior 6: source inspection confirms the two former inline is_pyspark blocks
     are replaced by method calls — no assignment to check_obj.pandera.errors in validate().
     """
-    import inspect
-
     from pandera.backends.narwhals.container import DataFrameSchemaBackend
 
     src = inspect.getsource(DataFrameSchemaBackend.validate)
@@ -398,4 +396,44 @@ def test_validate_calls_handle_pyspark_validation_result():
     assert "check_obj.pandera.errors" not in src, (
         "validate() must not directly assign check_obj.pandera.errors; "
         "use _handle_pyspark_validation_result instead"
+    )
+
+
+# ---------------------------------------------------------------------------
+# SE-01 / Task 11-01-01
+# DataFrameSchemaBackend.validate() must have no is_pyspark branch or
+# _handle_pyspark_validation_result method (SE-01 regression guard)
+# ---------------------------------------------------------------------------
+
+
+def test_validate_has_no_is_pyspark_branch_after_se01():
+    """validate() source must not contain is_pyspark or _handle_pyspark_validation_result.
+
+    SE-01 regression guard: the PySpark Narwhals backend must use the unified
+    SchemaErrors path, not the accessor-protocol branch.
+    """
+    from pandera.backends.narwhals.container import DataFrameSchemaBackend
+
+    src = inspect.getsource(DataFrameSchemaBackend.validate)
+    assert "is_pyspark" not in src, (
+        "validate() must not contain 'is_pyspark' — SE-01 alignment requires unified SchemaErrors path"
+    )
+    assert "_handle_pyspark_validation_result" not in src, (
+        "validate() must not reference '_handle_pyspark_validation_result' — method was deleted in SE-01"
+    )
+    assert "raise SchemaErrors(" in src, (
+        "validate() must contain 'raise SchemaErrors(' — PySpark path must use unified error path"
+    )
+
+
+def test_validate_no_handle_pyspark_method_after_se01():
+    """DataFrameSchemaBackend must not have a _handle_pyspark_validation_result attribute.
+
+    SE-01 regression guard: the method was deleted to unify PySpark Narwhals
+    with the Polars/Ibis Narwhals error-raising contract.
+    """
+    from pandera.backends.narwhals.container import DataFrameSchemaBackend
+
+    assert not hasattr(DataFrameSchemaBackend, "_handle_pyspark_validation_result"), (
+        "DataFrameSchemaBackend must NOT have _handle_pyspark_validation_result after SE-01 removal"
     )
