@@ -32,13 +32,8 @@ def test_validate_collecting_errors_returns_tuple():
 
 def test_validate_collecting_errors_no_inline_pandera_errors_in_container():
     """test_pyspark_container.py must not use .pandera.errors inline (outside comments)."""
-    import re
-
-    container_path = (
-        __file__.replace("tests/narwhals/test_phase02_validate_helper.py", "")
-        + "tests/pyspark/test_pyspark_container.py"
-    )
     import os
+    import re
 
     container_path = os.path.join(
         os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
@@ -56,5 +51,40 @@ def test_validate_collecting_errors_no_inline_pandera_errors_in_container():
     ]
     assert inline_sites == [], (
         f"Found inline .pandera.errors in test_pyspark_container.py at lines: "
+        f"{[ln for ln, _ in inline_sites]}"
+    )
+
+
+@pytest.mark.parametrize(
+    "filename",
+    [
+        "test_pyspark_model.py",
+        "test_pyspark_check.py",
+        "test_pyspark_error.py",
+        "test_pyspark_config.py",
+        "test_pyspark_dtypes.py",
+    ],
+)
+def test_no_inline_pandera_errors_in_pyspark_test_files(filename):
+    """Remaining PySpark test files must not use .pandera.errors inline."""
+    import os
+    import re
+
+    path = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
+        "tests",
+        "pyspark",
+        filename,
+    )
+    with open(path) as f:
+        lines = f.readlines()
+
+    inline_sites = [
+        (i + 1, line.rstrip())
+        for i, line in enumerate(lines)
+        if re.search(r"\.pandera\.errors\b", line) and not line.lstrip().startswith("#")
+    ]
+    assert inline_sites == [], (
+        f"Found inline .pandera.errors in {filename} at lines: "
         f"{[ln for ln, _ in inline_sites]}"
     )
