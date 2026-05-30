@@ -43,18 +43,18 @@ def _concat_failure_cases(items: list) -> Any:
 
     Items are one of:
     - ``nw.DataFrame`` / ``nw.LazyFrame`` — from ``_build_lazy_failure_case``
-      (polars LazyFrame, ibis, PySpark). Dispatch on ``item.implementation``.
+      (Polars LazyFrame, Ibis, PySpark). Dispatch on ``item.implementation``.
     - ``pl.DataFrame`` — from ``_build_eager_failure_case`` and
-      ``_build_scalar_failure_case`` (eager polars path).
+      ``_build_scalar_failure_case`` (eager Polars path).
 
-    For PySpark-backed narwhals frames: unwrap to native PySpark DataFrames
+    For PySpark-backed Narwhals frames: unwrap to native PySpark DataFrames
     and union via ``pyspark.sql.DataFrame.union()``. Scalar ``pl.DataFrame``
     items from ``_build_scalar_failure_case`` cannot be converted to PySpark
     without a SparkSession — they are skipped for the PySpark path and a
     ``SchemaWarning`` is emitted naming the affected columns.
-    For ibis-backed narwhals frames: unwrap to native ibis Tables and union
+    For Ibis-backed Narwhals frames: unwrap to native ibis Tables and union
     via ``ibis.Table.union()``.
-    For polars-backed narwhals LazyFrame: stays lazy when only narwhals items
+    For Polars-backed Narwhals LazyFrame: stays lazy when only narwhals items
     are present; collects and merges eager ``pl.DataFrame`` items (from
     ``_build_eager_failure_case`` / ``_build_scalar_failure_case``) when both
     are present — both sources can coexist in a single polars validation run.
@@ -64,7 +64,7 @@ def _concat_failure_cases(items: list) -> Any:
     if not items:
         return pl.DataFrame() if pl is not None else None
 
-    # Separate narwhals-wrapped items from native polars items
+    # Separate Narwhals-wrapped items from native Polars items
     nw_items = [
         item for item in items if isinstance(item, (nw.DataFrame, nw.LazyFrame))
     ]
@@ -81,7 +81,7 @@ def _concat_failure_cases(items: list) -> Any:
             nw.Implementation.PYSPARK_CONNECT,
         ):
             # PySpark path: unwrap to native PySpark DataFrames and union.
-            # Scalar polars items (from _build_scalar_failure_case) cannot be
+            # Scalar Polars items (from _build_scalar_failure_case) cannot be
             # converted to PySpark without a SparkSession — they are skipped,
             # but a SchemaWarning is emitted so users know about the loss.
             if pl_items:
@@ -93,7 +93,7 @@ def _concat_failure_cases(items: list) -> Any:
                     "Some schema-level failure cases (columns: "
                     + repr(dropped_info)
                     + ") could not be included in the PySpark failure_cases "
-                    "output because scalar polars frames cannot be converted "
+                    "output because scalar Polars frames cannot be converted "
                     "to PySpark without a SparkSession. These schema errors "
                     "are still reported in df.pandera.errors but their "
                     "failure_cases rows are omitted from the combined frame. "
@@ -121,11 +121,11 @@ def _concat_failure_cases(items: list) -> Any:
                 return pl.concat([lazy_result.collect()] + pl_items)
             return lazy_result
         else:
-            # SQL-lazy path (ibis, DuckDB, etc.): unwrap to native and union.
+            # SQL-lazy path (Ibis, DuckDB, etc.): unwrap to native and union.
             native_items = [nw.to_native(item) for item in nw_items]
             return functools.reduce(lambda a, b: a.union(b), native_items)
 
-    # All-polars path: pl.DataFrame items from eager/scalar builders
+    # All-Polars path: pl.DataFrame items from eager/scalar builders
     return pl.concat(pl_items) if pl is not None else None
 
 

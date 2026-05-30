@@ -182,7 +182,6 @@ class DataFrameSchemaBackend(IbisSchemaBackend):
         for schema_component in schema_components:
             try:
                 schema_component.validate(check_obj, lazy=lazy)
-                # The component validate() not raising is the success signal.
             except SchemaError as err:
                 check_results.append(
                     CoreCheckResult(

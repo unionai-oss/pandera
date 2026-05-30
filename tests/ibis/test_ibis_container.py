@@ -197,7 +197,7 @@ def test_unique_column_names():
 
 @pytest.mark.xfail(
     condition=CONFIG.use_narwhals_backend,
-    reason="Error message format differs: 'not in dataframe' (narwhals backend) vs 'not found' (native ibis backend)",
+    reason="Error message format differs: 'not in dataframe' (Narwhals backend) vs 'not found' (native Ibis backend)",
     strict=True,
 )
 def test_column_absent_error(t_basic, t_schema_basic):

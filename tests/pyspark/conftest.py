@@ -234,7 +234,7 @@ def validate_collecting_errors(schema, df, **validate_kwargs):
 def _cmp_errors(actual, expected):
     """Compare pandera error dicts ignoring the exact error message text.
 
-    Error message format varies by backend (narwhals vs native PySpark),
+    Error message format varies by backend (Narwhals vs native PySpark),
     so only structural fields (check, column, schema) are compared.
     """
 
