@@ -318,3 +318,33 @@ def test_validate_no_handle_pyspark_method_after_se01():
     assert not hasattr(DataFrameSchemaBackend, "_handle_pyspark_validation_result"), (
         "DataFrameSchemaBackend must NOT have _handle_pyspark_validation_result after SE-01 removal"
     )
+
+
+# ---------------------------------------------------------------------------
+# DC-01 / Task 11-01-02
+# _materialize() in pandera/api/narwhals/utils.py must have no PySpark-specific
+# code (DC-01 regression guard)
+# ---------------------------------------------------------------------------
+
+
+def test_materialize_has_no_pyspark_branch_after_dc01():
+    """_materialize() function body must not reference PYSPARK, pyarrow, or .first().
+
+    DC-01 regression guard: the dead PySpark branch in _materialize() was
+    removed. Only the LazyFrame.collect() path and the SQL-lazy execute()
+    path remain. Note: this test inspects only the _materialize function
+    source, not the whole module, so _SQL_LAZY_IMPLEMENTATIONS frozenset
+    entries do not cause false positives.
+    """
+    from pandera.api.narwhals.utils import _materialize
+
+    src = inspect.getsource(_materialize)
+    assert "PYSPARK" not in src, (
+        "_materialize() must not reference PYSPARK — DC-01 removed dead PySpark branch"
+    )
+    assert "pyarrow" not in src, (
+        "_materialize() must not import or reference pyarrow — DC-01 removed dead PySpark branch"
+    )
+    assert ".first()" not in src, (
+        "_materialize() must not call .first() — DC-01 removed dead PySpark branch"
+    )
