@@ -3,14 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: Narwhals Backend for PySpark
 status: executing
-stopped_at: Phase 08 context gathered
-last_updated: "2026-05-29T23:08:01.062Z"
+last_updated: "2026-05-30T17:54:46.659Z"
 progress:
-  total_phases: 13
-  completed_phases: 10
-  total_plans: 23
-  completed_plans: 23
-  percent: 77
+  total_phases: 15
+  completed_phases: 13
+  total_plans: 37
+  completed_plans: 34
+  percent: 87
 ---
 
 # Project State
@@ -27,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-05-24 after extending v1.3 with PR revie
 Phase: 999.3
 Plan: Not started
 Milestone: v1.3 Narwhals Backend for PySpark — IN PROGRESS (Phases 1-3 complete, 4-6 remaining before merge)
-Status: Executing Phase 10
+Status: Ready to execute
 
 Progress: [█████░░░░░] 50%
 
@@ -45,6 +44,7 @@ Progress: [█████░░░░░] 50%
 - Phase 8 added: Test Quality Improvements — _cmp_errors in test_pyspark_error, _concat_failure_cases pl_items polars branch, replace source-inspection tests, nw.DataFrame registration comment
 - Phase 9 added: Round 2 PR Review Fixes
 - Phase 10 added: Round-3 PR Review Fixes — documentation and code-comment fixes from PR review 4393093479 (M1/M2/M3 opt-in note expansions, L1/L2 code comments)
+- Phase 11 added: Round-4 PR Review Fixes: SchemaErrors alignment, dead _materialize branch removal, docs/nits
 
 ### Decisions
 

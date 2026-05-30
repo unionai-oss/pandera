@@ -242,6 +242,40 @@ Plans:
 - [x] 10-01-PLAN.md — Expand narwhals opt-in note in docs/source/pyspark_sql.md with three behavioral-difference bullets: coerce=True no-op, PysparkDataframeColumnObject incompatibility, df.pandera.errors vs SchemaErrors under lazy=True (DOC-M1, DOC-M2, DOC-M3)
 - [x] 10-02-PLAN.md — Add accessor-protocol rationale comments to is_pyspark dispatch sites in pandera/backends/narwhals/container.py and dead-code clarification to _materialize() PySpark nw.DataFrame branch in pandera/api/narwhals/utils.py (COMMENT-L1, COMMENT-L2)
 
+### Phase 11: Round-4 PR Review Fixes
+
+**Goal:** Address all actionable findings from PR review #4395365611 (deepyaman, 2026-05-30): align the PySpark Narwhals backend to raise `SchemaErrors` like Polars/Ibis Narwhals backends (removing the `is_pyspark` accessor protocol), remove dead PySpark `nw.DataFrame` fallback in `_materialize()`, update PySpark tests to handle `SchemaErrors` for the narwhals path, and fix capitalization/documentation nits throughout.
+**Requirements:** SE-01, SE-02, SE-03, DC-01, NIT-01, NIT-02, NIT-03, NIT-04, NIT-05
+**Depends on:** Phase 10
+**Success Criteria** (what must be TRUE):
+
+  1. `DataFrameSchemaBackend.validate()` in `pandera/backends/narwhals/container.py` has no `is_pyspark` branch — PySpark Narwhals backend raises `SchemaErrors` on validation failure like Polars/Ibis (SE-01)
+  2. `_handle_pyspark_validation_result` method is removed from `DataFrameSchemaBackend` (SE-01)
+  3. `pandera/api/narwhals/utils.py` `_materialize()` has no `nw.Implementation.PYSPARK` check — dead branch removed (DC-01)
+  4. `tests/pyspark/` tests that run with `PANDERA_USE_NARWHALS_BACKEND=True` use `pytest.raises(SchemaErrors)` or equivalent instead of `df.pandera.errors` (SE-02)
+  5. `docs/source/pyspark_sql.md` narwhals note updated to reflect `SchemaErrors` behavior (removes `df.pandera.errors` bullet, SE-03); install command simplified to `pip install 'pandera[pyspark,narwhals]'` (NIT-03)
+  6. Version reference in `docs/source/supported_libraries.md` updated from `0.26.0` to `0.32.0` (NIT-02); proper nouns capitalized (Narwhals, Ibis, Polars) in all changed comments/docs/tests (NIT-01); unnecessary comment removed from `pandera/backends/ibis/container.py` (NIT-04); inner imports hoisted in narwhals test files (NIT-05)
+
+**Deferred (not in scope):**
+
+- `uses_pyspark_dtype` in `check_dtype` (`pandera/backends/narwhals/components.py`) — necessary for users with PySpark dtype objects in schemas; removing is a breaking change requiring a migration guide
+- `HAS_PYSPARK` guard in `tests/narwhals/conftest.py` — appropriate given PySpark's JVM dependency; unlike pure-Python Polars/Ibis, PySpark may fail at import if Java is absent
+- Deeper `_concat_failure_cases` unification — `pl.DataFrame` items are intentional (from `_build_scalar_failure_case` / `_build_eager_failure_case` on the eager Polars path); unifying to pure Narwhals requires a larger refactor
+
+**Plans:** 3 plans
+Plans:
+**Wave 1**
+
+- [ ] 11-01-PLAN.md — Remove is_pyspark dispatch + _handle_pyspark_validation_result from narwhals container; delete dead PYSPARK branch in _materialize(); update ARCH-04 tests (SE-01, DC-01, NIT-05)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [ ] 11-02-PLAN.md — Add validate_collecting_errors helper to tests/pyspark/conftest.py; update all .pandera.errors assertions across 7 pyspark test files + test_e2e.py (SE-02)
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
+- [ ] 11-03-PLAN.md — Documentation and capitalization fixes: pyspark_sql.md SchemaErrors note + simplified install, supported_libraries.md 0.32.0 version, NIT-01 proper-noun capitalization, NIT-04 ibis container comment removal (SE-03, NIT-01, NIT-02, NIT-03, NIT-04)
+
 ## Backlog
 
 ### Phase 999.3: Define PySparkData wrapper for native=True checks (BACKLOG)
