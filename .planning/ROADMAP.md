@@ -262,11 +262,11 @@ Plans:
 - `HAS_PYSPARK` guard in `tests/narwhals/conftest.py` — appropriate given PySpark's JVM dependency; unlike pure-Python Polars/Ibis, PySpark may fail at import if Java is absent
 - Deeper `_concat_failure_cases` unification — `pl.DataFrame` items are intentional (from `_build_scalar_failure_case` / `_build_eager_failure_case` on the eager Polars path); unifying to pure Narwhals requires a larger refactor
 
-**Plans:** 3 plans
+**Plans:** 1/3 plans executed
 Plans:
 **Wave 1**
 
-- [ ] 11-01-PLAN.md — Remove is_pyspark dispatch + _handle_pyspark_validation_result from narwhals container; delete dead PYSPARK branch in _materialize(); update ARCH-04 tests (SE-01, DC-01, NIT-05)
+- [x] 11-01-PLAN.md — Remove is_pyspark dispatch + _handle_pyspark_validation_result from narwhals container; delete dead PYSPARK branch in _materialize(); update ARCH-04 tests (SE-01, DC-01, NIT-05)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
