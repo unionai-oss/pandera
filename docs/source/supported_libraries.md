@@ -28,7 +28,7 @@ Pandera supports validation of the following DataFrame libraries:
 :::
 
 :::{note}
-*new in 0.26.0* &mdash; Pandera ships an optional
+*new in 0.32.0* &mdash; Pandera ships an optional
 [Narwhals](https://narwhals-dev.github.io/narwhals/)-powered backend that
 unifies the Polars, Ibis, and PySpark SQL validation paths behind a single implementation.
 It is **opt-in**: set the `PANDERA_USE_NARWHALS_BACKEND=True` environment
@@ -122,7 +122,7 @@ Fugue <fugue>
 
 ## Narwhals-powered backends
 
-As of *0.26.0*, Pandera ships an optional
+As of *0.32.0*, Pandera ships an optional
 [Narwhals](https://narwhals-dev.github.io/narwhals/)-based validation
 backend that powers the {ref}`Polars <polars>`, {ref}`Ibis <ibis>`, and
 {ref}`PySpark SQL <native-pyspark>` integrations behind a single unified code
