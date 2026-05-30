@@ -98,18 +98,6 @@ class DataFrameSchemaBackend(NarwhalsSchemaBackend):
         # Convert to Narwhals LazyFrame — all parsers operate on LazyFrame
         check_lf = _to_lazy_nw(check_obj)
 
-        # PySpark uses an accessor-error protocol (`df.pandera.errors`) for
-        # surfacing validation results, while every other backend (including
-        # the SQL-lazy ibis backend) raises `SchemaErrors`. This is a genuine
-        # protocol difference, not a backend-capability difference, so it
-        # cannot be abstracted via `_is_sql_lazy(check_lf)` — ibis is also
-        # SQL-lazy but uses the raise-SchemaErrors protocol. See
-        # `_handle_pyspark_validation_result` below for the full rationale.
-        is_pyspark = check_lf.implementation in (
-            nw.Implementation.PYSPARK,
-            nw.Implementation.PYSPARK_CONNECT,
-        )
-
         if inplace:
             warnings.warn("setting inplace=True will have no effect.")
 
@@ -233,20 +221,7 @@ class DataFrameSchemaBackend(NarwhalsSchemaBackend):
                 check_obj_parsed = self.drop_invalid_rows(
                     check_obj_parsed, error_handler
                 )
-                if is_pyspark:
-                    # PySpark drop_invalid_rows path: still must populate the
-                    # accessor protocol (df.pandera.errors / df.pandera.schema)
-                    # even after invalid rows are filtered out.
-                    return self._handle_pyspark_validation_result(
-                        check_obj_parsed, error_handler, schema, has_errors=True
-                    )
                 return check_obj_parsed
-            # PySpark error path: attach errors to df.pandera.errors instead of
-            # raising SchemaErrors (accessor protocol — see is_pyspark above).
-            elif is_pyspark:
-                return self._handle_pyspark_validation_result(
-                    _to_frame_kind_nw(check_lf, return_type), error_handler, schema, has_errors=True
-                )
             else:
                 raise SchemaErrors(
                     schema=schema,
@@ -254,53 +229,7 @@ class DataFrameSchemaBackend(NarwhalsSchemaBackend):
                     data=_to_frame_kind_nw(check_lf, return_type),
                 )
 
-        # PySpark success path: set df.pandera.errors = {} via accessor protocol;
-        # other backends just return the parsed frame.
-        if is_pyspark:
-            return self._handle_pyspark_validation_result(
-                _to_frame_kind_nw(check_lf, return_type), error_handler, schema, has_errors=False
-            )
-
         return _to_frame_kind_nw(check_lf, return_type)
-
-    def _handle_pyspark_validation_result(
-        self,
-        check_obj,
-        error_handler,
-        schema,
-        has_errors: bool,
-    ):
-        """Record validation outcome on PySpark DataFrame via pandera accessor.
-
-        PySpark uses a different validation contract from other backends:
-        errors are set on ``check_obj.pandera.errors`` and the original frame
-        is returned, rather than raising ``SchemaErrors``. This matches the
-        native PySpark backend contract and is required for the existing PySpark
-        test suite to pass.
-
-        ``pandera.add_schema`` is called unconditionally on ``check_obj`` to
-        set ``pandera.schema`` on the returned frame, matching native backend
-        behavior. ``check_obj`` is the post-filter native PySpark DataFrame
-        returned by ``_to_frame_kind_nw(check_lf, return_type)``.
-
-        This is a genuine protocol difference — ``_is_sql_lazy()`` cannot be
-        used here because ibis uses the raise-SchemaErrors protocol, not the
-        accessor pattern. Only PySpark sets ``.pandera.errors``.
-
-        :param check_obj: The post-filter native PySpark DataFrame returned by
-            ``_to_frame_kind_nw(check_lf, return_type)``.
-        :param error_handler: ErrorHandler with collected errors (if any).
-        :param schema: The DataFrameSchema being validated.
-        :param has_errors: True if validation produced errors; False on success.
-        :returns: check_obj with pandera.schema and pandera.errors set.
-        """
-        check_obj.pandera.add_schema(schema)
-        if has_errors:
-            error_dicts = error_handler.summarize(schema_name=schema.name)
-            check_obj.pandera.errors = error_dicts
-        else:
-            check_obj.pandera.errors = {}
-        return check_obj
 
     @validate_scope(scope=ValidationScope.DATA)
     def run_checks(
