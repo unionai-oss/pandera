@@ -7,6 +7,8 @@ These tests will FAIL until:
 
 import pytest
 
+pytest.importorskip("pyspark")
+
 
 def test_validate_collecting_errors_exists_in_conftest():
     """validate_collecting_errors must be importable from tests.pyspark.conftest."""
