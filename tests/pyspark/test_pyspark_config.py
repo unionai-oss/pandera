@@ -18,7 +18,11 @@ from pandera.pyspark import (
     DataFrameSchema,
     Field,
 )
-from tests.pyspark.conftest import _cmp_errors, spark_df, validate_collecting_errors
+from tests.pyspark.conftest import (
+    _cmp_errors,
+    spark_df,
+    validate_collecting_errors,
+)
 
 pytestmark = pytest.mark.parametrize(
     "spark_session", ["spark", "spark_connect"]
@@ -88,7 +92,9 @@ class TestPanderaConfig:
             validation_depth=ValidationDepth.SCHEMA_ONLY,
         ):
             assert asdict(get_config_context()) == expected
-            _, schema_errors = validate_collecting_errors(pandera_schema, input_df)
+            _, schema_errors = validate_collecting_errors(
+                pandera_schema, input_df
+            )
 
         expected_dataframeschema = {
             "SCHEMA": {
@@ -162,7 +168,9 @@ class TestPanderaConfig:
             validation_depth=ValidationDepth.DATA_ONLY,
         ):
             assert asdict(get_config_context()) == expected
-            _, schema_errors = validate_collecting_errors(pandera_schema, input_df)
+            _, schema_errors = validate_collecting_errors(
+                pandera_schema, input_df
+            )
 
         expected_dataframeschema = {
             "DATA": {
@@ -240,7 +248,9 @@ class TestPanderaConfig:
             validation_depth=ValidationDepth.SCHEMA_AND_DATA,
         ):
             assert asdict(get_config_context()) == expected
-            _, schema_errors = validate_collecting_errors(pandera_schema, input_df)
+            _, schema_errors = validate_collecting_errors(
+                pandera_schema, input_df
+            )
 
         expected_dataframeschema = {
             "DATA": {

@@ -74,7 +74,9 @@ class BaseClass:
                 check_fn(*function_args)
             return
 
-        if CONFIG.use_narwhals_backend and backend.is_narwhals_incompatible(dtype):
+        if CONFIG.use_narwhals_backend and backend.is_narwhals_incompatible(
+            dtype
+        ):
             pytest.xfail(
                 f"Narwhals engine does not support this dtype on {backend.name}"
             )
@@ -214,9 +216,15 @@ class TestEqualToCheck(BaseClass):
                 {"datatype": "categorical", "data": self.sample_string_data},
                 {"datatype": dtypes.Decimal, "data": self.sample_decimal_data},
                 {"datatype": dtypes.Date, "data": self.sample_date_data},
-                {"datatype": dtypes.DateTime, "data": self.sample_datetime_data},
+                {
+                    "datatype": dtypes.DateTime,
+                    "data": self.sample_datetime_data,
+                },
                 {"datatype": dtypes.Time, "data": self.sample_time_data},
-                {"datatype": dtypes.Timedelta, "data": self.sample_duration_data},
+                {
+                    "datatype": dtypes.Timedelta,
+                    "data": self.sample_duration_data,
+                },
                 {"datatype": dtypes.Bool, "data": self.sample_boolean_data},
                 {"datatype": "list_utf8", "data": self.list_utf8},
             ]
@@ -339,9 +347,15 @@ class TestNotEqualToCheck(BaseClass):
                 {"datatype": "categorical", "data": self.sample_string_data},
                 {"datatype": dtypes.Decimal, "data": self.sample_decimal_data},
                 {"datatype": dtypes.Date, "data": self.sample_date_data},
-                {"datatype": dtypes.DateTime, "data": self.sample_datetime_data},
+                {
+                    "datatype": dtypes.DateTime,
+                    "data": self.sample_datetime_data,
+                },
                 {"datatype": dtypes.Time, "data": self.sample_time_data},
-                {"datatype": dtypes.Timedelta, "data": self.sample_duration_data},
+                {
+                    "datatype": dtypes.Timedelta,
+                    "data": self.sample_duration_data,
+                },
                 {"datatype": dtypes.Bool, "data": self.sample_boolean_data},
                 {"datatype": "list_utf8", "data": self.list_utf8},
             ]
@@ -441,9 +455,15 @@ class TestGreaterThanCheck(BaseClass):
                 {"datatype": dtypes.Float64, "data": self.sample_float_data},
                 {"datatype": dtypes.Decimal, "data": self.sample_decimal_data},
                 {"datatype": dtypes.Date, "data": self.sample_date_data},
-                {"datatype": dtypes.DateTime, "data": self.sample_datetime_data},
+                {
+                    "datatype": dtypes.DateTime,
+                    "data": self.sample_datetime_data,
+                },
                 {"datatype": dtypes.Time, "data": self.sample_time_data},
-                {"datatype": dtypes.Timedelta, "data": self.sample_duration_data},
+                {
+                    "datatype": dtypes.Timedelta,
+                    "data": self.sample_duration_data,
+                },
             ]
         }
 
@@ -541,9 +561,15 @@ class TestGreaterThanEqualToCheck(BaseClass):
                 {"datatype": dtypes.Float64, "data": self.sample_float_data},
                 {"datatype": dtypes.Decimal, "data": self.sample_decimal_data},
                 {"datatype": dtypes.Date, "data": self.sample_date_data},
-                {"datatype": dtypes.DateTime, "data": self.sample_datetime_data},
+                {
+                    "datatype": dtypes.DateTime,
+                    "data": self.sample_datetime_data,
+                },
                 {"datatype": dtypes.Time, "data": self.sample_time_data},
-                {"datatype": dtypes.Timedelta, "data": self.sample_duration_data},
+                {
+                    "datatype": dtypes.Timedelta,
+                    "data": self.sample_duration_data,
+                },
             ]
         }
 
@@ -645,9 +671,15 @@ class TestLessThanCheck(BaseClass):
                 {"datatype": dtypes.Float64, "data": self.sample_float_data},
                 {"datatype": dtypes.Decimal, "data": self.sample_decimal_data},
                 {"datatype": dtypes.Date, "data": self.sample_date_data},
-                {"datatype": dtypes.DateTime, "data": self.sample_datetime_data},
+                {
+                    "datatype": dtypes.DateTime,
+                    "data": self.sample_datetime_data,
+                },
                 {"datatype": dtypes.Time, "data": self.sample_time_data},
-                {"datatype": dtypes.Timedelta, "data": self.sample_duration_data},
+                {
+                    "datatype": dtypes.Timedelta,
+                    "data": self.sample_duration_data,
+                },
             ]
         }
 
@@ -745,18 +777,22 @@ class TestLessThanEqualToCheck(BaseClass):
                 {"datatype": dtypes.Float64, "data": self.sample_float_data},
                 {"datatype": dtypes.Decimal, "data": self.sample_decimal_data},
                 {"datatype": dtypes.Date, "data": self.sample_date_data},
-                {"datatype": dtypes.DateTime, "data": self.sample_datetime_data},
+                {
+                    "datatype": dtypes.DateTime,
+                    "data": self.sample_datetime_data,
+                },
                 {"datatype": dtypes.Time, "data": self.sample_time_data},
-                {"datatype": dtypes.Timedelta, "data": self.sample_duration_data},
+                {
+                    "datatype": dtypes.Timedelta,
+                    "data": self.sample_duration_data,
+                },
             ]
         }
 
     @pytest.mark.parametrize(
         "check_fn", [Check.less_than_or_equal_to, Check.le]
     )
-    def test_less_than_or_equal_to_check(
-        self, backend, check_fn, dtype, data
-    ):
+    def test_less_than_or_equal_to_check(self, backend, check_fn, dtype, data):
         self.check_function(
             backend,
             check_fn,
@@ -858,9 +894,15 @@ class TestIsInCheck(BaseClass):
                 # FIXME(deepyaman): polars isin cannot check List(Decimal(38, 0))
                 # values in Decimal(38, 10) data; skip decimal for now
                 {"datatype": dtypes.Date, "data": self.sample_date_data},
-                {"datatype": dtypes.DateTime, "data": self.sample_datetime_data},
+                {
+                    "datatype": dtypes.DateTime,
+                    "data": self.sample_datetime_data,
+                },
                 {"datatype": dtypes.Time, "data": self.sample_time_data},
-                {"datatype": dtypes.Timedelta, "data": self.sample_duration_data},
+                {
+                    "datatype": dtypes.Timedelta,
+                    "data": self.sample_duration_data,
+                },
                 {"datatype": "categorical", "data": self.sample_string_data},
                 {"datatype": dtypes.String, "data": self.sample_string_data},
                 {"datatype": dtypes.Binary, "data": self.sample_binary_data},
@@ -969,9 +1011,15 @@ class TestNotInCheck(BaseClass):
                 # FIXME(deepyaman): polars notin cannot check List(Decimal(38, 0))
                 # values in Decimal(38, 10) data; skip decimal for now
                 {"datatype": dtypes.Date, "data": self.sample_date_data},
-                {"datatype": dtypes.DateTime, "data": self.sample_datetime_data},
+                {
+                    "datatype": dtypes.DateTime,
+                    "data": self.sample_datetime_data,
+                },
                 {"datatype": dtypes.Time, "data": self.sample_time_data},
-                {"datatype": dtypes.Timedelta, "data": self.sample_duration_data},
+                {
+                    "datatype": dtypes.Timedelta,
+                    "data": self.sample_duration_data,
+                },
                 {"datatype": "categorical", "data": self.sample_string_data},
                 {"datatype": dtypes.String, "data": self.sample_string_data},
                 {"datatype": dtypes.Binary, "data": self.sample_binary_data},
@@ -1366,7 +1414,10 @@ class TestUniqueValuesEqCheck(BaseClass):
                 {"datatype": dtypes.Float64, "data": self.sample_float_data},
                 {"datatype": dtypes.Decimal, "data": self.sample_decimal_data},
                 {"datatype": dtypes.Date, "data": self.sample_date_data},
-                {"datatype": dtypes.DateTime, "data": self.sample_datetime_data},
+                {
+                    "datatype": dtypes.DateTime,
+                    "data": self.sample_datetime_data,
+                },
                 {"datatype": dtypes.Time, "data": self.sample_time_data},
                 # TODO(deepyaman): ibis raises ArrowNotImplementedError for
                 # Interval → duration cast; skip duration for now

@@ -459,7 +459,9 @@ def test_dataframe_schema_strict(
             if errors:
                 raise pa.PysparkSchemaError
         with pytest.raises(pa.PysparkSchemaError):
-            _, errors = validate_collecting_errors(schema, df.select(["a", "c"]))
+            _, errors = validate_collecting_errors(
+                schema, df.select(["a", "c"])
+            )
             if errors:
                 raise pa.PysparkSchemaError
 
@@ -542,7 +544,9 @@ def test_validation_succeeds_with_missing_optional_column(
     _, errors = validate_collecting_errors(test_schema_optional_columns, df)
 
     # errors should be empty if validation is successful.
-    assert errors == {}, "No error should be raised in case of a missing optional column."
+    assert errors == {}, (
+        "No error should be raised in case of a missing optional column."
+    )
 
 
 def test_invalid_field(

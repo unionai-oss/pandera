@@ -66,7 +66,9 @@ def _concat_failure_cases(items: list) -> Any:
 
     # Separate Narwhals-wrapped items from native Polars items
     nw_items = [
-        item for item in items if isinstance(item, (nw.DataFrame, nw.LazyFrame))
+        item
+        for item in items
+        if isinstance(item, (nw.DataFrame, nw.LazyFrame))
     ]
     pl_items = [
         item
@@ -87,7 +89,10 @@ def _concat_failure_cases(items: list) -> Any:
             if pl_items:
                 dropped_info = []
                 for item in pl_items:
-                    if isinstance(item, pl.DataFrame) and "column" in item.columns:
+                    if (
+                        isinstance(item, pl.DataFrame)
+                        and "column" in item.columns
+                    ):
                         dropped_info.extend(item["column"].to_list())
                 warnings.warn(
                     "Some schema-level failure cases (columns: "

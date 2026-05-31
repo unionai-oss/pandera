@@ -193,5 +193,3 @@ def test_failure_cases_is_native():
         assert isinstance(fc, pl.DataFrame), (
             f"failure_cases should be native pl.DataFrame (Phase 6 contract), got {type(fc)}"
         )
-
-

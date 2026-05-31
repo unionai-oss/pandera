@@ -25,7 +25,9 @@ try:
 except ImportError:
     HAS_PYSPARK = False
 
-pyspark_only = pytest.mark.skipif(not HAS_PYSPARK, reason="pyspark not installed")
+pyspark_only = pytest.mark.skipif(
+    not HAS_PYSPARK, reason="pyspark not installed"
+)
 
 
 # ---------------------------------------------------------------------------

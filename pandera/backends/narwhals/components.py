@@ -74,7 +74,9 @@ class ColumnBackend(NarwhalsSchemaBackend):
             )
 
         if getattr(schema, "regex", False):
-            column_keys_to_check = list(self.get_regex_columns(schema, check_lf))
+            column_keys_to_check = list(
+                self.get_regex_columns(schema, check_lf)
+            )
             if not column_keys_to_check:
                 raise SchemaError(
                     schema=schema,
@@ -272,7 +274,9 @@ class ColumnBackend(NarwhalsSchemaBackend):
         try:
             from pandera.engines import pyspark_engine as _pyspark_engine
 
-            uses_pyspark_dtype = isinstance(schema.dtype, _pyspark_engine.DataType)
+            uses_pyspark_dtype = isinstance(
+                schema.dtype, _pyspark_engine.DataType
+            )
         except ImportError:
             uses_pyspark_dtype = False
 
@@ -307,7 +311,9 @@ class ColumnBackend(NarwhalsSchemaBackend):
                             if not passed
                             else None
                         ),
-                        failure_cases=pyspark_dtype_str if not passed else None,
+                        failure_cases=pyspark_dtype_str
+                        if not passed
+                        else None,
                     )
                 )
                 continue

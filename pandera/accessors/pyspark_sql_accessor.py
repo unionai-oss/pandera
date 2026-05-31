@@ -155,7 +155,9 @@ register_dataframe_accessor("pandera")(PanderaDataFrameAccessor)
 # Handle optional Spark Connect imports for pyspark>=3.4 (if available)
 if version.parse(pyspark.__version__) >= version.parse("3.4"):
     try:
-        register_connect_dataframe_accessor("pandera")(PanderaDataFrameAccessor)
+        register_connect_dataframe_accessor("pandera")(
+            PanderaDataFrameAccessor
+        )
     except ImportError:
         # grpcio-status or other Spark Connect dependencies not installed
         pass

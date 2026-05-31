@@ -315,7 +315,9 @@ def test_validate_no_handle_pyspark_method_after_se01():
     """
     from pandera.backends.narwhals.container import DataFrameSchemaBackend
 
-    assert not hasattr(DataFrameSchemaBackend, "_handle_pyspark_validation_result"), (
+    assert not hasattr(
+        DataFrameSchemaBackend, "_handle_pyspark_validation_result"
+    ), (
         "DataFrameSchemaBackend must NOT have _handle_pyspark_validation_result after SE-01 removal"
     )
 

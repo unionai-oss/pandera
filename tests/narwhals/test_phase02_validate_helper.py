@@ -19,15 +19,19 @@ def test_validate_collecting_errors_exists_in_conftest():
 
 def test_validate_collecting_errors_returns_tuple():
     """validate_collecting_errors must return a 2-tuple (out_df, errors_dict)."""
-    from tests.pyspark.conftest import validate_collecting_errors
-
     # Verify the function has the expected signature
     import inspect
 
+    from tests.pyspark.conftest import validate_collecting_errors
+
     sig = inspect.signature(validate_collecting_errors)
     params = list(sig.parameters.keys())
-    assert "schema" in params, "validate_collecting_errors must have a 'schema' parameter"
-    assert "df" in params, "validate_collecting_errors must have a 'df' parameter"
+    assert "schema" in params, (
+        "validate_collecting_errors must have a 'schema' parameter"
+    )
+    assert "df" in params, (
+        "validate_collecting_errors must have a 'df' parameter"
+    )
 
 
 def test_validate_collecting_errors_no_inline_pandera_errors_in_container():
@@ -47,7 +51,8 @@ def test_validate_collecting_errors_no_inline_pandera_errors_in_container():
     inline_sites = [
         (i + 1, line.rstrip())
         for i, line in enumerate(lines)
-        if re.search(r"\.pandera\.errors\b", line) and not line.lstrip().startswith("#")
+        if re.search(r"\.pandera\.errors\b", line)
+        and not line.lstrip().startswith("#")
     ]
     assert inline_sites == [], (
         f"Found inline .pandera.errors in test_pyspark_container.py at lines: "
@@ -82,7 +87,8 @@ def test_no_inline_pandera_errors_in_pyspark_test_files(filename):
     inline_sites = [
         (i + 1, line.rstrip())
         for i, line in enumerate(lines)
-        if re.search(r"\.pandera\.errors\b", line) and not line.lstrip().startswith("#")
+        if re.search(r"\.pandera\.errors\b", line)
+        and not line.lstrip().startswith("#")
     ]
     assert inline_sites == [], (
         f"Found inline .pandera.errors in {filename} at lines: "

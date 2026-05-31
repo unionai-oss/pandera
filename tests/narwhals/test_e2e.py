@@ -67,7 +67,9 @@ try:
 except ImportError:
     HAS_PYSPARK = False
 
-pyspark_only = pytest.mark.skipif(not HAS_PYSPARK, reason="pyspark not installed")
+pyspark_only = pytest.mark.skipif(
+    not HAS_PYSPARK, reason="pyspark not installed"
+)
 
 
 # ===========================================================================
@@ -777,7 +779,9 @@ def test_pyspark_nullable_false_fails(spark):
     schema_struct = StructType(
         [StructField("x", IntegerType(), True)]  # nullable at Spark level
     )
-    df_with_null = spark.createDataFrame([(1,), (None,), (3,)], schema=schema_struct)
+    df_with_null = spark.createDataFrame(
+        [(1,), (None,), (3,)], schema=schema_struct
+    )
     schema = pa_pyspark.DataFrameSchema(
         {"x": pa_pyspark.Column("int", nullable=False)}
     )

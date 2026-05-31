@@ -254,4 +254,6 @@ def _cmp_errors(actual, expected):
     assert set(actual) == set(expected)
     for key in expected:
         assert drop_error(actual[key]) == drop_error(expected[key])
-        assert all("error" in e and e["error"] is not None for e in actual[key])
+        assert all(
+            "error" in e and e["error"] is not None for e in actual[key]
+        )

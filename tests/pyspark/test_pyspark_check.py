@@ -1655,8 +1655,7 @@ def test_str_length_check_with_pyspark_schemas(spark_session, request) -> None:
     )
     _, errors = validate_collecting_errors(schema, df)
     assert (
-        dict(errors)["DATA"]["DATAFRAME_CHECK"][0]["check"]
-        == "str_length(32)"
+        dict(errors)["DATA"]["DATAFRAME_CHECK"][0]["check"] == "str_length(32)"
     )
 
 

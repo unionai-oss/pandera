@@ -41,7 +41,9 @@ def test_pyspark_narwhals_activated_when_opted_in(monkeypatch, request):
 
     # Save and restore Column registry entry
     column_registry_key = (PySparkColumn, pyspark_sql.DataFrame)
-    saved_column = PySparkColumn.BACKEND_REGISTRY.pop(column_registry_key, None)
+    saved_column = PySparkColumn.BACKEND_REGISTRY.pop(
+        column_registry_key, None
+    )
     if saved_column is not None:
         request.addfinalizer(
             lambda: PySparkColumn.BACKEND_REGISTRY.update(
@@ -64,10 +66,14 @@ def test_pyspark_narwhals_activated_when_opted_in(monkeypatch, request):
     register_pyspark_backends()
 
     # Assert all three backends are registered with their narwhals implementations
-    backend = PySparkDataFrameSchema.get_backend(check_type=pyspark_sql.DataFrame)
+    backend = PySparkDataFrameSchema.get_backend(
+        check_type=pyspark_sql.DataFrame
+    )
     assert isinstance(backend, NarwhalsDataFrameSchemaBackend)
 
-    column_backend = PySparkColumn.get_backend(check_type=pyspark_sql.DataFrame)
+    column_backend = PySparkColumn.get_backend(
+        check_type=pyspark_sql.DataFrame
+    )
     assert isinstance(column_backend, NarwhalsColumnBackend)
 
     assert check_registry_key in Check.BACKEND_REGISTRY
@@ -100,11 +106,15 @@ def test_pyspark_native_unchanged_when_flag_off(monkeypatch, request):
     monkeypatch.setattr(CONFIG, "use_narwhals_backend", False)
     register_pyspark_backends.cache_clear()
     register_pyspark_backends()
-    backend = PySparkDataFrameSchema.get_backend(check_type=pyspark_sql.DataFrame)
+    backend = PySparkDataFrameSchema.get_backend(
+        check_type=pyspark_sql.DataFrame
+    )
     assert isinstance(backend, NativeBackend)
 
 
-def test_pyspark_connect_narwhals_activated_when_opted_in(monkeypatch, request):
+def test_pyspark_connect_narwhals_activated_when_opted_in(
+    monkeypatch, request
+):
     """register_pyspark_backends() registers narwhals backends for pyspark_connect.DataFrame."""
     import pyspark
     from packaging import version
