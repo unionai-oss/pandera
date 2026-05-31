@@ -42,7 +42,7 @@ def test_pyspark_dataframeschema(spark_session, request):
     df = spark.createDataFrame(data=data, schema=["name", "age"])
     _, errors = validate_collecting_errors(schema, df)
 
-    assert errors is not None
+    assert errors == {}
 
     data = [("Neeraj", "35"), ("Jask", "a")]
 

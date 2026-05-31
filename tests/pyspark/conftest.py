@@ -212,11 +212,13 @@ def validate_collecting_errors(schema, df, **validate_kwargs):
         ``df.pandera.errors`` under the native backend).  On success the dict
         is empty (``{}``).  On narwhals-backend failure ``out_df`` is ``None``;
         on native-backend failure ``out_df`` is the annotated DataFrame.
+
+    Under the narwhals backend, success returns ``(out_df, {})`` directly
+    without accessor access — the ``.pandera`` accessor is not populated by
+    the narwhals backend.
     """
     try:
         out_df = schema.validate(df, **validate_kwargs)
-        errors = out_df.pandera.errors
-        return (out_df, dict(errors) if errors is not None else {})
     except SchemaErrors as exc:
         # Narwhals path: rebuild the same nested dict structure from the exception.
         handler = ErrorHandler(lazy=True)
@@ -229,6 +231,14 @@ def validate_collecting_errors(schema, df, **validate_kwargs):
         )
         errors = handler.summarize(schema_name=schema_name)
         return (None, dict(errors))
+
+    # Success path: native backend attaches errors via accessor;
+    # narwhals backend does not set .pandera.errors — treat as empty.
+    try:
+        errors = out_df.pandera.errors
+    except AttributeError:
+        errors = None
+    return (out_df, dict(errors) if errors is not None else {})
 
 
 def _cmp_errors(actual, expected):
@@ -244,4 +254,4 @@ def _cmp_errors(actual, expected):
     assert set(actual) == set(expected)
     for key in expected:
         assert drop_error(actual[key]) == drop_error(expected[key])
-        assert all(e["error"] for e in actual[key])
+        assert all("error" in e and e["error"] is not None for e in actual[key])

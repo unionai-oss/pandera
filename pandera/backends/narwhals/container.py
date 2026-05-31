@@ -66,6 +66,10 @@ def _to_frame_kind_nw(lf: nw.LazyFrame, return_type: type):
     # metadata so we don't need to import polars here. Eager polars DataFrame
     # subclasses do not define ``collect`` at the class level; the lazy class
     # does.  Everything else (ibis.Table, pl.LazyFrame) is returned as-is.
+    # Both conditions are required:
+    # 1. No class-level .collect → distinguishes pl.DataFrame from pl.LazyFrame
+    # 2. polars module prefix → distinguishes polars from PySpark (whose module
+    #    starts with 'pyspark', not 'polars')
     caller_was_eager_polars = not hasattr(
         return_type, "collect"
     ) and return_type.__module__.startswith("polars")

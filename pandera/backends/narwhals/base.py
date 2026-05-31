@@ -116,6 +116,9 @@ def _concat_failure_cases(items: list) -> Any:
             # SparkSession barrier — both sources merge cleanly, so no
             # SchemaWarning is needed (unlike the PySpark branch which
             # warns-and-drops because it cannot create a SparkSession).
+            assert all(isinstance(i, nw.LazyFrame) for i in nw_items) or all(
+                isinstance(i, nw.DataFrame) for i in nw_items
+            ), "nw_items must be homogeneous (all LazyFrame or all DataFrame)"
             lazy_result = nw.to_native(nw.concat(nw_items))
             if pl_items:
                 return pl.concat([lazy_result.collect()] + pl_items)
