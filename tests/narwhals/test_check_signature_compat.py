@@ -18,10 +18,17 @@ import pandas as pd
 import polars as pl
 import pytest
 
-import pandera.ibis as pa_ibis
 import pandera.polars as pa_polars
-from pandera.api.ibis.types import IbisData
 from pandera.api.polars.types import PolarsData
+
+try:
+    import ibis as _ibis_mod  # noqa: F401
+
+    HAS_IBIS = True
+except ImportError:
+    HAS_IBIS = False
+
+ibis_only = pytest.mark.skipif(not HAS_IBIS, reason="ibis not installed")
 
 
 @pytest.fixture
@@ -68,11 +75,15 @@ def test_direct_polars_style_check_receives_polars_data(polars_invalid_df):
     assert isinstance(data.lazyframe, pl.LazyFrame)
 
 
+@ibis_only
 def test_direct_ibis_style_check_receives_ibis_data(ibis_invalid_table):
     """``pa.Check(fn)`` with a ``def fn(data: IbisData)`` function must
     receive an ``IbisData`` (not ``(frame, key)``) under the Narwhals
     backend."""
     import ibis
+
+    import pandera.ibis as pa_ibis
+    from pandera.api.ibis.types import IbisData
 
     received: list[IbisData] = []
 
@@ -120,9 +131,12 @@ def test_model_check_polars_receives_polars_data(polars_invalid_df):
     assert any("-3" in str(v) for v in rendered)
 
 
+@ibis_only
 def test_model_check_ibis_receives_ibis_data(ibis_invalid_table):
     """``@pa.check`` on a ``DataFrameModel`` with an ``IbisData`` parameter
     must run end-to-end against an ibis backend table."""
+    import pandera.ibis as pa_ibis
+    from pandera.api.ibis.types import IbisData
 
     class S(pa_ibis.DataFrameModel):
         col: int

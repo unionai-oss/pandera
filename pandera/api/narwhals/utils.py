@@ -43,9 +43,14 @@ def _is_sql_lazy(frame) -> bool:
 def _materialize(frame) -> nw.DataFrame:
     """Materialize a LazyFrame or SQL-lazy DataFrame to a Narwhals DataFrame.
 
-    - nw.LazyFrame (Polars): call .collect()
-    - nw.DataFrame wrapping a SQL-lazy backend (Ibis): call
-      nw.to_native().execute() then wrap with nw.from_native()
+    - ``nw.LazyFrame`` (Polars): call ``.collect()``.
+    - ``nw.DataFrame`` wrapping a SQL-lazy backend (Ibis, DuckDB): call
+      ``nw.to_native().execute()`` then wrap with ``nw.from_native()``.
+
+    Note: PySpark ``nw.DataFrame`` is always converted to ``nw.LazyFrame``
+    by ``_to_lazy_nw`` in ``pandera/backends/narwhals/container.py`` before
+    ``_materialize`` is reached, so PySpark frames arrive as ``nw.LazyFrame``
+    and are handled by the first branch above.
     """
     if isinstance(frame, nw.LazyFrame):
         return frame.collect()

@@ -10,7 +10,6 @@ import narwhals.stable.v1 as nw
 from pandera.api.base.error_handler import get_error_category
 from pandera.api.narwhals.error_handler import ErrorHandler
 from pandera.api.narwhals.utils import (
-    _is_lazy,
     _is_sql_lazy,
     _materialize,
     _to_native,
@@ -24,7 +23,6 @@ from pandera.errors import (
     SchemaError,
     SchemaErrorReason,
     SchemaErrors,
-    SchemaWarning,
 )
 from pandera.validation_depth import validate_scope
 
@@ -75,15 +73,52 @@ class ColumnBackend(NarwhalsSchemaBackend):
                 "When drop_invalid_rows is True, lazy must be set to True."
             )
 
-        error_handler = self.run_checks_and_handle_errors(
-            error_handler,
-            schema,
-            check_lf,
-            head=head,
-            tail=tail,
-            sample=sample,
-            random_state=random_state,
-        )
+        if getattr(schema, "regex", False):
+            column_keys_to_check = list(
+                self.get_regex_columns(schema, check_lf)
+            )
+            if not column_keys_to_check:
+                raise SchemaError(
+                    schema=schema,
+                    data=_to_native(check_lf),
+                    message=(
+                        f"Column regex name='{schema.selector}' did not match "
+                        "any columns in the dataframe. Update the regex "
+                        "pattern so that it matches at least one column."
+                    ),
+                    failure_cases=check_lf.collect_schema().names(),
+                    check=f"no_regex_column_match('{schema.selector}')",
+                    reason_code=SchemaErrorReason.INVALID_COLUMN_NAME,
+                )
+            _orig_name = schema.name
+            _orig_regex = schema.regex
+            for column_name in column_keys_to_check:
+                single_col_lf = check_lf.select(nw.col(column_name))
+                schema.name = column_name
+                schema.regex = False
+                try:
+                    error_handler = self.run_checks_and_handle_errors(
+                        error_handler,
+                        schema,
+                        single_col_lf,
+                        head=head,
+                        tail=tail,
+                        sample=sample,
+                        random_state=random_state,
+                    )
+                finally:
+                    schema.name = _orig_name
+                    schema.regex = _orig_regex
+        else:
+            error_handler = self.run_checks_and_handle_errors(
+                error_handler,
+                schema,
+                check_lf,
+                head=head,
+                tail=tail,
+                sample=sample,
+                random_state=random_state,
+            )
 
         if lazy and error_handler.collected_errors:
             if getattr(schema, "drop_invalid_rows", False):
@@ -158,7 +193,7 @@ class ColumnBackend(NarwhalsSchemaBackend):
                 check_output=combined_lf,
                 check="not_nullable",
                 reason_code=SchemaErrorReason.SERIES_CONTAINS_NULLS,
-                message=f"non-nullable column '{schema.selector}' contains null values",
+                message=f"non-nullable column '{schema.selector}' contains null",
                 failure_cases=failure_cases,
             )
         ]
@@ -236,10 +271,53 @@ class ColumnBackend(NarwhalsSchemaBackend):
         # Import inside method to avoid circular import chains
         from pandera.engines import narwhals_engine
 
+        try:
+            from pandera.engines import pyspark_engine as _pyspark_engine
+
+            uses_pyspark_dtype = isinstance(
+                schema.dtype, _pyspark_engine.DataType
+            )
+        except ImportError:
+            uses_pyspark_dtype = False
+
         results = []
         schema_obj = check_obj.select(schema.selector).collect_schema()
 
+        native_pyspark_schema = (
+            nw.to_native(check_obj).schema if uses_pyspark_dtype else None
+        )
+
         for column, nw_dtype in zip(schema_obj.names(), schema_obj.dtypes()):
+            if uses_pyspark_dtype:
+                # Schema configured with a PySpark dtype (e.g. T.IntegerType()) —
+                # the narwhals dtype engine cannot resolve cross-engine PySpark types,
+                # so compare the column's native dtype string against the schema's
+                # PySpark dtype string. This dispatch is schema-driven (what the user
+                # configured) rather than frame-driven (what backend is present),
+                # per ARCH-03 in
+                # .planning/phases/04-eliminate-backend-specific-dispatch-branches/.
+                assert native_pyspark_schema is not None
+                pyspark_dtype = native_pyspark_schema[column].dataType
+                pyspark_dtype_str = str(pyspark_dtype)
+                passed = pyspark_dtype_str == str(schema.dtype)
+                results.append(
+                    CoreCheckResult(
+                        passed=bool(passed),
+                        check=f"dtype('{schema.dtype}')",
+                        reason_code=SchemaErrorReason.WRONG_DATATYPE,
+                        message=(
+                            f"expected column '{column}' to have type "
+                            f"{schema.dtype}, got {pyspark_dtype_str}"
+                            if not passed
+                            else None
+                        ),
+                        failure_cases=pyspark_dtype_str
+                        if not passed
+                        else None,
+                    )
+                )
+                continue
+
             try:
                 col_pandera_dtype = narwhals_engine.Engine.dtype(nw_dtype)
             except TypeError:
@@ -254,9 +332,9 @@ class ColumnBackend(NarwhalsSchemaBackend):
             # engine dtypes when the Narwhals backend is active.
             try:
                 schema_nw_dtype = narwhals_engine.Engine.dtype(schema.dtype)
-                passed = schema_nw_dtype.check(col_pandera_dtype)
+                passed = bool(schema_nw_dtype.check(col_pandera_dtype))
             except TypeError:
-                passed = schema.dtype.check(col_pandera_dtype)
+                passed = bool(schema.dtype.check(col_pandera_dtype))
 
             results.append(
                 CoreCheckResult(

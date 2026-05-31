@@ -486,11 +486,6 @@ def _failure_type(column: str):
     raise ValueError(f"unexpected column name: {column}")
 
 
-@pytest.mark.xfail(
-    condition=CONFIG.use_narwhals_backend,
-    reason="Regex column selection broken in Narwhals backend",
-    strict=True,
-)
 @pytest.mark.parametrize(
     "transform_fn,exception_msg",
     [
@@ -498,10 +493,15 @@ def _failure_type(column: str):
             lambda ldf, col: ldf.with_columns(**{col: pl.lit(None)}),
             None,
         ],
-        [
+        pytest.param(
             lambda ldf, col: ldf.with_columns(**{col: _failure_value(col)}),
             "Column '.+' failed validator number",
-        ],
+            marks=pytest.mark.xfail(
+                condition=CONFIG.use_narwhals_backend,
+                reason="Regex column selection broken in Narwhals backend",
+                strict=True,
+            ),
+        ),
         [
             lambda ldf, col: ldf.with_columns(**{col: _failure_type(col)}),
             "expected column '.+' to have type",
@@ -591,11 +591,6 @@ def test_regex_column_name_in_error_message():
         )
 
 
-@pytest.mark.xfail(
-    condition=CONFIG.use_narwhals_backend,
-    reason="Narwhals backend does not support coerce or regex column selection",
-    strict=True,
-)
 def test_regex_coerce(
     ldf_for_regex_match: pl.LazyFrame,
     ldf_schema_with_regex_name: DataFrameSchema,

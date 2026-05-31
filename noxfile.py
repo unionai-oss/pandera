@@ -145,8 +145,7 @@ def _testing_requirements(
         ]
     elif extra is not None:
         _requirements += PYPROJECT["project"]["optional-dependencies"][extra]
-    # TEST-03: narwhals backend tests require polars and ibis co-installed
-    # (the narwhals extra alone only installs narwhals itself).
+    # narwhals backend tests run with polars+ibis co-installed (TEST-03).
     if extra == "narwhals":
         _requirements += PYPROJECT["project"]["optional-dependencies"].get(
             "polars", []
@@ -321,12 +320,13 @@ def tests(
         args = [*cov_args, path]
 
     session.run("pytest", *args, env=env)
+    # tests/common/ has no pyspark marker — pytest -m pyspark would deselect every test there
     if not session.posargs and extra in ("polars", "ibis"):
         session.run("pytest", *cov_args, "tests/common/", "-m", extra, env=env)
 
 
 @nox.session(venv_backend="uv", python=PYTHON_VERSIONS)
-@nox.parametrize("extra", ["polars", "ibis"])
+@nox.parametrize("extra", ["polars", "ibis", "pyspark"])
 def tests_narwhals_backend(session: Session, extra: str) -> None:
     """Run existing backend tests with narwhals co-installed and opt-in enabled.
 
@@ -357,6 +357,20 @@ def tests_narwhals_backend(session: Session, extra: str) -> None:
             else r
             for r in requirements
         ]
+    if extra == "pyspark":
+        requirements = [
+            "pyspark[connect] >= 3.2.0"
+            if r == "pyspark" or r.startswith("pyspark ")
+            else r
+            for r in requirements
+        ]
+        # pyspark requires pandas >= 2.2.0 but does not support pandas 3.x
+        requirements.append("pandas < 3.0")
+        if session.python in ("3.10",):
+            requirements = [
+                f"{r}, < 2" if r.startswith("numpy") else r
+                for r in requirements
+            ]
     session.install(*list(set(requirements)))
     session.install("-e", ".", "--config-settings", "editable_mode=compat")
     session.run("uv", "pip", "list")
@@ -373,7 +387,9 @@ def tests_narwhals_backend(session: Session, extra: str) -> None:
         cov_args.append("--cov-report=html")
     env = {"PANDERA_USE_NARWHALS_BACKEND": "True"}
     session.run("pytest", *cov_args, path, env=env)
-    session.run("pytest", *cov_args, "tests/common/", "-m", extra, env=env)
+    # tests/common/ has no pyspark marker — pytest -m pyspark would deselect every test there
+    if extra in ("polars", "ibis"):
+        session.run("pytest", *cov_args, "tests/common/", "-m", extra, env=env)
 
 
 @nox.session(venv_backend="uv", python=PYTHON_VERSIONS)

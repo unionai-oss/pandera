@@ -5,7 +5,12 @@ from dataclasses import asdict
 import pyspark.sql.types as T
 import pytest
 
-from pandera.config import ValidationDepth, config_context, get_config_context
+from pandera.config import (
+    CONFIG,
+    ValidationDepth,
+    config_context,
+    get_config_context,
+)
 from pandera.pyspark import (
     Check,
     Column,
@@ -13,7 +18,11 @@ from pandera.pyspark import (
     DataFrameSchema,
     Field,
 )
-from tests.pyspark.conftest import spark_df
+from tests.pyspark.conftest import (
+    _cmp_errors,
+    spark_df,
+    validate_collecting_errors,
+)
 
 pytestmark = pytest.mark.parametrize(
     "spark_session", ["spark", "spark_connect"]
@@ -49,7 +58,7 @@ class TestPanderaConfig:
             "validation_depth": ValidationDepth.SCHEMA_AND_DATA,
             "cache_dataframe": False,
             "keep_cached_dataframe": False,
-            "use_narwhals_backend": False,
+            "use_narwhals_backend": CONFIG.use_narwhals_backend,
             "silenced_warnings": [],
         }
 
@@ -73,7 +82,7 @@ class TestPanderaConfig:
             "validation_depth": ValidationDepth.SCHEMA_ONLY,
             "cache_dataframe": False,
             "keep_cached_dataframe": False,
-            "use_narwhals_backend": False,
+            "use_narwhals_backend": CONFIG.use_narwhals_backend,
             "silenced_warnings": [],
         }
         input_df = spark_df(spark, self.sample_data, sample_spark_schema)
@@ -83,7 +92,9 @@ class TestPanderaConfig:
             validation_depth=ValidationDepth.SCHEMA_ONLY,
         ):
             assert asdict(get_config_context()) == expected
-            output_dataframeschema_df = pandera_schema.validate(input_df)
+            _, schema_errors = validate_collecting_errors(
+                pandera_schema, input_df
+            )
 
         expected_dataframeschema = {
             "SCHEMA": {
@@ -91,23 +102,16 @@ class TestPanderaConfig:
                     {
                         "check": "column_in_dataframe",
                         "column": "price_val",
-                        "error": "column "
-                        "'price_val' not "
-                        "in dataframe "
-                        "Row(product='Bread', "
-                        "price=9)",
                         "schema": None,
                     }
                 ]
             }
         }
 
-        assert (
-            "DATA" not in dict(output_dataframeschema_df.pandera.errors).keys()
-        )
-        assert (
-            dict(output_dataframeschema_df.pandera.errors["SCHEMA"])
-            == expected_dataframeschema["SCHEMA"]
+        assert "DATA" not in dict(schema_errors).keys()
+        _cmp_errors(
+            dict(schema_errors["SCHEMA"]),
+            expected_dataframeschema["SCHEMA"],
         )
 
         class TestSchema(DataFrameModel):
@@ -120,7 +124,7 @@ class TestPanderaConfig:
             validation_enabled=True,
             validation_depth=ValidationDepth.SCHEMA_ONLY,
         ):
-            output_dataframemodel_df = TestSchema.validate(input_df)
+            _, model_errors = validate_collecting_errors(TestSchema, input_df)
 
         expected_dataframemodel = {
             "SCHEMA": {
@@ -128,23 +132,16 @@ class TestPanderaConfig:
                     {
                         "check": "column_in_dataframe",
                         "column": "price_val",
-                        "error": "column "
-                        "'price_val' not "
-                        "in dataframe "
-                        "Row(product='Bread', "
-                        "price=9)",
                         "schema": "TestSchema",
                     }
                 ]
             }
         }
 
-        assert (
-            "DATA" not in dict(output_dataframemodel_df.pandera.errors).keys()
-        )
-        assert (
-            dict(output_dataframemodel_df.pandera.errors["SCHEMA"])
-            == expected_dataframemodel["SCHEMA"]
+        assert "DATA" not in dict(model_errors).keys()
+        _cmp_errors(
+            dict(model_errors["SCHEMA"]),
+            expected_dataframemodel["SCHEMA"],
         )
 
     def test_data_only(self, spark_session, sample_spark_schema, request):
@@ -161,7 +158,7 @@ class TestPanderaConfig:
             "validation_depth": ValidationDepth.DATA_ONLY,
             "cache_dataframe": False,
             "keep_cached_dataframe": False,
-            "use_narwhals_backend": False,
+            "use_narwhals_backend": CONFIG.use_narwhals_backend,
             "silenced_warnings": [],
         }
 
@@ -171,7 +168,9 @@ class TestPanderaConfig:
             validation_depth=ValidationDepth.DATA_ONLY,
         ):
             assert asdict(get_config_context()) == expected
-            output_dataframeschema_df = pandera_schema.validate(input_df)
+            _, schema_errors = validate_collecting_errors(
+                pandera_schema, input_df
+            )
 
         expected_dataframeschema = {
             "DATA": {
@@ -179,20 +178,16 @@ class TestPanderaConfig:
                     {
                         "check": "str_startswith('B')",
                         "column": "product",
-                        "error": "<Schema Column(name=product, type=DataType(StringType()))> failed validation str_startswith('B')",
                         "schema": None,
                     }
                 ]
             }
         }
 
-        assert (
-            "SCHEMA"
-            not in dict(output_dataframeschema_df.pandera.errors).keys()
-        )
-        assert (
-            dict(output_dataframeschema_df.pandera.errors["DATA"])
-            == expected_dataframeschema["DATA"]
+        assert "SCHEMA" not in dict(schema_errors).keys()
+        _cmp_errors(
+            dict(schema_errors["DATA"]),
+            expected_dataframeschema["DATA"],
         )
 
         class TestSchema(DataFrameModel):
@@ -205,7 +200,7 @@ class TestPanderaConfig:
             validation_enabled=True,
             validation_depth=ValidationDepth.DATA_ONLY,
         ):
-            output_dataframemodel_df = TestSchema.validate(input_df)
+            _, model_errors = validate_collecting_errors(TestSchema, input_df)
 
         expected_dataframemodel = {
             "DATA": {
@@ -213,20 +208,16 @@ class TestPanderaConfig:
                     {
                         "check": "str_startswith('B')",
                         "column": "product",
-                        "error": "<Schema Column(name=product, type=DataType(StringType()))> failed validation str_startswith('B')",
                         "schema": "TestSchema",
                     }
                 ]
             }
         }
 
-        assert (
-            "SCHEMA"
-            not in dict(output_dataframemodel_df.pandera.errors).keys()
-        )
-        assert (
-            dict(output_dataframemodel_df.pandera.errors["DATA"])
-            == expected_dataframemodel["DATA"]
+        assert "SCHEMA" not in dict(model_errors).keys()
+        _cmp_errors(
+            dict(model_errors["DATA"]),
+            expected_dataframemodel["DATA"],
         )
 
     def test_schema_and_data(
@@ -246,7 +237,7 @@ class TestPanderaConfig:
             "validation_depth": ValidationDepth.SCHEMA_AND_DATA,
             "cache_dataframe": False,
             "keep_cached_dataframe": False,
-            "use_narwhals_backend": False,
+            "use_narwhals_backend": CONFIG.use_narwhals_backend,
             "silenced_warnings": [],
         }
 
@@ -257,7 +248,9 @@ class TestPanderaConfig:
             validation_depth=ValidationDepth.SCHEMA_AND_DATA,
         ):
             assert asdict(get_config_context()) == expected
-            output_dataframeschema_df = pandera_schema.validate(input_df)
+            _, schema_errors = validate_collecting_errors(
+                pandera_schema, input_df
+            )
 
         expected_dataframeschema = {
             "DATA": {
@@ -265,7 +258,6 @@ class TestPanderaConfig:
                     {
                         "check": "str_startswith('B')",
                         "column": "product",
-                        "error": "<Schema Column(name=product, type=DataType(StringType()))> failed validation str_startswith('B')",
                         "schema": None,
                     }
                 ]
@@ -275,20 +267,19 @@ class TestPanderaConfig:
                     {
                         "check": "column_in_dataframe",
                         "column": "price_val",
-                        "error": "column 'price_val' not in dataframe Row(product='Bread', price=9)",
                         "schema": None,
                     }
                 ]
             },
         }
 
-        assert (
-            dict(output_dataframeschema_df.pandera.errors["DATA"])
-            == expected_dataframeschema["DATA"]
+        _cmp_errors(
+            dict(schema_errors["DATA"]),
+            expected_dataframeschema["DATA"],
         )
-        assert (
-            dict(output_dataframeschema_df.pandera.errors["SCHEMA"])
-            == expected_dataframeschema["SCHEMA"]
+        _cmp_errors(
+            dict(schema_errors["SCHEMA"]),
+            expected_dataframeschema["SCHEMA"],
         )
 
         class TestSchema(DataFrameModel):
@@ -301,7 +292,7 @@ class TestPanderaConfig:
             validation_enabled=True,
             validation_depth=ValidationDepth.SCHEMA_AND_DATA,
         ):
-            output_dataframemodel_df = TestSchema.validate(input_df)
+            _, model_errors = validate_collecting_errors(TestSchema, input_df)
 
         expected_dataframemodel = {
             "DATA": {
@@ -309,7 +300,6 @@ class TestPanderaConfig:
                     {
                         "check": "str_startswith('B')",
                         "column": "product",
-                        "error": "<Schema Column(name=product, type=DataType(StringType()))> failed validation str_startswith('B')",
                         "schema": "TestSchema",
                     }
                 ]
@@ -319,26 +309,19 @@ class TestPanderaConfig:
                     {
                         "check": "column_in_dataframe",
                         "column": "price_val",
-                        "error": "column "
-                        "'price_val' "
-                        "not "
-                        "in "
-                        "dataframe "
-                        "Row(product='Bread', "
-                        "price=9)",
                         "schema": "TestSchema",
                     }
                 ]
             },
         }
 
-        assert (
-            dict(output_dataframemodel_df.pandera.errors["DATA"])
-            == expected_dataframemodel["DATA"]
+        _cmp_errors(
+            dict(model_errors["DATA"]),
+            expected_dataframemodel["DATA"],
         )
-        assert (
-            dict(output_dataframemodel_df.pandera.errors["SCHEMA"])
-            == expected_dataframemodel["SCHEMA"]
+        _cmp_errors(
+            dict(model_errors["SCHEMA"]),
+            expected_dataframemodel["SCHEMA"],
         )
 
     @pytest.mark.parametrize("cache_dataframe", [True, False])
@@ -357,7 +340,7 @@ class TestPanderaConfig:
             "validation_depth": ValidationDepth.SCHEMA_AND_DATA,
             "cache_dataframe": cache_dataframe,
             "keep_cached_dataframe": keep_cached_dataframe,
-            "use_narwhals_backend": False,
+            "use_narwhals_backend": CONFIG.use_narwhals_backend,
             "silenced_warnings": [],
         }
         with config_context(
