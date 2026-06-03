@@ -513,10 +513,12 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
                 obj = getattr(schema.dtype, coerce_fn)(obj)
             else:
                 for col_schema in schema.columns.values():
-                    if (
-                        not col_schema.required
-                        and col_schema.name not in lf_columns
-                    ):
+                    missing_column = col_schema.name not in lf_columns
+                    required_regex = col_schema.required and col_schema.regex
+
+                    # Required regex columns use the selector path below;
+                    # other missing columns are handled by later checks.
+                    if missing_column and not required_regex:
                         continue
 
                     if schema.coerce or col_schema.coerce:
