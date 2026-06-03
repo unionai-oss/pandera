@@ -113,7 +113,17 @@ If you want to check the properties of a pandas data structure while preserving
 null values, specify `Check(..., ignore_na=False)` when defining a check.
 
 Note that this is different from the `nullable` argument in {class}`~pandera.api.pandas.components.Column`
-objects, which simply checks for null values in a column.
+objects, which determines whether a column is allowed to contain null values.
+For example, use `Column(nullable=True, checks=Check(..., ignore_na=True))` when
+a column may contain null values but the check should only validate the
+non-null values. Set `ignore_na=False` when the check itself needs to inspect
+null values, such as asserting that the fraction of missing values is below a
+threshold.
+
+For dataframe-level checks, `ignore_na=True` means rows containing at least one
+null value are excluded before the check function receives the dataframe. Set
+`ignore_na=False` for checks that need to reason about complete rows and rows
+with missing values together.
 
 (column-check-groups)=
 
