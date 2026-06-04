@@ -1,5 +1,6 @@
 """Column backend for Narwhals — per-column validation layer."""
 
+import copy
 import re
 import warnings
 from collections.abc import Iterable
@@ -73,15 +74,47 @@ class ColumnBackend(NarwhalsSchemaBackend):
                 "When drop_invalid_rows is True, lazy must be set to True."
             )
 
-        error_handler = self.run_checks_and_handle_errors(
-            error_handler,
-            schema,
-            check_lf,
-            head=head,
-            tail=tail,
-            sample=sample,
-            random_state=random_state,
-        )
+        if getattr(schema, "regex", False):
+            column_keys_to_check = list(
+                self.get_regex_columns(schema, check_lf)
+            )
+            if not column_keys_to_check:
+                raise SchemaError(
+                    schema=schema,
+                    data=_to_native(check_lf),
+                    message=(
+                        f"Column regex name='{schema.selector}' did not match "
+                        "any columns in the dataframe. Update the regex "
+                        "pattern so that it matches at least one column."
+                    ),
+                    failure_cases=check_lf.collect_schema().names(),
+                    check=f"no_regex_column_match('{schema.selector}')",
+                    reason_code=SchemaErrorReason.INVALID_COLUMN_NAME,
+                )
+            for column_name in column_keys_to_check:
+                single_col_lf = check_lf.select(nw.col(column_name))
+                col_schema = copy.copy(schema)
+                col_schema.name = column_name
+                col_schema.regex = False
+                error_handler = self.run_checks_and_handle_errors(
+                    error_handler,
+                    col_schema,
+                    single_col_lf,
+                    head=head,
+                    tail=tail,
+                    sample=sample,
+                    random_state=random_state,
+                )
+        else:
+            error_handler = self.run_checks_and_handle_errors(
+                error_handler,
+                schema,
+                check_lf,
+                head=head,
+                tail=tail,
+                sample=sample,
+                random_state=random_state,
+            )
 
         if lazy and error_handler.collected_errors:
             if getattr(schema, "drop_invalid_rows", False):
@@ -234,10 +267,57 @@ class ColumnBackend(NarwhalsSchemaBackend):
         # Import inside method to avoid circular import chains
         from pandera.engines import narwhals_engine
 
+        try:
+            from pandera.engines import pyspark_engine as _pyspark_engine
+
+            uses_pyspark_dtype = isinstance(
+                schema.dtype, _pyspark_engine.DataType
+            )
+        except ImportError:
+            uses_pyspark_dtype = False
+
         results = []
         schema_obj = check_obj.select(schema.selector).collect_schema()
 
+        native_pyspark_schema = (
+            nw.to_native(check_obj).schema if uses_pyspark_dtype else None
+        )
+
         for column, nw_dtype in zip(schema_obj.names(), schema_obj.dtypes()):
+            if uses_pyspark_dtype:
+                # Schema configured with a PySpark dtype (e.g. T.IntegerType()) —
+                # the narwhals dtype engine cannot resolve cross-engine PySpark types.
+                # PySpark boxes IntegerType/FloatType under the width-less pandera base
+                # classes dtypes.Int/dtypes.Float (exact native type is preserved only
+                # in .type), so the generic narwhals_engine.Engine.dtype(schema.dtype)
+                # path either cannot resolve Int or collapses Float to Float64 and
+                # returns a false negative for 32-bit columns.  The schema-driven
+                # string comparison below preserves exact native semantics:
+                # IntegerType == IntegerType but IntegerType != LongType.
+                # This dispatch is schema-driven (isinstance on schema.dtype), not
+                # frame-driven (what backend is present at runtime).
+                assert native_pyspark_schema is not None
+                pyspark_dtype = native_pyspark_schema[column].dataType
+                pyspark_dtype_str = str(pyspark_dtype)
+                passed = pyspark_dtype_str == str(schema.dtype)
+                results.append(
+                    CoreCheckResult(
+                        passed=bool(passed),
+                        check=f"dtype('{schema.dtype}')",
+                        reason_code=SchemaErrorReason.WRONG_DATATYPE,
+                        message=(
+                            f"expected column '{column}' to have type "
+                            f"{schema.dtype}, got {pyspark_dtype_str}"
+                            if not passed
+                            else None
+                        ),
+                        failure_cases=pyspark_dtype_str
+                        if not passed
+                        else None,
+                    )
+                )
+                continue
+
             try:
                 col_pandera_dtype = narwhals_engine.Engine.dtype(nw_dtype)
             except TypeError:
