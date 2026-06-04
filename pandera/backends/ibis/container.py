@@ -178,12 +178,10 @@ class DataFrameSchemaBackend(IbisSchemaBackend):
     ) -> list[CoreCheckResult]:
         """Run checks for all schema components."""
         check_results = []
-        check_passed = []
         # schema-component-level checks
         for schema_component in schema_components:
             try:
-                result = schema_component.validate(check_obj, lazy=lazy)
-                check_passed.append(isinstance(result, ibis.Table))
+                schema_component.validate(check_obj, lazy=lazy)
             except SchemaError as err:
                 check_results.append(
                     CoreCheckResult(
@@ -205,7 +203,6 @@ class DataFrameSchemaBackend(IbisSchemaBackend):
                         for schema_error in err.schema_errors
                     ]
                 )
-        assert all(check_passed)
         return check_results
 
     def collect_column_info(
@@ -327,8 +324,6 @@ class DataFrameSchemaBackend(IbisSchemaBackend):
                 try:
                     next_ordered_col = next(sorted_column_names)
                 except StopIteration:
-                    pass
-                if next_ordered_col != column:
                     raise SchemaError(
                         schema=schema,
                         data=check_obj,
@@ -337,6 +332,16 @@ class DataFrameSchemaBackend(IbisSchemaBackend):
                         check="column_ordered",
                         reason_code=SchemaErrorReason.COLUMN_NOT_ORDERED,
                     )
+                else:
+                    if next_ordered_col != column:
+                        raise SchemaError(
+                            schema=schema,
+                            data=check_obj,
+                            message=f"column '{column}' out-of-order",
+                            failure_cases=column,
+                            check="column_ordered",
+                            reason_code=SchemaErrorReason.COLUMN_NOT_ORDERED,
+                        )
 
         if schema.strict == "filter":
             check_obj = check_obj.drop(filter_out_columns)
@@ -383,7 +388,7 @@ class DataFrameSchemaBackend(IbisSchemaBackend):
                         check="column_in_dataframe",
                         reason_code=SchemaErrorReason.COLUMN_NOT_IN_DATAFRAME,
                         message=(
-                            f"column '{colname}' not in table. "
+                            f"column '{colname}' not found. "
                             f"Columns in table: {check_obj.columns}"
                         ),
                         failure_cases=colname,
