@@ -184,6 +184,7 @@ exclude = [".nox/**", ".nox-*/**"]
 [tool.pytest.ini_options]
 log_cli = true
 log_cli_level = 20
+xfail_strict = true
 markers = [
     "polars: tests for the Polars backend",
     "ibis: tests for the Ibis backend",
