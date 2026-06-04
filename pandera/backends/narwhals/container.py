@@ -36,6 +36,7 @@ from pandera.errors import (
     SchemaError,
     SchemaErrorReason,
     SchemaErrors,
+    SchemaWarning,
 )
 from pandera.utils import is_regex
 from pandera.validation_depth import validate_scope
@@ -66,6 +67,10 @@ def _to_frame_kind_nw(lf: nw.LazyFrame, return_type: type):
     # metadata so we don't need to import polars here. Eager polars DataFrame
     # subclasses do not define ``collect`` at the class level; the lazy class
     # does.  Everything else (ibis.Table, pl.LazyFrame) is returned as-is.
+    # Both conditions are required:
+    # 1. No class-level .collect → distinguishes pl.DataFrame from pl.LazyFrame
+    # 2. polars module prefix → distinguishes polars from PySpark (whose module
+    #    starts with 'pyspark', not 'polars')
     caller_was_eager_polars = not hasattr(
         return_type, "collect"
     ) and return_type.__module__.startswith("polars")
@@ -439,6 +444,22 @@ class DataFrameSchemaBackend(NarwhalsSchemaBackend):
                     # override column dtype with dataframe dtype
                     col.dtype = schema.dtype  # type: ignore
 
+                # Warn once per column when coerce=True was requested but will
+                # not be applied — the narwhals ColumnBackend has no coerce_dtype
+                # step, so column-level coerce=True is a no-op that would otherwise
+                # silently produce a WRONG_DATATYPE error.
+                if getattr(col, "coerce", False):
+                    col_name = getattr(col, "name", None) or getattr(
+                        col, "selector", col_name
+                    )
+                    warnings.warn(
+                        f"coerce=True is not applied by the narwhals backend for "
+                        f"column '{col_name}'. The column dtype will not be "
+                        f"coerced; any dtype mismatch will be reported as a "
+                        f"WRONG_DATATYPE error.",
+                        SchemaWarning,
+                        stacklevel=8,
+                    )
                 # disable coercion at the schema component level since the
                 # dataframe-level schema already coerced it.
                 col.coerce = False  # type: ignore
