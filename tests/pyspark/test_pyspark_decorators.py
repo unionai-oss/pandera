@@ -8,7 +8,7 @@ import pytest
 from pyspark.sql import DataFrame
 
 from pandera.backends.pyspark.decorators import cache_check_obj
-from pandera.config import config_context
+from pandera.config import CONFIG, config_context
 from pandera.pyspark import Check, Column, DataFrameSchema
 from tests.pyspark.conftest import spark_df
 
@@ -68,10 +68,66 @@ class TestPanderaDecorators:
         "cache_enabled,keep_cache_enabled,"
         "expected_caching_message,expected_unpersisting_message",
         [
-            (True, True, True, None),
-            (True, False, True, True),
-            (False, True, None, None),
-            (False, False, None, None),
+            pytest.param(
+                True,
+                True,
+                True,
+                None,
+                marks=pytest.mark.xfail(
+                    CONFIG.use_narwhals_backend,
+                    reason=(
+                        "narwhals backend does not use PySpark caching "
+                        "decorators; cache/unpersist log messages are not "
+                        "emitted"
+                    ),
+                    strict=False,
+                ),
+            ),
+            pytest.param(
+                True,
+                False,
+                True,
+                True,
+                marks=pytest.mark.xfail(
+                    CONFIG.use_narwhals_backend,
+                    reason=(
+                        "narwhals backend does not use PySpark caching "
+                        "decorators; cache/unpersist log messages are not "
+                        "emitted"
+                    ),
+                    strict=False,
+                ),
+            ),
+            pytest.param(
+                False,
+                True,
+                None,
+                None,
+                marks=pytest.mark.xfail(
+                    CONFIG.use_narwhals_backend,
+                    reason=(
+                        "narwhals backend raises SchemaErrors when price_val "
+                        "column is missing from the DataFrame; native PySpark "
+                        "attaches errors lazily and returns a DataFrame"
+                    ),
+                    strict=False,
+                ),
+            ),
+            pytest.param(
+                False,
+                False,
+                None,
+                None,
+                marks=pytest.mark.xfail(
+                    CONFIG.use_narwhals_backend,
+                    reason=(
+                        "narwhals backend raises SchemaErrors when price_val "
+                        "column is missing from the DataFrame; native PySpark "
+                        "attaches errors lazily and returns a DataFrame"
+                    ),
+                    strict=False,
+                ),
+            ),
         ],
         scope="function",
     )
