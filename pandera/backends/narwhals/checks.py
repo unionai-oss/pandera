@@ -25,11 +25,11 @@ except ImportError:  # pragma: no cover — ibis is optional
 def _unwrap_callable(fn: Any) -> Any:
     """Unwrap ``functools.partial`` chains to reach the underlying callable.
 
-    The narwhals check backend wraps ``check._check_fn`` with
-    ``functools.partial(..., **check_kwargs)`` to bind check kwargs. Signature
-    introspection on the partial reports the *post-binding* signature, which is
-    what we want for arity detection, but we also unwrap to support callers
-    that compose multiple partials.
+    Used when the caller needs the *identity* of the underlying function (e.g.
+    for type-checking or ``isinstance`` dispatch), not for arity detection.
+    Arity detection should be performed on the partial itself so that
+    post-binding required-positional counts are respected — see
+    ``_required_positional_count`` and its usage in ``apply()``.
     """
     while isinstance(fn, partial):
         fn = fn.func
@@ -49,6 +49,7 @@ def _required_positional_count(fn: Any) -> int | None:
     ``*args`` and ``**kwargs`` are excluded so functions like the
     ``BaseCheckInfo._adapter`` (``def _adapter(arg, **kwargs)``) report
     exactly one required positional.
+
     """
     try:
         sig = inspect.signature(fn)
@@ -185,9 +186,9 @@ class NarwhalsCheckBackend(BaseCheckBackend):
             #     accepts a single positional arg) work identically under
             #     the narwhals backend.
             native_frame = nw.to_native(frame)
-            arity = _required_positional_count(
-                _unwrap_callable(self.check._check_fn)
-            )
+            # Use check._check_fn directly — do not unwrap user-supplied partials;
+            # the post-binding arity is what selects the correct calling convention.
+            arity = _required_positional_count(self.check._check_fn)
             if arity is not None and arity <= 1:
                 data = _wrap_native_frame_with_key(native_frame, key)
                 if data is not None:

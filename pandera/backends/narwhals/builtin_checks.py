@@ -149,7 +149,7 @@ def isin(col_expr: nw.Expr, allowed_values: Collection) -> nw.Expr:
     :param col_expr: Narwhals column expression to check.
     :param allowed_values: The set of allowed values. May be any iterable.
     """
-    return col_expr.is_in(allowed_values)
+    return col_expr.is_in(list(allowed_values))
 
 
 @register_builtin_check(
@@ -167,7 +167,7 @@ def notin(col_expr: nw.Expr, forbidden_values: Collection) -> nw.Expr:
     :param forbidden_values: The set of values which should not occur. May be
         any iterable.
     """
-    return ~col_expr.is_in(forbidden_values)
+    return ~col_expr.is_in(list(forbidden_values))
 
 
 @register_builtin_check(
