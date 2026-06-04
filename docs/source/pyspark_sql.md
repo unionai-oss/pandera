@@ -26,6 +26,56 @@ install `pandera` with the `pyspark` extra:
 pip install 'pandera[pyspark]'
 ```
 
+:::{note}
+Pandera ships an optional
+{ref}`Narwhals-powered backend <narwhals-backends>` that runs validation
+against the native PySpark SQL execution path and shares its check
+implementations with the Polars and Ibis backends. It is **opt-in**:
+install the `narwhals` extra and set
+`PANDERA_USE_NARWHALS_BACKEND=True` (or `pandera.config.CONFIG.use_narwhals_backend = True`)
+before importing `pandera.pyspark`. By default Pandera uses the native PySpark
+backend. The public API shown on this page is unchanged either way.
+
+Because the Narwhals backend for PySpark shares its check implementations with
+the Polars and Ibis backends, several behaviours differ from the native PySpark
+backend:
+
+- **SQL-lazy execution.** No element-wise checks (no `map_batches` on SQL-lazy
+  frames), and no row sampling via `sample=` / `tail=` parameters.
+- **`coerce=True` is a no-op.** The Narwhals `ColumnBackend` has no coercion
+  step. Setting `coerce=True` on a `Field` or `Column` performs no coercion;
+  Pandera emits a ``SchemaWarning`` per column to make the subsequent
+  ``WRONG_DATATYPE`` error understandable rather than silent. Setting
+  ``coerce=True`` at the `Config` level (row-wise `auto_coerce` dtype) is
+  handled and does not warn.
+  If you rely on `coerce=True` to convert column dtypes, use the native PySpark
+  backend (`PANDERA_USE_NARWHALS_BACKEND=False`).
+- **Custom checks using `PysparkDataframeColumnObject` are incompatible.**
+  Custom checks registered via `@register_check_method` that expect a
+  `pyspark_obj: PysparkDataframeColumnObject` argument will not work under the
+  Narwhals backend. The Narwhals backend passes a `NarwhalsData(frame, key)`
+  named tuple to check functions instead, so the custom check signature and
+  body must be rewritten against the Narwhals frame API (or kept on the
+  native backend).
+- **`failure_cases` rows may be omitted for scalar Polars errors.** Schema-level
+  failure cases produced as scalar Polars frames (e.g. from a wrong-dtype check)
+  are still reported in the ``errors`` dict but their rows are omitted from the
+  aggregated ``failure_cases`` frame. See the
+  {ref}`Narwhals Known gaps <narwhals-backends>` section for details.
+- **Unified `SchemaErrors` contract.** Like the Polars and Ibis Narwhals
+  backends, the PySpark Narwhals backend raises `pandera.errors.SchemaErrors`
+  on validation failure (or `SchemaError` for the first error when
+  `lazy=False`). This differs from the native PySpark backend, which attaches
+  errors to `dataframe.pandera.errors`. If you depend on the
+  `dataframe.pandera.errors` accessor, use the native PySpark backend
+  (`PANDERA_USE_NARWHALS_BACKEND=False`).
+
+```bash
+pip install 'pandera[pyspark,narwhals]'
+export PANDERA_USE_NARWHALS_BACKEND=True
+```
+:::
+
 ## What's different?
 
 Compared to the way `pandera` deals with pandas dataframes, there are some
@@ -249,6 +299,7 @@ of boolean values.
 ```{code-cell} python
 from pandera.extensions import register_check_method
 import pyspark.sql.types as T
+from pyspark.sql.functions import col
 
 @register_check_method
 def new_pyspark_check(pyspark_obj, *, max_value) -> bool:
