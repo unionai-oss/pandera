@@ -9,7 +9,9 @@ import pytest
 from packaging import version
 from pyspark.sql import SparkSession
 
-from pandera.config import PanderaConfig
+from pandera.api.base.error_handler import ErrorHandler
+from pandera.config import CONFIG, PanderaConfig
+from pandera.errors import SchemaErrors
 
 PYSPARK_VERSION = version.parse(pyspark.__version__)
 
@@ -189,3 +191,69 @@ def sample_check_data():
 def config_params():
     """This function creates config parameters"""
     return PanderaConfig()
+
+
+def validate_collecting_errors(schema, df, **validate_kwargs):
+    """Backend-aware validation helper that returns ``(out_df, errors_dict)``.
+
+    Abstracts the difference between:
+    - Native PySpark backend: validation attaches errors to ``df.pandera.errors``
+      and returns the DataFrame.
+    - Narwhals backend (``CONFIG.use_narwhals_backend=True``): validation raises
+      ``pandera.errors.SchemaErrors`` on failure.
+
+    :param schema: A ``DataFrameSchema`` or ``DataFrameModel`` with a
+        ``.validate()`` method.
+    :param df: The PySpark DataFrame to validate.
+    :param validate_kwargs: Additional keyword arguments forwarded to
+        ``schema.validate()``.
+    :returns: A ``(out_df, errors_dict)`` tuple where ``errors_dict`` is a
+        ``dict`` with ``"SCHEMA"`` and/or ``"DATA"`` keys (same format as
+        ``df.pandera.errors`` under the native backend).  On success the dict
+        is empty (``{}``).  On narwhals-backend failure ``out_df`` is ``None``;
+        on native-backend failure ``out_df`` is the annotated DataFrame.
+
+    Under the narwhals backend, success returns ``(out_df, {})`` directly
+    without accessor access — the ``.pandera`` accessor is not populated by
+    the narwhals backend.
+    """
+    try:
+        out_df = schema.validate(df, **validate_kwargs)
+    except SchemaErrors as exc:
+        # Narwhals path: rebuild the same nested dict structure from the exception.
+        handler = ErrorHandler(lazy=True)
+        handler.collect_errors(exc.schema_errors)
+        # DataFrameModel is a class; DataFrameSchema is an instance.
+        # Use __name__ for classes (DataFrameModel subclasses) so the schema
+        # name in errors matches the class name (e.g. "PanderaSchema").
+        schema_name = getattr(schema, "name", None) or getattr(
+            schema, "__name__", None
+        )
+        errors = handler.summarize(schema_name=schema_name)
+        return (None, dict(errors))
+
+    # Success path: native backend attaches errors via accessor;
+    # narwhals backend does not set .pandera.errors — treat as empty.
+    try:
+        errors = out_df.pandera.errors
+    except AttributeError:
+        errors = None
+    return (out_df, dict(errors) if errors is not None else {})
+
+
+def _cmp_errors(actual, expected):
+    """Compare pandera error dicts ignoring the exact error message text.
+
+    Error message format varies by backend (Narwhals vs native PySpark),
+    so only structural fields (check, column, schema) are compared.
+    """
+
+    def drop_error(entries):
+        return [{k: v for k, v in e.items() if k != "error"} for e in entries]
+
+    assert set(actual) == set(expected)
+    for key in expected:
+        assert drop_error(actual[key]) == drop_error(expected[key])
+        assert all(
+            "error" in e and e["error"] is not None for e in actual[key]
+        )

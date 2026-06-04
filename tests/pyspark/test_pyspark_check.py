@@ -26,9 +26,11 @@ from pyspark.sql.types import (
 
 import pandera.extensions
 import pandera.pyspark as pa
+from pandera.config import CONFIG
 from pandera.errors import PysparkSchemaError
 from pandera.pyspark import Column, DataFrameModel, DataFrameSchema, Field
 from pandera.validation_depth import ValidationScope, validate_scope
+from tests.pyspark.conftest import validate_collecting_errors
 
 pytestmark = pytest.mark.parametrize(
     "spark_session", ["spark", "spark_connect"]
@@ -62,6 +64,11 @@ class TestDecorator:
     """This class is used to test the decorator to check datatype mismatches and unacceptable datatype"""
 
     @validate_scope(scope=ValidationScope.DATA)
+    @pytest.mark.xfail(
+        condition=CONFIG.use_narwhals_backend,
+        reason="narwhals backend does not raise TypeError for datatype mismatches; CHECK_ERROR category not emitted",
+        strict=True,
+    )
     def test_datatype_check_decorator(self, spark_session, request):
         """
         Test to validate the decorator to check datatype mismatches and unacceptable datatype
@@ -102,7 +109,7 @@ class TestDecorator:
         )
         fail_case_data = [["foo", 1], ["bar", 2]]
         df = spark.createDataFrame(data=fail_case_data, schema=spark_schema)
-        df_out = schema.validate(df)
+        _, errors = validate_collecting_errors(schema, df)
         expected = {
             "DATA": {
                 "CHECK_ERROR": [
@@ -135,8 +142,8 @@ class TestDecorator:
                 ]
             },
         }
-        assert dict(df_out.pandera.errors["DATA"]) == expected["DATA"]
-        assert dict(df_out.pandera.errors["SCHEMA"]) == expected["SCHEMA"]
+        assert dict(errors["DATA"]) == expected["DATA"]
+        assert dict(errors["SCHEMA"]) == expected["SCHEMA"]
 
         df = spark.createDataFrame(data=fail_case_data, schema=spark_schema)
         try:
@@ -275,18 +282,28 @@ class BaseClass:
             ],
         )
         df = spark.createDataFrame(data=pass_case_data, schema=spark_schema)
-        df_out = schema.validate(df)
-        if df_out.pandera.errors:
-            print(df_out.pandera.errors)
+        _, errors = validate_collecting_errors(schema, df)
+        if errors:
+            print(errors)
             raise PysparkSchemaError
 
         with pytest.raises(PysparkSchemaError):
             df_fail = spark.createDataFrame(
                 data=fail_case_data, schema=spark_schema
             )
-            df_out = schema.validate(df_fail)
-            if df_out.pandera.errors:
+            _, fail_errors = validate_collecting_errors(schema, df_fail)
+            if fail_errors:
                 raise PysparkSchemaError
+
+
+_xfail_narwhals_type_restriction = pytest.mark.xfail(
+    condition=CONFIG.use_narwhals_backend,
+    reason=(
+        "narwhals backend does not enforce PySpark-native type restrictions "
+        "(@register_input_datatypes); aligned with Ibis behavior"
+    ),
+    strict=True,
+)
 
 
 class TestEqualToCheck(BaseClass):
@@ -326,11 +343,14 @@ class TestEqualToCheck(BaseClass):
         """This function passes the parameter for each function based on parameter form get_data_param function"""
         # called once per each test function
         funcarglist = self.get_data_param()[metafunc.function.__name__]
-        argnames = sorted(funcarglist[0])
+        argnames = sorted(k for k in funcarglist[0] if k != "marks")
         metafunc.parametrize(
             argnames,
             [
-                [funcargs[name] for name in argnames]
+                pytest.param(
+                    *[funcargs[name] for name in argnames],
+                    marks=funcargs.get("marks", []),
+                )
                 for funcargs in funcarglist
             ],
         )
@@ -379,10 +399,12 @@ class TestEqualToCheck(BaseClass):
                 {
                     "datatype": ArrayType(StringType()),
                     "data": self.sample_array_data,
+                    "marks": [_xfail_narwhals_type_restriction],
                 },
                 {
                     "datatype": MapType(StringType(), StringType()),
                     "data": self.sample_map_data,
+                    "marks": [_xfail_narwhals_type_restriction],
                 },
             ],
         }
@@ -458,11 +480,14 @@ class TestNotEqualToCheck(BaseClass):
         """This function passes the parameter for each function based on parameter form get_data_param function"""
         # called once per each test function
         funcarglist = self.get_data_param()[metafunc.function.__name__]
-        argnames = sorted(funcarglist[0])
+        argnames = sorted(k for k in funcarglist[0] if k != "marks")
         metafunc.parametrize(
             argnames,
             [
-                [funcargs[name] for name in argnames]
+                pytest.param(
+                    *[funcargs[name] for name in argnames],
+                    marks=funcargs.get("marks", []),
+                )
                 for funcargs in funcarglist
             ],
         )
@@ -511,10 +536,12 @@ class TestNotEqualToCheck(BaseClass):
                 {
                     "datatype": ArrayType(StringType()),
                     "data": self.sample_array_data,
+                    "marks": [_xfail_narwhals_type_restriction],
                 },
                 {
                     "datatype": MapType(StringType(), StringType()),
                     "data": self.sample_map_data,
+                    "marks": [_xfail_narwhals_type_restriction],
                 },
             ],
         }
@@ -589,11 +616,14 @@ class TestGreaterThanCheck(BaseClass):
         """This function passes the parameter for each function based on parameter form get_data_param function"""
         # called once per each test function
         funcarglist = self.get_data_param()[metafunc.function.__name__]
-        argnames = sorted(funcarglist[0])
+        argnames = sorted(k for k in funcarglist[0] if k != "marks")
         metafunc.parametrize(
             argnames,
             [
-                [funcargs[name] for name in argnames]
+                pytest.param(
+                    *[funcargs[name] for name in argnames],
+                    marks=funcargs.get("marks", []),
+                )
                 for funcargs in funcarglist
             ],
         )
@@ -637,10 +667,12 @@ class TestGreaterThanCheck(BaseClass):
                 {
                     "datatype": ArrayType(StringType()),
                     "data": self.sample_array_data,
+                    "marks": [_xfail_narwhals_type_restriction],
                 },
                 {
                     "datatype": MapType(StringType(), StringType()),
                     "data": self.sample_map_data,
+                    "marks": [_xfail_narwhals_type_restriction],
                 },
             ],
         }
@@ -715,11 +747,14 @@ class TestGreaterThanEqualToCheck(BaseClass):
         """This function passes the parameter for each function based on parameter form get_data_param function"""
         # called once per each test function
         funcarglist = self.get_data_param()[metafunc.function.__name__]
-        argnames = sorted(funcarglist[0])
+        argnames = sorted(k for k in funcarglist[0] if k != "marks")
         metafunc.parametrize(
             argnames,
             [
-                [funcargs[name] for name in argnames]
+                pytest.param(
+                    *[funcargs[name] for name in argnames],
+                    marks=funcargs.get("marks", []),
+                )
                 for funcargs in funcarglist
             ],
         )
@@ -763,10 +798,12 @@ class TestGreaterThanEqualToCheck(BaseClass):
                 {
                     "datatype": ArrayType(StringType()),
                     "data": self.sample_array_data,
+                    "marks": [_xfail_narwhals_type_restriction],
                 },
                 {
                     "datatype": MapType(StringType(), StringType()),
                     "data": self.sample_map_data,
+                    "marks": [_xfail_narwhals_type_restriction],
                 },
             ],
         }
@@ -851,11 +888,14 @@ class TestLessThanCheck(BaseClass):
         """This function passes the parameter for each function based on parameter form get_data_param function"""
         # called once per each test function
         funcarglist = self.get_data_param()[metafunc.function.__name__]
-        argnames = sorted(funcarglist[0])
+        argnames = sorted(k for k in funcarglist[0] if k != "marks")
         metafunc.parametrize(
             argnames,
             [
-                [funcargs[name] for name in argnames]
+                pytest.param(
+                    *[funcargs[name] for name in argnames],
+                    marks=funcargs.get("marks", []),
+                )
                 for funcargs in funcarglist
             ],
         )
@@ -894,15 +934,25 @@ class TestLessThanCheck(BaseClass):
                 },
             ],
             "test_failed_unaccepted_datatypes": [
-                {"datatype": StringType(), "data": self.sample_string_data},
-                {"datatype": BooleanType(), "data": self.sample_bolean_data},
+                {
+                    "datatype": StringType(),
+                    "data": self.sample_string_data,
+                    "marks": [_xfail_narwhals_type_restriction],
+                },
+                {
+                    "datatype": BooleanType(),
+                    "data": self.sample_bolean_data,
+                    "marks": [_xfail_narwhals_type_restriction],
+                },
                 {
                     "datatype": ArrayType(StringType()),
                     "data": self.sample_array_data,
+                    "marks": [_xfail_narwhals_type_restriction],
                 },
                 {
                     "datatype": MapType(StringType(), StringType()),
                     "data": self.sample_map_data,
+                    "marks": [_xfail_narwhals_type_restriction],
                 },
             ],
             "test_failed_none_expression": [
@@ -1006,11 +1056,14 @@ class TestLessThanOrEqualToCheck(BaseClass):
         """This function passes the parameter for each function based on parameter form get_data_param function"""
         # called once per each test function
         funcarglist = self.get_data_param()[metafunc.function.__name__]
-        argnames = sorted(funcarglist[0])
+        argnames = sorted(k for k in funcarglist[0] if k != "marks")
         metafunc.parametrize(
             argnames,
             [
-                [funcargs[name] for name in argnames]
+                pytest.param(
+                    *[funcargs[name] for name in argnames],
+                    marks=funcargs.get("marks", []),
+                )
                 for funcargs in funcarglist
             ],
         )
@@ -1049,15 +1102,25 @@ class TestLessThanOrEqualToCheck(BaseClass):
                 },
             ],
             "test_failed_unaccepted_datatypes": [
-                {"datatype": StringType(), "data": self.sample_string_data},
-                {"datatype": BooleanType(), "data": self.sample_bolean_data},
+                {
+                    "datatype": StringType(),
+                    "data": self.sample_string_data,
+                    "marks": [_xfail_narwhals_type_restriction],
+                },
+                {
+                    "datatype": BooleanType(),
+                    "data": self.sample_bolean_data,
+                    "marks": [_xfail_narwhals_type_restriction],
+                },
                 {
                     "datatype": ArrayType(StringType()),
                     "data": self.sample_array_data,
+                    "marks": [_xfail_narwhals_type_restriction],
                 },
                 {
                     "datatype": MapType(StringType(), StringType()),
                     "data": self.sample_map_data,
+                    "marks": [_xfail_narwhals_type_restriction],
                 },
             ],
             "test_failed_none_expression": [
@@ -1177,11 +1240,14 @@ class TestIsInCheck(BaseClass):
         """This function passes the parameter for each function based on parameter form get_data_param function"""
         # called once per each test function
         funcarglist = self.get_data_param()[metafunc.function.__name__]
-        argnames = sorted(funcarglist[0])
+        argnames = sorted(k for k in funcarglist[0] if k != "marks")
         metafunc.parametrize(
             argnames,
             [
-                [funcargs[name] for name in argnames]
+                pytest.param(
+                    *[funcargs[name] for name in argnames],
+                    marks=funcargs.get("marks", []),
+                )
                 for funcargs in funcarglist
             ],
         )
@@ -1225,10 +1291,12 @@ class TestIsInCheck(BaseClass):
                 {
                     "datatype": ArrayType(StringType()),
                     "data": self.sample_array_data,
+                    "marks": [_xfail_narwhals_type_restriction],
                 },
                 {
                     "datatype": MapType(StringType(), StringType()),
                     "data": self.sample_map_data,
+                    "marks": [_xfail_narwhals_type_restriction],
                 },
             ],
         }
@@ -1302,11 +1370,14 @@ class TestNotInCheck(BaseClass):
         """This function passes the parameter for each function based on parameter form get_data_param function"""
         # called once per each test function
         funcarglist = self.get_data_param()[metafunc.function.__name__]
-        argnames = sorted(funcarglist[0])
+        argnames = sorted(k for k in funcarglist[0] if k != "marks")
         metafunc.parametrize(
             argnames,
             [
-                [funcargs[name] for name in argnames]
+                pytest.param(
+                    *[funcargs[name] for name in argnames],
+                    marks=funcargs.get("marks", []),
+                )
                 for funcargs in funcarglist
             ],
         )
@@ -1355,10 +1426,12 @@ class TestNotInCheck(BaseClass):
                 {
                     "datatype": ArrayType(StringType()),
                     "data": self.sample_array_data,
+                    "marks": [_xfail_narwhals_type_restriction],
                 },
                 {
                     "datatype": MapType(StringType(), StringType()),
                     "data": self.sample_map_data,
+                    "marks": [_xfail_narwhals_type_restriction],
                 },
             ],
         }
@@ -1539,8 +1612,8 @@ class TestStringType(BaseClass):
         # Pass case: strings starting with 2-3 uppercase letters followed by digits
         pass_data = [("foo", "AB123"), ("bar", "XYZ99")]
         df = spark.createDataFrame(data=pass_data, schema=spark_schema)
-        df_out = schema.validate(df)
-        assert not df_out.pandera.errors
+        _, errors = validate_collecting_errors(schema, df)
+        assert errors == {}
 
         # Fail case: "ab123" starts with lowercase
         fail_data = [("foo", "ab123"), ("bar", "XYZ99")]
@@ -1548,8 +1621,8 @@ class TestStringType(BaseClass):
             df_fail = spark.createDataFrame(
                 data=fail_data, schema=spark_schema
             )
-            df_out = schema.validate(df_fail)
-            if df_out.pandera.errors:
+            _, fail_errors = validate_collecting_errors(schema, df_fail)
+            if fail_errors:
                 raise PysparkSchemaError
 
 
@@ -1573,17 +1646,16 @@ def test_str_length_check_with_pyspark_schemas(spark_session, request) -> None:
         data=[("a" * 32,), ("b" * 32,)],
         schema=spark_schema,
     )
-    df_out = schema.validate(df)
-    assert not df_out.pandera.errors
+    _, errors = validate_collecting_errors(schema, df)
+    assert errors == {}
 
     df = spark.createDataFrame(
         data=[("a" * 31,), ("b" * 32,)],
         schema=spark_schema,
     )
-    df_out = schema.validate(df)
+    _, errors = validate_collecting_errors(schema, df)
     assert (
-        dict(df_out.pandera.errors)["DATA"]["DATAFRAME_CHECK"][0]["check"]
-        == "str_length(32)"
+        dict(errors)["DATA"]["DATAFRAME_CHECK"][0]["check"] == "str_length(32)"
     )
 
 
@@ -1605,13 +1677,13 @@ def test_field_str_length_with_pyspark_schema_fields(
     )
 
     df = spark.createDataFrame(data=[("a",), ("bb",)], schema=spark_schema)
-    df_out = ProductSchema.validate(df)
-    assert not df_out.pandera.errors
+    _, errors = validate_collecting_errors(ProductSchema, df)
+    assert errors == {}
 
     df = spark.createDataFrame(data=[("bbb",)], schema=spark_schema)
-    df_out = ProductSchema.validate(df)
+    _, errors = validate_collecting_errors(ProductSchema, df)
     assert (
-        dict(df_out.pandera.errors)["DATA"]["DATAFRAME_CHECK"][0]["check"]
+        dict(errors)["DATA"]["DATAFRAME_CHECK"][0]["check"]
         == "str_length(1, 2)"
     )
 
@@ -1644,11 +1716,14 @@ class TestInRangeCheck(BaseClass):
         """This function passes the parameter for each function based on parameter form get_data_param function"""
         # called once per each test function
         funcarglist = self.get_data_param()[metafunc.function.__name__]
-        argnames = sorted(funcarglist[0])
+        argnames = sorted(k for k in funcarglist[0] if k != "marks")
         metafunc.parametrize(
             argnames,
             [
-                [funcargs[name] for name in argnames]
+                pytest.param(
+                    *[funcargs[name] for name in argnames],
+                    marks=funcargs.get("marks", []),
+                )
                 for funcargs in funcarglist
             ],
         )
@@ -1828,19 +1903,24 @@ class TestCustomCheck(BaseClass):
             ],
         )
         df = spark.createDataFrame(data=pass_case_data, schema=spark_schema)
-        df_out = schema.validate(df)
-        if df_out.pandera.errors:
-            print(df_out.pandera.errors)
+        _, errors = validate_collecting_errors(schema, df)
+        if errors:
+            print(errors)
             raise PysparkSchemaError
 
         with pytest.raises(PysparkSchemaError):
             df_fail = spark.createDataFrame(
                 data=fail_case_data, schema=spark_schema
             )
-            df_out = schema.validate(df_fail)
-            if df_out.pandera.errors:
+            _, fail_errors = validate_collecting_errors(schema, df_fail)
+            if fail_errors:
                 raise PysparkSchemaError
 
+    @pytest.mark.xfail(
+        condition=CONFIG.use_narwhals_backend,
+        reason="Custom checks using PysparkDataframeColumnObject API are incompatible with narwhals backend (NarwhalsData has different interface)",
+        strict=True,
+    )
     def test_extension(self, spark_session, extra_registered_checks, request):  # pylint: disable=unused-argument
         """Test custom extension with DataFrameSchema way of defining schema"""
         spark = request.getfixturevalue(spark_session)
@@ -1863,6 +1943,11 @@ class TestCustomCheck(BaseClass):
             IntegerType(),
         )
 
+    @pytest.mark.xfail(
+        condition=CONFIG.use_narwhals_backend,
+        reason="Custom checks using PysparkDataframeColumnObject API are incompatible with narwhals backend (NarwhalsData has different interface)",
+        strict=True,
+    )
     def test_extension_dataframe_model(
         self, spark_session, extra_registered_checks, request
     ):  # pylint: disable=unused-argument
@@ -1948,11 +2033,15 @@ class TestUniqueValuesEqCheck(BaseClass):
         """This function passes the parameter for each function based on parameter form get_data_param function"""
         # called once per each test function
         funcarglist = self.get_data_param()[metafunc.function.__name__]
-        argnames = sorted(funcarglist[0])
+        # Filter out the reserved "marks" key when deriving argnames
+        argnames = sorted(k for k in funcarglist[0] if k != "marks")
         metafunc.parametrize(
             argnames,
             [
-                [funcargs[name] for name in argnames]
+                pytest.param(
+                    *[funcargs[name] for name in argnames],
+                    marks=funcargs.get("marks", []),
+                )
                 for funcargs in funcarglist
             ],
         )
@@ -1960,6 +2049,11 @@ class TestUniqueValuesEqCheck(BaseClass):
     def get_data_param(self):
         """Generate the params which will be used to test this function. All the acceptable
         data types would be tested"""
+        _xfail_unique_values_eq = pytest.mark.xfail(
+            condition=CONFIG.use_narwhals_backend,
+            reason="unique_values_eq not registered for Narwhals backend",
+            strict=True,
+        )
         return {
             "test_unique_values_eq_check": [
                 {"datatype": LongType(), "data": self.sample_numeric_data},
@@ -1992,18 +2086,30 @@ class TestUniqueValuesEqCheck(BaseClass):
                 {"datatype": StringType(), "data": self.sample_string_data},
             ],
             "test_failed_unaccepted_datatypes": [
+                # BooleanType: TypeError is raised even under narwhals backend
+                # (check type validation happens before narwhals dispatch),
+                # so no xfail needed.
                 {"datatype": BooleanType(), "data": self.sample_bolean_data},
+                # ArrayType and MapType: unique_values_eq is not registered in
+                # narwhals backend, so TypeError is not raised; the test xfails.
                 {
                     "datatype": ArrayType(StringType()),
                     "data": self.sample_array_data,
+                    "marks": [_xfail_unique_values_eq],
                 },
                 {
                     "datatype": MapType(StringType(), StringType()),
                     "data": self.sample_map_data,
+                    "marks": [_xfail_unique_values_eq],
                 },
             ],
         }
 
+    @pytest.mark.xfail(
+        condition=CONFIG.use_narwhals_backend,
+        reason="unique_values_eq not registered for Narwhals backend",
+        strict=True,
+    )
     @validate_scope(scope=ValidationScope.DATA)
     def test_unique_values_eq_check(
         self, spark_session, datatype, data, request
