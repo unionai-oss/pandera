@@ -50,15 +50,15 @@ class PySparkCheckBackend(BaseCheckBackend):
     def preprocess(
         self,
         check_obj: PySparkDataFrameTypes,
-        key: str,  # type: ignore [valid-type]
+        key: str | None,  # type: ignore [valid-type]
     ) -> PySparkDataFrameTypes:
         return check_obj
 
     def apply(
         self,
         check_obj: Union[PySparkDataFrameTypes, is_table],
-        column_name: str = None,
-        kwargs: dict = None,
+        column_name: str | None = None,
+        kwargs: dict | None = None,
     ):
         if column_name and kwargs:
             check_obj_and_col_name = PysparkDataframeColumnObject(
