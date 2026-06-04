@@ -41,16 +41,100 @@ def _check_identifier(err: SchemaError) -> Any:
 def _concat_failure_cases(items: list) -> Any:
     """Concatenate per-error failure-case frames into a single frame.
 
-    Dispatches on the first item: ibis uses ``.union``; polars uses
-    ``pl.concat``. Returns an empty ``pl.DataFrame`` if the collection is
-    empty (SchemaErrors always constructs from polars by default).
+    Items are one of:
+    - ``nw.DataFrame`` / ``nw.LazyFrame`` — from ``_build_lazy_failure_case``
+      (Polars LazyFrame, Ibis, PySpark). Dispatch on ``item.implementation``.
+    - ``pl.DataFrame`` — from ``_build_eager_failure_case`` and
+      ``_build_scalar_failure_case`` (eager Polars path).
+
+    For PySpark-backed Narwhals frames: unwrap to native PySpark DataFrames
+    and union via ``pyspark.sql.DataFrame.union()``. Scalar ``pl.DataFrame``
+    items from ``_build_scalar_failure_case`` cannot be converted to PySpark
+    without a SparkSession — they are skipped for the PySpark path and a
+    ``SchemaWarning`` is emitted naming the affected columns.
+    For Ibis-backed Narwhals frames: unwrap to native ibis Tables and union
+    via ``ibis.Table.union()``.
+    For Polars-backed Narwhals LazyFrame: stays lazy when only narwhals items
+    are present; collects and merges eager ``pl.DataFrame`` items (from
+    ``_build_eager_failure_case`` / ``_build_scalar_failure_case``) when both
+    are present — both sources can coexist in a single polars validation run.
+    For native ``pl.DataFrame`` items: ``pl.concat``.
+    Returns an empty ``pl.DataFrame`` if the collection is empty.
     """
     if not items:
         return pl.DataFrame() if pl is not None else None
-    first = items[0]
-    if hasattr(first, "union"):  # ibis.Table
-        return functools.reduce(lambda a, b: a.union(b), items)
-    return pl.concat(items)
+
+    # Separate Narwhals-wrapped items from native Polars items
+    nw_items = [
+        item
+        for item in items
+        if isinstance(item, (nw.DataFrame, nw.LazyFrame))
+    ]
+    pl_items = [
+        item
+        for item in items
+        if not isinstance(item, (nw.DataFrame, nw.LazyFrame))
+    ]
+
+    if nw_items:
+        first_nw = nw_items[0]
+        if first_nw.implementation in (
+            nw.Implementation.PYSPARK,
+            nw.Implementation.PYSPARK_CONNECT,
+        ):
+            # PySpark path: unwrap to native PySpark DataFrames and union.
+            # Scalar Polars items (from _build_scalar_failure_case) cannot be
+            # converted to PySpark without a SparkSession — they are skipped,
+            # but a SchemaWarning is emitted so users know about the loss.
+            if pl_items:
+                dropped_info = []
+                for item in pl_items:
+                    if (
+                        isinstance(item, pl.DataFrame)
+                        and "column" in item.columns
+                    ):
+                        dropped_info.extend(item["column"].to_list())
+                warnings.warn(
+                    "Some schema-level failure cases (columns: "
+                    + repr(dropped_info)
+                    + ") could not be included in the PySpark failure_cases "
+                    "output because scalar Polars frames cannot be converted "
+                    "to PySpark without a SparkSession. These schema errors "
+                    "are still reported in df.pandera.errors but their "
+                    "failure_cases rows are omitted from the combined frame. "
+                    # TODO(ARCH-02 follow-up): SparkSession-mediated
+                    # conversion (Approach B) when a SparkSession reference
+                    # is available.
+                    "See ARCH-02 follow-up for a full resolution.",
+                    SchemaWarning,
+                    stacklevel=3,
+                )
+            native_items = [nw.to_native(item) for item in nw_items]
+            return functools.reduce(lambda a, b: a.union(b), native_items)
+        elif first_nw.implementation == nw.Implementation.POLARS:
+            # Polars lazy path: use nw.concat to stay lazy, then unwrap.
+            # When pl_items are also present (schema-level failure cases from
+            # _build_eager_failure_case / _build_scalar_failure_case producing
+            # pl.DataFrame alongside data-check failure cases from
+            # _build_lazy_failure_case producing nw.LazyFrame), collect the
+            # lazy result and concatenate via pl.concat. Polars has no
+            # SparkSession barrier — both sources merge cleanly, so no
+            # SchemaWarning is needed (unlike the PySpark branch which
+            # warns-and-drops because it cannot create a SparkSession).
+            assert all(isinstance(i, nw.LazyFrame) for i in nw_items) or all(
+                isinstance(i, nw.DataFrame) for i in nw_items
+            ), "nw_items must be homogeneous (all LazyFrame or all DataFrame)"
+            lazy_result = nw.to_native(nw.concat(nw_items))
+            if pl_items:
+                return pl.concat([lazy_result.collect()] + pl_items)
+            return lazy_result
+        else:
+            # SQL-lazy path (Ibis, DuckDB, etc.): unwrap to native and union.
+            native_items = [nw.to_native(item) for item in nw_items]
+            return functools.reduce(lambda a, b: a.union(b), native_items)
+
+    # All-Polars path: pl.DataFrame items from eager/scalar builders
+    return pl.concat(pl_items) if pl is not None else None
 
 
 class NarwhalsSchemaBackend(BaseSchemaBackend):
@@ -269,6 +353,10 @@ class NarwhalsSchemaBackend(BaseSchemaBackend):
         Works uniformly for ``polars.LazyFrame`` and ``ibis.Table`` — no
         Arrow roundtrip, no polars import. Row index is always ``None``
         since SQL has no natural row ordering.
+
+        Returns a narwhals-wrapped frame (not a native frame) so that
+        ``_concat_failure_cases`` can dispatch on ``item.implementation``
+        instead of module-string sniffing.
         """
         col_names = fc.collect_schema().names()
         if len(col_names) == 1:
@@ -289,7 +377,10 @@ class NarwhalsSchemaBackend(BaseSchemaBackend):
             nw.lit(err.check_index).cast(nw.Int32).alias("check_number"),
             nw.lit(None).cast(nw.Int32).alias("index"),
         )
-        return nw.to_native(enriched)
+        # Return narwhals-wrapped frame — _concat_failure_cases dispatches on
+        # item.implementation to handle PySpark vs ibis vs polars without
+        # module-string sniffing.
+        return enriched
 
     @staticmethod
     def _build_eager_failure_case(fc, err: SchemaError, check_identifier):
