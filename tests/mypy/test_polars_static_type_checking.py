@@ -48,7 +48,7 @@ POLARS_MODEL_COLUMN_ATTRS_ERRORS = [
 def test_polars_mypy_typing(module, config, expected_errors) -> None:
     """Test that mypy plugin correctly handles Polars DataFrameModel field types."""
     pytest.importorskip("polars")
-    
+
     cache_dir = str(
         test_module_dir
         / ".mypy_cache"

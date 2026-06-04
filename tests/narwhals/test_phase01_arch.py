@@ -223,8 +223,6 @@ def test_checks_has_no_polars_import():
     Polars is an optional dependency. checks.py uses narwhals operations only;
     any polars import here would break ibis-only environments.
     """
-    import inspect
-
     import pandera.backends.narwhals.checks as checks_mod
 
     src = inspect.getsource(checks_mod)
@@ -245,8 +243,6 @@ def test_container_has_no_polars_components_import():
     The narwhals backend is framework-agnostic. Column class lookup is now
     delegated to schema.infer_columns() in the schema API layer.
     """
-    import inspect
-
     import pandera.backends.narwhals.container as container_mod
 
     src = inspect.getsource(container_mod)
@@ -260,8 +256,6 @@ def test_container_has_no_polars_components_import():
 
 def test_container_uses_infer_columns_for_schema_components():
     """collect_schema_components must call schema.infer_columns() — not importlib."""
-    import inspect
-
     from pandera.backends.narwhals.container import DataFrameSchemaBackend
 
     src = inspect.getsource(DataFrameSchemaBackend.collect_schema_components)
@@ -283,4 +277,76 @@ def test_infer_columns_returns_correct_column_type_for_polars():
     assert len(cols) == 2
     assert all(isinstance(c, PolarsColumn) for c in cols), (
         f"infer_columns() returned {[type(c) for c in cols]}, expected PolarsColumn"
+    )
+
+
+# ---------------------------------------------------------------------------
+# SE-01 / Task 11-01-01
+# DataFrameSchemaBackend.validate() must have no is_pyspark branch or
+# _handle_pyspark_validation_result method (SE-01 regression guard)
+# ---------------------------------------------------------------------------
+
+
+def test_validate_has_no_is_pyspark_branch_after_se01():
+    """validate() source must not contain is_pyspark or _handle_pyspark_validation_result.
+
+    SE-01 regression guard: the PySpark Narwhals backend must use the unified
+    SchemaErrors path, not the accessor-protocol branch.
+    """
+    from pandera.backends.narwhals.container import DataFrameSchemaBackend
+
+    src = inspect.getsource(DataFrameSchemaBackend.validate)
+    assert "is_pyspark" not in src, (
+        "validate() must not contain 'is_pyspark' — SE-01 alignment requires unified SchemaErrors path"
+    )
+    assert "_handle_pyspark_validation_result" not in src, (
+        "validate() must not reference '_handle_pyspark_validation_result' — method was deleted in SE-01"
+    )
+    assert "raise SchemaErrors(" in src, (
+        "validate() must contain 'raise SchemaErrors(' — PySpark path must use unified error path"
+    )
+
+
+def test_validate_no_handle_pyspark_method_after_se01():
+    """DataFrameSchemaBackend must not have a _handle_pyspark_validation_result attribute.
+
+    SE-01 regression guard: the method was deleted to unify PySpark Narwhals
+    with the Polars/Ibis Narwhals error-raising contract.
+    """
+    from pandera.backends.narwhals.container import DataFrameSchemaBackend
+
+    assert not hasattr(
+        DataFrameSchemaBackend, "_handle_pyspark_validation_result"
+    ), (
+        "DataFrameSchemaBackend must NOT have _handle_pyspark_validation_result after SE-01 removal"
+    )
+
+
+# ---------------------------------------------------------------------------
+# DC-01 / Task 11-01-02
+# _materialize() in pandera/api/narwhals/utils.py must have no PySpark-specific
+# code (DC-01 regression guard)
+# ---------------------------------------------------------------------------
+
+
+def test_materialize_has_no_pyspark_branch_after_dc01():
+    """_materialize() function body must not reference PYSPARK, pyarrow, or .first().
+
+    DC-01 regression guard: the dead PySpark branch in _materialize() was
+    removed. Only the LazyFrame.collect() path and the SQL-lazy execute()
+    path remain. Note: this test inspects only the _materialize function
+    source, not the whole module, so _SQL_LAZY_IMPLEMENTATIONS frozenset
+    entries do not cause false positives.
+    """
+    from pandera.api.narwhals.utils import _materialize
+
+    src = inspect.getsource(_materialize)
+    assert "PYSPARK" not in src, (
+        "_materialize() must not reference PYSPARK — DC-01 removed dead PySpark branch"
+    )
+    assert "pyarrow" not in src, (
+        "_materialize() must not import or reference pyarrow — DC-01 removed dead PySpark branch"
+    )
+    assert ".first()" not in src, (
+        "_materialize() must not call .first() — DC-01 removed dead PySpark branch"
     )

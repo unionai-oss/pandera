@@ -148,7 +148,7 @@ def test_strict_filter(t_basic, t_schema_basic):
     # setting strict to "filter" should remove the extra column
     t_schema_basic.strict = "filter"
     filtered_data = modified_data.pipe(t_schema_basic.validate)
-    filtered_data.execute().equals(t_basic.execute())
+    assert filtered_data.execute().equals(t_basic.execute())
 
 
 def test_required_columns():
@@ -197,13 +197,13 @@ def test_unique_column_names():
 
 @pytest.mark.xfail(
     condition=CONFIG.use_narwhals_backend,
-    reason="Error message format differs: 'not in dataframe' vs 'not in table' in Narwhals backend",
+    reason="Error message format differs: 'not in dataframe' (Narwhals backend) vs 'not found' (native Ibis backend)",
     strict=True,
 )
 def test_column_absent_error(t_basic, t_schema_basic):
     """Test column presence."""
     with pytest.raises(
-        pa.errors.SchemaError, match="column 'int_col' not in table"
+        pa.errors.SchemaError, match="column 'int_col' not found"
     ):
         t_basic.drop("int_col").pipe(t_schema_basic.validate)
 
@@ -221,10 +221,8 @@ def test_column_values_are_unique(t_basic, t_schema_basic):
 @pytest.mark.parametrize(
     "unique,answers",
     [
-        # unique is True -- default is to report all unique violations except the first
         ("exclude_first", [4, 5, 6, 7]),
         ("all", [0, 1, 2, 4, 5, 6, 7]),
-        ("exclude_first", [4, 5, 6, 7]),
         ("exclude_last", [0, 1, 2, 4]),
     ],
 )
@@ -448,7 +446,7 @@ def test_drop_invalid_rows(
     expected_valid_data = modified_data.filter(filter_expr)
     got = validated_data.execute()
     expected = expected_valid_data.execute()
-    assert validated_data.execute().equals(expected_valid_data.execute())
+    assert got.equals(expected)
 
 
 def _failure_value(column: str, dtype: ibis.DataType | None = None):
@@ -467,11 +465,6 @@ def _failure_type(column: str):
     raise ValueError(f"unexpected column name: {column}")
 
 
-@pytest.mark.xfail(
-    condition=CONFIG.use_narwhals_backend,
-    reason="Regex column selection broken in Narwhals backend",
-    strict=True,
-)
 @pytest.mark.parametrize(
     "transform_fn,exception_msg",
     [
@@ -481,10 +474,15 @@ def _failure_type(column: str):
             ),
             None,
         ],
-        [
+        pytest.param(
             lambda t, col: t.mutate(**{col: _failure_value(col)}),
             "Column '.+' failed element-wise validator number",
-        ],
+            marks=pytest.mark.xfail(
+                condition=CONFIG.use_narwhals_backend,
+                reason="Regex column selection broken in Narwhals backend",
+                strict=True,
+            ),
+        ),
         [
             lambda t, col: t.mutate(**{col: _failure_type(col)}),
             "expected column '.+' to have type",

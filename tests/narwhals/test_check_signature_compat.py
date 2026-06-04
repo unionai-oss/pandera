@@ -14,14 +14,28 @@ guards the *additional* 1-positional convention so it never regresses.
 
 from __future__ import annotations
 
+import builtins
+import functools
+
 import pandas as pd
 import polars as pl
 import pytest
 
-import pandera.ibis as pa_ibis
 import pandera.polars as pa_polars
-from pandera.api.ibis.types import IbisData
 from pandera.api.polars.types import PolarsData
+from pandera.backends.narwhals.checks import (
+    _required_positional_count,
+    _unwrap_callable,
+)
+
+try:
+    import ibis as _ibis_mod  # noqa: F401
+
+    HAS_IBIS = True
+except ImportError:
+    HAS_IBIS = False
+
+ibis_only = pytest.mark.skipif(not HAS_IBIS, reason="ibis not installed")
 
 
 @pytest.fixture
@@ -68,11 +82,15 @@ def test_direct_polars_style_check_receives_polars_data(polars_invalid_df):
     assert isinstance(data.lazyframe, pl.LazyFrame)
 
 
+@ibis_only
 def test_direct_ibis_style_check_receives_ibis_data(ibis_invalid_table):
     """``pa.Check(fn)`` with a ``def fn(data: IbisData)`` function must
     receive an ``IbisData`` (not ``(frame, key)``) under the Narwhals
     backend."""
     import ibis
+
+    import pandera.ibis as pa_ibis
+    from pandera.api.ibis.types import IbisData
 
     received: list[IbisData] = []
 
@@ -120,9 +138,12 @@ def test_model_check_polars_receives_polars_data(polars_invalid_df):
     assert any("-3" in str(v) for v in rendered)
 
 
+@ibis_only
 def test_model_check_ibis_receives_ibis_data(ibis_invalid_table):
     """``@pa.check`` on a ``DataFrameModel`` with an ``IbisData`` parameter
     must run end-to-end against an ibis backend table."""
+    import pandera.ibis as pa_ibis
+    from pandera.api.ibis.types import IbisData
 
     class S(pa_ibis.DataFrameModel):
         col: int
@@ -215,3 +236,131 @@ def test_two_arg_narwhals_native_convention_preserved(polars_invalid_df):
     # a PolarsData wrapper — that's the whole point of this contract.
     assert "polars" in frame_type.__module__
     assert key == "col"
+
+
+# ---------------------------------------------------------------------------
+# Arity dispatch edge-case contract: functools.partial, builtins, *args fns
+#
+# _required_positional_count drives the native=True dispatch heuristic:
+#   - None  → unknown arity (C-callable): fall back to legacy 2-arg convention
+#   - 0-1   → polars/ibis-style: wrap native frame in PolarsData / IbisData
+#   - 2+    → narwhals-native style: pass (native_frame, key)
+# These unit tests pin each edge case so refactors cannot silently change
+# the dispatch contract. See checks.py:apply() for the full rationale.
+# ---------------------------------------------------------------------------
+
+
+def test_required_positional_count_partial_binds_first():
+    """``_required_positional_count`` on a partial that binds the first
+    positional arg must return the *post-binding* count of required positionals.
+    A 2-positional function with one positional bound leaves 1 required."""
+
+    def two_arg(frame, key):
+        pass
+
+    p = functools.partial(two_arg, "bound_frame")
+    # After binding 'frame', only 'key' remains — arity should be 1.
+    assert _required_positional_count(p) == 1
+
+
+def test_required_positional_count_partial_binds_all():
+    """Binding all positionals yields 0 — dispatch takes the polars/ibis path."""
+
+    def two_arg(frame, key):
+        pass
+
+    p = functools.partial(two_arg, "bound_frame", "bound_key")
+    assert _required_positional_count(p) == 0
+
+
+def test_required_positional_count_partial_binds_key_by_keyword():
+    """``_required_positional_count`` on a partial that binds the second arg by
+    keyword returns 1 via ``inspect.signature``.
+
+    ``inspect.signature(partial(fn, key=val))`` converts ``key`` from
+    ``POSITIONAL_OR_KEYWORD`` to ``KEYWORD_ONLY``, leaving only ``frame`` as a
+    required POSITIONAL_OR_KEYWORD parameter.
+
+    Known limitation: this is indistinguishable from a polars-style check
+    ``partial(polars_fn(data, extra_kwarg), extra_kwarg=val)`` which also
+    leaves 1 required positional.  In practice the narwhals-native 2-arg
+    convention is not partially applied with the column key pre-bound, so
+    this ambiguity does not arise in real usage."""
+
+    def two_arg(frame, key):
+        pass
+
+    p = functools.partial(two_arg, key="bound_key")
+    # inspect.signature sees only 'frame' as POSITIONAL_OR_KEYWORD → 1.
+    assert _required_positional_count(p) == 1
+
+
+def test_required_positional_count_builtin_unintrospectable():
+    """``_required_positional_count`` on a C-callable whose signature cannot be
+    inspected returns ``None``.  The ``None`` sentinel tells the dispatch to fall
+    back to the legacy 2-positional convention (``check_fn(native_frame, key)``).
+
+    ``builtins.max`` raises ``TypeError`` in ``inspect.signature`` and therefore
+    serves as the canonical un-introspectable callable for this test."""
+    result = _required_positional_count(builtins.max)
+    assert result is None
+
+
+def test_required_positional_count_args_only():
+    """``_required_positional_count`` on a ``*args``-only function returns 0.
+    ``*args`` carries no default and kind is VAR_POSITIONAL, so it is excluded
+    from the required-positional count, yielding 0 and routing to the
+    polars/ibis-style dispatch path."""
+
+    def fn(*args):
+        pass
+
+    assert _required_positional_count(fn) == 0
+
+
+def test_unwrap_callable_strips_partial_chain():
+    """``_unwrap_callable`` must unwrap a chain of ``functools.partial`` wrappers
+    to the underlying function. Used by the dispatch to check the *original*
+    function identity (not the post-binding count — that uses the partial directly
+    via ``_required_positional_count``)."""
+
+    def inner(x, y):
+        pass
+
+    p1 = functools.partial(inner, 1)
+    p2 = functools.partial(p1, 2)
+    assert _unwrap_callable(p2) is inner
+    assert _unwrap_callable(p1) is inner
+    assert _unwrap_callable(inner) is inner
+
+
+def test_partial_wrapped_polars_check_receives_polars_data(polars_invalid_df):
+    """End-to-end: a ``functools.partial``-wrapped polars-style check (1 required
+    positional post-binding) must still receive a ``PolarsData`` object under the
+    narwhals backend dispatch, not the raw 2-arg ``(frame, key)`` convention."""
+
+    received: list[PolarsData] = []
+
+    def base_check(data: PolarsData, threshold: int) -> pl.LazyFrame:
+        received.append(data)
+        return data.lazyframe.select(pl.col(data.key).ge(threshold))
+
+    # Bind the keyword arg, leaving 1 required positional (data: PolarsData).
+    partial_check = functools.partial(base_check, threshold=0)
+
+    schema = pa_polars.DataFrameSchema(
+        {
+            "col": pa_polars.Column(
+                int, checks=pa_polars.Check(partial_check, native=True)
+            )
+        }
+    )
+
+    with pytest.raises(pa_polars.errors.SchemaError):
+        schema.validate(polars_invalid_df)
+
+    assert len(received) == 1
+    data = received[0]
+    assert isinstance(data, PolarsData)
+    assert data.key == "col"
+    assert isinstance(data.lazyframe, pl.LazyFrame)

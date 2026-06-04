@@ -114,7 +114,10 @@ class PolarsBackend(BackendFixture):
         return pl.LazyFrame(
             data,
             orient="row",
-            schema={"product": pl.Utf8, "code": self._engine_cls.dtype(dtype).type},
+            schema={
+                "product": pl.Utf8,
+                "code": self._engine_cls.dtype(dtype).type,
+            },
         )
 
 
@@ -152,7 +155,12 @@ class IbisBackend(BackendFixture):
             return ibis.memtable(data)
         import ibis.expr.datatypes as dt
 
-        schema = ibis.schema({"product": dt.String(), "code": self._engine_cls.dtype(dtype).type})
+        schema = ibis.schema(
+            {
+                "product": dt.String(),
+                "code": self._engine_cls.dtype(dtype).type,
+            }
+        )
         return ibis.memtable(data, schema=schema)
 
 
