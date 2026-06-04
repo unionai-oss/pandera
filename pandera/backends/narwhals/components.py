@@ -10,7 +10,6 @@ import narwhals.stable.v1 as nw
 from pandera.api.base.error_handler import get_error_category
 from pandera.api.narwhals.error_handler import ErrorHandler
 from pandera.api.narwhals.utils import (
-    _is_lazy,
     _is_sql_lazy,
     _materialize,
     _to_native,
@@ -24,7 +23,6 @@ from pandera.errors import (
     SchemaError,
     SchemaErrorReason,
     SchemaErrors,
-    SchemaWarning,
 )
 from pandera.validation_depth import validate_scope
 
@@ -254,9 +252,9 @@ class ColumnBackend(NarwhalsSchemaBackend):
             # engine dtypes when the Narwhals backend is active.
             try:
                 schema_nw_dtype = narwhals_engine.Engine.dtype(schema.dtype)
-                passed = schema_nw_dtype.check(col_pandera_dtype)
+                passed = bool(schema_nw_dtype.check(col_pandera_dtype))
             except TypeError:
-                passed = schema.dtype.check(col_pandera_dtype)
+                passed = bool(schema.dtype.check(col_pandera_dtype))
 
             results.append(
                 CoreCheckResult(

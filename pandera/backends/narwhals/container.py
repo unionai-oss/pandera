@@ -7,14 +7,13 @@ import re
 import traceback
 import warnings
 from collections.abc import Callable
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any
 
 import narwhals.stable.v1 as nw
 
 from pandera.api.base.error_handler import get_error_category
 from pandera.api.narwhals.error_handler import ErrorHandler
 from pandera.api.narwhals.utils import (
-    _is_lazy,
     _is_sql_lazy,
     _materialize,
     _to_native,
@@ -39,7 +38,7 @@ from pandera.errors import (
     SchemaErrors,
 )
 from pandera.utils import is_regex
-from pandera.validation_depth import validate_scope, validation_type
+from pandera.validation_depth import validate_scope
 
 
 def _to_lazy_nw(check_obj) -> nw.LazyFrame:
@@ -278,7 +277,6 @@ class DataFrameSchemaBackend(NarwhalsSchemaBackend):
     ) -> list[CoreCheckResult]:
         """Run checks for all schema components."""
         check_results = []
-        check_passed = []
         # Convert to native frame for column component dispatch.
         # Column.validate() calls get_backend(check_obj) which looks up by native
         # type — native polars LazyFrame for polars schemas, ibis.Table for ibis schemas.
@@ -286,16 +284,14 @@ class DataFrameSchemaBackend(NarwhalsSchemaBackend):
         # schema-component-level checks
         for schema_component in schema_components:
             try:
-                result = schema_component.validate(native_obj, lazy=lazy)
-                # Narwhals backend returns a Narwhals frame, not pl.LazyFrame.
+                schema_component.validate(native_obj, lazy=lazy)
                 # The component validate() not raising is the success signal.
-                check_passed.append(result is not None)
             except SchemaError as err:
                 check_results.append(
                     CoreCheckResult(
                         passed=False,
                         check="schema_component_checks",
-                        reason_code=SchemaErrorReason.SCHEMA_COMPONENT_CHECK,
+                        reason_code=err.reason_code,
                         schema_error=err,
                     )
                 )
@@ -305,13 +301,12 @@ class DataFrameSchemaBackend(NarwhalsSchemaBackend):
                         CoreCheckResult(
                             passed=False,
                             check="schema_component_checks",
-                            reason_code=SchemaErrorReason.SCHEMA_COMPONENT_CHECK,
+                            reason_code=schema_error.reason_code,
                             schema_error=schema_error,
                         )
                         for schema_error in err.schema_errors
                     ]
                 )
-        assert all(check_passed)
         return check_results
 
     def collect_column_info(self, check_obj, schema):
@@ -335,9 +330,9 @@ class DataFrameSchemaBackend(NarwhalsSchemaBackend):
             if col_schema.regex:
                 try:
                     column_names.extend(
-                        col_schema.get_backend(check_obj).get_regex_columns(
-                            col_schema, check_obj
-                        )
+                        col_schema.get_backend(
+                            _to_native(check_obj)
+                        ).get_regex_columns(col_schema, check_obj)
                     )
                     regex_match_patterns.append(col_schema.selector)
                 except SchemaError:
@@ -489,8 +484,6 @@ class DataFrameSchemaBackend(NarwhalsSchemaBackend):
                 try:
                     next_ordered_col = next(sorted_column_names)
                 except StopIteration:
-                    pass
-                if next_ordered_col != column:
                     raise SchemaError(
                         schema=schema,
                         data=check_obj,
@@ -499,6 +492,16 @@ class DataFrameSchemaBackend(NarwhalsSchemaBackend):
                         check="column_ordered",
                         reason_code=SchemaErrorReason.COLUMN_NOT_ORDERED,
                     )
+                else:
+                    if next_ordered_col != column:
+                        raise SchemaError(
+                            schema=schema,
+                            data=check_obj,
+                            message=f"column '{column}' out-of-order",
+                            failure_cases=column,
+                            check="column_ordered",
+                            reason_code=SchemaErrorReason.COLUMN_NOT_ORDERED,
+                        )
 
         if schema.strict == "filter":
             check_obj = check_obj.drop(filter_out_columns)
