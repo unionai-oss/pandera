@@ -120,7 +120,7 @@ class PysparkSchemaBackend(BaseSchemaBackend):
             failure_cases=failure_cases,
         )
 
-    def failure_cases_metadata(
+    def failure_cases_metadata(  # type: ignore[override]
         self,
         schema_name: str,
         schema_errors: list[dict[str, Any]],
@@ -129,6 +129,6 @@ class PysparkSchemaBackend(BaseSchemaBackend):
 
         return FailureCaseMetadata(
             failure_cases=None,
-            message=schema_errors,
+            message=schema_errors,  # type: ignore[arg-type]
             error_counts={},
         )
