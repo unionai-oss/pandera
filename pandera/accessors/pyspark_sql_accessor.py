@@ -92,7 +92,7 @@ def _register_accessor(name, cls):
         if hasattr(cls, name):
             msg = (
                 f"registration of accessor {accessor} under name '{name}' for "
-                "type {cls.__name__} is overriding a preexisting attribute "
+                f"type {cls.__name__} is overriding a preexisting attribute "
                 "with the same name."
             )
 
@@ -154,4 +154,10 @@ class PanderaDataFrameAccessor(PanderaAccessor):
 register_dataframe_accessor("pandera")(PanderaDataFrameAccessor)
 # Handle optional Spark Connect imports for pyspark>=3.4 (if available)
 if version.parse(pyspark.__version__) >= version.parse("3.4"):
-    register_connect_dataframe_accessor("pandera")(PanderaDataFrameAccessor)
+    try:
+        register_connect_dataframe_accessor("pandera")(
+            PanderaDataFrameAccessor
+        )
+    except ImportError:
+        # grpcio-status or other Spark Connect dependencies not installed
+        pass
