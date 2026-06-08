@@ -1,4 +1,4 @@
-"""Tests for NarwhalsCheckBackend — CHECKS-01, CHECKS-03, TEST-01 through TEST-04.
+"""Tests for NarwhalsCheckBackend.
 
 Builtin check correctness across dtypes lives in tests/common/test_builtin_checks.py.
 This file covers narwhals-specific concerns: routing, dispatch, lazy materialization,
@@ -10,12 +10,12 @@ import pytest
 from pandera.api.checks import Check
 
 # ---------------------------------------------------------------------------
-# CHECKS-01: builtin check routing — NarwhalsData dispatched
+# builtin check routing — NarwhalsData dispatched
 # ---------------------------------------------------------------------------
 
 
 def test_builtin_check_routing(make_narwhals_frame):
-    """CHECKS-01: builtin check receives nw.Expr column expression."""
+    """builtin check receives nw.Expr column expression."""
     import narwhals.stable.v1 as nw
 
     received = []
@@ -25,7 +25,7 @@ def test_builtin_check_routing(make_narwhals_frame):
 
     original_dispatcher = Check.equal_to(5)._check_fn
     assert isinstance(original_dispatcher, Dispatcher), "expected Dispatcher"
-    # After Phase 5, builtins are keyed on nw.Expr; grab original (may be None pre-migration)
+    # Builtins are keyed on nw.Expr; grab original (may be None pre-migration)
     original_fn = original_dispatcher._function_registry.get(nw.Expr)
 
     def capturing_fn(col_expr, **kwargs):
@@ -60,7 +60,7 @@ def test_builtin_check_routing(make_narwhals_frame):
 
 
 def test_user_defined_check_routing(make_narwhals_frame):
-    """CHECKS-01: user-defined check (native=True) receives (native_frame, key)."""
+    """user-defined check (native=True) receives (native_frame, key)."""
     import narwhals.stable.v1 as nw
 
     received = []
@@ -85,12 +85,12 @@ def test_user_defined_check_routing(make_narwhals_frame):
 
 
 # ---------------------------------------------------------------------------
-# CHECKS-03: element_wise on SQL-lazy backend raises NotImplementedError
+# element_wise on SQL-lazy backend raises NotImplementedError
 # ---------------------------------------------------------------------------
 
 
 def test_element_wise_sql_lazy_raises(make_narwhals_frame):
-    """CHECKS-03: element_wise=True on ibis backend raises NotImplementedError."""
+    """element_wise=True on ibis backend raises NotImplementedError."""
     import narwhals.stable.v1 as nw
 
     check = Check(lambda x: x > 0, element_wise=True)
@@ -115,7 +115,7 @@ def test_element_wise_sql_lazy_raises(make_narwhals_frame):
 
 
 # ---------------------------------------------------------------------------
-# TEST-01: native=True dispatch convention — new tests for plan 03-02
+# native=True dispatch convention
 # ---------------------------------------------------------------------------
 
 
@@ -239,14 +239,14 @@ def test_ibis_boolean_scalar_normalization(make_narwhals_frame):
 
 
 # ---------------------------------------------------------------------------
-# LAZY-01..08: Phase 4 — wide table apply() and lazy postprocess
+# wide table apply() and lazy postprocess
 # ---------------------------------------------------------------------------
 
 
 def test_apply_returns_expr(make_narwhals_frame):
-    """LAZY-01 (Phase 09): apply() returns nw.Expr for native=False checks (replaces wide table).
+    """apply() returns nw.Expr for native=False checks (replaces wide table).
 
-    Phase 09 change: apply() now returns nw.Expr directly rather than a wide table.
+    apply() now returns nw.Expr directly rather than a wide table.
     The expr is stored as check_output and failure_cases are deferred — no wide table
     is built during the check loop. This enables drop_invalid_rows to use
     nw.all_horizontal on the accumulated exprs.
@@ -261,14 +261,14 @@ def test_apply_returns_expr(make_narwhals_frame):
     result = backend(frame, key="x")
 
     assert isinstance(result.check_output, nw.Expr), (
-        f"Expected check_output to be nw.Expr (Phase 09), got {type(result.check_output)}"
+        f"Expected check_output to be nw.Expr, got {type(result.check_output)}"
     )
 
 
 def test_postprocess_lazyframe_no_materialization_polars(make_narwhals_frame):
-    """LAZY-02 (Phase 09): polars failure_cases is None from direct backend call — deferred.
+    """polars failure_cases is None from direct backend call — deferred.
 
-    Phase 09 change: postprocess_expr_output() stores failure_cases=None (deferred).
+    postprocess_expr_output() stores failure_cases=None (deferred).
     Direct backend() calls return None for failure_cases. The full validation pipeline
     (run_check → components.validate) reconstructs failure_cases from the stored nw.Expr.
     """
@@ -285,20 +285,20 @@ def test_postprocess_lazyframe_no_materialization_polars(make_narwhals_frame):
     backend = NarwhalsCheckBackend(check)
     result = backend(frame, key="x")
 
-    # Phase 09: failure_cases is deferred (None) from direct backend() call.
+    # failure_cases is deferred (None) from direct backend() call.
     # check_output is nw.Expr; failure_cases reconstruction happens in run_check.
     assert result.failure_cases is None, (
-        f"expected None (deferred — Phase 09), got {type(result.failure_cases)}"
+        f"expected None (deferred), got {type(result.failure_cases)}"
     )
     assert isinstance(result.check_output, nw.Expr), (
-        f"expected check_output to be nw.Expr (Phase 09), got {type(result.check_output)}"
+        f"expected check_output to be nw.Expr, got {type(result.check_output)}"
     )
 
 
 def test_postprocess_lazyframe_no_materialization_ibis(make_narwhals_frame):
-    """LAZY-03 (Phase 09): ibis failure_cases is None from direct backend call — deferred.
+    """ibis failure_cases is None from direct backend call — deferred.
 
-    Phase 09 change: postprocess_expr_output() stores failure_cases=None (deferred).
+    postprocess_expr_output() stores failure_cases=None (deferred).
     Direct backend() calls return None for failure_cases. The full validation pipeline
     (run_check → components.validate) reconstructs failure_cases from the stored nw.Expr.
     """
@@ -316,18 +316,18 @@ def test_postprocess_lazyframe_no_materialization_ibis(make_narwhals_frame):
     backend = NarwhalsCheckBackend(check)
     result = backend(frame, key="x")
 
-    # Phase 09: failure_cases is deferred (None) from direct backend() call.
+    # failure_cases is deferred (None) from direct backend() call.
     # check_output is nw.Expr; failure_cases reconstruction happens in run_check.
     assert result.failure_cases is None, (
-        f"expected None (deferred — Phase 09), got {type(result.failure_cases)}"
+        f"expected None (deferred), got {type(result.failure_cases)}"
     )
     assert isinstance(result.check_output, nw.Expr), (
-        f"expected check_output to be nw.Expr (Phase 09), got {type(result.check_output)}"
+        f"expected check_output to be nw.Expr, got {type(result.check_output)}"
     )
 
 
 def test_ignore_na_lazy(make_narwhals_frame):
-    """LAZY-07: ignore_na=True treats None as pass in lazy postprocess path."""
+    """ignore_na=True treats None as pass in lazy postprocess path."""
     import narwhals.stable.v1 as nw
 
     from pandera.backends.narwhals.checks import NarwhalsCheckBackend
@@ -362,9 +362,9 @@ def test_ignore_na_lazy(make_narwhals_frame):
 
 
 def test_n_failure_cases_lazy(make_narwhals_frame):
-    """LAZY-08 (Phase 09): n_failure_cases=1 limits failure_cases to 1 row via validation pipeline.
+    """n_failure_cases=1 limits failure_cases to 1 row via validation pipeline.
 
-    Phase 09 change: failure_cases from direct backend() call is None (deferred).
+    failure_cases from direct backend() call is None (deferred).
     n_failure_cases limiting happens in run_check when failure_cases are reconstructed
     from the stored nw.Expr. Test via schema.validate() to exercise the full pipeline.
     """

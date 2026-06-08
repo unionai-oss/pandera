@@ -1,6 +1,6 @@
 """Shared fixtures for narwhals backend tests.
 
-CI Matrix (TEST-01, TEST-02, TEST-03):
+CI Matrix:
 
 - tests/polars/ and tests/ibis/ run with PANDERA_USE_NARWHALS_BACKEND unset
   (defaults to False), so the native polars/ibis backends are used regardless
@@ -10,10 +10,9 @@ CI Matrix (TEST-01, TEST-02, TEST-03):
   (CI job: unit-tests-narwhals, extra=narwhals). The `make_narwhals_frame` fixture
   below parametrizes every test across the three supported native frame types
   (pl.DataFrame, pl.LazyFrame, ibis.Table) so each test runs 3 times and no frame
-  type is silently skipped (TEST-02).
+  type is silently skipped.
 
-See .github/workflows/ci-tests.yml for the full matrix and .planning/REQUIREMENTS.md
-for TEST-01, TEST-02, and TEST-03 definitions.
+See .github/workflows/ci-tests.yml for the full matrix.
 """
 
 import os
@@ -74,7 +73,7 @@ def _ensure_narwhals_backends_registered():
 def make_narwhals_frame(request):
     """Return a callable that creates an nw frame across all 3 supported native types.
 
-    TEST-02: parametrizes Narwhals backend tests across pl.DataFrame (eager),
+    parametrizes Narwhals backend tests across pl.DataFrame (eager),
     pl.LazyFrame (lazy), and ibis.Table — all three supported native frame types.
     """
     backend = request.param

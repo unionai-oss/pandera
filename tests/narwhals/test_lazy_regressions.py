@@ -1,4 +1,4 @@
-"""Regression tests for critical lazy=True bugs (Phase 8)."""
+"""Regression tests for critical lazy=True bugs."""
 
 import polars as pl
 import pytest
@@ -13,7 +13,7 @@ def test_lazy_failure_cases_per_row_polars():
     """SchemaErrors.failure_cases has N rows (not 1 repr string) for polars lazy=True.
 
     # MISSING-01 regression: failure_cases must have N per-row values, not 1 repr string
-    # TEST-02: intentionally polars_eager-specific — regression test for pl.DataFrame lazy=True behavior
+    # intentionally polars_eager-specific — regression test for pl.DataFrame lazy=True behavior
     """
     schema = DataFrameSchema(
         columns={"a": Column(pl.Int64, checks=[Check.greater_than(10)])}
@@ -46,7 +46,7 @@ def test_lazy_failure_cases_per_row_ibis():
     """SchemaErrors.failure_cases is ibis.Table with N rows for ibis lazy=True.
 
     # MISSING-01 regression: ibis failure_cases must be ibis.Table with N rows
-    # TEST-02: intentionally ibis_table-specific — regression test for ibis lazy=True behavior
+    # intentionally ibis_table-specific — regression test for ibis lazy=True behavior
     """
     ibis = pytest.importorskip("ibis")
     import ibis.expr.datatypes as dt
@@ -59,7 +59,7 @@ def test_lazy_failure_cases_per_row_ibis():
         columns={"a": IbisColumn(dt.int64, checks=[Check.greater_than(10)])}
     )
     # 3 failing rows — failure_cases must be an ibis.Table with 3 rows
-    # TEST-02: intentionally ibis_table-specific — uses ibis.memtable for ibis lazy=True test
+    # intentionally ibis_table-specific — uses ibis.memtable for ibis lazy=True test
     frame = ibis.memtable(pd.DataFrame({"a": [1, 2, 3]}))
     with pytest.raises(SchemaErrors) as exc_info:
         schema.validate(frame, lazy=True)
@@ -80,7 +80,7 @@ def test_lazy_bool_output_check_does_not_crash():
     # Trigger path: native=True check returns bool False -> postprocess_bool_output
     # sets failure_cases=None -> run_check sets failure_cases=passed=False ->
     # _count_failure_cases(False) raises TypeError without the fix.
-    # TEST-02: intentionally polars_eager-specific — regression test for bool scalar crash
+    # intentionally polars_eager-specific — regression test for bool scalar crash
     """
     schema = DataFrameSchema(
         columns={
@@ -93,5 +93,5 @@ def test_lazy_bool_output_check_does_not_crash():
     )
     # Must raise SchemaErrors, not TypeError
     with pytest.raises(SchemaErrors):
-        # TEST-02: intentionally polars_eager-specific — uses pl.DataFrame to trigger the bug path
+        # intentionally polars_eager-specific — uses pl.DataFrame to trigger the bug path
         schema.validate(pl.DataFrame({"a": [1, 2, 3]}), lazy=True)

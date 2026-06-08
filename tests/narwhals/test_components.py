@@ -1,9 +1,4 @@
-"""Tests for ColumnBackend — COLUMN-01, COLUMN-02.
-
-All tests are marked xfail(strict=False) until Plan 03-02 implements
-ColumnBackend in pandera/backends/narwhals/components.py.
-Once the implementation lands, all stubs flip to passing.
-"""
+"""Tests for ColumnBackend (pandera/backends/narwhals/components.py)."""
 
 from types import SimpleNamespace
 
@@ -14,17 +9,8 @@ import pytest
 from pandera.api.checks import Check
 from pandera.backends.base import CoreCheckResult
 from pandera.backends.narwhals.base import NarwhalsSchemaBackend
+from pandera.backends.narwhals.components import ColumnBackend
 from pandera.errors import SchemaError, SchemaErrorReason
-
-# ---------------------------------------------------------------------------
-# Guard: import ColumnBackend only if components.py exists (Plan 03-02)
-# ---------------------------------------------------------------------------
-ColumnBackend: type | None
-try:
-    from pandera.backends.narwhals.components import ColumnBackend
-except ImportError:
-    ColumnBackend = None
-
 
 # ---------------------------------------------------------------------------
 # Schema stub — mimics pandera Column schema with the fields ColumnBackend needs
@@ -50,24 +36,12 @@ def _make_schema(
 
 
 # ---------------------------------------------------------------------------
-# xfail marker — applied to every test below
-# ---------------------------------------------------------------------------
-
-_xfail = pytest.mark.xfail(
-    ColumnBackend is None,
-    reason="components.py not yet implemented (Plan 03-02)",
-    strict=False,
-)
-
-
-# ---------------------------------------------------------------------------
 # check_nullable tests
 # ---------------------------------------------------------------------------
 
 
-@_xfail
 def test_check_nullable_passes(make_narwhals_frame):
-    """COLUMN-01: nullable=True column with no nulls passes."""
+    """nullable=True column with no nulls passes."""
     frame = make_narwhals_frame({"col": [1, 2, 3]})
     schema = _make_schema(selector="col", nullable=True)
 
@@ -78,9 +52,8 @@ def test_check_nullable_passes(make_narwhals_frame):
     assert results[0].passed is True
 
 
-@_xfail
 def test_check_nullable_fails_on_null(make_narwhals_frame):
-    """COLUMN-01: nullable=False column with None values fails with SERIES_CONTAINS_NULLS."""
+    """nullable=False column with None values fails with SERIES_CONTAINS_NULLS."""
     frame = make_narwhals_frame({"col": [1, None, 3]})
     schema = _make_schema(selector="col", nullable=False)
 
@@ -92,9 +65,8 @@ def test_check_nullable_fails_on_null(make_narwhals_frame):
     assert results[0].reason_code == SchemaErrorReason.SERIES_CONTAINS_NULLS
 
 
-@_xfail
 def test_check_nullable_catches_nan(make_narwhals_frame):
-    """COLUMN-01: nullable=False float column with NaN fails — NaN treated as null."""
+    """nullable=False float column with NaN fails — NaN treated as null."""
     import math
 
     frame = make_narwhals_frame({"col": pl.Series([1.0, float("nan"), 3.0])})
@@ -113,9 +85,8 @@ def test_check_nullable_catches_nan(make_narwhals_frame):
 # ---------------------------------------------------------------------------
 
 
-@_xfail
 def test_check_unique_passes(make_narwhals_frame):
-    """COLUMN-02: unique=True column with all distinct values passes."""
+    """unique=True column with all distinct values passes."""
     frame = make_narwhals_frame({"col": [1, 2, 3]})
     schema = _make_schema(selector="col", unique=True)
 
@@ -126,9 +97,8 @@ def test_check_unique_passes(make_narwhals_frame):
     assert results[0].passed is True
 
 
-@_xfail
 def test_check_unique_fails(make_narwhals_frame):
-    """COLUMN-02: unique=True column with duplicate values fails with SERIES_CONTAINS_DUPLICATES."""
+    """unique=True column with duplicate values fails with SERIES_CONTAINS_DUPLICATES."""
     frame = make_narwhals_frame({"col": [1, 2, 2]})
     schema = _make_schema(selector="col", unique=True)
 
@@ -147,9 +117,8 @@ def test_check_unique_fails(make_narwhals_frame):
 # ---------------------------------------------------------------------------
 
 
-@_xfail
 def test_check_dtype_correct(make_narwhals_frame):
-    """COLUMN-02: column dtype matching schema.dtype passes."""
+    """column dtype matching schema.dtype passes."""
     from pandera.engines import narwhals_engine
 
     frame = make_narwhals_frame({"col": [1, 2, 3]})
@@ -162,9 +131,8 @@ def test_check_dtype_correct(make_narwhals_frame):
     assert results[0].passed is True
 
 
-@_xfail
 def test_check_dtype_wrong(make_narwhals_frame):
-    """COLUMN-02: column dtype not matching schema.dtype fails with WRONG_DATATYPE."""
+    """column dtype not matching schema.dtype fails with WRONG_DATATYPE."""
     from pandera.engines import narwhals_engine
 
     # Frame has Int64 but schema expects Float64
@@ -179,9 +147,8 @@ def test_check_dtype_wrong(make_narwhals_frame):
     assert results[0].reason_code == SchemaErrorReason.WRONG_DATATYPE
 
 
-@_xfail
 def test_check_dtype_none(make_narwhals_frame):
-    """COLUMN-02: schema.dtype=None short-circuits and returns passed=True."""
+    """schema.dtype=None short-circuits and returns passed=True."""
     frame = make_narwhals_frame({"col": [1, 2, 3]})
     schema = _make_schema(selector="col", dtype=None)
 
@@ -197,9 +164,19 @@ def test_check_dtype_none(make_narwhals_frame):
 # ---------------------------------------------------------------------------
 
 
-@_xfail
 def test_run_checks(make_narwhals_frame):
-    """COLUMN-02: run_checks executes Check objects and returns list[CoreCheckResult]."""
+    """run_checks executes Check objects and returns list[CoreCheckResult]."""
+    import narwhals.stable.v1 as nw
+
+    import pandera.backends.narwhals.builtin_checks  # noqa: F401 — registers nw.Expr dispatcher
+    from pandera.backends.narwhals.checks import NarwhalsCheckBackend
+
+    # Ensure narwhals frame types are registered with the Check backend.
+    # In CI this is done by PANDERA_USE_NARWHALS_BACKEND=True; here we
+    # register directly so the test works in any environment.
+    Check.register_backend(nw.DataFrame, NarwhalsCheckBackend)
+    Check.register_backend(nw.LazyFrame, NarwhalsCheckBackend)
+
     frame = make_narwhals_frame({"col": [1, 2, 3]})
     schema = _make_schema(
         selector="col",
@@ -216,7 +193,7 @@ def test_run_checks(make_narwhals_frame):
 
 
 # ---------------------------------------------------------------------------
-# Phase 6 RED baseline: subsample() lazy-first contracts
+# subsample() lazy-first contracts
 # ---------------------------------------------------------------------------
 
 # Guard: skip ibis-specific tests if ibis is not installed
@@ -231,12 +208,7 @@ ibis_only = pytest.mark.skipif(not HAS_IBIS, reason="ibis not installed")
 
 
 class TestSubsample:
-    """RED baseline tests for Phase 6 lazy-first subsample() contracts.
-
-    These tests describe the NEW contracts that do not yet hold in the
-    current implementation (subsample() calls _materialize() which returns
-    an eager nw.DataFrame).  They will turn GREEN in Plan 02.
-    """
+    """Tests for subsample() lazy-first contracts."""
 
     def _polars_lazy_frame(self):
         """Return an nw.LazyFrame backed by polars."""
@@ -294,17 +266,13 @@ class TestSubsample:
 
 
 # ---------------------------------------------------------------------------
-# Phase 6 RED baseline: failure_cases_metadata() returns ibis.Table for ibis input
+# failure_cases_metadata() ibis return type
 # ---------------------------------------------------------------------------
 
 
 @ibis_only
 def test_failure_cases_metadata_ibis_returns_ibis_table():
-    """LAZY-FIRST: failure_cases_metadata() must preserve ibis.Table in result.
-
-    Currently RED because the implementation always converts to pl.DataFrame
-    via to_arrow() + pl.from_arrow().  Plan 03 will make this GREEN.
-    """
+    """failure_cases_metadata() preserves ibis.Table for ibis input."""
     import ibis
     import pandas as pd
 

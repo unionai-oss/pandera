@@ -80,7 +80,7 @@ class TestPanderaDecorators:
                         "decorators; cache/unpersist log messages are not "
                         "emitted"
                     ),
-                    strict=False,
+                    strict=True,
                 ),
             ),
             pytest.param(
@@ -95,7 +95,7 @@ class TestPanderaDecorators:
                         "decorators; cache/unpersist log messages are not "
                         "emitted"
                     ),
-                    strict=False,
+                    strict=True,
                 ),
             ),
             pytest.param(
@@ -110,7 +110,7 @@ class TestPanderaDecorators:
                         "column is missing from the DataFrame; native PySpark "
                         "attaches errors lazily and returns a DataFrame"
                     ),
-                    strict=False,
+                    strict=True,
                 ),
             ),
             pytest.param(
@@ -125,7 +125,7 @@ class TestPanderaDecorators:
                         "column is missing from the DataFrame; native PySpark "
                         "attaches errors lazily and returns a DataFrame"
                     ),
-                    strict=False,
+                    strict=True,
                 ),
             ),
         ],

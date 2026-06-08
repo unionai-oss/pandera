@@ -102,7 +102,7 @@ class TestBuiltinCheckSignatures:
     """Test that all 14 builtin check functions accept (col_expr: nw.Expr, ...) signature.
 
     These tests call the builtin functions directly with nw.col(key) as the
-    first arg — verifying the Phase 5 nw.Expr protocol is in place and that
+    first arg — verifying the nw.Expr protocol is in place and that
     each function returns an nw.Expr.
     """
 
