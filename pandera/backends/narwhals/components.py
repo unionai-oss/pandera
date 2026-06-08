@@ -11,9 +11,9 @@ import narwhals.stable.v1 as nw
 from pandera.api.base.error_handler import get_error_category
 from pandera.api.narwhals.error_handler import ErrorHandler
 from pandera.api.narwhals.utils import (
-    _is_sql_lazy,
     _materialize,
     _to_native,
+    _unwrap_failure_cases,
 )
 from pandera.backends.base import CoreCheckResult
 from pandera.backends.narwhals.base import NarwhalsSchemaBackend
@@ -419,23 +419,7 @@ class ColumnBackend(NarwhalsSchemaBackend):
                     error = result.schema_error
                 else:
                     assert result.reason_code is not None
-                    # Convert Narwhals failure_cases to native for SchemaError public API.
-                    # CoreCheckResult carries Narwhals wrappers; SchemaError.failure_cases
-                    # is the public API and must be native (pl.DataFrame, ibis.Table, etc.)
-                    # so callers can use the result without Narwhals knowledge.
-                    # - SQL-lazy backends (ibis, duckdb, ...): nw.to_native returns
-                    #   the native expression directly without execution.
-                    # - Polars LazyFrame: collect() first (bounded — only failing
-                    #   rows from the check, not the full frame).
-                    # - Polars DataFrame (eager): direct to_native.
-                    fc = result.failure_cases
-                    if isinstance(fc, (nw.LazyFrame, nw.DataFrame)):
-                        if _is_sql_lazy(fc):
-                            fc = nw.to_native(fc)
-                        elif isinstance(fc, nw.LazyFrame):
-                            fc = nw.to_native(_materialize(fc))
-                        else:
-                            fc = nw.to_native(fc)
+                    fc = _unwrap_failure_cases(result.failure_cases)
                     error = SchemaError(
                         schema=schema,
                         data=check_obj,
