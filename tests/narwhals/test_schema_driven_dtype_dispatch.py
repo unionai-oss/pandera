@@ -1,16 +1,4 @@
-"""Behavioral tests for ARCH-03: schema-driven dispatch in ColumnBackend.check_dtype.
-
-ColumnBackend.check_dtype dispatches on schema.dtype type (schema-driven), not on
-check_obj.implementation (frame-driven). These tests verify the behavioral contract:
-
-- Narwhals-engine dtype path: polars LazyFrame + narwhals_engine.Int64 schema -> pass
-- PySpark-engine dtype path: PySpark frame + pyspark_engine-wrapped T.LongType schema
-  -> pass when types match, fail with WRONG_DATATYPE when they don't
-
-Source-inspection tests that used the inspect module to grep ColumnBackend.check_dtype for
-internal variable names (is_pyspark, uses_pyspark_dtype, etc.) were removed in Phase 08
-because they tested intermediate implementation state, not the behavioral contract.
-"""
+"""Tests for schema-driven dtype dispatch in ColumnBackend.check_dtype."""
 
 import polars as pl
 import pytest

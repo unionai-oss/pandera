@@ -1,8 +1,9 @@
 """End-to-end validation tests, executed once per backend.
 
 Uses native backend frames — narwhals is an implementation detail.
-Backend-specific behaviors (LazyFrame depth, ibis BooleanScalar normalization,
-etc.) are covered in tests/narwhals/test_e2e.py.
+Backend-specific behaviors (LazyFrame depth, ibis BooleanScalar
+normalization, element_wise rejection, nw.Expr accumulation) are covered
+in tests/narwhals/test_parity.py and tests/narwhals/test_e2e.py.
 """
 
 import pandas as pd
