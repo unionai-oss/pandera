@@ -14,9 +14,9 @@ import narwhals.stable.v1 as nw
 from pandera.api.base.error_handler import get_error_category
 from pandera.api.narwhals.error_handler import ErrorHandler
 from pandera.api.narwhals.utils import (
-    _is_sql_lazy,
     _materialize,
     _to_native,
+    _unwrap_failure_cases,
 )
 
 if TYPE_CHECKING:
@@ -115,9 +115,9 @@ class DataFrameSchemaBackend(NarwhalsSchemaBackend):
                 "When drop_invalid_rows is True, lazy must be set to True."
             )
 
-        # Phase 4: parsers list contains strict_filter_columns and coerce_dtype
+        # The parsers list wires strict_filter_columns and coerce_dtype
         # (for row-wise dtypes like PydanticModel).
-        # add_missing_columns and set_default are deferred to later phases.
+        # add_missing_columns and set_default are deferred to later releases.
         core_parsers: list[tuple[Callable[..., Any], tuple[Any, ...]]] = [
             (self.strict_filter_columns, (schema, column_info)),
             (self.coerce_dtype, (schema,)),
@@ -187,22 +187,7 @@ class DataFrameSchemaBackend(NarwhalsSchemaBackend):
                     if result.schema_error is not None:
                         error = result.schema_error
                     else:
-                        # Unwrap Narwhals failure_cases to native at the SchemaError boundary.
-                        # CoreCheckResult carries Narwhals wrappers; SchemaError.failure_cases
-                        # is the public API and must be native.
-                        fc = result.failure_cases
-                        if isinstance(fc, (nw.LazyFrame, nw.DataFrame)):
-                            if _is_sql_lazy(fc):
-                                # SQL-lazy backend (ibis): nw.to_native returns
-                                # the native expression directly, no collect.
-                                fc = nw.to_native(fc)
-                            elif isinstance(fc, nw.LazyFrame):
-                                # Polars LazyFrame: collect failure_cases to
-                                # eager (bounded: only failing rows, not the
-                                # full frame) before unwrapping to native.
-                                fc = nw.to_native(_materialize(fc))
-                            else:
-                                fc = nw.to_native(fc)
+                        fc = _unwrap_failure_cases(result.failure_cases)
                         error = SchemaError(
                             schema,
                             data=check_lf,
@@ -449,12 +434,12 @@ class DataFrameSchemaBackend(NarwhalsSchemaBackend):
                 # step, so column-level coerce=True is a no-op that would otherwise
                 # silently produce a WRONG_DATATYPE error.
                 if getattr(col, "coerce", False):
-                    col_name = getattr(col, "name", None) or getattr(
+                    warn_col_name = getattr(col, "name", None) or getattr(
                         col, "selector", col_name
                     )
                     warnings.warn(
                         f"coerce=True is not applied by the narwhals backend for "
-                        f"column '{col_name}'. The column dtype will not be "
+                        f"column '{warn_col_name}'. The column dtype will not be "
                         f"coerced; any dtype mismatch will be reported as a "
                         f"WRONG_DATATYPE error.",
                         SchemaWarning,
@@ -563,7 +548,7 @@ class DataFrameSchemaBackend(NarwhalsSchemaBackend):
                         reason_code=SchemaErrorReason.COLUMN_NOT_IN_DATAFRAME,
                         message=(
                             f"column '{colname}' not in dataframe"
-                            f"\n{_to_native(check_obj.head())}"
+                            f"\n{_unwrap_failure_cases(check_obj.head())}"
                         ),
                         failure_cases=colname,
                     )
