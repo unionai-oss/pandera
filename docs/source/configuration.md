@@ -50,8 +50,9 @@ Equivalently, set `pandera.config.CONFIG.use_narwhals_backend = True`
 before any Polars or Ibis schema is constructed. The backend choice is
 locked in at first schema construction (the registration step is
 `lru_cache`-d), so toggle this setting at process start. To switch backends
-in the same process, call `register_polars_backends.cache_clear()` and/or
-`register_ibis_backends.cache_clear()` before re-registering.
+in the same process, call `register_polars_backends.cache_clear()`,
+`register_ibis_backends.cache_clear()`, and/or
+`register_pyspark_backends.cache_clear()` before re-registering.
 
 If `PANDERA_USE_NARWHALS_BACKEND=True` but `narwhals` is not installed,
 schema construction raises an `ImportError` pointing you at
