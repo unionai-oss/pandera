@@ -163,9 +163,11 @@ same process, clear the cache and re-register:
 ```python
 from pandera.backends.polars.register import register_polars_backends
 from pandera.backends.ibis.register import register_ibis_backends
+from pandera.backends.pyspark.register import register_pyspark_backends
 
 register_polars_backends.cache_clear()
 register_ibis_backends.cache_clear()
+register_pyspark_backends.cache_clear()
 ```
 
 If `PANDERA_USE_NARWHALS_BACKEND=True` but `narwhals` is not installed,
@@ -196,9 +198,12 @@ it executed natively by each supported engine.
   only on error.
 * **Custom checks become portable.** A check written against
   `pandera.polars` typically works against `pandera.ibis` (and vice versa)
-  as long as it uses Narwhals expressions. Backend-native checks
-  (pure `polars.Expr` or pure `ibis` expressions) are still supported via
-  the `native=True` flag on `Check`.
+  as long as it uses Narwhals expressions. The `native` parameter on `Check`
+  controls which frame type the check function receives: `native=True`
+  (the **default**) passes the native backend frame (e.g. `pl.DataFrame`,
+  `ibis.Table`) so the check is backend-specific; setting `native=False`
+  passes a Narwhals-wrapped frame so the check can run unchanged across all
+  supported backends using only the Narwhals expression API.
 
 ### Opting out
 
@@ -240,6 +245,10 @@ backend. Follow-up milestones track each of the gaps below:
 * Schema IO (YAML/JSON) for Narwhals-backed schemas
 * Hypothesis data-synthesis strategies
 * `sample=` / `tail=` row sampling for SQL-lazy backends (Ibis and PySpark SQL)
+* `check_unique` (column-level uniqueness) does not produce a per-row boolean
+  `check_output`, so `drop_invalid_rows=True` cannot filter rows that fail a
+  uniqueness constraint — those rows remain in the output. This gap is tracked
+  for a future release.
 
 See the {ref}`Supported DataFrame Libraries <supported-dataframe-libraries>`
 section above for the user-facing integrations; the Narwhals layer is an
