@@ -342,8 +342,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.10", "3.11", "3.12", "3.13"]
+        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
         extra: [polars, ibis, pyspark]
+        exclude:
+        - extra: pyspark
+          python-version: "3.12"
+        - extra: pyspark
+          python-version: "3.13"
+        - extra: pyspark
+          python-version: "3.14"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -369,21 +376,21 @@ jobs:
 
   # Run the narwhals-specific test suite (tests/narwhals/) with narwhals,
   # polars, and ibis all co-installed. Tests in tests/narwhals/backends/ run
-  # once per backend (polars, ibis) using native frames (TEST-02, TEST-03).
+  # once per backend (polars, ibis) using native frames.
   unit-tests-narwhals:
     name: >
       Unit Tests Narwhals: python-${{ matrix.python-version }} ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     defaults:
       run:
-        shell: pwsh
+        shell: bash
     env:
       PYTHONUTF8: 1
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
-        python-version: ["3.10", "3.11", "3.12", "3.13"]
+        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python ${{ matrix.python-version }}
