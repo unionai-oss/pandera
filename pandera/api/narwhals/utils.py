@@ -1,4 +1,11 @@
-"""Narwhals API utilities."""
+"""Shared internal utilities for the Narwhals backend.
+
+All functions in this module are prefixed with ``_`` by convention — they are
+**not** part of Pandera's public API, but they form the stable shared internal
+surface used across the narwhals backend files (``base.py``, ``container.py``,
+``components.py``, ``checks.py``).  Any rename or signature change requires
+updating all callers in those files.
+"""
 
 import narwhals.stable.v1 as nw
 
@@ -69,3 +76,25 @@ def _is_lazy(frame) -> bool:
     if isinstance(frame, nw.DataFrame):
         return _is_sql_lazy(frame)
     return False
+
+
+def _unwrap_failure_cases(fc):
+    """Unwrap a Narwhals failure-cases frame to its native backend representation.
+
+    - SQL-lazy backends (Ibis, DuckDB, PySpark, etc.): ``nw.to_native(fc)`` —
+      returns the native expression directly without executing the query.
+    - Polars LazyFrame (``nw.LazyFrame``): collect via ``_materialize(fc)`` then
+      ``nw.to_native()`` — bounded collect of only failing rows.
+    - Polars eager DataFrame (``nw.DataFrame``): ``nw.to_native(fc)`` — direct
+      unwrap to ``pl.DataFrame``.
+    - Non-narwhals value (``None``, raw ``pl.DataFrame``, scalar, etc.): returned
+      unchanged — pass-through for callers that may hold already-native frames.
+    """
+    if isinstance(fc, (nw.LazyFrame, nw.DataFrame)):
+        if _is_sql_lazy(fc):
+            return nw.to_native(fc)
+        elif isinstance(fc, nw.LazyFrame):
+            return nw.to_native(_materialize(fc))
+        else:
+            return nw.to_native(fc)
+    return fc
