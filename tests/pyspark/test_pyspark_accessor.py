@@ -29,8 +29,8 @@ spark.conf.set("spark.sql.ansi.enabled", False)
 )
 @pytest.mark.xfail(
     condition=CONFIG.use_narwhals_backend,
-    reason="narwhals backend raises SchemaErrors and does not set .pandera.schema accessor — see Phase 11 Plan 01 objective",
-    strict=False,
+    reason="narwhals backend raises SchemaErrors and does not set .pandera.schema accessor",
+    strict=True,
 )
 def test_dataframe_add_schema(
     schema1: pa.DataFrameSchema,

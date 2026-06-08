@@ -10,9 +10,10 @@ from pyspark.sql import DataFrame
 import pandera
 import pandera.api.extensions as pax
 import pandera.pyspark as pa
+from pandera.api.checks import Check
 from pandera.api.pyspark.model import docstring_substitution
 from pandera.config import CONFIG, PanderaConfig, ValidationDepth
-from pandera.errors import SchemaDefinitionError, SchemaErrors
+from pandera.errors import SchemaDefinitionError, SchemaError, SchemaErrors
 from pandera.pyspark import DataFrameModel, DataFrameSchema, Field
 from tests.pyspark.conftest import spark_df, validate_collecting_errors
 
@@ -408,7 +409,7 @@ def test_dataframe_schema_unique_wrong_column(
         "causing schema.validate(df.select(['a','b'])) to raise instead of "
         "returning a DataFrame."
     ),
-    strict=False,
+    strict=True,
 )
 def test_dataframe_schema_strict(
     spark_session, config_params: PanderaConfig, request
@@ -565,22 +566,23 @@ def test_invalid_field(
         Schema.to_schema()
 
 
+@pytest.fixture(scope="function")
+def cleanup_always_true_check():
+    """Remove always_true_check from REGISTERED_CUSTOM_CHECKS after each run."""
+    yield
+    Check.REGISTERED_CUSTOM_CHECKS.pop("always_true_check", None)
+
+
 # Under the narwhals backend, coerce_dtype is unsupported (age: int → LongType()).
-# Under the native backend, the second parametrized spark_session run raises a
-# ValueError due to a duplicated register_check_method registration.
 @pytest.mark.xfail(
     condition=CONFIG.use_narwhals_backend,
     reason="narwhals column backend has no coerce_dtype; age: int inferred as LongType() by Spark",
-    raises=Exception,
+    raises=SchemaError,
     strict=True,
 )
-@pytest.mark.xfail(
-    condition=not CONFIG.use_narwhals_backend,
-    reason="ValueError on duplicate register_check_method on second parametrized run",
-    raises=ValueError,
-    strict=False,
-)
-def test_registered_dataframemodel_checks(spark_session, request) -> None:
+def test_registered_dataframemodel_checks(
+    spark_session, request, cleanup_always_true_check
+) -> None:
     """Check that custom registered checks work"""
     spark = request.getfixturevalue(spark_session)
 

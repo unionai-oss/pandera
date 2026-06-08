@@ -26,9 +26,9 @@ pytestmark = pytest.mark.parametrize(
         "narwhals backend raises SchemaErrors when column 'code' is defined as "
         "StringType but PySpark infers LongType from Python int literals in "
         "createDataFrame; native PySpark attaches errors lazily and returns a "
-        "DataFrame. The .pandera.schema accessor is also not set by narwhals backend."
+        "DataFrame"
     ),
-    strict=False,
+    strict=True,
 )
 def test_dataframe_add_schema(
     spark_session,

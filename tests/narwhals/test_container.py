@@ -8,7 +8,7 @@ Tests cover:
   REGISTER-01: register_polars_backends() is idempotent via lru_cache
   REGISTER-02: DataFrameSchema backend for pl.DataFrame/pl.LazyFrame is narwhals after registration
   REGISTER-04: narwhals backend activated when PANDERA_USE_NARWHALS_BACKEND=True (opt-in)
-  TEST-03: SchemaError.failure_cases is a native pl.DataFrame, not nw.DataFrame
+  SchemaError.failure_cases is a native pl.DataFrame, not nw.DataFrame
 """
 
 import narwhals.stable.v1 as nw
@@ -172,15 +172,14 @@ def test_polars_narwhals_activated_when_opted_in(monkeypatch, request):
 
 
 # ---------------------------------------------------------------------------
-# TEST-03: SchemaError.failure_cases is nw.DataFrame (Phase 4+)
+# SchemaError.failure_cases is nw.DataFrame
 # ---------------------------------------------------------------------------
 
 
 def test_failure_cases_is_native():
     """SchemaError.failure_cases is a native pl.DataFrame for polars inputs.
 
-    Phase 6 contract: failure_cases is native (pl.DataFrame for polars) — not nw.DataFrame.
-    RED until Plan 03 materializes failure_cases to native in the error pipeline.
+    failure_cases is native (pl.DataFrame for polars) — not nw.DataFrame.
     """
     schema = DataFrameSchema(
         columns={"a": Column(pl.Int64, checks=[Check.greater_than(10)])}
@@ -191,5 +190,5 @@ def test_failure_cases_is_native():
     except SchemaError as err:
         fc = err.failure_cases
         assert isinstance(fc, pl.DataFrame), (
-            f"failure_cases should be native pl.DataFrame (Phase 6 contract), got {type(fc)}"
+            f"failure_cases should be native pl.DataFrame, got {type(fc)}"
         )
