@@ -87,13 +87,13 @@ def _register_backends():
 
 @pytest.fixture()
 def polars_df():
-    # TEST-02: intentionally polars_eager-specific — used by tests asserting pl.DataFrame return type
+    # intentionally polars_eager-specific — used by tests asserting pl.DataFrame return type
     return pl.DataFrame({"x": [1, 2, 3], "y": [10, 20, 30]})
 
 
 @pytest.fixture()
 def polars_lf():
-    # TEST-02: intentionally polars_lazy-specific — used by tests asserting pl.LazyFrame return type
+    # intentionally polars_lazy-specific — used by tests asserting pl.LazyFrame return type
     return pl.LazyFrame({"x": [1, 2, 3], "y": [10, 20, 30]})
 
 
@@ -111,7 +111,7 @@ def test_narwhals_backend_registered_for_polars_lazyframe():
     """NarwhalsCheckBackend is the active backend for pl.LazyFrame."""
     from pandera.api.checks import Check
 
-    # TEST-02: intentionally polars_lazy-specific — tests registry lookup for LazyFrame type
+    # intentionally polars_lazy-specific — tests registry lookup for LazyFrame type
     backend = Check.get_backend(pl.LazyFrame())
     assert backend is NarwhalsCheckBackend
 
@@ -121,7 +121,7 @@ def test_narwhals_backend_registered_for_ibis_table():
     """NarwhalsCheckBackend is the active backend for ibis.Table."""
     from pandera.api.checks import Check
 
-    # TEST-02: intentionally ibis_table-specific — tests registry lookup for ibis.Table type
+    # intentionally ibis_table-specific — tests registry lookup for ibis.Table type
     backend = Check.get_backend(ibis.memtable({"a": [1]}))
     assert backend is NarwhalsCheckBackend
 
@@ -149,7 +149,7 @@ def test_polars_dtype_mismatch_lazyframe():
     """Wrong dtype raises SchemaError even for pl.LazyFrame (SCHEMA_ONLY depth)."""
     schema = pa_pl.DataFrameSchema({"x": pa_pl.Column(pl.Utf8)})
     with pytest.raises(SchemaError):
-        # TEST-02: intentionally polars_lazy-specific — SCHEMA_ONLY depth unique to LazyFrame
+        # intentionally polars_lazy-specific — SCHEMA_ONLY depth unique to LazyFrame
         schema.validate(pl.LazyFrame({"x": [1, 2, 3]}))
 
 
@@ -161,7 +161,7 @@ def test_polars_dtype_mismatch_lazyframe():
 class TestBuiltinChecksPolars:
     """Built-in check behaviour for Polars DataFrames (SCHEMA_AND_DATA depth).
 
-    TEST-02: intentionally polars_eager-specific — tests pl.DataFrame return types and
+    intentionally polars_eager-specific — tests pl.DataFrame return types and
     failure_cases as pl.DataFrame. Ibis equivalent in TestBuiltinChecksIbis.
     """
 
@@ -197,8 +197,7 @@ class TestBuiltinChecksPolars:
         with pytest.raises(SchemaError) as exc_info:
             schema.validate(pl.DataFrame({"x": [1, 2, 99]}))
         fc = exc_info.value.failure_cases
-        # Phase 6 contract: failure_cases is native pl.DataFrame (unwrapped), not nw.DataFrame.
-        # RED until Plan 03 materializes failure_cases to native in the error pipeline.
+        # failure_cases is native pl.DataFrame (unwrapped), not nw.DataFrame.
         assert isinstance(fc, pl.DataFrame), (
             f"expected native pl.DataFrame for polars input, got {type(fc)}"
         )
@@ -227,7 +226,7 @@ class TestBuiltinChecksPolars:
 class TestBuiltinChecksIbis:
     """Built-in check behaviour for ibis Tables (always SCHEMA_AND_DATA).
 
-    TEST-02: intentionally ibis_table-specific — tests ibis.Table return types and
+    intentionally ibis_table-specific — tests ibis.Table return types and
     failure_cases as ibis.Table. Polars equivalent in TestBuiltinChecksPolars.
     """
 
@@ -267,7 +266,7 @@ class TestCustomChecksPolars:
     """Custom check functions with the ``(frame: pl.LazyFrame, key: str) -> bool``
     signature.  DataFrame input is used so data checks are active by default.
 
-    TEST-02: intentionally polars_eager-specific — tests custom check signature for polars,
+    intentionally polars_eager-specific — tests custom check signature for polars,
     including that check fn receives pl.LazyFrame. Ibis equivalent in TestCustomChecksIbis.
     """
 
@@ -336,7 +335,7 @@ class TestCustomChecksPolars:
 class TestCustomChecksSchemaLevelPolars:
     """Schema-level (whole-DataFrame) custom checks via DataFrameSchema.checks.
 
-    TEST-02: intentionally polars_eager-specific — tests schema-level check with polars.
+    intentionally polars_eager-specific — tests schema-level check with polars.
     """
 
     @staticmethod
@@ -375,7 +374,7 @@ class TestCustomChecksIbis:
     * ``ir.BooleanScalar`` — auto-executed and converted to bool
     * ``ir.BooleanColumn`` — treated as a per-row boolean mask
 
-    TEST-02: intentionally ibis_table-specific — tests custom check signature for ibis,
+    intentionally ibis_table-specific — tests custom check signature for ibis,
     including BooleanScalar/Column normalization. Polars equivalent in TestCustomChecksPolars.
     """
 
@@ -519,11 +518,11 @@ class TestCustomChecksIbis:
 class TestCustomChecksPolarsRowLevel:
     """Custom native=True checks returning row-level pl.Series or pl.DataFrame.
 
-    These are REGRESSION tests for CHECKS-01: _normalize_native_output previously
+    These are REGRESSION tests: _normalize_native_output previously
     raised TypeError("output type of check_fn not recognized") for pl.Series and
     pl.DataFrame returns from native=True checks.
 
-    TEST-02: intentionally polars_eager-specific — tests pl.Series and pl.DataFrame
+    intentionally polars_eager-specific — tests pl.Series and pl.DataFrame
     return types from native=True checks, which are polars-only return types.
     """
 
@@ -602,7 +601,7 @@ def test_polars_nullable_false_raises_on_null():
     """nullable=False raises SchemaError; failure_cases contains the null rows."""
     schema = pa_pl.DataFrameSchema({"x": pa_pl.Column(int, nullable=False)})
     with pytest.raises(SchemaError) as exc_info:
-        # TEST-02: intentionally polars_eager-specific — asserts failure_cases is pl.DataFrame
+        # intentionally polars_eager-specific — asserts failure_cases is pl.DataFrame
         schema.validate(pl.DataFrame({"x": [1, None, 3]}))
 
     fc = exc_info.value.failure_cases
@@ -619,7 +618,7 @@ def test_polars_nullable_false_raises_on_null():
 class TestLazyValidationPolars:
     """lazy=True defers error raising and collects all failures.
 
-    TEST-02: intentionally polars_eager-specific — tests lazy=True with pl.DataFrame inputs,
+    intentionally polars_eager-specific — tests lazy=True with pl.DataFrame inputs,
     asserts SchemaErrors.failure_cases is pl.DataFrame. Ibis equivalent in TestLazyValidationIbis.
     """
 

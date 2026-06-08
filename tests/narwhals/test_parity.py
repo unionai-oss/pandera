@@ -1,12 +1,12 @@
 """Ibis-specific narwhals tests and nw.Expr accumulation contracts.
 
 Cross-backend behavioral parity (strict, nullable, check decorators,
-drop_invalid_rows, etc.) lives in tests/narwhals/backends/test_e2e.py,
+drop_invalid_rows, etc.) lives in tests/narwhals/backends/test_backend_parity.py,
 parametrized via BackendFixture.
 
 This file covers ibis-specific contracts (failure_cases type, BooleanScalar
 normalization, element_wise rejection) and the nw.Expr accumulation contract
-for drop_invalid_rows (Polars-specific, checks check_output type). Covers TEST-04.
+for drop_invalid_rows (Polars-specific, checks check_output type).
 
 Coerce-dependent tests are marked xfail(strict=True) — coerce is a v2
 feature; strict=True ensures CI breaks when coerce lands so marks are
@@ -36,7 +36,7 @@ def _make_ibis_table(data: dict):
 
 
 # ---------------------------------------------------------------------------
-# TEST-04: DataFrameModel parity (Polars vs Ibis)
+# DataFrameModel parity (Polars vs Ibis)
 # ---------------------------------------------------------------------------
 
 
@@ -55,12 +55,12 @@ def test_dataframe_model_ibis():
 
 
 # ---------------------------------------------------------------------------
-# TEST-04: Coerce parity (strict=True — must fail until coerce lands in v2)
+# Coerce parity (strict=True — must fail until coerce lands in v2)
 # ---------------------------------------------------------------------------
 
 
 @pytest.mark.xfail(
-    reason="TEST-04: coerce not yet implemented in narwhals backend (v2 feature)",
+    reason="coerce not yet implemented in narwhals backend",
     strict=True,
 )
 def test_coerce_ibis():
@@ -80,7 +80,7 @@ def test_coerce_ibis():
 
 
 # ---------------------------------------------------------------------------
-# TEST-02: element_wise=True check on ibis Table raises (not supported)
+# element_wise=True check on ibis Table raises (not supported)
 # ---------------------------------------------------------------------------
 
 
@@ -90,7 +90,7 @@ def test_element_wise_check_raises_not_implemented_ibis():
     SQL-lazy backends (Ibis, DuckDB, PySpark) cannot apply row-level Python
     functions to lazy query plans. element_wise checks are rejected at check
     application time. The NotImplementedError is captured by run_checks and
-    surfaced as a SchemaError with CHECK_ERROR reason_code. TEST-02.
+    surfaced as a SchemaError with CHECK_ERROR reason_code.
     """
     import ibis.expr.datatypes as dt
 
@@ -153,7 +153,7 @@ def test_custom_check_ibis_lazy():
 
 
 # ---------------------------------------------------------------------------
-# TEST-09: drop_invalid_rows — nw.Expr accumulation contract (Polars)
+# drop_invalid_rows — nw.Expr accumulation contract (Polars)
 # ---------------------------------------------------------------------------
 
 
@@ -182,7 +182,7 @@ def test_drop_invalid_rows_expr_accumulation():
         f"Expected [1, 2] after dropping -1, got {result_df['a'].to_list()}"
     )
 
-    # Verify check_output stored in schema_errors is nw.Expr (Phase 09 contract).
+    # Verify check_output stored in schema_errors is nw.Expr.
     # Access via lazy=True with drop_invalid_rows=False to see the check_output.
     # Force SCHEMA_AND_DATA so data checks run even on lazy frames (matching the
     # polars test conftest behavior).
@@ -197,5 +197,5 @@ def test_drop_invalid_rows_expr_accumulation():
         except SchemaErrors as err:
             check_output = err.schema_errors[0].check_output
             assert isinstance(check_output, nw.Expr), (
-                f"check_output should be nw.Expr after Phase 09 fix, got {type(check_output)}"
+                f"check_output should be nw.Expr, got {type(check_output)}"
             )
