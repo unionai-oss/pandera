@@ -99,13 +99,10 @@ def _concat_failure_cases(items: list) -> Any:
                     + repr(dropped_info)
                     + ") could not be included in the PySpark failure_cases "
                     "output because scalar Polars frames cannot be converted "
-                    "to PySpark without a SparkSession. These schema errors "
-                    "are still reported in df.pandera.errors but their "
+                    "to PySpark without a live SparkSession. These schema "
+                    "errors are still reported in SchemaErrors but their "
                     "failure_cases rows are omitted from the combined frame. "
-                    # TODO(ARCH-02 follow-up): SparkSession-mediated
-                    # conversion (Approach B) when a SparkSession reference
-                    # is available.
-                    "See ARCH-02 follow-up for a full resolution.",
+                    "This gap is tracked for a future release.",
                     SchemaWarning,
                     stacklevel=3,
                 )
@@ -121,9 +118,14 @@ def _concat_failure_cases(items: list) -> Any:
             # SparkSession barrier — both sources merge cleanly, so no
             # SchemaWarning is needed (unlike the PySpark branch which
             # warns-and-drops because it cannot create a SparkSession).
-            assert all(isinstance(i, nw.LazyFrame) for i in nw_items) or all(
-                isinstance(i, nw.DataFrame) for i in nw_items
-            ), "nw_items must be homogeneous (all LazyFrame or all DataFrame)"
+            if not (
+                all(isinstance(i, nw.LazyFrame) for i in nw_items)
+                or all(isinstance(i, nw.DataFrame) for i in nw_items)
+            ):
+                raise ValueError(
+                    "nw_items must be homogeneous (all LazyFrame or all DataFrame); "
+                    f"got types: {[type(i).__name__ for i in nw_items]}"
+                )
             lazy_result = nw.to_native(nw.concat(nw_items))
             if pl_items:
                 return pl.concat([lazy_result.collect()] + pl_items)
@@ -141,7 +143,7 @@ class NarwhalsSchemaBackend(BaseSchemaBackend):
     """Base schema backend for Narwhals-backed DataFrames.
 
     Provides shared helpers used by ColumnBackend (components.py) and
-    future container-level backends (Phase 4).
+    DataFrameSchemaBackend (container.py).
     """
 
     def subsample(
@@ -289,11 +291,9 @@ class NarwhalsSchemaBackend(BaseSchemaBackend):
         pl.LazyFrame/pl.DataFrame for polars inputs — no forced polars
         conversion, no Arrow roundtrip for lazy/SQL backends.
         """
-        error_counts: dict[str, int] = defaultdict(int)
         failure_case_collection: list = []
 
         for err in schema_errors:
-            error_counts[err.reason_code] += 1
             check_identifier = _check_identifier(err)
 
             # Wrap native frames (pl.DataFrame, pl.LazyFrame, ibis.Table) as
