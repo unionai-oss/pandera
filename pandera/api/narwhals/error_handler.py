@@ -10,7 +10,7 @@ class ErrorHandler(_ErrorHandler):
 
     @staticmethod
     def _count_failure_cases(failure_cases) -> int:
-        # failure_cases is always native at SchemaError boundary (Phase 6 contract).
+        # failure_cases is always native at SchemaError boundary.
         # nw.from_native wraps pl.DataFrame, pl.LazyFrame, and ibis.Table uniformly.
         # Python scalars (bool False, None, strings) raise TypeError — fall back to 0/1.
         # The isinstance(failure_cases, str) guard is removed: nw.from_native("string")
