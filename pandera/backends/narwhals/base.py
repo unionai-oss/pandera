@@ -62,7 +62,7 @@ def _concat_failure_cases(items: list) -> Any:
     Returns an empty ``pl.DataFrame`` if the collection is empty.
     """
     if not items:
-        return pl.DataFrame() if pl is not None else None
+        return pl.DataFrame() if pl is not None else None  # pragma: no cover
 
     # Separate Narwhals-wrapped items from native Polars items
     nw_items = [
@@ -94,18 +94,19 @@ def _concat_failure_cases(items: list) -> Any:
                         and "column" in item.columns
                     ):
                         dropped_info.extend(item["column"].to_list())
-                warnings.warn(
-                    "Some schema-level failure cases (columns: "
-                    + repr(dropped_info)
-                    + ") could not be included in the PySpark failure_cases "
-                    "output because scalar Polars frames cannot be converted "
-                    "to PySpark without a live SparkSession. These schema "
-                    "errors are still reported in SchemaErrors but their "
-                    "failure_cases rows are omitted from the combined frame. "
-                    "This gap is tracked for a future release.",
-                    SchemaWarning,
-                    stacklevel=3,
-                )
+                if dropped_info:
+                    warnings.warn(
+                        "Some schema-level failure cases (columns: "
+                        + repr(dropped_info)
+                        + ") could not be included in the PySpark failure_cases "
+                        "output because scalar Polars frames cannot be converted "
+                        "to PySpark without a live SparkSession. These schema "
+                        "errors are still reported in SchemaErrors but their "
+                        "failure_cases rows are omitted from the combined frame. "
+                        "This gap is tracked for a future release.",
+                        SchemaWarning,
+                        stacklevel=6,
+                    )
             native_items = [nw.to_native(item) for item in nw_items]
             return functools.reduce(lambda a, b: a.union(b), native_items)
         elif first_nw.implementation == nw.Implementation.POLARS:
@@ -118,17 +119,20 @@ def _concat_failure_cases(items: list) -> Any:
             # SparkSession barrier — both sources merge cleanly, so no
             # SchemaWarning is needed (unlike the PySpark branch which
             # warns-and-drops because it cannot create a SparkSession).
-            if not (
-                all(isinstance(i, nw.LazyFrame) for i in nw_items)
-                or all(isinstance(i, nw.DataFrame) for i in nw_items)
-            ):
+            nw_types = {type(i) for i in nw_items}
+            if len(nw_types) > 1:  # pragma: no cover
                 raise ValueError(
                     "nw_items must be homogeneous (all LazyFrame or all DataFrame); "
                     f"got types: {[type(i).__name__ for i in nw_items]}"
                 )
             lazy_result = nw.to_native(nw.concat(nw_items))
             if pl_items:
-                return pl.concat([lazy_result.collect()] + pl_items)
+                eager_result = (
+                    lazy_result.collect()
+                    if isinstance(lazy_result, pl.LazyFrame)
+                    else lazy_result
+                )
+                return pl.concat([eager_result] + pl_items)
             return lazy_result
         else:
             # SQL-lazy path (Ibis, DuckDB, etc.): unwrap to native and union.
@@ -136,7 +140,7 @@ def _concat_failure_cases(items: list) -> Any:
             return functools.reduce(lambda a, b: a.union(b), native_items)
 
     # All-Polars path: pl.DataFrame items from eager/scalar builders
-    return pl.concat(pl_items) if pl is not None else None
+    return pl.concat(pl_items) if pl is not None else None  # pragma: no cover
 
 
 class NarwhalsSchemaBackend(BaseSchemaBackend):
