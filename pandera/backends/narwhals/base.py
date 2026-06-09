@@ -94,18 +94,19 @@ def _concat_failure_cases(items: list) -> Any:
                         and "column" in item.columns
                     ):
                         dropped_info.extend(item["column"].to_list())
-                warnings.warn(
-                    "Some schema-level failure cases (columns: "
-                    + repr(dropped_info)
-                    + ") could not be included in the PySpark failure_cases "
-                    "output because scalar Polars frames cannot be converted "
-                    "to PySpark without a live SparkSession. These schema "
-                    "errors are still reported in SchemaErrors but their "
-                    "failure_cases rows are omitted from the combined frame. "
-                    "This gap is tracked for a future release.",
-                    SchemaWarning,
-                    stacklevel=3,
-                )
+                if dropped_info:
+                    warnings.warn(
+                        "Some schema-level failure cases (columns: "
+                        + repr(dropped_info)
+                        + ") could not be included in the PySpark failure_cases "
+                        "output because scalar Polars frames cannot be converted "
+                        "to PySpark without a live SparkSession. These schema "
+                        "errors are still reported in SchemaErrors but their "
+                        "failure_cases rows are omitted from the combined frame. "
+                        "This gap is tracked for a future release.",
+                        SchemaWarning,
+                        stacklevel=6,
+                    )
             native_items = [nw.to_native(item) for item in nw_items]
             return functools.reduce(lambda a, b: a.union(b), native_items)
         elif first_nw.implementation == nw.Implementation.POLARS:
@@ -128,7 +129,12 @@ def _concat_failure_cases(items: list) -> Any:
                 )
             lazy_result = nw.to_native(nw.concat(nw_items))
             if pl_items:
-                return pl.concat([lazy_result.collect()] + pl_items)
+                eager_result = (
+                    lazy_result.collect()
+                    if isinstance(lazy_result, pl.LazyFrame)
+                    else lazy_result
+                )
+                return pl.concat([eager_result] + pl_items)
             return lazy_result
         else:
             # SQL-lazy path (Ibis, DuckDB, etc.): unwrap to native and union.

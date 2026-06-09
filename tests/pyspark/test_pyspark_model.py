@@ -1,5 +1,6 @@
 """Unit tests for DataFrameModel module."""
 
+import decimal
 from contextlib import nullcontext as does_not_raise
 from typing import Annotated, Optional
 
@@ -211,14 +212,14 @@ def test_pyspark_bare_fields(spark_session, request):
         (
             5,
             "Bread",
-            44.4,
+            decimal.Decimal("44.4"),
             ["description of product"],
             {"product_category": "dairy"},
         ),
         (
             15,
             "Butter",
-            99.0,
+            decimal.Decimal("99.0"),
             ["more details here"],
             {"product_category": "bakery"},
         ),
