@@ -13,9 +13,9 @@ PYSPARK_CONNECT_AVAILABLE = CURRENT_PYSPARK_VERSION >= version.parse("3.4")
 if PYSPARK_CONNECT_AVAILABLE:
     try:
         from pyspark.sql.connect import dataframe as pyspark_connect
-    except ImportError:
+    except ImportError:  # pragma: no cover
         # grpcio-status or other Spark Connect deps not installed
-        PYSPARK_CONNECT_AVAILABLE = False
+        PYSPARK_CONNECT_AVAILABLE = False  # pragma: no cover
 
 
 @lru_cache
@@ -44,7 +44,7 @@ def register_pyspark_backends(
     if CONFIG.use_narwhals_backend:
         try:
             import narwhals.stable.v1 as nw
-        except ImportError as exc:
+        except ImportError as exc:  # pragma: no cover
             raise ImportError(
                 "The Narwhals backend is enabled but the 'narwhals' "
                 "package is not installed. Install it with: "

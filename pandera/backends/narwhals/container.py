@@ -548,7 +548,7 @@ class DataFrameSchemaBackend(NarwhalsSchemaBackend):
                         reason_code=SchemaErrorReason.COLUMN_NOT_IN_DATAFRAME,
                         message=(
                             f"column '{colname}' not in dataframe"
-                            f"\n{_unwrap_failure_cases(check_obj.head())}"
+                            f"\n{nw.to_native(_materialize(check_obj.head()))}"
                         ),
                         failure_cases=colname,
                     )
