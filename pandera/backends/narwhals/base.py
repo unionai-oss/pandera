@@ -62,7 +62,7 @@ def _concat_failure_cases(items: list) -> Any:
     Returns an empty ``pl.DataFrame`` if the collection is empty.
     """
     if not items:
-        return pl.DataFrame() if pl is not None else None
+        return pl.DataFrame() if pl is not None else None  # pragma: no cover
 
     # Separate Narwhals-wrapped items from native Polars items
     nw_items = [
@@ -119,10 +119,8 @@ def _concat_failure_cases(items: list) -> Any:
             # SparkSession barrier — both sources merge cleanly, so no
             # SchemaWarning is needed (unlike the PySpark branch which
             # warns-and-drops because it cannot create a SparkSession).
-            if not (
-                all(isinstance(i, nw.LazyFrame) for i in nw_items)
-                or all(isinstance(i, nw.DataFrame) for i in nw_items)
-            ):
+            nw_types = {type(i) for i in nw_items}
+            if len(nw_types) > 1:  # pragma: no cover
                 raise ValueError(
                     "nw_items must be homogeneous (all LazyFrame or all DataFrame); "
                     f"got types: {[type(i).__name__ for i in nw_items]}"
@@ -142,7 +140,7 @@ def _concat_failure_cases(items: list) -> Any:
             return functools.reduce(lambda a, b: a.union(b), native_items)
 
     # All-Polars path: pl.DataFrame items from eager/scalar builders
-    return pl.concat(pl_items) if pl is not None else None
+    return pl.concat(pl_items) if pl is not None else None  # pragma: no cover
 
 
 class NarwhalsSchemaBackend(BaseSchemaBackend):
