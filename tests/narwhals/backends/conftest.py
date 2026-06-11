@@ -66,7 +66,12 @@ class IbisBackend(BackendFixture):
         import ibis
 
         # Infer schema from Python types so ibis doesn't widen int+None to float64.
-        ibis_type = {int: "int64", bool: "boolean", str: "string", float: "float64"}
+        ibis_type = {
+            int: "int64",
+            bool: "boolean",
+            str: "string",
+            float: "float64",
+        }
         fields = [
             (k, ibis_type[type(next(x for x in v if x is not None))])
             for k, v in data.items()
