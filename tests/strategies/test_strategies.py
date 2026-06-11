@@ -4,6 +4,7 @@
 import datetime
 import operator
 import re
+import warnings
 from collections.abc import Callable
 from typing import Any, Optional, cast
 from unittest.mock import MagicMock
@@ -712,6 +713,31 @@ def test_multiindex_example() -> None:
     for _ in range(10):
         example = multiindex.example()
         multiindex(pd.DataFrame(index=example))
+
+
+def test_base_strategy_guards_do_not_emit_hypothesis_warning():
+    """Regression test for #2307: the base-strategy guards in
+    series_strategy, dataframe_strategy, and multiindex_strategy must use
+    ``is not None`` rather than truthiness, so Hypothesis does not emit
+    ``HypothesisWarning: bool(...) is always True``.
+    """
+    data_type = pa.Int()
+    chained = strategies.pandas_dtype_strategy(data_type)
+
+    cases = [
+        lambda: strategies.series_strategy(data_type, strategy=chained),
+        lambda: strategies.dataframe_strategy(data_type, strategy=chained),
+        lambda: strategies.multiindex_strategy(data_type, strategy=chained),
+    ]
+    for call in cases:
+        with catch_warnings(record=True) as recorded:
+            warnings.simplefilter("always")
+            with pytest.raises(pa.errors.BaseStrategyOnlyError):
+                call()
+        assert not any(
+            issubclass(w.category, hypothesis.errors.HypothesisWarning)
+            for w in recorded
+        ), [str(w.message) for w in recorded]
 
 
 @pytest.mark.parametrize("data_type", NULLABLE_DTYPES)
