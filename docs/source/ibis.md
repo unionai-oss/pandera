@@ -33,17 +33,19 @@ You can find the command to install the Ibis backend of your choice on the
 
 :::{note}
 *new in 0.32.0*; Pandera ships an optional
-{ref}`Narwhals-powered backend <narwhals-backends>` that runs validation
-against the native Ibis expression graph without materializing tables and
-shares its check implementations with the Polars backend. It is **opt-in**:
-install the `narwhals` extra and set
-`PANDERA_USE_NARWHALS_BACKEND=True` (or `pandera.config.CONFIG.use_narwhals_backend = True`)
-before importing `pandera.ibis`. By default Pandera uses the native Ibis
-backend. The public API shown on this page is unchanged either way.
+{ref}`Narwhals-powered backend <narwhals-backend>` that runs validation
+against the native Ibis expression graph without materializing tables.
+To opt into the Narwhals backend do the following:
 
 ```bash
-pip install 'pandera[ibis,narwhals]' 'ibis-framework[duckdb]'
+# install the narwhals extra
+pip install 'pandera[ibis,narwhals]'
+
+# set the environment variable
 export PANDERA_USE_NARWHALS_BACKEND=True
+
+# or set the config option in Python
+pandera.config.CONFIG.use_narwhals_backend = True
 ```
 :::
 
