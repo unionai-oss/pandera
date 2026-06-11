@@ -27,7 +27,9 @@ def test_coerce_true_dtype_mismatch_emits_schema_warning():
     schema = pa.DataFrameSchema({"a": pa.Column(int, coerce=True)})
     df = pl.DataFrame({"a": ["1", "2", "3"]})
 
-    with pytest.warns(SchemaWarning, match="coerce=True is not applied") as warning_info:
+    with pytest.warns(
+        SchemaWarning, match="coerce=True is not applied"
+    ) as warning_info:
         with pytest.raises((SchemaErrors, Exception)):
             schema.validate(df)
     assert len(warning_info) == 1

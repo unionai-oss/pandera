@@ -511,7 +511,7 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
 
         :param cols_to_remove: Columns to be removed from the
             ``DataFrameSchema``
-        :type cols_to_remove: List
+        :type cols_to_remove: list[str]
         :returns: a new :class:`~pandera.api.dataframe.container.DataFrameSchema` without the cols_to_remove
         :raises: :class:`~pandera.errors.SchemaInitError`: if column not in
             schema.

@@ -14,7 +14,9 @@ from pandera.pyspark import Column, DataFrameSchema
 from pandera.validation_depth import ValidationScope, validate_scope
 from tests.pyspark.conftest import spark_df, validate_collecting_errors
 
-pytestmark = pytest.mark.parametrize("spark_session", ["spark", "spark_connect"])
+pytestmark = pytest.mark.parametrize(
+    "spark_session", ["spark", "spark_connect"]
+)
 
 SKIP_NARWHALS = pytest.mark.skipif(
     CONFIG.use_narwhals_backend,
@@ -481,21 +483,15 @@ def test_pyspark_exact_width_dtype_narwhals(spark_session, request):
     float_df = spark_df(spark, data, float_spark_schema)
 
     # IntegerType column vs IntegerType schema: PASS
-    schema_int = DataFrameSchema(
-        columns={"value": Column(T.IntegerType())}
-    )
+    schema_int = DataFrameSchema(columns={"value": Column(T.IntegerType())})
     schema_int.validate(int_df, lazy=True)
 
     # FloatType column vs FloatType schema: PASS
-    schema_float = DataFrameSchema(
-        columns={"value": Column(T.FloatType())}
-    )
+    schema_float = DataFrameSchema(columns={"value": Column(T.FloatType())})
     schema_float.validate(float_df, lazy=True)
 
     # IntegerType column vs LongType schema: FAIL (WRONG_DATATYPE)
-    schema_long = DataFrameSchema(
-        columns={"value": Column(T.LongType())}
-    )
+    schema_long = DataFrameSchema(columns={"value": Column(T.LongType())})
     with pytest.raises(SchemaErrors) as exc_info:
         schema_long.validate(int_df, lazy=True)
     schema_errors = exc_info.value.schema_errors
@@ -505,9 +501,7 @@ def test_pyspark_exact_width_dtype_narwhals(spark_session, request):
     )
 
     # FloatType column vs DoubleType schema: FAIL (WRONG_DATATYPE)
-    schema_double = DataFrameSchema(
-        columns={"value": Column(T.DoubleType())}
-    )
+    schema_double = DataFrameSchema(columns={"value": Column(T.DoubleType())})
     with pytest.raises(SchemaErrors) as exc_info:
         schema_double.validate(float_df, lazy=True)
     schema_errors = exc_info.value.schema_errors

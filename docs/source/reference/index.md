@@ -28,6 +28,8 @@
      - Utility functions for reading/writing schemas
    * - :ref:`Data Synthesis Strategies <api-strategies>`
      - Module of functions for generating data from schemas.
+   * - :ref:`Narwhals Backend <api-narwhals>`
+     - Opt-in Narwhals-powered backend unifying the Polars, Ibis, and PySpark SQL validation paths.
    * - :ref:`Extensions <api-extensions>`
      - Utility functions for extending pandera functionality
    * - :ref:`Errors <api-errors>`
@@ -79,6 +81,7 @@ decorators
 schema_inference
 io
 strategies
+narwhals
 extensions
 errors
 xarray

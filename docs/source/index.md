@@ -92,22 +92,22 @@ settings. With `pandera`, you can:
 1. Define a schema once and use it to validate {ref}`different dataframe types <supported-dataframe-libraries>`
    including [pandas](http://pandas.pydata.org), [polars](https://docs.pola.rs/), [dask](https://dask.org/),
    [modin](https://modin.readthedocs.io/), [ibis](https://ibis-project.org/), and
-   [pyspark](https://spark.apache.org/docs/latest/api/python/index.html).
-2. {ref}`Check<checks>` the types and properties of columns in a
+   [pyspark](https://spark.apache.org/docs/latest/api/python/index.html). Use the {ref}`Narwhals-powered backend <narwhals-backend>` to keep validation fully lazy when possible.
+1. {ref}`Check<checks>` the types and properties of columns in a
    `pd.DataFrame` or values in a `pd.Series`.
-3. Perform more complex statistical validation like
+1. Perform more complex statistical validation like
    {ref}`hypothesis testing<hypothesis>`.
-4. {ref}`Parse<parsers>` data to standardize the preprocessing steps needed to
+1. {ref}`Parse<parsers>` data to standardize the preprocessing steps needed to
    produce valid data.
-5. Seamlessly integrate with existing data analysis/processing pipelines
+1. Seamlessly integrate with existing data analysis/processing pipelines
    via {ref}`function decorators<decorators>`.
-6. Define dataframe models with the {ref}`class-based API <dataframe-models>` with
+1. Define dataframe models with the {ref}`class-based API <dataframe-models>` with
    pydantic-style syntax and validate dataframes using the typing syntax.
-7. {ref}`Synthesize data <data-synthesis-strategies>` from schema objects for
+1. {ref}`Synthesize data <data-synthesis-strategies>` from schema objects for
    property-based testing with pandas data structures.
-8. {ref}`Lazily Validate <lazy-validation>` dataframes so that all validation
+1. {ref}`Lazily Validate <lazy-validation>` dataframes so that all validation
    rules are executed before raising an error.
-9. {ref}`Integrate <integrations>` with a rich ecosystem of python tools like
+1. {ref}`Integrate <integrations>` with a rich ecosystem of python tools like
    [pydantic](https://pydantic-docs.helpmanual.io/),
    [fastapi](https://fastapi.tiangolo.com/) and [mypy](http://mypy-lang.org/).
 
@@ -160,6 +160,7 @@ pip install 'pandera[geopandas]'    # validate geopandas geodataframes
 pip install 'pandera[polars]'       # validate polars dataframes
 pip install 'pandera[ibis]'         # validate ibis tables
 pip install 'pandera[xarray]'       # validate xarray data structures
+pip install 'pandera[narwhals]'     # use the Narwhals-powered backend
 ```
 :::
 
@@ -179,6 +180,7 @@ conda install -c conda-forge pandera-modin-dask   # validate modin dataframes wi
 conda install -c conda-forge pandera-geopandas    # validate geopandas geodataframes
 conda install -c conda-forge pandera-polars       # validate polars dataframes
 conda install -c conda-forge pandera-ibis         # validate ibis tables
+conda install -c conda-forge pandera-narwhals     # use the Narwhals-powered backend
 ```
 :::
 ::::
@@ -391,6 +393,25 @@ and `ibis`. The table below shows which of pandera's features are available for 
 :::{note}
 The `dask`, `modin`, `geopandas`, and `pyspark.pandas` support in pandera all
 leverage the pandas validation backend.
+:::
+
+:::{important}
+*new in 0.32.0*; Pandera ships an optional
+{ref}`Narwhals-powered backend <narwhals-backend>` that keeps validation
+fully lazy when possible. To opt into the Narwhals backend do the following:
+
+```bash
+# install the narwhals extra with the supported dataframe libraries
+pip install 'pandera[narwhals,pyspark]'    # for PySpark SQL
+pip install 'pandera[narwhals,polars]'    # for Polars
+pip install 'pandera[narwhals,ibis]'      # for Ibis
+
+# set the environment variable
+export PANDERA_USE_NARWHALS_BACKEND=True
+
+# or set the config option in Python
+pandera.config.CONFIG.use_narwhals_backend = True
+```
 :::
 
 
