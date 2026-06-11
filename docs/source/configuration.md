@@ -57,5 +57,5 @@ in the same process, call `register_polars_backends.cache_clear()`,
 If `PANDERA_USE_NARWHALS_BACKEND=True` but `narwhals` is not installed,
 schema construction raises an `ImportError` pointing you at
 `pandera[narwhals]`. See the
-{ref}`Narwhals-powered backends <narwhals-backends>` section of the
-supported libraries page for the full feature comparison.
+{ref}`Narwhals-powered backends <narwhals-backend>` page for the full
+feature comparison.
