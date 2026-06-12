@@ -50,6 +50,19 @@ PYPROJECT = nox.project.load_toml("pyproject.toml")
 OPTIONAL_DEPENDENCIES = [*PYPROJECT["project"]["optional-dependencies"]]
 
 
+def _install(session: Session, *args: str) -> None:
+    """Install packages, retrying transient installer failures on CI."""
+    attempts = 3 if CI_RUN else 1
+    for attempt in range(1, attempts + 1):
+        try:
+            session.install(*args)
+            return
+        except nox.command.CommandFailed:
+            if attempt == attempts:
+                raise
+            session.log(f"Install failed, retrying ({attempt + 1}/{attempts})")
+
+
 def _pyproject_requirements() -> dict[str, list[str]]:
     """Load requirements from setup.py."""
     return {
@@ -81,7 +94,7 @@ def _generate_pip_deps_from_conda(
 @nox.session(venv_backend="uv", python=PYTHON_VERSIONS)
 def requirements(session: Session) -> None:
     """Check that setup.py requirements match requirements.in"""
-    session.install("pyyaml")
+    _install(session, "pyyaml")
     try:
         _generate_pip_deps_from_conda(session, compare=True)
     except nox.command.CommandFailed as err:
@@ -260,8 +273,8 @@ def tests(
     requirements = _testing_requirements(
         session, extra, pandas, pydantic, polars
     )
-    session.install(*requirements)
-    session.install("-e", ".", "--config-settings", "editable_mode=compat")
+    _install(session, *requirements)
+    _install(session, "-e", ".", "--config-settings", "editable_mode=compat")
     session.run("uv", "pip", "list")
 
     env = {}
@@ -362,8 +375,8 @@ def tests_narwhals_backend(session: Session, extra: str) -> None:
                 f"{r}, < 2" if r.startswith("numpy") else r
                 for r in requirements
             ]
-    session.install(*list(set(requirements)))
-    session.install("-e", ".", "--config-settings", "editable_mode=compat")
+    _install(session, *list(set(requirements)))
+    _install(session, "-e", ".", "--config-settings", "editable_mode=compat")
     session.run("uv", "pip", "list")
 
     path = f"tests/{extra}/"
@@ -388,8 +401,9 @@ def docs(session: Session) -> None:
     """Build the documentation."""
     # this is needed until ray and geopandas are supported on python 3.10
 
-    session.install("-e", ".")
-    session.install(
+    _install(session, "-e", ".")
+    _install(
+        session,
         *_testing_requirements(
             session, extra="all", pandas=PANDAS_VERSIONS[0]
         ),
