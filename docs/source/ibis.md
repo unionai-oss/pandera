@@ -45,7 +45,8 @@ pip install 'pandera[ibis,narwhals]'
 export PANDERA_USE_NARWHALS_BACKEND=True
 
 # or set the config option in Python
-pandera.config.CONFIG.use_narwhals_backend = True
+import pandera
+pandera.set_config(use_narwhals_backend=True)
 ```
 :::
 

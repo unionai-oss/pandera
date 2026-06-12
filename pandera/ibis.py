@@ -1,7 +1,7 @@
 """A flexible and expressive Ibis validation library."""
 
 import pandera.backends.ibis
-from pandera import errors
+from pandera import config, errors
 from pandera.api.checks import Check
 from pandera.api.dataframe.model_components import (
     Field,
@@ -32,4 +32,5 @@ __all__ = [
     "infer_dataframe_schema",
     "infer_schema",
     "IbisData",
+    "config",
 ]
