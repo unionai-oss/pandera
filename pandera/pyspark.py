@@ -7,7 +7,7 @@ _patch_numpy2()
 import pandera.backends.base.builtin_checks
 import pandera.backends.base.builtin_hypotheses
 import pandera.backends.pyspark
-from pandera import errors, external_config
+from pandera import config, errors, external_config
 from pandera._version import __version__
 from pandera.accessors import pyspark_sql_accessor
 from pandera.api.checks import Check
@@ -106,4 +106,6 @@ __all__ = [
     "DataFrameSchema",
     # version
     "__version__",
+    # config
+    "config",
 ]

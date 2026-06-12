@@ -29,7 +29,7 @@ _patch_numpy2()
 import pandera.backends.base.builtin_checks
 import pandera.backends.base.builtin_hypotheses
 import pandera.backends.pandas
-from pandera import dtypes, engines, errors, external_config, typing
+from pandera import config, dtypes, engines, errors, external_config, typing
 from pandera.api import extensions
 from pandera.api.checks import Check
 from pandera.api.dataframe.model_components import (
@@ -171,6 +171,8 @@ __all__ = [
     "errors",
     # dtypes
     "dtypes",
+    # config
+    "config",
 ]
 
 

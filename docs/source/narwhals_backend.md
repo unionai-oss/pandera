@@ -29,9 +29,9 @@ You can also enable it programmatically by setting
 `pandera.polars` / `pandera.ibis` / `pandera.pyspark` schema is constructed:
 
 ```python
-import pandera.config
+import pandera
 
-pandera.config.CONFIG.use_narwhals_backend = True
+pandera.set_config(use_narwhals_backend=True)
 
 import pandera.polars as pa  # narwhals backend now registered
 ```

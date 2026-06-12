@@ -104,17 +104,58 @@ CONFIG = _config_from_env_vars()
 _CONTEXT_CONFIG = copy(CONFIG)
 
 
+def set_config(
+    validation_enabled: bool | None = None,
+    validation_depth: ValidationDepth | None = None,
+    cache_dataframe: bool | None = None,
+    keep_cached_dataframe: bool | None = None,
+    use_narwhals_backend: bool | None = None,
+    silenced_warnings: list[str] | None = None,
+) -> None:
+    """Set global configuration options.
+
+    Args:
+        validation_enabled: Enable or disable validation (default: None)
+        validation_depth: Validation depth level (SCHEMA_ONLY, DATA_ONLY, SCHEMA_AND_DATA)
+        cache_dataframe: Whether to cache dataframes during validation (default: None)
+        keep_cached_dataframe: Whether to keep cached dataframes after validation (default: None)
+        use_narwhals_backend: Enable Narwhals-powered backend for compatible backends (default: None)
+        silenced_warnings: List of warning names to silence (default: None)
+    """
+    if validation_enabled is not None:
+        CONFIG.validation_enabled = validation_enabled
+    if validation_depth is not None:
+        CONFIG.validation_depth = validation_depth
+    if cache_dataframe is not None:
+        CONFIG.cache_dataframe = cache_dataframe
+    if keep_cached_dataframe is not None:
+        CONFIG.keep_cached_dataframe = keep_cached_dataframe
+    if use_narwhals_backend is not None:
+        CONFIG.use_narwhals_backend = use_narwhals_backend
+    if silenced_warnings is not None:
+        CONFIG.silenced_warnings = silenced_warnings
+
+
 @contextmanager
 def config_context(
     validation_enabled: bool | None = None,
     validation_depth: ValidationDepth | None = None,
     cache_dataframe: bool | None = None,
     keep_cached_dataframe: bool | None = None,
+    use_narwhals_backend: bool | None = None,
+    silenced_warnings: list[str] | None = None,
 ):
     """Temporarily set pandera config options to custom settings."""
-    _outer_config_ctx = get_config_context(validation_depth_default=None)
+    # Save the current state of _CONTEXT_CONFIG
+    original_validation_enabled = _CONTEXT_CONFIG.validation_enabled
+    original_validation_depth = _CONTEXT_CONFIG.validation_depth
+    original_cache_dataframe = _CONTEXT_CONFIG.cache_dataframe
+    original_keep_cached_dataframe = _CONTEXT_CONFIG.keep_cached_dataframe
+    original_use_narwhals_backend = _CONTEXT_CONFIG.use_narwhals_backend
+    original_silenced_warnings = _CONTEXT_CONFIG.silenced_warnings.copy()
 
     try:
+        # Apply new values
         if validation_enabled is not None:
             _CONTEXT_CONFIG.validation_enabled = validation_enabled
         if validation_depth is not None:
@@ -123,10 +164,20 @@ def config_context(
             _CONTEXT_CONFIG.cache_dataframe = cache_dataframe
         if keep_cached_dataframe is not None:
             _CONTEXT_CONFIG.keep_cached_dataframe = keep_cached_dataframe
+        if use_narwhals_backend is not None:
+            _CONTEXT_CONFIG.use_narwhals_backend = use_narwhals_backend
+        if silenced_warnings is not None:
+            _CONTEXT_CONFIG.silenced_warnings = silenced_warnings.copy()
 
         yield
     finally:
-        reset_config_context(_outer_config_ctx)
+        # Restore original state of _CONTEXT_CONFIG
+        _CONTEXT_CONFIG.validation_enabled = original_validation_enabled
+        _CONTEXT_CONFIG.validation_depth = original_validation_depth
+        _CONTEXT_CONFIG.cache_dataframe = original_cache_dataframe
+        _CONTEXT_CONFIG.keep_cached_dataframe = original_keep_cached_dataframe
+        _CONTEXT_CONFIG.use_narwhals_backend = original_use_narwhals_backend
+        _CONTEXT_CONFIG.silenced_warnings = original_silenced_warnings
 
 
 def reset_config_context(conf: PanderaConfig | None = None):
