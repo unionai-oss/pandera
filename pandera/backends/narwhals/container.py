@@ -140,16 +140,31 @@ class DataFrameSchemaBackend(NarwhalsSchemaBackend):
             check_lf, schema, column_info
         )
 
-        # subsample on the Narwhals LazyFrame — no native round-trip before checks
+        # ``sample=`` requires an eager frame (``nw.DataFrame``) since
+        # neither ``nw.LazyFrame`` nor SQL-lazy backends can express a
+        # uniform sample as a pure expression. When the user passed an
+        # eager polars DataFrame originally, materialize the wrapper back
+        # to ``nw.DataFrame`` before subsampling so eager sampling works
+        # — mirrors the polars backend's `_to_frame_kind` round-trip.
+        # Eager polars detection uses the same duck-typing as
+        # `_to_frame_kind_nw` (no module-import-time polars dependency).
+        caller_was_eager_polars = not hasattr(
+            return_type, "collect"
+        ) and return_type.__module__.startswith("polars")
+        if sample is not None and caller_was_eager_polars:
+            subsample_input: nw.LazyFrame | nw.DataFrame = check_lf.collect()
+        else:
+            subsample_input = check_lf
         sample_obj = self.subsample(
-            check_lf,
+            subsample_input,
             head,
             tail,
             sample,
             random_state,
         )
-        # subsample() returns nw.LazyFrame (unchanged) or nw.DataFrame (if head/tail used);
-        # normalize to LazyFrame for uniform check execution
+        # subsample() returns nw.LazyFrame (unchanged) or nw.DataFrame (if
+        # sample/head/tail materialized it); normalize to LazyFrame for
+        # uniform check execution downstream.
         if isinstance(sample_obj, nw.DataFrame):
             sample_lf = sample_obj.lazy()
         else:
