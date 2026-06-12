@@ -157,6 +157,10 @@ def config_context(
             _CONTEXT_CONFIG.cache_dataframe = cache_dataframe
         if keep_cached_dataframe is not None:
             _CONTEXT_CONFIG.keep_cached_dataframe = keep_cached_dataframe
+        if use_narwhals_backend is not None:
+            _CONTEXT_CONFIG.use_narwhals_backend = use_narwhals_backend
+        if silenced_warnings is not None:
+            _CONTEXT_CONFIG.silenced_warnings = silenced_warnings.copy()
 
         yield
     finally:
