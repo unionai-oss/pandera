@@ -232,9 +232,6 @@ class Engine(
 
                 np_or_pd_dtype = data_type
             elif is_pyarrow_dtype(data_type):
-                # register pyarrow datatypes
-                import pandera.engines.pyarrow_engine
-
                 np_or_pd_dtype = data_type.pyarrow_dtype
             elif is_extension_dtype(data_type) and isinstance(data_type, type):
                 try:
