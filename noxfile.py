@@ -403,6 +403,7 @@ def docs(session: Session) -> None:
 
     _install(session, "-e", ".")
     _install(
+        session,
         *_testing_requirements(
             session, extra="all", pandas=PANDAS_VERSIONS[0]
         ),
