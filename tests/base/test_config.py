@@ -69,6 +69,7 @@ def test_config_context_honors_new_parameters():
 
 def test_config_context_isolation():
     """Test that configuration changes are properly isolated within context managers."""
+    # Store the original global config values
     original_validation_enabled = CONFIG.validation_enabled
     original_cache_dataframe = CONFIG.cache_dataframe
     original_use_narwhals = CONFIG.use_narwhals_backend
@@ -81,15 +82,16 @@ def test_config_context_isolation():
             use_narwhals_backend=True,
             silenced_warnings=["test_warning"],
         ):
+            # Check that context config is updated correctly
             assert _CONTEXT_CONFIG.validation_enabled is False
             assert _CONTEXT_CONFIG.cache_dataframe is True
             assert _CONTEXT_CONFIG.use_narwhals_backend is True
             assert "test_warning" in _CONTEXT_CONFIG.silenced_warnings
 
             # Global config should remain unchanged
-            assert CONFIG.validation_enabled is original_validation_enabled
-            assert CONFIG.cache_dataframe is original_cache_dataframe
-            assert CONFIG.use_narwhals_backend is original_use_narwhals
+            assert CONFIG.validation_enabled == original_validation_enabled
+            assert CONFIG.cache_dataframe == original_cache_dataframe
+            assert CONFIG.use_narwhals_backend == original_use_narwhals
             assert CONFIG.silenced_warnings == original_silenced_warnings
     finally:
         # Restore original values
@@ -125,20 +127,22 @@ def test_config_context_restores_global_config():
 
 def test_config_context_silenced_warnings():
     """Test that silenced_warnings in config_context properly updates and restores."""
-    # Store the original list reference to verify it's restored
+    # Store the original list reference and copy
     original_silenced_warnings_ref = CONFIG.silenced_warnings
     original_silenced_warnings_copy = CONFIG.silenced_warnings.copy()
 
     try:
         with config_context(silenced_warnings=["test_warning"]):
+            # Verify context config is updated correctly
             assert _CONTEXT_CONFIG.silenced_warnings == ["test_warning"]
-            # Verify we're not modifying the original list reference
+
+            # Global config should remain unchanged (we're modifying _CONTEXT_CONFIG, not CONFIG)
+            assert CONFIG.silenced_warnings == original_silenced_warnings_copy
             assert CONFIG.silenced_warnings is original_silenced_warnings_ref
 
-        # After context exit, global silenced_warnings should be restored to original copy
+        # After context exit, global silenced_warnings should be restored to original state
         assert CONFIG.silenced_warnings == original_silenced_warnings_copy
-        # And it should be the same list object as before
         assert CONFIG.silenced_warnings is original_silenced_warnings_ref
     finally:
-        # Restore to ensure test isolation
-        CONFIG.silenced_warnings = original_silenced_warnings_ref
+        # Restore to ensure test isolation (this shouldn't change anything)
+        pass
