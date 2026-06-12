@@ -1,6 +1,6 @@
 """A flexible and expressive polars validation library for Python."""
 
-from pandera import errors
+from pandera import config, errors
 from pandera.api.checks import Check
 from pandera.api.dataframe.model_components import (
     Field,
@@ -38,4 +38,5 @@ __all__ = [
     "infer_dataframe_schema",
     "infer_schema",
     "PolarsData",
+    "config",
 ]
