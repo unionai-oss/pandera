@@ -788,10 +788,10 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
         seen_cols: set[str] = set()
         duplicate_cols: set[str] = set()
         for x in new_schema.columns.keys():
-            name = rename_dict.get(x, x)
-            if name in seen_cols:
-                duplicate_cols.add(name)
-            seen_cols.add(name)
+            new_col = rename_dict.get(x, x)
+            if new_col in seen_cols:
+                duplicate_cols.add(new_col)
+            seen_cols.add(new_col)
 
         if duplicate_cols:
             raise errors.SchemaInitError(
