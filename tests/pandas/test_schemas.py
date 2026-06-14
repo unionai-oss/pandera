@@ -1370,10 +1370,17 @@ def test_rename_columns() -> None:
     with pytest.raises(errors.SchemaInitError):
         schema_original.rename_columns({"foo": "bar"})
 
-    # Test raising error if new column name is already in schema
+    # Test raising error if two columns are renamed to the same name
+    with pytest.raises(errors.SchemaInitError):
+        schema_original.rename_columns({"col1": "col_duplicate", "col2": "col_duplicate"})
     for rename_dict in [{"col1": "col2"}, {"col2": "col1"}]:
         with pytest.raises(errors.SchemaInitError):
             schema_original.rename_columns(rename_dict)
+    
+    # Test doesn't raise error if column maps to unique column name
+    schema_circular_renamed = schema_original.rename_columns({"col1": "col2","col2": "col1"})
+    assert schema_circular_renamed.columns["col2"].dtype == schema_original.columns["col1"].dtype
+    assert schema_circular_renamed.columns["col1"].dtype == schema_original.columns["col2"].dtype
 
     # Test doesn't raise error if column maps to itself
     rename_dict = {"col1": "col1", "col2": "col2_new_name"}
