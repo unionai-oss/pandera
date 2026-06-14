@@ -784,13 +784,18 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
         # remove any mapping to itself as this is a no-op
         rename_dict = {k: v for k, v in rename_dict.items() if k != v}
 
-        # ensure all new keys are not present in the current column names
-        already_in_columns: list[str] = [
-            x for x in rename_dict.values() if x in new_schema.columns.keys()
-        ]
-        if already_in_columns:
+        # ensure column names are unique after renaming
+        seen_cols: set[str] = set()
+        duplicate_cols: set[str] = set()
+        for x in new_schema.columns.keys():
+            name = rename_dict.get(x, x)
+            if name in seen_cols:
+                duplicate_cols.add(name)
+            seen_cols.add(name)
+
+        if duplicate_cols:
             raise errors.SchemaInitError(
-                f"Keys {already_in_columns} already found in schema columns!"
+                f"Columns {sorted(duplicate_cols)} would be duplicated after renaming!"
             )
 
         # We iterate over the existing columns dict and replace those keys
