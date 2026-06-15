@@ -247,11 +247,15 @@ class Check(BaseCheck):
 
             ``failure_cases``: subset of the check_object that failed.
         """
-        if self.name is not None and self.is_builtin_check(self.name):
-            # we need to reload the function here in case additional
-            # type signatures have been registered for a specific built-in
-            # check.
-            self._check_fn = self.get_builtin_check_fn(self.name)
+        # Reload the function here in case additional type signatures have been registered
+        # for a specific built-in check. Use the check function's own name (the dispatcher
+        # name) rather than ``self.name``, since the latter may have been overridden by a
+        # user-supplied ``name=`` and would otherwise skip this reload (see #2042).
+        builtin_check_name = getattr(self._check_fn, "__name__", None)
+        if builtin_check_name is not None and self.is_builtin_check(
+            builtin_check_name
+        ):
+            self._check_fn = self.get_builtin_check_fn(builtin_check_name)
         backend = self.get_backend(check_obj)(self)
         return backend(check_obj, column)
 
