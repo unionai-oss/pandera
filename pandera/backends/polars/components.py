@@ -88,18 +88,24 @@ class ColumnBackend(PolarsSchemaBackend):
                 self.get_regex_columns(schema, check_obj)
             )
             if not column_keys_to_check:
-                raise SchemaError(
-                    schema=schema,
-                    data=check_obj,
-                    message=(
-                        f"Column regex name='{schema.selector}' did not match "
-                        "any columns in the dataframe. Update the regex "
-                        "pattern so that it matches at least one column."
-                    ),
-                    failure_cases=get_lazyframe_column_names(check_obj),
-                    check=f"no_regex_column_match('{schema.selector}')",
-                    reason_code=SchemaErrorReason.INVALID_COLUMN_NAME,
-                )
+                if schema.required:
+                    raise SchemaError(
+                        schema=schema,
+                        data=check_obj,
+                        message=(
+                            f"Column regex name='{schema.selector}' did not "
+                            "match any columns in the dataframe. Update the "
+                            "regex pattern so that it matches at least one "
+                            "column."
+                        ),
+                        failure_cases=get_lazyframe_column_names(check_obj),
+                        check=f"no_regex_column_match('{schema.selector}')",
+                        reason_code=SchemaErrorReason.INVALID_COLUMN_NAME,
+                    )
+                # An optional (required=False) regex column that matches no
+                # columns has nothing to validate, so skip it instead of
+                # raising, mirroring the pandas backend (see issue #2364).
+                return check_obj
             _orig_name = schema.name
             _orig_regex = schema.regex
             for column_name in column_keys_to_check:

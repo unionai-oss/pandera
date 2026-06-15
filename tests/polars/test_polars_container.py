@@ -540,12 +540,43 @@ def test_regex_selector(
                 f"got: {error_text[:500]}"
             )
 
-        # dropping all columns should fail
+        # Dropping all columns is allowed here: these regex columns are
+        # optional (required=False), so a regex that matches no columns simply
+        # has nothing to validate, matching the pandas backend.
+        # See https://github.com/unionai-oss/pandera/issues/2364
         modified_data = ldf_for_regex_match.drop(
             get_lazyframe_column_names(ldf_for_regex_match)
         )
-        with pytest.raises((pa.errors.SchemaError, pa.errors.SchemaErrors)):
-            modified_data.pipe(schema.validate).collect()
+        modified_data.pipe(schema.validate).collect()  # should not raise
+
+
+def test_regex_optional_column_no_match():
+    """An optional regex column that matches no columns must not raise.
+
+    Regression test for https://github.com/unionai-oss/pandera/issues/2364:
+    pandera.polars raised on a ``regex=True, required=False`` column when no
+    column matched, while pandera.pandas tolerates it.
+    """
+    df = pl.DataFrame({"data": [1, 2, 3]})
+
+    # required=False + no match: nothing to validate, validation passes.
+    optional_schema = DataFrameSchema(
+        {
+            "data": Column(pl.Int64, required=False),
+            r"^bla_\d+$": Column(pl.Float64, regex=True, required=False),
+        }
+    )
+    assert optional_schema.validate(df).equals(df)
+
+    # required=True + no match: still an error.
+    required_schema = DataFrameSchema(
+        {r"^bla_\d+$": Column(pl.Float64, regex=True, required=True)}
+    )
+    with pytest.raises(
+        (pa.errors.SchemaError, pa.errors.SchemaErrors),
+        match="did not match any columns",
+    ):
+        required_schema.validate(df)
 
 
 def test_regex_column_name_in_error_message():
