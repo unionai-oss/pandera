@@ -14,45 +14,157 @@ active.
 
 ## Enabling the Narwhals backend
 
-To switch the Polars, Ibis, and PySpark SQL integrations onto the
-Narwhals-powered backend, install the `narwhals` extra and set the
-`PANDERA_USE_NARWHALS_BACKEND` environment variable to `True` before
-importing `pandera.polars`, `pandera.ibis`, or `pandera.pyspark`:
+The Narwhals backend is **opt-in**. Install the `narwhals` extra alongside the
+backend(s) you use:
 
 ```bash
-pip install 'pandera[narwhals]'
-export PANDERA_USE_NARWHALS_BACKEND=True
+pip install 'pandera[narwhals,polars]'   # Polars
+pip install 'pandera[narwhals,ibis]'     # Ibis
+pip install 'pandera[narwhals,pyspark]'  # PySpark SQL
 ```
 
-You can also enable it programmatically by setting
-{py:attr}`pandera.config.CONFIG.use_narwhals_backend` to `True` before any
-`pandera.polars` / `pandera.ibis` / `pandera.pyspark` schema is constructed:
+Then enable it using **either** of the following options.
+
+### Environment variable (process start)
+
+Set `PANDERA_USE_NARWHALS_BACKEND` to `True` before starting Python:
+
+```bash
+export PANDERA_USE_NARWHALS_BACKEND=True
+python your_script.py
+```
+
+This value is read when `pandera.config` is first imported.
+
+### Programmatic configuration
+
+Call {func}`~pandera.set_config` at any point — before or after importing
+`pandera.polars`, `pandera.ibis`, or `pandera.pyspark`:
 
 ```python
 import pandera
 
 pandera.set_config(use_narwhals_backend=True)
 
-import pandera.polars as pa  # narwhals backend now registered
+import pandera.polars as pa
 ```
 
-The backend choice is locked in the first time a Polars or Ibis schema is
-created (the registration step is `lru_cache`-d). To switch backends in the
-same process, clear the cache and re-register:
+See {ref}`Backend registration <narwhals-backend-registration>` for details on
+when backends are registered and how runtime toggling works.
+
+### Advanced: manual re-registration
+
+Prefer {func}`~pandera.set_config` to toggle backends within a process. For
+low-level control (for example, in tests), clear the registration caches and
+call the register functions with the desired flag:
 
 ```python
 from pandera.backends.polars.register import register_polars_backends
-from pandera.backends.ibis.register import register_ibis_backends
-from pandera.backends.pyspark.register import register_pyspark_backends
 
 register_polars_backends.cache_clear()
-register_ibis_backends.cache_clear()
-register_pyspark_backends.cache_clear()
+register_polars_backends(use_narwhals_backend=True)
 ```
+
+The same pattern applies to `register_ibis_backends` and
+`register_pyspark_backends`.
 
 If `PANDERA_USE_NARWHALS_BACKEND=True` but `narwhals` is not installed,
 schema construction raises an `ImportError` directing you to install
 `pandera[narwhals]`.
+
+(narwhals-backend-registration)=
+
+## Backend registration
+
+Pandera chooses between the native and Narwhals validation backends through a
+**registration** step that maps each schema class (for example,
+{py:class}`~pandera.api.polars.container.DataFrameSchema`) to a concrete
+backend implementation for a given frame type (for example, `polars.DataFrame`).
+
+Two behaviours govern how that mapping is established and updated at runtime.
+
+### Lazy registration
+
+Validation backends for Polars, Ibis, and PySpark SQL are registered
+**lazily** — not when you import a pandera backend module, but the first time
+a schema needs a backend. Concretely, registration runs when you:
+
+- construct a {py:class}`~pandera.api.polars.container.DataFrameSchema`,
+  {py:class}`~pandera.api.ibis.container.DataFrameSchema`, or
+  {py:class}`~pandera.api.pyspark.container.DataFrameSchema`, or
+- call `validate()` on a column or schema component that triggers backend
+  lookup.
+
+Until one of those happens, importing ``pandera.polars``, ``pandera.ibis``, or
+``pandera.pyspark`` has no effect on which validation backend is active:
+
+```python
+import pandera.polars as pa
+
+# CONFIG.use_narwhals_backend is read here — not at import time above
+pa.config.set_config(use_narwhals_backend=True)
+
+schema = pa.DataFrameSchema({"name": pa.Column(str)})  # narwhals backends registered
+schema.validate(df)
+```
+
+At registration time, pandera reads the current value of
+``CONFIG.use_narwhals_backend`` (from the environment variable or a prior
+{func}`~pandera.set_config` call) and registers either the native or Narwhals
+backend implementations. The register functions are cached with
+``@lru_cache``; the ``use_narwhals_backend`` flag is part of the cache key, so
+native and Narwhals registrations do not collide.
+
+:::{tip}
+Because registration is lazy, you can call {func}`~pandera.set_config` **after**
+importing a backend module and **before** constructing your first schema — no
+manual cache clearing is required in that case.
+:::
+
+### Runtime re-registration
+
+If you change ``use_narwhals_backend`` with {func}`~pandera.set_config` **after**
+backends have already been registered, pandera **re-registers** them
+automatically:
+
+1. The global ``CONFIG.use_narwhals_backend`` value is updated.
+2. Pandera detects which of the Polars / Ibis / PySpark register functions had
+   already run.
+3. Registration caches are cleared and existing registry entries for those
+   backends are removed.
+4. Only the backends that were previously registered are registered again, now
+   using the new flag value.
+5. A ``UserWarning`` is emitted to make the swap visible.
+
+```python
+import pandera.polars as pa
+
+schema = pa.DataFrameSchema({"age": pa.Column(int)})
+schema.validate(df)  # uses native Polars backend (default)
+
+pa.config.set_config(use_narwhals_backend=True)
+# UserWarning: Re-registered pandera backends after use_narwhals_backend changed.
+
+schema.validate(df)  # same schema object, now validated by the Narwhals backend
+```
+
+Existing schema objects **continue to work** after re-registration. Schemas
+do not store a backend reference at construction time; they look up the
+registered backend from the global registry on each ``validate()`` call.
+
+Re-registration applies only to backends that had already been registered in
+the current process. If you call ``set_config(use_narwhals_backend=True)``
+before constructing any Polars/Ibis/PySpark schema, no re-registration occurs
+— the first lazy registration picks up the updated config silently.
+
+:::{note}
+Runtime re-registration is triggered by {func}`~pandera.set_config`, which
+updates the **global** ``CONFIG``. The ``config_context`` manager overrides
+settings for validation behaviour (for example, ``validation_depth``) but does
+**not** change which validation backend is registered. Use
+{func}`~pandera.set_config` (or the environment variable) to switch between
+native and Narwhals backends.
+:::
 
 ## What it is
 
@@ -102,7 +214,7 @@ backend:
   ``coerce=True`` at the `Config` level (row-wise `auto_coerce` dtype) is
   handled and does not warn.
   If you rely on `coerce=True` to convert column dtypes, use the native PySpark
-  backend (`PANDERA_USE_NARWHALS_BACKEND=False`).
+  backend (see {ref}`Opting out <narwhals-opting-out>`).
 - **Custom checks using `PysparkDataframeColumnObject` are incompatible.**
   Custom checks registered via `@register_check_method` that expect a
   `pyspark_obj: PysparkDataframeColumnObject` argument will not work under the
@@ -121,19 +233,29 @@ backend:
   `lazy=False`). This differs from the native PySpark backend, which attaches
   errors to `dataframe.pandera.errors`. If you depend on the
   `dataframe.pandera.errors` accessor, use the native PySpark backend
-  (`PANDERA_USE_NARWHALS_BACKEND=False`).
+  (see {ref}`Opting out <narwhals-opting-out>`).
+
+(narwhals-opting-out)=
 
 ## Opting out
 
 The Narwhals backend is **off by default**, so no action is needed to
-continue using the native Polars and Ibis backends. If you previously
-opted in and want to switch back, unset the environment variable (or set
-it to `False`):
+continue using the native Polars, Ibis, and PySpark backends. If you
+previously opted in and want to switch back, unset the environment variable
+(or set it to `False`):
 
 ```bash
 unset PANDERA_USE_NARWHALS_BACKEND
 # or
 export PANDERA_USE_NARWHALS_BACKEND=False
+```
+
+Or call {func}`~pandera.set_config` programmatically:
+
+```python
+import pandera
+
+pandera.set_config(use_narwhals_backend=False)
 ```
 
 The native paths remain fully supported alongside the Narwhals path.

@@ -63,7 +63,7 @@ def test_pyspark_narwhals_activated_when_opted_in(monkeypatch, request):
 
     monkeypatch.setattr(CONFIG, "use_narwhals_backend", True)
     register_pyspark_backends.cache_clear()
-    register_pyspark_backends()
+    register_pyspark_backends(use_narwhals_backend=True)
 
     # Assert all three backends are registered with their narwhals implementations
     backend = PySparkDataFrameSchema.get_backend(
@@ -105,7 +105,7 @@ def test_pyspark_native_unchanged_when_flag_off(monkeypatch, request):
 
     monkeypatch.setattr(CONFIG, "use_narwhals_backend", False)
     register_pyspark_backends.cache_clear()
-    register_pyspark_backends()
+    register_pyspark_backends(use_narwhals_backend=False)
     backend = PySparkDataFrameSchema.get_backend(
         check_type=pyspark_sql.DataFrame
     )
@@ -150,7 +150,7 @@ def test_pyspark_connect_narwhals_activated_when_opted_in(
 
     monkeypatch.setattr(CONFIG, "use_narwhals_backend", True)
     register_pyspark_backends.cache_clear()
-    register_pyspark_backends()
+    register_pyspark_backends(use_narwhals_backend=True)
     backend = PySparkDataFrameSchema.get_backend(
         check_type=pyspark_connect.DataFrame
     )
@@ -160,6 +160,7 @@ def test_pyspark_connect_narwhals_activated_when_opted_in(
 def test_pyspark_register_is_idempotent():
     """Calling register_pyspark_backends() twice does not raise or corrupt state."""
     from pandera.backends.pyspark.register import register_pyspark_backends
+    from pandera.config import CONFIG
 
-    register_pyspark_backends()
-    register_pyspark_backends()
+    register_pyspark_backends(use_narwhals_backend=CONFIG.use_narwhals_backend)
+    register_pyspark_backends(use_narwhals_backend=CONFIG.use_narwhals_backend)

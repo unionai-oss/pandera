@@ -35,19 +35,22 @@ You can find the command to install the Ibis backend of your choice on the
 *new in 0.32.0*; Pandera ships an optional
 {ref}`Narwhals-powered backend <narwhals-backend>` that runs validation
 against the native Ibis expression graph without materializing tables.
-To opt into the Narwhals backend do the following:
+Install the extra and enable it with either of the following:
 
 ```bash
-# install the narwhals extra
 pip install 'pandera[ibis,narwhals]'
-
-# set the environment variable
 export PANDERA_USE_NARWHALS_BACKEND=True
-
-# or set the config option in Python
-import pandera
-pandera.set_config(use_narwhals_backend=True)
 ```
+
+```python
+import pandera.ibis as pa
+
+pa.config.set_config(use_narwhals_backend=True)
+```
+
+You can call {func}`~pandera.set_config` before or after importing
+``pandera.ibis``. See {ref}`Backend registration <narwhals-backend-registration>`
+for details on lazy registration and runtime re-registration.
 :::
 
 Then, you can start validating Ibis tables using Pandera schemas. In the example

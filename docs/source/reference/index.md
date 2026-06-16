@@ -54,6 +54,8 @@
      - Get the current configuration context
    * - :func:`~pandera.config.get_config_global`
      - Get the global configuration
+   * - :func:`~pandera.config.set_config`
+     - Set global configuration options (also available as :func:`~pandera.set_config`)
    * - :func:`~pandera.config.reset_config_context`
      - Reset context configuration to the global default
 ```

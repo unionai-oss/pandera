@@ -17,7 +17,7 @@ from pandera.constants import CHECK_OUTPUT_KEY
 
 @pytest.fixture(autouse=True, scope="module")
 def _register_ibis_backends():
-    register_ibis_backends()
+    register_ibis_backends(use_narwhals_backend=CONFIG.use_narwhals_backend)
 
 
 @pytest.fixture

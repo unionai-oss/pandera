@@ -93,10 +93,17 @@ class BaseSchema(ABC):
         raise NotImplementedError
 
     @classmethod
-    def register_backend(cls, type_: type, backend: type[BaseSchemaBackend]):
+    def register_backend(
+        cls,
+        type_: type,
+        backend: type[BaseSchemaBackend],
+        *,
+        force: bool = False,
+    ):
         """Register a schema backend for this class."""
-        if (cls, type_) not in cls.BACKEND_REGISTRY:
-            cls.BACKEND_REGISTRY[(cls, type_)] = backend
+        key = (cls, type_)
+        if force or key not in cls.BACKEND_REGISTRY:
+            cls.BACKEND_REGISTRY[key] = backend
 
     @classmethod
     def get_backend(

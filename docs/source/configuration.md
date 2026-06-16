@@ -6,8 +6,9 @@
 
 `pandera` provides a global config `~pandera.config.PanderaConfig`. The
 global configuration is available through `pandera.config.CONFIG`. It can also
-be modified with a configuration context `~pandera.config.config_context` and
-fetched with `~pandera.config.get_config_context` in custom code.
+be modified with {func}`~pandera.set_config`, a configuration context
+`~pandera.config.config_context`, and fetched with
+`~pandera.config.get_config_context` in custom code.
 
 This configuration can also be set using environment variables.
 
@@ -31,31 +32,52 @@ This can be achieved by setting the environment variable
 `PANDERA_VALIDATION_ENABLED=False`. When validation is disabled, any
 `validate` call not actually run any validation checks.
 
-## Narwhals-powered Polars / Ibis backend
+## Narwhals-powered backend
 
 *New in version 0.32.0*
 
 Pandera ships an optional
 [Narwhals](https://narwhals-dev.github.io/narwhals/)-powered backend that
-unifies the Polars and Ibis validation paths. It is **opt-in**; by
-default the native Polars and Ibis backends are used. To switch the
-`pandera.polars` and `pandera.ibis` integrations onto the Narwhals backend,
-install the `narwhals` extra and set:
+unifies the Polars, Ibis, and PySpark SQL validation paths. It is **opt-in**; by
+default the native backends are used.
+
+Install the `narwhals` extra and enable the backend with either:
 
 ```bash
 export PANDERA_USE_NARWHALS_BACKEND=True
 ```
 
-Equivalently, set `pandera.config.CONFIG.use_narwhals_backend = True`
-before any Polars or Ibis schema is constructed. The backend choice is
-locked in at first schema construction (the registration step is
-`lru_cache`-d), so toggle this setting at process start. To switch backends
-in the same process, call `register_polars_backends.cache_clear()`,
-`register_ibis_backends.cache_clear()`, and/or
-`register_pyspark_backends.cache_clear()` before re-registering.
+or:
+
+```python
+import pandera
+
+pandera.set_config(use_narwhals_backend=True)
+```
+
+You can call {func}`~pandera.set_config` before or after importing
+``pandera.polars``, ``pandera.ibis``, or ``pandera.pyspark``.
+
+### Lazy registration
+
+Validation backends are **not** registered at import time. Registration happens
+lazily the first time a schema is constructed or ``validate()`` is called.
+Until then, changing ``CONFIG.use_narwhals_backend`` (via the environment
+variable or {func}`~pandera.set_config`) takes effect on the first registration
+with no extra steps.
+
+### Runtime re-registration
+
+If {func}`~pandera.set_config` changes ``use_narwhals_backend`` after backends
+have already been registered, pandera automatically clears the registration
+caches, swaps the backend classes in the registry, and emits a ``UserWarning``.
+Existing schema objects keep working — backend lookup happens on each
+``validate()`` call.
+
+See {ref}`Backend registration <narwhals-backend-registration>` for worked
+examples and the {ref}`Narwhals backend guide <narwhals-backend>` for
+installation commands, feature comparison, and PySpark-specific differences.
 
 If `PANDERA_USE_NARWHALS_BACKEND=True` but `narwhals` is not installed,
 schema construction raises an `ImportError` pointing you at
-`pandera[narwhals]`. See the
-{ref}`Narwhals-powered backends <narwhals-backend>` page for the full
-feature comparison.
+`pandera[narwhals]`.

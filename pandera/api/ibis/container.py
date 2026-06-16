@@ -22,7 +22,11 @@ class DataFrameSchema(_DataFrameSchema[ibis.Table]):
 
     @staticmethod
     def register_default_backends(check_obj_cls: type):
-        register_ibis_backends()
+        from pandera.config import CONFIG
+
+        register_ibis_backends(
+            use_narwhals_backend=CONFIG.use_narwhals_backend
+        )
 
     def validate(
         self,

@@ -72,7 +72,11 @@ class ColumnSchema(BaseSchema):
 
     @staticmethod
     def register_default_backends(check_obj_cls: type):
-        register_pyspark_backends()
+        from pandera.config import CONFIG
+
+        register_pyspark_backends(
+            use_narwhals_backend=CONFIG.use_narwhals_backend
+        )
 
     @property
     def dtype(self) -> DataType:

@@ -11,9 +11,11 @@ try:
     from pandera import dtypes, typing
     from pandera._pandas_deprecated import *
     from pandera._pandas_deprecated import __all__ as _pandas_deprecated_all
+    from pandera.config import set_config
 
     __all__ = [
         "__version__",
+        "set_config",
         *_pandas_deprecated_all,
     ]
 
@@ -40,9 +42,11 @@ except (ImportError, ModuleNotFoundError) as err:
         dataframe_parser,
         parser,
     )
+    from pandera.config import set_config
 
     __all__ = [
         "__version__",
+        "set_config",
         "Check",
         "Field",
         "check",

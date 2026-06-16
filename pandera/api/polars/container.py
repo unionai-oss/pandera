@@ -47,7 +47,11 @@ class DataFrameSchema(_DataFrameSchema[PolarsCheckObjects]):
     def register_default_backends(
         check_obj_cls: type,
     ):
-        register_polars_backends()
+        from pandera.config import CONFIG
+
+        register_polars_backends(
+            use_narwhals_backend=CONFIG.use_narwhals_backend
+        )
 
     def validate(
         self,

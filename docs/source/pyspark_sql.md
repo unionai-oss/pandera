@@ -29,19 +29,22 @@ pip install 'pandera[pyspark]'
 :::{note}
 *new in 0.32.0*; Pandera ships an optional
 {ref}`Narwhals-powered backend <narwhals-backend>` that keeps validation
-fully lazy. To opt into the Narwhals backend do the following:
+fully lazy. Install the extra and enable it with either of the following:
 
 ```bash
-# install the narwhals extra
 pip install 'pandera[pyspark,narwhals]'
-
-# set the environment variable
 export PANDERA_USE_NARWHALS_BACKEND=True
-
-# or set the config option in Python
-import pandera
-pandera.set_config(use_narwhals_backend=True)
 ```
+
+```python
+import pandera.pyspark as pa
+
+pa.config.set_config(use_narwhals_backend=True)
+```
+
+You can call {func}`~pandera.set_config` before or after importing
+``pandera.pyspark``. See {ref}`Backend registration <narwhals-backend-registration>`
+for details on lazy registration and runtime re-registration.
 
 Because the Narwhals backend for PySpark shares its check implementations with
 the Polars and Ibis backends, several behaviours differ from the native PySpark
