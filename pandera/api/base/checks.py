@@ -160,8 +160,12 @@ class BaseCheck(metaclass=MetaCheck):
     @classmethod
     def get_backend(cls, check_obj: Any) -> type[BaseCheckBackend]:
         """Get the backend associated with the type of ``check_obj`` ."""
+        from pandera.backends.register_checks import (
+            register_default_check_backends,
+        )
 
         check_obj_cls = type(check_obj)
+        register_default_check_backends(check_obj_cls)
         classes = inspect.getmro(check_obj_cls)
         for _class in classes:
             try:
