@@ -617,6 +617,39 @@ def test_regex_column_name_in_error_message():
         )
 
 
+@pytest.mark.xfail(
+    condition=CONFIG.use_narwhals_backend,
+    reason="narwhals backend does not coerce regex columns",
+    strict=True,
+)
+def test_regex_coerce_column_name_in_error_message():
+    """Regex column coercion errors must report the actual column name,
+    not the pattern (#2363, mirroring the check path fixed in #2221)."""
+    dataframe = pl.DataFrame(
+        {
+            "var_1": [0.4, 0.3, 0.9],
+            "var_2": ["0.5", "0.7", "0.8"],
+            "var_3": ["1.2", "bla", "0.2"],  # 'bla' cannot coerce to float
+        }
+    )
+    schema = pa.DataFrameSchema(
+        {
+            "var_.+": pa.Column(float, regex=True, coerce=True),
+        }
+    )
+    with pytest.raises(
+        (pa.errors.SchemaError, pa.errors.SchemaErrors)
+    ) as exc_info:
+        schema.validate(dataframe)
+    error_text = str(exc_info.value)
+    assert "var_3" in error_text, (
+        f"Expected error to name actual column 'var_3', got: {error_text}"
+    )
+    assert "^var_.+$" not in error_text, (
+        f"Error should not report the regex pattern, got: {error_text}"
+    )
+
+
 def test_regex_coerce(
     ldf_for_regex_match: pl.LazyFrame,
     ldf_schema_with_regex_name: DataFrameSchema,
