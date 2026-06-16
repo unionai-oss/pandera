@@ -127,14 +127,25 @@ def clear_narwhals_compatible_backend_registry() -> None:
 
 
 def _narwhals_compatible_registration_state() -> dict[str, bool]:
-    from pandera.backends.ibis.register import register_ibis_backends
-    from pandera.backends.polars.register import register_polars_backends
-
     state = {
-        "polars": register_polars_backends.cache_info().currsize > 0,
-        "ibis": register_ibis_backends.cache_info().currsize > 0,
+        "polars": False,
+        "ibis": False,
         "pyspark": False,
     }
+
+    try:
+        from pandera.backends.polars.register import register_polars_backends
+
+        state["polars"] = register_polars_backends.cache_info().currsize > 0
+    except ImportError:
+        pass
+
+    try:
+        from pandera.backends.ibis.register import register_ibis_backends
+
+        state["ibis"] = register_ibis_backends.cache_info().currsize > 0
+    except ImportError:
+        pass
 
     try:
         from pandera.backends.pyspark.register import register_pyspark_backends
@@ -147,13 +158,21 @@ def _narwhals_compatible_registration_state() -> dict[str, bool]:
 
 
 def _get_register_functions() -> dict[str, Any]:
-    from pandera.backends.ibis.register import register_ibis_backends
-    from pandera.backends.polars.register import register_polars_backends
+    register_functions: dict[str, Any] = {}
 
-    register_functions: dict[str, Any] = {
-        "polars": register_polars_backends,
-        "ibis": register_ibis_backends,
-    }
+    try:
+        from pandera.backends.polars.register import register_polars_backends
+
+        register_functions["polars"] = register_polars_backends
+    except ImportError:
+        pass
+
+    try:
+        from pandera.backends.ibis.register import register_ibis_backends
+
+        register_functions["ibis"] = register_ibis_backends
+    except ImportError:
+        pass
 
     try:
         from pandera.backends.pyspark.register import register_pyspark_backends
