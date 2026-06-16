@@ -207,3 +207,43 @@ class TestBuiltinCheckSignatures:
 
         result = str_length(nw.col("x"), min_value=1, max_value=10)
         assert isinstance(result, nw.Expr)
+
+
+class TestBuiltinCheckCustomName:
+    """Regression tests for #2042: a built-in check given a custom ``name`` must still execute."""
+
+    def test_builtin_check_with_custom_name_validates(self):
+        import pandas as pd
+
+        import pandera.pandas as pa
+
+        schema = pa.DataFrameSchema(
+            columns={
+                "test": pa.Column(
+                    float, checks=[pa.Check.gt(0, name="test_check")]
+                ),
+            }
+        )
+
+        # Previously raised SchemaError wrapping KeyError(<class 'pandas.Series'>)
+        validated = schema.validate(pd.DataFrame({"test": [1.0, 2.0]}))
+        assert validated.shape == (2, 1)
+
+    def test_builtin_check_with_custom_name_still_detects_failures(self):
+        import pandas as pd
+
+        import pandera.pandas as pa
+
+        schema = pa.DataFrameSchema(
+            columns={
+                "test": pa.Column(
+                    float, checks=[pa.Check.gt(0, name="test_check")]
+                ),
+            }
+        )
+
+        with pytest.raises(pa.errors.SchemaError) as exc_info:
+            schema.validate(pd.DataFrame({"test": [-1.0]}))
+
+        # The failure must be a real check failure, not a KeyError from check dispatch
+        assert "KeyError" not in str(exc_info.value)
