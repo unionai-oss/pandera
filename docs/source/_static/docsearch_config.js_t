@@ -1,0 +1,13 @@
+docsearch({
+  container: "{{ docsearch_container|default('#docsearch') }}",
+  appId: "{{ docsearch_app_id }}",
+  apiKey: "{{ docsearch_api_key }}",
+  indexName: "{{ docsearch_index_name }}",
+  {%- if docsearch_search_parameters %}
+  searchParameters: {
+    {% for key, value in docsearch_search_parameters.items() %}
+      {{ key }}: {% if value is string %}"{{ value }}"{% else %}{{ value }}{% endif %}{% if not loop.last %},{% endif %}
+    {% endfor %}
+  }
+  {%- endif %}
+});

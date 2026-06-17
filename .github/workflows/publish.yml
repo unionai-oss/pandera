@@ -1,0 +1,46 @@
+name: Publish Python Package
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  build_wheel_and_sdist:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: "0"
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install build twine
+      - name: Build wheel and sdist
+        run: python -m build
+        shell: bash
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pandera-artifact
+          path: ./dist
+
+  pypi-publish:
+    name: Upload release to PyPI
+    needs: [build_wheel_and_sdist]
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write # IMPORTANT: this permission is mandatory for trusted publishing
+    environment: release
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: pandera-artifact
+          path: dist
+      - run: ls dist
+      - name: Publish package distributions to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          attestations: false

@@ -1,0 +1,452 @@
+# /// script
+# dependencies = ["nox"]
+# ///
+
+"""Nox sessions."""
+
+# isort: skip_file
+import os
+import shutil
+import sys
+
+import nox
+from nox import Session
+
+
+nox.options.sessions = (
+    "requirements",
+    "tests",
+    "docs",
+)
+
+PYTHON_VERSIONS = ["3.10", "3.11", "3.12", "3.13", "3.14"]
+PANDAS_VERSIONS = ["2.3.3", "3.0.0"]
+PYDANTIC_VERSIONS = ["1.10.11", "2.12.3"]
+POLARS_VERSIONS = ["0.20.0", "1.33.1"]
+PACKAGE = "pandera"
+SOURCE_PATHS = PACKAGE, "tests", "noxfile.py"
+REQUIREMENT_PATH = "requirements.txt"
+EXTRAS_REQUIRING_PANDAS = frozenset(
+    [
+        "io",
+        "mypy",
+        "fastapi",
+        "hypotheses",
+        "strategies",
+        "xarray",
+    ]
+)
+
+CI_RUN = os.environ.get("CI") == "true"
+if CI_RUN:
+    print("Running on CI")
+else:
+    print("Running locally")
+
+LINE_LENGTH = 79
+
+
+PYPROJECT = nox.project.load_toml("pyproject.toml")
+OPTIONAL_DEPENDENCIES = [*PYPROJECT["project"]["optional-dependencies"]]
+
+
+def _install(session: Session, *args: str) -> None:
+    """Install packages, retrying transient installer failures on CI."""
+    attempts = 3 if CI_RUN else 1
+    for attempt in range(1, attempts + 1):
+        try:
+            session.install(*args)
+            return
+        except nox.command.CommandFailed:
+            if attempt == attempts:
+                raise
+            session.log(f"Install failed, retrying ({attempt + 1}/{attempts})")
+
+
+def _pyproject_requirements() -> dict[str, list[str]]:
+    """Load requirements from setup.py."""
+    return {
+        "core": PYPROJECT["project"]["dependencies"],
+        **PYPROJECT["project"]["optional-dependencies"],
+    }
+
+
+def _dev_requirements() -> list[str]:
+    """Load requirements from file."""
+    with open(REQUIREMENT_PATH, encoding="utf-8") as req_file:
+        reqs = []
+        for req in req_file.readlines():
+            if req.startswith("#"):
+                continue
+            reqs.append(req.strip())
+        return reqs
+
+
+def _generate_pip_deps_from_conda(
+    session: Session, compare: bool = False
+) -> None:
+    args = ["scripts/generate_pip_deps_from_conda.py"]
+    if compare:
+        args.append("--compare")
+    session.run("python", *args)
+
+
+@nox.session(venv_backend="uv", python=PYTHON_VERSIONS)
+def requirements(session: Session) -> None:
+    """Check that setup.py requirements match requirements.in"""
+    _install(session, "pyyaml")
+    try:
+        _generate_pip_deps_from_conda(session, compare=True)
+    except nox.command.CommandFailed as err:
+        _generate_pip_deps_from_conda(session)
+        print(f"{REQUIREMENT_PATH} has been re-generated ✨ 🍰 ✨")
+        raise err
+
+    ignored_pkgs = {"black", "pandas", "pandas-stubs", "modin"}
+    mismatched = []
+
+    # only compare package versions, not python version markers.
+    str_dev_reqs = _dev_requirements()
+    requirements = _pyproject_requirements()
+    for extra, reqs in requirements.items():
+        for req in reqs:
+            req = req.split(";")[0].strip()
+            if req not in ignored_pkgs and req not in str_dev_reqs:
+                mismatched.append(f"{extra}: {req}")
+
+    if mismatched:
+        print(
+            f"Packages {mismatched} defined in pyproject.toml "
+            f"do not match {REQUIREMENT_PATH}."
+        )
+        print(
+            "Modify environment.yml, "
+            f"then run 'nox -s requirements' to generate {REQUIREMENT_PATH}"
+        )
+        sys.exit(1)
+
+
+def _testing_requirements(
+    session: Session,
+    extra: str | None = None,
+    pandas: str | None = None,
+    pydantic: str | None = None,
+    polars: str | None = None,
+) -> list[str]:
+    # pandas 3.0.0 requires Python >= 3.11, so use 2.3.3 for Python 3.10
+    if pandas is None:
+        if session.python == "3.10":
+            pandas = PANDAS_VERSIONS[0]  # Use 2.3.3 for Python 3.10
+        else:
+            pandas = PANDAS_VERSIONS[-1]  # Use 3.0.0 for Python >= 3.11
+    pydantic = pydantic or PYDANTIC_VERSIONS[-1]
+    polars = polars or POLARS_VERSIONS[-1]
+
+    _requirements = PYPROJECT["project"]["dependencies"]
+    if extra is not None:
+        _requirements += PYPROJECT["project"]["optional-dependencies"][extra]
+    # narwhals backend tests run with polars+ibis co-installed (TEST-03).
+    if extra == "narwhals":
+        _requirements += PYPROJECT["project"]["optional-dependencies"].get(
+            "polars", []
+        )
+        _requirements += PYPROJECT["project"]["optional-dependencies"].get(
+            "ibis", []
+        )
+
+    # some of the extras are only supported with the pandas extra
+    if extra in EXTRAS_REQUIRING_PANDAS:
+        _requirements.extend(
+            PYPROJECT["project"]["optional-dependencies"]["pandas"]
+        )
+
+    _requirements = list(set(_requirements))
+
+    _numpy: str | None = None
+    if extra in ("io", "pyspark") and session.python in ("3.10",):
+        # constrain numpy < 2 for older versions of pyspark on py3.10
+        # pandas 3.0.0 requires numpy >= 2.3.3, so don't apply this constraint
+        _numpy = "< 2"
+
+    _updated_requirements = []
+    _has_pandas = False
+    for req in _requirements:
+        req = req.strip()
+        if req == "pandas" or req.startswith("pandas "):
+            req = f"pandas=={pandas}"
+            _has_pandas = True
+        if req == "pydantic" or req.startswith("pydantic "):
+            req = f"pydantic=={pydantic}"
+        if req.startswith("numpy") and _numpy is not None:
+            print("adding numpy constraint <2")
+            req = f"{req}, {_numpy}"
+        if req == "pyarrow" or req.startswith("pyarrow "):
+            req = "pyarrow >= 13"
+        if req == "ibis-framework" or req.startswith("ibis-framework "):
+            req = "ibis-framework[duckdb] >= 11.0.0"
+        if req == "polars":
+            req = f"polars=={polars}"
+
+        # for some reason uv will try to install an old version of dask,
+        # have to specifically pin dask[dataframe] to a higher version
+        if (
+            req == "dask[dataframe]" or req.startswith("dask[dataframe] ")
+        ) and session.python in ("3.10", "3.11"):
+            req = "dask[dataframe]>=2023.9.2"
+
+        if req not in _updated_requirements:
+            _updated_requirements.append(req)
+
+    # Ensure pandas is explicitly constrained if it's not already in requirements
+    # This prevents uv from resolving to the latest version when installing -e .
+    if not _has_pandas and pandas is not None:
+        _updated_requirements.append(f"pandas=={pandas}")
+
+    return [
+        *_updated_requirements,
+        *nox.project.dependency_groups(PYPROJECT, *["dev", "testing"]),
+    ]
+
+
+# the base module with no extras
+EXTRA_PYTHON_PYDANTIC: list[tuple[str | None, ...]] = [
+    (None, None, None, None)
+]
+DATAFRAME_EXTRAS = {
+    "pyspark",
+    "modin-dask",
+    "modin-ray",
+    "polars",
+    "dask",
+    "ibis",
+    "xarray",
+    "narwhals",  # TEST-03: narwhals backend runs with polars+ibis co-installed
+}
+for extra in OPTIONAL_DEPENDENCIES:
+    if extra == "pandas":
+        # Only test upper and lower bounds of pandas and pydantic with the
+        # pandas extra. The other dataframe library intregations assume either
+        # no pandas version, latest supported pandas version, and latest
+        # pydantic version. None of the other dataframe libraries use the
+        # pydantic integration.
+        EXTRA_PYTHON_PYDANTIC.extend(
+            [
+                (extra, pandas, pydantic, None)
+                for pandas in PANDAS_VERSIONS
+                for pydantic in PYDANTIC_VERSIONS
+            ]
+        )
+    elif extra == "polars":
+        EXTRA_PYTHON_PYDANTIC.extend(
+            [
+                (extra, pandas, PYDANTIC_VERSIONS[-1], polars)
+                for polars in POLARS_VERSIONS
+                for pandas in PANDAS_VERSIONS[:-1]
+            ]
+        )
+    elif extra == "narwhals":
+        # Use pandas=None so the session ID matches CI invocation and
+        # _testing_requirements auto-selects the version-appropriate pandas.
+        EXTRA_PYTHON_PYDANTIC.append((extra, None, None, None))
+    elif extra in DATAFRAME_EXTRAS:
+        EXTRA_PYTHON_PYDANTIC.append((extra, PANDAS_VERSIONS[0], None, None))
+    else:
+        EXTRA_PYTHON_PYDANTIC.extend(
+            [
+                (extra, pandas, PYDANTIC_VERSIONS[-1], None)
+                for pandas in PANDAS_VERSIONS
+            ]
+        )
+
+
+@nox.session(venv_backend="uv", python=PYTHON_VERSIONS)
+@nox.parametrize("extra, pandas, pydantic, polars", EXTRA_PYTHON_PYDANTIC)
+def tests(
+    session: Session,
+    extra: str | None = None,
+    pandas: str | None = None,
+    pydantic: str | None = None,
+    polars: str | None = None,
+) -> None:
+    """Run the test suite."""
+
+    requirements = _testing_requirements(
+        session, extra, pandas, pydantic, polars
+    )
+    _install(session, *requirements)
+    _install(session, "-e", ".", "--config-settings", "editable_mode=compat")
+    session.run("uv", "pip", "list")
+
+    env = {}
+    test_dir = "base" if extra is None else extra
+    if extra == "narwhals":
+        test_dir = "narwhals"
+        env["PANDERA_USE_NARWHALS_BACKEND"] = "True"
+
+    if extra and extra.startswith("modin"):
+        modin_split = extra.split("-")
+        if len(modin_split) == 1:
+            # default to ray
+            engine = "ray"
+        else:
+            extra, engine = modin_split
+            test_dir = extra
+        if engine not in {"dask", "ray"}:
+            raise ValueError(f"{engine} is not a valid modin engine")
+        env = {"CI_MODIN_ENGINES": engine}
+
+    if session.posargs:
+        args = session.posargs
+    else:
+        path = f"tests/{test_dir}/" if extra != "all" else "tests"
+        cov_args = []
+        if extra == "strategies":
+            profile = "ci"
+            # enable threading via pytest-xdist
+            cov_args = [
+                "-n=auto",
+                "-q",
+                f"--hypothesis-profile={profile}",
+            ]
+        cov_args += [
+            f"--cov={PACKAGE}",
+            "--cov-report=term-missing",
+            "--cov-report=xml",
+            "--cov-append",
+            "--verbosity=10",
+        ]
+        if not CI_RUN:
+            cov_args.append("--cov-report=html")
+        args = [*cov_args, path]
+
+    session.run("pytest", *args, env=env)
+    # tests/common/ has no pyspark marker — pytest -m pyspark would deselect every test there.
+    # The shared builtin checks in tests/common/ are predominantly element-wise checks, which
+    # are SQL-lazy-unsupported for the PySpark Narwhals backend (no map_batches on SQL-lazy
+    # frames). Running them for pyspark would produce only skips/xfails with no useful signal.
+    # This is an accepted gap (CR-09); see supported_libraries.md "Known gaps" for details.
+    if not session.posargs and extra in ("polars", "ibis"):
+        session.run("pytest", *cov_args, "tests/common/", "-m", extra, env=env)
+
+
+@nox.session(venv_backend="uv", python=PYTHON_VERSIONS)
+@nox.parametrize("extra", ["polars", "ibis", "pyspark"])
+def tests_narwhals_backend(session: Session, extra: str) -> None:
+    """Run existing backend tests with narwhals co-installed and opt-in enabled.
+
+    Installs <extra> + narwhals and sets PANDERA_USE_NARWHALS_BACKEND=True so
+    that register_polars_backends() / register_ibis_backends() activate the
+    narwhals backend for that library's frame types. The existing tests/polars/
+    or tests/ibis/ suite then exercises the narwhals backend rather than the
+    native one. Tests that expose narwhals backend gaps should be marked
+    xfail in the test files.
+    """
+    deps = PYPROJECT["project"]["optional-dependencies"]
+    requirements = [
+        *PYPROJECT["project"]["dependencies"],
+        *deps[extra],
+        *deps["narwhals"],
+        *nox.project.dependency_groups(PYPROJECT, *["dev", "testing"]),
+    ]
+    # pin polars to its latest tested version when installing polars
+    if extra == "polars":
+        requirements = [
+            f"polars=={POLARS_VERSIONS[-1]}" if r == "polars" else r
+            for r in requirements
+        ]
+    if extra == "ibis":
+        requirements = [
+            "ibis-framework[duckdb,polars]"
+            if r == "ibis-framework" or r.startswith("ibis-framework ")
+            else r
+            for r in requirements
+        ]
+    if extra == "pyspark":
+        requirements = [
+            "pyspark[connect] >= 3.2.0"
+            if r == "pyspark" or r.startswith("pyspark ")
+            else r
+            for r in requirements
+        ]
+        # pyspark requires pandas >= 2.2.0 but does not support pandas 3.x
+        requirements.append("pandas < 3.0")
+        if session.python in ("3.10",):
+            requirements = [
+                f"{r}, < 2" if r.startswith("numpy") else r
+                for r in requirements
+            ]
+    _install(session, *list(set(requirements)))
+    _install(session, "-e", ".", "--config-settings", "editable_mode=compat")
+    session.run("uv", "pip", "list")
+
+    path = f"tests/{extra}/"
+    cov_args = [
+        f"--cov={PACKAGE}",
+        "--cov-report=term-missing",
+        "--cov-report=xml",
+        "--cov-append",
+        "--verbosity=10",
+    ]
+    if not CI_RUN:
+        cov_args.append("--cov-report=html")
+    env = {"PANDERA_USE_NARWHALS_BACKEND": "True"}
+    session.run("pytest", *cov_args, path, env=env)
+    # tests/common/ has no pyspark marker — pytest -m pyspark would deselect every test there
+    if extra in ("polars", "ibis"):
+        session.run("pytest", *cov_args, "tests/common/", "-m", extra, env=env)
+
+
+@nox.session(venv_backend="uv", python=PYTHON_VERSIONS)
+def docs(session: Session) -> None:
+    """Build the documentation."""
+    # this is needed until ray and geopandas are supported on python 3.10
+
+    _install(session, "-e", ".")
+    _install(
+        session,
+        *_testing_requirements(
+            session, extra="all", pandas=PANDAS_VERSIONS[0]
+        ),
+        *nox.project.dependency_groups(PYPROJECT, "dev", "testing", "docs"),
+    )
+    session.run("uv", "pip", "list")
+    session.chdir("docs")
+
+    # build html docs
+    if not CI_RUN and not session.posargs:
+        shutil.rmtree("_build", ignore_errors=True)
+        shutil.rmtree(
+            os.path.join("source", "reference", "generated"),
+            ignore_errors=True,
+        )
+        for builder in ["doctest", "html"]:
+            session.run(
+                "sphinx-build",
+                "-W",
+                "-T",
+                f"-b={builder}",
+                "-d",
+                os.path.join("_build", "doctrees", ""),
+                "source",
+                os.path.join("_build", builder, ""),
+            )
+    else:
+        shutil.rmtree(os.path.join("_build"), ignore_errors=True)
+        args = session.posargs or [
+            "-v",
+            "-W",
+            "-E",
+            "-b=doctest",
+            "source",
+            "_build",
+        ]
+        session.run(
+            "sphinx-build",
+            *args,
+        )
+
+    session.run("xdoctest", PACKAGE, "--quiet")
+
+
+if __name__ == "__main__":
+    nox.main()

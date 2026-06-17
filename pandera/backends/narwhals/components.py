@@ -1,0 +1,445 @@
+"""Column backend for Narwhals — per-column validation layer."""
+
+import copy
+import re
+import warnings
+from collections.abc import Iterable
+from typing import cast
+
+import narwhals.stable.v1 as nw
+
+from pandera.api.base.error_handler import get_error_category
+from pandera.api.narwhals.error_handler import ErrorHandler
+from pandera.api.narwhals.utils import (
+    _materialize,
+    _to_native,
+    _unwrap_failure_cases,
+)
+from pandera.backends.base import CoreCheckResult
+from pandera.backends.narwhals.base import NarwhalsSchemaBackend
+from pandera.config import ValidationScope
+from pandera.constants import CHECK_OUTPUT_KEY
+from pandera.errors import (
+    SchemaDefinitionError,
+    SchemaError,
+    SchemaErrorReason,
+    SchemaErrors,
+)
+from pandera.validation_depth import validate_scope
+
+
+class ColumnBackend(NarwhalsSchemaBackend):
+    """Per-column validation backend for Narwhals-backed DataFrames.
+
+    Implements validate, check_nullable, check_unique, check_dtype, run_checks,
+    and run_checks_and_handle_errors — mirroring pandera/backends/polars/components.py
+    but using Narwhals APIs throughout.
+    """
+
+    def validate(
+        self,
+        check_obj,
+        schema,
+        *,
+        head: int | None = None,
+        tail: int | None = None,
+        sample: int | None = None,
+        random_state: int | None = None,
+        lazy: bool = False,
+        inplace: bool = False,
+    ):
+        """Validate a Narwhals-backed frame against a column schema.
+
+        :param check_obj: native pl.LazyFrame (or other Narwhals-supported frame)
+        :param schema: Column schema with checks and constraints
+        :returns: validated frame (same type as input)
+        """
+        if inplace:
+            warnings.warn("setting inplace=True will have no effect.")
+
+        if schema.name is None:
+            raise SchemaDefinitionError(
+                "Column schema must have a name specified."
+            )
+
+        # Wrap to Narwhals for uniform handling
+        check_lf = nw.from_native(check_obj, eager_or_interchange_only=False)
+        if isinstance(check_lf, nw.DataFrame):
+            check_lf = check_lf.lazy()
+
+        error_handler = ErrorHandler(lazy)
+
+        if getattr(schema, "drop_invalid_rows", False) and not lazy:
+            raise SchemaDefinitionError(
+                "When drop_invalid_rows is True, lazy must be set to True."
+            )
+
+        if getattr(schema, "regex", False):
+            column_keys_to_check = list(
+                self.get_regex_columns(schema, check_lf)
+            )
+            if not column_keys_to_check:
+                if schema.required:
+                    raise SchemaError(
+                        schema=schema,
+                        data=_to_native(check_lf),
+                        message=(
+                            f"Column regex name='{schema.selector}' did not "
+                            "match any columns in the dataframe. Update the "
+                            "regex pattern so that it matches at least one "
+                            "column."
+                        ),
+                        failure_cases=check_lf.collect_schema().names(),
+                        check=f"no_regex_column_match('{schema.selector}')",
+                        reason_code=SchemaErrorReason.INVALID_COLUMN_NAME,
+                    )
+                # An optional (required=False) regex column that matches no
+                # columns has nothing to validate, so skip it instead of
+                # raising, mirroring the pandas backend (see issue #2364).
+                return check_lf
+            for column_name in column_keys_to_check:
+                single_col_lf = check_lf.select(nw.col(column_name))
+                col_schema = copy.copy(schema)
+                col_schema.name = column_name
+                col_schema.regex = False
+                error_handler = self.run_checks_and_handle_errors(
+                    error_handler,
+                    col_schema,
+                    single_col_lf,
+                    head=head,
+                    tail=tail,
+                    sample=sample,
+                    random_state=random_state,
+                )
+        else:
+            error_handler = self.run_checks_and_handle_errors(
+                error_handler,
+                schema,
+                check_lf,
+                head=head,
+                tail=tail,
+                sample=sample,
+                random_state=random_state,
+            )
+
+        if lazy and error_handler.collected_errors:
+            if getattr(schema, "drop_invalid_rows", False):
+                check_lf = self.drop_invalid_rows(check_lf, error_handler)
+            else:
+                # Use native frame for data in SchemaErrors — SchemaErrors.__init__
+                # calls schema.get_backend(data), which requires a registered native type.
+                raise SchemaErrors(
+                    schema=schema,
+                    schema_errors=error_handler.schema_errors,
+                    data=_to_native(check_lf),
+                )
+        elif not lazy and error_handler.collected_errors:
+            # Non-lazy mode: raise the first collected error
+            raise error_handler.schema_errors[0]
+
+        return check_lf
+
+    def get_regex_columns(self, schema, check_obj) -> Iterable:
+        """Get column names matching a regex pattern."""
+        frame_cols = check_obj.collect_schema().names()
+        return [c for c in frame_cols if re.search(schema.selector, c)]
+
+    @validate_scope(scope=ValidationScope.DATA)
+    def check_nullable(self, check_obj, schema) -> list[CoreCheckResult]:
+        """Check that no null (or NaN for float columns) values exist.
+
+        :param check_obj: Narwhals LazyFrame containing the column.
+        :param schema: Schema object with .nullable and .selector attributes.
+        :returns: List of CoreCheckResult — one entry per column selector.
+        """
+        if schema.nullable:
+            return [
+                CoreCheckResult(
+                    passed=True,
+                    check="not_nullable",
+                    reason_code=SchemaErrorReason.SERIES_CONTAINS_NULLS,
+                )
+            ]
+
+        col = schema.selector
+        null_expr = nw.col(col).is_null()
+        if self.is_float_dtype(check_obj, col):
+            null_expr = null_expr | nw.col(col).is_nan()
+
+        # Add null indicator inline — single LazyFrame op, no separate frame materialization.
+        combined_lf = check_obj.with_columns(null_expr.alias(CHECK_OUTPUT_KEY))
+
+        # Materialize ONE ROW to evaluate the scalar bool — not the full frame.
+        # _materialize handles both nw.LazyFrame (collect) and SQL-lazy DataFrame (execute).
+        has_nulls_df = _materialize(
+            combined_lf.select(nw.col(CHECK_OUTPUT_KEY).any())
+        )
+        has_nulls = bool(has_nulls_df[CHECK_OUTPUT_KEY][0])
+
+        if not has_nulls:
+            return [
+                CoreCheckResult(
+                    passed=True,
+                    check="not_nullable",
+                    reason_code=SchemaErrorReason.SERIES_CONTAINS_NULLS,
+                )
+            ]
+
+        # failure_cases and check_output stay lazy — Narwhals wrappers, not native.
+        failure_cases = combined_lf.filter(nw.col(CHECK_OUTPUT_KEY)).select(
+            col
+        )
+        return [
+            CoreCheckResult(
+                passed=False,
+                check_output=combined_lf,
+                check="not_nullable",
+                reason_code=SchemaErrorReason.SERIES_CONTAINS_NULLS,
+                message=f"non-nullable column '{schema.selector}' contains null values",
+                failure_cases=failure_cases,
+            )
+        ]
+
+    @validate_scope(scope=ValidationScope.DATA)
+    def check_unique(self, check_obj, schema) -> list[CoreCheckResult]:
+        """Check that column values are unique (no duplicates).
+
+        :param check_obj: Narwhals LazyFrame containing the column.
+        :param schema: Schema object with .unique and .selector attributes.
+        :returns: List of CoreCheckResult — one entry per column selector.
+        """
+        check_name = "field_uniqueness"
+        if not schema.unique:
+            return [
+                CoreCheckResult(
+                    passed=True,
+                    check=check_name,
+                    reason_code=SchemaErrorReason.SERIES_CONTAINS_DUPLICATES,
+                )
+            ]
+
+        # SQL-lazy safe: group_by().agg(nw.len()) works on ibis without materializing full frame.
+        # Supersedes COLUMN-02 collect()+is_duplicated() approach for SQL-lazy backends.
+        col = schema.selector
+        grouped = (
+            check_obj.select(nw.col(col))
+            .group_by(nw.col(col))
+            .agg(nw.len().alias("_count"))
+        )
+        dup_values = grouped.filter(nw.col("_count") > 1).select(col)
+        # Bounded: dup_values contains only the distinct duplicate column values — not the full frame.
+        # Materialization is required here to evaluate len() and produce failure_cases.
+        native_dups = nw.to_native(_materialize(dup_values))
+
+        results = []
+        if len(native_dups) == 0:
+            results.append(
+                CoreCheckResult(
+                    passed=True,
+                    check=check_name,
+                    reason_code=SchemaErrorReason.SERIES_CONTAINS_DUPLICATES,
+                )
+            )
+        else:
+            results.append(
+                CoreCheckResult(
+                    passed=False,
+                    check=check_name,
+                    check_output=None,  # group_by approach does not produce per-row booleans
+                    reason_code=SchemaErrorReason.SERIES_CONTAINS_DUPLICATES,
+                    message=f"column '{col}' not unique:\n{native_dups}",
+                    failure_cases=native_dups,
+                )
+            )
+        return results
+
+    @validate_scope(scope=ValidationScope.SCHEMA)
+    def check_dtype(self, check_obj, schema) -> list[CoreCheckResult]:
+        """Check that column dtype matches schema.dtype.
+
+        :param check_obj: Narwhals LazyFrame containing the column.
+        :param schema: Schema object with .dtype and .selector attributes.
+        :returns: List of CoreCheckResult — one entry per column selector.
+        """
+        if schema.dtype is None:
+            return [
+                CoreCheckResult(
+                    passed=True,
+                    check=f"dtype('{schema.dtype}')",
+                    reason_code=SchemaErrorReason.WRONG_DATATYPE,
+                )
+            ]
+
+        # Import inside method to avoid circular import chains
+        from pandera.engines import narwhals_engine
+
+        try:
+            from pandera.engines import pyspark_engine as _pyspark_engine
+
+            uses_pyspark_dtype = isinstance(
+                schema.dtype, _pyspark_engine.DataType
+            )
+        except ImportError:
+            uses_pyspark_dtype = False
+
+        results = []
+        schema_obj = check_obj.select(schema.selector).collect_schema()
+
+        native_pyspark_schema = (
+            nw.to_native(check_obj).schema if uses_pyspark_dtype else None
+        )
+
+        for column, nw_dtype in zip(schema_obj.names(), schema_obj.dtypes()):
+            if uses_pyspark_dtype:
+                # Schema configured with a PySpark dtype (e.g. T.IntegerType()) —
+                # the narwhals dtype engine cannot resolve cross-engine PySpark types.
+                # PySpark boxes IntegerType/FloatType under the width-less pandera base
+                # classes dtypes.Int/dtypes.Float (exact native type is preserved only
+                # in .type), so the generic narwhals_engine.Engine.dtype(schema.dtype)
+                # path either cannot resolve Int or collapses Float to Float64 and
+                # returns a false negative for 32-bit columns.  The schema-driven
+                # string comparison below preserves exact native semantics:
+                # IntegerType == IntegerType but IntegerType != LongType.
+                # This dispatch is schema-driven (isinstance on schema.dtype), not
+                # frame-driven (what backend is present at runtime).
+                assert native_pyspark_schema is not None
+                pyspark_dtype = native_pyspark_schema[column].dataType
+                pyspark_dtype_str = str(pyspark_dtype)
+                passed = pyspark_dtype_str == str(schema.dtype)
+                results.append(
+                    CoreCheckResult(
+                        passed=bool(passed),
+                        check=f"dtype('{schema.dtype}')",
+                        reason_code=SchemaErrorReason.WRONG_DATATYPE,
+                        message=(
+                            f"expected column '{column}' to have type "
+                            f"{schema.dtype}, got {pyspark_dtype_str}"
+                            if not passed
+                            else None
+                        ),
+                        failure_cases=pyspark_dtype_str
+                        if not passed
+                        else None,
+                    )
+                )
+                continue
+
+            try:
+                col_pandera_dtype = narwhals_engine.Engine.dtype(nw_dtype)
+            except TypeError:
+                col_pandera_dtype = nw_dtype
+
+            # Use narwhals_engine for comparison — Engine.dtype() now accepts
+            # cross-engine dtypes (polars_engine, ibis_engine) by re-interpreting
+            # through the shared abstract pandera base class. Parametric types
+            # (List, Struct) fall back to a direct check, which will report
+            # WRONG_DATATYPE for cross-engine schemas. TODO: root fix is in schema
+            # construction — pandera.polars/pandera.ibis should produce Narwhals
+            # engine dtypes when the Narwhals backend is active.
+            try:
+                schema_nw_dtype = narwhals_engine.Engine.dtype(schema.dtype)
+                passed = bool(schema_nw_dtype.check(col_pandera_dtype))
+            except TypeError:
+                passed = bool(schema.dtype.check(col_pandera_dtype))
+
+            results.append(
+                CoreCheckResult(
+                    passed=bool(passed),
+                    check=f"dtype('{schema.dtype}')",
+                    reason_code=SchemaErrorReason.WRONG_DATATYPE,
+                    message=(
+                        f"expected column '{column}' to have type {schema.dtype}, "
+                        f"got {nw_dtype}"
+                        if not passed
+                        else None
+                    ),
+                    failure_cases=str(nw_dtype) if not passed else None,
+                )
+            )
+        return results
+
+    @validate_scope(scope=ValidationScope.DATA)
+    def run_checks(self, check_obj, schema) -> list[CoreCheckResult]:
+        """Execute all Check objects attached to schema and return results.
+
+        :param check_obj: Narwhals LazyFrame containing the column.
+        :param schema: Schema object with .checks list and .selector attribute.
+        :returns: List of CoreCheckResult, one per check.
+        """
+        check_results: list[CoreCheckResult] = []
+        for check_index, check in enumerate(schema.checks):
+            try:
+                check_results.append(
+                    self.run_check(
+                        check_obj, schema, check, check_index, schema.selector
+                    )
+                )
+            except Exception as err:
+                err_msg = f'"{err.args[0]}"' if err.args else ""
+                msg = f"{err.__class__.__name__}({err_msg})"
+                check_results.append(
+                    CoreCheckResult(
+                        passed=False,
+                        check=check,
+                        check_index=check_index,
+                        reason_code=SchemaErrorReason.CHECK_ERROR,
+                        message=msg,
+                        failure_cases=msg,
+                        original_exc=err,
+                    )
+                )
+        return check_results
+
+    def run_checks_and_handle_errors(
+        self,
+        error_handler: ErrorHandler,
+        schema,
+        check_obj,
+        **subsample_kwargs,
+    ) -> ErrorHandler:
+        """Orchestrate all column checks, collecting errors via ErrorHandler.
+
+        :param error_handler: ErrorHandler instance to collect schema errors.
+        :param schema: Schema object defining column constraints.
+        :param check_obj: Narwhals LazyFrame containing the column.
+        :param subsample_kwargs: Keyword arguments forwarded to subsample().
+        :returns: The error_handler with all errors collected.
+        """
+        check_obj_subsample = self.subsample(check_obj, **subsample_kwargs)
+        core_checks = [
+            self.check_nullable,
+            self.check_unique,
+            self.check_dtype,
+            self.run_checks,
+        ]
+        args = (check_obj_subsample, schema)
+        for core_check in core_checks:
+            results = core_check(*args)
+            if isinstance(results, CoreCheckResult):
+                results = [results]
+            results = cast(list[CoreCheckResult], results)
+            for result in results:
+                if result.passed:
+                    continue
+                if result.schema_error is not None:
+                    error = result.schema_error
+                else:
+                    assert result.reason_code is not None
+                    fc = _unwrap_failure_cases(result.failure_cases)
+                    error = SchemaError(
+                        schema=schema,
+                        data=check_obj,
+                        message=result.message,
+                        failure_cases=fc,
+                        check=result.check,
+                        check_index=result.check_index,
+                        check_output=result.check_output,
+                        reason_code=result.reason_code,
+                    )
+                error_handler.collect_error(
+                    get_error_category(result.reason_code),
+                    result.reason_code,
+                    error,
+                    original_exc=result.original_exc,
+                )
+        return error_handler

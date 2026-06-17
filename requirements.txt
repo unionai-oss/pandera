@@ -1,0 +1,65 @@
+# This file is auto-generated from environment.yml, do not modify.
+# See that file for comments about the need/usage of each dependency.
+
+pip
+packaging >= 20.0
+typing_extensions
+hypothesis >= 6.92.7
+pyyaml >= 5.1
+typing_inspect >= 0.6.0
+frictionless <= 4.40.8
+pyarrow >= 13
+pyarrow-hotfix
+pydantic
+scipy
+pandas-stubs
+scipy-stubs
+pyspark[connect] >= 3.2.0
+polars >= 0.20.0
+xarray >= 2024.10.0
+narwhals >= 1.26.0
+modin
+protobuf
+geopandas
+shapely
+fastapi
+black >= 24.0
+numpy >= 1.24.4
+pandas >= 2.1.1
+isort >= 5.7.0
+joblib
+mypy == 1.10.0
+pytest
+pytest-cov
+pytest-xdist
+pytest-asyncio
+pytz
+xdoctest
+nox
+uv
+setuptools
+ibis-framework[duckdb]>= 11.0.0
+uvicorn
+python-multipart
+sphinx
+sphinx-design
+sphinx-autodoc-typehints <= 1.14.1
+sphinx-copybutton
+recommonmark
+myst-nb
+twine
+asv >= 0.5.1
+prek
+dask[dataframe]
+distributed
+ibis-framework >= 9.0.0
+furo
+sphinx-docsearch
+grpcio
+ray
+typeguard
+types-click
+types-pytz
+types-pyyaml
+types-requests
+types-setuptools

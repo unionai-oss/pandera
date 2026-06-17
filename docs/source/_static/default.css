@@ -1,0 +1,179 @@
+a {
+  color: #78ac1b;
+}
+
+div.content {
+  margin-bottom: 70px;
+}
+
+.toctree-l1 a:active, .toctree-l1 a:hover {
+  background-color: #676767;
+}
+
+.sidebar-logo {
+  max-width: 80%;
+}
+
+.sidebar-brand-text, .sidebar-logo-container {
+  margin: var(--sidebar-item-spacing-vertical) auto;
+  margin-top: 25px;
+  margin-bottom: 25px;
+}
+
+.sidebar-brand-text {
+  display: none;
+}
+
+.sidebar-drawer {
+  width: calc(50% - 25em);
+  min-width: 22em;
+}
+
+.sidebar-drawer .sidebar-container {
+  width: 100%;
+}
+
+li.toctree-l2 {
+  font-size: 80%;
+}
+
+div.sponsorship {
+  position: fixed;
+  bottom: 15px;
+  z-index: 10000;
+  right: 20px;
+}
+
+.sponsorship button {
+  background: var(--color-code-background);
+  border: 1px solid var(--color-sidebar-background-border);
+  color: var(--color-code-foreground);
+  width: auto;
+  height: 40px;
+  width: 100px;
+  font-size: 0.9em;
+}
+
+.sponsorship button:hover {
+  cursor: pointer;
+}
+
+.sponsorship button i {
+  color: rgb(236, 132, 150);
+  padding-right: 5px;
+}
+
+.rst-versions.rst-badge {
+  bottom: 75px !important;
+  max-width: fit-content !important;
+}
+
+/* tabbed content */
+.tabbed-set>label {
+  color: #acc385;
+  border-color: #d1dfb8;
+}
+
+.tabbed-content {
+  box-shadow: 0 -0.0625rem #d1dfb8, 0 0.0625rem #d1dfb8;
+}
+
+.tabbed-set>label:hover {
+  color: #acc385 !important;
+}
+
+.tabbed-set>input:checked+label {
+  color: #78ac1b;
+  border-color: #78ac1b;
+}
+
+iframe.jupyterlite_sphinx_raw_iframe {
+  border: none !important;
+  box-shadow: 0 0.2rem 0.2rem #dedede !important;
+}
+
+
+@media (max-width: 67em) {
+  .sidebar-drawer {
+    width: 22em;
+    left: -22em;
+  }
+  .sidebar-drawer .sidebar-container {
+    width: 22em;
+  }
+  li.toctree-l2 {
+    font-size: 75%;
+  }
+}
+
+/* autosummary table text */
+table.autosummary {
+  width: 100%;
+}
+
+article .align-center, article .align-default {
+  text-align: left;
+}
+
+/* make font size of API reference smaller */
+section[id^=pandera-]:not([id=pandera-data-types]) h1  {
+  font-size: 1.75em;
+}
+
+/* dataframe table style */
+div.cell_output thead {
+  color: var(--color-foreground-primary);
+}
+
+div.cell_output tbody tr {
+  color: var(--color-content-foreground);
+}
+
+div.cell_output tbody tr:nth-child(odd) {
+  background: var(--color-background-secondary);
+}
+
+
+/* code cell output style */
+div.cell details.below-input>summary {
+  background-color: var(--color-background-secondary);
+}
+
+/* algolia docsearch search bar */
+:root {
+  --docsearch-primary-color: #82B427;
+  --docsearch-searchbox-shadow: #82B427;
+}
+
+/* mute docsearch logo color */
+div.DocSearch-Logo .cls-1,
+div.DocSearch-Logo .cls-2 {
+    fill: #414c70 !important;
+}
+
+.DocSearch-Button {
+  height: 50px;
+  margin: 0;
+  width: 100%;
+  border-radius: 0;
+  border-bottom: 1px solid var(--color-header-border) !important;
+  border-top: 1px solid var(--color-header-border) !important;
+  background: var(--color-sidebar-background) !important;
+  padding: 0 15px !important;
+}
+
+.DocSearch-Button:hover, .DocSearch-Button:active {
+  box-shadow: none !important;
+  background: var(--docsearch-searchbox-background) !important;
+}
+
+.DocSearch-Button-Key, .DocSearch-Commands-Key {
+  border: none !important;
+  box-shadow: none !important;
+  display: inherit !important;
+  padding: 0 !important;
+}
+
+.sidebar-search-container::before {
+  content: none;
+}

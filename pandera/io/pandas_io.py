@@ -1,0 +1,1144 @@
+"""Module for reading and writing schema objects."""
+
+from __future__ import annotations
+
+import enum
+import json
+import warnings
+from collections.abc import Mapping
+from functools import partial
+from pathlib import Path
+from typing import TYPE_CHECKING, Any, Union
+
+import pandas as pd
+
+import pandera.errors
+from pandera import dtypes
+from pandera.api.checks import Check
+from pandera.api.pandas.components import Column
+from pandera.api.pandas.container import DataFrameSchema
+from pandera.engines import pandas_engine
+from pandera.io._check_io import checks_dict_to_list
+from pandera.io._constants import DATETIME_FORMAT, MISSING_PYYAML_MESSAGE
+from pandera.io._flat_checks import (
+    apply_flat_checks_to_dataframe_serialized,
+    unflatten_component_checks_dict,
+)
+from pandera.io._minimal import (
+    COLUMN_DEFAULTS,
+    DF_SCHEMA_DEFAULTS,
+    apply_minimal_dataframe_container,
+)
+from pandera.schema_statistics.pandas import get_dataframe_schema_statistics
+
+if TYPE_CHECKING:
+    from frictionless import Schema as FrictionlessSchema
+_FORMAT_SCRIPT_WARNING_MESSAGE = (
+    "Schema script formatting requires 'black' to be installed. "
+    "Please install 'black' to use this feature."
+)
+_MISSING_FRICTIONLESS_IMPORT_ERROR_MESSAGE = (
+    "Frictionless schema parsing requires 'frictionless' to be installed. "
+    "Please install 'frictionless' to use this feature."
+)
+
+
+def _get_dtype_string_alias(dtype: pandas_engine.DataType) -> str:
+    """Get string alias of the datatype for serialization.
+
+    Calling pandas_engine.Engine.dtype(<string_alias>) should be a valid
+    operation
+    """
+    str_alias = str(dtype)
+    try:
+        pandas_engine.Engine.dtype(str_alias)
+    except TypeError as e:  # pragma: no cover
+        raise TypeError(
+            f"string alias {str_alias} for datatype "
+            f"'{dtype.__module__}.{dtype.__class__.__name__}' not "
+            "recognized."
+        ) from e
+    return f'"{dtype}"'
+
+
+def _serialize_check_stats(check_stats, dtype=None):
+    """Serialize check statistics into json/yaml-compatible format."""
+
+    def handle_stat_dtype(stat):
+        # Handle enum types by converting them to a list of values
+        if isinstance(stat, type) and issubclass(stat, enum.Enum):
+            return [e.value for e in stat]
+
+        if pandas_engine.Engine.dtype(dtypes.DateTime).check(
+            dtype
+        ) and hasattr(stat, "strftime"):
+            # try serializing stat as a string if it's datetime-like,
+            # otherwise return original value
+            return stat.strftime(DATETIME_FORMAT)
+        elif pandas_engine.Engine.dtype(dtypes.Timedelta).check(dtype):
+            # try serializing stat into an int in nanoseconds if it's
+            # timedelta-like, otherwise return original value
+            return getattr(stat, "value", stat)
+
+        return stat
+
+    # Extract check options if they exist
+    check_options = (
+        check_stats.pop("options", {}) if isinstance(check_stats, dict) else {}
+    )
+
+    # Single-statistic dict: preserve the argument name (e.g. min_value, stat)
+    # instead of coercing to "value", which breaks registered checks whose
+    # statistic is not a unary positional alias.
+    if isinstance(check_stats, dict) and len(check_stats) == 1:
+        arg_name, arg_val = next(iter(check_stats.items()))
+        coerced = handle_stat_dtype(arg_val)
+        if check_options:
+            return {arg_name: coerced, "options": check_options}
+        return coerced
+
+    # Handle dictionary case
+    if isinstance(check_stats, dict):
+        serialized_check_stats = {}
+        for arg, stat in check_stats.items():
+            serialized_check_stats[arg] = handle_stat_dtype(stat)
+        if check_options:
+            serialized_check_stats["options"] = check_options
+        return serialized_check_stats
+
+    return handle_stat_dtype(check_stats)
+
+
+def _serialize_dataframe_stats(dataframe_checks):
+    """
+    Serialize global dataframe check statistics into json/yaml-compatible
+    format.
+    """
+    serialized_checks = []
+
+    for check_stats in dataframe_checks:
+        # The case that `check_name` is not registered is handled in
+        # `parse_checks` so we know that `check_name` exists.
+
+        # infer dtype of statistics and serialize them
+        serialized_check_stats = _serialize_check_stats(check_stats)
+        serialized_checks.append(serialized_check_stats)
+
+    return serialized_checks
+
+
+def _serialize_component_stats(component_stats):
+    """
+    Serialize column or index statistics into json/yaml-compatible format.
+    """
+    serialized_checks = None
+    if component_stats["checks"] is not None:
+        serialized_checks = []
+        for check_stats in component_stats["checks"]:
+            serialized_check_stats = _serialize_check_stats(
+                check_stats, component_stats["dtype"]
+            )
+            serialized_checks.append(serialized_check_stats)
+
+    dtype = component_stats.get("dtype")
+    if dtype:
+        dtype = str(dtype)
+
+    description = component_stats.get("description")
+    title = component_stats.get("title")
+
+    return {
+        "title": title,
+        "description": description,
+        "dtype": dtype,
+        "nullable": component_stats["nullable"],
+        "checks": serialized_checks,
+        **{
+            key: component_stats.get(key)
+            for key in [
+                "name",
+                "unique",
+                "coerce",
+                "required",
+                "regex",
+            ]
+            if key in component_stats
+        },
+    }
+
+
+def _serialize_column_name(col_name):
+    """Serialize column names that are not valid JSON object keys."""
+    if isinstance(col_name, tuple):
+        return list(col_name)
+    return col_name
+
+
+def _deserialize_column_name(col_name):
+    """Deserialize column names from json-compatible representation."""
+    if isinstance(col_name, list):
+        return tuple(col_name)
+    return col_name
+
+
+_DATAFRAME_LIBRARY_CHOICES = frozenset(
+    ("pandas", "modin", "dask", "pyspark.pandas")
+)
+
+
+def serialize_schema(
+    dataframe_schema,
+    dataframe_library: str | None = None,
+    *,
+    minimal: bool = True,
+):
+    """Serialize dataframe schema into json/yaml-compatible format.
+
+    :param dataframe_schema: pandas API :class:`~pandera.api.pandas.container.DataFrameSchema`.
+    :param dataframe_library: Target dataframe implementation for metadata
+        (``pandas``, ``modin``, ``dask``, or ``pyspark.pandas``). Defaults to
+        ``pandas``.
+    :param minimal: If True (default), omit keys equal to schema constructor
+        defaults so output only contains user-meaningful options.
+    """
+    from pandera import __version__
+
+    lib = dataframe_library or "pandas"
+    if lib not in _DATAFRAME_LIBRARY_CHOICES:
+        raise ValueError(
+            "dataframe_library must be one of "
+            f"{sorted(_DATAFRAME_LIBRARY_CHOICES)}, got {lib!r}"
+        )
+
+    statistics = get_dataframe_schema_statistics(dataframe_schema)
+
+    columns, index, checks = None, None, None
+    if statistics["columns"] is not None:
+        columns = statistics["columns"]
+        if all(isinstance(col_name, str) for col_name in columns):
+            columns = {
+                col_name: _serialize_component_stats(column_stats)
+                for col_name, column_stats in columns.items()
+            }
+        else:
+            serialized_columns = []
+            for col_name, column_stats in columns.items():
+                serialized_column = _serialize_component_stats(column_stats)
+                serialized_column["name"] = _serialize_column_name(col_name)
+                serialized_columns.append(serialized_column)
+            columns = serialized_columns
+
+    if statistics["index"] is not None:
+        index = [
+            _serialize_component_stats(index_stats)
+            for index_stats in statistics["index"]
+        ]
+
+    if statistics["checks"] is not None:
+        checks = _serialize_dataframe_stats(statistics["checks"])
+
+    out = {
+        "schema_type": "dataframe",
+        "version": __version__,
+        "columns": columns,
+        "checks": checks,
+        "index": index,
+        "dtype": dataframe_schema.dtype,
+        "coerce": dataframe_schema.coerce,
+        "strict": dataframe_schema.strict,
+        "name": dataframe_schema.name,
+        "ordered": dataframe_schema.ordered,
+        "unique": dataframe_schema.unique,
+        "report_duplicates": dataframe_schema.report_duplicates,
+        "unique_column_names": dataframe_schema.unique_column_names,
+        "add_missing_columns": dataframe_schema.add_missing_columns,
+        "title": dataframe_schema.title,
+        "description": dataframe_schema.description,
+    }
+    if lib != "pandas":
+        out["dataframe_library"] = lib
+    if minimal:
+        apply_minimal_dataframe_container(out, dataframe_schema)
+    apply_flat_checks_to_dataframe_serialized(out)
+    return out
+
+
+def _deserialize_check_stats(check, serialized_check_stats, dtype=None):
+    """Deserialize check statistics and reconstruct check with options."""
+
+    def handle_stat_dtype(stat):
+        try:
+            if pandas_engine.Engine.dtype(dtypes.DateTime).check(dtype):
+                return pd.to_datetime(stat, format=DATETIME_FORMAT)
+            elif pandas_engine.Engine.dtype(dtypes.Timedelta).check(dtype):
+                # serialize to int in nanoseconds
+                return pd.to_timedelta(stat, unit="ns")
+        except (TypeError, ValueError):
+            return stat
+        return stat
+
+    # Extract options if they exist
+    options = {}
+    if isinstance(serialized_check_stats, dict):
+        # handle case where serialized check stats are in the form of a
+        # dictionary mapping Check arg names to values.
+        options = serialized_check_stats.pop("options", {})
+        # Handle special case for unary checks with options
+        if (
+            "value" in serialized_check_stats
+            and len(serialized_check_stats) == 1
+        ):
+            serialized_check_stats = serialized_check_stats["value"]
+
+    # Create check with original logic
+    if isinstance(serialized_check_stats, dict):
+        check_stats = {}
+        for arg, stat in serialized_check_stats.items():
+            check_stats[arg] = handle_stat_dtype(stat)
+        check_instance = check(**check_stats)
+    else:
+        # otherwise assume unary check function signature
+        check_instance = check(handle_stat_dtype(serialized_check_stats))
+
+    # Apply options if they exist
+    if options:
+        for option_name, option_value in options.items():
+            if option_name != "check_name":
+                setattr(check_instance, option_name, option_value)
+
+    return check_instance
+
+
+def _deserialize_component_stats(serialized_component_stats):
+    serialized_component_stats = dict(serialized_component_stats)
+    unflatten_component_checks_dict(serialized_component_stats)
+
+    dtype = serialized_component_stats.get("dtype")
+    if dtype:
+        dtype = pandas_engine.Engine.dtype(dtype)
+
+    description = serialized_component_stats.get("description")
+    title = serialized_component_stats.get("title")
+
+    checks = checks_dict_to_list(serialized_component_stats.get("checks"))
+    if checks is not None:
+        checks = [
+            _deserialize_check_stats(
+                getattr(Check, check["options"]["check_name"]), check, dtype
+            )
+            for check in checks
+        ]
+    return {
+        "title": title,
+        "description": description,
+        "dtype": dtype,
+        "checks": checks,
+        **{
+            key: serialized_component_stats.get(key)
+            for key in [
+                "name",
+                "nullable",
+                "unique",
+                "coerce",
+                "required",
+                "regex",
+            ]
+            if key in serialized_component_stats
+        },
+    }
+
+
+def deserialize_schema(serialized_schema):
+    """
+    De-serialize the schema from a JSON-able mapping.
+
+    :param serialized_schema: a mapping representing the schema
+    :returns:
+        the schema de-serialized into :class:`~pandera.api.pandas.container.DataFrameSchema`
+    """
+
+    from pandera.pandas import Index, MultiIndex
+
+    # GH#475
+    serialized_schema = serialized_schema if serialized_schema else {}
+
+    if not isinstance(serialized_schema, Mapping):
+        raise pandera.errors.SchemaDefinitionError(
+            "Schema representation must be a mapping."
+        )
+
+    columns = serialized_schema.get("columns")
+    index = serialized_schema.get("index")
+    checks = checks_dict_to_list(serialized_schema.get("checks"))
+
+    if columns is not None:
+        if isinstance(columns, list):
+            deserialized_columns = {}
+            for column_stats in columns:
+                col_name = _deserialize_column_name(column_stats.get("name"))
+                component_stats = {
+                    key: value
+                    for key, value in column_stats.items()
+                    if key != "name"
+                }
+                deserialized_columns[col_name] = Column(
+                    **_deserialize_component_stats(component_stats)
+                )
+            columns = deserialized_columns
+        else:
+            columns = {
+                col_name: Column(**_deserialize_component_stats(column_stats))
+                for col_name, column_stats in columns.items()
+            }
+
+    if index is not None:
+        index = [
+            _deserialize_component_stats(index_component)
+            for index_component in index
+        ]
+
+    if checks is not None:
+        # handles unregistered checks by raising AttributeErrors from getattr
+        checks = [
+            _deserialize_check_stats(
+                getattr(Check, check["options"]["check_name"]), check
+            )
+            for check in checks
+        ]
+
+    if index is None:
+        pass
+    elif len(index) == 1:
+        index = Index(**index[0])
+    else:
+        index = MultiIndex(
+            indexes=[Index(**index_properties) for index_properties in index]
+        )
+
+    metadata = None
+    if serialized_schema.get("metadata"):
+        metadata = dict(serialized_schema["metadata"])
+    if "dataframe_library" in serialized_schema:
+        lib = serialized_schema.get("dataframe_library", "pandas")
+        if lib not in _DATAFRAME_LIBRARY_CHOICES:
+            lib = "pandas"
+        if metadata is None:
+            metadata = {}
+        metadata["dataframe_library"] = lib
+
+    return DataFrameSchema(
+        columns=columns,
+        checks=checks,
+        index=index,
+        dtype=serialized_schema.get("dtype", None),
+        coerce=serialized_schema.get("coerce", False),
+        strict=serialized_schema.get("strict", False),
+        name=serialized_schema.get("name", None),
+        ordered=serialized_schema.get("ordered", False),
+        unique=serialized_schema.get("unique", None),
+        report_duplicates=serialized_schema.get("report_duplicates", "all"),
+        unique_column_names=serialized_schema.get(
+            "unique_column_names", False
+        ),
+        add_missing_columns=serialized_schema.get(
+            "add_missing_columns", False
+        ),
+        title=serialized_schema.get("title", None),
+        description=serialized_schema.get("description", None),
+        metadata=metadata,
+    )
+
+
+def from_yaml(yaml_schema):
+    """Create :class:`~pandera.api.pandas.container.DataFrameSchema` from yaml file.
+
+    :param yaml_schema: str or Path to yaml schema, or serialized yaml string.
+    :returns: dataframe schema.
+    """
+    try:
+        import yaml
+    except ImportError as exc:  # pragma: no cover
+        raise ImportError(MISSING_PYYAML_MESSAGE) from exc
+
+    try:
+        with Path(yaml_schema).open("r", encoding="utf-8") as f:
+            serialized_schema = yaml.safe_load(f)
+    except (TypeError, OSError):
+        serialized_schema = yaml.safe_load(yaml_schema)
+    return deserialize_schema(serialized_schema)
+
+
+def to_yaml(
+    dataframe_schema,
+    stream=None,
+    dataframe_library=None,
+    *,
+    minimal: bool = True,
+):
+    """Write :class:`~pandera.api.pandas.container.DataFrameSchema` to yaml file.
+
+    :param dataframe_schema: schema to write to file or dump to string.
+    :param stream: file stream to write to. If None, dumps to string.
+    :param dataframe_library: optional ``dataframe_library`` tag; see
+        :func:`serialize_schema`.
+    :param minimal: passed to :func:`serialize_schema`.
+    :returns: yaml string if stream is None, otherwise returns None.
+    """
+    try:
+        import yaml
+    except ImportError as exc:  # pragma: no cover
+        raise ImportError(MISSING_PYYAML_MESSAGE) from exc
+
+    statistics = serialize_schema(
+        dataframe_schema,
+        dataframe_library=dataframe_library,
+        minimal=minimal,
+    )
+
+    def _write_yaml(obj, stream):
+        return yaml.safe_dump(obj, stream=stream, sort_keys=False)
+
+    try:
+        with Path(stream).open("w", encoding="utf-8") as f:
+            _write_yaml(statistics, f)
+    except (TypeError, OSError):
+        return _write_yaml(statistics, stream)
+
+
+def from_json(source):
+    """
+    Create :class:`~pandera.api.pandas.container.DataFrameSchema` from json file.
+
+    :param source:
+        Depending on the type, source is assumed to be:
+
+        1) str or Path to a file containing json schema (if the file exists),
+        2) str as a JSON-encoded schema, or
+        3) stream that we can read from containing the schema as JSON-encoded
+           string.
+
+    :returns: dataframe schema.
+    """
+    if isinstance(source, str):
+        try:
+            serialized_schema = json.loads(source)
+        except json.decoder.JSONDecodeError:
+            with Path(source).open(encoding="utf-8") as f:
+                serialized_schema = json.load(fp=f)
+    elif isinstance(source, Path):
+        with source.open(encoding="utf-8") as f:
+            serialized_schema = json.load(fp=f)
+    else:
+        serialized_schema = json.load(fp=source)
+
+    return deserialize_schema(serialized_schema)
+
+
+def to_json(
+    dataframe_schema,
+    target=None,
+    dataframe_library=None,
+    *,
+    minimal: bool = True,
+    **kwargs,
+):
+    """
+    Write :class:`~pandera.api.pandas.container.DataFrameSchema` to json file.
+
+    :param dataframe_schema: schema to write to file or dump to string.
+    :param target: file path or stream to write to. If None, returns a
+        dump to string.
+    :param dataframe_library: optional ``dataframe_library`` tag; see
+        :func:`serialize_schema`.
+    :param minimal: passed to :func:`serialize_schema`.
+    :param kwargs: keyword arguments to pass into :func:`json.dump`
+    :returns: json string if stream is None, otherwise returns None.
+    """
+    serialized_schema = serialize_schema(
+        dataframe_schema,
+        dataframe_library=dataframe_library,
+        minimal=minimal,
+    )
+
+    if target is None:
+        return json.dumps(serialized_schema, sort_keys=False, **kwargs)
+
+    if isinstance(target, (str, Path)):
+        with Path(target).open("w", encoding="utf-8") as f:
+            json.dump(serialized_schema, fp=f, sort_keys=False, **kwargs)
+    else:
+        json.dump(serialized_schema, fp=target, sort_keys=False, **kwargs)
+
+
+SCRIPT_TEMPLATE = """
+from pandera import (
+    DataFrameSchema, Column, Check, Index, MultiIndex
+)
+
+schema = DataFrameSchema(
+    columns={{{columns}}},
+    checks={checks},
+    index={index},
+    dtype={dtype},
+    coerce={coerce},
+    strict={strict},
+    name={name},
+    ordered={ordered},
+    unique={unique},
+    report_duplicates={report_duplicates},
+    unique_column_names={unique_column_names},
+    add_missing_columns={add_missing_columns},
+    title={title},
+    description={description},
+)
+"""
+
+COLUMN_TEMPLATE = """
+Column(
+    dtype={dtype},
+    checks={checks},
+    nullable={nullable},
+    unique={unique},
+    coerce={coerce},
+    required={required},
+    regex={regex},
+    description={description},
+    title={title},
+)
+"""
+
+INDEX_TEMPLATE = """
+Index(
+    dtype={dtype},
+    checks={checks},
+    nullable={nullable},
+    coerce={coerce},
+    name={name},
+    description={description},
+    title={title},
+)
+"""
+
+MULTIINDEX_TEMPLATE = """
+MultiIndex(indexes=[{indexes}])
+"""
+
+
+def _format_checks(checks_list):
+    """Format checks into string representation including options."""
+    if checks_list is None:
+        return "None"
+
+    checks = []
+    for check_kwargs in checks_list:
+        if check_kwargs is None:
+            warnings.warn(
+                "Check cannot be serialized. This check will be ignored"
+            )
+            continue
+
+        # Handle options separately
+        options = (
+            check_kwargs.pop("options", {})
+            if isinstance(check_kwargs, dict)
+            else {}
+        )
+
+        if "check_name" not in options:
+            warnings.warn(
+                "Check cannot be serialized. This check will be ignored"
+            )
+            continue
+
+        check_name = options.pop("check_name")
+
+        # Format main check arguments
+        if isinstance(check_kwargs, dict):
+            args = ", ".join(
+                f"{k}={v.__repr__()}" for k, v in check_kwargs.items()
+            )
+        else:
+            args = check_kwargs.__repr__()
+
+        # Add options to arguments if they exist
+        if options:
+            if args:
+                args += ", "
+            args += ", ".join(
+                f"{k}={v.__repr__()}" for k, v in options.items()
+            )
+
+        checks.append(f"Check.{check_name}({args})")
+
+    return f"[{', '.join(checks)}]"
+
+
+def _format_index(index_statistics):
+    index = []
+    for properties in index_statistics:
+        dtype = properties.get("dtype")
+        description = properties.get("description")
+        title = properties.get("title")
+        index_code = INDEX_TEMPLATE.format(
+            dtype=(None if dtype is None else _get_dtype_string_alias(dtype)),
+            checks=(
+                "None"
+                if properties["checks"] is None
+                else _format_checks(properties["checks"])
+            ),
+            nullable=properties["nullable"],
+            coerce=properties["coerce"],
+            name=(
+                "None"
+                if properties["name"] is None
+                else f'"{properties["name"]}"'
+            ),
+            description=(None if description is None else f'"{description}"'),
+            title=(None if title is None else f'"{title}"'),
+        )
+        index.append(index_code.strip())
+
+    if len(index) == 1:
+        return index[0]
+
+    return MULTIINDEX_TEMPLATE.format(indexes=",".join(index)).strip()
+
+
+def _format_column_minimal(column):
+    """Build ``Column(...)`` source with only non-default kwargs."""
+    from pandera.schema_statistics.pandas import parse_checks
+
+    parts = []
+    if column.dtype is not None:
+        parts.append(f"dtype={_get_dtype_string_alias(column.dtype)}")
+    pc = parse_checks(column.checks)
+    if pc:
+        parts.append(f"checks={_format_checks(pc)}")
+    for attr in COLUMN_DEFAULTS:
+        if attr == "name":
+            continue
+        if not hasattr(column, attr):
+            continue
+        val = getattr(column, attr)
+        if val == COLUMN_DEFAULTS[attr]:
+            continue
+        parts.append(f"{attr}={val!r}")
+    if column.metadata:
+        parts.append(f"metadata={column.metadata!r}")
+    if not parts:
+        return "Column()"
+    inner = ",\n    ".join(parts)
+    return f"Column(\n    {inner}\n)"
+
+
+def _to_script_minimal(dataframe_schema):
+    """Build ``DataFrameSchema(...)`` source with only non-default kwargs."""
+    from pandera.schema_statistics.pandas import parse_checks
+
+    columns = {
+        name: _format_column_minimal(column)
+        for name, column in dataframe_schema.columns.items()
+    }
+    column_str = ", ".join(f"{k!r}: {v}" for k, v in columns.items())
+    parts = [f"columns={{{column_str}}}"]
+    pc = parse_checks(dataframe_schema.checks)
+    if pc:
+        parts.append(f"checks={_format_checks(pc)}")
+    stats = get_dataframe_schema_statistics(dataframe_schema)
+    if stats["index"] is not None:
+        parts.append(f"index={_format_index(stats['index'])}")
+    for key in DF_SCHEMA_DEFAULTS:
+        val = getattr(dataframe_schema, key)
+        if val == DF_SCHEMA_DEFAULTS[key]:
+            continue
+        if key == "dtype" and val is not None:
+            parts.append(f"dtype={_get_dtype_string_alias(val)}")
+        else:
+            parts.append(f"{key}={val!r}")
+    if getattr(dataframe_schema, "metadata", None):
+        parts.append(f"metadata={dataframe_schema.metadata!r}")
+    if getattr(dataframe_schema, "drop_invalid_rows", False):
+        parts.append(
+            f"drop_invalid_rows={dataframe_schema.drop_invalid_rows!r}"
+        )
+    inner = ",\n    ".join(parts)
+    body = f"schema = DataFrameSchema(\n    {inner}\n)"
+    return (
+        "from pandera import (\n"
+        "    DataFrameSchema, Column, Check, Index, MultiIndex\n"
+        ")\n\n"
+        f"{body}"
+    )
+
+
+def _format_script(script):
+    try:
+        import black
+    except ImportError as exc:  # pragma: no cover
+        raise ImportError(_FORMAT_SCRIPT_WARNING_MESSAGE) from exc
+
+    formatter = partial(black.format_str, mode=black.FileMode(line_length=80))
+    return formatter(script)
+
+
+def to_script(dataframe_schema, path_or_buf=None, *, minimal: bool = True):
+    """Write :class:`~pandera.api.pandas.container.DataFrameSchema` to a python script.
+
+    :param dataframe_schema: schema to write to file or dump to string.
+    :param path_or_buf: filepath or buf stream to write to. If None, outputs
+        string representation of the script.
+    :param minimal: If True (default), omit constructor-default kwargs in the
+        generated ``Column`` and ``DataFrameSchema`` calls.
+    :returns: yaml string if stream is None, otherwise returns None.
+    """
+    if minimal:
+        script = _to_script_minimal(dataframe_schema).strip()
+        if "Timedelta" in script:
+            script = "from pandas import Timedelta\n" + script
+        if "Timestamp" in script:
+            script = "from pandas import Timestamp\n" + script
+        formatted_script = _format_script(script)
+        if path_or_buf is None:
+            return formatted_script
+        with Path(path_or_buf).open("w", encoding="utf-8") as f:
+            f.write(formatted_script)
+        return None
+
+    statistics = get_dataframe_schema_statistics(dataframe_schema)
+
+    columns = {}
+    for colname, properties in statistics["columns"].items():
+        dtype = properties.get("dtype")
+        description = properties["description"]
+        title = properties["title"]
+        column_code = COLUMN_TEMPLATE.format(
+            dtype=(None if dtype is None else _get_dtype_string_alias(dtype)),
+            checks=_format_checks(properties["checks"]),
+            nullable=properties["nullable"],
+            unique=properties["unique"],
+            coerce=properties["coerce"],
+            required=properties["required"],
+            regex=properties["regex"],
+            description=(None if description is None else f'"{description}"'),
+            title=(None if title is None else f'"{title}"'),
+        )
+        columns[colname] = column_code.strip()
+
+    index = (
+        None
+        if statistics["index"] is None
+        else _format_index(statistics["index"])
+    )
+
+    column_str = ", ".join(f"'{k}': {v}" for k, v in columns.items())
+
+    script = SCRIPT_TEMPLATE.format(
+        columns=column_str,
+        checks=statistics["checks"],
+        index=index,
+        dtype=dataframe_schema.dtype,
+        coerce=dataframe_schema.coerce,
+        strict=dataframe_schema.strict,
+        name=dataframe_schema.name.__repr__(),
+        ordered=dataframe_schema.ordered,
+        unique=dataframe_schema.unique,
+        report_duplicates=f'"{dataframe_schema.report_duplicates}"',
+        unique_column_names=dataframe_schema.unique_column_names,
+        add_missing_columns=dataframe_schema.add_missing_columns,
+        title=dataframe_schema.title,
+        description=dataframe_schema.description,
+    ).strip()
+
+    # add pandas imports to handle datetime and timedelta.
+    if "Timedelta" in script:
+        script = "from pandas import Timedelta\n" + script
+    if "Timestamp" in script:
+        script = "from pandas import Timestamp\n" + script
+
+    formatted_script = _format_script(script)
+
+    if path_or_buf is None:
+        return formatted_script
+
+    with Path(path_or_buf).open("w", encoding="utf-8") as f:
+        f.write(formatted_script)
+
+
+class FrictionlessFieldParser:
+    """Parses frictionless data schema field specifications so we can convert
+    them to an equivalent Pandera :class:`~pandera.api.pandas.components.Column`
+    schema.
+
+    For this implementation, we are using field names, constraints and types
+    but leaving other frictionless parameters out (e.g. foreign keys, type
+    formats).
+
+    :param field: a field object from a frictionless schema.
+    :param primary_keys: the primary keys from a frictionless schema. These
+        are used to ensure primary key fields are treated properly - no
+        duplicates, no missing values etc.
+    """
+
+    def __init__(self, field, primary_keys) -> None:
+        self.constraints = field.constraints or {}
+        self.primary_keys = primary_keys
+        self.description = (
+            None if field.description == "" else field.description
+        )
+        self.title = None if field.title == "" else field.title
+        self.name = field.name
+        self.type = field.type
+
+    @property
+    def dtype(self) -> str:
+        """Determine what type of field this is, so we can feed that into
+        :class:`~pandera.dtypes.DataType`. If no type is specified in the
+        frictionless schema, we default to string values.
+
+        :returns: the pandas-compatible representation of this field type as a
+            string.
+        """
+        types = {
+            "string": "string",
+            "number": "float",
+            "integer": "int",
+            "boolean": "bool",
+            "object": "object",
+            "array": "object",
+            "date": "string",
+            "time": "string",
+            "datetime": "datetime64[ns]",
+            "year": "int",
+            "yearmonth": "string",
+            "duration": "timedelta64[ns]",
+            "geopoint": "object",
+            "geojson": "object",
+            "any": "string",
+        }
+        return (
+            "category"
+            if self.constraints.get("enum", None)
+            else types[self.type]
+        )
+
+    @property
+    def checks(self) -> list[dict[str, Any]] | None:
+        """Convert a set of frictionless schema field constraints into checks.
+
+        This parses the standard set of frictionless constraints which can be
+        found
+        `here <https://specs.frictionlessdata.io/table-schema/#constraints>`_
+        and maps them into the equivalent pandera checks.
+
+        :returns: a dictionary of pandera :class:`~pandera.api.checks.Check`
+            objects which capture the standard constraint logic of a
+            frictionless schema field.
+        """
+        if not self.constraints:
+            return None
+        constraints = self.constraints.copy()
+        checks = []
+
+        def _combine_constraints(check_name, min_constraint, max_constraint):
+            """Catches bounded constraints where we need to combine a min and max
+            pair of constraints into a single check."""
+            if min_constraint in constraints and max_constraint in constraints:
+                checks.append(
+                    {
+                        "min_value": constraints.pop(min_constraint),
+                        "max_value": constraints.pop(max_constraint),
+                        "options": {"check_name": check_name},
+                    }
+                )
+
+        _combine_constraints("in_range", "minimum", "maximum")
+        _combine_constraints("str_length", "minLength", "maxLength")
+
+        for constraint_type, constraint_value in constraints.items():
+            base_stats = None
+            check_name = None
+            if constraint_type == "maximum":
+                check_name = "less_than_or_equal_to"
+                base_stats = {
+                    "value": constraint_value,
+                }
+            elif constraint_type == "minimum":
+                check_name = "greater_than_or_equal_to"
+                base_stats = {
+                    "value": constraint_value,
+                }
+            elif constraint_type == "maxLength":
+                check_name = "str_length"
+                base_stats = {
+                    "min_value": None,
+                    "max_value": constraint_value,
+                }
+            elif constraint_type == "minLength":
+                check_name = "str_length"
+                base_stats = {
+                    "min_value": constraint_value,
+                    "max_value": None,
+                }
+            elif constraint_type == "pattern":
+                check_name = "str_matches"
+                base_stats = {
+                    "value": rf"^{constraint_value}$",
+                }
+            elif constraint_type == "enum":
+                check_name = "isin"
+                base_stats = {
+                    "value": constraint_value,
+                }
+
+            if base_stats and check_name:
+                base_stats["options"] = {"check_name": check_name}
+                checks.append(base_stats)
+
+        return checks or None
+
+    @property
+    def nullable(self) -> bool:
+        """Determine whether this field can contain missing values.
+
+        If a field is a primary key, this will return ``False``."""
+        if self.name in self.primary_keys:
+            return False
+        return not self.constraints.get("required", False)
+
+    @property
+    def unique(self) -> bool:
+        """Determine whether this field can contain duplicate values.
+
+        If a field is a primary key, this will return ``True``.
+        """
+
+        # only set column-level uniqueness property if `primary_keys` contains
+        # more than one field name.
+        if len(self.primary_keys) == 1 and self.name in self.primary_keys:
+            return True
+        return self.constraints.get("unique", False)
+
+    @property
+    def coerce(self) -> bool:
+        """Determine whether values within this field should be coerced.
+
+        This currently returns ``True`` for all fields within a frictionless
+        schema.
+        """
+        return True
+
+    @property
+    def required(self) -> bool:
+        """Determine whether this field must exist within the data.
+
+        This currently returns ``True`` for all fields within a frictionless
+        schema.
+        """
+        return True
+
+    @property
+    def regex(self) -> bool:
+        """Determine whether this field name should be used for regex matches.
+
+        This currently returns ``False`` for all fields within a frictionless
+        schema.
+        """
+        return False
+
+    def to_pandera_column(self) -> dict:
+        """Export this field to a column spec dictionary."""
+        return {
+            "checks": self.checks,
+            "coerce": self.coerce,
+            "nullable": self.nullable,
+            "unique": self.unique,
+            "dtype": self.dtype,
+            "required": self.required,
+            "name": self.name,
+            "regex": self.regex,
+            "description": self.description,
+            "title": self.title,
+        }
+
+
+def from_frictionless_schema(
+    schema: Union[str, Path, dict, FrictionlessSchema],
+) -> DataFrameSchema:
+    r"""Create a :class:`~pandera.api.pandas.container.DataFrameSchema` from either a
+    frictionless json/yaml schema file saved on disk, or from a frictionless
+    schema already loaded into memory.
+
+    Each field from the frictionless schema will be converted to a pandera
+    column specification using :class:`~pandera.io.pandas_io.FrictionlessFieldParser`
+    to map field characteristics to pandera column specifications.
+
+    :param schema: the frictionless schema object (or a
+        string/Path to the location on disk of a schema specification) to
+        parse.
+    :returns: dataframe schema with frictionless field specs converted to
+        pandera column checks and constraints for use as normal.
+    :rtype: :class:`~pandera.api.pandas.container.DataFrameSchema`
+
+    :example:
+
+    Here, we're defining a very basic frictionless schema in memory before
+    parsing it and then querying the resulting
+    :class:`~pandera.api.pandas.container.DataFrameSchema` object as per any other Pandera
+    schema:
+
+    .. doctest::
+        :skipif: SKIP_FRICTIONLESS_TESTS
+
+        >>> from pandera.io.pandas_io import from_frictionless_schema
+        >>>
+        >>> FRICTIONLESS_SCHEMA = {
+        ...     "fields": [
+        ...         {
+        ...             "name": "column_1",
+        ...             "type": "integer",
+        ...             "constraints": {"minimum": 10, "maximum": 99}
+        ...         },
+        ...         {
+        ...             "name": "column_2",
+        ...             "type": "string",
+        ...             "constraints": {"maxLength": 10, "pattern": "\\S+"}
+        ...         },
+        ...     ],
+        ...     "primaryKey": "column_1"
+        ... }
+        >>> schema = from_frictionless_schema(FRICTIONLESS_SCHEMA)
+        >>> schema.columns["column_1"].checks
+        [<Check in_range: in_range(10, 99)>]
+        >>> schema.columns["column_1"].required
+        True
+        >>> schema.columns["column_1"].unique
+        True
+        >>> schema.columns["column_2"].checks
+        [<Check str_length: str_length(None, 10)>, <Check str_matches: str_matches('^\S+$')>]
+    """
+    try:
+        from frictionless import Schema as FrictionlessSchema
+    except ImportError as exc:  # pragma: no cover
+        raise ImportError(_MISSING_FRICTIONLESS_IMPORT_ERROR_MESSAGE) from exc
+
+    if not isinstance(schema, FrictionlessSchema):
+        schema = FrictionlessSchema(schema)
+
+    assembled_schema = {
+        "columns": {
+            field.name: FrictionlessFieldParser(
+                field, schema.primary_key
+            ).to_pandera_column()
+            for field in schema.fields
+        },
+        "index": None,
+        "checks": None,
+        "coerce": True,
+        "strict": True,
+        # only set dataframe-level uniqueness if the frictionless primary
+        # key property specifies more than one field
+        "unique": (
+            None if len(schema.primary_key) == 1 else list(schema.primary_key)
+        ),
+    }
+    return deserialize_schema(assembled_schema)

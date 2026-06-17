@@ -1,0 +1,850 @@
+"""Test pandas engine."""
+
+import datetime as dt
+import warnings
+from typing import Any, Optional
+
+import hypothesis
+import hypothesis.extra.pandas as pd_st
+import hypothesis.strategies as st
+import numpy as np
+import pandas as pd
+import pyarrow
+import pytest
+import pytz
+from hypothesis import given
+
+import pandera.pandas as pa
+from pandera.engines import pandas_engine
+from pandera.engines.pandas_engine import PANDAS_3_0_0_PLUS
+from pandera.errors import ParserError, SchemaError
+from pandera.pandas import DataFrameModel, Field, check, errors
+
+UNSUPPORTED_DTYPE_CLS: set[Any] = set()
+
+
+def test_errors_exported_in_pandas_public_api() -> None:
+    """Ensure ``errors`` is explicitly exported from ``pandera.pandas``."""
+    assert "errors" in pa.__all__
+    assert pa.errors is errors
+
+
+@pytest.mark.parametrize(
+    "data_type",
+    [
+        data_type
+        for data_type in pandas_engine.Engine.get_registered_dtypes()
+        if data_type not in UNSUPPORTED_DTYPE_CLS
+    ],
+)
+def test_pandas_data_type(data_type):
+    """Test numpy engine DataType base class."""
+    if data_type.type is None:
+        # don't test data types that require parameters e.g. Category
+        return
+
+    pandas_engine.Engine.dtype(data_type)
+    pandas_engine.Engine.dtype(data_type.type)
+    pandas_engine.Engine.dtype(
+        getattr(data_type.type, "__name__", None)
+        or getattr(data_type.type, "name", None)
+        or data_type.type
+    )
+
+    with pytest.warns(UserWarning):
+        pd_dtype = pandas_engine.DataType(data_type.type)
+    with pytest.warns(UserWarning):
+        pd_dtype_from_str = pandas_engine.DataType(str(data_type.type))
+
+    assert not pd_dtype.check("foo")
+
+    if (
+        isinstance(data_type.type, pd.ArrowDtype)
+        and data_type.type == "string[pyarrow]"
+    ):
+        # the `string[pyarrow]` string alias is overloaded: it can be either
+        # pd.StringDtype or pd.ArrowDtype(pyarrow.string()). Pandera handles
+        # like this pandas, where `string[pyarrow]` is interpreted as pd.StringDtype
+        pass
+    else:
+        assert pd_dtype == pd_dtype_from_str
+
+
+@pytest.mark.parametrize(
+    "data_type_cls", list(pandas_engine.Engine.get_registered_dtypes())
+)
+def test_pandas_data_type_coerce(data_type_cls):
+    """
+    Test that pandas data type coercion will raise a ParserError. on failure.
+    """
+    try:
+        data_type = data_type_cls()
+    except TypeError:
+        # don't test data types that require parameters
+        return
+
+    try:
+        data_type.try_coerce(pd.Series(["1", "2", "a"]))
+    except ParserError as exc:
+        # Some data types may not populate failure_cases (e.g., ArrowList in pandas 3.0)
+        if exc.failure_cases is not None:
+            assert exc.failure_cases.shape[0] > 0
+
+
+@pytest.mark.parametrize(
+    "data_type_cls", list(pandas_engine.Engine.get_registered_dtypes())
+)
+def test_pandas_data_type_check(data_type_cls):
+    """
+    Test that pandas data type check results can be reduced.
+    """
+    try:
+        data_type = data_type_cls()
+    except TypeError:
+        # don't test data types that require parameters
+        return
+
+    try:
+        data_container = pd.Series([], dtype=data_type.type)
+    except TypeError:
+        # don't test complex data types, e.g. PythonDict, PythonTuple, etc
+        return
+
+    check_result = data_type.check(
+        pandas_engine.Engine.dtype(data_container.dtype), data_container
+    )
+    assert isinstance(check_result, bool) or isinstance(
+        check_result.all(), (bool, np.bool_)
+    )
+
+
+CATEGORIES = ["A", "B", "C"]
+
+
+@given(st.lists(st.sampled_from(CATEGORIES), min_size=5))
+def test_pandas_category_dtype(data):
+    """Test pandas_engine.Category correctly coerces valid categorical data."""
+    data = pd.Series(data)
+    dtype = pandas_engine.Category(CATEGORIES)
+    coerced_data = dtype.coerce(data)
+    assert dtype.check(coerced_data.dtype)
+
+    for _, value in data.items():
+        coerced_value = dtype.coerce_value(value)
+        assert coerced_value in CATEGORIES
+
+
+@given(st.lists(st.sampled_from(["X", "Y", "Z"]), min_size=5))
+def test_pandas_category_dtype_error(data):
+    """Test pandas_engine.Category raises TypeErrors on invalid data."""
+    data = pd.Series(data)
+    dtype = pandas_engine.Category(CATEGORIES)
+
+    with pytest.raises(TypeError):
+        dtype.coerce(data)
+
+    for _, value in data.items():
+        with pytest.raises(TypeError):
+            dtype.coerce_value(value)
+
+
+@given(st.lists(st.sampled_from([1, 0, 1.0, 0.0, True, False]), min_size=5))
+def test_pandas_boolean_native_type(data):
+    """Test native pandas bool type correctly coerces valid bool-like data."""
+    data = pd.Series(data)
+    dtype = pandas_engine.Engine.dtype("boolean")
+
+    # the BooleanDtype can't handle Series of non-boolean, mixed dtypes
+    if data.dtype == "object":
+        with pytest.raises(TypeError):
+            dtype.coerce(data)
+    else:
+        coerced_data = dtype.coerce(data)
+        assert dtype.check(coerced_data.dtype)
+
+    for _, value in data.items():
+        dtype.coerce_value(value)
+
+
+@given(st.lists(st.sampled_from(["A", "True", "False", 5, -1]), min_size=5))
+def test_pandas_boolean_native_type_error(data):
+    """Test native pandas bool type raises TypeErrors on non-bool-like data."""
+    data = pd.Series(data)
+    dtype = pandas_engine.Engine.dtype("boolean")
+
+    with pytest.raises(TypeError):
+        dtype.coerce(data)
+
+    for _, value in data.items():
+        with pytest.raises(TypeError):
+            dtype.coerce_value(value)
+
+
+@hypothesis.settings(max_examples=1000)
+@pytest.mark.parametrize("timezone_aware", [True, False])
+@given(
+    data=pd_st.series(
+        dtype="datetime64[ns]",
+        index=pd_st.range_indexes(min_size=5, max_size=10),
+    ),
+    timezone=st.sampled_from(pytz.all_timezones),
+)
+def test_pandas_datetimetz_dtype(timezone_aware, data, timezone):
+    """
+    Test that pandas timezone-aware datetime correctly handles timezone-aware
+    and non-timezone-aware data.
+    """
+    timezone = pytz.timezone(timezone)
+    tz_localize_kwargs = {"ambiguous": "NaT"}
+
+    expected_failure = False
+    if timezone_aware:
+        data = data.dt.tz_localize(pytz.utc)
+    else:
+        assert data.dt.tz is None
+        try:
+            data.dt.tz_localize(timezone, **tz_localize_kwargs)
+        except (pytz.exceptions.NonExistentTimeError, ValueError):
+            # pandas 3.0 raises ValueError instead of pytz.exceptions.NonExistentTimeError
+            expected_failure = True
+
+    # pylint: disable=unexpected-keyword-arg,no-value-for-parameter
+    dtype = pandas_engine.Engine.dtype(
+        pandas_engine.DateTime(
+            tz=timezone, tz_localize_kwargs=tz_localize_kwargs
+        )
+    )
+    if expected_failure:
+        # pandas 3.0 raises ValueError instead of pytz.exceptions.NonExistentTimeError
+        with pytest.raises((pytz.exceptions.NonExistentTimeError, ValueError)):
+            dtype.coerce(data)
+    else:
+        coerced_data = dtype.coerce(data)
+        assert coerced_data.dt.tz == timezone
+
+
+def generate_test_cases_time_zone_agnostic() -> list[
+    tuple[
+        list[dt.datetime],
+        dt.tzinfo | None,
+        bool,
+        list[dt.datetime],
+        bool,
+    ]
+]:
+    """
+    Generate test parameter combinations for a given list of datetime lists.
+
+    Returns:
+        List of tuples:
+        - List of input datetimes
+        - tz for DateTime constructor
+        - coerce flag for Field constructor
+        - expected output datetimes
+        - raises flag (True if an exception is expected, False otherwise)
+    """
+    datetimes = [
+        # multi tz and tz naive
+        [
+            pytz.timezone("America/New_York").localize(
+                dt.datetime(2023, 3, 1, 4)
+            ),
+            pytz.timezone("America/Los_Angeles").localize(
+                dt.datetime(2023, 3, 1, 5)
+            ),
+            dt.datetime(2023, 3, 1, 5),  # naive datetime
+        ],
+        # multi tz
+        [
+            pytz.timezone("America/New_York").localize(
+                dt.datetime(2023, 3, 1, 4)
+            ),
+            pytz.timezone("America/Los_Angeles").localize(
+                dt.datetime(2023, 3, 1, 5)
+            ),
+        ],
+        # tz naive
+        [dt.datetime(2023, 3, 1, 4), dt.datetime(2023, 3, 1, 5)],
+        # single tz
+        [
+            pytz.timezone("America/New_York").localize(
+                dt.datetime(2023, 3, 1, 4)
+            ),
+            pytz.timezone("America/New_York").localize(
+                dt.datetime(2023, 3, 1, 5)
+            ),
+        ],
+    ]
+
+    test_cases = []
+
+    for datetime_list in datetimes:
+        for coerce in [True, False]:
+            for tz in [
+                None,
+                pytz.timezone("America/Chicago"),
+                pytz.FixedOffset(120),  # 120 minutes = 2 hours offset
+            ]:
+                # Determine if the test should raise an exception
+                # Should raise error when:
+                # * coerce is False but there is a timezone-naive datetime
+                # * coerce is True but tz is not set
+                has_naive_datetime = any(
+                    dt.tzinfo is None for dt in datetime_list
+                )
+                raises = (not coerce and has_naive_datetime) or (
+                    coerce and tz is None
+                )
+
+                # Generate expected output
+                if raises:
+                    expected_output = None  # No expected output since an exception will be raised
+                else:
+                    if coerce:
+                        # Replace naive datetimes with localized ones
+                        expected_output_naive = [
+                            tz.localize(dtime) if tz is not None else dtime
+                            for dtime in datetime_list
+                            if dtime.tzinfo is None
+                        ]
+
+                        # Convert timezone-aware datetimes to the desired timezone
+                        expected_output_aware = [
+                            dtime.astimezone(
+                                tz
+                            )  # Use .astimezone() for aware datetimes
+                            for dtime in datetime_list
+                            if dtime.tzinfo is not None
+                        ]
+                        expected_output = (
+                            expected_output_naive + expected_output_aware
+                        )
+                    else:
+                        # ignore tz
+                        expected_output = datetime_list
+
+                test_case = (
+                    datetime_list,
+                    tz,
+                    coerce,
+                    expected_output,
+                    raises,
+                )
+                test_cases.append(test_case)
+
+    # define final test cases with improper type
+    datetime_list = [
+        pytz.timezone("America/New_York").localize(
+            dt.datetime(
+                2023,
+                3,
+                1,
+                4,
+            )
+        ),
+        "hello world",
+    ]
+    tz = None
+    expected_output = None
+    raises = True
+
+    bad_type_coerce = (datetime_list, tz, True, expected_output, raises)
+    bad_type_no_coerce = (datetime_list, tz, False, expected_output, raises)
+    test_cases.extend([bad_type_coerce, bad_type_no_coerce])  # type: ignore
+
+    return test_cases  # type: ignore
+
+
+@pytest.mark.parametrize(
+    "examples, tz, coerce, expected_output, raises",
+    generate_test_cases_time_zone_agnostic(),
+)
+def test_dt_time_zone_agnostic(examples, tz, coerce, expected_output, raises):
+    """Test that time_zone_agnostic works as expected"""
+
+    # pandas 3.0 uses datetime64[us] instead of datetime64[ns] by default,
+    # which causes dtype mismatch errors when not coercing
+    if PANDAS_3_0_0_PLUS and not coerce and not raises:
+        pytest.skip(
+            "pandas 3.0 uses datetime64[us] resolution, causing dtype mismatch"
+        )
+
+    # Testing using a pandera DataFrameModel rather than directly calling dtype coerce or validate because with
+    # time_zone_agnostic, dtype is set dynamically based on the input data
+    class SimpleSchema(DataFrameModel):
+        # pylint: disable=unexpected-keyword-arg,no-value-for-parameter
+        datetime_column: pandas_engine.DateTime(
+            time_zone_agnostic=True, tz=tz
+        ) = Field(coerce=coerce)
+
+    data = pd.DataFrame({"datetime_column": examples})
+
+    if raises:
+        with pytest.raises(
+            (SchemaError, errors.SchemaErrors, errors.ParserError)
+        ):
+            SimpleSchema.validate(data)
+    else:
+        validated_df = SimpleSchema.validate(data)
+        assert sorted(validated_df["datetime_column"].tolist()) == sorted(
+            expected_output
+        )
+
+
+def test_pandas_datetime_coerce_mixed_timezones_to_target_timezone():
+    """Test coercion of mixed timezones to a target timezone."""
+
+    class SimpleSchema(DataFrameModel):
+        # pylint: disable=unexpected-keyword-arg,no-value-for-parameter
+        timestamp: pandas_engine.DateTime(
+            tz=pytz.timezone("America/Chicago")
+        ) = Field(coerce=True)
+
+    data = pd.DataFrame(
+        {
+            "timestamp": [
+                pytz.timezone("America/Chicago").localize(
+                    dt.datetime(2023, 3, 1, 13)
+                ),
+                pytz.timezone("America/New_York").localize(
+                    dt.datetime(2023, 3, 1, 13)
+                ),
+            ]
+        }
+    )
+
+    validated_df = SimpleSchema.validate(data)
+
+    expected = [
+        pytz.timezone("America/Chicago").localize(dt.datetime(2023, 3, 1, 13)),
+        pytz.timezone("America/Chicago").localize(dt.datetime(2023, 3, 1, 12)),
+    ]
+    assert validated_df["timestamp"].tolist() == expected
+
+
+def test_pandas_datetime_time_zone_agnostic_coerce_mixed_offset_strings():
+    """Test timezone-agnostic coercion of mixed-offset strings."""
+
+    class SimpleSchema(DataFrameModel):
+        # pylint: disable=unexpected-keyword-arg,no-value-for-parameter
+        timestamp: pandas_engine.DateTime(
+            time_zone_agnostic=True, tz=pytz.UTC
+        ) = Field(coerce=True)
+
+    data = pd.DataFrame(
+        {
+            "timestamp": [
+                "2023-10-30T11:27:20.082372+01:00",
+                "2023-10-27T15:37:25.562608+02:00",
+            ]
+        }
+    )
+
+    validated_df = SimpleSchema.validate(data)
+
+    expected = [
+        pd.Timestamp("2023-10-30T10:27:20.082372Z"),
+        pd.Timestamp("2023-10-27T13:37:25.562608Z"),
+    ]
+    assert validated_df["timestamp"].tolist() == expected
+
+
+def test_pandas_datetime_call_to_datetime_respects_explicit_utc():
+    """Test datetime parsing when utc is already specified."""
+    dtype = pandas_engine.DateTime(to_datetime_kwargs={"utc": True})
+    data = pd.Series(
+        [
+            "2023-10-30T11:27:20.082372+01:00",
+            "2023-10-27T15:37:25.562608+02:00",
+        ]
+    )
+
+    result, should_try_utc = dtype._call_to_datetime(pd.to_datetime, data)
+
+    assert not should_try_utc
+    assert isinstance(result.dtype, pd.DatetimeTZDtype)
+    assert str(result.dtype.tz) == "UTC"
+
+
+def test_pandas_datetime_coerce_mixed_timezones_retries_with_utc():
+    """Test mixed-timezone coercion retries with utc on pandas errors."""
+    dtype = pandas_engine.DateTime()
+    data = pd.Series(
+        [
+            "2023-10-30T11:27:20.082372+01:00",
+            "2023-10-27T15:37:25.562608+02:00",
+        ]
+    )
+
+    def to_datetime_fn(data_container, **kwargs):
+        if kwargs.get("utc"):
+            return pd.to_datetime(data_container, utc=True)
+        raise ValueError(
+            "parsing datetimes with mixed time zones requires utc=True"
+        )
+
+    result = dtype._coerce_mixed_timezones(to_datetime_fn, data)
+
+    assert isinstance(result.dtype, pd.DatetimeTZDtype)
+    assert str(result.dtype.tz) == "UTC"
+
+
+def test_pandas_datetime_coerce_mixed_timezones_reraises_other_errors():
+    """Test mixed-timezone coercion re-raises unrelated parse errors."""
+    dtype = pandas_engine.DateTime()
+    data = pd.Series(["not_a_datetime"])
+
+    def to_datetime_fn(data_container, **kwargs):
+        raise ValueError("other error")
+
+    with pytest.raises(ValueError, match="other error"):
+        dtype._coerce_mixed_timezones(to_datetime_fn, data)
+
+
+def test_pandas_datetime_coerce_object_dtype_with_utc():
+    """Test mixed-timezone coercion retries when parsing returns object."""
+    dtype = pandas_engine.DateTime()
+    data = pd.Series(
+        [
+            "2023-10-30T11:27:20.082372+01:00",
+            "2023-10-27T15:37:25.562608+02:00",
+        ]
+    )
+
+    def to_datetime_fn(data_container, **kwargs):
+        if kwargs.get("utc"):
+            return pd.to_datetime(data_container, utc=True)
+        return pd.Series(data_container, dtype=object)
+
+    result = dtype._coerce_mixed_timezones(to_datetime_fn, data)
+
+    assert isinstance(result.dtype, pd.DatetimeTZDtype)
+    assert str(result.dtype.tz) == "UTC"
+
+
+def test_pandas_datetime_coerce_mixed_timezones_retries_after_warning():
+    """Test mixed-timezone coercion retries with utc after warnings."""
+    dtype = pandas_engine.DateTime()
+    data = pd.Series(
+        [
+            "2023-10-30T11:27:20.082372+01:00",
+            "2023-10-27T15:37:25.562608+02:00",
+        ]
+    )
+
+    def to_datetime_fn(data_container, **kwargs):
+        if kwargs.get("utc"):
+            return pd.to_datetime(data_container, utc=True)
+        warnings.warn(
+            "parsing datetimes with mixed time zones will raise an error "
+            "unless `utc=True`",
+            FutureWarning,
+            stacklevel=2,
+        )
+        return pd.Series(data_container, dtype=object)
+
+    result = dtype._coerce_mixed_timezones(to_datetime_fn, data)
+
+    assert isinstance(result.dtype, pd.DatetimeTZDtype)
+    assert str(result.dtype.tz) == "UTC"
+
+
+def test_pandas_datetime_call_to_datetime_reemits_other_warnings():
+    """Test non-UTC warnings are re-emitted during datetime parsing."""
+    dtype = pandas_engine.DateTime()
+    data = pd.Series(["2023-10-30T11:27:20.082372+01:00"])
+
+    def to_datetime_fn(data_container, **kwargs):
+        warnings.warn("other warning", FutureWarning, stacklevel=2)
+        return pd.to_datetime(data_container, **kwargs)
+
+    with pytest.warns(FutureWarning, match="other warning"):
+        result, should_try_utc = dtype._call_to_datetime(to_datetime_fn, data)
+
+    assert not should_try_utc
+    assert result.tolist() == pd.to_datetime(data).tolist()
+
+
+def test_pandas_datetime_helper_methods():
+    """Test helper methods used by mixed-timezone coercion."""
+    dtype = pandas_engine.DateTime()
+
+    assert not dtype._should_try_utc_conversion(ValueError("other error"))
+    assert not dtype._should_try_utc_conversion_warning(
+        UserWarning("other warning")
+    )
+    assert dtype._to_datetime_scalar(pd.NaT) is pd.NaT
+    assert not dtype._is_datetime_like_value("not_a_date")
+    assert not dtype._should_convert_object_dtype_with_utc(
+        pd.Series(pd.to_datetime(["2022-04-30T00:00:00Z"], utc=True))
+    )
+    assert not pandas_engine.DateTime(
+        to_datetime_kwargs={"utc": True}
+    )._should_convert_object_dtype_with_utc(
+        pd.Series(["2023-10-30T11:27:20.082372+01:00"])
+    )
+
+    rebuilt = dtype._rebuild_data_container(
+        pd.Index(["a", "b"], name="timestamp"), [1, 2]
+    )
+    assert isinstance(rebuilt, pd.Index)
+    assert rebuilt.name == "timestamp"
+
+    rebuilt_df = dtype._rebuild_data_container(
+        pd.DataFrame({"timestamp": [1, 2]}),
+        [{"timestamp": 3}, {"timestamp": 4}],
+    )
+    assert isinstance(rebuilt_df, pd.DataFrame)
+    assert rebuilt_df["timestamp"].tolist() == [3, 4]
+    assert dtype._coerce_scalar_to_timezone(pd.NaT, pytz.UTC) is pd.NaT
+
+
+def test_pandas_datetime_time_zone_agnostic_invalid_data_raises():
+    """Test timezone-agnostic coercion rejects non-datetime-like data."""
+    dtype = pandas_engine.DateTime(time_zone_agnostic=True, tz=pytz.UTC)
+
+    with pytest.raises(errors.ParserError, match="time_zone_agnostic=True"):
+        dtype._prepare_coerce_time_zone_agnostic(pd.Series(["not_a_datetime"]))
+
+
+@hypothesis.settings(max_examples=1000)
+@pytest.mark.parametrize("to_df", [True, False])
+@given(
+    data=pd_st.series(
+        dtype="datetime64[ns]",
+        index=pd_st.range_indexes(min_size=5, max_size=10),
+    )
+)
+def test_pandas_date_coerce_dtype(to_df, data):
+    """Test that pandas Date dtype coerces to datetime.date object."""
+
+    data = data.to_frame() if to_df else data
+
+    dtype = pandas_engine.Engine.dtype(pandas_engine.Date())
+    coerced_data = dtype.coerce(data)
+
+    if to_df:
+        assert (coerced_data.dtypes == "object").all() or (
+            coerced_data.isna().all(axis=None)
+            # pandas 3.0 may use datetime64[s] instead of datetime64[ns]
+            and coerced_data.dtypes.apply(
+                lambda x: str(x).startswith("datetime64")
+            ).all()
+        )
+
+        assert (
+            coerced_data.map(lambda x: isinstance(x, dt.date))
+            | coerced_data.isna()
+        ).all(axis=None)
+        return
+
+    assert (coerced_data.dtype == "object") or (
+        coerced_data.isna().all()
+        # pandas 3.0 may use datetime64[s] instead of datetime64[ns]
+        and str(coerced_data.dtype).startswith("datetime64")
+    )
+    assert (
+        coerced_data.map(lambda x: isinstance(x, dt.date))
+        | coerced_data.isna()
+    ).all()
+
+
+pandas_arrow_dtype_cases = (
+    (pd.Series([["a", "b", "c"]]), pyarrow.list_(pyarrow.string())),
+    (pd.Series([["a", "b"]]), pyarrow.list_(pyarrow.string(), 2)),
+    (
+        pd.Series([{"foo": 1, "bar": "a"}]),
+        pyarrow.struct([("foo", pyarrow.int64()), ("bar", pyarrow.string())]),
+    ),
+    (pd.Series([None, pd.NA, np.nan]), pyarrow.null),
+    (pd.Series([None, dt.date(1970, 1, 1)]), pyarrow.date32),
+    (pd.Series([None, dt.date(1970, 1, 1)]), pyarrow.date64),
+    (pd.Series([1, 2]), pyarrow.duration("ns")),
+    (pd.Series([1, 1e3, 1e6, 1e9, None]), pyarrow.time32("ms")),
+    (pd.Series([1, 1e3, 1e6, 1e9, None]), pyarrow.time64("ns")),
+    (
+        pd.Series(
+            [
+                [{"key": "a", "value": 1}, {"key": "b", "value": 2}],
+                [{"key": "c", "value": 3}],
+            ]
+        ),
+        pyarrow.map_(pyarrow.string(), pyarrow.int32()),
+    ),
+    (pd.Series(["foo", "barbaz", None]), pyarrow.binary()),
+    (pd.Series(["foo", "bar", "baz", None]), pyarrow.binary(3)),
+    (pd.Series(["foo", "barbaz", None]), pyarrow.large_binary()),
+    (pd.Series(["1", "1.0", "foo", "bar", None]), pyarrow.large_string()),
+    (
+        pd.Series(["a", "b", "c"]),
+        pyarrow.dictionary(pyarrow.int64(), pyarrow.string()),
+    ),
+)
+
+
+@pytest.mark.parametrize(("data", "dtype"), pandas_arrow_dtype_cases)
+def test_pandas_arrow_dtype(data, dtype):
+    """Test pyarrow dtype."""
+    if not pandas_engine.PYARROW_INSTALLED:
+        pytest.skip("Support of pandas 2.0.0+ with pyarrow only")
+    dtype = pandas_engine.Engine.dtype(dtype)
+
+    coerced_data = dtype.coerce(data)
+    assert coerced_data.dtype == dtype.type
+
+
+pandas_arrow_dtype_error_cases = (
+    (pd.Series([["a", "b", "c"]]), pyarrow.list_(pyarrow.int64())),
+    (pd.Series([["a", "b"]]), pyarrow.list_(pyarrow.string(), 3)),
+    (
+        pd.Series([{"foo": 1, "bar": "a"}]),
+        pyarrow.struct([("foo", pyarrow.string()), ("bar", pyarrow.int64())]),
+    ),
+    (pd.Series(["a", "1"]), pyarrow.null),
+    (pd.Series(["a", dt.date(1970, 1, 1), "1970-01-01"]), pyarrow.date32),
+    (pd.Series(["a", dt.date(1970, 1, 1), "1970-01-01"]), pyarrow.date64),
+    (pd.Series(["a"]), pyarrow.duration("ns")),
+    (pd.Series(["a", "b"]), pyarrow.time32("ms")),
+    (pd.Series(["a", "b"]), pyarrow.time64("ns")),
+    (
+        pd.Series(
+            [
+                [{"key": "a", "value": 1}, {"key": "b", "value": 2}],
+                [{"key": "c", "value": 3}],
+            ]
+        ),
+        pyarrow.map_(pyarrow.int32(), pyarrow.string()),
+    ),
+    (pd.Series([1, "foo", None]), pyarrow.binary()),
+    (pd.Series(["foo", "bar", "baz", None]), pyarrow.binary(2)),
+    (pd.Series([1, "foo", "barbaz", None]), pyarrow.large_binary()),
+    (pd.Series([1, 1.0, "foo", "bar", None]), pyarrow.large_string()),
+    (
+        pd.Series([1.0, 2.0, 3.0]),
+        pyarrow.dictionary(pyarrow.int64(), pyarrow.float64()),
+    ),
+    (
+        pd.Series(["a", "b", "c"]),
+        pyarrow.dictionary(pyarrow.int64(), pyarrow.int64()),
+    ),
+)
+
+
+@pytest.mark.parametrize(("data", "dtype"), pandas_arrow_dtype_error_cases)
+def test_pandas_arrow_dtype_error(data, dtype):
+    """Test pyarrow dtype raises Error on bad data."""
+    if not pandas_engine.PYARROW_INSTALLED:
+        pytest.skip("Support of pandas 2.0.0+ with pyarrow only")
+    dtype = pandas_engine.Engine.dtype(dtype)
+
+    with pytest.raises(
+        (
+            pyarrow.ArrowInvalid,
+            pyarrow.ArrowTypeError,
+            NotImplementedError,
+            ValueError,
+            AssertionError,
+        )
+    ):
+        coerced_data = dtype.coerce(data)
+        assert coerced_data.dtype == dtype.type
+
+
+def generate_test_cases_pandas_arrow_struct() -> list[
+    tuple[pd.DataFrame, pd.DataFrame]
+]:
+    """
+    Generate test parameter combinations for pandas arrow struct dtype.
+
+    Returns:
+        List of tuples:
+        - DataFrame with input struct data
+        - DataFrame with expected output
+    """
+    valid_data = pd.DataFrame(
+        {
+            "column": [
+                [
+                    {"field1": 1.0, "field2": "a"},
+                    {"field1": 2.0, "field2": "b"},
+                ],
+                [{"field1": 3.0, "field2": "c"}],
+            ]
+        }
+    )
+
+    invalid_data = pd.DataFrame(
+        {
+            "column": [
+                [{"field1": 0.0, "field2": "Test"}],
+                [{"field1": 2.0, "field2": "Test"}],
+            ]
+        }
+    )
+    invalid_data_expected = pd.DataFrame(
+        {
+            "index": [0, 1],
+            "failure_case": [
+                [{"field1": 0.0, "field2": "Test"}],
+                [{"field1": 2.0, "field2": "Test"}],
+            ],
+        }
+    )
+
+    mixed_data = pd.DataFrame(
+        {
+            "column": [
+                [{"field1": 4.0, "field2": "d"}],
+                [{"field1": None, "field2": "Test"}],
+            ]
+        }
+    )
+    mixed_data_expected = pd.DataFrame(
+        {"index": [1], "failure_case": [[{"field1": None, "field2": "Test"}]]}
+    )
+
+    return [
+        (valid_data, pd.DataFrame()),
+        (invalid_data, invalid_data_expected),
+        (mixed_data, mixed_data_expected),
+    ]
+
+
+@pytest.mark.parametrize(
+    ("data", "expected_output"), generate_test_cases_pandas_arrow_struct()
+)
+def test_pandas_arrow_struct_dtype(data, expected_output):
+    """Test pyarrow struct cases."""
+    if not pandas_engine.PYARROW_INSTALLED:
+        pytest.skip("Support of pandas 2.0.0+ with pyarrow only")
+
+    class SimpleSchema(DataFrameModel):
+        # pylint: disable=unexpected-keyword-arg,no-value-for-parameter
+        column: pd.ArrowDtype = Field(
+            coerce=True,
+            dtype_kwargs={
+                "pyarrow_dtype": pyarrow.list_(
+                    pyarrow.struct(
+                        {
+                            "field1": pyarrow.float32(),
+                            "field2": pyarrow.string(),
+                        }
+                    )
+                )
+            },
+        )
+
+        @check("column", element_wise=True)
+        @classmethod
+        def check_column(cls, element):
+            return all(e["field2"] != "Test" for e in element)
+
+    try:
+        SimpleSchema.validate(data)
+    except SchemaError as exc:
+        for (_, failure_case), (_, expected_value) in zip(
+            exc.failure_cases.iterrows(), expected_output.iterrows()
+        ):
+            assert (
+                failure_case["failure_case"] == expected_value["failure_case"]
+            )
