@@ -131,9 +131,10 @@ def test_register_is_idempotent():
     lru_cache ensures the second call is a no-op — registry state is preserved.
     """
     from pandera.backends.polars.register import register_polars_backends
+    from pandera.config import CONFIG
 
-    register_polars_backends()
-    register_polars_backends()
+    register_polars_backends(use_narwhals_backend=CONFIG.use_narwhals_backend)
+    register_polars_backends(use_narwhals_backend=CONFIG.use_narwhals_backend)
     # No exception should be raised; lru_cache makes second call a no-op
 
 
@@ -166,7 +167,7 @@ def test_polars_narwhals_activated_when_opted_in(monkeypatch, request):
     monkeypatch.setattr(CONFIG, "use_narwhals_backend", True)
     request.addfinalizer(register_polars_backends.cache_clear)
     register_polars_backends.cache_clear()
-    register_polars_backends()
+    register_polars_backends(use_narwhals_backend=True)
     backend = DataFrameSchema.get_backend(pl.DataFrame({}))
     assert isinstance(backend, NarwhalsDataFrameSchemaBackend)
 

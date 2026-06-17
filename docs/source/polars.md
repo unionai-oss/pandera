@@ -31,19 +31,22 @@ As of `pandera >= 0.21.0`, only `polars >= 1.0.0` is supported.
 :::{note}
 *new in 0.32.0*; Pandera ships an optional
 {ref}`Narwhals-powered backend <narwhals-backend>` that keeps validation
-fully lazy. To opt into the Narwhals backend do the following:
+fully lazy. Install the extra and enable it with either of the following:
 
 ```bash
-# install the narwhals extra
 pip install 'pandera[polars,narwhals]'
-
-# set the environment variable
 export PANDERA_USE_NARWHALS_BACKEND=True
-
-# or set the config option in Python
-import pandera
-pandera.set_config(use_narwhals_backend=True)
 ```
+
+```python
+import pandera.polars as pa
+
+pa.set_config(use_narwhals_backend=True)
+```
+
+You can call {func}`~pandera.polars.set_config` before or after importing
+``pandera.polars``. See {ref}`Backend registration <narwhals-backend-registration>`
+for details on lazy registration and runtime re-registration.
 :::
 
 Then you can use pandera schemas to validate polars dataframes. In the example

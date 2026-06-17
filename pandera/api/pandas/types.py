@@ -113,7 +113,7 @@ def get_backend_types(check_cls_fqn: str) -> BackendTypes:
         dataframe_datatypes.append(gpd.GeoDataFrame)
         series_datatypes.append(gpd.GeoSeries)
 
-    register_fn = {
+    register_fns = {
         "pandas": register_pandas_backend,
         "dask_expr": register_dask_backend,
         "dask": register_dask_backend,
@@ -121,7 +121,13 @@ def get_backend_types(check_cls_fqn: str) -> BackendTypes:
         "pyspark": register_pyspark_backend,
         "geopandas": register_geopandas_backend,
         "pandera": lambda: None,
-    }[mod_name]
+    }
+    try:
+        register_fn = register_fns[mod_name]
+    except KeyError as exc:
+        raise BackendNotFoundError(
+            f"Unknown backend module name: {mod_name!r}"
+        ) from exc
 
     register_fn()
 

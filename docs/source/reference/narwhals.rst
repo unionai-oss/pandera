@@ -8,8 +8,11 @@ Narwhals Backend
 Opt-in `Narwhals <https://narwhals-dev.github.io/narwhals/>`__-powered
 validation backend that powers the Polars, Ibis, and PySpark SQL
 integrations behind a single unified code path. Requires the ``narwhals``
-extra. See :ref:`Narwhals-powered backends <narwhals-backend>` for the
-user-facing guide.
+extra. Enable with ``PANDERA_USE_NARWHALS_BACKEND=True`` or
+:func:`~pandera.set_config`. Backends register lazily on first schema use;
+changing the flag at runtime triggers automatic re-registration. See
+:ref:`Backend registration <narwhals-backend-registration>` and
+:ref:`Narwhals-powered backends <narwhals-backend>` for the user-facing guide.
 
 Data Objects
 ------------

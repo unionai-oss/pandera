@@ -145,16 +145,27 @@ class BaseCheck(metaclass=MetaCheck):
         )
 
     @classmethod
-    def register_backend(cls, type_: type, backend: type[BaseCheckBackend]):
+    def register_backend(
+        cls,
+        type_: type,
+        backend: type[BaseCheckBackend],
+        *,
+        force: bool = False,
+    ):
         """Register a backend for the specified type."""
-        if (cls, type_) not in cls.BACKEND_REGISTRY:
-            cls.BACKEND_REGISTRY[(cls, type_)] = backend
+        key = (cls, type_)
+        if force or key not in cls.BACKEND_REGISTRY:
+            cls.BACKEND_REGISTRY[key] = backend
 
     @classmethod
     def get_backend(cls, check_obj: Any) -> type[BaseCheckBackend]:
         """Get the backend associated with the type of ``check_obj`` ."""
+        from pandera.backends.register_checks import (
+            register_default_check_backends,
+        )
 
         check_obj_cls = type(check_obj)
+        register_default_check_backends(check_obj_cls)
         classes = inspect.getmro(check_obj_cls)
         for _class in classes:
             try:

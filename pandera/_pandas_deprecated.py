@@ -55,6 +55,7 @@ from pandera.api.pandas.components import Column, Index, MultiIndex
 from pandera.api.pandas.container import DataFrameSchema as _DataFrameSchema
 from pandera.api.pandas.model import DataFrameModel as _DataFrameModel
 from pandera.api.parsers import Parser
+from pandera.config import set_config
 from pandera.decorators import check_input, check_io, check_output, check_types
 from pandera.dtypes import (
     Bool,
@@ -201,6 +202,8 @@ __all__ = [
     "UINT64",
     # pandera.engines.pandas_engine
     "pandas_version",
+    # config
+    "set_config",
     # checks
     "Check",
     # parsers

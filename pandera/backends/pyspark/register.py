@@ -1,7 +1,6 @@
 """Register pyspark backends."""
 
 from functools import lru_cache
-from typing import Optional
 
 import pyspark
 import pyspark.sql as pyspark_sql
@@ -21,27 +20,23 @@ if PYSPARK_CONNECT_AVAILABLE:
 @lru_cache
 def register_pyspark_backends(
     check_cls_fqn: str | None = None,
+    use_narwhals_backend: bool = False,
 ):
     """Register backends for PySpark DataFrame types.
 
-    Uses the Narwhals backends when ``PANDERA_USE_NARWHALS_BACKEND=True`` (or
-    ``pandera.config.CONFIG.use_narwhals_backend`` is ``True``); otherwise
+    Uses the Narwhals backends when ``use_narwhals_backend`` is ``True`` (from
+    ``PANDERA_USE_NARWHALS_BACKEND`` or ``pandera.config.CONFIG``); otherwise
     registers the native PySpark backends.
 
     Decorated with @lru_cache to prevent duplicate registrations across repeated
-    validate() calls. The backend choice is fixed at first call — programmatic
-    changes to ``CONFIG.use_narwhals_backend`` after registration require
-    ``register_pyspark_backends.cache_clear()`` to take effect.
+    validate() calls. The backend choice is part of the cache key; programmatic
+    changes to ``CONFIG.use_narwhals_backend`` after registration trigger
+    automatic re-registration via ``pandera.config.set_config``.
 
     This function is called at schema initialization in the _register_*_backends
     method.
     """
-    from pandera.api.checks import Check
-    from pandera.api.pyspark.components import Column
-    from pandera.api.pyspark.container import DataFrameSchema
-    from pandera.config import CONFIG
-
-    if CONFIG.use_narwhals_backend:
+    if use_narwhals_backend:
         try:
             import narwhals.stable.v1 as nw
         except ImportError as exc:  # pragma: no cover
@@ -52,35 +47,47 @@ def register_pyspark_backends(
             ) from exc
 
         import pandera.backends.narwhals.builtin_checks  # noqa: F401
+        from pandera.api.checks import Check
+        from pandera.api.pyspark.components import Column
+        from pandera.api.pyspark.container import DataFrameSchema
         from pandera.backends.narwhals.checks import NarwhalsCheckBackend
         from pandera.backends.narwhals.components import ColumnBackend
         from pandera.backends.narwhals.container import DataFrameSchemaBackend
 
         DataFrameSchema.register_backend(
-            pyspark_sql.DataFrame, DataFrameSchemaBackend
+            pyspark_sql.DataFrame, DataFrameSchemaBackend, force=True
         )
-        Column.register_backend(pyspark_sql.DataFrame, ColumnBackend)
-        Check.register_backend(pyspark_sql.DataFrame, NarwhalsCheckBackend)
+        Column.register_backend(
+            pyspark_sql.DataFrame, ColumnBackend, force=True
+        )
+        Check.register_backend(
+            pyspark_sql.DataFrame, NarwhalsCheckBackend, force=True
+        )
         # nw.DataFrame is intentionally NOT registered: PySpark SQL frames are always
         # SQL-lazy under narwhals (exposed as nw.LazyFrame, never nw.DataFrame). This
         # mirrors pandera/backends/ibis/register.py; contrast with polars, which also
         # registers nw.DataFrame because polars frames can be eager.
-        Check.register_backend(nw.LazyFrame, NarwhalsCheckBackend)
+        Check.register_backend(nw.LazyFrame, NarwhalsCheckBackend, force=True)
 
         if PYSPARK_CONNECT_AVAILABLE:
             DataFrameSchema.register_backend(
-                pyspark_connect.DataFrame, DataFrameSchemaBackend
+                pyspark_connect.DataFrame, DataFrameSchemaBackend, force=True
             )
-            Column.register_backend(pyspark_connect.DataFrame, ColumnBackend)
+            Column.register_backend(
+                pyspark_connect.DataFrame, ColumnBackend, force=True
+            )
             Check.register_backend(
-                pyspark_connect.DataFrame, NarwhalsCheckBackend
+                pyspark_connect.DataFrame, NarwhalsCheckBackend, force=True
             )
     else:
         from pandera._patch_numpy2 import _patch_numpy2
 
         _patch_numpy2()
 
+        from pandera.api.checks import Check
         from pandera.api.dataframe.components import ComponentSchema
+        from pandera.api.pyspark.components import Column
+        from pandera.api.pyspark.container import DataFrameSchema
         from pandera.backends.pyspark import builtin_checks  # noqa: F401
         from pandera.backends.pyspark.checks import PySparkCheckBackend
         from pandera.backends.pyspark.column import ColumnSchemaBackend
@@ -92,13 +99,17 @@ def register_pyspark_backends(
         )
 
         # Register PySpark SQL DataFrame
-        Check.register_backend(pyspark_sql.DataFrame, PySparkCheckBackend)
-        ComponentSchema.register_backend(
-            pyspark_sql.DataFrame, ColumnSchemaBackend
+        Check.register_backend(
+            pyspark_sql.DataFrame, PySparkCheckBackend, force=True
         )
-        Column.register_backend(pyspark_sql.DataFrame, PySparkColumnBackend)
+        ComponentSchema.register_backend(
+            pyspark_sql.DataFrame, ColumnSchemaBackend, force=True
+        )
+        Column.register_backend(
+            pyspark_sql.DataFrame, PySparkColumnBackend, force=True
+        )
         DataFrameSchema.register_backend(
-            pyspark_sql.DataFrame, PySparkDataFrameSchemaBackend
+            pyspark_sql.DataFrame, PySparkDataFrameSchemaBackend, force=True
         )
 
         # Note: pyspark.pandas DataFrames use pandas-like API and should use
@@ -107,14 +118,16 @@ def register_pyspark_backends(
         # Register Spark Connect DataFrame, if available
         if PYSPARK_CONNECT_AVAILABLE:
             Check.register_backend(
-                pyspark_connect.DataFrame, PySparkCheckBackend
+                pyspark_connect.DataFrame, PySparkCheckBackend, force=True
             )
             ComponentSchema.register_backend(
-                pyspark_connect.DataFrame, ColumnSchemaBackend
+                pyspark_connect.DataFrame, ColumnSchemaBackend, force=True
             )
             Column.register_backend(
-                pyspark_connect.DataFrame, PySparkColumnBackend
+                pyspark_connect.DataFrame, PySparkColumnBackend, force=True
             )
             DataFrameSchema.register_backend(
-                pyspark_connect.DataFrame, PySparkDataFrameSchemaBackend
+                pyspark_connect.DataFrame,
+                PySparkDataFrameSchemaBackend,
+                force=True,
             )

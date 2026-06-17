@@ -37,6 +37,11 @@ class PanderaConfig:
     export PANDERA_KEEP_CACHED_DATAFRAME=True
     export PANDERA_USE_NARWHALS_BACKEND=True
     export SILENCE_WARNING_PYDANTIC_MODEL=true
+
+    ``use_narwhals_backend``: when ``True``, Polars, Ibis, and PySpark SQL use
+    the Narwhals-powered validation backend. Backends register lazily on first
+    schema use; changing this flag via :func:`~pandera.config.set_config`
+    re-registers backends that were already registered in the current process.
     """
 
     validation_enabled: bool = True
@@ -121,7 +126,15 @@ def set_config(
         keep_cached_dataframe: Whether to keep cached dataframes after validation (default: None)
         use_narwhals_backend: Enable Narwhals-powered backend for compatible backends (default: None)
         silenced_warnings: List of warning names to silence (default: None)
+
+    Note:
+        Changing ``use_narwhals_backend`` re-registers Polars, Ibis, and PySpark
+        validation backends that were already registered in the current process.
+        Backends that have not yet been registered pick up the new value on first
+        schema use. See the Narwhals backend documentation for details.
     """
+    previous_use_narwhals_backend = CONFIG.use_narwhals_backend
+
     if validation_enabled is not None:
         CONFIG.validation_enabled = validation_enabled
     if validation_depth is not None:
@@ -134,6 +147,18 @@ def set_config(
         CONFIG.use_narwhals_backend = use_narwhals_backend
     if silenced_warnings is not None:
         CONFIG.silenced_warnings = silenced_warnings
+
+    if (
+        use_narwhals_backend is not None
+        and use_narwhals_backend != previous_use_narwhals_backend
+    ):
+        from pandera.backends.narwhals.register import (
+            reregister_narwhals_compatible_backends,
+        )
+
+        reregister_narwhals_compatible_backends(
+            use_narwhals_backend=use_narwhals_backend
+        )
 
 
 @contextmanager

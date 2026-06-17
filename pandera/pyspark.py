@@ -107,5 +107,5 @@ __all__ = [
     # version
     "__version__",
     # config
-    "config",
+    "set_config",
 ]

@@ -75,3 +75,5 @@ Configuration
    pandera.config.get_config_context
    pandera.config.get_config_global
    pandera.config.reset_config_context
+   pandera.config.set_config
+   pandera.set_config

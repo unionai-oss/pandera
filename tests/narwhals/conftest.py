@@ -47,11 +47,12 @@ def _ensure_narwhals_backends_registered():
     """
     from pandera.backends.ibis.register import register_ibis_backends
     from pandera.backends.polars.register import register_polars_backends
+    from pandera.config import CONFIG
 
     register_polars_backends.cache_clear()
     register_ibis_backends.cache_clear()
-    register_polars_backends()
-    register_ibis_backends()
+    register_polars_backends(use_narwhals_backend=CONFIG.use_narwhals_backend)
+    register_ibis_backends(use_narwhals_backend=CONFIG.use_narwhals_backend)
 
     try:
         import pyspark.sql  # noqa: F401
@@ -59,7 +60,9 @@ def _ensure_narwhals_backends_registered():
         from pandera.backends.pyspark.register import register_pyspark_backends
 
         register_pyspark_backends.cache_clear()
-        register_pyspark_backends()
+        register_pyspark_backends(
+            use_narwhals_backend=CONFIG.use_narwhals_backend
+        )
     except ImportError:
         pass
 

@@ -27,9 +27,17 @@ class BaseParser(metaclass=MetaParser):
         self.name = name
 
     @classmethod
-    def register_backend(cls, type_: type, backend: type[BaseParserBackend]):
+    def register_backend(
+        cls,
+        type_: type,
+        backend: type[BaseParserBackend],
+        *,
+        force: bool = False,
+    ):
         """Register a backend for the specified type."""
-        cls.BACKEND_REGISTRY[(cls, type_)] = backend
+        key = (cls, type_)
+        if force or key not in cls.BACKEND_REGISTRY:
+            cls.BACKEND_REGISTRY[key] = backend
 
     @classmethod
     def get_backend(cls, parse_obj: Any) -> type[BaseParserBackend]:

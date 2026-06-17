@@ -398,21 +398,26 @@ leverage the pandas validation backend.
 :::{important}
 *new in 0.32.0*; Pandera ships an optional
 {ref}`Narwhals-powered backend <narwhals-backend>` that keeps validation
-fully lazy when possible. To opt into the Narwhals backend do the following:
+fully lazy when possible. Install the extra for each backend you use and
+enable it with either of the following:
 
 ```bash
-# install the narwhals extra with the supported dataframe libraries
-pip install 'pandera[narwhals,pyspark]'    # for PySpark SQL
-pip install 'pandera[narwhals,polars]'    # for Polars
-pip install 'pandera[narwhals,ibis]'      # for Ibis
+pip install 'pandera[narwhals,polars]'    # Polars
+pip install 'pandera[narwhals,ibis]'      # Ibis
+pip install 'pandera[narwhals,pyspark]'   # PySpark SQL
 
-# set the environment variable
 export PANDERA_USE_NARWHALS_BACKEND=True
+```
 
-# or set the config option in Python
+```python
 import pandera
+
 pandera.set_config(use_narwhals_backend=True)
 ```
+
+You can call {func}`~pandera.set_config` before or after importing a pandera
+backend module. See {ref}`Backend registration <narwhals-backend-registration>`
+for details on lazy registration and runtime re-registration.
 :::
 
 
