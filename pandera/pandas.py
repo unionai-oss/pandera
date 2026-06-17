@@ -172,7 +172,7 @@ __all__ = [
     # dtypes
     "dtypes",
     # config
-    "config",
+    "set_config",
 ]
 
 

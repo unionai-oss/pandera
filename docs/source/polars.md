@@ -41,10 +41,10 @@ export PANDERA_USE_NARWHALS_BACKEND=True
 ```python
 import pandera.polars as pa
 
-pa.config.set_config(use_narwhals_backend=True)
+pa.set_config(use_narwhals_backend=True)
 ```
 
-You can call {func}`~pandera.set_config` before or after importing
+You can call {func}`~pandera.polars.set_config` before or after importing
 ``pandera.polars``. See {ref}`Backend registration <narwhals-backend-registration>`
 for details on lazy registration and runtime re-registration.
 :::

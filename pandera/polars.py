@@ -34,5 +34,5 @@ __all__ = [
     "infer_dataframe_schema",
     "infer_schema",
     "PolarsData",
-    "config",
+    "set_config",
 ]

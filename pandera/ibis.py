@@ -32,5 +32,5 @@ __all__ = [
     "infer_dataframe_schema",
     "infer_schema",
     "IbisData",
-    "config",
+    "set_config",
 ]
