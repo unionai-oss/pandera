@@ -138,7 +138,7 @@ __all__ = [
     "typing",
     "errors",
     "dtypes",
-    "config",
+    "set_config",
 ]
 
 if platform.system() != "Windows":
