@@ -161,6 +161,7 @@ def _serialize_component_stats(component_stats):
                 "coerce",
                 "required",
                 "regex",
+                "drop_invalid_rows",
             ]
             if key in component_stats
         },
@@ -254,6 +255,7 @@ def serialize_schema(
         "add_missing_columns": dataframe_schema.add_missing_columns,
         "title": dataframe_schema.title,
         "description": dataframe_schema.description,
+        "drop_invalid_rows": dataframe_schema.drop_invalid_rows,
     }
     if lib != "pandas":
         out["dataframe_library"] = lib
@@ -342,6 +344,7 @@ def _deserialize_component_stats(serialized_component_stats):
                 "coerce",
                 "required",
                 "regex",
+                "drop_invalid_rows",
             ]
             if key in serialized_component_stats
         },
@@ -446,6 +449,7 @@ def deserialize_schema(serialized_schema):
         title=serialized_schema.get("title", None),
         description=serialized_schema.get("description", None),
         metadata=metadata,
+        drop_invalid_rows=serialized_schema.get("drop_invalid_rows", False),
     )
 
 

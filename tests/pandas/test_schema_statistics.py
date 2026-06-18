@@ -526,6 +526,7 @@ def test_get_dataframe_schema_statistics():
                 "regex": False,
                 "description": "Integer column with title",
                 "title": "integer_col",
+                "drop_invalid_rows": False,
             },
             "float": {
                 "dtype": DEFAULT_FLOAT,
@@ -554,6 +555,7 @@ def test_get_dataframe_schema_statistics():
                 "regex": False,
                 "description": "Float col no title",
                 "title": None,
+                "drop_invalid_rows": False,
             },
             "str": {
                 "dtype": pandas_engine.Engine.dtype(str),
@@ -574,6 +576,7 @@ def test_get_dataframe_schema_statistics():
                 "regex": False,
                 "description": None,
                 "title": None,
+                "drop_invalid_rows": False,
             },
         },
         "index": [
@@ -595,6 +598,7 @@ def test_get_dataframe_schema_statistics():
                 "unique": False,
                 "description": None,
                 "title": None,
+                "drop_invalid_rows": False,
             }
         ],
         "coerce": False,
@@ -640,6 +644,7 @@ def test_get_series_schema_statistics():
         "unique": False,
         "description": None,
         "title": None,
+        "drop_invalid_rows": False,
     }
 
 
@@ -683,6 +688,7 @@ def test_get_series_schema_statistics():
                     "unique": False,
                     "description": None,
                     "title": None,
+                    "drop_invalid_rows": False,
                 }
             ],
         ]
