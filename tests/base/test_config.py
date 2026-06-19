@@ -1,8 +1,19 @@
 """Unit tests for pandera/config.py."""
 
+from concurrent.futures import ThreadPoolExecutor
+from threading import Event
+
 import pytest
 
-from pandera.config import _CONTEXT_CONFIG, CONFIG, config_context, set_config
+from pandera.config import (
+    _CONTEXT_CONFIG,
+    CONFIG,
+    ValidationDepth,
+    config_context,
+    get_config_context,
+    reset_config_context,
+    set_config,
+)
 
 
 def test_set_config_updates_attributes():
@@ -35,6 +46,8 @@ def test_set_config_updates_attributes():
     finally:
         # Restore original values
         set_config(**original_values)
+        CONFIG.validation_depth = original_values["validation_depth"]
+        reset_config_context()
 
 
 def test_set_config_invalid_key():
@@ -146,3 +159,34 @@ def test_config_context_silenced_warnings():
     finally:
         # Restore to ensure test isolation (this shouldn't change anything)
         pass
+
+
+def test_config_context_is_thread_isolated():
+    """Concurrent config contexts should not restore another thread's state."""
+    thread_a_entered = Event()
+    thread_b_entered = Event()
+    release_thread_b = Event()
+
+    def worker_a():
+        with config_context(validation_depth=ValidationDepth.SCHEMA_AND_DATA):
+            thread_a_entered.set()
+            assert thread_b_entered.wait(timeout=5)
+        release_thread_b.set()
+
+    def worker_b():
+        assert thread_a_entered.wait(timeout=5)
+        with config_context(validation_depth=ValidationDepth.DATA_ONLY):
+            thread_b_entered.set()
+            assert release_thread_b.wait(timeout=5)
+
+    reset_config_context()
+    try:
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            futures = [pool.submit(worker_a), pool.submit(worker_b)]
+            for future in futures:
+                future.result()
+
+        config = get_config_context(validation_depth_default=None)
+        assert config.validation_depth is None
+    finally:
+        reset_config_context()

@@ -2,6 +2,7 @@
 
 import os
 from contextlib import contextmanager
+from contextvars import ContextVar
 from copy import copy
 from dataclasses import dataclass, field
 from enum import Enum
@@ -106,7 +107,41 @@ def _config_from_env_vars():
 
 # this config variable should be accessible globally
 CONFIG = _config_from_env_vars()
-_CONTEXT_CONFIG = copy(CONFIG)
+
+
+def _copy_config(config: PanderaConfig) -> PanderaConfig:
+    config_copy = copy(config)
+    config_copy.silenced_warnings = config.silenced_warnings.copy()
+    return config_copy
+
+
+class _ContextConfig:
+    """Context-local config proxy."""
+
+    def __init__(self, config: PanderaConfig) -> None:
+        object.__setattr__(
+            self,
+            "_config",
+            ContextVar("pandera_context_config", default=config),
+        )
+
+    def get(self) -> PanderaConfig:
+        return self._config.get()
+
+    def set(self, config: PanderaConfig):
+        return self._config.set(config)
+
+    def reset(self, token) -> None:
+        self._config.reset(token)
+
+    def __getattr__(self, name: str):
+        return getattr(self.get(), name)
+
+    def __setattr__(self, name: str, value) -> None:
+        setattr(self.get(), name, value)
+
+
+_CONTEXT_CONFIG = _ContextConfig(_copy_config(CONFIG))
 
 
 def set_config(
@@ -171,45 +206,33 @@ def config_context(
     silenced_warnings: list[str] | None = None,
 ):
     """Temporarily set pandera config options to custom settings."""
-    # Save the current state of _CONTEXT_CONFIG
-    original_validation_enabled = _CONTEXT_CONFIG.validation_enabled
-    original_validation_depth = _CONTEXT_CONFIG.validation_depth
-    original_cache_dataframe = _CONTEXT_CONFIG.cache_dataframe
-    original_keep_cached_dataframe = _CONTEXT_CONFIG.keep_cached_dataframe
-    original_use_narwhals_backend = _CONTEXT_CONFIG.use_narwhals_backend
-    original_silenced_warnings = _CONTEXT_CONFIG.silenced_warnings.copy()
+    context_config = _copy_config(_CONTEXT_CONFIG.get())
 
+    # Apply new values
+    if validation_enabled is not None:
+        context_config.validation_enabled = validation_enabled
+    if validation_depth is not None:
+        context_config.validation_depth = validation_depth
+    if cache_dataframe is not None:
+        context_config.cache_dataframe = cache_dataframe
+    if keep_cached_dataframe is not None:
+        context_config.keep_cached_dataframe = keep_cached_dataframe
+    if use_narwhals_backend is not None:
+        context_config.use_narwhals_backend = use_narwhals_backend
+    if silenced_warnings is not None:
+        context_config.silenced_warnings = silenced_warnings.copy()
+
+    token = _CONTEXT_CONFIG.set(context_config)
     try:
-        # Apply new values
-        if validation_enabled is not None:
-            _CONTEXT_CONFIG.validation_enabled = validation_enabled
-        if validation_depth is not None:
-            _CONTEXT_CONFIG.validation_depth = validation_depth
-        if cache_dataframe is not None:
-            _CONTEXT_CONFIG.cache_dataframe = cache_dataframe
-        if keep_cached_dataframe is not None:
-            _CONTEXT_CONFIG.keep_cached_dataframe = keep_cached_dataframe
-        if use_narwhals_backend is not None:
-            _CONTEXT_CONFIG.use_narwhals_backend = use_narwhals_backend
-        if silenced_warnings is not None:
-            _CONTEXT_CONFIG.silenced_warnings = silenced_warnings.copy()
-
         yield
     finally:
-        # Restore original state of _CONTEXT_CONFIG
-        _CONTEXT_CONFIG.validation_enabled = original_validation_enabled
-        _CONTEXT_CONFIG.validation_depth = original_validation_depth
-        _CONTEXT_CONFIG.cache_dataframe = original_cache_dataframe
-        _CONTEXT_CONFIG.keep_cached_dataframe = original_keep_cached_dataframe
-        _CONTEXT_CONFIG.use_narwhals_backend = original_use_narwhals_backend
-        _CONTEXT_CONFIG.silenced_warnings = original_silenced_warnings
+        _CONTEXT_CONFIG.reset(token)
 
 
 def reset_config_context(conf: PanderaConfig | None = None):
     """Reset the context configuration to the global configuration."""
 
-    global _CONTEXT_CONFIG
-    _CONTEXT_CONFIG = copy(conf or CONFIG)
+    _CONTEXT_CONFIG.set(_copy_config(conf or CONFIG))
 
 
 def get_config_global() -> PanderaConfig:
@@ -222,7 +245,7 @@ def get_config_context(
     | None = ValidationDepth.SCHEMA_AND_DATA,
 ) -> PanderaConfig:
     """Gets the configuration context."""
-    config = copy(_CONTEXT_CONFIG)
+    config = _copy_config(_CONTEXT_CONFIG.get())
 
     if config.validation_depth is None and validation_depth_default:
         config.validation_depth = validation_depth_default
