@@ -164,6 +164,8 @@ jobs:
           nox -v -db uv --non-interactive --session 'tests-${{ matrix.python-version }}(extra=None, pandas=None, pydantic=None, polars=None)'
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
+        with:
+          flags: unit-tests-base-${{ runner.os }}-py${{ matrix.python-version }}
         env:
           CODECOV_TOKEN: ${{ secrets.PANDERA_CODECOV_TOKEN }}
 
@@ -225,6 +227,8 @@ jobs:
         run: nox -v -db uv --non-interactive --session "tests-${{ matrix.python-version }}(extra='pandas', pandas='${{ matrix.pandas-version }}', pydantic='${{ matrix.pydantic-version }}', polars=None)"
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
+        with:
+          flags: unit-tests-pandas-${{ runner.os }}-py${{ matrix.python-version }}-pandas${{ matrix.pandas-version }}-pydantic${{ matrix.pydantic-version }}
         env:
           CODECOV_TOKEN: ${{ secrets.PANDERA_CODECOV_TOKEN }}
 
@@ -292,6 +296,8 @@ jobs:
         run: nox -v -db uv --non-interactive --session "tests-${{ matrix.python-version }}(extra='${{ matrix.extra }}', pandas='${{ matrix.pandas-version }}', pydantic='${{ matrix.pydantic-version }}', polars=None)"
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
+        with:
+          flags: unit-tests-${{ matrix.extra }}-${{ runner.os }}-py${{ matrix.python-version }}-pandas${{ matrix.pandas-version }}-pydantic${{ matrix.pydantic-version }}
         env:
           CODECOV_TOKEN: ${{ secrets.PANDERA_CODECOV_TOKEN }}
 
@@ -402,6 +408,8 @@ jobs:
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
+        with:
+          flags: unit-tests-${{ matrix.extra }}-${{ runner.os }}-py${{ matrix.python-version }}-pandas${{ matrix.pandas-version }}-polars${{ matrix.polars-version }}
         env:
           CODECOV_TOKEN: ${{ secrets.PANDERA_CODECOV_TOKEN }}
 
@@ -465,6 +473,8 @@ jobs:
         run: nox -v -db uv --non-interactive --session "tests_narwhals_backend-${{ matrix.python-version }}(extra='${{ matrix.extra }}')"
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
+        with:
+          flags: unit-tests-narwhals-backend-${{ matrix.extra }}-py${{ matrix.python-version }}
         env:
           CODECOV_TOKEN: ${{ secrets.PANDERA_CODECOV_TOKEN }}
 
@@ -517,6 +527,8 @@ jobs:
         run: nox -v -db uv --non-interactive --session "tests-${{ matrix.python-version }}(extra='narwhals', pandas=None, pydantic=None, polars=None)"
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
+        with:
+          flags: unit-tests-narwhals-${{ runner.os }}-py${{ matrix.python-version }}
         env:
           CODECOV_TOKEN: ${{ secrets.PANDERA_CODECOV_TOKEN }}
 
