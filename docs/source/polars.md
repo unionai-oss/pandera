@@ -876,3 +876,13 @@ not yet supported with polars DataFrames.
 Here is a list of supported and unsupported features. You can
 refer to the {ref}`supported features matrix <supported-features>` to see
 which features are implemented in the polars validation backend.
+
+:::{note}
+{ref}`Column name regex matching <column-name-regex>` uses polars' native regex
+engine (the Rust [`regex`](https://docs.rs/regex/latest/regex/) crate), which
+differs from the pandas validation backend's use of Python's built-in
+[`re`](https://docs.python.org/3/library/re.html) module. Patterns relying on
+features that the Rust `regex` crate does not support—such as look-around
+assertions and backreferences—are not available when validating polars
+DataFrames.
+:::

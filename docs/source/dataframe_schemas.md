@@ -257,6 +257,18 @@ In the case that your dataframe has multiple columns that share common
 statistical properties, you might want to specify a regex pattern that matches
 a set of meaningfully grouped columns that have `str` names.
 
+:::{note}
+The pandas and polars validation backends use different regular expression
+engines to match column names, so the same pattern may behave differently
+depending on the backend. The pandas backend uses Python's built-in
+[`re`](https://docs.python.org/3/library/re.html) module, while the polars
+backend uses polars' native regex engine (the Rust
+[`regex`](https://docs.rs/regex/latest/regex/) crate). Patterns that rely on
+features unsupported by the Rust `regex` crate—such as look-around assertions
+and backreferences—work with the pandas backend but not with the polars
+backend. See {ref}`polars` for more details.
+:::
+
 ```{code-cell} python
 import numpy as np
 import pandas as pd
