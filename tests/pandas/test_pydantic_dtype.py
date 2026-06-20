@@ -2,7 +2,7 @@
 
 import pandas as pd
 import pytest
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 import pandera.pandas as pa
 from pandera.api.pandas.array import ArraySchema
@@ -125,3 +125,47 @@ def test_pydantic_model_coerce_numbers_to_str():
         "age": [25, 30, 22],
         "city": ["New York", "London", "Paris"],
     }
+
+
+def test_pydantic_model_preserves_field_aliases_with_strict_schema():
+    """Strict schemas should accept and preserve pydantic field aliases."""
+
+    class Row(BaseModel):
+        name: str = Field(alias="Name")
+        amount: float = Field(alias="Amount in local currency")
+
+    schema = pa.DataFrameSchema(
+        dtype=PydanticModel(Row),
+        coerce=True,
+        strict=True,
+    )
+    data = pd.DataFrame(
+        {
+            "Name": ["foo", "bar"],
+            "Amount in local currency": [1.32, 3.34],
+        }
+    )
+
+    validated = schema.validate(data)
+    assert validated.columns.tolist() == [
+        "Name",
+        "Amount in local currency",
+    ]
+    pd.testing.assert_frame_equal(validated, data)
+
+
+def test_pydantic_model_validates_empty_dataframe_with_aliases():
+    """Empty dataframes should validate against aliased pydantic fields."""
+
+    class Row(BaseModel):
+        name: str = Field(alias="Name")
+        amount: float = Field(alias="Amount in local currency")
+
+    schema = pa.DataFrameSchema(dtype=PydanticModel(Row), coerce=True, strict=True)
+    data = pd.DataFrame(columns=["Name", "Amount in local currency"])
+    validated = schema.validate(data)
+    assert validated.columns.tolist() == [
+        "Name",
+        "Amount in local currency",
+    ]
+    assert validated.empty

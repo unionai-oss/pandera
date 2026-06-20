@@ -227,7 +227,9 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
             _orig_coerce = schema_component.coerce
 
             try:
-                if schema.dtype is not None:
+                if schema.dtype is not None and not isinstance(
+                    schema.dtype, pandas_engine.PydanticModel
+                ):
                     # override column dtype with dataframe dtype
                     schema_component.dtype = schema.dtype  # type: ignore
 
