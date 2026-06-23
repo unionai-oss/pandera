@@ -165,6 +165,7 @@ jobs:
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
         with:
+          fail_ci_if_error: false
           flags: unit-tests-base-${{ runner.os }}-py${{ matrix.python-version }}
         env:
           CODECOV_TOKEN: ${{ secrets.PANDERA_CODECOV_TOKEN }}
@@ -228,6 +229,7 @@ jobs:
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
         with:
+          fail_ci_if_error: false
           flags: unit-tests-pandas-${{ runner.os }}-py${{ matrix.python-version }}-pandas${{ matrix.pandas-version }}-pydantic${{ matrix.pydantic-version }}
         env:
           CODECOV_TOKEN: ${{ secrets.PANDERA_CODECOV_TOKEN }}
@@ -297,6 +299,7 @@ jobs:
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
         with:
+          fail_ci_if_error: false
           flags: unit-tests-${{ matrix.extra }}-${{ runner.os }}-py${{ matrix.python-version }}-pandas${{ matrix.pandas-version }}-pydantic${{ matrix.pydantic-version }}
         env:
           CODECOV_TOKEN: ${{ secrets.PANDERA_CODECOV_TOKEN }}
@@ -409,6 +412,7 @@ jobs:
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
         with:
+          fail_ci_if_error: false
           flags: unit-tests-${{ matrix.extra }}-${{ runner.os }}-py${{ matrix.python-version }}-pandas${{ matrix.pandas-version }}-polars${{ matrix.polars-version }}
         env:
           CODECOV_TOKEN: ${{ secrets.PANDERA_CODECOV_TOKEN }}
@@ -474,6 +478,7 @@ jobs:
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
         with:
+          fail_ci_if_error: false
           flags: unit-tests-narwhals-backend-${{ matrix.extra }}-py${{ matrix.python-version }}
         env:
           CODECOV_TOKEN: ${{ secrets.PANDERA_CODECOV_TOKEN }}
@@ -528,6 +533,7 @@ jobs:
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
         with:
+          fail_ci_if_error: false
           flags: unit-tests-narwhals-${{ runner.os }}-py${{ matrix.python-version }}
         env:
           CODECOV_TOKEN: ${{ secrets.PANDERA_CODECOV_TOKEN }}

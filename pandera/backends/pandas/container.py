@@ -221,15 +221,13 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
         check_passed: list[bool] = []
         # schema-component-level checks
         for schema_component in schema_components:
-            # make sure the schema component mutations are reverted after
-            # validation
-            _orig_dtype = schema_component.dtype
-            _orig_coerce = schema_component.coerce
-
             try:
+                # Isolate top-level state before disabling coercion below.
+                schema_component = copy.copy(schema_component)
+                schema_component.__dict__ = schema_component.__dict__.copy()
                 if schema.dtype is not None and not isinstance(
                     schema.dtype, pandas_engine.PydanticModel
-                ):
+                  ):
                     # override column dtype with dataframe dtype
                     schema_component.dtype = schema.dtype  # type: ignore
 
@@ -263,11 +261,6 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
                         for schema_error in err.schema_errors
                     ]
                 )
-            finally:
-                # revert the schema component mutations
-                schema_component.dtype = _orig_dtype
-                schema_component.coerce = _orig_coerce
-
         assert all(check_passed)
         return check_results
 
