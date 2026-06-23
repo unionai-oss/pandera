@@ -24,10 +24,12 @@ try:
     import hypothesis
     import hypothesis.extra.numpy as npst
     import hypothesis.strategies as st
+    from hypothesis.errors import HypothesisWarning
 except ImportError:
     HAS_HYPOTHESIS = False
     hypothesis = MagicMock()
     st = MagicMock()
+    HypothesisWarning = Warning
 else:
     HAS_HYPOTHESIS = True
 
@@ -693,6 +695,25 @@ def test_multiindex_strategy(data) -> None:
         strategies.multiindex_strategy(
             data_type, strategies.pandas_dtype_strategy(data_type)
         )
+
+
+def test_base_strategy_guards_do_not_emit_hypothesis_warning() -> None:
+    data_type = cast(Any, pandas_engine.Engine.dtype(np.dtype("float64")))
+    strategy = strategies.pandas_dtype_strategy(data_type)
+
+    with catch_warnings(record=True) as warnings:
+        with pytest.raises(pa.errors.BaseStrategyOnlyError):
+            strategies.series_strategy(data_type, strategy)
+
+        with pytest.raises(pa.errors.BaseStrategyOnlyError):
+            strategies.dataframe_strategy(data_type, strategy)
+
+        with pytest.raises(pa.errors.BaseStrategyOnlyError):
+            strategies.multiindex_strategy(data_type, strategy)
+
+    assert not any(
+        issubclass(warning.category, HypothesisWarning) for warning in warnings
+    )
 
 
 def test_multiindex_example() -> None:
