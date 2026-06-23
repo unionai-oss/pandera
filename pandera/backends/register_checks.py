@@ -102,7 +102,12 @@ def register_default_check_backends(check_obj_cls: type) -> None:
         )
         return
 
-    if module.startswith("pyspark"):
+    # Match ``pyspark.sql`` rather than bare ``pyspark`` so that
+    # ``pyspark.pandas`` frames (module prefix ``pyspark.pandas``) are not
+    # captured here. They route through the pandas-MRO check above when pandas
+    # is importable; narrowing keeps them from misrouting to the pyspark-sql
+    # backend in a pandas-free install where that check returns None. See #2387.
+    if module.startswith("pyspark.sql"):
         from pandera.backends.pyspark.register import (
             register_pyspark_backends,
         )

@@ -47,3 +47,32 @@ def test_loader_returns_none_on_import_error(monkeypatch):
     monkeypatch.setattr(builtins, "__import__", fake_import)
 
     assert register_checks._load_get_backend_types_from_mro() is None
+
+
+def test_pyspark_pandas_does_not_route_to_pyspark_sql(monkeypatch):
+    """``pyspark.pandas`` frames must not hit the ``pyspark.sql`` dispatch.
+
+    With pandas absent the pandas-MRO check returns None, so dispatch falls
+    through to the native prefix checks. The pyspark branch matches
+    ``pyspark.sql`` (not bare ``pyspark``) so a ``pyspark.pandas`` frame falls
+    through instead of misrouting to the pyspark-sql backend. See #2387.
+    """
+    monkeypatch.setattr(
+        register_checks,
+        "_load_get_backend_types_from_mro",
+        lambda: None,
+    )
+
+    called = []
+    monkeypatch.setattr(
+        "pandera.backends.pyspark.register.register_pyspark_backends",
+        lambda *a, **k: called.append(True),
+    )
+
+    class FakePysparkPandasFrame:
+        pass
+
+    FakePysparkPandasFrame.__module__ = "pyspark.pandas.frame"
+
+    register_checks.register_default_check_backends(FakePysparkPandasFrame)
+    assert called == []
