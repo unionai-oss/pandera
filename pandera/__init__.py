@@ -33,6 +33,12 @@ except (ImportError, ModuleNotFoundError) as err:
     else:
         raise  # Re-raise any other `ImportError` exceptions
 
+    # Register the builtin check functions (e.g. greater_than_or_equal_to,
+    # isin). Without pandas/numpy the pandas import above fails before
+    # ``_pandas_deprecated`` (which normally triggers this) is imported, so
+    # register them here too. Otherwise builtin checks raise KeyError when
+    # constructed in a polars-only install. See GH #2387.
+    import pandera.backends.base.builtin_checks  # noqa: F401
     from pandera import dtypes, typing
     from pandera.api.checks import Check
     from pandera.api.dataframe.model_components import (
