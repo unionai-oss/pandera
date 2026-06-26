@@ -600,6 +600,43 @@ def test_inherit_dataframemodel_fields() -> None:
     assert expected == Child.to_schema()
 
 
+def test_inherit_dataframemodel_fields_multiple() -> None:
+    """Test that fields are inherited via multiple inheritance of mixins.
+
+    Each base class must inherit from ``DataFrameModel`` for its fields to be
+    collected (see the "Multiple Inheritance" docs section). Mixing in a plain
+    class whose fields are not collected raises a ``KeyError``.
+    """
+
+    class A(pa.DataFrameModel):
+        a: Series[int]
+
+    class B(pa.DataFrameModel):
+        b: Series[int]
+
+    class C(A, B):
+        c: Series[int]
+
+    expected = pa.DataFrameSchema(
+        name="C",
+        columns={
+            "a": pa.Column(int),
+            "b": pa.Column(int),
+            "c": pa.Column(int),
+        },
+    )
+    assert expected == C.to_schema()
+
+    class PlainMixin:  # does not inherit from DataFrameModel
+        d: Series[int]
+
+    class D(pa.DataFrameModel, PlainMixin):
+        e: Series[int]
+
+    with pytest.raises(KeyError):
+        D.to_schema()
+
+
 def test_inherit_dataframemodel_fields_alias() -> None:
     """Test that columns and index aliases are inherited."""
 
