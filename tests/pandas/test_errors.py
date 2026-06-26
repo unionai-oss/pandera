@@ -26,7 +26,7 @@ from pandera.errors import (
     SchemaError,
     SchemaErrors,
 )
-from pandera.pandas import Check, Column, DataFrameSchema
+from pandera.pandas import Category, Check, Column, DataFrameSchema
 
 
 class MyError(ReducedPickleExceptionBase):
@@ -438,3 +438,74 @@ def test_validation_depth(validation_depth, expected_error):
             schema.validate(df, lazy=True)
 
     assert e.value.message == expected_error
+
+
+def test_category_dtype_error_reports_differing_categories():
+    """A categorical dtype mismatch should report the differing categories.
+
+    Both the expected and actual dtypes stringify to the bare word ``category``,
+    so the message must surface the categories on each side (see issue #2051).
+    """
+    schema = DataFrameSchema({"status": Column(Category(["a", "b", "c"]))})
+    df = pd.DataFrame(
+        {
+            "status": pd.Series(
+                ["a", "b"], dtype=pd.CategoricalDtype(["a", "b"])
+            )
+        }
+    )
+
+    with pytest.raises(SchemaError) as exc:
+        schema.validate(df)
+
+    msg = str(exc.value)
+    # The categories must appear on both sides, not the bare "category, got category".
+    assert "to have type category, got category" not in msg
+    assert "to have type category with categories ('a', 'b', 'c')" in msg
+    assert "got category with categories ('a', 'b')" in msg
+
+
+def test_category_dtype_error_reports_differing_ordered():
+    """When only ``ordered`` differs, the message should surface it.
+
+    The categories are identical, so without reporting ``ordered`` both sides
+    of the message would be byte-for-byte identical and uninformative.
+    """
+    schema = DataFrameSchema(
+        {"status": Column(Category(["a", "b"], ordered=True))}
+    )
+    df = pd.DataFrame(
+        {
+            "status": pd.Series(
+                ["a", "b"],
+                dtype=pd.CategoricalDtype(["a", "b"], ordered=False),
+            )
+        }
+    )
+
+    with pytest.raises(SchemaError) as exc:
+        schema.validate(df)
+
+    msg = str(exc.value)
+    assert "ordered=True" in msg
+    assert "ordered=False" in msg
+
+
+def test_category_dtype_error_truncates_many_categories():
+    """High-cardinality category lists are truncated to keep the message small."""
+    expected = [f"c{i}" for i in range(50)]
+    actual = [f"c{i}" for i in range(40)]
+    schema = DataFrameSchema({"status": Column(Category(expected))})
+    df = pd.DataFrame(
+        {"status": pd.Series(actual, dtype=pd.CategoricalDtype(actual))}
+    )
+
+    with pytest.raises(SchemaError) as exc:
+        schema.validate(df)
+
+    msg = str(exc.value)
+    # Counts are reported and the list is truncated rather than fully dumped.
+    assert "category with 50 categories" in msg
+    assert "category with 40 categories" in msg
+    assert "+40 more" in msg
+    assert "'c49'" not in msg and "'c39'" not in msg
