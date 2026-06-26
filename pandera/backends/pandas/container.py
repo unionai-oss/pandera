@@ -225,7 +225,9 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
                 # Isolate top-level state before disabling coercion below.
                 schema_component = copy.copy(schema_component)
                 schema_component.__dict__ = schema_component.__dict__.copy()
-                if schema.dtype is not None:
+                if schema.dtype is not None and not isinstance(
+                    schema.dtype, pandas_engine.PydanticModel
+                  ):
                     # override column dtype with dataframe dtype
                     schema_component.dtype = schema.dtype  # type: ignore
 

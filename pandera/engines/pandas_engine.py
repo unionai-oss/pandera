@@ -1410,6 +1410,19 @@ class PydanticModel(DataType):
     def __init__(self, model: builtins.type[BaseModel]) -> None:
         object.__setattr__(self, "type", model)
 
+    @property
+    def column_names(self) -> list[str]:
+        """Return pydantic field aliases, falling back to field names."""
+        if PYDANTIC_V2:
+            return [
+                field.alias or name
+                for name, field in self.type.model_fields.items()  # type: ignore[attr-defined]
+            ]
+        return [
+            field.alias or name
+            for name, field in self.type.__fields__.items()  # type: ignore[attr-defined]
+        ]
+
     def _check_column_names(
         self,
         data_container: PandasObject,
@@ -1440,11 +1453,7 @@ class PydanticModel(DataType):
                 UserWarning,
             )
 
-            if PYDANTIC_V2:
-                column_names = list(self.type.model_fields.keys())  # type: ignore[attr-defined]
-            else:
-                column_names = list(self.type.__fields__.keys())  # type: ignore[attr-defined]
-            self._check_column_names(data_container, column_names)
+            self._check_column_names(data_container, self.column_names)
             return data_container
 
         from pandera.config import (
@@ -1467,9 +1476,11 @@ class PydanticModel(DataType):
         def _coerce_row(row):
             try:
                 if PYDANTIC_V2:
-                    row = self.type.model_validate(row).model_dump()
+                    row = self.type.model_validate(row).model_dump(
+                        by_alias=True
+                    )
                 else:
-                    row = self.type.parse_obj(row).dict()
+                    row = self.type.parse_obj(row).dict(by_alias=True)
                 row["failure_cases"] = np.nan
             except ValidationError as exc:
                 row["failure_cases"] = {

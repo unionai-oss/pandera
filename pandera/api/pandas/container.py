@@ -24,6 +24,59 @@ from pandera.import_utils import strategy_import_error
 class DataFrameSchema(_DataFrameSchema[pd.DataFrame]):
     """A lightweight pandas DataFrame validator."""
 
+    def __init__(
+        self,
+        columns=None,
+        checks=None,
+        parsers=None,
+        index=None,
+        dtype=None,
+        coerce: bool = False,
+        strict=False,
+        name=None,
+        ordered: bool = False,
+        unique=None,
+        report_duplicates="all",
+        unique_column_names: bool = False,
+        add_missing_columns: bool = False,
+        title=None,
+        description=None,
+        metadata=None,
+        drop_invalid_rows: bool = False,
+    ) -> None:
+        super().__init__(
+            columns=columns,
+            checks=checks,
+            parsers=parsers,
+            index=index,
+            dtype=dtype,
+            coerce=coerce,
+            strict=strict,
+            name=name,
+            ordered=ordered,
+            unique=unique,
+            report_duplicates=report_duplicates,
+            unique_column_names=unique_column_names,
+            add_missing_columns=add_missing_columns,
+            title=title,
+            description=description,
+            metadata=metadata,
+            drop_invalid_rows=drop_invalid_rows,
+        )
+        if not self.columns and isinstance(
+            self.dtype, pandas_engine.PydanticModel
+        ):
+            self.columns = {
+                name: self._build_pydantic_column(name)
+                for name in self.dtype.column_names
+            }
+
+    @staticmethod
+    def _build_pydantic_column(name: str):
+        from pandera.api.pandas.components import Column
+
+        return Column(None, name=name)
+
     @_DataFrameSchema.dtype.setter  # type: ignore[attr-defined]
     def dtype(self, value: PandasDtypeInputTypes) -> None:
         """Set the dtype property."""
