@@ -243,6 +243,40 @@ def test_pyspark_bare_fields(spark_session, request):
     assert errors is not None
 
 
+def test_pyspark_regex_field_without_match_reports_schema_error(
+    spark_session, request
+):
+    """A regex field with no matching columns should not crash.
+
+    See https://github.com/unionai-oss/pandera/issues/1799.
+    """
+    spark = request.getfixturevalue(spark_session)
+    spark_schema = T.StructType(
+        [
+            T.StructField("user_name", T.StringType(), True),
+            T.StructField("email", T.StringType(), True),
+        ],
+    )
+    df = spark_df(
+        spark,
+        [("Alice", "alice@example.com"), ("Bob", "bob@example.com")],
+        spark_schema,
+    )
+
+    class ExampleModel(DataFrameModel):
+        user_name: T.StringType() = Field(nullable=False)
+        age_field: T.IntegerType() = Field(alias="(.+)age(.+)", regex=True)
+
+    df_out = ExampleModel.validate(df)
+    assert isinstance(df_out, DataFrame)
+
+    _, errors = validate_collecting_errors(ExampleModel, df)
+    schema_errors = errors["SCHEMA"]["SCHEMA_COMPONENT_CHECK"]
+    assert schema_errors[0]["schema"] == "ExampleModel"
+    assert schema_errors[0]["column"] == "(.+)age(.+)"
+    assert schema_errors[0]["check"] == "no_regex_column_match('(.+)age(.+)')"
+
+
 def test_pyspark_fields_metadata(
     spark_session,
 ):
