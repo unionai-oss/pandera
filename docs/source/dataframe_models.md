@@ -516,6 +516,41 @@ def transform(df: DataFrame[BaseSchema]) -> DataFrame[FinalSchema]:
 transform(df)
 ```
 
+### Multiple Inheritance
+
+Multiple inheritance is also supported, making it easy to compose schemas from
+reusable "mixin" models without repeating yourself. For this to work, each of
+the base classes **must** inherit from
+{class}`~pandera.api.pandas.model.DataFrameModel`, otherwise their fields are not
+collected:
+
+```{code-cell} python
+class A(pa.DataFrameModel):
+    a: Series[int]
+
+class B(pa.DataFrameModel):
+    b: Series[int]
+
+class C(A, B):
+    c: Series[int]
+
+C.to_schema()
+```
+
+If a base class does not inherit from `DataFrameModel`, its fields are not
+recognized and a `KeyError` is raised when calling
+{func}`~pandera.api.pandas.model.DataFrameModel.to_schema`:
+
+```python
+class A:  # not a DataFrameModel!
+    a: Series[int]
+
+class C(pa.DataFrameModel, A):
+    c: Series[int]
+
+C.to_schema()  # raises KeyError: 'a'
+```
+
 (schema-model-config)=
 
 ## Config
