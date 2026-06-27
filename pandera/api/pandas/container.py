@@ -111,6 +111,7 @@ class DataFrameSchema(_DataFrameSchema[pd.DataFrame]):
 
         :raises SchemaError: when ``DataFrame`` violates built-in or custom
             checks.
+        :raises TypeError: when ``check_obj`` is not a pandas DataFrame.
 
         :example:
 
@@ -195,7 +196,14 @@ class DataFrameSchema(_DataFrameSchema[pd.DataFrame]):
         lazy: bool = False,
         inplace: bool = False,
     ) -> pd.DataFrame:
-        return self.get_backend(check_obj).validate(
+        try:
+            backend = self.get_backend(check_obj)
+        except BackendNotFoundError as exc:
+            raise TypeError(
+                f"Expected a pandas DataFrame to validate, but got a value of "
+                f"type {type(check_obj).__name__!r}."
+            ) from exc
+        return backend.validate(
             check_obj,
             schema=self,
             head=head,
