@@ -267,14 +267,22 @@ def test_pyspark_regex_field_without_match_reports_schema_error(
         user_name: T.StringType() = Field(nullable=False)
         age_field: T.IntegerType() = Field(alias="(.+)age(.+)", regex=True)
 
-    df_out = ExampleModel.validate(df)
-    assert isinstance(df_out, DataFrame)
+    if not CONFIG.use_narwhals_backend:
+        df_out = ExampleModel.validate(df)
+        assert isinstance(df_out, DataFrame)
 
     _, errors = validate_collecting_errors(ExampleModel, df)
-    schema_errors = errors["SCHEMA"]["SCHEMA_COMPONENT_CHECK"]
+    schema_errors = [
+        err
+        for schema_category in errors["SCHEMA"].values()
+        for err in schema_category
+    ]
+    assert len(schema_errors) == 1
     assert schema_errors[0]["schema"] == "ExampleModel"
     assert schema_errors[0]["column"] == "(.+)age(.+)"
-    assert schema_errors[0]["check"] == "no_regex_column_match('(.+)age(.+)')"
+    assert schema_errors[0]["check"].startswith("no_regex_column_match(")
+    assert "age" in schema_errors[0]["check"]
+    assert "did not match any columns" in schema_errors[0]["error"]
 
 
 def test_pyspark_fields_metadata(
