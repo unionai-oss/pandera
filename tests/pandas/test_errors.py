@@ -18,6 +18,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
+from pandera.backends.pandas.error_formatters import describe_dtype_mismatch
 from pandera.config import ValidationDepth, config_context
 from pandera.engines import numpy_engine, pandas_engine
 from pandera.errors import (
@@ -509,3 +510,15 @@ def test_category_dtype_error_truncates_many_categories():
     assert "category with 40 categories" in msg
     assert "+40 more" in msg
     assert "'c49'" not in msg and "'c39'" not in msg
+
+
+def test_describe_dtype_mismatch_falls_back_without_categories():
+    """Colliding dtype strings fall back to ``str()`` when categories are absent.
+
+    ``Category()`` with no categories pinned stringifies to ``category`` but
+    exposes ``categories=None``, so there is nothing to enrich the message with.
+    """
+    expected, actual = describe_dtype_mismatch(
+        Category(["a", "b"]), Category()
+    )
+    assert (expected, actual) == ("category", "category")
