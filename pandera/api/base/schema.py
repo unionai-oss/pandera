@@ -147,6 +147,12 @@ class BaseSchema(ABC):
     def __setstate__(self, state):
         self.__dict__ = state
 
+    def __copy__(self):
+        cls = self.__class__
+        obj = cls.__new__(cls)
+        obj.__dict__ = self.__dict__.copy()
+        return obj
+
     def set_name(self, name: str) -> Self:
         """Used to set or modify the name of a base model object.
 
