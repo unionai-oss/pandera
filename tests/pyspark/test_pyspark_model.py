@@ -243,6 +243,48 @@ def test_pyspark_bare_fields(spark_session, request):
     assert errors is not None
 
 
+def test_pyspark_regex_field_without_match_reports_schema_error(
+    spark_session, request
+):
+    """A regex field with no matching columns should not crash.
+
+    See https://github.com/unionai-oss/pandera/issues/1799.
+    """
+    spark = request.getfixturevalue(spark_session)
+    spark_schema = T.StructType(
+        [
+            T.StructField("user_name", T.StringType(), True),
+            T.StructField("email", T.StringType(), True),
+        ],
+    )
+    df = spark_df(
+        spark,
+        [("Alice", "alice@example.com"), ("Bob", "bob@example.com")],
+        spark_schema,
+    )
+
+    class ExampleModel(DataFrameModel):
+        user_name: T.StringType() = Field(nullable=False)
+        age_field: T.IntegerType() = Field(alias="(.+)age(.+)", regex=True)
+
+    if not CONFIG.use_narwhals_backend:
+        df_out = ExampleModel.validate(df)
+        assert isinstance(df_out, DataFrame)
+
+    _, errors = validate_collecting_errors(ExampleModel, df)
+    schema_errors = [
+        err
+        for schema_category in errors["SCHEMA"].values()
+        for err in schema_category
+    ]
+    assert len(schema_errors) == 1
+    assert schema_errors[0]["schema"] == "ExampleModel"
+    assert schema_errors[0]["column"] == "(.+)age(.+)"
+    assert schema_errors[0]["check"].startswith("no_regex_column_match(")
+    assert "age" in schema_errors[0]["check"]
+    assert "did not match any columns" in schema_errors[0]["error"]
+
+
 def test_pyspark_fields_metadata(
     spark_session,
 ):

@@ -92,7 +92,7 @@ class ColumnBackend(ColumnSchemaBackend):
                 message=(
                     f"Column regex name='{schema.name}' did not match any "
                     "columns in the dataframe. Update the regex pattern so "
-                    f"that it matches at least one column:\n{columns.tolist()}",
+                    f"that it matches at least one column:\n{columns}",
                 ),
                 failure_cases=scalar_failure_case(str(columns)),
                 check=f"no_regex_column_match('{schema.name}')",
