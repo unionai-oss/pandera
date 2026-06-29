@@ -84,7 +84,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
         column_info = self.collect_column_info(check_obj, schema)
 
         core_parsers: list[tuple[Callable[..., Any], tuple[Any, ...]]] = [
-            (self.add_missing_columns, (schema, column_info)),
+            (self.add_missing_columns, (schema, column_info, lazy)),
             (self.strict_filter_columns, (schema, column_info)),
             (self.set_defaults, (schema,)),
             (self.coerce_dtype, (schema,)),
@@ -416,7 +416,11 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
     ###########
 
     def add_missing_columns(
-        self, check_obj: pd.DataFrame, schema, column_info: ColumnInfo
+        self,
+        check_obj: pd.DataFrame,
+        schema,
+        column_info: ColumnInfo,
+        lazy: bool = False,
     ):
         """Add columns that aren't in the dataframe."""
         # Add missing columns to dataframe based on 'add_missing_columns'
@@ -429,10 +433,11 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
 
         # Absent columns are required to have a default
         # value or be nullable
+        absent_column_errors = []
         for col_name in column_info.absent_column_names:
             col_schema = schema.columns[col_name]
             if pd.isna(col_schema.default) and not col_schema.nullable:
-                raise SchemaError(
+                error = SchemaError(
                     schema=schema,
                     data=check_obj,
                     message=(
@@ -444,6 +449,19 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
                     check="add_missing_has_default",
                     reason_code=SchemaErrorReason.ADD_MISSING_COLUMN_NO_DEFAULT,
                 )
+                # In non-lazy mode preserve the fail-fast behavior, otherwise
+                # collect every offending column so lazy validation reports
+                # all missing required columns rather than only the first.
+                if not lazy:
+                    raise error
+                absent_column_errors.append(error)
+
+        if absent_column_errors:
+            raise SchemaErrors(
+                schema=schema,
+                schema_errors=absent_column_errors,
+                data=check_obj,
+            )
 
         # Ascertain order in which missing columns should be inserted into
         # dataframe. Be careful not to modify order of existing dataframe
