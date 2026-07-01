@@ -11,7 +11,10 @@ from pandera.backends.pandas.base import (
     PandasSchemaBackend,
     _parsed_column_values,
 )
-from pandera.backends.pandas.error_formatters import reshape_failure_cases
+from pandera.backends.pandas.error_formatters import (
+    describe_dtype_mismatch,
+    reshape_failure_cases,
+)
 from pandera.backends.utils import convert_uniquesettings
 from pandera.config import ValidationScope
 from pandera.engines.pandas_engine import Engine
@@ -454,9 +457,18 @@ class ArraySchemaBackend(PandasSchemaBackend):
                             failure_cases = str(check_obj.dtype)
                 elif not passed:
                     failure_cases = str(check_obj.dtype)
+                if not passed:
+                    # Surface differing categories when both sides collide on
+                    # the bare "category" string (issue #2051).
+                    expected_type, actual_type = describe_dtype_mismatch(
+                        schema.dtype, check_obj.dtype
+                    )
+                else:
+                    expected_type = str(schema.dtype)
+                    actual_type = str(check_obj.dtype)
                 msg = (
                     f"expected series '{check_obj.name}' to have type "
-                    f"{schema.dtype}, got {check_obj.dtype}"
+                    f"{expected_type}, got {actual_type}"
                 )
             else:
                 passed = dtype_check_results.all()
