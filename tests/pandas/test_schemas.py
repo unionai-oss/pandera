@@ -119,6 +119,18 @@ def test_dataframe_schema() -> None:
         schema.validate(df.assign(a=[1.7, 2.3, 3.1]))
 
 
+@pytest.mark.parametrize(
+    "non_dataframe",
+    [int, 42, "hello", [1, 2, 3], (1, 2), pd.Series([1.0, 2.0]), {"a": [1.0]}],
+)
+def test_validate_non_dataframe_raises_typeerror(non_dataframe) -> None:
+    """Validating a non-DataFrame argument raises an informative TypeError
+    instead of an obscure backend-lookup error (see GH#467)."""
+    schema = DataFrameSchema({"a": Column(float)})
+    with pytest.raises(TypeError, match=r"Expected a pandas DataFrame.*type"):
+        schema.validate(non_dataframe)
+
+
 def test_dataframe_single_element_coerce() -> None:
     """Test that coercing a single element dataframe works correctly."""
     schema = DataFrameSchema({"x": Column(int, coerce=True)})
