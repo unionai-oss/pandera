@@ -666,6 +666,23 @@ class TestDatasetCheckMethods:
 class TestRegexDataVars:
     """Tests for regex-based data variable matching."""
 
+    def test_regex_schema_reuse_does_not_mutate_pattern(self):
+        pattern = r"^(t2m|temperature|temp)$"
+        schema = DatasetSchema(
+            data_vars={
+                pattern: DataVar(
+                    dtype=np.float32,
+                    dims=("x",),
+                    regex=True,
+                ),
+            },
+        )
+
+        for name in ("t2m", "temperature", "temp"):
+            ds = xr.Dataset({name: (["x"], np.arange(3, dtype=np.float32))})
+            schema.validate(ds)
+            assert list(schema.data_vars) == [pattern]
+
     def test_regex_matches_multiple_vars(self):
         ds = xr.Dataset(
             {

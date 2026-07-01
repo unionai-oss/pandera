@@ -563,6 +563,32 @@ def test_add_missing_columns_dtype():
     pd.testing.assert_frame_equal(ref_df, test_df)
 
 
+def test_add_missing_columns_reports_all_in_lazy_validation():
+    """Lazy validation should report every missing non-nullable column without
+    a default value, not only the first one.
+
+    https://github.com/unionai-oss/pandera/issues/1993
+    """
+    schema = DataFrameSchema(
+        columns={i: Column(int, nullable=False) for i in ["a", "b", "c"]},
+        strict=True,
+        add_missing_columns=True,
+    )
+    frame = pd.DataFrame(data=[[3]], columns=["b"])
+
+    with pytest.raises(errors.SchemaErrors) as exc_info:
+        schema.validate(frame, lazy=True)
+
+    failure_cases = exc_info.value.failure_cases
+    missing_columns = set(
+        failure_cases.loc[
+            failure_cases["check"] == "add_missing_has_default",
+            "failure_case",
+        ]
+    )
+    assert missing_columns == {"a", "c"}
+
+
 def test_series_schema() -> None:
     """Tests that a SeriesSchema Check behaves as expected for integers and
     strings. Tests error cases for types, duplicates, name errors, and issues
