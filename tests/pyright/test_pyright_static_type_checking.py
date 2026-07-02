@@ -125,9 +125,12 @@ def _information_messages(
         ),
         (
             "issue_1487_column_access.py",
-            2,
-            ["reportReturnType", "reportReturnType"],
+            0,
             [],
+            [
+                'Type of "df["year"]" is "Unknown"',
+                'Type of "df.year" is "Unknown"',
+            ],
         ),
     ],
 )

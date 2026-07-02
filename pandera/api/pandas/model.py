@@ -1,7 +1,7 @@
 """Class-based API for pandas models."""
 
 import sys
-from typing import Any, Optional, Union
+from typing import Any, Optional, Union, cast
 
 import pandas as pd
 
@@ -243,7 +243,7 @@ class DataFrameModel(_DataFrameModel[pd.DataFrame, DataFrameSchema]):
         validated = cls.to_schema().validate(
             check_obj, head, tail, sample, random_state, lazy, inplace
         )
-        return DataFrame[Self](validated)
+        return cast(DataFrame[Self], validated)
 
     @classmethod
     def to_json_schema(cls):
