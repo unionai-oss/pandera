@@ -16,12 +16,20 @@ for typing information.
 pip install pandera[mypy]
 ```
 
-Then enable the plugin in your `mypy.ini` or `setug.cfg` file:
+Then enable the plugin in your `mypy.ini` or `setup.cfg` file:
 
 ```
 [mypy]
 plugins = pandera.mypy
+follow_imports = silent
 ```
+
+:::{important}
+Do **not** use ``follow_imports = skip`` in your mypy config when using the
+pandera plugin. Skipping import analysis causes ``DataFrame[Schema]`` to
+degrade to ``Any``, which disables schema-level and column-level typing.
+Use ``follow_imports = silent`` or ``normal`` instead.
+:::
 
 :::{note}
 Mypy static type-linting is supported for only pandas dataframes.
@@ -112,6 +120,72 @@ the error during static type-linting but pandera will raise a
 {py:class}`~pandera.errors.SchemaError` or {py:class}`~pandera.errors.SchemaErrors`
 exception at runtime, depending on whether you're doing
 {ref}`lazy validation <lazy-validation>` or not.
+
+## Column Access Typing
+
+The mypy plugin can infer column dtypes for bracket access on
+{py:class}`~pandera.typing.pandas.DataFrame` instances when the key is a
+string literal:
+
+```python
+import pandera.pandas as pa
+from pandera.typing import DataFrame, Series
+
+
+class Schema(pa.DataFrameModel):
+    id: Series[int]
+    name: Series[str]
+
+
+def fn(df: DataFrame[Schema]) -> Series[int]:
+    return df["id"]  # okay with pandera.mypy plugin enabled
+```
+
+With the plugin enabled, attribute access is also typed when the column name
+matches a model field:
+
+```python
+def fn_attr(df: DataFrame[Schema]) -> Series[int]:
+    return df.id  # okay with pandera.mypy plugin enabled
+```
+
+Bare Python types in model fields (for example ``label: str``) are supported
+in addition to ``Series[T]`` annotations.
+
+## Pylance / Pyright
+
+Pylance uses Pyright, which does **not** load the mypy plugin. Schema-level
+types such as ``DataFrame[Schema]`` are preserved after
+{meth}`~pandera.api.pandas.model.DataFrameModel.validate` and
+{func}`~pandera.decorators.check_types`, but **column-level autocomplete and
+inference require extra setup**.
+
+Generate a Pyright-compatible typed dataframe wrapper with
+{func}`~pandera.typing.codegen.generate_typed_dataframe_source`:
+
+```python
+import pandera.pandas as pa
+from pandera.typing import DataFrame, Series
+from pandera.typing.codegen import generate_typed_dataframe_source
+
+
+class InputSchema(pa.DataFrameModel):
+    year: Series[int]
+    month: Series[int]
+
+
+# Paste the generated class into your module, then use it in annotations:
+print(generate_typed_dataframe_source(InputSchema))
+```
+
+The generated class adds ``__getitem__`` overloads and column attributes so
+Pyright/Pylance can infer ``df["year"]`` as ``Series[int]`` and offer column
+name completions.
+
+:::{seealso}
+GitHub issue `#1487 <https://github.com/unionai-oss/pandera/issues/1487>`_ for
+background on IDE typing limitations and workarounds.
+:::
 
 ```{literalinclude} ../../tests/mypy/pandas_modules/pandas_dataframe.py
 :lines: 83-87

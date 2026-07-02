@@ -1,7 +1,7 @@
 """Class-based API for pandas models."""
 
 import sys
-from typing import Any, Optional, Union, cast
+from typing import Any, Optional, Union
 
 import pandas as pd
 
@@ -80,6 +80,10 @@ class DataFrameModel(_DataFrameModel[pd.DataFrame, DataFrameSchema]):
     """
 
     Config: type[BaseConfig] = BaseConfig
+
+    def __new__(cls, *args, **kwargs) -> DataFrame[Self]:  # type: ignore[misc]
+        """Validate and return a typed :class:`~pandera.typing.pandas.DataFrame`."""
+        return cls.validate(*args, **kwargs)
 
     @classmethod
     def build_schema_(cls, **kwargs) -> DataFrameSchema:
@@ -236,12 +240,10 @@ class DataFrameModel(_DataFrameModel[pd.DataFrame, DataFrameSchema]):
         inplace: bool = False,
     ) -> DataFrame[Self]:
         """%(validate_doc)s"""
-        return cast(
-            DataFrame[Self],
-            cls.to_schema().validate(
-                check_obj, head, tail, sample, random_state, lazy, inplace
-            ),
+        validated = cls.to_schema().validate(
+            check_obj, head, tail, sample, random_state, lazy, inplace
         )
+        return DataFrame[Self](validated)
 
     @classmethod
     def to_json_schema(cls):

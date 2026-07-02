@@ -24,6 +24,7 @@ from pandera.typing.common import (
     DataFrameModel,
     IndexBase,
     SeriesBase,
+    T,
 )
 from pandera.typing.common import (
     GenericDtype as _CommonGenericDtype,
@@ -141,13 +142,7 @@ class Series(SeriesBase, pd.Series, Generic[GenericDtype]):  # type: ignore
         return _GenericAlias(cls, item)
 
 
-if TYPE_CHECKING:
-    T = TypeVar("T")  # pragma: no cover
-else:
-    T = DataFrameModel
-
-
-class DataFrame(DataFrameBase, pd.DataFrame, Generic[T]):
+class DataFrame(DataFrameBase[T], pd.DataFrame):
     """
     A generic type for pandas.DataFrame.
 
