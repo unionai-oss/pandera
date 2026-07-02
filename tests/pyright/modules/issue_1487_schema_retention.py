@@ -28,7 +28,7 @@ reveal_type(result_validate)
 result_constructor = InputSchema(raw)
 reveal_type(result_constructor)
 
-result_generic = DataFrame[InputSchema](raw)
+result_generic = DataFrame[InputSchema](raw)  # pyright: ignore[reportCallIssue]
 reveal_type(result_generic)
 
 
