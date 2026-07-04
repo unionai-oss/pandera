@@ -7,6 +7,55 @@ import pandas as pd
 
 from pandera.errors import SchemaError
 
+# Cap how many categories are listed in a dtype-mismatch message; mirrors the
+# default ``n_failure_cases`` limit so high-cardinality categoricals don't
+# produce multi-KB error strings.
+_MAX_CATEGORIES_IN_MESSAGE = 10
+
+
+def describe_dtype_mismatch(expected_dtype, actual_dtype) -> tuple[str, str]:
+    """Describe an expected/actual dtype pair for a dtype-mismatch message.
+
+    Categorical dtypes all stringify to the bare word ``category``, so a
+    mismatch between two categoricals reads ``category, got category`` and names
+    nothing (see issue #2051). When both sides stringify identically and expose
+    ``.categories``, surface the categories on each side; when those match too,
+    surface the differing ``ordered`` flag instead. Non-colliding mismatches are
+    returned unchanged.
+    """
+    expected_str, actual_str = str(expected_dtype), str(actual_dtype)
+    if expected_str != actual_str:
+        return expected_str, actual_str
+
+    expected_categories = getattr(expected_dtype, "categories", None)
+    actual_categories = getattr(actual_dtype, "categories", None)
+    if expected_categories is None or actual_categories is None:
+        return expected_str, actual_str
+
+    def _describe(dtype, categories) -> str:
+        categories = tuple(categories)
+        if len(categories) > _MAX_CATEGORIES_IN_MESSAGE:
+            shown = ", ".join(
+                repr(c) for c in categories[:_MAX_CATEGORIES_IN_MESSAGE]
+            )
+            remaining = len(categories) - _MAX_CATEGORIES_IN_MESSAGE
+            return (
+                f"{dtype} with {len(categories)} categories "
+                f"({shown}, ... +{remaining} more)"
+            )
+        return f"{dtype} with categories {categories}"
+
+    expected_desc = _describe(expected_dtype, expected_categories)
+    actual_desc = _describe(actual_dtype, actual_categories)
+    if tuple(expected_categories) == tuple(actual_categories):
+        # Categories match on both sides, so the mismatch is the ``ordered``
+        # flag; surface it so the two descriptions differ.
+        expected_desc += (
+            f", ordered={getattr(expected_dtype, 'ordered', None)}"
+        )
+        actual_desc += f", ordered={getattr(actual_dtype, 'ordered', None)}"
+    return expected_desc, actual_desc
+
 
 def format_generic_error_message(
     parent_schema,
