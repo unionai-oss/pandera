@@ -187,6 +187,36 @@ def test_invalid_annotations() -> None:
         InvalidDtype.to_schema()
 
 
+def test_enum_annotation_as_category() -> None:
+    """Test that using an Enum directly as a column annotation is treated as a
+    categorical column with categories equal to the enum members (issue #2052).
+    """
+
+    class Status(str, Enum):
+        B = "b"
+        A = "a"
+
+    class DfSchema(pa.DataFrameModel):
+        name: str
+        status: Status = pa.Field()
+
+    schema = DfSchema.to_schema()
+    column = schema.columns["status"]
+    assert str(column.dtype) == "category"
+    assert tuple(column.dtype.categories) == tuple(Status)
+
+    df = pd.DataFrame(
+        {"name": ["foo", "bar", "baz"], "status": ["a", "b", "a"]}
+    )
+    df["status"] = df["status"].astype("category")
+    DfSchema.validate(df)
+
+    invalid = pd.DataFrame({"name": ["foo"], "status": ["c"]})
+    invalid["status"] = invalid["status"].astype("category")
+    with pytest.raises(pa.errors.SchemaError):
+        DfSchema.validate(invalid)
+
+
 def test_optional_column() -> None:
     """Test that optional columns are not required."""
 

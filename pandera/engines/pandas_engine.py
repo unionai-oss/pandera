@@ -7,6 +7,7 @@ import builtins
 import dataclasses
 import datetime
 import decimal
+import enum
 import inspect
 import logging
 import sys
@@ -226,6 +227,10 @@ class Engine(
         try:
             return engine.Engine.dtype(cls, data_type)
         except TypeError:
+            if inspect.isclass(data_type) and issubclass(data_type, enum.Enum):
+                # treat an Enum class as a categorical type whose categories
+                # are the enum members.
+                return Category(categories=data_type)
             if is_geopandas_dtype(data_type):
                 # register geopandas datatypes
                 import pandera.engines.geopandas_engine
