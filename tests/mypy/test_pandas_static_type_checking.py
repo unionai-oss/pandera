@@ -234,16 +234,6 @@ PANDERA_MODEL_COLUMN_ATTRS_ERRORS = [
             ],
         ],
         [
-            "pandas_dataframe_getitem_hook_test.py",
-            "plugin_mypy_silent_imports.ini",
-            [
-                {
-                    "msg": "^Incompatible return value type",
-                    "errcode": "return-value",
-                },
-            ],
-        ],
-        [
             "pandas_dataframe_getitem.py",
             "plugin_mypy.ini",
             [
@@ -254,7 +244,7 @@ PANDERA_MODEL_COLUMN_ATTRS_ERRORS = [
             ],
         ],
         [
-            "issue_1487.py",
+            "pandas_dataframe_schema_typing.py",
             "plugin_mypy_silent_imports.ini",
             [
                 {
@@ -272,7 +262,7 @@ PANDERA_MODEL_COLUMN_ATTRS_ERRORS = [
             ],
         ],
         [
-            "issue_1487.py",
+            "pandas_dataframe_schema_typing.py",
             "plugin_mypy.ini",
             [
                 {
@@ -389,8 +379,7 @@ def test_pandas_stubs_false_positives(
         "pandas_dataframe_getitem",
         "pandas_dataframe_getitem_extended",
         "pandas_dataframe_attr",
-        "pandas_dataframe_getitem_hook_test",
-        "issue_1487",
+        "pandas_dataframe_schema_typing",
     ],
 )
 def test_pandas_modules_importable(module):

@@ -1,4 +1,4 @@
-"""Issue #1487: plain DataFrame[Schema] does not infer column dtypes in Pyright."""
+"""Plain DataFrame[Schema] does not infer column dtypes in Pyright."""
 
 import pandas as pd
 from typing_extensions import reveal_type

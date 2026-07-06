@@ -1,4 +1,4 @@
-"""Issue #1487: check_types and validate preserve output schema types."""
+"""check_types and validate preserve output schema types."""
 
 import pandas as pd
 from typing_extensions import reveal_type

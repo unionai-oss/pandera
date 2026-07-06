@@ -5,8 +5,6 @@ because column names are defined dynamically on the model class. This module
 generates a typed :class:`~pandera.typing.pandas.DataFrame` subclass with
 ``__getitem__`` overloads and column attributes that static analyzers can
 understand.
-
-See https://github.com/unionai-oss/pandera/issues/1487
 """
 
 from __future__ import annotations
@@ -135,7 +133,7 @@ def generate_typed_dataframe_source(
     overload_lines.extend(
         [
             "    @overload",
-            f"    def __getitem__(self, key: str) -> Series: ...",
+            "    def __getitem__(self, key: str) -> Series: ...",
             "    def __getitem__(self, key: str) -> Series:",
             "        return cast(Series, super().__getitem__(key))",
         ]

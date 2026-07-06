@@ -1,4 +1,4 @@
-"""Issue #1487: typed wrapper enables column inference in Pyright/Pylance."""
+"""Typed dataframe wrapper enables column inference in Pyright/Pylance."""
 
 from typing import Literal, cast, overload
 

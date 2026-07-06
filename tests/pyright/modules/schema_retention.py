@@ -1,4 +1,4 @@
-"""Issue #1487: schema-level types retained after validate/check_types/construction."""
+"""Schema-level types retained after validate/check_types/construction."""
 
 import pandas as pd
 from typing_extensions import reveal_type
