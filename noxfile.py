@@ -37,6 +37,12 @@ EXTRAS_REQUIRING_PANDAS = frozenset(
     ]
 )
 
+EXTRAS_REQUIRING_TORCH = frozenset(
+    [
+        "torch",
+    ]
+)
+
 CI_RUN = os.environ.get("CI") == "true"
 if CI_RUN:
     print("Running on CI")
@@ -160,6 +166,12 @@ def _testing_requirements(
             PYPROJECT["project"]["optional-dependencies"]["pandas"]
         )
 
+    # torch extra requires torch and tensordict
+    if extra in EXTRAS_REQUIRING_TORCH:
+        _requirements.extend(
+            PYPROJECT["project"]["optional-dependencies"]["torch"]
+        )
+
     _requirements = list(set(_requirements))
 
     _numpy: str | None = None
@@ -221,6 +233,7 @@ DATAFRAME_EXTRAS = {
     "ibis",
     "xarray",
     "narwhals",  # TEST-03: narwhals backend runs with polars+ibis co-installed
+    "torch",
 }
 for extra in OPTIONAL_DEPENDENCIES:
     if extra == "pandas":
@@ -444,6 +457,9 @@ def docs(session: Session) -> None:
             "sphinx-build",
             *args,
         )
+
+    # Ensure torch is available for TensorDictModel doctests
+    session.run("python", "-c", "import torch")
 
     session.run("xdoctest", PACKAGE, "--quiet")
 

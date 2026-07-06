@@ -36,6 +36,10 @@ dependencies:
   # narwhals extra
   - narwhals >= 1.26.0
 
+  # torch extra
+  - torch
+  - tensordict
+
   # modin extra
   - modin
   - protobuf
