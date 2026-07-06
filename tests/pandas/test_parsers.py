@@ -206,3 +206,80 @@ def test_parser_with_add_missing_columns():
 
     with pytest.raises(pa.errors.SchemaError, match="No `b` or `c` in"):
         Schema.validate(pd.DataFrame({"a": ["xxx"]}))
+
+
+def _clean_to_float(series: pd.Series) -> pd.Series:
+    stripped = series.astype(str).str.strip()
+    return pd.to_numeric(stripped, errors="coerce").astype(float)
+
+
+@pytest.mark.parametrize(
+    "schema_coerce,column_coerce",
+    [(True, False), (False, True), (True, True)],
+)
+def test_column_parser_with_coercion(schema_coerce, column_coerce):
+    """Column-level parsers should be applied before dtype coercion.
+
+    Regression test for
+    https://github.com/unionai-oss/pandera/issues/2047
+    """
+    df = pd.DataFrame({"col1": ["-0013123", "-0000012", "        "]})
+    schema = DataFrameSchema(
+        {
+            "col1": pa.Column(
+                float,
+                parsers=Parser(_clean_to_float),
+                nullable=True,
+                coerce=column_coerce,
+            )
+        },
+        coerce=schema_coerce,
+    )
+    validated = schema.validate(df)
+    expected = pd.Series(
+        [-13123.0, -12.0, np.nan], name="col1", dtype="float64"
+    )
+    pd.testing.assert_series_equal(validated["col1"], expected)
+
+
+@pytest.mark.parametrize(
+    "schema_coerce,column_coerce",
+    [(True, False), (False, True), (True, True)],
+)
+def test_column_parser_output_needs_coercion(schema_coerce, column_coerce):
+    """Coercion should still be applied to the output of column-level
+    parsers whose output does not yet have the expected dtype."""
+    df = pd.DataFrame({"col1": ["1,5", "2,5"]})
+    schema = DataFrameSchema(
+        {
+            "col1": pa.Column(
+                float,
+                parsers=Parser(lambda s: s.str.replace(",", ".")),
+                coerce=column_coerce,
+            )
+        },
+        coerce=schema_coerce,
+    )
+    validated = schema.validate(df)
+    expected = pd.Series([1.5, 2.5], name="col1", dtype="float64")
+    pd.testing.assert_series_equal(validated["col1"], expected)
+
+
+def test_column_parser_with_inferred_schema_coercion():
+    """Updating an inferred schema with a parser column should validate the
+    same way as a manually defined schema (issue #2047)."""
+    df = pd.DataFrame({"col1": ["-0013123", "-0000012", "        "]})
+    schema = pa.infer_schema(df).update_columns(
+        {
+            "col1": {
+                "dtype": float,
+                "parsers": Parser(_clean_to_float),
+                "nullable": True,
+            }
+        }
+    )
+    validated = schema.validate(df)
+    expected = pd.Series(
+        [-13123.0, -12.0, np.nan], name="col1", dtype="float64"
+    )
+    pd.testing.assert_series_equal(validated["col1"], expected)

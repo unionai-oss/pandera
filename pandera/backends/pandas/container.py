@@ -227,13 +227,21 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
                 schema_component.__dict__ = schema_component.__dict__.copy()
                 if schema.dtype is not None and not isinstance(
                     schema.dtype, pandas_engine.PydanticModel
-                  ):
+                ):
                     # override column dtype with dataframe dtype
                     schema_component.dtype = schema.dtype  # type: ignore
 
-                # disable coercion at the schema component level since the
-                # dataframe-level schema already coerced it.
-                schema_component.coerce = False  # type: ignore
+                if getattr(schema_component, "parsers", None):
+                    # coercion of components with parsers is deferred to
+                    # component-level validation so that parsers run before
+                    # coercion: propagate dataframe-level coercion.
+                    schema_component.coerce = (  # type: ignore
+                        schema_component.coerce or schema.coerce
+                    )
+                else:
+                    # disable coercion at the schema component level since the
+                    # dataframe-level schema already coerced it.
+                    schema_component.coerce = False  # type: ignore
 
                 result = schema_component.validate(
                     check_obj, lazy=lazy, inplace=True
@@ -750,8 +758,13 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
 
                 for matched_colname in matched_columns:
                     if (
-                        col_schema.coerce or schema.coerce
-                    ) and schema.dtype is None:
+                        (col_schema.coerce or schema.coerce)
+                        and schema.dtype is None
+                        # coercion of columns with parsers is deferred to
+                        # column-level validation so that parsers run before
+                        # coercion
+                        and not col_schema.parsers
+                    ):
                         _col_schema = copy.deepcopy(col_schema)
                         _col_schema.coerce = True
                         obj[matched_colname] = _try_coercion(
@@ -761,6 +774,9 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
                 (col_schema.coerce or schema.coerce)
                 and schema.dtype is None
                 and colname in obj
+                # coercion of columns with parsers is deferred to column-level
+                # validation so that parsers run before coercion
+                and not col_schema.parsers
             ):
                 _col_schema = copy.deepcopy(col_schema)
                 _col_schema.coerce = True
