@@ -126,7 +126,9 @@ class ColumnBackend(ArraySchemaBackend):
                 check_obj[column_name] = self._try_convert_dtype_after_fillna(
                     check_obj[column_name], schema.dtype, schema.default
                 )
-            if schema.coerce:
+            # if the column has parsers, defer coercion to the array backend,
+            # which runs parsers before coercing
+            if schema.coerce and not schema.parsers:
                 try:
                     check_obj[column_name] = self.coerce_dtype(
                         check_obj[column_name],

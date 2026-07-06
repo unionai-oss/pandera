@@ -242,6 +242,29 @@ def test_column_parser_with_coercion(schema_coerce, column_coerce):
     pd.testing.assert_series_equal(validated["col1"], expected)
 
 
+@pytest.mark.parametrize(
+    "schema_coerce,column_coerce",
+    [(True, False), (False, True), (True, True)],
+)
+def test_column_parser_output_needs_coercion(schema_coerce, column_coerce):
+    """Coercion should still be applied to the output of column-level
+    parsers whose output does not yet have the expected dtype."""
+    df = pd.DataFrame({"col1": ["1,5", "2,5"]})
+    schema = DataFrameSchema(
+        {
+            "col1": pa.Column(
+                float,
+                parsers=Parser(lambda s: s.str.replace(",", ".")),
+                coerce=column_coerce,
+            )
+        },
+        coerce=schema_coerce,
+    )
+    validated = schema.validate(df)
+    expected = pd.Series([1.5, 2.5], name="col1", dtype="float64")
+    pd.testing.assert_series_equal(validated["col1"], expected)
+
+
 def test_column_parser_with_inferred_schema_coercion():
     """Updating an inferred schema with a parser column should validate the
     same way as a manually defined schema (issue #2047)."""
