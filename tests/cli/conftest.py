@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -79,6 +80,8 @@ def run_validate(
     data_path: Path,
     *,
     backend: str | None = None,
+    use_narwhals: bool = False,
+    env: dict[str, str] | None = None,
 ) -> subprocess.CompletedProcess[str]:
     cmd = [
         sys.executable,
@@ -92,11 +95,17 @@ def run_validate(
     ]
     if backend is not None:
         cmd.extend(["--backend", backend])
+    if use_narwhals:
+        cmd.append("--use-narwhals")
+    run_env = None
+    if env is not None:
+        run_env = {**os.environ, **env}
     return subprocess.run(
         cmd,
         capture_output=True,
         text=True,
         check=False,
+        env=run_env,
     )
 
 

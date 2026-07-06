@@ -22,6 +22,40 @@ class BackendName(str, Enum):
     ibis = "ibis"
 
 
+#: Backends that can validate through the Narwhals-powered backend.
+NARWHALS_COMPATIBLE_BACKENDS = ("polars", "ibis", "pyspark.sql")
+
+
+def enable_narwhals_backend(backend: str) -> None:
+    """Enable the Narwhals-powered validation backend for this process.
+
+    Exits with an error if ``backend`` is not narwhals-compatible or the
+    ``narwhals`` package is not installed. Must be called before the schema
+    is deserialized so that backend registration picks up the setting.
+    """
+    if backend not in NARWHALS_COMPATIBLE_BACKENDS:
+        typer.secho(
+            f"--use-narwhals is not supported for backend {backend!r}. "
+            "The Narwhals backend supports: "
+            f"{', '.join(NARWHALS_COMPATIBLE_BACKENDS)}.",
+            err=True,
+        )
+        raise typer.Exit(1)
+    try:
+        import narwhals.stable.v1  # noqa: F401
+    except ImportError as exc:
+        typer.secho(
+            "--use-narwhals requires the 'narwhals' package. Install with:\n"
+            "  pip install 'pandera[narwhals]'",
+            err=True,
+        )
+        raise typer.Exit(1) from exc
+
+    from pandera.config import set_config
+
+    set_config(use_narwhals_backend=True)
+
+
 def load_raw_schema(path: Path) -> dict[str, Any]:
     suffix = path.suffix.lower()
     if suffix in (".yaml", ".yml"):

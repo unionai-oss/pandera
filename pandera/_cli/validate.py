@@ -12,6 +12,7 @@ from . import rich_report
 from .common import (
     BackendName,
     deserialize_schema,
+    enable_narwhals_backend,
     infer_backend_from_schema,
     load_dataset,
     load_raw_schema,
@@ -41,6 +42,15 @@ def validate(
             "Dataframe library to use. Default: inferred from schema_type "
             "(and dataframe_library for pandas-API schemas) in the schema "
             "file."
+        ),
+    ),
+    use_narwhals: bool = typer.Option(
+        False,
+        "--use-narwhals",
+        help=(
+            "Validate through the Narwhals-powered backend (polars, ibis, "
+            "and pyspark.sql schemas only; requires pandera[narwhals]). "
+            "Equivalent to setting PANDERA_USE_NARWHALS_BACKEND=True."
         ),
     ),
 ) -> None:
@@ -73,6 +83,11 @@ def validate(
     ```
     pandera validate -s schema.yaml -d data.csv --backend polars
     ```
+
+    Validate a Polars schema through the Narwhals-powered backend
+    ```
+    pandera validate -s schema.yaml -d data.csv --use-narwhals
+    ```
     """
     if not schema.is_file():
         typer.secho(f"Schema file not found: {schema}", err=True)
@@ -92,6 +107,9 @@ def validate(
         )
         raise typer.Exit(1)
     chosen = backend.value if backend is not None else inferred
+
+    if use_narwhals:
+        enable_narwhals_backend(chosen)
 
     schema_obj = deserialize_schema(raw)
     obj = load_dataset(data, chosen)

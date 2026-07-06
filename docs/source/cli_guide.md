@@ -171,6 +171,34 @@ This should exit with a **non-zero** status. You should see **Validation failed*
 on standard error plus tables listing which checks passed or failed and failure
 details (exact layout depends on your Pandera and Rich versions).
 
+## Validate through the Narwhals backend
+
+Polars, Ibis, and PySpark SQL schemas can validate through the
+{ref}`Narwhals-powered backend <narwhals-backend>` by passing `--use-narwhals`
+to `pandera validate`. Install the `narwhals` extra alongside the dataframe
+library you use:
+
+```bash
+pip install 'pandera[cli,narwhals,polars]'
+```
+
+Then pass the flag when validating a Polars, Ibis, or PySpark SQL schema:
+
+```bash
+pandera validate -s /tmp/polars_schema.yaml -d /tmp/dataset.csv --use-narwhals
+```
+
+This is equivalent to running the CLI with the
+`PANDERA_USE_NARWHALS_BACKEND=True` environment variable set:
+
+```bash
+PANDERA_USE_NARWHALS_BACKEND=True pandera validate -s /tmp/polars_schema.yaml -d /tmp/dataset.csv
+```
+
+Passing `--use-narwhals` with a pandas-API schema (pandas, modin, dask, or
+pyspark.pandas) exits with an error, since the Narwhals backend only powers
+the Polars, Ibis, and PySpark SQL integrations.
+
 :::{important}
 **Other backends and formats**
 

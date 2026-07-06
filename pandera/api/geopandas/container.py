@@ -6,7 +6,7 @@ import os
 import sys
 import warnings
 from pathlib import Path
-from typing import cast, overload
+from typing import Literal, cast, overload
 
 import pandas as pd
 
@@ -122,12 +122,18 @@ class GeoDataFrameSchema(DataFrameSchema):
     #####################
 
     def to_script(
-        self, fp: str | Path | None = None, *, minimal: bool = True
+        self,
+        fp: str | Path | None = None,
+        *,
+        minimal: bool = True,
+        script_type: Literal["schema", "model"] = "schema",
     ) -> str | None:
         """Write :class:`GeoDataFrameSchema` to a Python script."""
         from pandera.io import pandas_io
 
-        return pandas_io.to_script(self, fp, minimal=minimal)
+        return pandas_io.to_script(
+            self, fp, minimal=minimal, script_type=script_type
+        )
 
     @classmethod
     def from_yaml(cls, yaml_schema) -> Self:
