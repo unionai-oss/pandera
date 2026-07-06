@@ -182,11 +182,6 @@ The generated class adds ``__getitem__`` overloads and column attributes so
 Pyright/Pylance can infer ``df["year"]`` as ``Series[int]`` and offer column
 name completions.
 
-:::{seealso}
-GitHub issue `#1487 <https://github.com/unionai-oss/pandera/issues/1487>`_ for
-background on IDE typing limitations and workarounds.
-:::
-
 ```{literalinclude} ../../tests/mypy/pandas_modules/pandas_dataframe.py
 :lines: 83-87
 ```

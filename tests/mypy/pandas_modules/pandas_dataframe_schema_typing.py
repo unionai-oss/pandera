@@ -1,9 +1,6 @@
 # pylint: skip-file
-"""Mypy tests for https://github.com/unionai-oss/pandera/issues/1487.
-
-Covers schema-level type retention and column-level inference with the
-pandera mypy plugin enabled.
-"""
+"""Mypy tests for schema-level type retention and column-level inference
+with the pandera mypy plugin enabled."""
 
 from typing import cast
 

@@ -1,8 +1,8 @@
 # pylint: skip-file
 """Unit tests for Pyright static type checking of pandera DataFrame types.
 
-This module runs Pyright on the audit modules in ``tests/pyright/modules`` and
-asserts expected diagnostics. See https://github.com/unionai-oss/pandera/issues/1487
+This module runs Pyright on the modules in ``tests/pyright/modules`` and
+asserts expected diagnostics.
 """
 
 from __future__ import annotations
@@ -95,7 +95,7 @@ def _information_messages(
     "module,expected_error_count,expected_rules,expected_type_messages",
     [
         (
-            "issue_1487_schema_retention.py",
+            "schema_retention.py",
             0,
             [],
             [
@@ -106,7 +106,7 @@ def _information_messages(
             ],
         ),
         (
-            "issue_1487_check_types.py",
+            "check_types_output.py",
             0,
             [],
             [
@@ -116,7 +116,7 @@ def _information_messages(
             ],
         ),
         (
-            "issue_1487_typed_wrapper.py",
+            "typed_wrapper.py",
             0,
             [],
             [
@@ -124,7 +124,7 @@ def _information_messages(
             ],
         ),
         (
-            "issue_1487_column_access.py",
+            "column_access.py",
             0,
             [],
             [
@@ -134,13 +134,13 @@ def _information_messages(
         ),
     ],
 )
-def test_pyright_issue_1487_modules(
+def test_pyright_static_typing_modules(
     module: str,
     expected_error_count: int,
     expected_rules: list[str],
     expected_type_messages: list[str],
 ) -> None:
-    """Pyright diagnostics for issue #1487 audit modules."""
+    """Pyright diagnostics for static typing test modules."""
     module_path = modules_dir / module
     output = _run_pyright(module_path)
     diagnostics = output.get("generalDiagnostics", [])
@@ -162,12 +162,12 @@ def test_pyright_issue_1487_modules(
 @pytest.mark.parametrize(
     "module",
     [
-        "issue_1487_schema_retention",
-        "issue_1487_check_types",
-        "issue_1487_typed_wrapper",
-        "issue_1487_column_access",
+        "schema_retention",
+        "check_types_output",
+        "typed_wrapper",
+        "column_access",
     ],
 )
 def test_pyright_modules_importable(module: str) -> None:
-    """Ensure pyright audit modules are importable at runtime."""
+    """Ensure pyright test modules are importable at runtime."""
     importlib.import_module(f"tests.pyright.modules.{module}")

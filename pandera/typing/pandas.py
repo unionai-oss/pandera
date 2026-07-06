@@ -4,7 +4,6 @@ import functools
 import io
 from collections.abc import Mapping, Sequence
 from typing import (  # type: ignore[attr-defined]
-    TYPE_CHECKING,
     Any,
     Generic,
     TypeVar,
