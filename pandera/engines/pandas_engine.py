@@ -25,6 +25,7 @@ from typing import (
 import numpy as np
 import pandas as pd
 import typeguard
+from pandas.core.dtypes.dtypes import BaseMaskedDtype
 from pydantic import BaseModel, ValidationError, create_model
 
 from pandera import dtypes, errors
@@ -160,6 +161,12 @@ class DataType(dtypes.DataType):
 
     def coerce_value(self, value: Any) -> Any:
         """Coerce an value to a particular type."""
+        if isinstance(self.type, BaseMaskedDtype) and pd.isna(value):
+            # masked nullable dtypes support NA values directly, so
+            # delegate to pandas: this mirrors Series.astype, coercing
+            # valid NA values to the dtype's NA sentinel and raising on
+            # invalid ones (e.g. NaT)
+            return pd.array([value], dtype=self.type)[0]
         # by default, the pandas Engine delegates to the underlying numpy
         # datatype to coerce a value to the correct type.
         return self.type.type(value)
@@ -307,8 +314,8 @@ class BOOL(DataType, dtypes.Bool):
     _bool_like = frozenset({True, False})
 
     def coerce_value(self, value: Any) -> Any:
-        """Coerce an value to specified datatime type."""
-        if value not in self._bool_like:
+        """Coerce a value to specified boolean type."""
+        if value not in self._bool_like and not pd.isna(value):
             raise TypeError(
                 f"value {value} cannot be coerced to type {self.type}"
             )

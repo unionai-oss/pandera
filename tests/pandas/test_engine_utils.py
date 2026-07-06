@@ -26,6 +26,43 @@ def test_numpy_pandas_coercible(
 
 
 @pytest.mark.parametrize(
+    "data_container, data_type, expected_coercible",
+    [
+        [
+            pd.Series([1, pd.NA, "x"], dtype=object),
+            "Int64",
+            [True, True, False],
+        ],
+        [
+            pd.Series([1, pd.NA, "x"], dtype=object),
+            "UInt8",
+            [True, True, False],
+        ],
+        [
+            pd.Series([1.0, pd.NA, "x"], dtype=object),
+            "Float64",
+            [True, True, False],
+        ],
+        [
+            pd.Series([True, pd.NA, "A"], dtype=object),
+            "boolean",
+            [True, True, False],
+        ],
+        # plain numpy dtypes still treat NA values as uncoercible
+        [pd.Series([pd.NA], dtype=object), "int64", [False]],
+    ],
+)
+def test_numpy_pandas_coercible_masked_nullable_na(
+    data_container, data_type, expected_coercible
+):
+    """Test that NA values are coercible for masked nullable dtypes."""
+    assert (
+        expected_coercible
+        == utils.numpy_pandas_coercible(data_container, data_type).tolist()
+    )
+
+
+@pytest.mark.parametrize(
     "data_container",
     [
         pd.Series([1, 2, 3, 4]),

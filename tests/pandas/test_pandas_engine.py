@@ -180,6 +180,42 @@ def test_pandas_boolean_native_type_error(data):
             dtype.coerce_value(value)
 
 
+@pytest.mark.parametrize(
+    "dtype_alias",
+    [
+        "Int8",
+        "Int16",
+        "Int32",
+        "Int64",
+        "UInt8",
+        "UInt16",
+        "UInt32",
+        "UInt64",
+        "Float32",
+        "Float64",
+        "boolean",
+    ],
+)
+@pytest.mark.parametrize("value", [pd.NA, None, np.nan])
+def test_pandas_masked_nullable_coerce_value_na(dtype_alias, value):
+    """Test masked nullable dtypes coerce NA values to the NA sentinel."""
+    dtype = pandas_engine.Engine.dtype(dtype_alias)
+    assert dtype.coerce_value(value) is pd.NA
+
+
+@pytest.mark.parametrize(
+    "dtype_alias", ["Int64", "UInt8", "Float32", "Float64", "boolean"]
+)
+@pytest.mark.parametrize(
+    "value", [pd.NaT, np.datetime64("NaT", "ns"), np.timedelta64("NaT", "ns")]
+)
+def test_pandas_masked_nullable_coerce_value_nat_raises(dtype_alias, value):
+    """Test masked nullable dtypes still reject non-numeric NaT values."""
+    dtype = pandas_engine.Engine.dtype(dtype_alias)
+    with pytest.raises(TypeError):
+        dtype.coerce_value(value)
+
+
 @hypothesis.settings(max_examples=1000)
 @pytest.mark.parametrize("timezone_aware", [True, False])
 @given(
