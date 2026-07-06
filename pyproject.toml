@@ -111,6 +111,10 @@ pyarrow = [
     "pyarrow >= 13",
     "narwhals >= 1.26.0",
 ]
+torch = [
+    "torch",
+    "tensordict",
+]
 all = [
     "typer >= 0.12.3",
     "rich",
@@ -136,6 +140,8 @@ all = [
     "numpy >= 1.24.4",
     "narwhals >= 1.26.0",
     "pyarrow >= 13",
+    "torch",
+    "tensordict",
 ]
 
 [dependency-groups]
@@ -172,6 +178,7 @@ testing = [
 docs = [
     "setuptools",
     "typer >= 0.12.3",
+    "duckdb",
     "pyarrow-hotfix",
     "sphinx<9",
     "sphinx-design",
@@ -184,11 +191,14 @@ docs = [
     "sphinx-docsearch",
     "grpcio",
     "ray",
+    "torch",
+    "tensordict",
     "types-click",
     "types-pytz",
     "types-pyyaml",
     "types-requests",
     "types-setuptools",
+    "xdoctest",
 ]
 
 [tool.setuptools]
