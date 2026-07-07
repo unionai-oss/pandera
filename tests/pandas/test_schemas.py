@@ -1661,6 +1661,61 @@ def test_lazy_dataframe_validation_nullable() -> None:
             )
 
 
+@pytest.mark.parametrize(
+    "dtype_alias, data, bad_value",
+    [
+        ("Int64", [1, pd.NA, "x"], "x"),
+        ("Float64", [1.0, pd.NA, "x"], "x"),
+        ("boolean", [True, pd.NA, "A"], "A"),
+    ],
+)
+def test_lazy_validation_nullable_dtype_coerce_na_not_failure_case(
+    dtype_alias, data, bad_value
+) -> None:
+    """
+    Test that NA values in a nullable column are not reported as coercion
+    failure cases while genuinely uncoercible values still are.
+    """
+    schema = DataFrameSchema(
+        {"col": Column(dtype_alias, coerce=True, nullable=True)}
+    )
+    df = pd.DataFrame({"col": pd.Series(data, dtype=object)})
+
+    with pytest.raises(errors.SchemaErrors) as exc_info:
+        schema.validate(df, lazy=True)
+
+    failure_cases = exc_info.value.failure_cases
+    assert failure_cases.failure_case.isna().sum() == 0
+    for check_name in (
+        f"coerce_dtype('{dtype_alias}')",
+        f"dtype('{dtype_alias}')",
+    ):
+        failed = failure_cases.query(f'check == "{check_name}"')
+        assert failed.failure_case.tolist() == [bad_value]
+        assert failed["index"].tolist() == [2]
+
+
+def test_lazy_validation_nullable_false_na_reported_via_not_nullable() -> None:
+    """
+    Test that NA values in a non-nullable column are reported by the
+    not_nullable check rather than as coercion failure cases.
+    """
+    schema = DataFrameSchema(
+        {"col": Column("Int64", coerce=True, nullable=False)}
+    )
+    df = pd.DataFrame({"col": pd.Series([1, pd.NA, "x"], dtype=object)})
+
+    with pytest.raises(errors.SchemaErrors) as exc_info:
+        schema.validate(df, lazy=True)
+
+    failure_cases = exc_info.value.failure_cases
+    not_nullable_cases = failure_cases.query("check == 'not_nullable'")
+    assert not_nullable_cases.failure_case.isna().all()
+    assert not_nullable_cases["index"].tolist() == [1]
+    coerce_cases = failure_cases.query("check == \"coerce_dtype('Int64')\"")
+    assert coerce_cases.failure_case.tolist() == ["x"]
+
+
 def test_lazy_dataframe_validation_with_checks() -> None:
     """Test that all failure cases are reported for schemas with checks."""
     schema = DataFrameSchema(
