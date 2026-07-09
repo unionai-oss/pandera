@@ -52,6 +52,15 @@ def polars_version() -> version.Version:
     return version.parse(pl.__version__)
 
 
+def horizontal_concat(
+    items: Sequence[pl.LazyFrame],
+) -> pl.LazyFrame:
+    """Concat LazyFrames horizontally across supported polars versions."""
+    if polars_version().release >= (1, 42, 1):
+        return pl.concat(items, how="horizontal_extend")  # type: ignore[arg-type]
+    return pl.concat(items, how="horizontal")
+
+
 def convert_py_dtype_to_polars_dtype(dtype):
     if isinstance(dtype, DataTypeClass):
         return dtype
@@ -90,9 +99,7 @@ def polars_failure_cases_from_coercible(
 ) -> pl.DataFrame:
     """Get the failure cases resulting from trying to coerce a polars object."""
     return (
-        pl.concat(
-            items=[data_container.lazyframe, is_coercible], how="horizontal"
-        )
+        horizontal_concat([data_container.lazyframe, is_coercible])
         .filter(pl.col(CHECK_OUTPUT_KEY).not_())
         .collect()
     )
@@ -836,8 +843,8 @@ class Category(DataType, dtypes.Category):
             match_categories = self.__belongs_to_categories(
                 data_container.lazyframe, key=data_container.key
             )
-            is_coercible: pl.LazyFrame = pl.concat(
-                (coercible, match_categories), how="horizontal"
+            is_coercible: pl.LazyFrame = horizontal_concat(
+                [coercible, match_categories]
             ).select(pl.all_horizontal(CHECK_OUTPUT_KEY, "belongs"))
 
             failure_cases = polars_failure_cases_from_coercible(

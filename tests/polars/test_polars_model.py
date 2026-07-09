@@ -1,6 +1,7 @@
 """Unit tests for Polars dataframe model."""
 
 import sys
+import warnings
 from datetime import datetime
 from typing import Optional
 
@@ -17,7 +18,7 @@ from polars.testing.parametric import column, dataframes
 
 import pandera.engines.polars_engine as pe
 from pandera.config import CONFIG
-from pandera.errors import SchemaError
+from pandera.errors import SchemaError, SchemaErrorReason, SchemaErrors
 from pandera.polars import (
     Column,
     DataFrameModel,
@@ -211,6 +212,24 @@ def test_model_with_fields(ldf_model_with_fields, ldf_basic):
     )
     with pytest.raises(SchemaError):
         invalid_df.pipe(ldf_model_with_fields.validate).collect()
+
+
+def test_model_with_fields_when_deprecation_warnings_are_errors():
+    class Schema(DataFrameModel):
+        update_action: str = Field(isin=["A", "M", "D"])
+
+    df = pl.DataFrame({"update_action": ["A", "M", "D", "X"]})
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", DeprecationWarning)
+        with pytest.raises(SchemaErrors) as exc_info:
+            Schema.validate(df, lazy=True)
+
+    schema_error = exc_info.value.schema_errors[0]
+    assert schema_error.reason_code == SchemaErrorReason.DATAFRAME_CHECK
+    assert schema_error.failure_cases.equals(
+        pl.DataFrame({"update_action": ["X"]})
+    )
 
 
 def test_model_with_custom_column_checks(
