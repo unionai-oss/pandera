@@ -1435,6 +1435,39 @@ class PydanticModel(DataType):
             for name, field in self.type.__fields__.items()  # type: ignore[attr-defined]
         ]
 
+    @property
+    def fields_metadata(self) -> dict[str, dict[str, bool]]:
+        """Return field properties (required and nullable) keyed by alias."""
+        import typing
+
+        metadata = {}
+        if PYDANTIC_V2:
+            for name, field in self.type.model_fields.items():  # type: ignore[attr-defined]
+                alias = field.alias or name
+                required = field.is_required()
+                ann = field.annotation
+                origin = typing.get_origin(ann)
+                args = typing.get_args(ann)
+                nullable = False
+                if ann is typing.Any or ann is type(None) or ann is None:
+                    nullable = True
+                elif origin is typing.Union or (
+                    hasattr(typing, "UnionType") and origin is typing.UnionType
+                ):
+                    nullable = type(None) in args or None in args
+                metadata[alias] = {
+                    "required": required,
+                    "nullable": nullable,
+                }
+        else:
+            for name, field in self.type.__fields__.items():  # type: ignore[attr-defined]
+                alias = field.alias or name
+                metadata[alias] = {
+                    "required": getattr(field, "required", True),
+                    "nullable": getattr(field, "allow_none", False),
+                }
+        return metadata
+
     def _check_column_names(
         self,
         data_container: PandasObject,

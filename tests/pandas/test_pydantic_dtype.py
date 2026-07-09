@@ -161,7 +161,9 @@ def test_pydantic_model_validates_empty_dataframe_with_aliases():
         name: str = Field(alias="Name")
         amount: float = Field(alias="Amount in local currency")
 
-    schema = pa.DataFrameSchema(dtype=PydanticModel(Row), coerce=True, strict=True)
+    schema = pa.DataFrameSchema(
+        dtype=PydanticModel(Row), coerce=True, strict=True
+    )
     data = pd.DataFrame(columns=["Name", "Amount in local currency"])
     validated = schema.validate(data)
     assert validated.columns.tolist() == [
@@ -169,3 +171,30 @@ def test_pydantic_model_validates_empty_dataframe_with_aliases():
         "Amount in local currency",
     ]
     assert validated.empty
+
+
+def test_pydantic_model_optional_and_nullable_fields():
+    """Optional and nullable fields in Pydantic model should be optional/nullable in schema."""
+
+    class Book(BaseModel):
+        title: str
+        rating: int | None = None
+
+    schema = pa.DataFrameSchema(
+        dtype=PydanticModel(Book),
+        coerce=True,
+    )
+
+    # test 1: optional field missing in dataframe
+    df_without_rating = pd.DataFrame({"title": ["Dune", "Foundation"]})
+    validated_without_rating = schema.validate(df_without_rating)
+    assert validated_without_rating.columns.tolist() == ["title", "rating"]
+    assert pd.isna(validated_without_rating["rating"]).all()
+
+    # test 2: optional field containing null values
+    df_with_null_rating = pd.DataFrame(
+        {"title": ["Dune", "Foundation"], "rating": [None, None]}
+    )
+    validated_with_null_rating = schema.validate(df_with_null_rating)
+    assert validated_with_null_rating.columns.tolist() == ["title", "rating"]
+    assert pd.isna(validated_with_null_rating["rating"]).all()
