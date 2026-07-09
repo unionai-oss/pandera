@@ -423,4 +423,6 @@ def dataframe_parser(_fn=None, **parser_kwargs) -> ClassParser:
         )
         return parser_method
 
-    return _wrapper(_fn)  # type: ignore
+    if _fn:
+        return _wrapper(_fn)  # type: ignore
+    return _wrapper
