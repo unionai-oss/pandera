@@ -115,6 +115,33 @@ def test_parser_called_once():
     assert n_calls == 1
 
 
+def test_dataframe_parser_parenthesized_form():
+    """``@dataframe_parser()`` and ``@dataframe_parser(**kwargs)`` should work
+    like the bare ``@dataframe_parser``, matching ``dataframe_check``."""
+    data = pd.DataFrame({"col": [1.0, 4.0, 9.0]})
+    expected = pd.DataFrame({"col": [2.0, 8.0, 18.0]})
+
+    class DFModel(pa.DataFrameModel):
+        col: float
+
+        @pa.dataframe_parser()
+        @classmethod
+        def double(cls, df: pd.DataFrame) -> pd.DataFrame:
+            return df * 2
+
+    assert_frame_equal(DFModel.validate(data), expected)
+
+    class DFModelWithKwargs(pa.DataFrameModel):
+        col: float
+
+        @pa.dataframe_parser(description="double the frame")
+        @classmethod
+        def double(cls, df: pd.DataFrame) -> pd.DataFrame:
+            return df * 2
+
+    assert_frame_equal(DFModelWithKwargs.validate(data), expected)
+
+
 def test_parser_with_coercion():
     """Make sure that parser is applied before coercion."""
 
