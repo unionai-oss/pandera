@@ -9,7 +9,6 @@ import polars as pl
 import pytest
 
 import pandera.polars as pa
-from pandera.api.polars.utils import get_lazyframe_schema
 from pandera.backends.base import CoreCheckResult
 from pandera.backends.polars.components import ColumnBackend
 from pandera.config import CONFIG
@@ -130,7 +129,7 @@ def test_get_regex_columns(kwargs):
     backend = ColumnBackend()
     data = pl.DataFrame({f"col_{i}": [1, 2, 3] for i in range(10)}).lazy()
     matched_columns = backend.get_regex_columns(column_schema, data)
-    assert matched_columns == get_lazyframe_schema(data)
+    assert matched_columns == data.collect_schema()
 
     no_match_data = data.rename(
         lambda c: c.replace(

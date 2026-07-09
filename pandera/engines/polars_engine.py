@@ -12,7 +12,6 @@ from collections.abc import Iterable, Mapping, Sequence
 from typing import (
     Any,
     Literal,
-    Optional,
     TypedDict,
     Union,
     overload,
@@ -21,8 +20,9 @@ from typing import (
 import polars as pl
 from polars._typing import ColumnNameOrSelector, PythonDataType
 from polars.datatypes import DataTypeClass
+from polars.datatypes._parse import parse_py_type_into_dtype
 from pydantic import BaseModel, ValidationError
-from typing_extensions import NotRequired
+from typing_extensions import NotRequired, deprecated
 
 from pandera import dtypes, errors
 from pandera.api.polars.types import PolarsData
@@ -50,16 +50,7 @@ def convert_py_dtype_to_polars_dtype(dtype):
     if isinstance(dtype, DataTypeClass):
         return dtype
 
-    if polars_version().release < (1, 0, 0):
-        from polars.datatypes import py_type_to_dtype
-
-        conversion_fn = py_type_to_dtype
-    else:
-        from polars.datatypes._parse import parse_py_type_into_dtype
-
-        conversion_fn = parse_py_type_into_dtype
-
-    return conversion_fn(dtype)
+    return parse_py_type_into_dtype(dtype)
 
 
 def polars_object_coercible(
@@ -186,8 +177,6 @@ class DataType(dtypes.DataType):
         raises a :class:`~pandera.errors.ParserError` if the coercion fails
         :raises: :class:`~pandera.errors.ParserError`: if coercion fails
         """
-        from pandera.api.polars.utils import get_lazyframe_schema
-
         if isinstance(data_container, pl.LazyFrame):
             data_container = PolarsData(data_container)
 
@@ -208,7 +197,7 @@ class DataType(dtypes.DataType):
                 failure_cases = failure_cases.select(data_container.key)
             raise errors.ParserError(
                 f"Could not coerce {_key} LazyFrame with schema "
-                f"{get_lazyframe_schema(data_container.lazyframe)} "
+                f"{data_container.lazyframe.collect_schema()} "
                 f"into type {self.type}",
                 failure_cases=failure_cases,
                 parser_output=is_coercible,
@@ -600,12 +589,24 @@ class Array(DataType):
     ) -> None: ...
 
     @overload
+    @deprecated(
+        "The `width` argument of `Array` is deprecated, use `shape` instead."
+    )
     def __init__(
         self,
         inner: PolarsDataType = ...,
         shape: Union[int, tuple[int, ...], None] = ...,
         *,
-        width: int | None = ...,
+        width: int,
+    ) -> None: ...
+
+    @overload
+    def __init__(
+        self,
+        inner: PolarsDataType = ...,
+        shape: Union[int, tuple[int, ...], None] = ...,
+        *,
+        width: None = ...,
     ) -> None: ...
 
     def __init__(
@@ -615,9 +616,19 @@ class Array(DataType):
         *,
         width: int | None = None,
     ) -> None:
+        """Construct a Polars Array dtype.
+
+        .. deprecated::
+          The ``width`` argument is deprecated, use ``shape`` instead.
+        """
         kwargs: _ArrayKwargs = {}
         if width is not None:
-            # width deprecated in polars 0.20.31, replaced by shape
+            warnings.warn(
+                "The `width` argument of `Array` is deprecated and will be "
+                "removed in a future version. Use `shape` instead.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
             kwargs["shape"] = width
         elif shape is not None:
             kwargs["shape"] = shape

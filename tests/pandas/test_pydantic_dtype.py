@@ -161,7 +161,9 @@ def test_pydantic_model_validates_empty_dataframe_with_aliases():
         name: str = Field(alias="Name")
         amount: float = Field(alias="Amount in local currency")
 
-    schema = pa.DataFrameSchema(dtype=PydanticModel(Row), coerce=True, strict=True)
+    schema = pa.DataFrameSchema(
+        dtype=PydanticModel(Row), coerce=True, strict=True
+    )
     data = pd.DataFrame(columns=["Name", "Amount in local currency"])
     validated = schema.validate(data)
     assert validated.columns.tolist() == [

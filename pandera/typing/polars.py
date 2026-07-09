@@ -5,8 +5,6 @@ import io
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, Generic, TypeVar
 
-from packaging import version
-
 from pandera.config import config_context
 from pandera.engines import PYDANTIC_V2
 from pandera.errors import SchemaError, SchemaInitError
@@ -24,11 +22,6 @@ except ImportError:
 if PYDANTIC_V2:
     from pydantic import GetCoreSchemaHandler
     from pydantic_core import core_schema
-
-
-def polars_version():
-    """Return the polars version."""
-    return version.parse(pl.__version__)
 
 
 if TYPE_CHECKING:

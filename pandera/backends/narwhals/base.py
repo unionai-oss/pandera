@@ -571,11 +571,7 @@ class NarwhalsSchemaBackend(BaseSchemaBackend):
 
         if resolved_co is not None:
             co_eager = _materialize(resolved_co)
-            try:
-                co_indexed = co_eager.with_row_index("index")
-            except AttributeError:
-                # Older polars: ``with_row_index`` was called ``with_row_count``.
-                co_indexed = co_eager.with_row_count("index")
+            co_indexed = co_eager.with_row_index("index")
             failing_indices = co_indexed.filter(~nw.col(CHECK_OUTPUT_KEY))[
                 "index"
             ].to_list()

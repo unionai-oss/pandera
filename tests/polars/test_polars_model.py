@@ -158,13 +158,6 @@ def test_model_schema_equivalency_with_optional():
     assert ModelWithOptional.to_schema() == schema
 
 
-ErrorCls = (
-    pl.exceptions.InvalidOperationError
-    if pe.polars_version().release >= (1, 0, 0)
-    else pl.exceptions.ComputeError
-)
-
-
 @pytest.mark.parametrize(
     "column_mod,exception_cls",
     [
@@ -172,7 +165,7 @@ ErrorCls = (
         # values in ldf_basic will cause the error outside of pandera validation
         pytest.param(
             {"string_col": pl.Int64},
-            ErrorCls,
+            pl.exceptions.InvalidOperationError,
             marks=pytest.mark.xfail(
                 condition=CONFIG.use_narwhals_backend,
                 reason="Narwhals raises narwhals.exceptions.InvalidOperationError, not polars.exceptions.InvalidOperationError",
