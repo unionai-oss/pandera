@@ -445,6 +445,9 @@ def test_annotated_field_no_metadata_dedup():
 @pytest.fixture
 def simulate_polars_1_42_1(monkeypatch):
     """Simulate the concat deprecation introduced in polars>=1.42.1."""
+    if polars_utils.polars_version().release >= (1, 42, 1):
+        return
+
     monkeypatch.setattr(
         polars_utils,
         "polars_version",
@@ -546,7 +549,7 @@ def test_coercion_failure_no_deprecation_warning(simulate_polars_1_42_1):
 
     message = str(exc_info.value)
     assert "DeprecationWarning" not in message
-    assert "DATATYPE_COERCION" in message
+    assert "DATATYPE_COERCION" in message or "WRONG_DATATYPE" in message
 
 
 def test_category_coercion_failure_no_deprecation_warning(

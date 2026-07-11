@@ -10,9 +10,11 @@ import polars as pl
 import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
+from packaging import version
 from polars.testing import assert_frame_equal
 from polars.testing.parametric import dataframes
 
+import pandera.backends.polars.utils as polars_utils
 import pandera.errors
 from pandera.api.polars.types import PolarsData
 from pandera.api.polars.utils import get_lazyframe_column_dtypes
@@ -62,6 +64,45 @@ special_types = [
 ]
 
 all_types = numeric_dtypes + temporal_types + other_types
+
+
+def test_backend_polars_version():
+    """Test the backend polars_version helper."""
+    assert polars_utils.polars_version() == version.parse(pl.__version__)
+
+
+@pytest.mark.parametrize(
+    "polars_release,expected_how",
+    [("1.42.0", "horizontal"), ("1.42.1", "horizontal_extend")],
+)
+def test_horizontal_concat_uses_supported_mode(
+    monkeypatch,
+    polars_release,
+    expected_how,
+):
+    """Test that horizontal_concat uses the supported concat mode."""
+    captured = {}
+
+    monkeypatch.setattr(
+        polars_utils,
+        "polars_version",
+        lambda: version.parse(polars_release),
+    )
+
+    def _fake_concat(items, how):
+        captured["how"] = how
+        captured["items"] = items
+        return pl.LazyFrame({"out": [True]})
+
+    monkeypatch.setattr(pl, "concat", _fake_concat)
+
+    result = polars_utils.horizontal_concat(
+        [pl.LazyFrame({"a": [1]}), pl.LazyFrame({"b": [2]})]
+    )
+
+    assert isinstance(result, pl.LazyFrame)
+    assert len(captured["items"]) == 2
+    assert captured["how"] == expected_how
 
 
 def get_dataframe_strategy(type_: pl.DataType) -> st.SearchStrategy:
