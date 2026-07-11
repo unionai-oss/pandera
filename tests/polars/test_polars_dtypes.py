@@ -10,7 +10,6 @@ import polars as pl
 import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
-from packaging import version
 from polars.testing import assert_frame_equal
 from polars.testing.parametric import dataframes
 
@@ -230,35 +229,12 @@ def test_coerce_cast_failed(pl_to_dtype, container, exception_cls):
         (pe.Int8(), pl.LazyFrame({"0": [1000, 100, 200]})),
         (pe.Bool(), pl.LazyFrame({"0": ["a", "b", "c"]})),
         (pe.Int64(), pl.LazyFrame({"0": ["1", "b"], "1": ["c", "d"]})),
-        (
-            pe.Category(categories=["a", "b", "c"]),
-            pl.LazyFrame({"0": ["a", "f"]}),
-        ),
     ],
 )
 def test_try_coerce_cast_failed(to_dtype, container):
     """Test that try_coerce() raises ParserError when not coercible."""
     with pytest.raises(pandera.errors.ParserError):
         to_dtype.try_coerce(data_container=container)
-
-
-def test_horizontal_concat_uses_supported_mode(monkeypatch):
-    calls = {}
-    frames = [pl.LazyFrame({"a": [1]}), pl.LazyFrame({"b": [2]})]
-
-    def fake_concat(items, how):
-        calls["items"] = items
-        calls["how"] = how
-        return items[0]
-
-    monkeypatch.setattr(pe.pl, "concat", fake_concat)
-    monkeypatch.setattr(pe, "polars_version", lambda: version.parse("1.33.1"))
-    pe.horizontal_concat(frames)
-    assert calls == {"items": frames, "how": "horizontal"}
-
-    monkeypatch.setattr(pe, "polars_version", lambda: version.parse("1.42.1"))
-    pe.horizontal_concat(frames)
-    assert calls == {"items": frames, "how": "horizontal_extend"}
 
 
 @pytest.mark.parametrize("dtype", all_types + special_types)

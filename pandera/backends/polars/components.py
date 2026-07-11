@@ -15,9 +15,9 @@ from pandera.api.polars.utils import (
 )
 from pandera.backends.base import CoreCheckResult
 from pandera.backends.polars.base import PolarsSchemaBackend, is_float_dtype
+from pandera.backends.polars.utils import horizontal_concat
 from pandera.config import ValidationDepth, ValidationScope, get_config_context
 from pandera.constants import CHECK_OUTPUT_KEY
-from pandera.engines.polars_engine import horizontal_concat
 from pandera.errors import (
     ParserError,
     SchemaDefinitionError,

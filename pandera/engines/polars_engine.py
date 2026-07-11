@@ -19,7 +19,6 @@ from typing import (
 )
 
 import polars as pl
-from packaging import version
 from polars._typing import ColumnNameOrSelector, PythonDataType
 from polars.datatypes import DataTypeClass
 from pydantic import BaseModel, ValidationError
@@ -27,6 +26,7 @@ from typing_extensions import NotRequired
 
 from pandera import dtypes, errors
 from pandera.api.polars.types import PolarsData
+from pandera.backends.polars.utils import horizontal_concat, polars_version
 from pandera.constants import CHECK_OUTPUT_KEY
 from pandera.dtypes import immutable
 from pandera.engines import PYDANTIC_V2, engine
@@ -44,21 +44,6 @@ COERCION_ERRORS = (
 
 
 SchemaDict = Mapping[str, PolarsDataType]
-
-
-def polars_version() -> version.Version:
-    """Return the polars version."""
-
-    return version.parse(pl.__version__)
-
-
-def horizontal_concat(
-    items: Sequence[pl.LazyFrame],
-) -> pl.LazyFrame:
-    """Concat LazyFrames horizontally across supported polars versions."""
-    if polars_version().release >= (1, 42, 1):
-        return pl.concat(items, how="horizontal_extend")  # type: ignore[arg-type]
-    return pl.concat(items, how="horizontal")
 
 
 def convert_py_dtype_to_polars_dtype(dtype):

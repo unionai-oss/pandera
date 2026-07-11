@@ -14,11 +14,13 @@ import polars as pl
 import pytest
 from hypothesis import given
 from hypothesis import strategies as st
+from packaging import version
 from polars.testing.parametric import column, dataframes
 
+import pandera.backends.polars.utils as polars_utils
 import pandera.engines.polars_engine as pe
 from pandera.config import CONFIG
-from pandera.errors import SchemaError, SchemaErrorReason, SchemaErrors
+from pandera.errors import ParserError, SchemaError, SchemaErrors
 from pandera.polars import (
     Column,
     DataFrameModel,
@@ -212,24 +214,6 @@ def test_model_with_fields(ldf_model_with_fields, ldf_basic):
     )
     with pytest.raises(SchemaError):
         invalid_df.pipe(ldf_model_with_fields.validate).collect()
-
-
-def test_model_with_fields_when_deprecation_warnings_are_errors():
-    class Schema(DataFrameModel):
-        update_action: str = Field(isin=["A", "M", "D"])
-
-    df = pl.DataFrame({"update_action": ["A", "M", "D", "X"]})
-
-    with warnings.catch_warnings():
-        warnings.simplefilter("error", DeprecationWarning)
-        with pytest.raises(SchemaErrors) as exc_info:
-            Schema.validate(df, lazy=True)
-
-    schema_error = exc_info.value.schema_errors[0]
-    assert schema_error.reason_code == SchemaErrorReason.DATAFRAME_CHECK
-    assert schema_error.failure_cases.equals(
-        pl.DataFrame({"update_action": ["X"]})
-    )
 
 
 def test_model_with_custom_column_checks(
@@ -456,3 +440,128 @@ def test_annotated_field_no_metadata_dedup():
     assert schema_b.columns["value"].title == "ID"
     # ModelB should not have inherited ModelA's range checks.
     assert schema_b.columns["value"].checks == []
+
+
+@pytest.fixture
+def simulate_polars_1_42_1(monkeypatch):
+    """Simulate the concat deprecation introduced in polars>=1.42.1."""
+    monkeypatch.setattr(
+        polars_utils,
+        "polars_version",
+        lambda: version.parse("1.42.1"),
+    )
+
+    original_concat = pl.concat
+
+    def _simulate_polars_1_42_1_concat(*args, **kwargs):
+        how = kwargs.get("how")
+        if how == "horizontal":
+            warnings.warn(
+                "the default behavior of how='horizontal' for concat is "
+                "deprecated and will require equal heights in the next "
+                "breaking release. Use how='horizontal_extend' to keep "
+                "the current behavior.",
+                DeprecationWarning,
+            )
+        elif how == "horizontal_extend":
+            kwargs = dict(kwargs)
+            kwargs["how"] = "horizontal"
+        return original_concat(*args, **kwargs)
+
+    monkeypatch.setattr(pl, "concat", _simulate_polars_1_42_1_concat)
+
+
+def test_isin_check_lazy_validation_no_deprecation_warning(
+    simulate_polars_1_42_1,
+):
+    """Issue #2409 regression test for lazy ``isin`` validation."""
+
+    class Schema(DataFrameModel):
+        string_col: str = Field(isin=[*"abc"])
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", DeprecationWarning)
+
+        valid_df = pl.DataFrame({"string_col": ["a", "b", "c"]})
+        Schema.validate(valid_df, lazy=True)
+
+        invalid_df = pl.DataFrame({"string_col": ["a", "b", "z"]})
+        with pytest.raises(SchemaErrors) as exc_info:
+            Schema.validate(invalid_df, lazy=True)
+
+    message = str(exc_info.value)
+    assert "CHECK_ERROR" not in message
+    assert "DeprecationWarning" not in message
+    assert "isin" in message
+    assert exc_info.value.failure_cases["failure_case"].to_list() == ["z"]
+
+
+def test_nullable_check_lazy_validation_no_deprecation_warning(
+    simulate_polars_1_42_1,
+):
+    """Issue #2409 regression test for lazy nullable validation."""
+
+    class Schema(DataFrameModel):
+        col: str = Field(nullable=False)
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", DeprecationWarning)
+        with pytest.raises(SchemaErrors) as exc_info:
+            Schema.validate(pl.DataFrame({"col": ["a", None, "c"]}), lazy=True)
+
+    message = str(exc_info.value)
+    assert "DeprecationWarning" not in message
+    assert "SERIES_CONTAINS_NULLS" in message
+
+
+def test_unique_check_lazy_validation_no_deprecation_warning(
+    simulate_polars_1_42_1,
+):
+    """Issue #2409 regression test for lazy uniqueness validation."""
+
+    class Schema(DataFrameModel):
+        col: str = Field(unique=True)
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", DeprecationWarning)
+        with pytest.raises(SchemaErrors) as exc_info:
+            Schema.validate(pl.DataFrame({"col": ["a", "a", "c"]}), lazy=True)
+
+    message = str(exc_info.value)
+    assert "DeprecationWarning" not in message
+    assert "SERIES_CONTAINS_DUPLICATES" in message
+
+
+def test_coercion_failure_no_deprecation_warning(simulate_polars_1_42_1):
+    """Issue #2409 regression test for generic coercion failures."""
+
+    class Schema(DataFrameModel):
+        int_col: int = Field(coerce=True)
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", DeprecationWarning)
+        bad_df = pl.DataFrame({"int_col": ["a", "b", "not-a-number"]})
+        with pytest.raises(SchemaErrors) as exc_info:
+            Schema.validate(bad_df, lazy=True)
+
+    message = str(exc_info.value)
+    assert "DeprecationWarning" not in message
+    assert "DATATYPE_COERCION" in message
+
+
+def test_category_coercion_failure_no_deprecation_warning(
+    simulate_polars_1_42_1,
+):
+    """Issue #2409 regression test for category coercion failures."""
+    cat_dtype = pe.Category(categories=["a", "b", "c"])
+    lazyframe = pl.DataFrame({"col": ["a", "b", "not-a-category"]}).lazy()
+    data_container = PolarsData(lazyframe, key="col")
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", DeprecationWarning)
+        with pytest.raises(ParserError) as exc_info:
+            cat_dtype.try_coerce(data_container)
+
+    message = str(exc_info.value)
+    assert "DeprecationWarning" not in message
+    assert "Invalid categories" in message

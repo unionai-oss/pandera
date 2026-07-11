@@ -14,8 +14,8 @@ from pandera.api.polars.utils import (
     get_lazyframe_schema,
 )
 from pandera.backends.base import BaseCheckBackend
+from pandera.backends.polars.utils import horizontal_concat
 from pandera.constants import CHECK_OUTPUT_KEY
-from pandera.engines.polars_engine import horizontal_concat
 
 
 class PolarsCheckBackend(BaseCheckBackend):
