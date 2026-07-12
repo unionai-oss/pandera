@@ -71,38 +71,43 @@ def test_backend_polars_version():
     assert polars_utils.polars_version() == version.parse(pl.__version__)
 
 
-@pytest.mark.parametrize(
-    "polars_release,expected_how",
-    [("1.42.0", "horizontal"), ("1.42.1", "horizontal_extend")],
-)
-def test_horizontal_concat_uses_supported_mode(
-    monkeypatch,
-    polars_release,
-    expected_how,
-):
-    """Test that horizontal_concat uses the supported concat mode."""
-    captured = {}
+def test_horizontal_concat_uses_supported_mode(monkeypatch):
+    """Test that horizontal_concat falls back only for unsupported modes."""
+    captured = []
+    items = [pl.LazyFrame({"a": [1]}), pl.LazyFrame({"b": [2]})]
 
-    monkeypatch.setattr(
-        polars_utils,
-        "polars_version",
-        lambda: version.parse(polars_release),
-    )
-
-    def _fake_concat(items, how):
-        captured["how"] = how
-        captured["items"] = items
+    def _fake_concat(concat_items, how):
+        captured.append((concat_items, how))
+        if how == "horizontal_extend":
+            raise ValueError(
+                "LazyFrame `how` must be one of {'horizontal'}, "
+                "got 'horizontal_extend'"
+            )
         return pl.LazyFrame({"out": [True]})
 
     monkeypatch.setattr(pl, "concat", _fake_concat)
 
-    result = polars_utils.horizontal_concat(
-        [pl.LazyFrame({"a": [1]}), pl.LazyFrame({"b": [2]})]
-    )
+    result = polars_utils.horizontal_concat(items)
 
     assert isinstance(result, pl.LazyFrame)
-    assert len(captured["items"]) == 2
-    assert captured["how"] == expected_how
+    assert captured == [
+        (items, "horizontal_extend"),
+        (items, "horizontal"),
+    ]
+
+
+def test_horizontal_concat_reraises_unrelated_value_error(monkeypatch):
+    """Test that horizontal_concat reraises unrelated concat failures."""
+
+    def _fake_concat(items, how):
+        raise ValueError("some other concat failure")
+
+    monkeypatch.setattr(pl, "concat", _fake_concat)
+
+    with pytest.raises(ValueError, match="some other concat failure"):
+        polars_utils.horizontal_concat(
+            [pl.LazyFrame({"a": [1]}), pl.LazyFrame({"b": [2]})]
+        )
 
 
 def get_dataframe_strategy(type_: pl.DataType) -> st.SearchStrategy:

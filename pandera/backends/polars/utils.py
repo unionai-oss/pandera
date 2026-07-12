@@ -16,6 +16,9 @@ def horizontal_concat(
     items: Sequence[pl.LazyFrame],
 ) -> pl.LazyFrame:
     """Concat LazyFrames horizontally across supported polars versions."""
-    if polars_version().release >= (1, 42, 1):
+    try:
         return pl.concat(items, how="horizontal_extend")  # type: ignore[arg-type]
-    return pl.concat(items, how="horizontal")
+    except ValueError as exc:
+        if "got 'horizontal_extend'" not in str(exc):
+            raise
+        return pl.concat(items, how="horizontal")
