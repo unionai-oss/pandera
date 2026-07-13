@@ -35,7 +35,8 @@ def test_data_vars_and_coords():
     schema.validate(ds)
 
 
-def test_data_vars_and_coords_coerced():
+@pytest.mark.parametrize("inplace", [False, True])
+def test_data_vars_and_coords_coerced(inplace):
     ds = xr.Dataset(
         {
             "a": (["x"], np.zeros(3, dtype=np.float32)),
@@ -50,17 +51,23 @@ def test_data_vars_and_coords_coerced():
         },
         coords={"x": Coordinate(dtype=np.int16, coerce=True)},
     )
-    out = schema.validate(ds)
+    out = schema.validate(ds, inplace=inplace)
 
     assert out.data_vars["a"].dtype == np.int16
     assert out.data_vars["b"].dtype == np.float64
     assert out.coords["x"].dtype == np.int16
-    assert ds.data_vars["a"].dtype == np.float32
-    assert ds.data_vars["b"].dtype == np.float32
-    assert ds.coords["x"].dtype == np.float32
+    if inplace:
+        assert ds.data_vars["a"].dtype == np.int16
+        assert ds.data_vars["b"].dtype == np.float64
+        assert ds.coords["x"].dtype == np.int16
+    else:
+        assert ds.data_vars["a"].dtype == np.float32
+        assert ds.data_vars["b"].dtype == np.float32
+        assert ds.coords["x"].dtype == np.float32
 
 
-def test_data_vars_and_coords_parsed():
+@pytest.mark.parametrize("inplace", [False, True])
+def test_data_vars_and_coords_parsed(inplace):
     ds = xr.Dataset(
         {
             "a": (["x"], np.zeros(3, dtype=np.float32)),
@@ -76,12 +83,15 @@ def test_data_vars_and_coords_parsed():
         coords={"x": Coordinate(parsers=[Parser(np.square)])},
     )
     original = ds.copy(deep=True)
-    out = schema.validate(ds)
+    out = schema.validate(ds, inplace=inplace)
 
     assert (out.data_vars["a"] == 1.0).all().item()
     assert (out.data_vars["b"] == 1.0).all().item()
     assert out.coords["x"].max().item() == 4.0
-    xr.testing.assert_identical(ds, original)
+    if inplace:
+        xr.testing.assert_identical(ds, out)
+    else:
+        xr.testing.assert_identical(ds, original)
 
 
 def test_optional_default_fill():

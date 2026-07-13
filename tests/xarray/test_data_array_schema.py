@@ -76,7 +76,8 @@ def test_strict_coords():
         schema_bad.validate(da_extra)
 
 
-def test_coords_coerced():
+@pytest.mark.parametrize("inplace", [False, True])
+def test_coords_coerced(inplace):
     da = xr.DataArray(
         np.zeros(2),
         dims=("x",),
@@ -85,10 +86,13 @@ def test_coords_coerced():
     schema = DataArraySchema(
         coords={"x": Coordinate(dtype=np.int16, coerce=True)},
     )
-    out = schema.validate(da)
+    out = schema.validate(da, inplace=inplace)
 
     assert out.coords["x"].dtype == np.int16
-    assert da.coords["x"].dtype == np.float32
+    if inplace:
+        assert da.coords["x"].dtype == np.int16
+    else:
+        assert da.coords["x"].dtype == np.float32
 
 
 def test_data_check_and_lazy():
@@ -109,12 +113,27 @@ def test_schema_only_skips_data_checks():
         schema.validate(da)
 
 
-def test_coerce_dtype():
+@pytest.mark.parametrize(
+    "inplace",
+    [
+        False,
+        pytest.param(
+            True,
+            marks=pytest.mark.xfail(
+                reason="Known bug: inplace coercion is not supported"
+            ),
+        ),
+    ],
+)
+def test_coerce_dtype(inplace):
     da = xr.DataArray(np.array([1.0, 2.0]), dims=("x",))
     schema = DataArraySchema(dtype=np.int64, coerce=True)
-    out = schema.validate(da)
+    out = schema.validate(da, inplace=inplace)
     assert np.issubdtype(out.dtype, np.integer)
-    assert np.issubdtype(da.dtype, np.floating)
+    if inplace:
+        assert np.issubdtype(da.dtype, np.integer)
+    else:
+        assert np.issubdtype(da.dtype, np.floating)
 
 
 def test_sizes_and_shape_mutually_exclusive():
@@ -298,26 +317,45 @@ def test_lazy_validation_respects_n_failure_cases_in_error_message():
     assert "7" not in err
 
 
-def test_parser_runs():
+@pytest.mark.parametrize(
+    "inplace",
+    [
+        False,
+        pytest.param(
+            True,
+            marks=pytest.mark.xfail(
+                reason="Known bug: inplace parser is not supported"
+            ),
+        ),
+    ],
+)
+def test_parser_runs(inplace):
 
     da = xr.DataArray(np.array([1.0, 2.0]), dims=("x",))
     schema = DataArraySchema(parsers=Parser(lambda x: x * 2))
     original = da.copy(deep=True)
-    out = schema.validate(da)
+    out = schema.validate(da, inplace=inplace)
     assert float(out.max().item()) == 4.0
-    xr.testing.assert_identical(da, original)
+    if inplace:
+        xr.testing.assert_identical(da, out)
+    else:
+        xr.testing.assert_identical(da, original)
 
 
-def test_parser_runs_on_coords():
+@pytest.mark.parametrize("inplace", [False, True])
+def test_parser_runs_on_coords(inplace):
 
     da = xr.DataArray(np.zeros(2), dims=("x",), coords={"x": [1.0, 2.0]})
     schema = DataArraySchema(
         coords={"x": Coordinate(parsers=[Parser(lambda x: x * 2)])}
     )
     original = da.copy(deep=True)
-    out = schema.validate(da)
+    out = schema.validate(da, inplace=inplace)
     assert float(out.coords["x"].max().item()) == 4.0
-    xr.testing.assert_identical(da, original)
+    if inplace:
+        xr.testing.assert_identical(da, out)
+    else:
+        xr.testing.assert_identical(da, original)
 
 
 def test_chunked_data_checks_skipped_by_default():
