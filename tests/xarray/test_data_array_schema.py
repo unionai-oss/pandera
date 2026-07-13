@@ -6,6 +6,7 @@ import pytest
 xr = pytest.importorskip("xarray")
 
 import pandera.errors
+from pandera.api.parsers import Parser
 from pandera.xarray import Check, Coordinate, DataArraySchema
 
 
@@ -75,6 +76,21 @@ def test_strict_coords():
         schema_bad.validate(da_extra)
 
 
+def test_coords_coerced():
+    da = xr.DataArray(
+        np.zeros(2),
+        dims=("x",),
+        coords={"x": ("x", np.arange(2, dtype=np.float32))},
+    )
+    schema = DataArraySchema(
+        coords={"x": Coordinate(dtype=np.int16, coerce=True)},
+    )
+    out = schema.validate(da)
+
+    assert out.coords["x"].dtype == np.int16
+    assert da.coords["x"].dtype == np.float32
+
+
 def test_data_check_and_lazy():
     da = xr.DataArray(np.array([1.0, 5.0, 3.0]), dims=("x",))
     schema = DataArraySchema(checks=Check(lambda x: x.max() < 4))
@@ -98,6 +114,7 @@ def test_coerce_dtype():
     schema = DataArraySchema(dtype=np.int64, coerce=True)
     out = schema.validate(da)
     assert np.issubdtype(out.dtype, np.integer)
+    assert np.issubdtype(da.dtype, np.floating)
 
 
 def test_sizes_and_shape_mutually_exclusive():
@@ -282,12 +299,25 @@ def test_lazy_validation_respects_n_failure_cases_in_error_message():
 
 
 def test_parser_runs():
-    from pandera.api.parsers import Parser
 
     da = xr.DataArray(np.array([1.0, 2.0]), dims=("x",))
     schema = DataArraySchema(parsers=Parser(lambda x: x * 2))
+    original = da.copy(deep=True)
     out = schema.validate(da)
     assert float(out.max().item()) == 4.0
+    xr.testing.assert_identical(da, original)
+
+
+def test_parser_runs_on_coords():
+
+    da = xr.DataArray(np.zeros(2), dims=("x",), coords={"x": [1.0, 2.0]})
+    schema = DataArraySchema(
+        coords={"x": Coordinate(parsers=[Parser(lambda x: x * 2)])}
+    )
+    original = da.copy(deep=True)
+    out = schema.validate(da)
+    assert float(out.coords["x"].max().item()) == 4.0
+    xr.testing.assert_identical(da, original)
 
 
 def test_chunked_data_checks_skipped_by_default():
@@ -490,6 +520,40 @@ class TestDataArrayCheckMethods:
         schema = DataArraySchema(coords={"y": Coordinate()})
         results = backend.check_coords(da, schema)
         assert any(not r.passed for r in results)
+
+    def test_check_coords_dtype_pass(self, backend):
+        ds = xr.Dataset(
+            {"a": (["x"], np.zeros(2))},
+            coords={"x": np.arange(2, dtype=np.int16)},
+        )
+        schema = DataArraySchema(
+            coords={"x": Coordinate(dtype=np.int16)},
+        )
+        results = backend.check_coords(ds, schema)
+        assert all(r.passed for r in results) or not results
+
+    def test_check_coords_dtype_fail(self, backend):
+        ds = xr.Dataset(
+            {"a": (["x"], np.zeros(2))},
+            coords={"x": np.arange(2, dtype=np.int16)},
+        )
+        schema = DataArraySchema(
+            coords={"x": Coordinate(dtype=np.float32)},
+        )
+        results = backend.check_coords(ds, schema)
+        assert any(not r.passed for r in results)
+
+    def test_coerce_coord_dtype(self, backend):
+        ds = xr.Dataset(
+            {"a": (["x"], np.zeros(2))},
+            coords={"x": np.arange(2, dtype=np.int16)},
+        )
+        schema = DataArraySchema(
+            coords={"x": Coordinate(dtype=np.float32, coerce=True)},
+        )
+        results = backend.check_coords(ds, schema)
+        assert all(r.passed for r in results) or not results
+        assert ds.coords["x"].dtype == np.float32
 
     def test_check_strict_coords_pass(self, backend):
         da = xr.DataArray(
