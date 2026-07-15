@@ -55,6 +55,8 @@ hypotheses = [
     "scipy",
 ]
 io = [
+    "numpy >= 1.24.4",
+    "pandas >= 2.1.1",
     "pyyaml >= 5.1",
 ]
 frictionless = [
@@ -120,6 +122,7 @@ all = [
     "polars >= 0.20.0",
     "xarray >= 2024.10.0",
     "numpy >= 1.24.4",
+    "pandas >= 2.1.1",
     "narwhals >= 1.26.0",
 ]
 
