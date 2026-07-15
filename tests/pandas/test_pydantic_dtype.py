@@ -169,3 +169,50 @@ def test_pydantic_model_validates_empty_dataframe_with_aliases():
         "Amount in local currency",
     ]
     assert validated.empty
+
+
+class OptionalFieldModel(BaseModel):
+    """Pydantic model with a required field and an optional field."""
+
+    title: str
+    rating: int | None = None
+
+
+class OptionalFieldSchema(pa.DataFrameModel):
+    """Pandera schema using a pydantic model with an optional field."""
+
+    class Config:
+        dtype = PydanticModel(OptionalFieldModel)
+
+
+def test_pydantic_model_optional_field_missing_column():
+    """
+    An optional pydantic field should not be required as a dataframe column.
+
+    Regression test for https://github.com/unionai-oss/pandera/issues/2406
+    """
+    data = pd.DataFrame({"title": ["Dune", "Foundation"]})
+    validated = OptionalFieldSchema.validate(data)
+    assert validated["rating"].isna().all()
+
+
+def test_pydantic_model_optional_field_null_values():
+    """
+    An optional pydantic field should tolerate null values in the column.
+
+    Regression test for https://github.com/unionai-oss/pandera/issues/2406
+    """
+    data = pd.DataFrame(
+        {"title": ["Dune", "Foundation"], "rating": [None, None]}
+    )
+    validated = OptionalFieldSchema.validate(data)
+    assert validated["rating"].isna().all()
+
+
+def test_pydantic_model_required_field_still_rejects_nulls():
+    """A required pydantic field should still reject null values."""
+    data = pd.DataFrame(
+        {"title": [None, "Foundation"], "rating": [3, 4]}
+    )
+    with pytest.raises(pa.errors.SchemaErrors):
+        OptionalFieldSchema.validate(data, lazy=True)
