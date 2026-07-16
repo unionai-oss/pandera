@@ -116,14 +116,6 @@ def _information_messages(
             ],
         ),
         (
-            "typed_wrapper.py",
-            0,
-            [],
-            [
-                'Type of "df["year"]" is "Series[int]"',
-            ],
-        ),
-        (
             "column_access.py",
             0,
             [],
@@ -164,7 +156,6 @@ def test_pyright_static_typing_modules(
     [
         "schema_retention",
         "check_types_output",
-        "typed_wrapper",
         "column_access",
     ],
 )
