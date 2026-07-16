@@ -189,6 +189,37 @@ def test_narwhals_expression_check(df):
     assert isinstance(schema.validate(df), pd.DataFrame)
 
 
+def test_dataframe_check_returning_bool_dataframe(df):
+    """Multi-column boolean DataFrame outputs are AND-reduced per row."""
+    schema = pa.DataFrameSchema(
+        {"x": pa.Column(int)},
+        checks=pa.Check(lambda d: d[["x", "f"]] > 0),
+    )
+    assert isinstance(schema.validate(df), pd.DataFrame)
+
+    failing = pa.DataFrameSchema(
+        {"x": pa.Column(int)},
+        checks=pa.Check(lambda d: d[["x", "f"]] > 1),
+    )
+    with pytest.raises(SchemaError):
+        failing.validate(df)
+
+
+def test_check_returning_dataframe_with_check_output_key(df):
+    """DataFrame outputs carrying CHECK_OUTPUT_KEY use that column directly."""
+    from pandera.constants import CHECK_OUTPUT_KEY
+
+    schema = pa.DataFrameSchema(
+        {
+            "x": pa.Column(
+                int,
+                pa.Check(lambda s: pd.DataFrame({CHECK_OUTPUT_KEY: s > 0})),
+            )
+        }
+    )
+    assert isinstance(schema.validate(df), pd.DataFrame)
+
+
 def test_builtin_checks(df):
     schema = pa.DataFrameSchema(
         {
@@ -229,6 +260,17 @@ def test_ignore_na_with_nullable_extension_dtype():
         {"a": pa.Column("Int64", pa.Check.ge(0), nullable=True)}
     )
     assert isinstance(schema.validate(frame), pd.DataFrame)
+
+
+def test_drop_invalid_rows_nullable_violation():
+    """drop_invalid_rows removes rows violating nullable=False."""
+    frame = pd.DataFrame({"a": [1.0, None, 2.0]})
+    schema = pa.DataFrameSchema(
+        {"a": pa.Column(float, nullable=False)},
+        drop_invalid_rows=True,
+    )
+    result = schema.validate(frame, lazy=True)
+    assert result["a"].tolist() == [1.0, 2.0]
 
 
 def test_drop_invalid_rows_keeps_nan_rows():
@@ -363,6 +405,66 @@ def test_ordered_schema():
     )
     with pytest.raises(SchemaError, match="out-of-order"):
         schema.validate(frame)
+
+
+def test_scalar_failure_cases_without_polars(df, monkeypatch):
+    """Scalar failure cases build pandas frames on polars-free installs."""
+    import pandera.backends.narwhals.base as narwhals_base
+
+    monkeypatch.setattr(narwhals_base, "pl", None)
+    schema = pa.DataFrameSchema({"x": pa.Column(str)})
+    with pytest.raises(SchemaErrors) as exc_info:
+        schema.validate(df, lazy=True)
+    failure_cases = exc_info.value.failure_cases
+    assert isinstance(failure_cases, pd.DataFrame)
+    assert failure_cases["failure_case"].tolist() == ["int64"]
+
+
+def test_failure_cases_metadata_with_non_frame_error_data(df):
+    """Non-frame err.data falls back to schema-module implementation detection."""
+    from pandera.errors import SchemaErrorReason
+
+    schema = pa.DataFrameSchema({"x": pa.Column(int)})
+    backend = schema.get_backend(df)
+    err = SchemaError(
+        schema=pa.Column(int, name="x"),
+        data="not-a-frame",
+        message="boom",
+        failure_cases="int64",
+        reason_code=SchemaErrorReason.WRONG_DATATYPE,
+    )
+    metadata = backend.failure_cases_metadata("schema", [err])
+    assert isinstance(metadata.failure_cases, pd.DataFrame)
+
+
+def test_check_dtype_iterable_result(df):
+    """Iterable dtype-check results are AND-reduced (native pandas semantics)."""
+    import narwhals.stable.v1 as nw
+
+    from pandera.backends.narwhals.components import ColumnBackend
+    from pandera.engines import numpy_engine
+
+    class IterableResultInt64(numpy_engine.Int64):
+        def check(self, pandera_dtype, data_container=None):
+            return iter([True, True])
+
+    column = pa.Column(int, name="x")
+    column._dtype = IterableResultInt64()
+    lf = nw.from_native(df).lazy()
+    results = ColumnBackend().check_dtype(lf, column)
+    assert all(result.passed for result in results)
+
+
+def test_is_pandas_like_helper(df):
+    """_is_pandas_like distinguishes narwhals pandas frames from other values."""
+    import narwhals.stable.v1 as nw
+
+    from pandera.api.narwhals.utils import _is_pandas_like
+
+    assert _is_pandas_like(nw.from_native(df))
+    assert _is_pandas_like(nw.from_native(df).lazy())
+    assert not _is_pandas_like("not a frame")
+    assert not _is_pandas_like(df)
 
 
 def test_pandas_column_selector_property():

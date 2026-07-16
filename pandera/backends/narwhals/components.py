@@ -291,7 +291,7 @@ class ColumnBackend(NarwhalsSchemaBackend):
                 schema.dtype,
                 (_pandas_engine.DataType, _numpy_engine.DataType),
             )
-        except ImportError:
+        except ImportError:  # pragma: no cover — pandas-free installs only
             uses_pandas_dtype = False
 
         results = []

@@ -109,12 +109,12 @@ def clear_narwhals_compatible_backend_registry() -> None:
                     (Check, nw.DataFrame),
                 ]
             )
-        except ImportError:
+        except ImportError:  # pragma: no cover — narwhals is co-installed
             pass
 
         for schema_cls, frame_type in pandas_keys:
             _pop_registry_key(schema_cls, frame_type)
-    except ImportError:
+    except ImportError:  # pragma: no cover — pandas is co-installed
         pass
 
     try:
@@ -175,7 +175,7 @@ def _narwhals_compatible_registration_state() -> dict[str, bool]:
         from pandera.backends.pandas.register import register_pandas_backends
 
         state["pandas"] = register_pandas_backends.cache_info().currsize > 0
-    except ImportError:
+    except ImportError:  # pragma: no cover — pandas is co-installed
         pass
 
     try:
@@ -230,7 +230,7 @@ def _get_register_functions() -> dict[str, Any]:
         from pandera.backends.pandas.register import register_pandas_backends
 
         register_functions["pandas"] = register_pandas_backends
-    except ImportError:
+    except ImportError:  # pragma: no cover — pandas is co-installed
         pass
 
     return register_functions

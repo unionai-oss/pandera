@@ -122,7 +122,7 @@ def _register_narwhals_pandas_overrides():
     """
     try:
         import narwhals.stable.v1 as nw
-    except ImportError as exc:
+    except ImportError as exc:  # pragma: no cover
         raise ImportError(
             "The Narwhals backend is enabled but the 'narwhals' "
             "package is not installed. Install it with: "
