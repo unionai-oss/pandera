@@ -45,7 +45,7 @@ per-library schema implementations.
    schema class — the backend is customizable via the existing
    `BACKEND_REGISTRY` mechanism.
 2. **The typing system must work** under both mypy (plugin) and
-   pyright/Pylance (no plugin support — codegen and careful generics).
+   pyright/Pylance (no plugin support — careful generics only).
 3. **Custom checks can be written against any DF type** (native polars,
    pandas, duckdb, ... signatures), while the orchestrating validator remains
    the narwhals backend, so long as the DF type is narwhals-compatible.
@@ -72,7 +72,7 @@ This section records the facts the design builds on (as of `main` @
 | `pandera/api/narwhals/` | **Support code only**: `NarwhalsData`, `NarwhalsCheckResult` (types.py), `ErrorHandler`, lazy/materialize helpers (utils.py). No schema/model classes. |
 | `pandera/api/dataframe/` | The shared generic layer: `DataFrameSchema(Generic[TDataObject], BaseSchema)`, `ComponentSchema(Generic[TDataObject])`, `DataFrameModel(Generic[TDataFrame, TSchema], BaseModel)`, `Field`/`FieldInfo`, `BaseConfig`. All per-library APIs subclass these. |
 | Backend registry | `BaseSchema.BACKEND_REGISTRY: dict[(schema_cls, frame_type), backend_cls]`; `get_backend()` walks the check object's MRO; `register_default_backends()` is the per-class lazy-registration hook. |
-| Typing | `pandera/typing/common.py` (`DataFrameBase[T]`, `SeriesBase`, `AnnotationInfo`, patched `_GenericAlias.__call__` for `DataFrame[Model](data)` validation); per-library `typing/{pandas,polars,ibis}.py`; mypy plugin in `pandera/mypy.py`. Branch `nielsb/fix-series-typing` adds pyright support via a codegen module (`pandera/typing/codegen.py`), `DataFrame(DataFrameBase[T], pd.DataFrame)` proper parameterization, and mypy `__getitem__` hooks. |
+| Typing | `pandera/typing/common.py` (`DataFrameBase[T]`, `SeriesBase`, `AnnotationInfo`, patched `_GenericAlias.__call__` for `DataFrame[Model](data)` validation); per-library `typing/{pandas,polars,ibis}.py`; mypy plugin in `pandera/mypy.py`. Branch `nielsb/fix-series-typing` adds `DataFrame(DataFrameBase[T], pd.DataFrame)` proper parameterization, mypy `__getitem__`/attribute hooks for column-level inference, and mypy + pyright CI test suites. |
 
 ### 2.2 What's missing (this spec)
 
@@ -363,9 +363,9 @@ namespace, same as today's polars extension checks.
 
 The typing design follows the two-track approach established on
 `nielsb/fix-series-typing` (commits `d629ae9`, `4d4d88c`, `8bdfd59`):
-mypy gets plugin hooks, pyright gets sound-by-construction generics plus
-optional codegen; **runtime types are never changed by `validate()`**
-(`cast`, not wrap — the `4d4d88c` rule).
+mypy gets plugin hooks, pyright gets sound-by-construction generics;
+**runtime types are never changed by `validate()`** (`cast`, not wrap —
+the `4d4d88c` rule).
 
 ### 5.1 `pandera/typing/narwhals.py`
 
@@ -446,10 +446,12 @@ Extend `pandera/mypy.py` (as reshaped by `d629ae9`):
 - The generics in §5.1–5.2 must typecheck cleanly under
   `pyright --strict` **without** any plugin: this is a CI gate
   (`tests/pyright/`, extending the suite added on the typing branch).
-- `pandera/typing/codegen.py` (from `d629ae9`) gains a narwhals target:
-  generate a typed `DataFrame` subclass with `__getitem__` overloads and
-  column attributes from a `DataFrameModel`, for users who want
-  column-level inference in Pylance.
+- Column-level inference (`df["col"]` → field type) is a **mypy-plugin
+  feature only**. Pyright/Pylance users get schema-level types
+  (`DataFrame[Model]` retention, native-type preservation) but annotate
+  or `cast` for typed column access; no code generation is offered — a
+  generate-and-paste workflow was prototyped on the typing branch and
+  rejected as poor devex.
 - One known compromise: `nw.DataFrame` is itself generic over the native
   frame type; `pandera.typing.narwhals.DataFrame[T]` fixes that parameter
   to `Any`. Users who need the *native* parameter statically should
