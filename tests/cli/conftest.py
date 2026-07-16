@@ -18,12 +18,13 @@ def sample_pandas_df() -> pd.DataFrame:
     return pd.DataFrame({"x": [1, 2], "y": ["a", "b"]})
 
 
-def pandas_api_schema() -> Any:
+def pandas_api_schema(*, coerce: bool = False) -> Any:
     return pa.DataFrameSchema(
         {
             "x": pa.Column(int),
             "y": pa.Column(str),
-        }
+        },
+        coerce=coerce,
     )
 
 
@@ -32,9 +33,10 @@ def write_pandas_api_schema(
     *,
     schema_kind: str,
     dataframe_library: str | None = None,
+    coerce: bool = False,
 ) -> None:
     """Write schema using ``.yaml``, ``.yml``, or ``.json`` (``schema_kind``)."""
-    schema = pandas_api_schema()
+    schema = pandas_api_schema(coerce=coerce)
     kw: dict[str, Any] = {}
     if dataframe_library is not None:
         kw["dataframe_library"] = dataframe_library

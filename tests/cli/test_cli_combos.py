@@ -178,10 +178,14 @@ def test_validate_pyspark_pandas_library_matrix(
     ext = ".yaml" if schema_kind == "yaml" else ".json"
     schema_path = tmp_path / f"schema{ext}"
     data_path = tmp_path / f"data.{data_kind}"
+    # Spark's csv reader infers int32 for small integers while the schema's
+    # int dtype serializes as int64 — coerce so the dtype check passes
+    # across Spark versions (CLI-inferred schemas also set coerce=True).
     write_pandas_api_schema(
         schema_path,
         schema_kind=schema_kind,
         dataframe_library="pyspark.pandas",
+        coerce=True,
     )
     write_pandas_compatible_data(data_path, data_kind)
     proc = run_validate(
