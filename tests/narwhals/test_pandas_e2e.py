@@ -283,7 +283,10 @@ def test_lazy_failure_cases_scalar_only(df):
         schema.validate(df, lazy=True)
     failure_cases = exc_info.value.failure_cases
     assert isinstance(failure_cases, pd.DataFrame)
-    assert sorted(failure_cases["failure_case"]) == ["int64", "object"]
+    # string columns are dtype "object" on pandas < 3 and "str" on pandas >= 3
+    assert sorted(failure_cases["failure_case"]) == sorted(
+        ["int64", str(df["s"].dtype)]
+    )
 
 
 def test_schema_error_failure_cases_no_index_leak(df):
