@@ -10,9 +10,11 @@ import polars as pl
 import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
+from packaging import version
 from polars.testing import assert_frame_equal
 from polars.testing.parametric import dataframes
 
+import pandera.backends.polars.utils as polars_utils
 import pandera.errors
 from pandera.api.polars.types import PolarsData
 from pandera.api.polars.utils import get_lazyframe_column_dtypes
@@ -62,6 +64,50 @@ special_types = [
 ]
 
 all_types = numeric_dtypes + temporal_types + other_types
+
+
+def test_backend_polars_version():
+    """Test the backend polars_version helper."""
+    assert polars_utils.polars_version() == version.parse(pl.__version__)
+
+
+def test_horizontal_concat_uses_supported_mode(monkeypatch):
+    """Test that horizontal_concat falls back only for unsupported modes."""
+    captured = []
+    items = [pl.LazyFrame({"a": [1]}), pl.LazyFrame({"b": [2]})]
+
+    def _fake_concat(concat_items, how):
+        captured.append((concat_items, how))
+        if how == "horizontal_extend":
+            raise ValueError(
+                "LazyFrame `how` must be one of {'horizontal'}, "
+                "got 'horizontal_extend'"
+            )
+        return pl.LazyFrame({"out": [True]})
+
+    monkeypatch.setattr(pl, "concat", _fake_concat)
+
+    result = polars_utils.horizontal_concat(items)
+
+    assert isinstance(result, pl.LazyFrame)
+    assert captured == [
+        (items, "horizontal_extend"),
+        (items, "horizontal"),
+    ]
+
+
+def test_horizontal_concat_reraises_unrelated_value_error(monkeypatch):
+    """Test that horizontal_concat reraises unrelated concat failures."""
+
+    def _fake_concat(items, how):
+        raise ValueError("some other concat failure")
+
+    monkeypatch.setattr(pl, "concat", _fake_concat)
+
+    with pytest.raises(ValueError, match="some other concat failure"):
+        polars_utils.horizontal_concat(
+            [pl.LazyFrame({"a": [1]}), pl.LazyFrame({"b": [2]})]
+        )
 
 
 def get_dataframe_strategy(type_: pl.DataType) -> st.SearchStrategy:

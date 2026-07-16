@@ -19,7 +19,6 @@ from typing import (
 )
 
 import polars as pl
-from packaging import version
 from polars._typing import ColumnNameOrSelector, PythonDataType
 from polars.datatypes import DataTypeClass
 from pydantic import BaseModel, ValidationError
@@ -27,6 +26,7 @@ from typing_extensions import NotRequired
 
 from pandera import dtypes, errors
 from pandera.api.polars.types import PolarsData
+from pandera.backends.polars.utils import horizontal_concat, polars_version
 from pandera.constants import CHECK_OUTPUT_KEY
 from pandera.dtypes import immutable
 from pandera.engines import PYDANTIC_V2, engine
@@ -44,12 +44,6 @@ COERCION_ERRORS = (
 
 
 SchemaDict = Mapping[str, PolarsDataType]
-
-
-def polars_version() -> version.Version:
-    """Return the polars version."""
-
-    return version.parse(pl.__version__)
 
 
 def convert_py_dtype_to_polars_dtype(dtype):
@@ -90,9 +84,7 @@ def polars_failure_cases_from_coercible(
 ) -> pl.DataFrame:
     """Get the failure cases resulting from trying to coerce a polars object."""
     return (
-        pl.concat(
-            items=[data_container.lazyframe, is_coercible], how="horizontal"
-        )
+        horizontal_concat([data_container.lazyframe, is_coercible])
         .filter(pl.col(CHECK_OUTPUT_KEY).not_())
         .collect()
     )
@@ -836,8 +828,8 @@ class Category(DataType, dtypes.Category):
             match_categories = self.__belongs_to_categories(
                 data_container.lazyframe, key=data_container.key
             )
-            is_coercible: pl.LazyFrame = pl.concat(
-                (coercible, match_categories), how="horizontal"
+            is_coercible: pl.LazyFrame = horizontal_concat(
+                [coercible, match_categories]
             ).select(pl.all_horizontal(CHECK_OUTPUT_KEY, "belongs"))
 
             failure_cases = polars_failure_cases_from_coercible(
