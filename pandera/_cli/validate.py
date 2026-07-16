@@ -13,6 +13,7 @@ from .common import (
     BackendName,
     deserialize_schema,
     enable_narwhals_backend,
+    import_accessor_modules,
     infer_backend_from_schema,
     load_dataset,
     load_raw_schema,
@@ -113,6 +114,7 @@ def validate(
 
     schema_obj = deserialize_schema(raw)
     obj = load_dataset(data, chosen)
+    import_accessor_modules(chosen)
 
     try:
         schema_obj.validate(obj, lazy=True)

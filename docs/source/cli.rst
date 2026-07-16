@@ -10,7 +10,7 @@ module, or **generate** synthetic tabular or xarray data from a pandas or
 xarray schema. It is useful in scripts and CI without writing Python glue code.
 
 Installation
-----------
+------------
 
 The CLI depends on `Typer <https://typer.tiangolo.com/>`__. Install Pandera with
 the ``cli`` extra:

@@ -8,7 +8,7 @@ from typing import Any, Union
 from pandera import dtypes
 from pandera.api.checks import Check
 from pandera.engines import polars_engine
-from pandera.schema_statistics.pandas import string_length_check_statistics
+from pandera.schema_statistics.common import string_length_check_statistics
 
 
 def _infer_polars_series_checks(

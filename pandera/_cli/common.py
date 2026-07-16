@@ -56,6 +56,31 @@ def enable_narwhals_backend(backend: str) -> None:
     set_config(use_narwhals_backend=True)
 
 
+def import_accessor_modules(backend: str) -> None:
+    """Import the modules that register the ``.pandera`` dataframe accessor.
+
+    Validation backends attach schema metadata through the ``.pandera``
+    accessor, which is registered as an import side effect of per-library
+    pandera modules. Those imports don't happen on the CLI's deserialization
+    path, so trigger them explicitly for the chosen backend.
+    """
+    if backend in ("pandas", "modin", "dask", "pyspark.pandas"):
+        import pandera.pandas  # noqa: F401
+
+        if backend == "modin":
+            from pandera.accessors import modin_accessor  # noqa: F401
+        elif backend == "dask":
+            from pandera.accessors import dask_accessor  # noqa: F401
+        elif backend == "pyspark.pandas":
+            from pandera.accessors import pyspark_accessor  # noqa: F401
+    elif backend == "pyspark.sql":
+        import pandera.pyspark  # noqa: F401
+    elif backend == "polars":
+        import pandera.polars  # noqa: F401
+    elif backend == "ibis":
+        import pandera.ibis  # noqa: F401
+
+
 def load_raw_schema(path: Path) -> dict[str, Any]:
     suffix = path.suffix.lower()
     if suffix in (".yaml", ".yml"):

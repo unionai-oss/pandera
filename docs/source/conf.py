@@ -187,6 +187,10 @@ master_doc = "index"
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = [".ipynb_checkpoints/*", "notebooks/try_pandera.ipynb"]
 
+# sphinxcontrib-typer emits pdf/png image nodes for non-html builders (e.g.
+# the doctest builder), but those files are only generated for the html build.
+suppress_warnings = ["image.not_readable"]
+
 autoclass_content = "both"
 
 autodoc_default_options = {

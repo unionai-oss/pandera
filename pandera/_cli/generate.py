@@ -315,7 +315,7 @@ def generate(
         )
     except typer.Exit:
         raise
-    except OSError as exc:
+    except (OSError, ImportError, ValueError) as exc:
         typer.secho(f"Could not write {output}:\n{exc}", err=True)
         raise typer.Exit(1) from exc
 

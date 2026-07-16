@@ -8,6 +8,7 @@ import pandas as pd
 from pandera import dtypes
 from pandera.api.checks import Check
 from pandera.engines import pandas_engine
+from pandera.schema_statistics.common import string_length_check_statistics
 
 
 def infer_dataframe_statistics(df: pd.DataFrame) -> dict[str, Any]:
@@ -261,20 +262,6 @@ def _string_length_bounds(x: pd.Series) -> tuple[int, int] | None:
     if lens.isna().any():
         return None
     return int(lens.min()), int(lens.max())
-
-
-def string_length_check_statistics(
-    min_len: int, max_len: int
-) -> dict[str, Any]:
-    """Build ``parse_check_statistics``-compatible stats for
-    :meth:`~pandera.api.checks.Check.str_length`.
-    """
-    return {
-        "str_length": {
-            "min_value": min_len,
-            "max_value": max_len,
-        },
-    }
 
 
 def _get_array_check_statistics(

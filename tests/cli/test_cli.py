@@ -310,9 +310,22 @@ def test_generate_cli_pandas_csv(tmp_path: Path):
     assert list(df.columns) == ["a", "b"]
 
 
+def _netcdf_engine_available() -> bool:
+    """xarray needs netCDF4, h5netcdf, or scipy to write netCDF files."""
+    for engine in ("netCDF4", "h5netcdf", "scipy"):
+        try:
+            __import__(engine)
+            return True
+        except ImportError:
+            continue
+    return False
+
+
 def test_generate_cli_xarray_netcdf(tmp_path: Path):
     pytest.importorskip("hypothesis")
     pytest.importorskip("xarray")
+    if not _netcdf_engine_available():
+        pytest.skip("no netCDF engine (netCDF4/h5netcdf/scipy) installed")
     from pandera.api.xarray.components import Coordinate, DataVar
     from pandera.api.xarray.container import DatasetSchema
     from pandera.io import xarray_io as xio

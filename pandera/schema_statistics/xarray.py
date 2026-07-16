@@ -9,7 +9,7 @@ import numpy as np
 import xarray as xr
 
 from pandera.api.checks import Check
-from pandera.schema_statistics.pandas import string_length_check_statistics
+from pandera.schema_statistics.common import string_length_check_statistics
 
 
 def infer_data_array_statistics(da: xr.DataArray) -> dict[str, Any]:
