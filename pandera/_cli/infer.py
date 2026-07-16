@@ -100,7 +100,7 @@ def _infer_dataframe_schema_cli(obj: Any, backend: str) -> Any:
             infer_dataframe_schema as infer_pandas_df_schema,
         )
 
-        return infer_pandas_df_schema(pd_df)
+        return infer_pandas_df_schema(pd_df, infer_str_length=True)
     if backend == "polars":
         from pandera.schema_inference.polars import (
             infer_dataframe_schema as infer_polars_df_schema,

@@ -11,15 +11,25 @@ from pandera.engines import pandas_engine
 from pandera.schema_statistics.common import string_length_check_statistics
 
 
-def infer_dataframe_statistics(df: pd.DataFrame) -> dict[str, Any]:
-    """Infer column and index statistics from a pandas DataFrame."""
+def infer_dataframe_statistics(
+    df: pd.DataFrame, *, infer_str_length: bool = False
+) -> dict[str, Any]:
+    """Infer column and index statistics from a pandas DataFrame.
+
+    :param infer_str_length: also infer ``str_length`` checks for
+        string-like columns. Off by default so that inferred schemas keep
+        validating after a column's dtype is updated (e.g. together with a
+        parser).
+    """
     nullable_columns = df.isna().any()
     inferred_column_dtypes = {col: _get_array_type(df[col]) for col in df}
     column_statistics = {
         col: {
             "dtype": dtype,
             "nullable": bool(nullable_columns[col]),  # type: ignore
-            "checks": _get_array_check_statistics(df[col], dtype),
+            "checks": _get_array_check_statistics(
+                df[col], dtype, infer_str_length=infer_str_length
+            ),
         }
         for col, dtype in inferred_column_dtypes.items()
     }
@@ -29,13 +39,21 @@ def infer_dataframe_statistics(df: pd.DataFrame) -> dict[str, Any]:
     }
 
 
-def infer_series_statistics(series: pd.Series) -> dict[str, Any]:
-    """Infer column and index statistics from a pandas Series."""
+def infer_series_statistics(
+    series: pd.Series, *, infer_str_length: bool = False
+) -> dict[str, Any]:
+    """Infer column and index statistics from a pandas Series.
+
+    :param infer_str_length: also infer ``str_length`` checks for
+        string-like values (see :func:`infer_dataframe_statistics`).
+    """
     dtype = _get_array_type(series)
     return {
         "dtype": dtype,
         "nullable": bool(series.isna().any()),
-        "checks": _get_array_check_statistics(series, dtype),
+        "checks": _get_array_check_statistics(
+            series, dtype, infer_str_length=infer_str_length
+        ),
         "name": series.name,
     }
 
@@ -265,7 +283,7 @@ def _string_length_bounds(x: pd.Series) -> tuple[int, int] | None:
 
 
 def _get_array_check_statistics(
-    x, data_type: dtypes.DataType
+    x, data_type: dtypes.DataType, *, infer_str_length: bool = False
 ) -> Union[dict[str, Any], None]:
     """Get check statistics from an array-like object."""
     if x.isna().all():
@@ -288,7 +306,7 @@ def _get_array_check_statistics(
         check_stats = {
             "isin": categories.tolist(),
         }
-    elif _should_infer_str_length(x, data_type):
+    elif infer_str_length and _should_infer_str_length(x, data_type):
         bounds = _string_length_bounds(x)
         if bounds is None:
             check_stats = {}
