@@ -1547,6 +1547,28 @@ def test_to_script(index):
         assert schema == schema_to_write
 
 
+@pytest.mark.skipif(
+    platform.system() == "Windows",
+    reason="skipping due to issues with opening file names for temp files.",
+)
+def test_to_script_dataframe_level_checks():
+    """Test that dataframe-level checks survive a to_script round trip."""
+    schema_to_write = pandera.DataFrameSchema(
+        {"a": pandera.Column(int)},
+        checks=[pandera.Check.gt(0)],
+    )
+
+    local_dict = {}
+    # pylint: disable=exec-used
+    exec(schema_to_write.to_script(minimal=False), globals(), local_dict)
+    schema = local_dict["schema"]
+
+    assert schema == schema_to_write
+    schema.validate(pd.DataFrame({"a": [1, 2]}))
+    with pytest.raises(pandera.errors.SchemaError):
+        schema.validate(pd.DataFrame({"a": [-1]}))
+
+
 def test_to_script_lambda_check():
     """Test writing DataFrameSchema to a script with lambda check."""
     schema1 = pandera.DataFrameSchema(

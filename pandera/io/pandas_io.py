@@ -838,7 +838,7 @@ def to_script(dataframe_schema, path_or_buf=None, *, minimal: bool = True):
 
     script = SCRIPT_TEMPLATE.format(
         columns=column_str,
-        checks=statistics["checks"],
+        checks=_format_checks(statistics["checks"]),
         index=index,
         dtype=dataframe_schema.dtype,
         coerce=dataframe_schema.coerce,
