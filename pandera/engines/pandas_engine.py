@@ -1438,6 +1438,7 @@ class PydanticModel(DataType):
     @property
     def fields_metadata(self) -> dict[str, dict[str, bool]]:
         """Return field properties (required and nullable) keyed by alias."""
+        import types
         import typing
 
         metadata = {}
@@ -1452,7 +1453,7 @@ class PydanticModel(DataType):
                 if ann is typing.Any or ann is type(None) or ann is None:
                     nullable = True
                 elif origin is typing.Union or (
-                    hasattr(typing, "UnionType") and origin is typing.UnionType
+                    hasattr(types, "UnionType") and origin is types.UnionType
                 ):
                     nullable = type(None) in args or None in args
                 metadata[alias] = {
