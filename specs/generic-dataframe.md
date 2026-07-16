@@ -102,28 +102,45 @@ IO, no synthesis strategies, `sample=`/`tail=` limits on SQL-lazy, and
 
 ### 3.1 Module layout
 
+The generic API **takes over `pandera/api/dataframe/`**. The abstract base
+classes that live there today move to a new **private** package,
+`pandera/api/_base_dataframe/`:
+
 ```
 pandera/
 ├── api/
-│   └── narwhals/                  # grows from support-code to full API
-│       ├── types.py               # (exists) NarwhalsData, NarwhalsCheckResult
-│       ├── utils.py               # (exists) lazy/materialize helpers
-│       ├── error_handler.py       # (exists)
-│       ├── container.py           # NEW: DataFrameSchema
-│       ├── components.py          # NEW: Column
-│       ├── model.py               # NEW: DataFrameModel
-│       ├── model_config.py        # NEW: BaseConfig
-│       └── registry.py            # NEW: frame-type registration (§6)
+│   ├── _base_dataframe/           # MOVED from api/dataframe (private):
+│   │   ├── container.py           #   DataFrameSchema base (Generic[TDataObject])
+│   │   ├── components.py          #   ComponentSchema
+│   │   ├── model.py               #   DataFrameModel base, MODEL_CACHE, ...
+│   │   ├── model_components.py    #   Field, FieldInfo, CheckInfo, ParserInfo
+│   │   └── model_config.py        #   BaseConfig base
+│   ├── dataframe/                 # REPURPOSED: the generic (narwhals-default) API
+│   │   ├── container.py           # NEW: DataFrameSchema
+│   │   ├── components.py          # NEW: Column
+│   │   ├── model.py               # NEW: DataFrameModel
+│   │   ├── model_config.py        # NEW: BaseConfig
+│   │   └── registry.py            # NEW: frame-type registration (§6)
+│   └── narwhals/                  # (exists) backend support code, unchanged:
+│       ├── types.py               #   NarwhalsData, NarwhalsCheckResult
+│       ├── utils.py               #   lazy/materialize helpers
+│       └── error_handler.py
 ├── backends/narwhals/             # (exists, reused as-is)
 ├── engines/narwhals_engine.py     # (exists, reused as-is)
 ├── typing/narwhals.py             # NEW: DataFrame[T], LazyFrame[T], Series[T]
-└── narwhals.py                    # NEW: public accessor module
+└── dataframe.py                   # NEW: public accessor module
 ```
+
+Class *names* in `_base_dataframe` are unchanged by the move — per-library
+modules already import them under aliases (`as _DataFrameSchema`), so the
+relocation is a mechanical import rewrite (see §3.5 for migration
+mechanics). Whether to also rename them (`BaseDataFrameSchema`, ...) to
+kill the alias convention is left as an open question (§11).
 
 **Public import surface** (mirrors `pandera.polars`, `pandera.ibis`):
 
 ```python
-import pandera.narwhals as pa
+import pandera.dataframe as pa
 
 class Model(pa.DataFrameModel):
     a: int
@@ -132,24 +149,29 @@ class Model(pa.DataFrameModel):
 schema = pa.DataFrameSchema({"a": pa.Column(int)})
 ```
 
-**Naming decision — `pandera.narwhals`, not `pandera.generic`.** The module
-is named for its default backend, consistent with every existing accessor
-module, and because "generic" already means something else in the codebase
-(`pandera/api/dataframe/` is internally called the generic layer, and
-`GENERIC_SCHEMA_CACHE` refers to `Generic[...]` model subscripting). When
-the replacement milestone lands (§8), the *top-level* `pandera.DataFrameSchema`
-becomes the alias for this API — at that point users never type "narwhals"
-at all, which is the real dataframe-agnostic spelling.
+**Naming decision — `pandera.dataframe`, not `pandera.narwhals` or
+`pandera.generic`.** The generic API is pandera's dataframe API, full
+stop — narwhals is its default *backend*, not its identity, and users of
+the accessor should never have to type a backend name. `pandera.narwhals`
+stays reserved for backend support code, and "base"/"generic" naming is
+confined to the private `_base_dataframe` layer (`GENERIC_SCHEMA_CACHE`
+already means `Generic[...]` model subscripting elsewhere in the
+codebase). When the replacement milestone lands (§8), the *top-level*
+`pandera.DataFrameSchema` becomes the alias for this API.
 
 ### 3.2 Class hierarchy
 
-All classes slot into the existing generic layer exactly like polars/ibis
+All classes slot into the (relocated) base layer exactly like polars/ibis
 do today:
 
 ```python
-# pandera/api/narwhals/container.py
+# pandera/api/dataframe/container.py
 from narwhals.typing import IntoFrame
 import narwhals as nw
+
+from pandera.api._base_dataframe.container import (
+    DataFrameSchema as _DataFrameSchema,
+)
 
 # Everything the narwhals backend can ingest. Kept as a runtime-checkable
 # alias; the *authoritative* test is nw.from_native (see §3.3).
@@ -171,10 +193,10 @@ class DataFrameSchema(_DataFrameSchema[NarwhalsCheckObjects]):
 ```
 
 ```python
-# pandera/api/narwhals/components.py
+# pandera/api/dataframe/components.py
 class Column(ComponentSchema[NarwhalsCheckObjects]): ...
 
-# pandera/api/narwhals/model.py
+# pandera/api/dataframe/model.py
 class DataFrameModel(_DataFrameModel[nw.LazyFrame, DataFrameSchema]):
     Config: type[BaseConfig]
 
@@ -192,7 +214,7 @@ Notes:
   `Index`/`MultiIndex` — see §8.3 for the pandas question).
 - `BaseConfig` gains one new option, `validation_backend: str = "narwhals"`
   (§4), and inherits everything else from
-  `pandera/api/dataframe/model_config.py`.
+  `pandera/api/_base_dataframe/model_config.py`.
 - The engine for dtype resolution is `narwhals_engine.Engine`. Users can
   annotate model fields with python builtins (`int`, `str`), pandera dtypes
   (`pa.Int64`), narwhals dtypes (`nw.Int64`), **or foreign-engine dtypes**
@@ -206,14 +228,14 @@ concrete frame types. The generic schema instead resolves the backend
 **dynamically from narwhals compatibility**:
 
 ```python
-# pandera/api/narwhals/registry.py
+# pandera/api/dataframe/registry.py
 @lru_cache
 def register_narwhals_native_backends(check_obj_cls: type) -> None:
     if not is_narwhals_compatible(check_obj_cls):
         raise BackendNotFoundError(
             f"{check_obj_cls} is not narwhals-compatible. Install a "
             "narwhals-supported library or register a custom backend via "
-            "pandera.narwhals.register_frame_type (see docs)."
+            "pandera.dataframe.register_frame_type (see docs)."
         )
     from pandera.backends.narwhals import (
         DataFrameSchemaBackend, ColumnBackend, NarwhalsCheckBackend,
@@ -254,8 +276,41 @@ Consequences:
   round-trips eager/lazy/native kinds.
 - The `use_narwhals_backend` config toggle for the *per-library* APIs is
   unaffected; it remains the bridge until those APIs are replaced (§8).
-- `pandera/api/dataframe/` stays the shared base. The generic API is a
-  sibling of polars/ibis, not a rewrite of the base.
+- The base classes themselves: `pandera/api/_base_dataframe/` is a
+  **relocation, not a rewrite** — same classes, same behavior. The
+  per-library APIs keep subclassing them (with updated imports) until
+  Phase 3 re-parents them onto the generic classes.
+
+### 3.5 Migration mechanics of the `api/dataframe` takeover
+
+Repurposing `pandera/api/dataframe/` is the one part of this design that
+touches existing code paths, so it lands as its own mechanical PR before
+any generic-API code:
+
+1. **Move** `container.py`, `components.py`, `model.py`,
+   `model_components.py`, `model_config.py` to
+   `pandera/api/_base_dataframe/` (`git mv`, no class renames).
+2. **Rewrite internal imports** — `pandera.api.{pandas,polars,ibis,
+   pyspark,xarray}`, `pandera/__init__.py`, `pandera/_pandas_deprecated.py`
+   all import from `pandera.api.dataframe` today (~20 modules).
+3. **mypy plugin fullnames**: `pandera/mypy.py` hardcodes
+   `pandera.api.dataframe.model.DataFrameModel` in
+   `DATAFRAMEMODEL_FULLNAMES`. During the transition the plugin lists
+   **both** the `_base_dataframe` fullname and the new generic
+   `pandera.api.dataframe.model.DataFrameModel`, so it works on either
+   side of the move.
+4. **Compatibility caveat** (accepted, documented in release notes):
+   `pandera.api.dataframe.*` was never a documented public path, but
+   imports exist in the wild. After the takeover the old names still
+   *import* — `pandera.api.dataframe.container.DataFrameSchema` now binds
+   the concrete generic schema, which subclasses the old base — so
+   subclassing and construction keep working. What silently changes is
+   `isinstance`/`issubclass` against that name: per-library schemas are
+   siblings, not subclasses, of the generic schema until Phase 3
+   re-parents them. A runtime `DeprecationWarning` shim is not possible —
+   the old names are re-bound to real new classes, not removed — so this
+   is called out prominently in release notes and the migration guide;
+   Phase 3 restores `isinstance` compatibility for good.
 
 ---
 
@@ -483,7 +538,7 @@ construction and is the answer for most libraries.
 For libraries that need pandera-specific behavior but not a new backend:
 
 ```python
-from pandera.narwhals import register_frame_type
+from pandera.dataframe import register_frame_type
 
 register_frame_type(
     MyFrame,
@@ -539,7 +594,7 @@ minimal: a zero-arg callable that performs Tier 1/2 registrations.)
 
 ## 8. Replacement Roadmap
 
-The end state: `pandera/api/dataframe/` + `pandera/api/narwhals/` +
+The end state: `pandera/api/_base_dataframe/` + `pandera/api/dataframe/` +
 `pandera/backends/narwhals/` is **the** implementation, and
 `pandera.pandas`, `pandera.polars`, `pandera.pyspark`, `pandera.ibis` are
 thin compatibility shims (subclasses that pin typing surface and defaults,
@@ -552,8 +607,12 @@ Narwhals backend + engine at parity for polars/ibis/pyspark behind
 
 ### Phase 1 — generic API (alpha)
 
-- `pandera.narwhals` accessor with `DataFrameSchema`, `Column`,
-  `DataFrameModel`, `Field`, `Check`, `BaseConfig`.
+- The `api/dataframe` takeover PR (§3.5): base classes move to
+  `pandera/api/_base_dataframe/`, internal imports and mypy-plugin
+  fullnames updated. Lands first, in isolation, with zero behavior change.
+- `pandera.dataframe` accessor with `DataFrameSchema`, `Column`,
+  `DataFrameModel`, `Field`, `Check`, `BaseConfig`, built in
+  `pandera/api/dataframe/`.
 - Dynamic backend resolution (§3.3), typing module + mypy/pyright suites
   (§5), native-typed custom checks (§4.3).
 - Docs: a "Generic DataFrame validation" guide; the narwhals_backend.md
@@ -663,7 +722,10 @@ class NDArray(XarrayAnnotationBase, Generic[T]):
   modin/dask smoke).
 - Static typing gates: `mypy` (plugin on) and `pyright --strict` over
   `tests/{mypy,pyright}` narwhals modules; both must pass for every PR
-  touching `pandera/typing/` or `pandera/api/narwhals/`.
+  touching `pandera/typing/`, `pandera/api/dataframe/`, or
+  `pandera/api/_base_dataframe/`.
+- The §3.5 takeover PR merges only if the full existing test suite passes
+  unchanged (imports aside) — it is a pure relocation.
 - Tier 1 registration is exercised by an in-repo toy frame type
   (a minimal narwhals-compatible wrapper) so extensibility doesn't regress
   silently.
@@ -677,9 +739,14 @@ class NDArray(XarrayAnnotationBase, Generic[T]):
 1. **Series-level API**: should the generic API expose a standalone
    `SeriesSchema` (pandas has one; polars/ibis don't)? Current position:
    no — columns-in-frames only, matching narwhals' center of gravity.
-2. **`pandera.generic` alias**: worth shipping `pandera.generic` as an
-   alias of `pandera.narwhals` from day one so user code doesn't reference
-   the backend name? Leaning yes, as a pure re-export.
+2. **Base-class naming**: keep the moved classes' names as-is in
+   `pandera/api/_base_dataframe/` (subclass modules import them as
+   `_DataFrameSchema` etc.), or rename to `BaseDataFrameSchema`/
+   `BaseDataFrameModel` and drop the alias convention? Also: is
+   `_base_dataframe` the right module name, or e.g. `_dataframe_base` /
+   `api/base/dataframe.py` (folding into the existing `api/base/`
+   package)? Leaning `api/_base_dataframe` with unchanged class names —
+   smallest mechanical diff.
 3. **Error-report shape**: pyspark's dict-style error report differs from
    the `SchemaErrors` exception model. Unify on `SchemaErrors` +
    `use_pyspark_error_format` shim flag, or keep divergent?
