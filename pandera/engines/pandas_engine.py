@@ -1203,7 +1203,21 @@ class DateTime(_BaseDateTime, dtypes.Timestamp):
             self._prepare_check_time_zone_agnostic(
                 pandera_dtype=pandera_dtype, data_container=data_container
             )
-        return super().check(pandera_dtype, data_container)
+        if super().check(pandera_dtype, data_container):
+            return True
+        # Timezone-aware datetime dtypes produced by different libraries
+        # (e.g. pendulum vs zoneinfo/pytz) can represent the same timezone
+        # yet compare unequal (notably pendulum's UTC). Fall back to comparing
+        # their string representations, which normalize the timezone.
+        try:
+            other = Engine.dtype(pandera_dtype)
+        except TypeError:
+            return False
+        if isinstance(self.type, pd.DatetimeTZDtype) and isinstance(
+            getattr(other, "type", None), pd.DatetimeTZDtype
+        ):
+            return str(self.type) == str(other.type)
+        return False
 
     def _prepare_check_time_zone_agnostic(
         self,
