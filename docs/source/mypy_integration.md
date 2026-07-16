@@ -121,6 +121,10 @@ the error during static type-linting but pandera will raise a
 exception at runtime, depending on whether you're doing
 {ref}`lazy validation <lazy-validation>` or not.
 
+```{literalinclude} ../../tests/mypy/pandas_modules/pandas_dataframe.py
+:lines: 83-87
+```
+
 ## Column Access Typing
 
 The mypy plugin can infer column dtypes for bracket access on
@@ -157,31 +161,7 @@ in addition to ``Series[T]`` annotations.
 Pylance uses Pyright, which does **not** load the mypy plugin. Schema-level
 types such as ``DataFrame[Schema]`` are preserved after
 {meth}`~pandera.api.pandas.model.DataFrameModel.validate` and
-{func}`~pandera.decorators.check_types`, but **column-level autocomplete and
-inference require extra setup**.
-
-Generate a Pyright-compatible typed dataframe wrapper with
-{func}`~pandera.typing.codegen.generate_typed_dataframe_source`:
-
-```python
-import pandera.pandas as pa
-from pandera.typing import DataFrame, Series
-from pandera.typing.codegen import generate_typed_dataframe_source
-
-
-class InputSchema(pa.DataFrameModel):
-    year: Series[int]
-    month: Series[int]
-
-
-# Paste the generated class into your module, then use it in annotations:
-print(generate_typed_dataframe_source(InputSchema))
-```
-
-The generated class adds ``__getitem__`` overloads and column attributes so
-Pyright/Pylance can infer ``df["year"]`` as ``Series[int]`` and offer column
-name completions.
-
-```{literalinclude} ../../tests/mypy/pandas_modules/pandas_dataframe.py
-:lines: 83-87
-```
+{func}`~pandera.decorators.check_types`, but column-level inference
+(``df["year"]`` as ``Series[int]``) is a mypy-plugin feature and is not
+available under Pyright/Pylance. If you need typed column access there,
+annotate the result explicitly or use {py:func}`typing.cast`.
