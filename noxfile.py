@@ -197,6 +197,13 @@ def _testing_requirements(
             req = f"{req}, {_numpy}"
         if req == "pyarrow" or req.startswith("pyarrow "):
             req = "pyarrow >= 13"
+        if req.startswith("pyspark"):
+            # pyspark 4.2.0 leaks "Worker Monitor" python worker threads
+            # (regression of SPARK-35009), exhausting the macOS CI runner's
+            # per-process thread limit and crashing the JVM with
+            # "OutOfMemoryError: unable to create native thread". Pin until
+            # fixed upstream.
+            req = "pyspark[connect] >= 3.2.0, < 4.2"
         if req == "ibis-framework" or req.startswith("ibis-framework "):
             req = "ibis-framework[duckdb] >= 11.0.0"
         if req == "polars" or req.startswith("polars "):
