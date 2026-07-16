@@ -148,7 +148,9 @@ def _testing_requirements(
     pydantic = pydantic or PYDANTIC_VERSIONS[-1]
     polars = polars or POLARS_VERSIONS[-1]
 
-    _requirements = PYPROJECT["project"]["dependencies"]
+    # copy so that += below doesn't mutate the shared PYPROJECT dict when
+    # multiple sessions run in the same nox process
+    _requirements = list(PYPROJECT["project"]["dependencies"])
     if extra is not None:
         _requirements += PYPROJECT["project"]["optional-dependencies"][extra]
     # narwhals backend tests run with polars+ibis co-installed (TEST-03).
@@ -194,6 +196,13 @@ def _testing_requirements(
             req = f"{req}, {_numpy}"
         if req == "pyarrow" or req.startswith("pyarrow "):
             req = "pyarrow >= 13"
+        if req.startswith("pyspark"):
+            # pyspark 4.2.0 leaks "Worker Monitor" python worker threads
+            # (regression of SPARK-35009), exhausting the macOS CI runner's
+            # per-process thread limit and crashing the JVM with
+            # "OutOfMemoryError: unable to create native thread". Pin until
+            # fixed upstream.
+            req = "pyspark[connect] >= 3.2.0, < 4.2"
         if req == "ibis-framework" or req.startswith("ibis-framework "):
             req = "ibis-framework[duckdb] >= 11.0.0"
         if req == "polars":
