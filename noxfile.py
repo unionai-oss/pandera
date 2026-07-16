@@ -340,6 +340,13 @@ def tests_narwhals_backend(session: Session, extra: str) -> None:
     or tests/ibis/ suite then exercises the narwhals backend rather than the
     native one. Tests that expose narwhals backend gaps should be marked
     xfail in the test files.
+
+    pandas is intentionally NOT in this matrix: the full tests/pandas/ suite
+    exercises features the narwhals backend does not support (column-level
+    coerce, index/multiindex validation, parsers, hypothesis strategies).
+    Narwhals-backed pandas coverage lives in tests/narwhals/ (test_pandas_e2e,
+    test_pandas_narwhals_register, and the backends/ parity suite), which runs
+    in the unit-tests-narwhals CI job.
     """
     deps = PYPROJECT["project"]["optional-dependencies"]
     requirements = [

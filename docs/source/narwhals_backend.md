@@ -4,13 +4,14 @@
 
 As of *0.32.0*, Pandera ships an optional
 [Narwhals](https://narwhals-dev.github.io/narwhals/)-based validation
-backend that powers the {ref}`Polars <polars>`, {ref}`Ibis <ibis>`, and
-{ref}`PySpark SQL <native-pyspark>` integrations behind a single unified code
-path. The Narwhals backend is **opt-in**: by default Pandera continues to use
-the native Polars, Ibis, and PySpark backends. The public API
+backend that powers the {ref}`Polars <polars>`, {ref}`Ibis <ibis>`,
+{ref}`PySpark SQL <native-pyspark>`, and {ref}`pandas <dataframeschemas>`
+integrations behind a single unified code path. The Narwhals backend is
+**opt-in**: by default Pandera continues to use the native Polars, Ibis,
+PySpark, and pandas backends. The public API
 (`import pandera.polars as pa`, `import pandera.ibis as pa`,
-`import pandera.pyspark as pa`) is unchanged regardless of which backend is
-active.
+`import pandera.pyspark as pa`, `import pandera.pandas as pa`) is unchanged
+regardless of which backend is active.
 
 ## Enabling the Narwhals backend
 
@@ -21,6 +22,7 @@ backend(s) you use:
 pip install 'pandera[narwhals,polars]'   # Polars
 pip install 'pandera[narwhals,ibis]'     # Ibis
 pip install 'pandera[narwhals,pyspark]'  # PySpark SQL
+pip install 'pandera[narwhals,pandas]'   # pandas
 ```
 
 Then enable it using **either** of the following options.
@@ -39,7 +41,7 @@ This value is read when `pandera.config` is first imported.
 ### Programmatic configuration
 
 Call {func}`~pandera.set_config` at any point — before or after importing
-`pandera.polars`, `pandera.ibis`, or `pandera.pyspark`:
+`pandera.polars`, `pandera.ibis`, `pandera.pyspark`, or `pandera.pandas`:
 
 ```python
 import pandera
@@ -66,7 +68,18 @@ register_polars_backends(use_narwhals_backend=True)
 ```
 
 The same pattern applies to `register_ibis_backends` and
-`register_pyspark_backends`.
+`register_pyspark_backends`. The pandas register function is additionally
+parameterized by the fully qualified name of the frame class being
+validated:
+
+```python
+from pandera.backends.pandas.register import register_pandas_backends
+
+register_pandas_backends.cache_clear()
+register_pandas_backends(
+    "pandas.core.frame.DataFrame", use_narwhals_backend=True
+)
+```
 
 If `PANDERA_USE_NARWHALS_BACKEND=True` but `narwhals` is not installed,
 schema construction raises an `ImportError` directing you to install
@@ -85,7 +98,7 @@ Two behaviours govern how that mapping is established and updated at runtime.
 
 ### Lazy registration
 
-Validation backends for Polars, Ibis, and PySpark SQL are registered
+Validation backends for Polars, Ibis, PySpark SQL, and pandas are registered
 **lazily** — not when you import a pandera backend module, but the first time
 a schema needs a backend. Concretely, registration runs when you:
 
@@ -93,10 +106,12 @@ a schema needs a backend. Concretely, registration runs when you:
   {py:class}`~pandera.api.ibis.container.DataFrameSchema`, or
   {py:class}`~pandera.api.pyspark.container.DataFrameSchema`, or
 - call `validate()` on a column or schema component that triggers backend
-  lookup.
+  lookup (for pandas schemas, registration always happens at validation
+  time, when the type of the validated object is known).
 
-Until one of those happens, importing ``pandera.polars``, ``pandera.ibis``, or
-``pandera.pyspark`` has no effect on which validation backend is active:
+Until one of those happens, importing ``pandera.polars``, ``pandera.ibis``,
+``pandera.pyspark``, or ``pandera.pandas`` has no effect on which validation
+backend is active:
 
 ```python
 import pandera.polars as pa
@@ -128,8 +143,8 @@ backends have already been registered, pandera **re-registers** them
 automatically:
 
 1. The global ``CONFIG.use_narwhals_backend`` value is updated.
-2. Pandera detects which of the Polars / Ibis / PySpark register functions had
-   already run.
+2. Pandera detects which of the Polars / Ibis / PySpark / pandas register
+   functions had already run.
 3. Registration caches are cleared and existing registry entries for those
    backends are removed.
 4. Only the backends that were previously registered are registered again, now
@@ -154,8 +169,8 @@ registered backend from the global registry on each ``validate()`` call.
 
 Re-registration applies only to backends that had already been registered in
 the current process. If you call ``set_config(use_narwhals_backend=True)``
-before constructing any Polars/Ibis/PySpark schema, no re-registration occurs
-— the first lazy registration picks up the updated config silently.
+before constructing any Polars/Ibis/PySpark/pandas schema, no re-registration
+occurs — the first lazy registration picks up the updated config silently.
 
 :::{note}
 Runtime re-registration is triggered by {func}`~pandera.set_config`, which
@@ -177,12 +192,13 @@ it executed natively by each supported engine.
 
 ## What it changes for you
 
-* **Unified checks across Polars, Ibis, and PySpark SQL.** Built-in checks
-  (`isin`, `in_range`, `str_matches`, etc.) are implemented as Narwhals
-  expressions and run unchanged on Polars LazyFrames, Ibis tables, and
-  PySpark SQL DataFrames when the Narwhals backend is enabled. PySpark SQL
-  is a SQL-lazy backend: element-wise checks are not supported, and row
-  sampling (`sample=` / `tail=` parameters) is not supported.
+* **Unified checks across Polars, Ibis, PySpark SQL, and pandas.** Built-in
+  checks (`isin`, `in_range`, `str_matches`, etc.) are implemented as
+  Narwhals expressions and run unchanged on Polars LazyFrames, Ibis tables,
+  PySpark SQL DataFrames, and pandas DataFrames when the Narwhals backend is
+  enabled. PySpark SQL is a SQL-lazy backend: element-wise checks are not
+  supported, and row sampling (`sample=` / `tail=` parameters) is not
+  supported.
 * **Lazy validation stays lazy.** For Polars LazyFrames, Ibis tables, and
   PySpark SQL DataFrames, Pandera threads validation through the native lazy
   API: no full-frame `.collect()` / `.execute()` is triggered during
@@ -235,12 +251,55 @@ backend:
   `dataframe.pandera.errors` accessor, use the native PySpark backend
   (see {ref}`Opting out <narwhals-opting-out>`).
 
+(narwhals-pandas-differences)=
+
+## pandas: differences from the native backend
+
+When the Narwhals backend is enabled, `pandas.DataFrame` validation through
+{py:class}`~pandera.api.pandas.container.DataFrameSchema` (and
+`DataFrameModel`) is routed through the shared Narwhals code path. The scope
+is intentionally narrower than the native pandas backend:
+
+- **Only `pd.DataFrame` validation is rerouted.** `SeriesSchema`, `Index`,
+  and `MultiIndex` validation — and the other pandas-like frame types
+  (dask, modin, geopandas, `pyspark.pandas`) — always use the native pandas
+  backends, regardless of the flag.
+- **Index and MultiIndex components are not validated.** Narwhals has no
+  notion of a pandas index. A schema with an `index=` component emits a
+  ``SchemaWarning`` and skips index validation. The dataframe's index is
+  still preserved in the validated output. Use the native backend if you
+  need index validation.
+- **Native dtype semantics are preserved.** Column dtype checks compare the
+  *native* pandas dtypes through the pandas dtype engine, so
+  `Column(str)` accepts `object` columns, nullable extension dtypes
+  (`Int64`), categoricals, and timezone-aware datetimes behave as they do
+  under the native backend.
+- **pandas-style check functions keep working.** Column-level checks receive
+  the `pd.Series` for the column (e.g. `pa.Check(lambda s: s > 0)`), and
+  dataframe-level checks receive the `pd.DataFrame` — the same convention as
+  the native backend. Checks may return boolean Series/DataFrames, numpy
+  boolean arrays, or scalar booleans. Setting `native=False` passes a
+  Narwhals column expression instead, making the check portable across all
+  Narwhals-backed integrations.
+- **`coerce=True` at the column level is a no-op.** As with the other
+  Narwhals backends, a ``SchemaWarning`` is emitted and dtype mismatches are
+  reported as ``WRONG_DATATYPE`` errors instead of being coerced. Use the
+  native backend if you rely on coercion.
+- **`parsers` are not applied.** The Narwhals backend has no parser step;
+  schemas that rely on `parsers=` should use the native backend.
+- **`failure_cases` are pandas DataFrames** (including when every failure
+  case is a scalar, e.g. dtype errors). Unlike the native backend, the
+  ``index`` column of the aggregated failure-cases frame is null — the
+  Narwhals code path does not report failing row positions.
+- **`Hypothesis` checks and hypothesis-based data synthesis strategies** are
+  not wired through the Narwhals backend.
+
 (narwhals-opting-out)=
 
 ## Opting out
 
 The Narwhals backend is **off by default**, so no action is needed to
-continue using the native Polars, Ibis, and PySpark backends. If you
+continue using the native Polars, Ibis, PySpark, and pandas backends. If you
 previously opted in and want to switch back, unset the environment variable
 (or set it to `False`):
 
@@ -274,9 +333,15 @@ backend. Follow-up milestones track each of the gaps below:
   without a live ``SparkSession`` at the error-collection site; this gap is
   tracked for a future release.
 * Column-level `coerce=True` is currently a no-op for **all** Narwhals backends
-  (Polars, Ibis, PySpark SQL). Pandera emits a one-time ``SchemaWarning`` per
-  column so the subsequent ``WRONG_DATATYPE`` error is understandable rather than
-  silent. Full column-level coercion support is tracked as a follow-up.
+  (Polars, Ibis, PySpark SQL, pandas). Pandera emits a one-time ``SchemaWarning``
+  per column so the subsequent ``WRONG_DATATYPE`` error is understandable rather
+  than silent. Full column-level coercion support is tracked as a follow-up.
+* pandas `Index` / `MultiIndex` components are not validated under the Narwhals
+  backend (a ``SchemaWarning`` is emitted), and `parsers` are not applied. See
+  {ref}`pandas differences <narwhals-pandas-differences>`.
+* The ``index`` column of aggregated ``failure_cases`` frames is always null —
+  failing row positions are not reported (SQL-lazy backends have no row order;
+  the pandas path follows the same convention).
 * `coerce` for the Ibis backend (deferred; `Ibis` coerces eagerly today)
 * `add_missing_columns` parser and `set_default` for `Column` fields
 * `group_by`-based checks beyond element-wise and column-wise expressions

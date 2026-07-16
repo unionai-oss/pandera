@@ -106,6 +106,19 @@ class DataFrameSchemaBackend(NarwhalsSchemaBackend):
         if inplace:
             warnings.warn("setting inplace=True will have no effect.")
 
+        # The narwhals backend has no notion of a pandas index: index (and
+        # MultiIndex) components on pandas schemas are not validated. Warn so
+        # the gap is visible instead of silent.
+        if getattr(schema, "index", None) is not None:
+            warnings.warn(
+                "index validation is not supported by the narwhals backend. "
+                "The `index` component of this schema will not be validated. "
+                "Use the native pandas backend "
+                "(use_narwhals_backend=False) to validate index schemas.",
+                SchemaWarning,
+                stacklevel=5,
+            )
+
         error_handler = ErrorHandler(lazy)
 
         column_info = self.collect_column_info(check_lf, schema)
