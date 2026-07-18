@@ -181,9 +181,91 @@ class NarwhalsCheckBackend(BaseCheckBackend):
         self.check = check
         self.check_fn = partial(check._check_fn, **check._check_kwargs)
 
-    def groupby(self, check_obj: nw.LazyFrame):
-        """Implements groupby behavior for check object."""
-        raise NotImplementedError
+    def groupby(self, check_obj):
+        """Implements groupby behavior for check object.
+
+        Column-check-groups (`groupby=`) are a pandas-semantic feature: the
+        user check function receives a ``dict`` mapping group key to the native
+        pandas ``Series``/``DataFrame`` for that group. Narwhals has no
+        equivalent, so for pandas-like eager frames we group the *native* frame
+        with pandas and build the same dict the native pandas backend produces.
+
+        :param check_obj: a native pandas-like frame (already unwrapped).
+        """
+        assert self.check.groupby is not None, "Check.groupby must be set."
+        if isinstance(self.check.groupby, (str, list)):
+            return check_obj.groupby(self.check.groupby)
+        return self.check.groupby(check_obj)
+
+    @staticmethod
+    def _format_groupby_input(groupby_obj, groups):
+        """Format a pandas groupby object into a dict of group -> Series/df.
+
+        Ported from :class:`~pandera.backends.pandas.checks.PandasCheckBackend`
+        so the narwhals backend runs column-check-groups without dispatching to
+        the pandas check backend.
+        """
+        if groups is None:
+            return {
+                (k if isinstance(k, bool) else k[0] if len(k) == 1 else k): v
+                for k, v in groupby_obj
+            }
+        group_keys = {k[0] if len(k) == 1 else k for k, _ in groupby_obj}
+        invalid_groups = [g for g in groups if g not in group_keys]
+        if invalid_groups:
+            raise KeyError(
+                f"groups {invalid_groups} provided in `groups` argument not a "
+                f"valid group key. Valid group keys: {group_keys}"
+            )
+        output = {}
+        for group_key, group in groupby_obj:
+            if isinstance(group_key, tuple) and len(group_key) == 1:
+                group_key = group_key[0]
+            if group_key in groups:
+                output[group_key] = group
+        return output
+
+    def apply_groupby(self, check_obj: NarwhalsData):
+        """Run a `groupby=` check by building the pandas group dict.
+
+        Only supported for pandas-like eager frames. The user check function
+        receives the same ``dict`` it would under the native pandas backend and
+        typically returns a scalar boolean (or a per-group Series/dict of
+        booleans, which is reduced to a single pass/fail).
+        """
+        native = nw.to_native(check_obj.frame)
+        if hasattr(native, "collect"):  # pragma: no cover — lazy safety net
+            native = native.collect()
+        if not _is_pandas_like_native(native):
+            raise NotImplementedError(
+                "groupby checks (column check groups) are only supported for "
+                "pandas-like frames under the narwhals backend."
+            )
+        key = check_obj.key
+        grouped = self.groupby(native)
+        if key and key != "*":
+            grouped = grouped[key]
+        group_dict = self._format_groupby_input(grouped, self.check.groups)
+        return self._reduce_groupby_output(self.check_fn(group_dict))
+
+    @staticmethod
+    def _reduce_groupby_output(out):
+        """Reduce a groupby-check output to a scalar boolean.
+
+        Accepts a Python/numpy scalar bool, a numpy boolean array, a pandas
+        ``Series`` of booleans, or a ``dict`` of group -> bool, and returns a
+        single pass/fail bool (a group check passes only if every group passes).
+        """
+        if isinstance(out, dict):
+            return all(bool(v) for v in out.values())
+        mod = getattr(type(out), "__module__", "") or ""
+        if mod.startswith("numpy"):
+            if getattr(out, "ndim", 0) == 0:
+                return bool(out)
+            return bool(out.all())
+        if _is_pandas_like_module(mod) and type(out).__name__ == "Series":
+            return bool(out.all())
+        return out
 
     def query(self, check_obj: nw.LazyFrame):
         """Implements querying behavior to produce subset of check object."""
@@ -201,6 +283,11 @@ class NarwhalsCheckBackend(BaseCheckBackend):
         """Apply check function — dispatch on self.check.native flag."""
         frame = check_obj.frame
         key = check_obj.key
+
+        # Column-check-groups: build the pandas group dict and run the check
+        # on it (narwhals-native handling for pandas-like frames).
+        if self.check.groupby is not None:
+            return self.apply_groupby(check_obj)
 
         if self.check.element_wise:
             selector = nw.col(key or "*")

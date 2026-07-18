@@ -347,20 +347,388 @@ def test_schema_error_failure_cases_no_index_leak(df):
 # ---------------------------------------------------------------------------
 
 
-def test_index_component_warns_and_is_skipped(df):
-    schema = pa.DataFrameSchema({"x": pa.Column(int)}, index=pa.Index(str))
-    with pytest.warns(
-        SchemaWarning, match="index validation is not supported"
-    ):
-        out = schema.validate(df.set_index("s"))
+def test_index_validation(df):
+    """The narwhals backend validates pandas Index components (delegated to
+    the native Index backend) and preserves the index in the output."""
+    schema = pa.DataFrameSchema(
+        {"x": pa.Column(int)}, index=pa.Index(str, name="s")
+    )
+    out = schema.validate(df.set_index("s"))
     assert isinstance(out, pd.DataFrame)
+    assert out.index.name == "s"
+    assert list(out.index) == list(df["s"])
 
 
-def test_column_coerce_warns(df):
+def test_index_validation_failure(df):
+    schema = pa.DataFrameSchema(
+        {"x": pa.Column(int)},
+        index=pa.Index(int, pa.Check.ge(0), name="idx"),
+    )
+    bad = df.copy()
+    bad.index = pd.Index([-1, 0, 1], name="idx")
+    with pytest.raises(SchemaError):
+        schema.validate(bad)
+    with pytest.raises(pa.errors.SchemaErrors) as exc_info:
+        schema.validate(bad, lazy=True)
+    # the failure is reported against the index check with the offending value
+    fcs = exc_info.value.failure_cases["failure_case"].astype(str).str.cat()
+    assert "-1" in fcs
+    assert any(
+        "greater_than_or_equal_to" in str(c)
+        for c in exc_info.value.failure_cases["check"]
+    )
+
+
+def test_multiindex_validation():
+    schema = pa.DataFrameSchema(
+        {"a": pa.Column(int)},
+        index=pa.MultiIndex(
+            [
+                pa.Index(int, name="i0"),
+                pa.Index(str, pa.Check.isin(["x", "y"]), name="i1"),
+            ]
+        ),
+    )
+    mi = pd.MultiIndex.from_tuples([(0, "x"), (1, "y")], names=["i0", "i1"])
+    out = schema.validate(pd.DataFrame({"a": [1, 2]}, index=mi))
+    assert isinstance(out.index, pd.MultiIndex)
+
+    mi_bad = pd.MultiIndex.from_tuples(
+        [(0, "x"), (1, "z")], names=["i0", "i1"]
+    )
+    with pytest.raises(pa.errors.SchemaErrors):
+        schema.validate(pd.DataFrame({"a": [1, 2]}, index=mi_bad), lazy=True)
+
+
+def test_column_coerce(df):
+    """Column-level coerce=True coerces dtypes for pandas frames (delegated to
+    the native pandas backend), without emitting a no-op warning."""
     schema = pa.DataFrameSchema({"x": pa.Column(float, coerce=True)})
-    with pytest.warns(SchemaWarning, match="coerce=True is not applied"):
-        with pytest.raises(SchemaError):
-            schema.validate(df)
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", SchemaWarning)
+        out = schema.validate(df)
+    assert out["x"].dtype == "float64"
+    assert out["x"].tolist() == [1.0, 2.0, 3.0]
+
+
+def test_column_coerce_failure():
+    schema = pa.DataFrameSchema({"x": pa.Column(int, coerce=True)})
+    bad = pd.DataFrame({"x": ["a", "2"]})
+    with pytest.raises(pa.errors.SchemaErrors):
+        schema.validate(bad, lazy=True)
+
+
+def test_schema_level_coerce():
+    schema = pa.DataFrameSchema(
+        {"a": pa.Column(float), "b": pa.Column(str)}, coerce=True
+    )
+    out = schema.validate(pd.DataFrame({"a": [1, 2], "b": [10, 20]}))
+    assert out["a"].dtype == "float64"
+    assert out["b"].dtype == object
+
+
+def test_coerce_numpy_dtype_via_narwhals_cast():
+    """Plain numpy dtypes are coerced Narwhals-native via ``nw.cast``."""
+    schema = pa.DataFrameSchema({"a": pa.Column("int64", coerce=True)})
+    out = schema.validate(pd.DataFrame({"a": ["1", "2", "3"]}))
+    assert out["a"].dtype == "int64"
+    assert out["a"].tolist() == [1, 2, 3]
+
+
+def test_coerce_nullable_int_falls_back_to_pandas_engine():
+    """Nullable ``Int64`` coercion falls back to the pandas dtype engine so
+    ``<NA>`` values are preserved (Narwhals cast would drop the nullability).
+    """
+    schema = pa.DataFrameSchema(
+        {"a": pa.Column("Int64", coerce=True, nullable=True)}
+    )
+    out = schema.validate(pd.DataFrame({"a": [1.0, None, 3.0]}))
+    assert str(out["a"].dtype) == "Int64"
+    assert out["a"].isna().tolist() == [False, True, False]
+
+
+def test_coerce_categorical_and_tz_datetime_fidelity():
+    """Extension dtypes (category, tz-aware datetime) coerce with native
+    pandas fidelity via the pandas dtype engine fallback."""
+    cat = pa.DataFrameSchema({"a": pa.Column("category", coerce=True)})
+    assert str(
+        cat.validate(pd.DataFrame({"a": ["x", "y", "x"]}))["a"].dtype
+    ) == ("category")
+
+    tz = pa.DataFrameSchema(
+        {"a": pa.Column("datetime64[ns, UTC]", coerce=True)}
+    )
+    out = tz.validate(
+        pd.DataFrame({"a": pd.to_datetime(["2021-01-01", "2021-01-02"])})
+    )
+    assert str(out["a"].dtype) == "datetime64[ns, UTC]"
+
+
+def test_coerce_failure_reports_offending_values():
+    """A failed coercion reports the offending value (pandas-engine fallback)."""
+    schema = pa.DataFrameSchema({"a": pa.Column(int, coerce=True)})
+    with pytest.raises(pa.errors.SchemaErrors) as exc_info:
+        schema.validate(pd.DataFrame({"a": ["x", "2"]}), lazy=True)
+    coerce_fc = exc_info.value.failure_cases.query(
+        "check == \"coerce_dtype('int64')\""
+    )
+    assert "x" in coerce_fc["failure_case"].astype(str).str.cat()
+
+
+def test_index_coerce():
+    schema = pa.DataFrameSchema(
+        {"a": pa.Column(int)},
+        index=pa.Index(int, coerce=True, name="idx"),
+    )
+    out = schema.validate(
+        pd.DataFrame({"a": [1, 2]}, index=pd.Index(["0", "1"], name="idx"))
+    )
+    assert out.index.dtype == "int64"
+
+
+def test_index_coerce_failure():
+    schema = pa.DataFrameSchema(
+        {"a": pa.Column(int)},
+        index=pa.Index(int, coerce=True, name="idx"),
+    )
+    bad = pd.DataFrame({"a": [1, 2]}, index=pd.Index(["x", "y"], name="idx"))
+    with pytest.raises((SchemaError, SchemaErrors)):
+        schema.validate(bad, lazy=True)
+
+
+def test_multiindex_coerce():
+    schema = pa.DataFrameSchema(
+        {"a": pa.Column(int)},
+        index=pa.MultiIndex(
+            [
+                pa.Index(int, coerce=True, name="i0"),
+                pa.Index(str, name="i1"),
+            ]
+        ),
+    )
+    mi = pd.MultiIndex.from_tuples(
+        [("0", "x"), ("1", "y")], names=["i0", "i1"]
+    )
+    out = schema.validate(pd.DataFrame({"a": [1, 2]}, index=mi))
+    assert out.index.get_level_values("i0").dtype == "int64"
+
+
+def test_custom_parsers():
+    """Custom parsers= run on the native frame inside the narwhals backend."""
+    schema = pa.DataFrameSchema(
+        {"a": pa.Column(int, pa.Check.ge(0))},
+        parsers=pa.Parser(lambda d: d.assign(a=d["a"].abs())),
+    )
+    # The check ge(0) would fail on the raw negative data; it passes only
+    # because the parser ran first.
+    out = schema.validate(pd.DataFrame({"a": [-1, -2, 3]}))
+    assert out["a"].tolist() == [1, 2, 3]
+
+
+def test_custom_parsers_chained():
+    schema = pa.DataFrameSchema(
+        {"a": pa.Column(int)},
+        parsers=[
+            pa.Parser(lambda d: d.assign(a=d["a"] + 1)),
+            pa.Parser(lambda d: d.assign(a=d["a"] * 2)),
+        ],
+    )
+    out = schema.validate(pd.DataFrame({"a": [1, 2]}))
+    assert out["a"].tolist() == [4, 6]  # (x+1)*2
+
+
+def test_custom_parsers_element_wise():
+    schema = pa.DataFrameSchema(
+        {"a": pa.Column(int), "b": pa.Column(int)},
+        parsers=pa.Parser(lambda row: row * 2, element_wise=True),
+    )
+    out = schema.validate(pd.DataFrame({"a": [1, 2], "b": [3, 4]}))
+    assert out["a"].tolist() == [2, 4]
+    assert out["b"].tolist() == [6, 8]
+
+
+def test_add_missing_columns():
+    schema = pa.DataFrameSchema(
+        {"a": pa.Column(int), "b": pa.Column(float, default=1.5)},
+        add_missing_columns=True,
+    )
+    out = schema.validate(pd.DataFrame({"a": [1, 2, 3]}))
+    assert out["b"].tolist() == [1.5, 1.5, 1.5]
+    assert out["b"].dtype == "float64"
+    assert list(out.columns) == ["a", "b"]
+
+
+def test_add_missing_columns_ordering_and_multiple():
+    """Missing columns are inserted at their schema position, not appended."""
+    schema = pa.DataFrameSchema(
+        {
+            "a": pa.Column(int, default=0),
+            "b": pa.Column(int),
+            "c": pa.Column(int, default=0),
+        },
+        add_missing_columns=True,
+    )
+    out = schema.validate(pd.DataFrame({"b": [1]}))
+    assert list(out.columns) == ["a", "b", "c"]
+
+
+def test_add_missing_columns_extension_dtype_fidelity():
+    """Added extension-dtype columns get the correct native dtype (not numpy):
+    nullable Int64 with a default, and nullable-no-default (all <NA>)."""
+    schema = pa.DataFrameSchema(
+        {
+            "a": pa.Column(int),
+            "b": pa.Column("Int64", default=5, nullable=True),
+            "c": pa.Column("Int64", nullable=True),
+        },
+        add_missing_columns=True,
+    )
+    out = schema.validate(pd.DataFrame({"a": [1, 2]}))
+    assert str(out["b"].dtype) == "Int64"
+    assert out["b"].tolist() == [5, 5]
+    assert str(out["c"].dtype) == "Int64"
+    assert out["c"].isna().all()
+
+
+def test_add_missing_columns_requires_default():
+    schema = pa.DataFrameSchema(
+        {"a": pa.Column(int), "b": pa.Column(int)},
+        add_missing_columns=True,
+    )
+    with pytest.raises(pa.errors.SchemaErrors):
+        schema.validate(pd.DataFrame({"a": [1]}), lazy=True)
+
+
+def test_set_defaults():
+    schema = pa.DataFrameSchema(
+        {"a": pa.Column(float, default=0.0, nullable=False)}
+    )
+    out = schema.validate(pd.DataFrame({"a": [1.0, None, 3.0]}))
+    # only the null value is replaced by the default; others are untouched.
+    assert out["a"].tolist() == [1.0, 0.0, 3.0]
+
+
+def test_set_defaults_no_default_is_noop():
+    schema = pa.DataFrameSchema({"a": pa.Column(float, nullable=True)})
+    out = schema.validate(pd.DataFrame({"a": [1.0, None, 3.0]}))
+    assert out["a"].isna().tolist() == [False, True, False]
+
+
+def test_unique_column_names():
+    schema = pa.DataFrameSchema(
+        {"a": pa.Column(int)}, unique_column_names=True
+    )
+    dup = pd.DataFrame([[1, 2], [3, 4]], columns=["a", "a"])
+    with pytest.raises(SchemaError, match="multiple columns with label"):
+        schema.validate(dup)
+    with pytest.raises(SchemaErrors) as exc_info:
+        schema.validate(dup, lazy=True)
+    assert (
+        exc_info.value.schema_errors[0].reason_code
+        == pa.errors.SchemaErrorReason.DUPLICATE_COLUMN_LABELS
+    )
+
+
+def test_groupby_check():
+    """Column check groups (groupby=) run Narwhals-native via apply_groupby."""
+    schema = pa.DataFrameSchema(
+        {
+            "height": pa.Column(
+                float,
+                pa.Check(
+                    lambda g: g["M"].mean() > g["F"].mean(), groupby="sex"
+                ),
+            ),
+            "sex": pa.Column(str),
+        }
+    )
+    ok = pd.DataFrame(
+        {"height": [6.0, 5.9, 5.4, 5.5], "sex": ["M", "M", "F", "F"]}
+    )
+    schema.validate(ok)
+
+    bad = pd.DataFrame(
+        {"height": [5.0, 5.1, 6.4, 6.5], "sex": ["M", "M", "F", "F"]}
+    )
+    with pytest.raises(SchemaErrors):
+        schema.validate(bad, lazy=True)
+
+
+def test_groupby_check_returns_dict():
+    """A groupby check returning a per-group dict of bools is reduced to
+    pass only when every group passes."""
+    schema = pa.DataFrameSchema(
+        {
+            "val": pa.Column(
+                int,
+                pa.Check(
+                    lambda g: {k: (v > 0).all() for k, v in g.items()},
+                    groupby="grp",
+                ),
+            ),
+            "grp": pa.Column(str),
+        }
+    )
+    ok = pd.DataFrame({"val": [1, 2, 3, 4], "grp": ["a", "a", "b", "b"]})
+    schema.validate(ok)
+
+    bad = pd.DataFrame({"val": [1, 2, -3, 4], "grp": ["a", "a", "b", "b"]})
+    with pytest.raises(SchemaErrors):
+        schema.validate(bad, lazy=True)
+
+
+def test_groupby_check_with_groups_filter():
+    """The groups= kwarg restricts which groups the check runs on."""
+    schema = pa.DataFrameSchema(
+        {
+            "val": pa.Column(
+                int,
+                pa.Check(
+                    lambda g: g["a"].mean() > 0, groupby="grp", groups=["a"]
+                ),
+            ),
+            "grp": pa.Column(str),
+        }
+    )
+    # group "b" is negative but excluded by groups=["a"], so validation passes.
+    df = pd.DataFrame({"val": [1, 2, -5, -6], "grp": ["a", "a", "b", "b"]})
+    schema.validate(df)
+
+
+def test_hypothesis_check():
+    """Hypothesis checks run through the native pandas hypothesis backend."""
+    pytest.importorskip("scipy")
+    schema = pa.DataFrameSchema(
+        {
+            "height": pa.Column(
+                float,
+                pa.Hypothesis.two_sample_ttest(
+                    sample1="M",
+                    sample2="F",
+                    groupby="sex",
+                    relationship="greater_than",
+                    alpha=0.05,
+                ),
+            ),
+            "sex": pa.Column(str),
+        }
+    )
+    ok = pd.DataFrame(
+        {
+            "height": [7.0, 6.9, 6.8, 5.4, 5.5, 5.3],
+            "sex": ["M", "M", "M", "F", "F", "F"],
+        }
+    )
+    schema.validate(ok)
+
+    bad = pd.DataFrame(
+        {
+            "height": [5.0, 5.1, 5.2, 6.4, 6.5, 6.6],
+            "sex": ["M", "M", "M", "F", "F", "F"],
+        }
+    )
+    with pytest.raises(SchemaErrors):
+        schema.validate(bad, lazy=True)
 
 
 def test_series_schema_stays_native():

@@ -257,23 +257,31 @@ backend:
 
 When the Narwhals backend is enabled, `pandas.DataFrame` validation through
 {py:class}`~pandera.api.pandas.container.DataFrameSchema` (and
-`DataFrameModel`) is routed through the shared Narwhals code path. The scope
-is intentionally narrower than the native pandas backend:
+`DataFrameModel`) is routed through the shared Narwhals code path. Because
+pandas frames are **eager**, the Narwhals pandas path reaches feature parity
+with the native pandas backend. Almost everything is handled **Narwhals-native**
+(parsers, `add_missing_columns`, `set_default`, column/schema coercion,
+`groupby` checks, and all cross-backend checks). The **only** steps delegated to
+the native pandas backend are **Index/MultiIndex validation** (and its
+coercion) — because Narwhals has no index concept — and **`Hypothesis`**
+checks, which rely on scipy statistical tests. A few behavioural notes:
 
-- **Only `pd.DataFrame` validation is rerouted.** `SeriesSchema`, `Index`,
-  and `MultiIndex` validation — and the other pandas-like frame types
-  (dask, modin, geopandas, `pyspark.pandas`) — always use the native pandas
-  backends, regardless of the flag.
-- **Index and MultiIndex components are not validated.** Narwhals has no
-  notion of a pandas index. A schema with an `index=` component emits a
-  ``SchemaWarning`` and skips index validation. The dataframe's index is
-  still preserved in the validated output. Use the native backend if you
-  need index validation.
-- **Native dtype semantics are preserved.** Column dtype checks compare the
-  *native* pandas dtypes through the pandas dtype engine, so
-  `Column(str)` accepts `object` columns, nullable extension dtypes
-  (`Int64`), categoricals, and timezone-aware datetimes behave as they do
-  under the native backend.
+- **Only `pd.DataFrame` validation is rerouted.** `SeriesSchema` validation —
+  and the other pandas-like frame types (dask, modin, geopandas,
+  `pyspark.pandas`) — always use the native pandas backends, regardless of
+  the flag. `DataFrameSchema` `Index`/`MultiIndex` **components** are
+  validated (see below).
+- **Index and MultiIndex components are validated (delegated).** Narwhals
+  preserves the pandas index through its operations, so a schema with an
+  `index=` component is validated by delegating to the native Index/MultiIndex
+  backends; index-level coercion is applied and the index is preserved in the
+  output. (For non-pandas frames — polars/ibis/pyspark — Narwhals has no index
+  concept, so an `index=` component there still emits a ``SchemaWarning`` and
+  is skipped.)
+- **Column dtype checks compare native pandas dtypes.** Dtype *checks* still
+  use the pandas dtype engine, so `Column(str)` accepts `object` columns, and
+  nullable extension dtypes (`Int64`), categoricals, and tz-aware datetimes are
+  recognised as under the native backend.
 - **pandas-style check functions keep working.** Column-level checks receive
   the `pd.Series` for the column (e.g. `pa.Check(lambda s: s > 0)`), and
   dataframe-level checks receive the `pd.DataFrame` — the same convention as
@@ -281,18 +289,37 @@ is intentionally narrower than the native pandas backend:
   boolean arrays, or scalar booleans. Setting `native=False` passes a
   Narwhals column expression instead, making the check portable across all
   Narwhals-backed integrations.
-- **`coerce=True` at the column level is a no-op.** As with the other
-  Narwhals backends, a ``SchemaWarning`` is emitted and dtype mismatches are
-  reported as ``WRONG_DATATYPE`` errors instead of being coerced. Use the
-  native backend if you rely on coercion.
-- **`parsers` are not applied.** The Narwhals backend has no parser step;
-  schemas that rely on `parsers=` should use the native backend.
+- **`coerce=True` uses a hybrid strategy.** Column- and schema-level coercion
+  cast plain numpy dtypes (`int`, `float`, `str`, `bool`) Narwhals-native via
+  ``nw.cast``, and **fall back to the pandas dtype engine for pandas extension
+  dtypes** — nullable ``Int64``, ``Categorical``, tz-aware datetimes, and
+  ``string`` — so their native semantics are preserved (e.g. a nullable
+  ``Int64`` column keeps its ``<NA>`` values). A Narwhals cast that raises also
+  falls back to the pandas engine, which reports the offending values in the
+  ``DATATYPE_COERCION`` error. (Index-level coercion is delegated to the native
+  Index backend.)
+- **`parsers`, `add_missing_columns`, and `set_default` are applied
+  Narwhals-native.** Custom `parsers=` run on the native frame inside the
+  Narwhals backend; `add_missing_columns=True` and per-`Column` `default=`
+  values are built from Narwhals expressions (`nw.lit`, `fill_null`, `cast`).
+  Added columns follow the same hybrid dtype rule as coercion: plain numpy
+  dtypes are cast Narwhals-native, while extension-dtype or null-valued added
+  columns get their dtype from the pandas dtype engine (so a missing nullable
+  `Int64` column is added as `Int64` with `<NA>`, not `object`).
+- **`groupby` column-check-groups are Narwhals-native; `Hypothesis` checks are
+  delegated.** `groupby=` checks are handled by the Narwhals check backend
+  (building the pandas group dict for pandas-like frames). `Hypothesis` checks
+  are delegated to the native pandas hypothesis backend (scipy). Custom checks
+  that expect the `pd.Series`/`pd.DataFrame` keep working.
+- **Data synthesis strategies** (`schema.strategy()` / `schema.example()`)
+  are unaffected by the backend flag — they operate on the pandas schema API
+  and generate pandas data directly.
 - **`failure_cases` are pandas DataFrames** (including when every failure
   case is a scalar, e.g. dtype errors). Unlike the native backend, the
-  ``index`` column of the aggregated failure-cases frame is null — the
-  Narwhals code path does not report failing row positions.
-- **`Hypothesis` checks and hypothesis-based data synthesis strategies** are
-  not wired through the Narwhals backend.
+  ``index`` column of the aggregated failure-cases frame is null for
+  column/dataframe-level checks — the Narwhals code path does not report
+  failing row positions (index-component failures do report the failing
+  index value).
 
 (narwhals-opting-out)=
 
@@ -332,25 +359,36 @@ backend. Follow-up milestones track each of the gaps below:
   frame. This is because scalar Polars frames cannot be converted to PySpark
   without a live ``SparkSession`` at the error-collection site; this gap is
   tracked for a future release.
-* Column-level `coerce=True` is currently a no-op for **all** Narwhals backends
-  (Polars, Ibis, PySpark SQL, pandas). Pandera emits a one-time ``SchemaWarning``
-  per column so the subsequent ``WRONG_DATATYPE`` error is understandable rather
-  than silent. Full column-level coercion support is tracked as a follow-up.
-* pandas `Index` / `MultiIndex` components are not validated under the Narwhals
-  backend (a ``SchemaWarning`` is emitted), and `parsers` are not applied. See
-  {ref}`pandas differences <narwhals-pandas-differences>`.
-* The ``index`` column of aggregated ``failure_cases`` frames is always null —
-  failing row positions are not reported (SQL-lazy backends have no row order;
-  the pandas path follows the same convention).
+* Column-level `coerce=True` is currently a no-op for the **non-pandas**
+  Narwhals backends (Polars, Ibis, PySpark SQL). Pandera emits a one-time
+  ``SchemaWarning`` per column so the subsequent ``WRONG_DATATYPE`` error is
+  understandable rather than silent. Full column-level coercion support for
+  those backends is tracked as a follow-up. (The **pandas** Narwhals backend
+  applies column-level coercion via a hybrid of ``nw.cast`` and the pandas
+  dtype engine — preserving native semantics for extension dtypes; see
+  {ref}`pandas differences <narwhals-pandas-differences>`.)
+* The ``index`` column of aggregated ``failure_cases`` frames is null for
+  column/dataframe-level checks — failing row positions are not reported
+  (SQL-lazy backends have no row order; the pandas path follows the same
+  convention). Index-**component** failures do report the failing index value.
 * `coerce` for the Ibis backend (deferred; `Ibis` coerces eagerly today)
-* `add_missing_columns` parser and `set_default` for `Column` fields
-* `group_by`-based checks beyond element-wise and column-wise expressions
+* `add_missing_columns` parser and `set_default` for `Column` fields on the
+  **non-pandas** Narwhals backends (both are Narwhals-native on the pandas
+  backend)
+* `group_by`-based checks beyond element-wise and column-wise expressions on
+  the **non-pandas** Narwhals backends (`groupby` column-check-groups are
+  Narwhals-native on the pandas backend — see
+  ``NarwhalsCheckBackend.apply_groupby``)
 * Element-wise checks for SQL-lazy backends (Ibis and PySpark SQL). As a consequence,
   the shared built-in check suite in ``tests/common/`` does not run for the PySpark
   Narwhals backend (all shared checks are element-wise; running them would produce only
   skips with no useful coverage signal).
-* Schema IO (YAML/JSON) for Narwhals-backed schemas
-* Hypothesis data-synthesis strategies
+* Schema IO (YAML/JSON) for Narwhals-backed schemas. (Unaffected for the
+  pandas backend: `to_yaml`/`from_yaml` operate on the pandas schema API.)
+* Hypothesis checks and hypothesis-based data-synthesis strategies for the
+  **non-pandas** Narwhals backends. (On the pandas backend, `Hypothesis`
+  checks are delegated to the native pandas backend and `schema.strategy()` /
+  `schema.example()` work through the pandas schema API.)
 * `sample=` / `tail=` row sampling for SQL-lazy backends (Ibis and PySpark SQL)
 * `check_unique` (column-level uniqueness) does not produce a per-row boolean
   `check_output`, so `drop_invalid_rows=True` cannot filter rows that fail a

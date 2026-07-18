@@ -201,9 +201,11 @@ def _concat_failure_cases(items: list, implementation=None) -> Any:
         import pandas as pd  # local import: module must stay pandas-free
 
         converted = [
-            pd.DataFrame(item.to_dict(as_series=False))
-            if pl is not None and isinstance(item, pl.DataFrame)
-            else item
+            (
+                pd.DataFrame(item.to_dict(as_series=False))
+                if pl is not None and isinstance(item, pl.DataFrame)
+                else item
+            )
             for item in pl_items
         ]
         return pd.concat(converted, ignore_index=True)
@@ -218,6 +220,43 @@ class NarwhalsSchemaBackend(BaseSchemaBackend):
     Provides shared helpers used by ColumnBackend (components.py) and
     DataFrameSchemaBackend (container.py).
     """
+
+    @staticmethod
+    def is_native_delegated_check(check) -> bool:
+        """True if a check must run through the native pandas check backend.
+
+        ``Hypothesis`` checks rely on scipy statistical tests over grouped
+        samples with no Narwhals-expression equivalent, so for eager pandas
+        frames they are delegated to the native pandas hypothesis backend.
+        (``groupby`` column-check-groups are handled natively by the Narwhals
+        check backend — see ``NarwhalsCheckBackend.apply_groupby``.)
+        """
+        from pandera.api.hypotheses import Hypothesis
+
+        return isinstance(check, Hypothesis)
+
+    def run_native_check(
+        self, check_obj, schema, check, check_index, column_name=None
+    ) -> CoreCheckResult:
+        """Run a single check via the native pandas check backend.
+
+        Used for ``Hypothesis`` checks on eager pandas frames. ``check_obj`` is
+        a Narwhals frame; it is unwrapped to the native pandas frame so the
+        check dispatches to the native pandas hypothesis backend (which stays
+        registered for ``pd.DataFrame`` under the override). Returns the native
+        ``CoreCheckResult`` unchanged — the Narwhals error-collection loop
+        already understands it.
+        """
+        from pandera.api.narwhals.utils import _to_native
+        from pandera.backends.pandas.base import PandasSchemaBackend
+
+        native_obj = _to_native(check_obj)
+        args = () if column_name is None else (column_name,)
+        # run_check does not rely on backend instance state, so a bare native
+        # backend instance is enough to reuse its implementation.
+        return PandasSchemaBackend().run_check(
+            native_obj, schema, check, check_index, *args
+        )
 
     def subsample(
         self,
