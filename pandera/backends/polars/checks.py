@@ -14,6 +14,7 @@ from pandera.api.polars.utils import (
     get_lazyframe_schema,
 )
 from pandera.backends.base import BaseCheckBackend
+from pandera.backends.polars.utils import horizontal_concat
 from pandera.constants import CHECK_OUTPUT_KEY
 
 
@@ -95,8 +96,8 @@ class PolarsCheckBackend(BaseCheckBackend):
                 pl.col(CHECK_OUTPUT_KEY) | pl.col(CHECK_OUTPUT_KEY).is_null()
             )
         passed = results.select([pl.col(CHECK_OUTPUT_KEY).all()])
-        failure_cases = pl.concat(
-            [check_obj.lazyframe, results], how="horizontal"
+        failure_cases = horizontal_concat(
+            [check_obj.lazyframe, results]
         ).filter(pl.col(CHECK_OUTPUT_KEY).not_())
 
         if check_obj.key != "*":

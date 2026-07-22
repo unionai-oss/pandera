@@ -686,6 +686,13 @@ def test_pandas_datetime_tz_aware_check_normalizes_timezone():
     with pytest.raises(SchemaError):
         mismatched.validate(df)
 
+    # the fallback must not equate tz-aware with tz-naive datetime dtypes
+    naive_dtype = pandas_engine.Engine.dtype("datetime64[ns]")
+    assert not schema_dtype.check(naive_dtype)
+
+    # nor with arguments that aren't recognized dtypes at all
+    assert not schema_dtype.check("not_a_dtype")
+
 
 @hypothesis.settings(max_examples=1000)
 @pytest.mark.parametrize("to_df", [True, False])
