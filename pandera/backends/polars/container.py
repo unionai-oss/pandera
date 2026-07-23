@@ -1,6 +1,7 @@
 """Validation backend for polars DataFrameSchema."""
 
 import copy
+import re
 import traceback
 import warnings
 from collections.abc import Callable
@@ -302,6 +303,13 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
                 columns[col_name] = Column(schema.dtype, name=str(col_name))
 
         schema_components = []
+        # Names of explicit (non-regex) columns in this schema. A regex
+        # ``alias=...`` field must not also govern these columns (issue #2343).
+        explicit_column_names = {
+            name
+            for name, c in columns.items()
+            if not getattr(c, "regex", False)
+        }
         for col_name, col in columns.items():
             if (
                 col.required  # type: ignore
@@ -319,6 +327,24 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
                 # disable coercion at the schema component level since the
                 # dataframe-level schema already coerced it.
                 col.coerce = False  # type: ignore
+                # If this component is a regex selector that would also match
+                # any explicit (non-regex) column, expand it into one
+                # non-regex component per non-explicit match so explicit
+                # columns are left to their own schema (issue #2343).
+                if getattr(col, "regex", False) and explicit_column_names:
+                    matched_names = [
+                        name
+                        for name in get_lazyframe_column_names(check_obj)
+                        if name not in explicit_column_names
+                        and re.fullmatch(col.name or "", name)
+                    ]
+                    if matched_names:
+                        col.regex = False
+                        col.name = matched_names[0]
+                        for extra_name in matched_names[1:]:
+                            extra = copy.deepcopy(col)
+                            extra.name = extra_name
+                            schema_components.append(extra)
                 schema_components.append(col)
 
         return schema_components
@@ -508,6 +534,14 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
 
         lf_columns = get_lazyframe_column_names(obj)
 
+        # Names of explicit (non-regex) columns in this schema. A regex
+        # ``alias=...`` field must not coerce these columns (issue #2343).
+        explicit_column_names = {
+            name
+            for name, c in schema.columns.items()
+            if not getattr(c, "regex", False)
+        }
+
         try:
             if schema.dtype is not None:
                 obj = getattr(schema.dtype, coerce_fn)(obj)
@@ -525,9 +559,13 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
                             # a coercion failure reports the concrete column
                             # name instead of the regex pattern (issue #2363,
                             # mirroring the check path fixed in #2221).
-                            matched_columns = get_lazyframe_column_names(
-                                obj.select(pl.col(col_schema.selector))
-                            )
+                            matched_columns = [
+                                name
+                                for name in get_lazyframe_column_names(
+                                    obj.select(pl.col(col_schema.selector))
+                                )
+                                if name not in explicit_column_names
+                            ]
                             for matched_column in matched_columns:
                                 obj = getattr(col_schema.dtype, coerce_fn)(
                                     PolarsData(obj, matched_column)

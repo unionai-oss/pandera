@@ -499,6 +499,63 @@ def test_isin_check_lazy_validation_no_deprecation_warning(
     assert exc_info.value.failure_cases["failure_case"].to_list() == ["z"]
 
 
+def test_alias_regex_does_not_override_explicit_column_dtype() -> None:
+    """Issue #2343 regression test.
+
+    When a model declares an explicit column alongside a regex ``alias=...``
+    field, the alias must not coerce the explicit column to its own dtype.
+    """
+    from pandera.typing.polars import Series
+
+    class Model(DataFrameModel):
+        class Config:
+            coerce = True
+
+        index_column: Series[int]
+        anything_else: Series[str] = Field(alias=r".*", regex=True)
+
+    df = pl.DataFrame(
+        {
+            "index_column": [1.0],
+            "this_must_become_string": [1.0],
+        }
+    )
+
+    out = Model.validate(df)
+    assert out.schema["index_column"] == pl.Int64
+    assert out.schema["this_must_become_string"] == pl.String
+
+
+def test_alias_regex_still_coerces_dynamic_unmatched_columns() -> None:
+    """Issue #2343 companion test.
+
+    A regex ``alias=...`` must still govern columns that are not declared
+    explicitly in the model, even when the alias's regex is broad enough to
+    also match explicit columns.
+    """
+    from pandera.typing.polars import Series
+
+    class Model(DataFrameModel):
+        class Config:
+            coerce = True
+
+        index_column: Series[int]
+        anything_else: Series[str] = Field(alias=r".*", regex=True)
+
+    df = pl.DataFrame(
+        {
+            "index_column": [1.0],
+            "this_must_become_string": [1.0],
+        }
+    )
+
+    out = Model.validate(df)
+    # The unmatched column must be coerced to String by the alias path.
+    assert out.schema["this_must_become_string"] == pl.String
+    # And the explicit column must keep its declared Int64 dtype.
+    assert out.schema["index_column"] == pl.Int64
+
+
 def test_nullable_check_lazy_validation_no_deprecation_warning(
     simulate_polars_1_42_1,
 ):
