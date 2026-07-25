@@ -1892,3 +1892,33 @@ def test_check_types_catches_inplace_mutation():
     df = DataFrame[InSchema]({"id": [1], "name": ["foo"]})
     with pytest.raises(errors.SchemaError):
         mutate_after_typing(df)
+
+
+def test_get_fn_argnames_keyword_only_args():
+    """Regression test: _get_fn_argnames should not crash on functions
+    with only keyword-only arguments or no positional arguments."""
+    from pandera.decorators import _get_fn_argnames
+
+    # keyword-only args only
+    def kwonly_fn(*, df, out):
+        pass
+
+    assert _get_fn_argnames(kwonly_fn) == []
+
+    # *args only
+    def varargs_fn(*args):
+        pass
+
+    assert _get_fn_argnames(varargs_fn) == []
+
+    # **kwargs only
+    def kwargs_fn(**kwargs):
+        pass
+
+    assert _get_fn_argnames(kwargs_fn) == []
+
+    # mixed: no positional, only *args and keyword-only
+    def mixed_fn(*args, key=None):
+        pass
+
+    assert _get_fn_argnames(mixed_fn) == []

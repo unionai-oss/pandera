@@ -70,6 +70,9 @@ def _get_fn_argnames(fn: Callable) -> list[str]:
 
     arg_spec_args = inspect.getfullargspec(fn).args
 
+    if not arg_spec_args:
+        return arg_spec_args
+
     first_arg_is_self = arg_spec_args[0] == "self"
     first_arg_is_cls = arg_spec_args[0] == "cls"
     is_py_newer_than_39 = sys.version_info[:2] >= (3, 9)
