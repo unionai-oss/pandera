@@ -58,11 +58,17 @@ class PandasCheckBackend(BaseCheckBackend):
         # pandas groupby objects instead of dicts.
         if groups is None:
             return {
-                (k if isinstance(k, bool) else k[0] if len(k) == 1 else k): v
+                (
+                    k
+                    if isinstance(k, bool) or not isinstance(k, tuple)
+                    else k[0]
+                    if len(k) == 1
+                    else k
+                ): v
                 for k, v in groupby_obj  # type: ignore[union-attr]
             }
         group_keys = {
-            k[0] if len(k) == 1 else k
+            k if not isinstance(k, tuple) else k[0] if len(k) == 1 else k
             for k, _ in groupby_obj  # type: ignore[union-attr]
         }
         invalid_groups = [g for g in groups if g not in group_keys]
