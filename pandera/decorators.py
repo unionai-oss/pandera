@@ -228,7 +228,10 @@ def check_input(
 
             sig = inspect.signature(_unwrap_fn(wrapped))
             is_method = [*sig.parameters][0] in ("self", "cls")
-            if is_method and len(args) == len(sig.parameters) - 1:
+            if (
+                is_method
+                and len(args) + len(kwargs) == len(sig.parameters) - 1
+            ):
                 pos_args = sig.bind_partial(None, *args).arguments
             else:
                 pos_args = sig.bind_partial(*args).arguments

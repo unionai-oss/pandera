@@ -363,6 +363,23 @@ def test_check_input_on_fn_with_kwarg():
     fn_with_check_input(df, kwarg=True)
 
 
+def test_check_input_on_method_with_keyword_arg():
+    """Test that a method still binds ``self`` correctly when one of the
+    remaining arguments is passed by keyword."""
+    schema = DataFrameSchema({"col": Column(Int)})
+
+    class Example:
+        # pylint: disable=missing-function-docstring,no-self-use
+        @check_input(schema, "df")
+        def method(self, df, other):
+            return df
+
+    df = pd.DataFrame({"col": [1]})
+    example = Example()
+    pd.testing.assert_frame_equal(example.method(df, "foo"), df)
+    pd.testing.assert_frame_equal(example.method(df, other="foo"), df)
+
+
 def test_check_io() -> None:
     # pylint: disable=too-many-locals
     """Test that check_io correctly validates/invalidates data."""
