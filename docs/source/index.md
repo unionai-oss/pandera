@@ -159,6 +159,7 @@ pip install 'pandera[modin-dask]'   # validate modin dataframes with dask
 pip install 'pandera[geopandas]'    # validate geopandas geodataframes
 pip install 'pandera[polars]'       # validate polars dataframes
 pip install 'pandera[ibis]'         # validate ibis tables
+pip install 'pandera[pyarrow]'      # validate pyarrow tables
 pip install 'pandera[xarray]'       # validate xarray data structures
 pip install 'pandera[narwhals]'     # use the Narwhals-powered backend
 ```

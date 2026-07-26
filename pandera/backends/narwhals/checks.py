@@ -84,6 +84,16 @@ def _is_ibis_native(frame: Any) -> bool:
     return isinstance(frame, ibis.Table)
 
 
+def _is_pyarrow_native(frame: Any) -> bool:
+    """Cheap ``pyarrow.Table`` detection that mirrors ``_is_polars_native``.
+
+    Duck-types via the module name so the narwhals backend keeps working on
+    installs where pyarrow is not present.
+    """
+    mod = getattr(type(frame), "__module__", "") or ""
+    return mod.startswith("pyarrow") and type(frame).__name__ == "Table"
+
+
 def _wrap_native_frame_with_key(native_frame: Any, key: str | None) -> Any:
     """Wrap ``(native_frame, key)`` into a polars/ibis-style data container.
 
@@ -112,6 +122,11 @@ def _wrap_native_frame_with_key(native_frame: Any, key: str | None) -> Any:
         from pandera.api.ibis.types import IbisData
 
         return IbisData(table=native_frame, key=key)
+
+    if _is_pyarrow_native(native_frame):
+        from pandera.api.pyarrow.types import PyArrowData
+
+        return PyArrowData(table=native_frame, key=key or "*")
 
     return None
 
@@ -296,6 +311,31 @@ class NarwhalsCheckBackend(BaseCheckBackend):
             return nw.from_native(
                 native.with_columns(bool_col), eager_only=True
             )
+
+        # Handle pyarrow native return types from native=True checks. As with
+        # polars above, pyarrow is not imported at module level so ibis-only /
+        # polars-only installs keep working — detection is by module name.
+        if out_mod.startswith("pyarrow"):
+            out_type_name = type(out).__name__
+
+            if out_type_name == "Table":
+                return nw.from_native(out, eager_only=True)
+
+            if out_type_name.endswith("Scalar"):
+                # Aggregate boolean result — hand back a plain Python bool.
+                return bool(out.as_py())
+
+            if out_type_name.endswith(("Array", "ChunkedArray")):
+                # Row-level boolean output — attach it to the original table as
+                # ``CHECK_OUTPUT_KEY`` to build a wide frame, mirroring the
+                # polars branch above.
+                from pandera.api.narwhals.utils import _materialize
+
+                native = nw.to_native(_materialize(check_obj.frame))
+                tbl = native.append_column(CHECK_OUTPUT_KEY, out)
+                return nw.from_native(tbl, eager_only=True)
+
+            return out  # pragma: no cover — unexpected pyarrow type
 
         return out  # bool or other scalar — handled by postprocess_bool_output
 

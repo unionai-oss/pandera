@@ -335,6 +335,7 @@ jobs:
         - modin-ray
         - ibis
         - xarray
+        - pyarrow
         include:
         - extra: polars
           polars-version: "0.20.0"

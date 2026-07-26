@@ -40,9 +40,28 @@ def register_default_check_backends(check_obj_cls: type) -> None:
     # Narwhals wrapper types share pandas-like class names (e.g. DataFrame)
     # but must not route through the pandas backend registry.
     if module.startswith("narwhals."):
+        from pandera.api.checks import Check
         from pandera.config import CONFIG
 
+        # Fast path: a check backend for this narwhals wrapper type is already
+        # registered, which is the only thing ``Check.get_backend`` looks up.
+        # Returning here keeps a check on a narwhals frame from eagerly pulling
+        # *every* narwhals-compatible library's backends into the shared
+        # registry — that side effect primes each library's registration
+        # ``lru_cache``, so a later wipe of ``BACKEND_REGISTRY`` leaves those
+        # libraries permanently unregistered.
+        if (Check, check_obj_cls) in Check.BACKEND_REGISTRY:
+            return
+
         use_nw = CONFIG.use_narwhals_backend
+        try:
+            from pandera.backends.pyarrow.register import (
+                register_pyarrow_backends,
+            )
+
+            register_pyarrow_backends()
+        except ImportError:
+            pass
         try:
             from pandera.backends.polars.register import (
                 register_polars_backends,
@@ -91,6 +110,14 @@ def register_default_check_backends(check_obj_cls: type) -> None:
         register_polars_backends(
             use_narwhals_backend=CONFIG.use_narwhals_backend
         )
+        return
+
+    if module.startswith("pyarrow"):
+        from pandera.backends.pyarrow.register import (
+            register_pyarrow_backends,
+        )
+
+        register_pyarrow_backends()
         return
 
     if module.startswith("ibis."):

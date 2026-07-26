@@ -221,6 +221,7 @@ DATAFRAME_EXTRAS = {
     "ibis",
     "xarray",
     "narwhals",  # TEST-03: narwhals backend runs with polars+ibis co-installed
+    "pyarrow",  # pyarrow.Table validation, served by the narwhals backends
 }
 for extra in OPTIONAL_DEPENDENCIES:
     if extra == "pandas":
