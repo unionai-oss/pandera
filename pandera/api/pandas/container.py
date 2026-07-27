@@ -67,15 +67,47 @@ class DataFrameSchema(_DataFrameSchema[pd.DataFrame]):
             self.dtype, pandas_engine.PydanticModel
         ):
             self.columns = {
-                name: self._build_pydantic_column(name)
+                name: self._build_pydantic_column(self.dtype, name)
                 for name in self.dtype.column_names
             }
 
     @staticmethod
-    def _build_pydantic_column(name: str):
+    def _build_pydantic_column(dtype: "pandas_engine.PydanticModel", name: str):
         from pandera.api.pandas.components import Column
 
-        return Column(None, name=name)
+        # Determine whether the pydantic field is Optional so the
+        # generated column allows null values.  A field is optional
+        # when its annotation includes None (e.g. ``int | None`` or
+        # ``Optional[int]``) or when it has a default of None.
+        nullable = False
+        model_type = dtype.type
+        try:
+            if hasattr(model_type, "model_fields"):
+                # Pydantic v2
+                field_info = model_type.model_fields.get(name)
+            else:
+                # Pydantic v1
+                field_info = model_type.__fields__.get(name)
+
+            if field_info is not None:
+                annotation = getattr(field_info, "annotation", None)
+                if annotation is not None:
+                    origin = getattr(annotation, "__origin__", None)
+                    import typing
+
+                    if origin is typing.Union:
+                        args = getattr(annotation, "__args__", ())
+                        if type(None) in args:
+                            nullable = True
+                # Also treat fields with a None default as nullable
+                if not nullable:
+                    default = getattr(field_info, "default", ...)
+                    if default is None:
+                        nullable = True
+        except Exception:
+            pass
+
+        return Column(None, name=name, nullable=nullable)
 
     @_DataFrameSchema.dtype.setter  # type: ignore[attr-defined]
     def dtype(self, value: PandasDtypeInputTypes) -> None:
