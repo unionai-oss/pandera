@@ -424,7 +424,15 @@ def test_schema_level_coerce():
     )
     out = schema.validate(pd.DataFrame({"a": [1, 2], "b": [10, 20]}))
     assert out["a"].dtype == "float64"
-    assert out["b"].dtype == object
+    # str coercion yields object on pandas < 3 and pd.StringDtype on
+    # pandas >= 3; derive the expected dtype from the engine so the
+    # assertion is version-agnostic (matches the native pandas backend).
+    from pandera.engines import pandas_engine
+
+    expected_b_dtype = (
+        pandas_engine.Engine.dtype(str).coerce(pd.Series([10, 20])).dtype
+    )
+    assert out["b"].dtype == expected_b_dtype
 
 
 def test_coerce_numpy_dtype_via_narwhals_cast():
