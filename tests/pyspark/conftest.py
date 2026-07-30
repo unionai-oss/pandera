@@ -21,6 +21,23 @@ def spark_env_vars():
     """Sets environment variables for pyspark."""
     os.environ["SPARK_LOCAL_IP"] = "127.0.0.1"
     os.environ["PYARROW_IGNORE_TIMEZONE"] = "1"
+    # Disable Adaptive Query Execution process-wide. AQE materializes each
+    # query stage asynchronously via cached thread pools (``shuffle-exchange``
+    # / ``ResultQueryStageExecution``). Across the hundreds of pandas-on-Spark
+    # operations in this suite these accumulate into thousands of native
+    # threads in the long-lived session, eventually exceeding the macOS
+    # per-process thread limit and crashing the JVM ("unable to create native
+    # thread") -- which then surfaces as ConnectionRefusedError in every
+    # subsequent test. pandas-on-Spark (``pyspark.pandas``) builds its own
+    # default session via ``getOrCreate()`` that bypasses the ``spark``
+    # fixture, so set the config via PYSPARK_SUBMIT_ARGS to cover it too. AQE
+    # only affects query planning/performance, not validation results.
+    submit_args = os.environ.get("PYSPARK_SUBMIT_ARGS", "")
+    if "spark.sql.adaptive.enabled" not in submit_args:
+        conf = "--conf spark.sql.adaptive.enabled=false"
+        os.environ["PYSPARK_SUBMIT_ARGS"] = (
+            f"{conf} {submit_args}" if submit_args else f"{conf} pyspark-shell"
+        )
 
 
 @pytest.fixture(scope="session")
@@ -30,6 +47,9 @@ def spark() -> SparkSession:
     """
     builder = SparkSession.builder
     builder = builder.config("spark.sql.ansi.enabled", False)
+    # Disable Adaptive Query Execution to avoid unbounded native-thread
+    # growth over the life of this session-scoped fixture (see spark_env_vars).
+    builder = builder.config("spark.sql.adaptive.enabled", False)
     # Workaround for Java 17+ security manager issues with Hadoop file system
     # This is needed for PySpark 4.0+ when using Java 17+
     if PYSPARK_VERSION >= version.parse("4.0.0"):
@@ -51,6 +71,9 @@ def spark_connect() -> SparkSession:
     os.environ["SPARK_LOCAL_REMOTE"] = "sc://localhost"
     builder = SparkSession.builder
     builder = builder.config("spark.sql.ansi.enabled", False)
+    # Disable Adaptive Query Execution to avoid unbounded native-thread
+    # growth over the life of this session-scoped fixture (see spark_env_vars).
+    builder = builder.config("spark.sql.adaptive.enabled", False)
     # Workaround for Java 17+ security manager issues with Hadoop file system
     # This is needed for PySpark 4.0+ when using Java 17+
     if PYSPARK_VERSION >= version.parse("4.0.0"):
