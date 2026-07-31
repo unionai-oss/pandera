@@ -24,6 +24,25 @@ _SQL_LAZY_IMPLEMENTATIONS: frozenset = frozenset(
     }
 )
 
+# Eager pandas-like implementations. These are wrapped as ``nw.DataFrame``
+# (then ``.lazy()``-ed by the backend) and unwrap back to a pandas-API frame.
+# They share pandas dtype semantics (e.g. numpy object columns, NaN-based
+# missing integers) that the backend special-cases in a few places.
+_EAGER_PANDAS_LIKE_IMPLEMENTATIONS: frozenset = frozenset(
+    {
+        nw.Implementation.PANDAS,
+        nw.Implementation.MODIN,
+        nw.Implementation.CUDF,
+    }
+)
+
+
+def _is_pandas_like(frame) -> bool:
+    """True if frame is backed by an eager pandas-like implementation."""
+    if not isinstance(frame, (nw.DataFrame, nw.LazyFrame)):
+        return False
+    return frame.implementation in _EAGER_PANDAS_LIKE_IMPLEMENTATIONS
+
 
 def _to_native(frame):
     """Convert a Narwhals frame to its native backend frame.
