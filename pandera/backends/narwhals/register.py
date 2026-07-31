@@ -1,8 +1,9 @@
 """Narwhals backend registration utilities.
 
-Registration of Narwhals backends for Polars, Ibis, and PySpark frame types is
-handled by ``register_polars_backends()``, ``register_ibis_backends()``, and
-``register_pyspark_backends()`` when ``PANDERA_USE_NARWHALS_BACKEND=True`` (or
+Registration of Narwhals backends for Polars, Ibis, PySpark, and pandas frame
+types is handled by ``register_polars_backends()``,
+``register_ibis_backends()``, ``register_pyspark_backends()``, and
+``register_pandas_backends()`` when ``PANDERA_USE_NARWHALS_BACKEND=True`` (or
 ``pandera.config.CONFIG.use_narwhals_backend`` is ``True``).
 """
 
@@ -81,6 +82,42 @@ def clear_narwhals_compatible_backend_registry() -> None:
         pass
 
     try:
+        import pandas as pd
+
+        from pandera._pandas_deprecated import (
+            DataFrameSchema as _PandasDataFrameSchemaDeprecated,
+        )
+        from pandera.api.pandas.components import Column as PandasColumn
+        from pandera.api.pandas.container import (
+            DataFrameSchema as PandasDataFrameSchema,
+        )
+
+        # Only the entries the narwhals flag can override are popped. The
+        # native entries for SeriesSchema/Index/MultiIndex and the other
+        # pandas-like frame types are never swapped, so they stay put.
+        pandas_keys: list[tuple[Any, Any]] = [
+            (PandasDataFrameSchema, pd.DataFrame),
+            (_PandasDataFrameSchemaDeprecated, pd.DataFrame),
+            (PandasColumn, pd.DataFrame),
+        ]
+        try:
+            import narwhals.stable.v1 as nw
+
+            pandas_keys.extend(
+                [
+                    (Check, nw.LazyFrame),
+                    (Check, nw.DataFrame),
+                ]
+            )
+        except ImportError:  # pragma: no cover — narwhals is co-installed
+            pass
+
+        for schema_cls, frame_type in pandas_keys:
+            _pop_registry_key(schema_cls, frame_type)
+    except ImportError:  # pragma: no cover — pandas is co-installed
+        pass
+
+    try:
         import pyspark.sql as pyspark_sql
 
         from pandera.api.dataframe.components import ComponentSchema
@@ -131,7 +168,15 @@ def _narwhals_compatible_registration_state() -> dict[str, bool]:
         "polars": False,
         "ibis": False,
         "pyspark": False,
+        "pandas": False,
     }
+
+    try:
+        from pandera.backends.pandas.register import register_pandas_backends
+
+        state["pandas"] = register_pandas_backends.cache_info().currsize > 0
+    except ImportError:  # pragma: no cover — pandas is co-installed
+        pass
 
     try:
         from pandera.backends.polars.register import register_polars_backends
@@ -181,6 +226,13 @@ def _get_register_functions() -> dict[str, Any]:
     except ImportError:
         pass
 
+    try:
+        from pandera.backends.pandas.register import register_pandas_backends
+
+        register_functions["pandas"] = register_pandas_backends
+    except ImportError:  # pragma: no cover — pandas is co-installed
+        pass
+
     return register_functions
 
 
@@ -209,5 +261,18 @@ def reregister_narwhals_compatible_backends(
     )
 
     for name, register_fn in register_functions.items():
-        if previously_registered.get(name):
+        if not previously_registered.get(name):
+            continue
+        if name == "pandas":
+            # register_pandas_backends is parameterized by check-class fqn;
+            # re_register_pandas_backends replays each previously-registered
+            # fqn with the new flag value.
+            from pandera.backends.pandas.register import (
+                re_register_pandas_backends,
+            )
+
+            re_register_pandas_backends(
+                use_narwhals_backend=use_narwhals_backend
+            )
+        else:
             register_fn(use_narwhals_backend=use_narwhals_backend)

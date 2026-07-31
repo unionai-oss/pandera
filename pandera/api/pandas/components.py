@@ -13,6 +13,7 @@ from pandera.api.pandas.container import DataFrameSchema
 from pandera.api.pandas.types import PandasDtypeInputTypes
 from pandera.dtypes import UniqueSettings
 from pandera.import_utils import strategy_import_error
+from pandera.utils import is_regex
 
 
 class Column(ArraySchema[pd.DataFrame]):
@@ -114,6 +115,23 @@ class Column(ArraySchema[pd.DataFrame]):
     def _allow_groupby(self) -> bool:
         """Whether the schema or schema component allows groupby operations."""
         return True
+
+    @property
+    def selector(self):
+        """Column selector used by the Narwhals validation backend.
+
+        Mirrors the ``selector`` property on the polars/ibis/pyspark
+        ``Column`` components: returns a regex pattern when ``regex=True``
+        and the plain column name otherwise. Non-string names (e.g. tuples
+        for MultiIndex columns) are returned as-is.
+        """
+        if (
+            isinstance(self.name, str)
+            and not is_regex(self.name)
+            and self.regex
+        ):
+            return f"^{self.name}$"
+        return self.name
 
     @property
     def properties(self) -> dict[str, Any]:

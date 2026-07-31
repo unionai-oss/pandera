@@ -99,7 +99,7 @@ are expressed in the native library's API.
 :widths: 25 75
 
 * - {ref}`Narwhals <narwhals-backend>`
-  - Unified opt-in backend for Polars, Ibis, and PySpark SQL. Enable with ``PANDERA_USE_NARWHALS_BACKEND=True`` or {func}`~pandera.set_config`.
+  - Unified opt-in backend for Polars, Ibis, PySpark SQL, and pandas. Enable with ``PANDERA_USE_NARWHALS_BACKEND=True`` or {func}`~pandera.set_config`.
 :::
 
 ```{toctree}
