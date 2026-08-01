@@ -103,9 +103,7 @@ def test_check_groupby_scalar_keys() -> None:
     """Regression test for issue #1235: groupby with a single string column
     whose values are non-string scalars (e.g. integers) should not raise
     TypeError from calling len() on a scalar group key."""
-    df = pd.DataFrame(
-        {"group": [1, 1, 2, 2], "val": [10, 20, 30, 40]}
-    )
+    df = pd.DataFrame({"group": [1, 1, 2, 2], "val": [10, 20, 30, 40]})
 
     # groupby as a plain string (not a list) produces scalar keys
     schema = DataFrameSchema(

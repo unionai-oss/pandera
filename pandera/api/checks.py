@@ -1,7 +1,7 @@
 """Data validation check definition."""
 
 import re
-from collections.abc import Callable, Iterable
+from collections.abc import Callable, Hashable, Iterable
 from typing import (
     Any,
     Optional,
@@ -21,7 +21,7 @@ class Check(BaseCheck):
     def __init__(
         self,
         check_fn: Callable,
-        groups: Union[str, list[str]] | None = None,
+        groups: Union[str, list[Hashable]] | None = None,
         groupby: Union[str, list[str], Callable] | None = None,
         ignore_na: bool = True,
         element_wise: bool = False,
@@ -214,7 +214,7 @@ class Check(BaseCheck):
         self.groupby = groupby
         if isinstance(groups, str):
             groups = [groups]
-        self.groups: list[str] | None = groups
+        self.groups: list[Hashable] | None = groups
 
         self.statistics = statistics or check_kwargs or {}
         self.statistics_args = [*self.statistics.keys()]

@@ -46,7 +46,7 @@ class PandasCheckBackend(BaseCheckBackend):
     @staticmethod
     def _format_groupby_input(
         groupby_obj: GroupbyObject,
-        groups: list[str] | None,
+        groups: list[Hashable] | None,
     ) -> dict[Hashable, pd.Series] | dict[Hashable, pd.DataFrame]:
         """Format groupby object into dict of groups to Series or DataFrame.
 

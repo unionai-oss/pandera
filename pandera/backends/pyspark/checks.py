@@ -1,5 +1,6 @@
 """Check backend for pyspark."""
 
+from collections.abc import Hashable
 from functools import partial
 from typing import Optional, Union
 
@@ -43,7 +44,7 @@ class PySparkCheckBackend(BaseCheckBackend):
     @staticmethod
     def _format_groupby_input(
         groupby_obj: GroupbyObject,
-        groups: list[str] | None,
+        groups: list[Hashable] | None,
     ) -> dict[str, PySparkDataFrameTypes]:  # pragma: no cover
         raise NotImplementedError
 
