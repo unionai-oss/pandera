@@ -23,15 +23,8 @@ def spark_env_vars():
     os.environ["PYARROW_IGNORE_TIMEZONE"] = "1"
     # Disable Adaptive Query Execution process-wide. AQE materializes each
     # query stage asynchronously via cached thread pools (``shuffle-exchange``
-    # / ``ResultQueryStageExecution``). Across the hundreds of pandas-on-Spark
-    # operations in this suite these accumulate into thousands of native
-    # threads in the long-lived session, eventually exceeding the macOS
-    # per-process thread limit and crashing the JVM ("unable to create native
-    # thread") -- which then surfaces as ConnectionRefusedError in every
-    # subsequent test. pandas-on-Spark (``pyspark.pandas``) builds its own
-    # default session via ``getOrCreate()`` that bypasses the ``spark``
-    # fixture, so set the config via PYSPARK_SUBMIT_ARGS to cover it too. AQE
-    # only affects query planning/performance, not validation results.
+    # / ``ResultQueryStageExecution``), leading to ConnectionRefusedError in every
+    # subsequent test. AQE only affects query planning/performance, not validation results.
     submit_args = os.environ.get("PYSPARK_SUBMIT_ARGS", "")
     if "spark.sql.adaptive.enabled" not in submit_args:
         conf = "--conf spark.sql.adaptive.enabled=false"
