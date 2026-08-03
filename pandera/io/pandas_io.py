@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import enum
 import json
+import re
 import warnings
 from collections.abc import Mapping
 from functools import partial
@@ -311,13 +312,35 @@ def _deserialize_check_stats(check, serialized_check_stats, dtype=None):
     return check_instance
 
 
+_DECIMAL_DTYPE_PATTERN = re.compile(
+    r"Decimal\(\s*(\d+)\s*,\s*(\d+)\s*\)", re.IGNORECASE
+)
+
+
+def _deserialize_dtype(serialized_dtype):
+    """Deserialize a dtype, supporting the string representation of
+    parametrized dtypes that the engine doesn't recognize as aliases,
+    e.g. ``"Decimal(28, 0)"``. GH#1165
+    """
+    try:
+        return pandas_engine.Engine.dtype(serialized_dtype)
+    except TypeError:
+        if isinstance(serialized_dtype, str):
+            match = _DECIMAL_DTYPE_PATTERN.fullmatch(serialized_dtype)
+            if match:
+                return pandas_engine.Decimal(
+                    precision=int(match.group(1)), scale=int(match.group(2))
+                )
+        raise
+
+
 def _deserialize_component_stats(serialized_component_stats):
     serialized_component_stats = dict(serialized_component_stats)
     unflatten_component_checks_dict(serialized_component_stats)
 
     dtype = serialized_component_stats.get("dtype")
     if dtype:
-        dtype = pandas_engine.Engine.dtype(dtype)
+        dtype = _deserialize_dtype(dtype)
 
     description = serialized_component_stats.get("description")
     title = serialized_component_stats.get("title")

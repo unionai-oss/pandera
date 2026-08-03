@@ -577,8 +577,10 @@ class Decimal(DataType, dtypes.Decimal):
     supported by the Python :py:class:`decimal.Decimal` class.
     """
 
-    _exp: decimal.Decimal = dataclasses.field(init=False)
-    _ctx: decimal.Context = dataclasses.field(init=False)
+    # attributes derived from precision, scale, and rounding, so they are
+    # excluded from comparisons: decimal.Context doesn't implement __eq__.
+    _exp: decimal.Decimal = dataclasses.field(init=False, compare=False)
+    _ctx: decimal.Context = dataclasses.field(init=False, compare=False)
 
     def __init__(
         self,
