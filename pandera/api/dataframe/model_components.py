@@ -78,6 +78,7 @@ class FieldInfo(BaseFieldInfo):
         self,
         dtype: Any,
         checks: CheckArg | None = None,
+        parsers: ParserArg | None = None,
         name: str | None = None,
     ) -> dict[str, Any]:
         """Create a schema_components.Index from a field."""
@@ -88,6 +89,7 @@ class FieldInfo(BaseFieldInfo):
             coerce=self.coerce,
             name=name,
             checks=checks,
+            parsers=parsers,
             title=self.title,
             description=self.description,
             default=self.default,
