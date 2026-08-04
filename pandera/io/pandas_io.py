@@ -321,17 +321,19 @@ def _deserialize_dtype(serialized_dtype):
     """Deserialize a dtype, supporting the string representation of
     parametrized dtypes that the engine doesn't recognize as aliases,
     e.g. ``"Decimal(28, 0)"``. GH#1165
+
+    Parametrized dtype strings are handled before falling back to
+    :meth:`Engine.dtype`, since the exception raised for unrecognized
+    strings varies across numpy/pandas versions (e.g. numpy raises
+    ``ValueError`` for strings containing commas).
     """
-    try:
-        return pandas_engine.Engine.dtype(serialized_dtype)
-    except TypeError:
-        if isinstance(serialized_dtype, str):
-            match = _DECIMAL_DTYPE_PATTERN.fullmatch(serialized_dtype)
-            if match:
-                return pandas_engine.Decimal(
-                    precision=int(match.group(1)), scale=int(match.group(2))
-                )
-        raise
+    if isinstance(serialized_dtype, str):
+        match = _DECIMAL_DTYPE_PATTERN.fullmatch(serialized_dtype)
+        if match:
+            return pandas_engine.Decimal(
+                precision=int(match.group(1)), scale=int(match.group(2))
+            )
+    return pandas_engine.Engine.dtype(serialized_dtype)
 
 
 def _deserialize_component_stats(serialized_component_stats):
