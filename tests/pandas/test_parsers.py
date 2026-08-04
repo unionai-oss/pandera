@@ -12,7 +12,7 @@ from pandera.api.pandas.array import SeriesSchema
 from pandera.api.pandas.container import DataFrameSchema
 from pandera.api.parsers import Parser
 from pandera.engines.pandas_engine import PANDAS_3_0_0_PLUS
-from pandera.typing import Series
+from pandera.typing import Index, Series
 
 
 def test_dataframe_schema_parse() -> None:
@@ -310,3 +310,59 @@ def test_column_parser_with_inferred_schema_coercion():
         [-13123.0, -12.0, np.nan], name="col1", dtype="float64"
     )
     pd.testing.assert_series_equal(validated["col1"], expected)
+
+
+def test_parser_on_dataframe_model_index_field():
+    """``@pa.parser`` should be applied to fields annotated as Index
+    (issue #1684)."""
+
+    class Model(pa.DataFrameModel):
+        idx: Index[int]
+        col: Series[int]
+
+        class Config:
+            coerce = True
+
+        @pa.parser("idx")
+        @classmethod
+        def double(cls, series: pd.Series) -> pd.Series:
+            return series * 2
+
+        @pa.parser("col")
+        @classmethod
+        def triple(cls, series: pd.Series) -> pd.Series:
+            return series * 3
+
+    df = pd.DataFrame({"col": [1, 2, 3]}, index=pd.Index([1, 2, 3]))
+    validated = Model.validate(df)
+    assert validated.index.tolist() == [2, 4, 6]
+    assert validated["col"].tolist() == [3, 6, 9]
+
+
+def test_index_parser():
+    """Parsers on an Index schema component should transform the index."""
+    schema = DataFrameSchema(
+        columns={"col": pa.Column(int)},
+        index=pa.Index(int, parsers=Parser(lambda s: s * 2), name="idx"),
+    )
+    df = pd.DataFrame(
+        {"col": [1, 2, 3]}, index=pd.Index([1, 2, 3], name="idx")
+    )
+    validated = schema.validate(df)
+    assert validated.index.tolist() == [2, 4, 6]
+    assert validated.index.name == "idx"
+
+
+def test_index_parser_output_needs_coercion():
+    """Index parsers should run before dtype coercion."""
+    schema = DataFrameSchema(
+        columns={"col": pa.Column(int)},
+        index=pa.Index(
+            float,
+            parsers=Parser(lambda s: s.str.replace(",", ".")),
+            coerce=True,
+        ),
+    )
+    df = pd.DataFrame({"col": [1, 2]}, index=pd.Index(["1,5", "2,5"]))
+    validated = schema.validate(df)
+    assert validated.index.tolist() == [1.5, 2.5]
