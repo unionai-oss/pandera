@@ -37,6 +37,12 @@ EXTRAS_REQUIRING_PANDAS = frozenset(
     ]
 )
 
+EXTRAS_REQUIRING_TORCH = frozenset(
+    [
+        "torch",
+    ]
+)
+
 CI_RUN = os.environ.get("CI") == "true"
 if CI_RUN:
     print("Running on CI")
@@ -142,7 +148,9 @@ def _testing_requirements(
     pydantic = pydantic or PYDANTIC_VERSIONS[-1]
     polars = polars or POLARS_VERSIONS[-1]
 
-    _requirements = PYPROJECT["project"]["dependencies"]
+    # copy so that += below doesn't mutate the shared PYPROJECT dict when
+    # multiple sessions run in the same nox process
+    _requirements = list(PYPROJECT["project"]["dependencies"])
     if extra is not None:
         _requirements += PYPROJECT["project"]["optional-dependencies"][extra]
     # narwhals backend tests run with polars+ibis co-installed (TEST-03).
@@ -158,6 +166,12 @@ def _testing_requirements(
     if extra in EXTRAS_REQUIRING_PANDAS:
         _requirements.extend(
             PYPROJECT["project"]["optional-dependencies"]["pandas"]
+        )
+
+    # torch extra requires torch and tensordict
+    if extra in EXTRAS_REQUIRING_TORCH:
+        _requirements.extend(
+            PYPROJECT["project"]["optional-dependencies"]["torch"]
         )
 
     _requirements = list(set(_requirements))
@@ -182,6 +196,13 @@ def _testing_requirements(
             req = f"{req}, {_numpy}"
         if req == "pyarrow" or req.startswith("pyarrow "):
             req = "pyarrow >= 13"
+        if req.startswith("pyspark"):
+            # pyspark 4.2.0 leaks "Worker Monitor" python worker threads
+            # (regression of SPARK-35009), exhausting the macOS CI runner's
+            # per-process thread limit and crashing the JVM with
+            # "OutOfMemoryError: unable to create native thread". Pin until
+            # fixed upstream.
+            req = "pyspark[connect] >= 3.2.0, < 4.2"
         if req == "ibis-framework" or req.startswith("ibis-framework "):
             req = "ibis-framework[duckdb] >= 11.0.0"
         if req == "polars":
@@ -221,6 +242,7 @@ DATAFRAME_EXTRAS = {
     "ibis",
     "xarray",
     "narwhals",  # TEST-03: narwhals backend runs with polars+ibis co-installed
+    "torch",
 }
 for extra in OPTIONAL_DEPENDENCIES:
     if extra == "pandas":
@@ -451,6 +473,9 @@ def docs(session: Session) -> None:
             "sphinx-build",
             *args,
         )
+
+    # Ensure torch is available for TensorDictModel doctests
+    session.run("python", "-c", "import torch")
 
     session.run("xdoctest", PACKAGE, "--quiet")
 

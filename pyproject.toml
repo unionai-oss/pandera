@@ -99,6 +99,10 @@ xarray = [
     "numpy >= 1.24.4",
 ]
 narwhals = ["narwhals >= 1.26.0"]
+torch = [
+    "torch",
+    "tensordict",
+]
 all = [
     "hypothesis >= 6.92.7",
     "scipy",
@@ -121,6 +125,8 @@ all = [
     "xarray >= 2024.10.0",
     "numpy >= 1.24.4",
     "narwhals >= 1.26.0",
+    "torch",
+    "tensordict",
 ]
 
 [dependency-groups]
@@ -155,6 +161,7 @@ testing = [
 ]
 docs = [
     "setuptools",
+    "duckdb",
     "pyarrow-hotfix",
     "sphinx<9",
     "sphinx-design",
@@ -166,11 +173,14 @@ docs = [
     "sphinx-docsearch",
     "grpcio",
     "ray",
+    "torch",
+    "tensordict",
     "types-click",
     "types-pytz",
     "types-pyyaml",
     "types-requests",
     "types-setuptools",
+    "xdoctest",
 ]
 
 [tool.setuptools]
