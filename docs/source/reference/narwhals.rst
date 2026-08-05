@@ -6,7 +6,7 @@ Narwhals Backend
 *new in 0.32.0*
 
 Opt-in `Narwhals <https://narwhals-dev.github.io/narwhals/>`__-powered
-validation backend that powers the Polars, Ibis, and PySpark SQL
+validation backend that powers the Polars, Ibis, PySpark SQL, and pandas
 integrations behind a single unified code path. Requires the ``narwhals``
 extra. Enable with ``PANDERA_USE_NARWHALS_BACKEND=True`` or
 :func:`~pandera.set_config`. Backends register lazily on first schema use;

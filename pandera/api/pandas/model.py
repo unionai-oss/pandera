@@ -208,6 +208,7 @@ class DataFrameModel(_DataFrameModel[pd.DataFrame, DataFrameSchema]):
                     field.index_properties(
                         dtype,
                         checks=field_checks,
+                        parsers=field_parsers,
                         name=field_name,
                     )
                     if field

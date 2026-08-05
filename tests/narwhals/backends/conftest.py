@@ -47,6 +47,28 @@ class PolarsBackend(BackendFixture):
         return result.to_pandas()
 
 
+class PandasBackend(BackendFixture):
+    name = "pandas"
+
+    @property
+    def DataFrameSchema(self):
+        import pandera.pandas as pa_pd
+
+        return pa_pd.DataFrameSchema
+
+    @property
+    def Column(self):
+        import pandera.pandas as pa_pd
+
+        return pa_pd.Column
+
+    def make_frame(self, data: dict):
+        return pd.DataFrame(data)
+
+    def collect(self, result) -> pd.DataFrame:
+        return result
+
+
 class IbisBackend(BackendFixture):
     name = "ibis"
 
@@ -85,6 +107,7 @@ class IbisBackend(BackendFixture):
 BACKENDS = [
     pytest.param(PolarsBackend(), id="polars", marks=pytest.mark.polars),
     pytest.param(IbisBackend(), id="ibis", marks=pytest.mark.ibis),
+    pytest.param(PandasBackend(), id="pandas", marks=pytest.mark.pandas),
 ]
 
 

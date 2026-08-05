@@ -448,11 +448,6 @@ def test_drop_invalid_rows_nullable(
     assert validated_data.collect().equals(expected_valid_data.collect())
 
 
-@pytest.mark.xfail(
-    condition=CONFIG.use_narwhals_backend,
-    reason="set_default not implemented in Narwhals backend",
-    strict=True,
-)
 def test_set_defaults(ldf_basic, ldf_schema_basic):
     ldf_schema_basic.columns["int_col"].default = 1
     ldf_schema_basic.columns["string_col"].default = "a"

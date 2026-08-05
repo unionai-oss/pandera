@@ -487,6 +487,19 @@ def test_dtype_coercion_nullable_reports_invalid_values():
     }
 
 
+def _failure_case_values(failure_cases):
+    """Extract the failing values from either failure-cases shape.
+
+    The native pandas backend reshapes failure cases into a frame with a
+    ``failure_case`` column; the narwhals backend
+    (``PANDERA_USE_NARWHALS_BACKEND=True``) returns the failing rows with
+    the original column names.
+    """
+    if "failure_case" in failure_cases.columns:
+        return failure_cases["failure_case"]
+    return failure_cases["field"]
+
+
 @pytest.mark.parametrize("dtype", [float, int, str, bool])
 @hypothesis.given(st.data())
 def test_failure_cases(dtype, data):
@@ -504,7 +517,7 @@ def test_failure_cases(dtype, data):
     try:
         schema(sample)
     except pa.errors.SchemaError as exc:
-        assert (exc.failure_cases.failure_case != value).all()
+        assert (_failure_case_values(exc.failure_cases) != value).all()
 
     # make sure reporting a limited number of failure cases works correctly
     updated_schema = schema.update_column(
@@ -513,7 +526,7 @@ def test_failure_cases(dtype, data):
     try:
         updated_schema(sample)
     except pa.errors.SchemaError as exc:
-        assert (exc.failure_cases.failure_case != value).all()
+        assert (_failure_case_values(exc.failure_cases) != value).all()
         assert exc.failure_cases.shape[0] == 2
 
 
