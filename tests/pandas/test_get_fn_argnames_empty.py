@@ -12,6 +12,7 @@ The fix adds an early return when arg_spec_args is empty.
 """
 
 import pytest
+
 from pandera.decorators import _get_fn_argnames
 
 
