@@ -27,6 +27,12 @@ pip install 'pandera[narwhals,pandas]'   # pandas
 
 Then enable it using **either** of the following options.
 
+:::{note}
+{ref}`PyArrow <pyarrow>` is the exception: it has no native backend and is
+served exclusively by Narwhals, so `pip install 'pandera[pyarrow]'` is enough
+and neither of the options below is required.
+:::
+
 ### Environment variable (process start)
 
 Set `PANDERA_USE_NARWHALS_BACKEND` to `True` before starting Python:
