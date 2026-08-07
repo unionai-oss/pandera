@@ -265,7 +265,14 @@ class Engine(
                 if isinstance(np_or_pd_dtype, np.dtype):
                     # cast alias to platform-agnostic dtype
                     # e.g.: np.intc -> np.int32
-                    common_np_dtype = np.dtype(np_or_pd_dtype.name)
+                    try:
+                        common_np_dtype = np.dtype(np_or_pd_dtype.name)
+                    except TypeError:
+                        # Itemsize-parameterized dtypes encode their width in
+                        # ``name`` in a form ``np.dtype`` cannot parse back,
+                        # e.g. np.dtype("S16").name == "bytes128". Their scalar
+                        # type is already platform-agnostic, so use it as-is.
+                        common_np_dtype = np_or_pd_dtype
                     np_or_pd_dtype = common_np_dtype.type
 
             return engine.Engine.dtype(cls, np_or_pd_dtype)
