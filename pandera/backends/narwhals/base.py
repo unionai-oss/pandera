@@ -33,6 +33,32 @@ try:
 except ImportError:  # pragma: no cover — polars is optional
     pl = None  # type: ignore[assignment]
 
+try:
+    import pyarrow as _pa  # used in the pyarrow failure_cases paths
+except ImportError:  # pragma: no cover — pyarrow is optional
+    _pa = None  # type: ignore[assignment]
+
+
+def _errors_implementation(schema_errors: list[SchemaError]) -> Any:
+    """Infer the frame backend a batch of errors came from.
+
+    Scalar failure cases (missing column, wrong dtype, …) carry no frame, so
+    their builder has nothing to dispatch on. Taking the implementation from
+    whichever errors *do* carry a frame keeps every piece of one batch on the
+    same backend, which is what ``_concat_failure_cases`` needs to combine
+    them. Returns ``None`` when no error in the batch carries a frame.
+    """
+    for err in schema_errors:
+        try:
+            fc = nw.from_native(
+                err.failure_cases, eager_or_interchange_only=False
+            )
+        except TypeError:
+            continue
+        if isinstance(fc, (nw.DataFrame, nw.LazyFrame)):
+            return fc.implementation
+    return None
+
 
 def _lit_nullable_int32(value, implementation) -> Any:
     """Int32 literal that tolerates ``None`` on pandas-like backends.
@@ -148,6 +174,12 @@ def _concat_failure_cases(items: list, implementation=None) -> Any:
                     )
             native_items = [nw.to_native(item) for item in nw_items]
             return functools.reduce(lambda a, b: a.union(b), native_items)
+        elif first_nw.implementation == nw.Implementation.PYARROW:
+            # pyarrow.Table has no ``.union()``; concatenate via narwhals and
+            # hand back the native table. Every piece of a pyarrow run is
+            # built by the pyarrow builders above, so there are no pl_items
+            # to merge here.
+            return nw.to_native(nw.concat(nw_items))
         elif first_nw.implementation == nw.Implementation.POLARS:
             # Polars lazy path: use nw.concat to stay lazy, then unwrap.
             # When pl_items are also present (schema-level failure cases from
@@ -418,6 +450,7 @@ class NarwhalsSchemaBackend(BaseSchemaBackend):
         conversion, no Arrow roundtrip for lazy/SQL backends.
         """
         failure_case_collection: list = []
+        errors_implementation = _errors_implementation(schema_errors)
 
         # Implementation of the validated frame — used to disambiguate the
         # all-scalar failure-cases path in _concat_failure_cases (e.g. pandas
@@ -472,8 +505,34 @@ class NarwhalsSchemaBackend(BaseSchemaBackend):
                     self._build_lazy_failure_case(fc, err, check_identifier)
                 )
             elif isinstance(fc, (nw.LazyFrame, nw.DataFrame)):
+                if fc.implementation == nw.Implementation.PYARROW:
+                    failure_case_collection.append(
+                        self._build_pyarrow_failure_case(
+                            fc, err, check_identifier
+                        )
+                    )
+                else:
+                    failure_case_collection.append(
+                        self._build_eager_failure_case(
+                            fc, err, check_identifier
+                        )
+                    )
+            elif errors_implementation == nw.Implementation.PYARROW or (
+                pl is None
+                and _pa is not None
+                # pandas-like runs keep _build_scalar_failure_case, which
+                # already builds a pandas frame when polars is absent.
+                # ``errors_implementation`` is None for an all-scalar batch,
+                # so the validated frame's implementation is the only usable
+                # signal here; without it a pandas + pyarrow (no polars)
+                # install would report failure_cases as a pyarrow.Table.
+                and data_implementation
+                not in _EAGER_PANDAS_LIKE_IMPLEMENTATIONS
+            ):
                 failure_case_collection.append(
-                    self._build_eager_failure_case(fc, err, check_identifier)
+                    self._build_pyarrow_scalar_failure_case(
+                        err, check_identifier
+                    )
                 )
             else:
                 failure_case_collection.append(
@@ -547,6 +606,127 @@ class NarwhalsSchemaBackend(BaseSchemaBackend):
         # item.implementation to handle PySpark vs ibis vs polars without
         # module-string sniffing.
         return enriched
+
+    @staticmethod
+    def _resolved_check_output(err: SchemaError):
+        """Normalize ``err.check_output`` to a Narwhals frame, or ``None``."""
+        if err.check_output is None:
+            return None
+        co = err.check_output
+        if isinstance(co, (nw.LazyFrame, nw.DataFrame)):
+            return co
+        if isinstance(co, nw.Expr):
+            return None
+        return nw.from_native(co, eager_or_interchange_only=False)
+
+    @staticmethod
+    def _failing_row_indices(err: SchemaError) -> list | None:
+        """Positions of the rows that failed the check, if recoverable."""
+        resolved_co = NarwhalsSchemaBackend._resolved_check_output(err)
+        if resolved_co is None:
+            return None
+        co_eager = _materialize(resolved_co)
+        try:
+            co_indexed = co_eager.with_row_index("index")
+        except AttributeError:
+            # Older polars: ``with_row_index`` was called ``with_row_count``.
+            co_indexed = co_eager.with_row_count("index")
+        return co_indexed.filter(~nw.col(CHECK_OUTPUT_KEY))["index"].to_list()
+
+    @staticmethod
+    def _build_pyarrow_failure_case(fc, err: SchemaError, check_identifier):
+        """Build an eager pyarrow failure-case table with row-index enrichment.
+
+        Mirrors ``_build_eager_failure_case`` but stays in pyarrow rather than
+        round-tripping through polars, so that a ``pandera[pyarrow]`` install
+        without polars can still report failure cases — and so the reported
+        frame does not change type depending on whether polars happens to be
+        installed.
+
+        Returns a Narwhals-wrapped frame so ``_concat_failure_cases`` can
+        dispatch on ``item.implementation``.
+        """
+        import json
+
+        fc_native = nw.to_native(_materialize(fc))
+        rows = fc_native.to_pylist()
+        col_names = list(fc_native.column_names)
+
+        if len(col_names) == 1:
+            key = col_names[0]
+            failure_case = [
+                None if row[key] is None else str(row[key]) for row in rows
+            ]
+        else:
+            # Match the polars path, which JSON-encodes the whole row when a
+            # failure case spans multiple columns.
+            failure_case = [json.dumps(row, default=str) for row in rows]
+
+        failing = NarwhalsSchemaBackend._failing_row_indices(err)
+        if failing is None:
+            index: list = [None] * len(rows)
+        else:
+            index = list(failing[: len(rows)])
+            index += [None] * (len(rows) - len(index))
+
+        table = _pa.table(
+            {
+                "failure_case": _pa.array(failure_case, type=_pa.string()),
+                "schema_context": _pa.array(
+                    [err.schema.__class__.__name__] * len(rows),
+                    type=_pa.string(),
+                ),
+                "column": _pa.array(
+                    [err.schema.name] * len(rows), type=_pa.string()
+                ),
+                "check": _pa.array(
+                    [
+                        None
+                        if check_identifier is None
+                        else str(check_identifier)
+                    ]
+                    * len(rows),
+                    type=_pa.string(),
+                ),
+                "check_number": _pa.array(
+                    [err.check_index] * len(rows), type=_pa.int32()
+                ),
+                "index": _pa.array(index, type=_pa.int32()),
+            }
+        )
+        return nw.from_native(table, eager_only=True)
+
+    @staticmethod
+    def _build_pyarrow_scalar_failure_case(err: SchemaError, check_identifier):
+        """Scalar failure case as a one-row pyarrow table.
+
+        The polars equivalent is ``_build_scalar_failure_case``; this keeps a
+        pyarrow validation run on a single backend so the pieces concatenate.
+        """
+        failure_case = err.failure_cases
+        table = _pa.table(
+            {
+                "failure_case": _pa.array(
+                    [None if failure_case is None else str(failure_case)],
+                    type=_pa.string(),
+                ),
+                "schema_context": _pa.array(
+                    [err.schema.__class__.__name__], type=_pa.string()
+                ),
+                "column": _pa.array([err.schema.name], type=_pa.string()),
+                "check": _pa.array(
+                    [
+                        None
+                        if check_identifier is None
+                        else str(check_identifier)
+                    ],
+                    type=_pa.string(),
+                ),
+                "check_number": _pa.array([err.check_index], type=_pa.int32()),
+                "index": _pa.array([None], type=_pa.int32()),
+            }
+        )
+        return nw.from_native(table, eager_only=True)
 
     @staticmethod
     def _build_eager_failure_case(fc, err: SchemaError, check_identifier):
