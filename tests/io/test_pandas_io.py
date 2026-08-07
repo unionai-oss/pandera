@@ -1410,6 +1410,28 @@ def test_io_yaml_roundtrip_preserves_drop_invalid_rows():
     assert restored == schema
 
 
+@pytest.mark.skipif(
+    SKIP_YAML_TESTS,
+    reason="pyyaml >= 5.1.0 required",
+)
+def test_io_roundtrip_decimal_dtype():
+    """Test yaml/json roundtrip of parametrized Decimal dtypes, GH#1165."""
+    schema = pandera.DataFrameSchema(
+        columns={
+            "default": pandera.Column(pandera_base.dtypes.Decimal),
+            "parametrized": pandera.Column(pandas_engine.Decimal(10, 2)),
+        }
+    )
+
+    restored = schema.from_yaml(schema.to_yaml())
+    assert restored.columns["parametrized"].dtype == pandas_engine.Decimal(
+        10, 2
+    )
+    assert restored == schema
+
+    assert schema.from_json(schema.to_json()) == schema
+
+
 def test_io_json_with_multiindex_column_labels():
     """Test JSON serialization for schemas with tuple column labels."""
     import json

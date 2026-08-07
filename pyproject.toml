@@ -189,6 +189,7 @@ xfail_strict = true
 markers = [
     "polars: tests for the Polars backend",
     "ibis: tests for the Ibis backend",
+    "pandas: tests for the pandas backend",
 ]
 
 [tool.ruff]
