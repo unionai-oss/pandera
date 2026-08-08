@@ -630,7 +630,7 @@ class DataFrameModel(Generic[TDataFrame, TSchema], BaseModel):
         return [parser_info.to_parser(cls) for parser_info in parser_infos]
 
     @classmethod
-    def get_metadata(cls) -> dict | None:
+    def get_metadata(cls) -> dict[Any, Any]:
         """Provide metadata for columns and schema level"""
         res: dict[Any, Any] = {"columns": {}}
         columns = cls._collect_fields()
