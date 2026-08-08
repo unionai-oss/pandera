@@ -66,16 +66,19 @@ class DataFrameSchema(_DataFrameSchema[pd.DataFrame]):
         if not self.columns and isinstance(
             self.dtype, pandas_engine.PydanticModel
         ):
+            nullability = self.dtype.column_nullability
             self.columns = {
-                name: self._build_pydantic_column(name)
+                name: self._build_pydantic_column(
+                    name, nullable=nullability.get(name, False)
+                )
                 for name in self.dtype.column_names
             }
 
     @staticmethod
-    def _build_pydantic_column(name: str):
+    def _build_pydantic_column(name: str, nullable: bool = False):
         from pandera.api.pandas.components import Column
 
-        return Column(None, name=name)
+        return Column(None, name=name, nullable=nullable)
 
     @_DataFrameSchema.dtype.setter  # type: ignore[attr-defined]
     def dtype(self, value: PandasDtypeInputTypes) -> None:

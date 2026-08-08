@@ -169,3 +169,79 @@ def test_pydantic_model_validates_empty_dataframe_with_aliases():
         "Amount in local currency",
     ]
     assert validated.empty
+
+
+class OptionalFieldModel(BaseModel):
+    """Pydantic model with a required field and an optional field."""
+
+    title: str
+    rating: int | None = None
+
+
+class OptionalFieldSchema(pa.DataFrameModel):
+    """Pandera schema using a pydantic model with an optional field."""
+
+    class Config:
+        dtype = PydanticModel(OptionalFieldModel)
+
+
+def test_pydantic_model_optional_field_missing_column():
+    """
+    An optional pydantic field should not be required as a dataframe column.
+
+    Regression test for https://github.com/unionai-oss/pandera/issues/2406
+    """
+    data = pd.DataFrame({"title": ["Dune", "Foundation"]})
+    validated = OptionalFieldSchema.validate(data)
+    assert validated["rating"].isna().all()
+
+
+def test_pydantic_model_optional_field_null_values():
+    """
+    An optional pydantic field should tolerate null values in the column.
+
+    Regression test for https://github.com/unionai-oss/pandera/issues/2406
+    """
+    data = pd.DataFrame(
+        {"title": ["Dune", "Foundation"], "rating": [None, None]}
+    )
+    validated = OptionalFieldSchema.validate(data)
+    assert validated["rating"].isna().all()
+
+
+def test_pydantic_model_column_nullability_matches_field_requiredness():
+    """
+    The auto-generated Column for a required pydantic field must be
+    non-nullable, and for an optional field must be nullable.
+
+    This checks the nullable flag directly rather than going through
+    validate(), so it holds regardless of how permissively a given
+    pydantic version coerces values during row-level parsing (see
+    test_pydantic_model_required_field_still_rejects_nulls below).
+    """
+    schema = OptionalFieldSchema.to_schema()
+    assert schema.columns["title"].nullable is False
+    assert schema.columns["rating"].nullable is True
+
+
+@pytest.mark.skipif(
+    not PYDANTIC_V2,
+    reason=(
+        "pydantic v1's `str` validator coerces a non-string, non-null "
+        "input like float('nan') into the string 'nan' instead of "
+        "rejecting it, so a null value in a required str column never "
+        "reaches PydanticModel.coerce()'s ValidationError handling on "
+        "v1. This is a pre-existing v1/v2 coercion strictness "
+        "difference in PydanticModel, not specific to column "
+        "nullability - test_pydantic_model_column_nullability_matches_"
+        "field_requiredness above verifies the nullable flag itself on "
+        "both versions."
+    ),
+)
+def test_pydantic_model_required_field_still_rejects_nulls():
+    """A required pydantic field should still reject null values."""
+    data = pd.DataFrame(
+        {"title": [None, "Foundation"], "rating": [3, 4]}
+    )
+    with pytest.raises(pa.errors.SchemaErrors):
+        OptionalFieldSchema.validate(data, lazy=True)

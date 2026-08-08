@@ -1437,6 +1437,20 @@ class PydanticModel(DataType):
             for name, field in self.type.__fields__.items()  # type: ignore[attr-defined]
         ]
 
+    @property
+    def column_nullability(self) -> dict[str, bool]:
+        """Map each column name (alias or field name) to whether the
+        corresponding pydantic field is optional, i.e. not required."""
+        if PYDANTIC_V2:
+            return {
+                field.alias or name: not field.is_required()
+                for name, field in self.type.model_fields.items()  # type: ignore[attr-defined]
+            }
+        return {
+            field.alias or name: not field.required
+            for name, field in self.type.__fields__.items()  # type: ignore[attr-defined]
+        }
+
     def _check_column_names(
         self,
         data_container: PandasObject,
