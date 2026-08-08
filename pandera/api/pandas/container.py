@@ -14,7 +14,7 @@ else:
     from typing import Self
 
 from pandera.api.dataframe.container import DataFrameSchema as _DataFrameSchema
-from pandera.api.pandas.types import PandasDtypeInputTypes
+from pandera.api.pandas.types import PandasDtypeInputTypes, is_table_or_field
 from pandera.config import get_config_context
 from pandera.engines import pandas_engine
 from pandera.errors import BackendNotFoundError
@@ -148,6 +148,19 @@ class DataFrameSchema(_DataFrameSchema[pd.DataFrame]):
         """
         if not get_config_context().validation_enabled:
             return check_obj
+
+        # Fail early with an informative error for non-dataframe inputs.
+        # Without this guard, backend dispatch raises an opaque
+        # ``BackendNotFoundError`` (or ``AttributeError``) instead of clearly
+        # communicating that a dataframe-like object was expected. This mirrors
+        # the ``is_field`` guard in ``SeriesSchema.validate``. Field-like
+        # objects (e.g. ``pd.Series``) are permitted here because
+        # ``MultiIndex`` (a ``DataFrameSchema`` subclass) reuses this method to
+        # validate the index of a ``SeriesSchema``.
+        if not is_table_or_field(check_obj):
+            raise TypeError(
+                f"expected pd.DataFrame, got {type(check_obj)}"
+            )
 
         # NOTE: Move this into its own schema-backend variant. This is where
         # the benefits of separating the schema spec from the backend
