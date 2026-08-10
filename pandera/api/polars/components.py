@@ -103,8 +103,17 @@ class Column(ComponentSchema[PolarsCheckObjects]):
         self.regex = regex
         self.name = name
 
-        self.set_regex()
+        if (
+            not self.coerce
+            and self.dtype is not None
+            and getattr(self.dtype, "auto_coerce", False)
+        ):
+            # dtypes like PanderaSchema (nested schemas) and PydanticModel
+            # need coercion to run their validation logic, so opt columns
+            # using these dtypes into coercion automatically.
+            self.coerce = True
 
+        self.set_regex()
     @staticmethod
     def register_default_backends(
         check_obj_cls: type,
