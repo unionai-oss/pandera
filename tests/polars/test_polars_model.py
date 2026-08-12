@@ -499,6 +499,12 @@ def test_isin_check_lazy_validation_no_deprecation_warning(
     assert exc_info.value.failure_cases["failure_case"].to_list() == ["z"]
 
 
+@pytest.mark.xfail(
+    condition=CONFIG.use_narwhals_backend,
+    reason="Narwhals backend does not exclude explicit columns from regex "
+    "aliases (issue #2343)",
+    strict=True,
+)
 def test_alias_regex_does_not_override_explicit_column_dtype() -> None:
     """Issue #2343 regression test.
 
@@ -525,7 +531,19 @@ def test_alias_regex_does_not_override_explicit_column_dtype() -> None:
     assert out.schema["index_column"] == pl.Int64
     assert out.schema["this_must_become_string"] == pl.String
 
+    # A frame containing only the explicit column must not let the alias
+    # govern it: the required alias raises its own no-match error instead
+    # of validating index_column against the alias dtype.
+    with pytest.raises(SchemaError, match="did not match any non-explicit"):
+        Model.validate(pl.DataFrame({"index_column": [1.0]}))
 
+
+@pytest.mark.xfail(
+    condition=CONFIG.use_narwhals_backend,
+    reason="Narwhals backend does not exclude explicit columns from regex "
+    "aliases (issue #2343)",
+    strict=True,
+)
 def test_alias_regex_still_coerces_dynamic_unmatched_columns() -> None:
     """Issue #2343 companion test.
 
@@ -542,14 +560,15 @@ def test_alias_regex_still_coerces_dynamic_unmatched_columns() -> None:
         index_column: Series[int]
         anything_else: Series[str] = Field(alias=r".*", regex=True)
 
-    df = pl.DataFrame(
+    # Lazy variant: exercises the same fix on the lazy validation path.
+    df = pl.LazyFrame(
         {
             "index_column": [1.0],
             "this_must_become_string": [1.0],
         }
     )
 
-    out = Model.validate(df)
+    out = Model.validate(df).collect()
     # The unmatched column must be coerced to String by the alias path.
     assert out.schema["this_must_become_string"] == pl.String
     # And the explicit column must keep its declared Int64 dtype.

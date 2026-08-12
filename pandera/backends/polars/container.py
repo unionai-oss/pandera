@@ -332,11 +332,15 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
                 # non-regex component per non-explicit match so explicit
                 # columns are left to their own schema (issue #2343).
                 if getattr(col, "regex", False) and explicit_column_names:
-                    matched_names = [
+                    all_matched_names = [
                         name
                         for name in get_lazyframe_column_names(check_obj)
+                        if re.fullmatch(col.name or "", name)
+                    ]
+                    matched_names = [
+                        name
+                        for name in all_matched_names
                         if name not in explicit_column_names
-                        and re.fullmatch(col.name or "", name)
                     ]
                     if matched_names:
                         col.regex = False
@@ -345,6 +349,29 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
                             extra = copy.deepcopy(col)
                             extra.name = extra_name
                             schema_components.append(extra)
+                    elif all_matched_names:
+                        # All regex matches were explicit columns, so there is
+                        # nothing left for this component to govern. Mirror
+                        # the required/optional no-match semantics of the
+                        # component path.
+                        if col.required:
+                            raise SchemaError(
+                                schema=col,
+                                data=check_obj,
+                                message=(
+                                    f"Column regex name='{col.name}' did not "
+                                    "match any non-explicit columns in the "
+                                    "dataframe."
+                                ),
+                                failure_cases=get_lazyframe_column_names(
+                                    check_obj
+                                ),
+                                check=f"no_regex_column_match('{col.name}')",
+                                reason_code=(
+                                    SchemaErrorReason.INVALID_COLUMN_NAME
+                                ),
+                            )
+                        continue
                 schema_components.append(col)
 
         return schema_components
