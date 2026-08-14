@@ -12,17 +12,19 @@ The fix: ``_build_pydantic_column`` now inspects the pydantic field's
 annotation and default to determine whether the column should be nullable.
 """
 
-import pytest
+from typing import Optional
+
 import pandas as pd
+import pytest
+from pydantic import BaseModel, PositiveInt
+
 import pandera.pandas as pa
 from pandera.engines.pandas_engine import PydanticModel
-from pydantic import BaseModel, PositiveInt
-from typing import Optional
 
 
 class BookWithOptionalRating(BaseModel):
     title: str
-    rating: Optional[PositiveInt] = None
+    rating: PositiveInt | None = None
 
 
 class BookWithRequiredRating(BaseModel):
