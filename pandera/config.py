@@ -174,7 +174,7 @@ def set_config(
     if validation_enabled is not None:
         CONFIG.validation_enabled = validation_enabled
     if validation_depth is not None:
-        CONFIG.validation_depth = validation_depth
+        CONFIG.validation_depth = ValidationDepth(validation_depth)
     if cache_dataframe is not None:
         CONFIG.cache_dataframe = cache_dataframe
     if keep_cached_dataframe is not None:
@@ -213,7 +213,7 @@ def config_context(
     if validation_enabled is not None:
         context_config.validation_enabled = validation_enabled
     if validation_depth is not None:
-        context_config.validation_depth = validation_depth
+        context_config.validation_depth = ValidationDepth(validation_depth)
     if cache_dataframe is not None:
         context_config.cache_dataframe = cache_dataframe
     if keep_cached_dataframe is not None:
