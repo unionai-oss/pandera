@@ -67,14 +67,11 @@ class DataFrameSchema(_DataFrameSchema[pd.DataFrame]):
             self.dtype, pandas_engine.PydanticModel
         ):
             self.columns = {
-                name: self._build_pydantic_column(self.dtype, name)
+                name: self._build_pydantic_column(name)
                 for name in self.dtype.column_names
             }
 
-    @staticmethod
-    def _build_pydantic_column(
-        dtype: "pandas_engine.PydanticModel", name: str
-    ):
+    def _build_pydantic_column(self, name: str):
         from pandera.api.pandas.components import Column
 
         # Determine whether the pydantic field is Optional so the
@@ -82,7 +79,7 @@ class DataFrameSchema(_DataFrameSchema[pd.DataFrame]):
         # when its annotation includes None (e.g. ``int | None`` or
         # ``Optional[int]``) or when it has a default of None.
         nullable = False
-        model_type = dtype.type
+        model_type = self.dtype.type
         try:
             if hasattr(model_type, "model_fields"):
                 # Pydantic v2
