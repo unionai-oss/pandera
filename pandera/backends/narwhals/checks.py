@@ -9,8 +9,31 @@ import narwhals.stable.v1 as nw
 from pandera.api.base.checks import CheckResult
 from pandera.api.checks import Check
 from pandera.api.narwhals.types import NarwhalsData
+from pandera.api.narwhals.utils import _EAGER_PANDAS_LIKE_IMPLEMENTATIONS
 from pandera.backends.base import BaseCheckBackend
 from pandera.constants import CHECK_OUTPUT_KEY
+
+# Temporary column carrying the input column's nullness for pandas-like
+# ignore_na handling (see _use_input_nullness).
+_INPUT_NULL_KEY = f"{CHECK_OUTPUT_KEY}_input_null"
+
+
+def _use_input_nullness(ignore_na: bool, frame: Any, key: Any) -> bool:
+    """Whether ``ignore_na`` must also consult the input column's nullness.
+
+    On polars/ibis, null inputs propagate to null check outputs, so ORing the
+    output with its own nullness suffices. On pandas-like backends, NaN
+    inputs produce ``False`` comparison outputs (never null), so the input
+    column's nullness must be ORed in as well. Only column-level checks
+    (``key`` not None/"*") can attribute nullness to an input column.
+    """
+    if not ignore_na or not key or key == "*":
+        return False
+    return (
+        getattr(frame, "implementation", None)
+        in _EAGER_PANDAS_LIKE_IMPLEMENTATIONS
+    )
+
 
 try:
     import ibis  # noqa: F401
@@ -84,6 +107,38 @@ def _is_ibis_native(frame: Any) -> bool:
     return isinstance(frame, ibis.Table)
 
 
+def _is_pyarrow_native(frame: Any) -> bool:
+    """Cheap ``pyarrow.Table`` detection that mirrors ``_is_polars_native``.
+
+    Duck-types via the module name so the narwhals backend keeps working on
+    installs where pyarrow is not present.
+    """
+    mod = getattr(type(frame), "__module__", "") or ""
+    return mod.startswith("pyarrow") and type(frame).__name__ == "Table"
+
+
+# Root modules of pandas-like libraries. Compared against the first dotted
+# segment of ``type(obj).__module__``: pandas < 3 reports e.g.
+# "pandas.core.frame" while pandas >= 3 reports just "pandas" for its public
+# classes, so a bare root comparison covers both.
+_PANDAS_LIKE_MODULE_ROOTS = frozenset({"pandas", "modin", "cudf"})
+
+
+def _is_pandas_like_module(mod: str) -> bool:
+    """True if a ``__module__`` string belongs to a pandas-like library."""
+    return mod.split(".", 1)[0] in _PANDAS_LIKE_MODULE_ROOTS
+
+
+def _is_pandas_like_native(frame: Any) -> bool:
+    """Cheap pandas-like (pandas, modin, cuDF) detection.
+
+    Mirrors ``_is_polars_native``: module duck-typing so that pandas
+    (and modin/cudf) never need to be imported on installs without them.
+    """
+    mod = getattr(type(frame), "__module__", "") or ""
+    return _is_pandas_like_module(mod)
+
+
 def _wrap_native_frame_with_key(native_frame: Any, key: str | None) -> Any:
     """Wrap ``(native_frame, key)`` into a polars/ibis-style data container.
 
@@ -113,6 +168,21 @@ def _wrap_native_frame_with_key(native_frame: Any, key: str | None) -> Any:
 
         return IbisData(table=native_frame, key=key)
 
+    if _is_pyarrow_native(native_frame):
+        from pandera.api.pyarrow.types import PyArrowData
+
+        return PyArrowData(table=native_frame, key=key or "*")
+
+    if _is_pandas_like_native(native_frame):
+        # pandas-style user check functions receive exactly what the native
+        # pandas backend passes them: the Series for a column-level check and
+        # the DataFrame for a dataframe-level check. This keeps existing
+        # pandas checks (``pa.Check(lambda s: s > 0)``) working unchanged
+        # under the narwhals backend.
+        if key is None or key == "*":
+            return native_frame
+        return native_frame[key]
+
     return None
 
 
@@ -126,9 +196,91 @@ class NarwhalsCheckBackend(BaseCheckBackend):
         self.check = check
         self.check_fn = partial(check._check_fn, **check._check_kwargs)
 
-    def groupby(self, check_obj: nw.LazyFrame):
-        """Implements groupby behavior for check object."""
-        raise NotImplementedError
+    def groupby(self, check_obj):
+        """Implements groupby behavior for check object.
+
+        Column-check-groups (`groupby=`) are a pandas-semantic feature: the
+        user check function receives a ``dict`` mapping group key to the native
+        pandas ``Series``/``DataFrame`` for that group. Narwhals has no
+        equivalent, so for pandas-like eager frames we group the *native* frame
+        with pandas and build the same dict the native pandas backend produces.
+
+        :param check_obj: a native pandas-like frame (already unwrapped).
+        """
+        assert self.check.groupby is not None, "Check.groupby must be set."
+        if isinstance(self.check.groupby, (str, list)):
+            return check_obj.groupby(self.check.groupby)
+        return self.check.groupby(check_obj)
+
+    @staticmethod
+    def _format_groupby_input(groupby_obj, groups):
+        """Format a pandas groupby object into a dict of group -> Series/df.
+
+        Ported from :class:`~pandera.backends.pandas.checks.PandasCheckBackend`
+        so the narwhals backend runs column-check-groups without dispatching to
+        the pandas check backend.
+        """
+        if groups is None:
+            return {
+                (k if isinstance(k, bool) else k[0] if len(k) == 1 else k): v
+                for k, v in groupby_obj
+            }
+        group_keys = {k[0] if len(k) == 1 else k for k, _ in groupby_obj}
+        invalid_groups = [g for g in groups if g not in group_keys]
+        if invalid_groups:
+            raise KeyError(
+                f"groups {invalid_groups} provided in `groups` argument not a "
+                f"valid group key. Valid group keys: {group_keys}"
+            )
+        output = {}
+        for group_key, group in groupby_obj:
+            if isinstance(group_key, tuple) and len(group_key) == 1:
+                group_key = group_key[0]
+            if group_key in groups:
+                output[group_key] = group
+        return output
+
+    def apply_groupby(self, check_obj: NarwhalsData):
+        """Run a `groupby=` check by building the pandas group dict.
+
+        Only supported for pandas-like eager frames. The user check function
+        receives the same ``dict`` it would under the native pandas backend and
+        typically returns a scalar boolean (or a per-group Series/dict of
+        booleans, which is reduced to a single pass/fail).
+        """
+        native = nw.to_native(check_obj.frame)
+        if hasattr(native, "collect"):  # pragma: no cover — lazy safety net
+            native = native.collect()
+        if not _is_pandas_like_native(native):
+            raise NotImplementedError(
+                "groupby checks (column check groups) are only supported for "
+                "pandas-like frames under the narwhals backend."
+            )
+        key = check_obj.key
+        grouped = self.groupby(native)
+        if key and key != "*":
+            grouped = grouped[key]
+        group_dict = self._format_groupby_input(grouped, self.check.groups)
+        return self._reduce_groupby_output(self.check_fn(group_dict))
+
+    @staticmethod
+    def _reduce_groupby_output(out):
+        """Reduce a groupby-check output to a scalar boolean.
+
+        Accepts a Python/numpy scalar bool, a numpy boolean array, a pandas
+        ``Series`` of booleans, or a ``dict`` of group -> bool, and returns a
+        single pass/fail bool (a group check passes only if every group passes).
+        """
+        if isinstance(out, dict):
+            return all(bool(v) for v in out.values())
+        mod = getattr(type(out), "__module__", "") or ""
+        if mod.startswith("numpy"):
+            if getattr(out, "ndim", 0) == 0:
+                return bool(out)
+            return bool(out.all())
+        if _is_pandas_like_module(mod) and type(out).__name__ == "Series":
+            return bool(out.all())
+        return out
 
     def query(self, check_obj: nw.LazyFrame):
         """Implements querying behavior to produce subset of check object."""
@@ -146,6 +298,11 @@ class NarwhalsCheckBackend(BaseCheckBackend):
         """Apply check function — dispatch on self.check.native flag."""
         frame = check_obj.frame
         key = check_obj.key
+
+        # Column-check-groups: build the pandas group dict and run the check
+        # on it (narwhals-native handling for pandas-like frames).
+        if self.check.groupby is not None:
+            return self.apply_groupby(check_obj)
 
         if self.check.element_wise:
             selector = nw.col(key or "*")
@@ -297,6 +454,75 @@ class NarwhalsCheckBackend(BaseCheckBackend):
                 native.with_columns(bool_col), eager_only=True
             )
 
+        # Handle pyarrow native return types from native=True checks. As with
+        # polars above, pyarrow is not imported at module level so ibis-only /
+        # polars-only installs keep working — detection is by module name.
+        if out_mod.startswith("pyarrow"):
+            out_type_name = type(out).__name__
+
+            if out_type_name == "Table":
+                return nw.from_native(out, eager_only=True)
+
+            if out_type_name.endswith("Scalar"):
+                # Aggregate boolean result — hand back a plain Python bool.
+                return bool(out.as_py())
+
+            if out_type_name.endswith(("Array", "ChunkedArray")):
+                # Row-level boolean output — attach it to the original table as
+                # ``CHECK_OUTPUT_KEY`` to build a wide frame, mirroring the
+                # polars branch above.
+                from pandera.api.narwhals.utils import _materialize
+
+                native = nw.to_native(_materialize(check_obj.frame))
+                tbl = native.append_column(CHECK_OUTPUT_KEY, out)
+                return nw.from_native(tbl, eager_only=True)
+
+            return out  # pragma: no cover — unexpected pyarrow type
+
+        # Handle pandas-like native return types (pandas, modin, cuDF) from
+        # native=True checks: boolean Series / DataFrame outputs are attached
+        # to the original frame as CHECK_OUTPUT_KEY, mirroring the polars
+        # handling above. Detection is module based so pandas is not
+        # imported on pandas-free installs.
+        if _is_pandas_like_module(out_mod):
+            out_type_name = type(out).__name__
+            native = nw.to_native(check_obj.frame)
+
+            if out_type_name == "Series":
+                bool_series = out
+            elif out_type_name == "DataFrame":
+                if CHECK_OUTPUT_KEY in out.columns:
+                    bool_series = out[CHECK_OUTPUT_KEY]
+                else:
+                    # Multi-column boolean output — AND-reduce to a single
+                    # check-output column (matches the native pandas backend
+                    # and the polars handling above).
+                    bool_series = out.all(axis=1)
+            else:  # pragma: no cover — unexpected pandas-like type
+                return out
+
+            native = native.assign(**{CHECK_OUTPUT_KEY: bool_series})
+            return nw.from_native(native, eager_only=True)
+
+        # Handle numpy return types from pandas-style checks:
+        # - 0-d bool scalars (e.g. ``(series > 0).all()`` returns np.bool_)
+        #   → plain Python bool, handled by postprocess_bool_output.
+        # - 1-d boolean arrays → attached positionally as CHECK_OUTPUT_KEY.
+        if out_mod.startswith("numpy"):
+            out_type_name = type(out).__name__
+            # numpy 1.x names the scalar bool type "bool_"; numpy 2.x "bool".
+            if out_type_name in ("bool_", "bool"):
+                return bool(out)
+            if (
+                out_type_name == "ndarray"
+                and getattr(out, "dtype", None) is not None
+                and out.dtype.kind == "b"
+            ):
+                native = nw.to_native(check_obj.frame)
+                if hasattr(native, "assign"):
+                    native = native.assign(**{CHECK_OUTPUT_KEY: out})
+                    return nw.from_native(native, eager_only=True)
+
         return out  # bool or other scalar — handled by postprocess_bool_output
 
     def postprocess(self, check_obj: NarwhalsData, check_output):
@@ -334,15 +560,30 @@ class NarwhalsCheckBackend(BaseCheckBackend):
         as expr | expr.is_null() — the latter causes ibis to produce incorrect
         SQL (isnull() on an expression before binding returns True for all rows
         on some SQL backends, because the expression is treated as nullable).
+
+        For pandas-like frames, ignore_na additionally ORs in the *input*
+        column's nullness: pandas comparisons on NaN yield False instead of
+        propagating null (unlike polars/ibis), so output-nullness alone would
+        treat missing values as check failures.
         """
         frame = check_obj.frame
+        key = check_obj.key
         # Evaluate expr to a single-column frame, then apply ignore_na on
         # the concrete column values where is_null() works correctly.
-        check_col = frame.select(expr.alias(CHECK_OUTPUT_KEY))
+        select_exprs = [expr.alias(CHECK_OUTPUT_KEY)]
+        include_input_null = _use_input_nullness(
+            self.check.ignore_na, frame, key
+        )
+        if include_input_null:
+            select_exprs.append(nw.col(key).is_null().alias(_INPUT_NULL_KEY))
+        check_col = frame.select(*select_exprs)
         if self.check.ignore_na:
-            check_col = check_col.with_columns(
+            na_pass = (
                 nw.col(CHECK_OUTPUT_KEY) | nw.col(CHECK_OUTPUT_KEY).is_null()
             )
+            if include_input_null:
+                na_pass = na_pass | nw.col(_INPUT_NULL_KEY)
+            check_col = check_col.with_columns(na_pass.alias(CHECK_OUTPUT_KEY))
         passed = check_col.select(nw.col(CHECK_OUTPUT_KEY).all())
         return CheckResult(
             check_output=expr,  # Store ONLY the expr — failure_cases deferred
@@ -359,8 +600,18 @@ class NarwhalsCheckBackend(BaseCheckBackend):
         """Postprocesses LazyFrame check output into a CheckResult."""
         # check_output is the wide table (frame + CHECK_OUTPUT_KEY column). Stay lazy.
         if self.check.ignore_na:
-            check_output = check_output.with_columns(
+            na_pass = (
                 nw.col(CHECK_OUTPUT_KEY) | nw.col(CHECK_OUTPUT_KEY).is_null()
+            )
+            if _use_input_nullness(
+                self.check.ignore_na, check_output, check_obj.key
+            ):
+                # pandas-like: NaN comparisons yield False, not null — OR in
+                # the input column's nullness (the wide table still carries
+                # the original columns).
+                na_pass = na_pass | nw.col(check_obj.key).is_null()
+            check_output = check_output.with_columns(
+                na_pass.alias(CHECK_OUTPUT_KEY)
             )
         passed = check_output.select(nw.col(CHECK_OUTPUT_KEY).all())
         failure_cases = check_output.filter(~nw.col(CHECK_OUTPUT_KEY))

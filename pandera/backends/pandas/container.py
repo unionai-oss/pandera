@@ -786,7 +786,13 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
 
         if schema.dtype is not None:
             obj = _try_coercion(_coerce_df_dtype, obj)
-        if schema.index is not None and (schema.index.coerce or schema.coerce):
+        if (
+            schema.index is not None
+            and (schema.index.coerce or schema.coerce)
+            # coercion of an index with parsers is deferred to index-level
+            # validation so that parsers run before coercion
+            and not getattr(schema.index, "parsers", None)
+        ):
             index_schema = copy.deepcopy(schema.index)
             if schema.coerce:
                 # coercing at the dataframe-level should apply index coercion

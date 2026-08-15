@@ -99,6 +99,10 @@ xarray = [
     "numpy >= 1.24.4",
 ]
 narwhals = ["narwhals >= 1.26.0"]
+pyarrow = [
+    "pyarrow >= 13",
+    "narwhals >= 1.26.0",
+]
 all = [
     "hypothesis >= 6.92.7",
     "scipy",
@@ -121,6 +125,7 @@ all = [
     "xarray >= 2024.10.0",
     "numpy >= 1.24.4",
     "narwhals >= 1.26.0",
+    "pyarrow >= 13",
 ]
 
 [dependency-groups]
@@ -189,6 +194,7 @@ xfail_strict = true
 markers = [
     "polars: tests for the Polars backend",
     "ibis: tests for the Ibis backend",
+    "pandas: tests for the pandas backend",
 ]
 
 [tool.ruff]

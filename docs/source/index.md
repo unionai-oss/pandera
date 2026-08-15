@@ -159,6 +159,7 @@ pip install 'pandera[modin-dask]'   # validate modin dataframes with dask
 pip install 'pandera[geopandas]'    # validate geopandas geodataframes
 pip install 'pandera[polars]'       # validate polars dataframes
 pip install 'pandera[ibis]'         # validate ibis tables
+pip install 'pandera[pyarrow]'      # validate pyarrow tables
 pip install 'pandera[xarray]'       # validate xarray data structures
 pip install 'pandera[narwhals]'     # use the Narwhals-powered backend
 ```
@@ -348,36 +349,36 @@ lists corresponding to a `SchemaError`
 
 ## Supported Features by DataFrame Backend
 
-Currently, pandera provides four validation backends: `pandas`, `pyspark`, `polars`,
-and `ibis`. The table below shows which of pandera's features are available for the
-{ref}`supported dataframe libraries <dataframe-libraries>`:
+Currently, pandera provides five validation backends: `pandas`, `pyspark`, `polars`,
+`ibis`, and `pyarrow`. The table below shows which of pandera's features are available
+for the {ref}`supported dataframe libraries <dataframe-libraries>`:
 
 :::{table}
 :widths: auto
 :align: left
 
-| feature | pandas | pyspark | polars | ibis |
-| :------ | ------ | ------- | ------ | ---- |
-| {ref}`DataFrameSchema validation <dataframeschemas>`                      | ✅ | ✅ | ✅ | ✅ |
-| {ref}`DataFrameModel validation <dataframe-models>`                       | ✅ | ✅ | ✅ | ✅ |
-| {ref}`SeriesSchema validation <seriesschemas>`                            | ✅ | 🚫 | ❌ | ❌ |
-| {ref}`Index/MultiIndex validation <index-validation>`                     | ✅ | 🚫 | 🚫 | 🚫 |
-| {ref}`Built-in and custom Checks <checks>`                                | ✅ | ✅ | ✅ | ✅ |
-| {ref}`Groupby checks <column-check-groups>`                               | ✅ | ❌ | ❌ | ❌ |
-| {ref}`Custom check registration <extensions>`                             | ✅ | ✅ | ❌ | ❌ |
-| {ref}`Hypothesis testing <hypothesis>`                                    | ✅ | ❌ | ❌ | ❌ |
-| {ref}`Built-in <dtype-validation>` and {ref}`custom <dtypes>` `DataType`s | ✅ | ✅ | ✅ | ✅ |
-| {ref}`Preprocessing with Parsers <parsers>`                               | ✅ | ❌ | ❌ | ❌ |
-| {ref}`Data synthesis strategies <data-synthesis-strategies>`              | ✅ | ❌ | ❌ | ❌ |
-| {ref}`Validation decorators <decorators>`                                 | ✅ | ✅ | ✅ | ✅ |
-| {ref}`Lazy validation <lazy-validation>`                                  | ✅ | ✅ | ✅ | ✅ |
-| {ref}`Dropping invalid rows <drop-invalid-rows>`                          | ✅ | ❌ | ✅ | ❌ |
-| {ref}`Pandera configuration <configuration>`                              | ✅ | ✅ | ✅ | ✅ |
-| {ref}`Schema Inference <schema-inference>`                                | ✅ | ❌ | ❌ | ❌ |
-| {ref}`Schema persistence <schema-persistence>`                            | ✅ | ❌ | ❌ | ❌ |
-| {ref}`Data Format Conversion <data-format-conversion>`                    | ✅ | ❌ | ❌ | ❌ |
-| {ref}`Pydantic type support <pydantic-integration>`                       | ✅ | ❌ | ❌ | ❌ |
-| {ref}`FastAPI support <fastapi-integration>`                              | ✅ | ❌ | ❌ | ❌ |
+| feature | pandas | pyspark | polars | ibis | pyarrow |
+| :------ | ------ | ------- | ------ | ---- | ------- |
+| {ref}`DataFrameSchema validation <dataframeschemas>`                      | ✅ | ✅ | ✅ | ✅ | ✅ |
+| {ref}`DataFrameModel validation <dataframe-models>`                       | ✅ | ✅ | ✅ | ✅ | ✅ |
+| {ref}`SeriesSchema validation <seriesschemas>`                            | ✅ | 🚫 | ❌ | ❌ | ❌ |
+| {ref}`Index/MultiIndex validation <index-validation>`                     | ✅ | 🚫 | 🚫 | 🚫 | 🚫 |
+| {ref}`Built-in and custom Checks <checks>`                                | ✅ | ✅ | ✅ | ✅ | ✅ |
+| {ref}`Groupby checks <column-check-groups>`                               | ✅ | ❌ | ❌ | ❌ | ❌ |
+| {ref}`Custom check registration <extensions>`                             | ✅ | ✅ | ❌ | ❌ | ❌ |
+| {ref}`Hypothesis testing <hypothesis>`                                    | ✅ | ❌ | ❌ | ❌ | ❌ |
+| {ref}`Built-in <dtype-validation>` and {ref}`custom <dtypes>` `DataType`s | ✅ | ✅ | ✅ | ✅ | ✅ |
+| {ref}`Preprocessing with Parsers <parsers>`                               | ✅ | ❌ | ❌ | ❌ | ❌ |
+| {ref}`Data synthesis strategies <data-synthesis-strategies>`              | ✅ | ❌ | ❌ | ❌ | ❌ |
+| {ref}`Validation decorators <decorators>`                                 | ✅ | ✅ | ✅ | ✅ | ✅ |
+| {ref}`Lazy validation <lazy-validation>`                                  | ✅ | ✅ | ✅ | ✅ | ✅ |
+| {ref}`Dropping invalid rows <drop-invalid-rows>`                          | ✅ | ❌ | ✅ | ❌ | ✅ |
+| {ref}`Pandera configuration <configuration>`                              | ✅ | ✅ | ✅ | ✅ | ✅ |
+| {ref}`Schema Inference <schema-inference>`                                | ✅ | ❌ | ❌ | ❌ | ❌ |
+| {ref}`Schema persistence <schema-persistence>`                            | ✅ | ❌ | ❌ | ❌ | ❌ |
+| {ref}`Data Format Conversion <data-format-conversion>`                    | ✅ | ❌ | ❌ | ❌ | ✅ |
+| {ref}`Pydantic type support <pydantic-integration>`                       | ✅ | ❌ | ❌ | ❌ | ❌ |
+| {ref}`FastAPI support <fastapi-integration>`                              | ✅ | ❌ | ❌ | ❌ | ❌ |
 
 :::
 
@@ -393,6 +394,16 @@ and `ibis`. The table below shows which of pandera's features are available for 
 :::{note}
 The `dask`, `modin`, `geopandas`, and `pyspark.pandas` support in pandera all
 leverage the pandas validation backend.
+:::
+
+:::{note}
+The `pyarrow` backend is served entirely by the
+{ref}`Narwhals-powered backend <narwhals-backend>`, so it needs no opt-in
+configuration. Two caveats apply to its column above:
+{ref}`data format conversion <data-format-conversion>` covers the formats Arrow
+reads natively — `dict`, `parquet` and `feather` — and `coerce=True` is not yet
+implemented, so it emits a warning and reports a `WRONG_DATATYPE` error rather
+than casting. See {ref}`PyArrow <pyarrow>` for details.
 :::
 
 :::{important}
