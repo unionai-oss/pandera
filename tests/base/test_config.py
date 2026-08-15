@@ -38,7 +38,7 @@ def test_set_config_updates_attributes():
         )
 
         assert CONFIG.validation_enabled is False
-        assert CONFIG.validation_depth == "DATA_ONLY"
+        assert CONFIG.validation_depth == ValidationDepth.DATA_ONLY
         assert CONFIG.cache_dataframe is True
         assert CONFIG.keep_cached_dataframe is True
         assert CONFIG.use_narwhals_backend is True
