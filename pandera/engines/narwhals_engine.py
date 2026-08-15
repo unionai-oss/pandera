@@ -167,7 +167,7 @@ class Int32(DataType, dtypes.Int32):
 
 
 @Engine.register_dtype(
-    equivalents=["int64", nw.Int64, dtypes.Int64, dtypes.Int64()]
+    equivalents=["int64", int, nw.Int64, dtypes.Int64, dtypes.Int64()]
 )
 @immutable
 class Int64(DataType, dtypes.Int64):
@@ -232,7 +232,13 @@ class Float32(DataType, dtypes.Float32):
 
 
 @Engine.register_dtype(
-    equivalents=["float64", nw.Float64, dtypes.Float64, dtypes.Float64()]
+    equivalents=[
+        "float64",
+        float,
+        nw.Float64,
+        dtypes.Float64,
+        dtypes.Float64(),
+    ]
 )
 @immutable
 class Float64(DataType, dtypes.Float64):
@@ -247,7 +253,14 @@ class Float64(DataType, dtypes.Float64):
 
 
 @Engine.register_dtype(
-    equivalents=["str", "string", nw.String, dtypes.String, dtypes.String()]
+    equivalents=[
+        "str",
+        "string",
+        str,
+        nw.String,
+        dtypes.String,
+        dtypes.String(),
+    ]
 )
 @immutable
 class String(DataType, dtypes.String):
@@ -257,7 +270,7 @@ class String(DataType, dtypes.String):
 
 
 @Engine.register_dtype(
-    equivalents=["bool", nw.Boolean, dtypes.Bool, dtypes.Bool()]
+    equivalents=["bool", bool, nw.Boolean, dtypes.Bool, dtypes.Bool()]
 )
 @immutable
 class Bool(DataType, dtypes.Bool):

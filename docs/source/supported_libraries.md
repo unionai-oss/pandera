@@ -23,6 +23,8 @@ Pandera supports validation of the following DataFrame libraries:
   - Validate Polars dataframes. Polars is a blazingly fast dataframe library.
 * - {ref}`Ibis <ibis>`
   - Validate Ibis tables. Ibis is the portable Python dataframe library.
+* - {ref}`PyArrow <pyarrow>`
+  - Validate PyArrow tables. Arrow is the in-memory columnar exchange format.
 * - {ref}`PySpark SQL <native-pyspark>`
   - A data processing library for large-scale data.
 :::
@@ -33,6 +35,7 @@ Pandera supports validation of the following DataFrame libraries:
 
 Polars <polars>
 Ibis <ibis>
+PyArrow <pyarrow>
 PySpark SQL <pyspark_sql>
 ```
 
