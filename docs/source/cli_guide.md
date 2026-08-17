@@ -2,9 +2,9 @@
 
 # Validating data with the CLI
 
-This page is a **copy-paste** tour of the `pandera` command-line interface using
-**pandas**, **CSV** data, and a **JSON** schema (no PyYAML needed). Run the
-commands in order in a terminal.
+This page is a **copy-paste** tour of the `pandera` command-line interface
+using **pandas**, **CSV** data, and a **YAML** schema (the `cli` extra
+pulls in PyYAML). Run the commands in order in a terminal.
 
 ## Install Pandera with the CLI and strategies extras
 
@@ -30,7 +30,7 @@ EOF
 
 ## Infer a schema from the data
 
-Write an inferred schema to `/tmp/schema.json`:
+Write an inferred schema to `/tmp/schema.yaml`:
 
 ```bash
 pandera infer -d /tmp/dataset.csv -o /tmp/schema.yaml
@@ -44,6 +44,7 @@ cat /tmp/schema.yaml
 
 ```yaml
 schema_type: dataframe
+api: pandas
 columns:
   id:
     dtype: int64
@@ -57,8 +58,6 @@ columns:
       exact_value: null
 index:
 - dtype: int64
-  greater_than_or_equal_to: 0.0
-  less_than_or_equal_to: 2.0
 coerce: true
 ```
 
@@ -171,21 +170,76 @@ This should exit with a **non-zero** status. You should see **Validation failed*
 on standard error plus tables listing which checks passed or failed and failure
 details (exact layout depends on your Pandera and Rich versions).
 
+## Generate synthetic data from the schema
+
+`pandera generate` uses [hypothesis](https://hypothesis.readthedocs.io/) to
+draw data that satisfies the schema — useful for exercising downstream code
+without shipping real data:
+
+```bash
+pandera generate -s /tmp/schema.yaml -o /tmp/sample.csv --size 5
+```
+
+```
+╭──────────── Generate ─────────────╮
+│   Schema file       schema.yaml   │
+│   Schema kind       pandas        │
+│   Schema            2 column(s)   │
+│   Requested size    5             │
+│   Output            sample.csv    │
+│   Writer            csv           │
+╰───────────────────────────────────╯
+╭───────────────────────╮
+│ Generated             │
+│ DataFrame shape 5 × 2 │
+╰───────────────────────╯
+Wrote generated data to sample.csv
+```
+
+The values satisfy the schema but are not realistic — the `name` column, for
+example, holds arbitrary strings of the inferred length. See
+{ref}`Data synthesis strategies <data-synthesis-strategies>` for what this
+does and does not give you.
+
+`generate` currently supports **pandas** dataframe schemas and **xarray**
+`data_array` / `dataset` schemas. xarray schemas can also be written to NetCDF:
+
+```bash
+pandera generate -s /tmp/ds_schema.yaml -o /tmp/data.nc --size 5
+```
+
+## The `api` field
+
+Every serialized schema carries an optional top-level `api` field declaring
+the underlying dataframe API of the data to validate: `pandas`, `modin`,
+`dask`, `pyspark.pandas`, `polars`, `ibis`, or `pyspark.sql`. The CLI reads
+it to pick the data loader and the default validation backend, and it
+defaults to `pandas` when the field is absent, so schema files written
+before the field existed keep working:
+
+```yaml
+schema_type: dataframe
+api: pandas
+columns:
+  id:
+    dtype: int64
+```
+
 ## Validate through the Narwhals backend
 
 Polars, Ibis, and PySpark SQL schemas can validate through the
-{ref}`Narwhals-powered backend <narwhals-backend>` by passing `--use-narwhals`
-to `pandera validate`. Install the `narwhals` extra alongside the dataframe
-library you use:
+{ref}`Narwhals-powered backend <narwhals-backend>` by passing `--backend
+narwhals` to `pandera validate`. Install the `narwhals` extra alongside the
+dataframe library you use:
 
 ```bash
 pip install 'pandera[cli,narwhals,polars]'
 ```
 
-Then pass the flag when validating a Polars, Ibis, or PySpark SQL schema:
+Then pass the option when validating a Polars, Ibis, or PySpark SQL schema:
 
 ```bash
-pandera validate -s /tmp/polars_schema.yaml -d /tmp/dataset.csv --use-narwhals
+pandera validate -s /tmp/polars_schema.yaml -d /tmp/dataset.csv --backend narwhals
 ```
 
 This is equivalent to running the CLI with the
@@ -195,9 +249,11 @@ This is equivalent to running the CLI with the
 PANDERA_USE_NARWHALS_BACKEND=True pandera validate -s /tmp/polars_schema.yaml -d /tmp/dataset.csv
 ```
 
-Passing `--use-narwhals` with a pandas-API schema (pandas, modin, dask, or
-pyspark.pandas) exits with an error, since the Narwhals backend only powers
-the Polars, Ibis, and PySpark SQL integrations.
+The data is loaded per the schema's `api` field above, which must be
+`polars`, `ibis`, or `pyspark.sql`. Passing `--backend narwhals` with a
+pandas-API schema (pandas, modin, dask, or pyspark.pandas) exits with an
+error, since the Narwhals backend only powers the Polars, Ibis, and PySpark
+SQL integrations.
 
 :::{important}
 **Other backends and formats**

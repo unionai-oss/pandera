@@ -109,6 +109,8 @@ def serialize_schema(
     """Serialize a PySpark SQL dataframe schema to a JSON/YAML-compatible dict.
 
     :param minimal: If True (default), omit keys equal to constructor defaults.
+
+    The output includes an ``api`` field set to ``pyspark.sql``.
     """
     from pandera import __version__
 
@@ -127,6 +129,7 @@ def serialize_schema(
     out = {
         "schema_type": "pyspark_sql_dataframe",
         "version": __version__,
+        "api": "pyspark.sql",
         "columns": columns,
         "checks": checks,
         "index": None,

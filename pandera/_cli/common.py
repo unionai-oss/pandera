@@ -11,7 +11,13 @@ import typer
 
 
 class BackendName(str, Enum):
-    """Supported dataframe libraries for CLI validation."""
+    """Supported backends for CLI validation.
+
+    Values other than ``narwhals`` name the underlying dataframe API
+    objects a schema can validate (see the ``api`` field on serialized
+    schemas). ``narwhals`` selects the Narwhals-powered validation
+    backend for narwhals-compatible schemas.
+    """
 
     pandas = "pandas"
     modin = "modin"
@@ -20,24 +26,47 @@ class BackendName(str, Enum):
     pyspark_sql = "pyspark.sql"
     polars = "polars"
     ibis = "ibis"
+    narwhals = "narwhals"
 
 
-#: Backends that can validate through the Narwhals-powered backend.
-NARWHALS_COMPATIBLE_BACKENDS = ("polars", "ibis", "pyspark.sql")
+#: Underlying dataframe APIs a serialized schema can declare (``api``
+#: field) and the CLI can load data for.
+API_VALUES = (
+    "pandas",
+    "modin",
+    "dask",
+    "pyspark.pandas",
+    "polars",
+    "ibis",
+    "pyspark.sql",
+)
+
+#: APIs that can validate through the Narwhals-powered backend.
+NARWHALS_COMPATIBLE_APIS = ("polars", "ibis", "pyspark.sql")
+
+#: ``schema_type`` values from serialized schemas mapped to the ``api``
+#: values compatible with each (``api`` is optional; this is used to
+#: cross-check the two fields when both are present).
+_SCHEMA_TYPE_APIS: dict[str, tuple[str, ...]] = {
+    "dataframe": ("pandas", "modin", "dask", "pyspark.pandas"),
+    "polars_dataframe": ("polars",),
+    "pyspark_sql_dataframe": ("pyspark.sql",),
+    "ibis_table": ("ibis",),
+}
 
 
-def enable_narwhals_backend(backend: str) -> None:
+def enable_narwhals_backend(api: str) -> None:
     """Enable the Narwhals-powered validation backend for this process.
 
-    Exits with an error if ``backend`` is not narwhals-compatible or the
+    Exits with an error if ``api`` is not narwhals-compatible or the
     ``narwhals`` package is not installed. Must be called before the schema
     is deserialized so that backend registration picks up the setting.
     """
-    if backend not in NARWHALS_COMPATIBLE_BACKENDS:
+    if api not in NARWHALS_COMPATIBLE_APIS:
         typer.secho(
-            f"--use-narwhals is not supported for backend {backend!r}. "
+            f"--backend narwhals is not supported for api {api!r}. "
             "The Narwhals backend supports: "
-            f"{', '.join(NARWHALS_COMPATIBLE_BACKENDS)}.",
+            f"{', '.join(NARWHALS_COMPATIBLE_APIS)}.",
             err=True,
         )
         raise typer.Exit(1)
@@ -45,7 +74,8 @@ def enable_narwhals_backend(backend: str) -> None:
         import narwhals.stable.v1  # noqa: F401
     except ImportError as exc:
         typer.secho(
-            "--use-narwhals requires the 'narwhals' package. Install with:\n"
+            "--backend narwhals requires the 'narwhals' package. "
+            "Install with:\n"
             "  pip install 'pandera[narwhals]'",
             err=True,
         )
@@ -115,6 +145,31 @@ def load_raw_schema(path: Path) -> dict[str, Any]:
 
 
 def infer_backend_from_schema(data: dict[str, Any]) -> str:
+    """Infer the dataframe API of a serialized schema file.
+
+    Prefers the explicit ``api`` field. Falls back to the
+    ``schema_type``/``dataframe_library`` mapping for schema files written
+    before the ``api`` field existed.
+    """
+    api = data.get("api")
+    if api is not None:
+        if api not in API_VALUES:
+            typer.secho(
+                f"Unsupported api {api!r}. Expected one of: "
+                f"{', '.join(API_VALUES)}.",
+                err=True,
+            )
+            raise typer.Exit(1)
+        st = data.get("schema_type")
+        if st in _SCHEMA_TYPE_APIS and api not in _SCHEMA_TYPE_APIS[st]:
+            typer.secho(
+                f"api {api!r} does not match schema_type {st!r} "
+                f"(expected one of: {', '.join(_SCHEMA_TYPE_APIS[st])}).",
+                err=True,
+            )
+            raise typer.Exit(1)
+        return api
+
     st = data.get("schema_type")
     if st in (None, "dataframe"):
         lib = data.get("dataframe_library", "pandas")

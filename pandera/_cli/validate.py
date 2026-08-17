@@ -40,18 +40,11 @@ def validate(
         "--backend",
         "-b",
         help=(
-            "Dataframe library to use. Default: inferred from schema_type "
-            "(and dataframe_library for pandas-API schemas) in the schema "
-            "file."
-        ),
-    ),
-    use_narwhals: bool = typer.Option(
-        False,
-        "--use-narwhals",
-        help=(
-            "Validate through the Narwhals-powered backend (polars, ibis, "
-            "and pyspark.sql schemas only; requires pandera[narwhals]). "
-            "Equivalent to setting PANDERA_USE_NARWHALS_BACKEND=True."
+            "Validation backend. A dataframe API (pandas, modin, dask, "
+            "pyspark.pandas, polars, ibis, pyspark.sql) must match the "
+            "schema's api field; narwhals validates polars, ibis, and "
+            "pyspark.sql schemas through the Narwhals-powered backend "
+            "(requires pandera[narwhals]). Default: the schema's api."
         ),
     ),
 ) -> None:
@@ -87,8 +80,11 @@ def validate(
 
     Validate a Polars schema through the Narwhals-powered backend
     ```
-    pandera validate -s schema.yaml -d data.csv --use-narwhals
+    pandera validate -s schema.yaml -d data.csv --backend narwhals
     ```
+
+    ``--backend narwhals`` is equivalent to setting
+    ``PANDERA_USE_NARWHALS_BACKEND=True``.
     """
     if not schema.is_file():
         typer.secho(f"Schema file not found: {schema}", err=True)
@@ -98,23 +94,26 @@ def validate(
         raise typer.Exit(1)
 
     raw = load_raw_schema(schema)
-    inferred = infer_backend_from_schema(raw)
-    if backend is not None and backend.value != inferred:
+    api = infer_backend_from_schema(raw)
+    if (
+        backend is not None
+        and backend is not BackendName.narwhals
+        and backend.value != api
+    ):
         typer.secho(
-            f"--backend {backend.value!r} does not match schema "
-            f"(schema_type implies {inferred!r}). Omit --backend to use "
-            "the schema file, or fix the mismatch.",
+            f"--backend {backend.value!r} does not match the schema's api "
+            f"{api!r}. Omit --backend to use the schema file, or fix the "
+            "mismatch.",
             err=True,
         )
         raise typer.Exit(1)
-    chosen = backend.value if backend is not None else inferred
 
-    if use_narwhals:
-        enable_narwhals_backend(chosen)
+    if backend is BackendName.narwhals:
+        enable_narwhals_backend(api)
 
     schema_obj = deserialize_schema(raw)
-    obj = load_dataset(data, chosen)
-    import_accessor_modules(chosen)
+    obj = load_dataset(data, api)
+    import_accessor_modules(api)
 
     try:
         schema_obj.validate(obj, lazy=True)

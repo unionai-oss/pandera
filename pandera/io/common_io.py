@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 import warnings
 from functools import partial
 from pathlib import Path
@@ -55,7 +56,7 @@ COLUMN_TEMPLATE = """
 """
 
 INDEX_TEMPLATE = """
-Index(
+{qual}Index(
     dtype={dtype},
     checks={checks},
     nullable={nullable},
@@ -67,7 +68,7 @@ Index(
 """
 
 MULTIINDEX_TEMPLATE = """
-MultiIndex(indexes=[{indexes}])
+{qual}MultiIndex(indexes=[{indexes}])
 """
 
 
@@ -83,6 +84,85 @@ def _get_dtype_string_alias(dtype: pandas_engine.DataType) -> str:
             "recognized."
         ) from e
     return f'"{dtype}"'
+
+
+#: Matches the capitalized type names in a polars dtype repr (``List(Int64)``,
+#: ``Struct({'x': Int64})``, ...) so each can be qualified with the ``pl.``
+#: module alias in emitted source.
+_POLARS_TYPE_NAME_RE = re.compile(r"\b([A-Z]\w*)\b")
+
+#: Capitalized words in a polars dtype repr that are Python literals, not
+#: type names (e.g. ``Datetime(time_unit='us', time_zone=None)``).
+_PYTHON_LITERALS = frozenset({"None", "True", "False"})
+
+
+def _polars_dtype_expr(dtype) -> str:
+    """Source expression reconstructing a polars dtype (e.g. ``pl.Int64``)."""
+    native = getattr(dtype, "type", None)
+    if native is None:  # pragma: no cover - engine dtypes always wrap one
+        raise TypeError(
+            f"Cannot emit a polars dtype expression for {dtype!r}."
+        )
+
+    def _qualify(match: re.Match) -> str:
+        word = match.group(1)
+        return word if word in _PYTHON_LITERALS else f"pl.{word}"
+
+    return _POLARS_TYPE_NAME_RE.sub(_qualify, repr(native))
+
+
+def _ibis_dtype_expr(dtype) -> str:
+    """Source expression reconstructing an Ibis dtype.
+
+    Ibis dtypes have a canonical string form that ``ibis.dtype`` parses, but
+    the pandera Ibis engine does not accept those strings directly, so emit
+    the ``ibis.dtype(...)`` call rather than a bare alias.
+    """
+    import ibis
+
+    str_alias = str(dtype)
+    try:
+        ibis.dtype(str_alias)
+    except Exception as e:
+        raise TypeError(
+            f"Ibis dtype {str_alias!r} cannot be emitted as a script "
+            "expression."
+        ) from e
+    return f"ibis.dtype({str_alias!r})"
+
+
+def _pyspark_dtype_expr(dtype) -> str:
+    """String alias of a PySpark dtype, validated against the PySpark engine."""
+    from pandera.engines import pyspark_engine
+
+    str_alias = str(dtype)
+    try:
+        pyspark_engine.Engine.dtype(str_alias)
+    except TypeError as e:
+        raise TypeError(
+            f"string alias {str_alias} for datatype "
+            f"'{dtype.__module__}.{dtype.__class__.__name__}' not "
+            "recognized by the PySpark engine."
+        ) from e
+    return f'"{str_alias}"'
+
+
+def _dtype_expr(dtype, backend: str) -> str:
+    """Source expression for ``dtype=`` in a schema script, per backend.
+
+    Each dataframe library's engine accepts a different set of dtype
+    literals, so a pandas-style string alias is only valid for the pandas
+    backend.
+    """
+    if backend == "pandas":
+        return _get_dtype_string_alias(dtype)
+    if backend == "polars":
+        return _polars_dtype_expr(dtype)
+    if backend == "ibis":
+        return _ibis_dtype_expr(dtype)
+    if backend == "pyspark":
+        return _pyspark_dtype_expr(dtype)
+    raise ValueError(f"unknown backend {backend!r}")
 
 
 def _schema_script_qual(backend: str) -> str:
@@ -119,16 +199,22 @@ def _schema_script_imports(backend: str) -> str:
             ")\n\n"
         )
     if backend == "polars":
-        return "import pandera.polars as pa\n\n"
+        # ``pl`` is referenced by the emitted dtype expressions.
+        return "import polars as pl\nimport pandera.polars as pa\n\n"
     if backend == "ibis":
-        return "import pandera.ibis as pa\n\n"
+        return "import ibis\nimport pandera.ibis as pa\n\n"
     if backend == "pyspark":
         return "import pandera.pyspark as pa\n\n"
     raise ValueError(f"unknown backend {backend!r}")
 
 
-def _format_checks(checks_list):
-    """Format checks into string representation including options."""
+def _format_checks(checks_list, *, qual: str = ""):
+    """Format checks into string representation including options.
+
+    ``qual`` prefixes ``Check`` with the module alias used by the emitted
+    imports (``pa.`` for non-pandas backends, which import
+    ``pandera.<library> as pa`` rather than the names themselves).
+    """
     if checks_list is None:
         return "None"
 
@@ -168,23 +254,25 @@ def _format_checks(checks_list):
                 f"{k}={v.__repr__()}" for k, v in options.items()
             )
 
-        checks.append(f"Check.{check_name}({args})")
+        checks.append(f"{qual}Check.{check_name}({args})")
 
     return f"[{', '.join(checks)}]"
 
 
-def _format_index(index_statistics):
+def _format_index(index_statistics, *, backend: str = "pandas"):
+    qual = _schema_script_qual(backend)
     index = []
     for properties in index_statistics:
         dtype = properties.get("dtype")
         description = properties.get("description")
         title = properties.get("title")
         index_code = INDEX_TEMPLATE.format(
-            dtype=(None if dtype is None else _get_dtype_string_alias(dtype)),
+            qual=qual,
+            dtype=(None if dtype is None else _dtype_expr(dtype, backend)),
             checks=(
                 "None"
                 if properties["checks"] is None
-                else _format_checks(properties["checks"])
+                else _format_checks(properties["checks"], qual=qual)
             ),
             nullable=properties["nullable"],
             coerce=properties["coerce"],
@@ -201,19 +289,21 @@ def _format_index(index_statistics):
     if len(index) == 1:
         return index[0]
 
-    return MULTIINDEX_TEMPLATE.format(indexes=",".join(index)).strip()
+    return MULTIINDEX_TEMPLATE.format(
+        qual=qual, indexes=",".join(index)
+    ).strip()
 
 
-def _format_column_minimal(column, *, qual: str = ""):
+def _format_column_minimal(column, *, qual: str = "", backend: str = "pandas"):
     """Build ``Column(...)`` source with only non-default kwargs."""
-    from pandera.schema_statistics.pandas import parse_checks
+    from pandera.schema_statistics.common import parse_checks
 
     parts = []
     if column.dtype is not None:
-        parts.append(f"dtype={_get_dtype_string_alias(column.dtype)}")
+        parts.append(f"dtype={_dtype_expr(column.dtype, backend)}")
     pc = parse_checks(column.checks)
     if pc:
-        parts.append(f"checks={_format_checks(pc)}")
+        parts.append(f"checks={_format_checks(pc, qual=qual)}")
     for attr in COLUMN_DEFAULTS:
         if attr == "name":
             continue
@@ -233,28 +323,28 @@ def _format_column_minimal(column, *, qual: str = ""):
 
 def _to_script_minimal(dataframe_schema, *, backend: str = "pandas"):
     """Build ``DataFrameSchema(...)`` source with only non-default kwargs."""
-    from pandera.schema_statistics.pandas import parse_checks
+    from pandera.schema_statistics.common import parse_checks
 
     qual = _schema_script_qual(backend)
     get_stats = _get_dataframe_schema_statistics_fn(backend)
     columns = {
-        name: _format_column_minimal(column, qual=qual)
+        name: _format_column_minimal(column, qual=qual, backend=backend)
         for name, column in dataframe_schema.columns.items()
     }
     column_str = ", ".join(f"{k!r}: {v}" for k, v in columns.items())
     parts = [f"columns={{{column_str}}}"]
     pc = parse_checks(dataframe_schema.checks)
     if pc:
-        parts.append(f"checks={_format_checks(pc)}")
+        parts.append(f"checks={_format_checks(pc, qual=qual)}")
     stats = get_stats(dataframe_schema)
     if stats["index"] is not None:
-        parts.append(f"index={_format_index(stats['index'])}")
+        parts.append(f"index={_format_index(stats['index'], backend=backend)}")
     for key in DF_SCHEMA_DEFAULTS:
         val = getattr(dataframe_schema, key)
         if val == DF_SCHEMA_DEFAULTS[key]:
             continue
         if key == "dtype" and val is not None:
-            parts.append(f"dtype={_get_dtype_string_alias(val)}")
+            parts.append(f"dtype={_dtype_expr(val, backend)}")
         else:
             parts.append(f"{key}={val!r}")
     if getattr(dataframe_schema, "metadata", None):
@@ -294,13 +384,10 @@ def to_script(
     from pandera.io._script_model import to_dataframe_model_script
 
     if script_type == "model":
+        # ``to_dataframe_model_script`` emits its own imports.
         script = to_dataframe_model_script(
             dataframe_schema, backend, minimal=minimal
         ).strip()
-        if "Timedelta" in script:
-            script = "from pandas import Timedelta\n" + script
-        if "Timestamp" in script:
-            script = "from pandas import Timestamp\n" + script
         formatted_script = _format_script(script)
         if path_or_buf is None:
             return formatted_script
@@ -332,8 +419,8 @@ def to_script(
         title = properties["title"]
         column_code = COLUMN_TEMPLATE.format(
             qual=qual,
-            dtype=(None if dtype is None else _get_dtype_string_alias(dtype)),
-            checks=_format_checks(properties["checks"]),
+            dtype=(None if dtype is None else _dtype_expr(dtype, backend)),
+            checks=_format_checks(properties["checks"], qual=qual),
             nullable=properties["nullable"],
             unique=properties["unique"],
             coerce=properties["coerce"],
@@ -347,7 +434,7 @@ def to_script(
     index = (
         None
         if statistics["index"] is None
-        else _format_index(statistics["index"])
+        else _format_index(statistics["index"], backend=backend)
     )
 
     column_str = ", ".join(f"'{k}': {v}" for k, v in columns.items())

@@ -143,6 +143,7 @@ def _create_schema(index="single"):
 YAML_SCHEMA = f"""
 schema_type: dataframe
 version: {_PANDERA_VERSION}
+api: pandas
 columns:
   int_column:
     title: integer_col
@@ -1878,6 +1879,7 @@ INT_DTYPE_ALIAS = str(pandas_engine.Engine.dtype("int"))
 YAML_FROM_FRICTIONLESS = f"""
 schema_type: dataframe
 version: {_PANDERA_VERSION}
+api: pandas
 columns:
   integer_col:
     title: null
@@ -2285,6 +2287,49 @@ def test_dataframe_library_metadata_roundtrip():
 
     as_json = json.loads(pandas_io.to_json(schema, dataframe_library="modin"))
     assert as_json["dataframe_library"] == "modin"
+
+
+def test_serialize_schema_includes_api_field():
+    """Serialized schemas carry the underlying dataframe ``api`` tag."""
+    import pandera
+    from pandera.io import pandas_io
+
+    schema = pandera.DataFrameSchema({"x": pandera.Column(int)})
+    assert pandas_io.serialize_schema(schema)["api"] == "pandas"
+    assert (
+        pandas_io.serialize_schema(schema, dataframe_library="modin")["api"]
+        == "modin"
+    )
+
+
+def test_deserialize_schema_api_field_is_optional():
+    """The ``api`` field is optional; absent or pandas keeps metadata unset."""
+    import pandera
+    from pandera.io import pandas_io
+
+    schema = pandera.DataFrameSchema({"x": pandera.Column(int)})
+    legacy = {
+        "schema_type": "dataframe",
+        "columns": {"x": {"dtype": "int64"}},
+        "checks": None,
+        "coerce": False,
+        "strict": False,
+    }
+    # Legacy schema (no ``api``/``dataframe_library``) still deserializes.
+    assert pandas_io.deserialize_schema(dict(legacy)).metadata is None
+
+    # New-style ``api`` field (without ``dataframe_library``) restores the
+    # dataframe library metadata.
+    api_only = {**legacy, "api": "dask"}
+    restored = pandas_io.deserialize_schema(api_only)
+    assert restored.metadata is not None
+    assert restored.metadata.get("dataframe_library") == "dask"
+
+    # The default (``api: pandas``) adds no metadata, so roundtrips stay
+    # equal to the original schema.
+    payload = pandas_io.serialize_schema(schema)
+    assert payload["api"] == "pandas"
+    assert pandas_io.deserialize_schema(payload) == schema
 
 
 class TestDataFrameModelIO:

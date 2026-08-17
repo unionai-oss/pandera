@@ -6,7 +6,7 @@ from typing import Any
 
 from pandera import dtypes
 from pandera.engines import pyspark_engine
-from pandera.schema_statistics.pandas import (
+from pandera.schema_statistics.common import (
     parse_checks,
     string_length_check_statistics,
 )

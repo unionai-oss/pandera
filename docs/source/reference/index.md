@@ -7,7 +7,7 @@
 # API
 
 The command-line interface (installation, usage, generated help, and Python
-entry points) is documented on the dedicated :doc:`cli` page.
+entry points) is documented on the dedicated {ref}`CLI <cli>` page.
 
 ## DataFrames
 

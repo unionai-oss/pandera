@@ -23,7 +23,13 @@ You still need the appropriate dataframe library for the schema you validate
 (for example ``pandas`` for the default pandas-API schema). YAML schemas require
 ``pandera[io]`` (PyYAML). To validate Polars, Ibis, or PySpark SQL schemas
 through the :ref:`Narwhals-powered backend <narwhals-backend>`, install
-``pandera[narwhals]`` and pass ``--use-narwhals`` to ``pandera validate``.
+``pandera[narwhals]`` and pass ``--backend narwhals`` to ``pandera validate``.
+
+Serialized schemas carry an optional top-level ``api`` field declaring the
+underlying dataframe API of the data to validate (``pandas``, ``modin``,
+``dask``, ``pyspark.pandas``, ``polars``, ``ibis``, or ``pyspark.sql``). The
+CLI uses it to choose the data loader and, by default, the validation
+backend; it defaults to ``pandas`` when the field is absent.
 
 Refer to :doc:`cli_guide` to learn how to use the CLI.
 

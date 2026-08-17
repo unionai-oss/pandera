@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import importlib.util
 import json
 import subprocess
 import sys
@@ -125,7 +126,40 @@ def test_validate_cli_backend_mismatch_exits(tmp_path: Path):
         check=False,
     )
     assert proc.returncode != 0
-    assert "does not match schema" in (proc.stderr + proc.stdout)
+    assert "does not match the schema's api 'pandas'" in (
+        proc.stderr + proc.stdout
+    )
+
+
+def test_validate_cli_api_field_mismatch_exits(tmp_path: Path):
+    """A hand-edited ``api`` field contradicting ``schema_type`` is rejected."""
+    schema = pa.DataFrameSchema({"a": pa.Column(int)})
+    schema_path = tmp_path / "schema.yaml"
+    data_path = tmp_path / "data.csv"
+    payload = io.serialize_schema(schema)
+    payload["api"] = "polars"
+    schema_path.write_text(yaml.safe_dump(payload), encoding="utf-8")
+    pd.DataFrame({"a": [1]}).to_csv(data_path, index=False)
+
+    proc = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "pandera",
+            "validate",
+            "-s",
+            str(schema_path),
+            "-d",
+            str(data_path),
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert proc.returncode != 0
+    assert "api 'polars' does not match schema_type 'dataframe'" in (
+        proc.stderr + proc.stdout
+    )
 
 
 def test_infer_cli_yaml_roundtrip_validate(tmp_path: Path):
@@ -153,10 +187,9 @@ def test_infer_cli_yaml_roundtrip_validate(tmp_path: Path):
     )
     assert proc.returncode == 0, proc.stderr
     assert schema_path.is_file()
-    assert (
-        yaml.safe_load(schema_path.read_text(encoding="utf-8"))["schema_type"]
-        == "dataframe"
-    )
+    payload = yaml.safe_load(schema_path.read_text(encoding="utf-8"))
+    assert payload["schema_type"] == "dataframe"
+    assert payload["api"] == "pandas"
 
     proc2 = subprocess.run(
         [
@@ -200,6 +233,7 @@ def test_infer_cli_json(tmp_path: Path):
     assert proc.returncode == 0, proc.stderr
     payload = json.loads(out_path.read_text(encoding="utf-8"))
     assert payload["schema_type"] == "dataframe"
+    assert payload["api"] == "pandas"
     assert "id" in payload["columns"]
 
 
@@ -365,3 +399,143 @@ def test_generate_cli_xarray_netcdf(tmp_path: Path):
         assert ds.sizes["x"] == 3
     finally:
         ds.close()
+
+
+# --- infer --format py: the emitted script must actually run ---
+
+
+def _load_emitted_module(path: Path):
+    """Import an emitted schema/model script the way a user would.
+
+    ``DataFrameModel.to_schema`` resolves annotations through the defining
+    module's globals, so the script has to be imported as a module rather
+    than ``exec``-ed into a bare dict.
+    """
+    spec = importlib.util.spec_from_file_location(path.stem, path)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    try:
+        spec.loader.exec_module(module)
+    finally:
+        sys.modules.pop(spec.name, None)
+    return module
+
+
+def _run_infer_script(
+    tmp_path: Path,
+    *,
+    backend: str,
+    script_type: str,
+) -> Path:
+    """``pandera infer`` to a .py file; return the emitted script path."""
+    data_path = tmp_path / "data.csv"
+    out_path = tmp_path / f"schema_{backend.replace('.', '_')}.py"
+    pd.DataFrame(
+        {
+            "n": [1, 2],
+            "s": ["ab", "cde"],
+            "f": [1.5, 2.5],
+        }
+    ).to_csv(data_path, index=False)
+
+    proc = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "pandera",
+            "infer",
+            "-d",
+            str(data_path),
+            "-o",
+            str(out_path),
+            "--backend",
+            backend,
+            "--script-type",
+            script_type,
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert proc.returncode == 0, proc.stderr + proc.stdout
+    return out_path
+
+
+@pytest.mark.parametrize("backend", ["pandas", "polars", "ibis"])
+def test_infer_py_schema_script_is_executable(tmp_path: Path, backend: str):
+    """The emitted ``DataFrameSchema`` script imports and runs.
+
+    Dtype literals are engine-specific, so a script emitted for one backend
+    is only valid if it uses that backend's dtype expressions.
+    """
+    pytest.importorskip(backend.split(".")[0])
+    path = _run_infer_script(tmp_path, backend=backend, script_type="schema")
+    module = _load_emitted_module(path)
+    assert set(module.schema.columns) == {"n", "s", "f"}
+
+
+@pytest.mark.parametrize("backend", ["pandas", "polars", "ibis"])
+def test_infer_py_model_script_is_executable(tmp_path: Path, backend: str):
+    """The emitted ``DataFrameModel`` script imports and runs."""
+    pytest.importorskip(backend.split(".")[0])
+    path = _run_infer_script(tmp_path, backend=backend, script_type="model")
+    module = _load_emitted_module(path)
+    assert set(module.GeneratedModel.to_schema().columns) == {"n", "s", "f"}
+
+
+def test_infer_py_script_handles_non_identifier_columns(tmp_path: Path):
+    """Column labels that aren't Python identifiers become aliased fields."""
+    data_path = tmp_path / "data.csv"
+    out_path = tmp_path / "model.py"
+    pd.DataFrame({"first name": [1, 2], "class": [3, 4]}).to_csv(
+        data_path, index=False
+    )
+
+    proc = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "pandera",
+            "infer",
+            "-d",
+            str(data_path),
+            "-o",
+            str(out_path),
+            "--script-type",
+            "model",
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert proc.returncode == 0, proc.stderr + proc.stdout
+    module = _load_emitted_module(out_path)
+    schema = module.GeneratedModel.to_schema()
+    assert set(schema.columns) == {"first name", "class"}
+
+
+def test_infer_rejects_narwhals_backend(tmp_path: Path):
+    """``narwhals`` is a validation backend, not a dataframe API to infer."""
+    data_path = tmp_path / "data.csv"
+    pd.DataFrame({"a": [1]}).to_csv(data_path, index=False)
+
+    proc = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "pandera",
+            "infer",
+            "-d",
+            str(data_path),
+            "-o",
+            str(tmp_path / "schema.yaml"),
+            "--backend",
+            "narwhals",
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert proc.returncode != 0
+    assert "cannot be used with `infer`" in (proc.stderr + proc.stdout)

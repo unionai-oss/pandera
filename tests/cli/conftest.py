@@ -82,9 +82,10 @@ def run_validate(
     data_path: Path,
     *,
     backend: str | None = None,
-    use_narwhals: bool = False,
     env: dict[str, str] | None = None,
 ) -> subprocess.CompletedProcess[str]:
+    """Run ``pandera validate``; ``backend="narwhals"`` passes
+    ``--backend narwhals``."""
     cmd = [
         sys.executable,
         "-m",
@@ -97,8 +98,6 @@ def run_validate(
     ]
     if backend is not None:
         cmd.extend(["--backend", backend])
-    if use_narwhals:
-        cmd.append("--use-narwhals")
     run_env = None
     if env is not None:
         run_env = {**os.environ, **env}

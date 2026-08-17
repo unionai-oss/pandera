@@ -287,21 +287,17 @@ def generate(
         typer.secho(f"Could not load schema:\n{exc}", err=True)
         raise typer.Exit(1) from exc
 
-    try:
-        writer_key = _resolve_generate_writer(
-            output, output_format, schema_kind=schema_kind
-        )
-    except typer.Exit:
-        raise
+    writer_key = _resolve_generate_writer(
+        output, output_format, schema_kind=schema_kind
+    )
 
     try:
         if schema_kind == "pandas":
             data_obj = _generate_pandas_example(schema_obj, size)
         else:
             data_obj = _generate_xarray_example(schema_obj, size)
-    except ImportError as exc:
-        typer.secho(f"Data generation failed:\n{exc}", err=True)
-        raise typer.Exit(1) from exc
+    except typer.Exit:
+        raise
     except Exception as exc:
         typer.secho(f"Data generation failed:\n{exc}", err=True)
         raise typer.Exit(1) from exc

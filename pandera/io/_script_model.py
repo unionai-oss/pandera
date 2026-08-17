@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import keyword
+import re
 import warnings
 from typing import Any, Literal
 
@@ -42,7 +44,7 @@ _BACKEND_IMPORTS: dict[BackendId, str] = {
 }
 
 
-def _dtype_to_simple_annotation(dtype: Any) -> str:
+def _dtype_to_simple_annotation(dtype: Any, backend: BackendId) -> str:
     """Map an engine dtype to a simple typing annotation string."""
     if dtype is None:
         return "Any"
@@ -62,23 +64,17 @@ def _dtype_to_simple_annotation(dtype: Any) -> str:
     ):
         return "str"
     if "datetime" in s or "timestamp" in s or "date" in s:
-        return "pd.Timestamp"
-    if "timedelta" in s:
-        return "pd.Timedelta"
-    if "category" in s:
-        return "Any"
+        # only the pandas backend has a dataframe-library-specific scalar
+        # type for temporal columns; other backends use stdlib datetime.
+        return "pd.Timestamp" if backend == "pandas" else "datetime.datetime"
+    if "timedelta" in s or "duration" in s:
+        return "pd.Timedelta" if backend == "pandas" else "datetime.timedelta"
     return "Any"
 
 
 def _column_annotation(dtype: Any, backend: BackendId) -> str:
-    inner = _dtype_to_simple_annotation(dtype)
+    inner = _dtype_to_simple_annotation(dtype, backend)
     if backend == "pandas":
-        if inner == "pd.Timestamp":
-            return "Series[pd.Timestamp]"
-        if inner == "pd.Timedelta":
-            return "Series[pd.Timedelta]"
-        if inner == "Any":
-            return "Series[Any]"
         return f"Series[{inner}]"
     return inner
 
@@ -154,9 +150,13 @@ def _field_kwarg_for_check(check: Check) -> tuple[str, str] | None:
     return fname, repr(st)
 
 
-def _format_field_from_column(column: Any, *, minimal: bool) -> str:
+def _format_field_from_column(
+    column: Any, *, minimal: bool, alias: str | None = None
+) -> str:
     """``Field(...)`` string for a schema column, or empty if defaults only."""
     parts: list[str] = []
+    if alias is not None:
+        parts.append(f"alias={alias!r}")
     for check in column.checks or []:
         try:
             in_registry = check in Check
@@ -199,6 +199,24 @@ def _format_field_from_column(column: Any, *, minimal: bool) -> str:
     return f"pa.Field({inner})"
 
 
+def _attribute_name_and_alias(col_name: Any) -> tuple[str, str | None]:
+    """Class-attribute name for a column label, plus an ``alias`` if needed.
+
+    Column labels are arbitrary (spaces, punctuation, non-strings), while
+    model attributes must be Python identifiers. When they differ, the
+    original label is preserved through ``Field(alias=...)``.
+    """
+    label = str(col_name)
+    if label.isidentifier() and not keyword.iskeyword(label):
+        return label, None
+    sanitized = re.sub(r"\W", "_", label)
+    if not sanitized or sanitized[0].isdigit():
+        sanitized = f"_{sanitized}"
+    if keyword.iskeyword(sanitized):
+        sanitized = f"{sanitized}_"
+    return sanitized, label
+
+
 def _config_class_body(schema: Any) -> str:
     lines: list[str] = []
     for key in sorted(DF_SCHEMA_DEFAULTS.keys()):
@@ -227,32 +245,37 @@ def to_dataframe_model_script(
     if not name.isidentifier():
         name = "GeneratedModel"
 
-    lines: list[str] = [_BACKEND_IMPORTS[backend], "\n\n"]
-
     col_lines: list[str] = []
     for col_name, column in dataframe_schema.columns.items():
         ann = _column_annotation(column.dtype, backend)
-        field_s = _format_field_from_column(column, minimal=minimal)
+        # column labels that aren't valid Python identifiers can't be class
+        # attribute names; emit a safe attribute name plus ``alias``.
+        attr_name, alias = _attribute_name_and_alias(col_name)
+        field_s = _format_field_from_column(
+            column, minimal=minimal, alias=alias
+        )
         if field_s:
-            col_lines.append(f"    {col_name}: {ann} = {field_s}")
+            col_lines.append(f"    {attr_name}: {ann} = {field_s}")
         else:
-            col_lines.append(f"    {col_name}: {ann}")
+            col_lines.append(f"    {attr_name}: {ann}")
 
     cfg = _config_class_body(dataframe_schema)
     fields_block = "\n".join(col_lines) if col_lines else "    pass"
-    lines.append(f"class {name}(pa.DataFrameModel):\n")
+    body = f"class {name}(pa.DataFrameModel):\n"
     if cfg:
-        lines.append(cfg)
-    lines.append(fields_block)
-    lines.append("\n")
+        body += cfg
+    body += fields_block + "\n"
 
-    script = "".join(lines)
-    if backend == "pandas" and "pd.Timestamp" in script:
-        script = "from pandas import Timestamp\n" + script
-    if backend == "pandas" and "pd.Timedelta" in script:
-        script = "from pandas import Timedelta\n" + script
-    if "pd.Timestamp" in script or "pd.Timedelta" in script:
-        if "import pandas as pd" not in script:
-            script = "import pandas as pd\n" + script
+    # only import what the annotations actually reference, so the emitted
+    # script imports cleanly (and stays pandas-free for non-pandas backends).
+    preamble = ""
+    if "datetime." in body:
+        preamble += "import datetime\n"
+    if ": Any" in body or "[Any]" in body:
+        preamble += "from typing import Any\n"
+    if ("pd.Timestamp" in body or "pd.Timedelta" in body) and (
+        "import pandas as pd" not in _BACKEND_IMPORTS[backend]
+    ):
+        preamble += "import pandas as pd\n"
 
-    return script
+    return f"{preamble}{_BACKEND_IMPORTS[backend]}\n\n{body}"

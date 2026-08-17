@@ -297,10 +297,9 @@ def test_infer_pandas_data_and_schema_output_formats(
     assert proc.returncode == 0, proc.stderr + proc.stdout
     assert out_path.is_file()
     raw = out_path.read_text(encoding="utf-8")
-    if out_kind == "yaml":
-        assert yaml.safe_load(raw)["schema_type"] == "dataframe"
-    else:
-        assert json.loads(raw)["schema_type"] == "dataframe"
+    payload = yaml.safe_load(raw) if out_kind == "yaml" else json.loads(raw)
+    assert payload["schema_type"] == "dataframe"
+    assert payload["api"] == "pandas"
 
 
 # --- infer: polars backend ---
@@ -322,10 +321,9 @@ def test_infer_polars_data_and_schema_output_formats(
     assert proc.returncode == 0, proc.stderr + proc.stdout
     assert out_path.is_file()
     raw = out_path.read_text(encoding="utf-8")
-    if out_kind == "yaml":
-        assert yaml.safe_load(raw)["schema_type"] == "polars_dataframe"
-    else:
-        assert json.loads(raw)["schema_type"] == "polars_dataframe"
+    payload = yaml.safe_load(raw) if out_kind == "yaml" else json.loads(raw)
+    assert payload["schema_type"] == "polars_dataframe"
+    assert payload["api"] == "polars"
 
 
 # --- infer: modin / dask (pandas-API loaders) ---
@@ -349,6 +347,7 @@ def test_infer_modin_backend_data_and_schema_output_formats(
     payload = yaml.safe_load(raw) if out_kind == "yaml" else json.loads(raw)
     assert payload["schema_type"] == "dataframe"
     assert payload.get("dataframe_library") == "modin"
+    assert payload["api"] == "modin"
 
 
 @pytest.mark.parametrize("data_kind", ["csv", "parquet", "json"])
@@ -373,6 +372,7 @@ def test_infer_dask_backend_data_and_schema_output_formats(
     payload = yaml.safe_load(raw) if out_kind == "yaml" else json.loads(raw)
     assert payload["schema_type"] == "dataframe"
     assert payload.get("dataframe_library") == "dask"
+    assert payload["api"] == "dask"
 
 
 # --- infer: schema file format override (.txt + --format) ---
@@ -400,10 +400,10 @@ def test_infer_format_flag_with_plain_output_path(
     assert out_path.is_file()
     raw = out_path.read_text(encoding="utf-8")
     expected_type = "polars_dataframe" if backend == "polars" else "dataframe"
-    if out_fmt == "yaml":
-        assert yaml.safe_load(raw)["schema_type"] == expected_type
-    else:
-        assert json.loads(raw)["schema_type"] == expected_type
+    expected_api = "polars" if backend == "polars" else "pandas"
+    payload = yaml.safe_load(raw) if out_fmt == "yaml" else json.loads(raw)
+    assert payload["schema_type"] == expected_type
+    assert payload["api"] == expected_api
 
 
 # --- generate: pandas schema yaml/json × csv output ---

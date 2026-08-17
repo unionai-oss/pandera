@@ -9,7 +9,7 @@ from typing import Any, Literal
 import typer
 
 from . import rich_report
-from .common import BackendName, load_dataset, load_raw_schema
+from .common import API_VALUES, BackendName, load_dataset
 
 __all__ = ["InferFormat", "ScriptType", "infer"]
 
@@ -250,8 +250,9 @@ def infer(
         "--backend",
         "-b",
         help=(
-            "Dataframe library to use for loading data and for the output "
-            "schema API."
+            "Dataframe API to use for loading data and for the output "
+            "schema API (``narwhals`` is a validation-only backend and is "
+            "not accepted here)."
         ),
     ),
     output_format: InferFormat | None = typer.Option(
@@ -299,6 +300,15 @@ def infer(
         typer.secho(f"Data file not found: {data}", err=True)
         raise typer.Exit(1)
 
+    if backend is BackendName.narwhals:
+        typer.secho(
+            "--backend narwhals selects a validation backend and cannot be "
+            "used with `infer`. Pass the dataframe API instead, e.g. "
+            f"{', '.join(API_VALUES)}.",
+            err=True,
+        )
+        raise typer.Exit(1)
+
     resolved_fmt = _resolve_infer_format(output, output_format)
     chosen = backend.value
 
@@ -327,6 +337,8 @@ def infer(
             script_type=script_type,
             minimal=True,
         )
+    except typer.Exit:
+        raise
     except ImportError as exc:
         typer.secho(
             f"Could not write output ({exc}). "
@@ -337,6 +349,12 @@ def infer(
         raise typer.Exit(1) from exc
     except OSError as exc:
         typer.secho(f"Could not write {output}:\n{exc}", err=True)
+        raise typer.Exit(1) from exc
+    except Exception as exc:
+        typer.secho(
+            f"Could not write the inferred schema to {output}:\n{exc}",
+            err=True,
+        )
         raise typer.Exit(1) from exc
 
     rich_report.print_infer_summary(

@@ -1,10 +1,11 @@
-"""CLI tests for the Narwhals-powered validation backend (``--use-narwhals``)."""
+"""CLI tests for the Narwhals-powered validation backend (``--backend narwhals``)."""
 
 from __future__ import annotations
 
 from pathlib import Path
 
 import pytest
+import yaml
 
 from tests.cli.conftest import (
     assert_validate_ok,
@@ -52,17 +53,17 @@ def _write_ibis_schema(path: Path) -> None:
     ibis_io.to_yaml(schema, path)
 
 
-def test_validate_polars_use_narwhals_ok(tmp_path: Path) -> None:
+def test_validate_polars_backend_narwhals_ok(tmp_path: Path) -> None:
     pytest.importorskip("polars")
     schema_path = tmp_path / "schema.yaml"
     data_path = tmp_path / "data.csv"
     _write_polars_schema(schema_path)
     _write_polars_data(data_path)
-    proc = run_validate(schema_path, data_path, use_narwhals=True)
+    proc = run_validate(schema_path, data_path, backend="narwhals")
     assert_validate_ok(proc)
 
 
-def test_validate_polars_use_narwhals_failure_exits_nonzero(
+def test_validate_polars_backend_narwhals_failure_exits_nonzero(
     tmp_path: Path,
 ) -> None:
     pytest.importorskip("polars")
@@ -70,7 +71,7 @@ def test_validate_polars_use_narwhals_failure_exits_nonzero(
     data_path = tmp_path / "data.csv"
     _write_polars_schema(schema_path)
     _write_polars_data(data_path, valid=False)
-    proc = run_validate(schema_path, data_path, use_narwhals=True)
+    proc = run_validate(schema_path, data_path, backend="narwhals")
     assert proc.returncode != 0
     assert "Validation failed" in proc.stderr + proc.stdout
 
@@ -89,7 +90,7 @@ def test_validate_polars_narwhals_env_var_ok(tmp_path: Path) -> None:
     assert_validate_ok(proc)
 
 
-def test_validate_ibis_use_narwhals_ok(tmp_path: Path) -> None:
+def test_validate_ibis_backend_narwhals_ok(tmp_path: Path) -> None:
     pytest.importorskip("ibis")
     schema_path = tmp_path / "schema.yaml"
     data_path = tmp_path / "data.csv"
@@ -97,17 +98,60 @@ def test_validate_ibis_use_narwhals_ok(tmp_path: Path) -> None:
     import pandas as pd
 
     pd.DataFrame({"x": [1, 2], "y": ["a", "b"]}).to_csv(data_path, index=False)
-    proc = run_validate(schema_path, data_path, use_narwhals=True)
+    proc = run_validate(schema_path, data_path, backend="narwhals")
     assert_validate_ok(proc)
 
 
-def test_validate_use_narwhals_rejects_pandas_backend(tmp_path: Path) -> None:
+def test_validate_narwhals_rejects_pandas_api(tmp_path: Path) -> None:
     schema_path = tmp_path / "schema.yaml"
     data_path = tmp_path / "data.csv"
     write_pandas_api_schema(schema_path, schema_kind="yaml")
     write_pandas_compatible_data(data_path, "csv")
-    proc = run_validate(schema_path, data_path, use_narwhals=True)
+    proc = run_validate(schema_path, data_path, backend="narwhals")
     assert proc.returncode == 1
-    assert "--use-narwhals is not supported for backend 'pandas'" in (
+    assert "--backend narwhals is not supported for api 'pandas'" in (
         proc.stderr + proc.stdout
     )
+
+
+def test_validate_backend_mismatch_with_schema_api(tmp_path: Path) -> None:
+    """``--backend ibis`` is rejected for a schema whose api is ``polars``."""
+    pytest.importorskip("polars")
+    schema_path = tmp_path / "schema.yaml"
+    data_path = tmp_path / "data.csv"
+    _write_polars_schema(schema_path)
+    _write_polars_data(data_path)
+    proc = run_validate(schema_path, data_path, backend="ibis")
+    assert proc.returncode == 1
+    assert "does not match the schema's api 'polars'" in (
+        proc.stderr + proc.stdout
+    )
+
+
+def test_pandas_api_schema_file_includes_api_field(tmp_path: Path) -> None:
+    schema_path = tmp_path / "schema.yaml"
+    data_path = tmp_path / "data.csv"
+    write_pandas_api_schema(schema_path, schema_kind="yaml")
+    write_pandas_compatible_data(data_path, "csv")
+    payload = yaml.safe_load(schema_path.read_text(encoding="utf-8"))
+    assert payload["api"] == "pandas"
+    proc = run_validate(schema_path, data_path)
+    assert_validate_ok(proc)
+
+
+def test_polars_schema_file_includes_api_field(tmp_path: Path) -> None:
+    pytest.importorskip("polars")
+    schema_path = tmp_path / "schema.yaml"
+    _write_polars_schema(schema_path)
+    payload = yaml.safe_load(schema_path.read_text(encoding="utf-8"))
+    assert payload["api"] == "polars"
+    assert payload["schema_type"] == "polars_dataframe"
+
+
+def test_ibis_schema_file_includes_api_field(tmp_path: Path) -> None:
+    pytest.importorskip("ibis")
+    schema_path = tmp_path / "schema.yaml"
+    _write_ibis_schema(schema_path)
+    payload = yaml.safe_load(schema_path.read_text(encoding="utf-8"))
+    assert payload["api"] == "ibis"
+    assert payload["schema_type"] == "ibis_table"

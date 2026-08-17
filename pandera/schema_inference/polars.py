@@ -17,6 +17,11 @@ from pandera.schema_statistics.polars import (
 def infer_dataframe_schema(df: pl.DataFrame) -> DataFrameSchema:
     """Infer a :class:`DataFrameSchema` from a Polars DataFrame.
 
+    String columns get a ``str_length`` check derived from the observed
+    minimum and maximum lengths. This differs from
+    :func:`pandera.schema_inference.pandas.infer_dataframe_schema`, where
+    ``str_length`` inference is opt-in via ``infer_str_length``.
+
     :param df: Polars DataFrame to infer from.
     :returns: Inferred schema with ``coerce=True``.
     """

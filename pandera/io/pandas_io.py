@@ -176,6 +176,9 @@ def serialize_schema(
         ``pandas``.
     :param minimal: If True (default), omit keys equal to schema constructor
         defaults so output only contains user-meaningful options.
+
+    The output includes an ``api`` field recording the underlying dataframe
+    API (``dataframe_library``).
     """
     from pandera import __version__
 
@@ -216,6 +219,7 @@ def serialize_schema(
     out = {
         "schema_type": "dataframe",
         "version": __version__,
+        "api": lib,
         "columns": columns,
         "checks": checks,
         "index": index,
@@ -420,10 +424,14 @@ def deserialize_schema(serialized_schema):
     metadata = None
     if serialized_schema.get("metadata"):
         metadata = dict(serialized_schema["metadata"])
-    if "dataframe_library" in serialized_schema:
-        lib = serialized_schema.get("dataframe_library", "pandas")
-        if lib not in _DATAFRAME_LIBRARY_CHOICES:
-            lib = "pandas"
+    # ``dataframe_library`` (legacy) and ``api`` (newer schema files) both
+    # tag the pandas-API dataframe implementation. Both are optional and
+    # default to pandas when absent; the default adds no metadata so that
+    # round-tripped schemas stay equal to their originals.
+    lib = serialized_schema.get("dataframe_library")
+    if lib is None:
+        lib = serialized_schema.get("api", "pandas")
+    if lib in _DATAFRAME_LIBRARY_CHOICES and lib != "pandas":
         if metadata is None:
             metadata = {}
         metadata["dataframe_library"] = lib

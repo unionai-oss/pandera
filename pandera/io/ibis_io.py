@@ -8,8 +8,6 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any, Literal
 
-import numpy as np
-
 from pandera import dtypes
 from pandera.api.checks import Check
 from pandera.api.ibis.components import Column
@@ -115,6 +113,8 @@ def serialize_schema(
     """Serialize an Ibis table schema into a JSON/YAML-compatible dict.
 
     :param minimal: If True (default), omit keys equal to constructor defaults.
+
+    The output includes an ``api`` field set to ``ibis``.
     """
     from pandera import __version__
 
@@ -133,6 +133,7 @@ def serialize_schema(
     out = {
         "schema_type": "ibis_table",
         "version": __version__,
+        "api": "ibis",
         "columns": columns,
         "checks": checks,
         "index": None,
@@ -198,6 +199,8 @@ def _deserialize_check_stats(check, serialized_check_stats, dtype=None):
 
 def _deserialize_ibis_dtype(serialized_dtype):
     """Restore an Ibis engine dtype from a serialized string or value."""
+    import numpy as np
+
     if serialized_dtype is None:
         return None
     if not isinstance(serialized_dtype, str):
