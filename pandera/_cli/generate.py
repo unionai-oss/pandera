@@ -159,12 +159,20 @@ def _sanitize_for_csv(df: Any) -> Any:
                 value = value.replace(bad, good)
         return value
 
+    import pandas as pd
+
+    def _may_hold_strings(series: Any) -> bool:
+        # Spelled with the pandas type-check API rather than a dtype
+        # allowlist: the default string dtype differs across pandas versions
+        # (``object`` on 2.x, ``str`` on 3.x), and missing it here silently
+        # skips sanitizing and writes a raw NUL.
+        return pd.api.types.is_object_dtype(
+            series
+        ) or pd.api.types.is_string_dtype(series)
+
     out = df
     for col in df.columns:
-        if df[col].dtype == object or str(df[col].dtype) in (
-            "string",
-            "string[python]",
-        ):
+        if _may_hold_strings(df[col]):
             cleaned = df[col].map(_clean)
             if not cleaned.equals(df[col]):
                 if out is df:
