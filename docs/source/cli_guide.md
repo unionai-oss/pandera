@@ -227,7 +227,7 @@ columns:
 
 ## Validate through the Narwhals backend
 
-Polars, Ibis, and PySpark SQL schemas can validate through the
+Pandas, Polars, Ibis, and PySpark SQL schemas can validate through the
 {ref}`Narwhals-powered backend <narwhals-backend>` by passing `--backend
 narwhals` to `pandera validate`. Install the `narwhals` extra alongside the
 dataframe library you use:
@@ -236,7 +236,8 @@ dataframe library you use:
 pip install 'pandera[cli,narwhals,polars]'
 ```
 
-Then pass the option when validating a Polars, Ibis, or PySpark SQL schema:
+Then pass the option when validating a pandas, Polars, Ibis, or PySpark SQL
+schema:
 
 ```bash
 pandera validate -s /tmp/polars_schema.yaml -d /tmp/dataset.csv --backend narwhals
@@ -250,10 +251,10 @@ PANDERA_USE_NARWHALS_BACKEND=True pandera validate -s /tmp/polars_schema.yaml -d
 ```
 
 The data is loaded per the schema's `api` field above, which must be
-`polars`, `ibis`, or `pyspark.sql`. Passing `--backend narwhals` with a
-pandas-API schema (pandas, modin, dask, or pyspark.pandas) exits with an
-error, since the Narwhals backend only powers the Polars, Ibis, and PySpark
-SQL integrations.
+`pandas`, `polars`, `ibis`, or `pyspark.sql`. The Narwhals backend swaps
+`pd.DataFrame` dispatch only, so the other pandas-like APIs (`modin`,
+`dask`, `pyspark.pandas`) stay on their native backends and passing
+`--backend narwhals` for them exits with an error.
 
 :::{important}
 **Other backends and formats**

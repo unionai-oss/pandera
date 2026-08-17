@@ -41,8 +41,10 @@ API_VALUES = (
     "pyspark.sql",
 )
 
-#: APIs that can validate through the Narwhals-powered backend.
-NARWHALS_COMPATIBLE_APIS = ("polars", "ibis", "pyspark.sql")
+#: APIs that can validate through the Narwhals-powered backend. The backend
+#: swaps ``pd.DataFrame`` dispatch only; the other pandas-like frame types
+#: (modin, dask, pyspark.pandas) stay on their native backends.
+NARWHALS_COMPATIBLE_APIS = ("pandas", "polars", "ibis", "pyspark.sql")
 
 #: ``schema_type`` values from serialized schemas mapped to the ``api``
 #: values compatible with each (``api`` is optional; this is used to

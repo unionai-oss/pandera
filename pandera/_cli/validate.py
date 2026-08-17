@@ -42,8 +42,8 @@ def validate(
         help=(
             "Validation backend. A dataframe API (pandas, modin, dask, "
             "pyspark.pandas, polars, ibis, pyspark.sql) must match the "
-            "schema's api field; narwhals validates polars, ibis, and "
-            "pyspark.sql schemas through the Narwhals-powered backend "
+            "schema's api field; narwhals validates pandas, polars, ibis, "
+            "and pyspark.sql schemas through the Narwhals-powered backend "
             "(requires pandera[narwhals]). Default: the schema's api."
         ),
     ),

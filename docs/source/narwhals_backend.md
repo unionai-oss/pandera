@@ -62,8 +62,9 @@ when backends are registered and how runtime toggling works.
 
 ### Command-line interface
 
-The {ref}`Pandera CLI <cli>` can validate Polars, Ibis, and PySpark SQL
-schemas through the Narwhals backend with the `--backend narwhals` option:
+The {ref}`Pandera CLI <cli>` can validate pandas, Polars, Ibis, and PySpark
+SQL schemas through the Narwhals backend with the `--backend narwhals`
+option:
 
 ```bash
 pandera validate -s schema.yaml -d data.csv --backend narwhals

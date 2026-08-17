@@ -539,3 +539,26 @@ def test_infer_rejects_narwhals_backend(tmp_path: Path):
     )
     assert proc.returncode != 0
     assert "cannot be used with `infer`" in (proc.stderr + proc.stdout)
+
+
+@pytest.mark.parametrize(
+    "value",
+    ["carriage\rreturn", "new\nline", 'embedded "quote"', "comma,separated"],
+)
+def test_generate_csv_writer_handles_control_characters(
+    tmp_path: Path, value: str
+):
+    """Synthetic strings can contain any text; CSV output must survive it.
+
+    Under ``QUOTE_MINIMAL``, Python < 3.12 leaves a bare ``\\r`` unquoted and
+    ``to_csv`` fails with "need to escape, but no escapechar set".
+    """
+    from pandera._cli.generate import _write_generated_tabular_pandas
+
+    out_path = tmp_path / "out.csv"
+    df = pd.DataFrame({"i": [1], "s": [value]})
+    _write_generated_tabular_pandas(df, out_path, "csv")
+
+    back = pd.read_csv(out_path)
+    assert back["s"].tolist() == [value]
+    assert back["i"].tolist() == [1]

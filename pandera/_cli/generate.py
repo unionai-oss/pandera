@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import csv
 from enum import Enum
 from pathlib import Path
 from typing import Any
@@ -150,7 +151,13 @@ def _write_generated_tabular_pandas(
         )
         raise typer.Exit(1)
     if writer_key == "csv":
-        df.to_csv(path, index=False)
+        # Synthetic strings are arbitrary text and routinely contain the
+        # delimiter, quote characters, or bare "\r". Under QUOTE_MINIMAL,
+        # Python < 3.12 only quotes control characters that appear in
+        # ``lineterminator``, so a drawn "\r" raises "need to escape, but no
+        # escapechar set". Quoting every field is version-independent and
+        # still round-trips through ``read_csv`` with dtypes intact.
+        df.to_csv(path, index=False, quoting=csv.QUOTE_ALL)
     elif writer_key == "json":
         df.to_json(path, orient="records")
     elif writer_key == "parquet":

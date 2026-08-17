@@ -102,14 +102,30 @@ def test_validate_ibis_backend_narwhals_ok(tmp_path: Path) -> None:
     assert_validate_ok(proc)
 
 
-def test_validate_narwhals_rejects_pandas_api(tmp_path: Path) -> None:
+def test_validate_pandas_backend_narwhals_ok(tmp_path: Path) -> None:
+    """The Narwhals backend swaps ``pd.DataFrame`` dispatch, so pandas works."""
     schema_path = tmp_path / "schema.yaml"
     data_path = tmp_path / "data.csv"
     write_pandas_api_schema(schema_path, schema_kind="yaml")
     write_pandas_compatible_data(data_path, "csv")
     proc = run_validate(schema_path, data_path, backend="narwhals")
+    assert_validate_ok(proc)
+
+
+@pytest.mark.parametrize("library", ["modin", "dask", "pyspark.pandas"])
+def test_validate_narwhals_rejects_other_pandas_like_apis(
+    tmp_path: Path, library: str
+) -> None:
+    """Only ``pd.DataFrame`` is routed through Narwhals, not its cousins."""
+    schema_path = tmp_path / "schema.yaml"
+    data_path = tmp_path / "data.csv"
+    write_pandas_api_schema(
+        schema_path, schema_kind="yaml", dataframe_library=library
+    )
+    write_pandas_compatible_data(data_path, "csv")
+    proc = run_validate(schema_path, data_path, backend="narwhals")
     assert proc.returncode == 1
-    assert "--backend narwhals is not supported for api 'pandas'" in (
+    assert f"--backend narwhals is not supported for api '{library}'" in (
         proc.stderr + proc.stdout
     )
 
