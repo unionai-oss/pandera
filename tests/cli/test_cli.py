@@ -545,13 +545,13 @@ def test_infer_rejects_narwhals_backend(tmp_path: Path):
     "value",
     ["carriage\rreturn", "new\nline", 'embedded "quote"', "comma,separated"],
 )
-def test_generate_csv_writer_handles_control_characters(
+def test_generate_csv_writer_round_trips_special_characters(
     tmp_path: Path, value: str
 ):
-    """Synthetic strings can contain any text; CSV output must survive it.
+    """Synthetic strings are arbitrary text; CSV output must survive it.
 
-    Under ``QUOTE_MINIMAL``, Python < 3.12 leaves a bare ``\\r`` unquoted and
-    ``to_csv`` fails with "need to escape, but no escapechar set".
+    A bare ``\\r`` written unquoted is treated as a row break by readers,
+    silently splitting one record into two.
     """
     from pandera._cli.generate import _write_generated_tabular_pandas
 
@@ -562,3 +562,52 @@ def test_generate_csv_writer_handles_control_characters(
     back = pd.read_csv(out_path)
     assert back["s"].tolist() == [value]
     assert back["i"].tolist() == [1]
+
+
+def test_generate_csv_writer_handles_nul_character(tmp_path: Path):
+    """Hypothesis draws NUL, which CSV cannot represent.
+
+    On Python < 3.12 the csv writer stores an unset ``escapechar`` as 0, so a
+    NUL in the data compares equal to it and ``to_csv`` fails outright with
+    "need to escape, but no escapechar set" in every quoting mode.
+    """
+    from pandera._cli.generate import _write_generated_tabular_pandas
+
+    out_path = tmp_path / "out.csv"
+    df = pd.DataFrame({"i": [1], "s": ["has\x00nul"]})
+    _write_generated_tabular_pandas(df, out_path, "csv")
+
+    back = pd.read_csv(out_path)
+    assert len(back) == 1
+    written = back["s"].iloc[0]
+    assert "\x00" not in written
+    # length is preserved so inferred str_length checks still hold
+    assert len(written) == len("has\x00nul")
+
+
+def test_generate_csv_writer_does_not_mutate_input(tmp_path: Path):
+    """Sanitizing for CSV must not alter the caller's DataFrame."""
+    from pandera._cli.generate import _write_generated_tabular_pandas
+
+    df = pd.DataFrame({"s": ["has\x00nul"]})
+    _write_generated_tabular_pandas(df, tmp_path / "out.csv", "csv")
+    assert df["s"].iloc[0] == "has\x00nul"
+
+
+@pytest.mark.parametrize("writer_key", ["json", "parquet", "feather"])
+def test_generate_non_csv_writers_preserve_nul(
+    tmp_path: Path, writer_key: str
+):
+    """Only CSV needs the substitution; binary/JSON formats carry NUL fine."""
+    from pandera._cli.generate import _write_generated_tabular_pandas
+
+    out_path = tmp_path / f"out.{writer_key}"
+    df = pd.DataFrame({"s": ["has\x00nul"]})
+    _write_generated_tabular_pandas(df, out_path, writer_key)
+
+    reader = {
+        "json": pd.read_json,
+        "parquet": pd.read_parquet,
+        "feather": pd.read_feather,
+    }[writer_key]
+    assert reader(out_path)["s"].iloc[0] == "has\x00nul"

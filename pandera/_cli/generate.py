@@ -139,6 +139,44 @@ def _generate_xarray_example(schema: Any, size: int) -> Any:
         return strat.example()
 
 
+#: CSV is a text format and cannot carry NUL. Worse, on Python < 3.12 the
+#: csv writer stores an unset ``escapechar`` as 0, so a NUL in the data
+#: compares equal to it and the write fails outright with "need to escape,
+#: but no escapechar set" regardless of the quoting mode. Substitute the
+#: Unicode replacement character, which keeps string lengths intact so
+#: inferred ``str_length`` checks still hold for the generated sample.
+_CSV_UNREPRESENTABLE = {"\x00": "�"}
+
+
+def _sanitize_for_csv(df: Any) -> Any:
+    """Replace characters CSV cannot represent; returns a copy if changed."""
+
+    def _clean(value: Any) -> Any:
+        if not isinstance(value, str):
+            return value
+        for bad, good in _CSV_UNREPRESENTABLE.items():
+            if bad in value:
+                value = value.replace(bad, good)
+        return value
+
+    out = df
+    for col in df.columns:
+        if df[col].dtype == object or str(df[col].dtype) in (
+            "string",
+            "string[python]",
+        ):
+            cleaned = df[col].map(_clean)
+            if not cleaned.equals(df[col]):
+                if out is df:
+                    out = df.copy()
+                out[col] = cleaned
+
+    renamed = {c: _clean(c) for c in out.columns}
+    if any(k != v for k, v in renamed.items()):
+        out = out.rename(columns=renamed)
+    return out
+
+
 def _write_generated_tabular_pandas(
     df: Any, path: Path, writer_key: str
 ) -> None:
@@ -151,13 +189,16 @@ def _write_generated_tabular_pandas(
         )
         raise typer.Exit(1)
     if writer_key == "csv":
-        # Synthetic strings are arbitrary text and routinely contain the
-        # delimiter, quote characters, or bare "\r". Under QUOTE_MINIMAL,
-        # Python < 3.12 only quotes control characters that appear in
-        # ``lineterminator``, so a drawn "\r" raises "need to escape, but no
-        # escapechar set". Quoting every field is version-independent and
-        # still round-trips through ``read_csv`` with dtypes intact.
-        df.to_csv(path, index=False, quoting=csv.QUOTE_ALL)
+        df = _sanitize_for_csv(df)
+    if writer_key == "csv":
+        # Quote every field: under QUOTE_MINIMAL a bare "\r" is written raw,
+        # and readers then treat it as a row break, silently splitting one
+        # record into two.
+        df.to_csv(
+            path,
+            index=False,
+            quoting=csv.QUOTE_ALL,
+        )
     elif writer_key == "json":
         df.to_json(path, orient="records")
     elif writer_key == "parquet":
