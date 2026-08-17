@@ -65,7 +65,7 @@ class Check(BaseCheck):
             callable is passed, the expected signature is: ``Callable[
             [pd.DataFrame], pd.core.groupby.DataFrameGroupBy]``
 
-            The the case of ``Column`` checks, this function has access to the
+            In the case of ``Column`` checks, this function has access to the
             entire dataframe, but ``Column.name`` is selected from this
             DataFrameGroupby object so that a SeriesGroupBy object is passed
             into ``check_fn``.
