@@ -51,6 +51,8 @@ pandera/                  # Main package
 ├── dtypes.py             # Abstract data type definitions
 ├── errors.py             # SchemaError, SchemaInitError, ParserError, etc.
 ├── extensions.py         # Custom check/parser extension mechanism
+├── cli.py                # Console script entry (imports ``pandera._cli.run``)
+├── _cli/                 # Typer CLI: ``common``, ``validate``, ``infer``, ``generate``
 ├── pandas.py             # Pandas entry point: `import pandera.pandas as pa`
 ├── geopandas.py          # GeoPandas entry (`pg`): pandas API + GeoDataFrameSchema/Model
 ├── polars.py             # Polars entry point: `import pandera.polars as pa`
@@ -59,6 +61,7 @@ pandera/                  # Main package
 
 tests/                    # Test suite (mirrors backend structure)
 ├── base/                 # Core tests (no backend-specific deps)
+├── cli/                  # CLI tests (format/backend matrices; PySpark combos need ``PANDERA_RUN_SPARK_CLI=1``)
 ├── pandas/               # Pandas backend tests (~38 files)
 ├── polars/               # Polars backend tests
 ├── pyspark/              # PySpark backend tests

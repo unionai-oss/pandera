@@ -3,7 +3,7 @@
 import os
 import sys
 import warnings
-from typing import overload
+from typing import Literal, overload
 
 import ibis
 
@@ -141,6 +141,20 @@ class DataFrameSchema(_DataFrameSchema[ibis.Table]):
         from pandera.io import ibis_io
 
         return ibis_io.to_yaml(self, stream=stream, minimal=minimal)
+
+    def to_script(
+        self,
+        fp: str | os.PathLike | None = None,
+        *,
+        minimal: bool = True,
+        script_type: Literal["schema", "model"] = "schema",
+    ) -> str | None:
+        """Write schema or model script (see :mod:`pandera.io.ibis_io`)."""
+        from pandera.io import ibis_io
+
+        return ibis_io.to_script(
+            self, fp, minimal=minimal, script_type=script_type
+        )
 
     @classmethod
     def from_json(cls, source) -> Self:

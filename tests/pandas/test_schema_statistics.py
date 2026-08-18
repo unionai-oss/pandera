@@ -182,6 +182,10 @@ def test_infer_dataframe_statistics(multi_index: bool, nullable: bool) -> None:
                 pa.Check.less_than_or_equal_to(10),
             ],
         ],
+        [
+            {"str_length": {"min_value": 1, "max_value": 5}},
+            [pa.Check.str_length(1, 5)],
+        ],
         [{}, None],
     ],
 )
@@ -265,6 +269,41 @@ def test_infer_series_schema_statistics(series, expectation) -> None:
     """Test series statistics are correctly inferred."""
     statistics = schema_statistics.infer_series_statistics(series)
     _test_statistics(statistics, expectation)
+
+
+def test_infer_series_statistics_str_length_opt_in() -> None:
+    """``infer_str_length=True`` adds str_length checks for string values;
+    the default leaves string columns check-free so that inferred schemas
+    keep validating after a column's dtype is updated (issue #2047)."""
+    series = pd.Series(["a", "bcd", "ef"], name="str_series")
+
+    default_stats = schema_statistics.infer_series_statistics(series)
+    assert default_stats["checks"] is None
+
+    stats = schema_statistics.infer_series_statistics(
+        series, infer_str_length=True
+    )
+    assert stats["checks"] == {"str_length": {"min_value": 1, "max_value": 3}}
+
+
+def test_infer_dataframe_statistics_str_length_opt_in() -> None:
+    """``infer_str_length=True`` applies to string columns of a dataframe."""
+    df = pd.DataFrame({"s": ["a", "bcd"], "n": [1, 2]})
+
+    default_stats = schema_statistics.infer_dataframe_statistics(df)
+    assert default_stats["columns"]["s"]["checks"] is None
+
+    stats = schema_statistics.infer_dataframe_statistics(
+        df, infer_str_length=True
+    )
+    assert stats["columns"]["s"]["checks"] == {
+        "str_length": {"min_value": 1, "max_value": 3}
+    }
+    # numeric columns are unaffected by the flag
+    assert stats["columns"]["n"]["checks"] == {
+        "greater_than_or_equal_to": 1.0,
+        "less_than_or_equal_to": 2.0,
+    }
 
 
 @pytest.mark.parametrize(
@@ -382,10 +421,7 @@ def test_empty_series_schema_statistics(null_values, dtype):
                     "name": None,
                     "dtype": DEFAULT_INT,
                     "nullable": False,
-                    "checks": {
-                        "greater_than_or_equal_to": 0,
-                        "less_than_or_equal_to": 19,
-                    },
+                    "checks": None,
                 }
             ],
         ],
@@ -396,10 +432,7 @@ def test_empty_series_schema_statistics(null_values, dtype):
                     "name": "int_index",
                     "dtype": DEFAULT_INT,
                     "nullable": False,
-                    "checks": {
-                        "greater_than_or_equal_to": 1,
-                        "less_than_or_equal_to": 3,
-                    },
+                    "checks": None,
                 }
             ],
         ],
@@ -429,16 +462,13 @@ def test_empty_series_schema_statistics(null_values, dtype):
                     "name": "int_index",
                     "dtype": DEFAULT_INT,
                     "nullable": False,
-                    "checks": {
-                        "greater_than_or_equal_to": 10,
-                        "less_than_or_equal_to": 12,
-                    },
+                    "checks": None,
                 },
                 {
                     "name": "str_index",
                     "dtype": pandas_engine.Engine.dtype(pa.Category),
                     "nullable": False,
-                    "checks": {"isin": ["a", "b", "c"]},
+                    "checks": None,
                 },
             ],
         ],

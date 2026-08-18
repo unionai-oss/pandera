@@ -100,6 +100,7 @@ extensions = [
     "sphinx.ext.linkcode",  # link to github, see linkcode_resolve() below
     "sphinx_copybutton",
     "sphinx_design",
+    "sphinxcontrib.typer",
     "myst_nb",
 ]
 
@@ -185,6 +186,10 @@ master_doc = "index"
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = [".ipynb_checkpoints/*", "notebooks/try_pandera.ipynb"]
+
+# sphinxcontrib-typer emits pdf/png image nodes for non-html builders (e.g.
+# the doctest builder), but those files are only generated for the html build.
+suppress_warnings = ["image.not_readable"]
 
 autoclass_content = "both"
 

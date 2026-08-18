@@ -6,7 +6,7 @@ import enum
 import json
 from collections.abc import Mapping
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 from pandera import dtypes
 from pandera.api.checks import Check
@@ -109,6 +109,8 @@ def serialize_schema(
     """Serialize a PySpark SQL dataframe schema to a JSON/YAML-compatible dict.
 
     :param minimal: If True (default), omit keys equal to constructor defaults.
+
+    The output includes an ``api`` field set to ``pyspark.sql``.
     """
     from pandera import __version__
 
@@ -127,6 +129,7 @@ def serialize_schema(
     out = {
         "schema_type": "pyspark_sql_dataframe",
         "version": __version__,
+        "api": "pyspark.sql",
         "columns": columns,
         "checks": checks,
         "index": None,
@@ -341,3 +344,22 @@ def to_json(dataframe_schema, target=None, *, minimal: bool = True, **kwargs):
             json.dump(serialized_schema, fp=f, sort_keys=False, **kwargs)
     else:
         json.dump(serialized_schema, fp=target, sort_keys=False, **kwargs)
+
+
+def to_script(
+    dataframe_schema,
+    path_or_buf=None,
+    *,
+    minimal: bool = True,
+    script_type: Literal["schema", "model"] = "schema",
+):
+    """Write a PySpark :class:`DataFrameSchema` (or model) to a Python script."""
+    from pandera.io import common_io
+
+    return common_io.to_script(
+        dataframe_schema,
+        path_or_buf,
+        minimal=minimal,
+        script_type=script_type,
+        backend="pyspark",
+    )

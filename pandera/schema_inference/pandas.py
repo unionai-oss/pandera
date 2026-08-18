@@ -64,13 +64,20 @@ def _create_index(index_statistics):
     return index
 
 
-def infer_dataframe_schema(df: pd.DataFrame) -> DataFrameSchema:
+def infer_dataframe_schema(
+    df: pd.DataFrame, *, infer_str_length: bool = False
+) -> DataFrameSchema:
     """Infer a DataFrameSchema from a pandas DataFrame.
 
     :param df: DataFrame object to infer.
+    :param infer_str_length: also infer ``str_length`` checks for string-like
+        columns. Off by default so that inferred schemas keep validating when
+        a column's dtype is later updated (e.g. together with a parser).
     :returns: DataFrameSchema
     """
-    df_statistics = infer_dataframe_statistics(df)
+    df_statistics = infer_dataframe_statistics(
+        df, infer_str_length=infer_str_length
+    )
     schema = DataFrameSchema(
         columns={
             colname: Column(
@@ -86,13 +93,19 @@ def infer_dataframe_schema(df: pd.DataFrame) -> DataFrameSchema:
     return schema
 
 
-def infer_series_schema(series) -> SeriesSchema:
+def infer_series_schema(
+    series, *, infer_str_length: bool = False
+) -> SeriesSchema:
     """Infer a SeriesSchema from a pandas DataFrame.
 
     :param series: Series object to infer.
+    :param infer_str_length: also infer ``str_length`` checks for string-like
+        values (see :func:`infer_dataframe_schema`).
     :returns: SeriesSchema
     """
-    series_statistics = infer_series_statistics(series)
+    series_statistics = infer_series_statistics(
+        series, infer_str_length=infer_str_length
+    )
     schema = SeriesSchema(
         dtype=series_statistics["dtype"],
         checks=parse_check_statistics(series_statistics["checks"]),

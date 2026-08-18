@@ -19,6 +19,7 @@ DF_SCHEMA_DEFAULTS: dict[str, Any] = {
     "add_missing_columns": False,
     "title": None,
     "description": None,
+    "drop_invalid_rows": False,
 }
 
 # Column / shared component (pandas Column; polars/ibis/pyspark overlap)
@@ -61,8 +62,6 @@ def prune_serialized_check_entry(entry: Any, check_obj: Check | None) -> None:
         _prune_check_options_dict(opts)
         if not opts:
             entry.pop("options", None)
-        elif opts.keys() == {"check_name"}:
-            pass
 
 
 def _prune_check_list(

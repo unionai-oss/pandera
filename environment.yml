@@ -100,6 +100,7 @@ dependencies:
 
       # docs
       - furo
+      - sphinxcontrib-typer >= 0.8.0
       - sphinx-docsearch
       - grpcio
       - ray
@@ -109,3 +110,7 @@ dependencies:
       - types-pyyaml
       - types-requests
       - types-setuptools
+
+      # cli extra
+      - typer >= 0.12.3
+      - rich

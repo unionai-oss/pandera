@@ -6,6 +6,9 @@
 
 # API
 
+The command-line interface (installation, usage, generated help, and Python
+entry points) is documented on the dedicated {ref}`CLI <cli>` page.
+
 ## DataFrames
 
 ```{eval-rst}
@@ -36,6 +39,16 @@
      - Pandera-specific exceptions
 ```
 
+## Multi-dimensional arrays
+
+```{eval-rst}
+.. list-table::
+   :widths: 30 70
+
+   * - :ref:`Xarray <api-xarray>`
+     - Schemas for labelled N-dimensional :mod:`xarray` arrays, datasets, and datatrees
+```
+
 ## Configuration
 
 ```{eval-rst}
@@ -60,17 +73,6 @@
      - Reset context configuration to the global default
 ```
 
-See :ref:`api-core` for full details.
-
-## Multi-dimensional arrays
-
-```{eval-rst}
-.. list-table::
-   :widths: 30 70
-
-   * - :ref:`Xarray <api-xarray>`
-     - Schemas for labelled N-dimensional :mod:`xarray` arrays, datasets, and datatrees
-```
 
 ```{toctree}
 :hidden: true
