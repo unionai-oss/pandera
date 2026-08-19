@@ -509,7 +509,8 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
             ordered=False,
             unique_column_names=False,
             metadata=None,
-            add_missing_columns=False
+            add_missing_columns=False,
+            on_missing_columns=None
         )>
 
         .. seealso:: :func:`remove_columns`
@@ -563,7 +564,8 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
             ordered=False,
             unique_column_names=False,
             metadata=None,
-            add_missing_columns=False
+            add_missing_columns=False,
+            on_missing_columns=None
         )>
 
         .. seealso:: :func:`add_columns`
@@ -628,7 +630,8 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
             ordered=False,
             unique_column_names=False,
             metadata=None,
-            add_missing_columns=False
+            add_missing_columns=False,
+            on_missing_columns=None
         )>
 
         .. seealso:: :func:`rename_columns`
@@ -697,7 +700,8 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
             ordered=False,
             unique_column_names=False,
             metadata=None,
-            add_missing_columns=False
+            add_missing_columns=False,
+            on_missing_columns=None
         )>
 
         """
@@ -782,7 +786,8 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
             ordered=False,
             unique_column_names=False,
             metadata=None,
-            add_missing_columns=False
+            add_missing_columns=False,
+            on_missing_columns=None
         )>
 
         .. seealso:: :func:`update_column`
@@ -982,7 +987,8 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
             ordered=False,
             unique_column_names=False,
             metadata=None,
-            add_missing_columns=False
+            add_missing_columns=False,
+            on_missing_columns=None
         )>
 
         .. note:: If an index is present in the schema, it will also be
@@ -1049,7 +1055,8 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
             ordered=False,
             unique_column_names=False,
             metadata=None,
-            add_missing_columns=False
+            add_missing_columns=False,
+            on_missing_columns=None
         )>
 
         If you have an existing index in your schema, and you would like to
@@ -1088,7 +1095,8 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
             ordered=False,
             unique_column_names=False,
             metadata=None,
-            add_missing_columns=False
+            add_missing_columns=False,
+            on_missing_columns=None
         )>
 
         .. seealso:: :func:`reset_index`
@@ -1194,7 +1202,8 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
             ordered=False,
             unique_column_names=False,
             metadata=None,
-            add_missing_columns=False
+            add_missing_columns=False,
+            on_missing_columns=None
         )>
 
         This reclassifies an index (or indices) as a column (or columns).
@@ -1227,7 +1236,8 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
             ordered=False,
             unique_column_names=False,
             metadata=None,
-            add_missing_columns=False
+            add_missing_columns=False,
+            on_missing_columns=None
         )>
 
         .. seealso:: :func:`set_index`
