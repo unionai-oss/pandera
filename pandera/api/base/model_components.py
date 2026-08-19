@@ -48,6 +48,7 @@ class BaseFieldInfo:
         "description",
         "default",
         "metadata",
+        "on_missing",
     )
 
     def __init__(
@@ -65,6 +66,7 @@ class BaseFieldInfo:
         description: str | None = None,
         default: Any | None = None,
         metadata: dict | None = None,
+        on_missing: str | None = None,
     ) -> None:
         self.checks = to_checklist(checks)
         self.parses = to_parserlist(parses)
@@ -80,6 +82,7 @@ class BaseFieldInfo:
         self.description = description
         self.default = default
         self.metadata = metadata
+        self.on_missing = on_missing
 
     @property
     def name(self) -> str:
