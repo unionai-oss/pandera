@@ -4,9 +4,12 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from pandera.errors import SchemaError, SchemaErrorReason, SchemaErrors
+
+if TYPE_CHECKING:
+    from rich.console import ConsoleRenderable
 
 MatchKey = tuple[Any, ...]
 
@@ -340,13 +343,49 @@ def _normalize_errors(exc: SchemaError | SchemaErrors) -> list[SchemaError]:
     return [exc]
 
 
+def backend_label(backend_cls: type) -> str:
+    """Short name of a validation backend class.
+
+    ``pandera.backends.narwhals.container.DataFrameSchemaBackend`` →
+    ``narwhals``; ``pandera.backends.pandas.container.DataFrameSchemaBackend``
+    → ``pandas``. Falls back to the class name for non-pandera backends.
+    """
+    module = getattr(backend_cls, "__module__", "") or ""
+    prefix = "pandera.backends."
+    if module.startswith(prefix):
+        return module[len(prefix) :].split(".", 1)[0]
+    return backend_cls.__name__
+
+
 def _console():
     from rich.console import Console
 
     return Console(soft_wrap=True)
 
 
-def print_validation_success(schema: Any) -> None:
+def _backend_meta(backend_name: str | None) -> Any | None:
+    """A small key/value table showing the validation backend in use."""
+    if backend_name is None:
+        return None
+    from rich.table import Table
+
+    meta = Table(show_header=False, box=None, padding=(0, 2))
+    meta.add_row("[bold]Backend[/bold]", backend_name)
+    return meta
+
+
+def _panel_body(*parts: Any) -> ConsoleRenderable:
+    """A single renderable, or a ``Group`` when there are several parts."""
+    if len(parts) == 1:
+        return parts[0]
+    from rich.console import Group
+
+    return Group(*parts)
+
+
+def print_validation_success(
+    schema: Any, backend_name: str | None = None
+) -> None:
     plan, _ = build_validation_plan(schema)
     title = "[bold green]Validation succeeded[/bold green]"
     subtitle = "All listed schema- and data-level requirements passed."
@@ -373,9 +412,14 @@ def print_validation_success(schema: Any) -> None:
                 row.requirement,
                 "[green]passed[/green]",
             )
+        body: list[Any] = []
+        meta = _backend_meta(backend_name)
+        if meta is not None:
+            body.append(meta)
+        body.append(table)
         console.print(
             Panel(
-                table,
+                _panel_body(*body),
                 title=title,
                 subtitle=subtitle,
                 border_style="green",
@@ -384,13 +428,17 @@ def print_validation_success(schema: Any) -> None:
         )
     except ImportError:
         print("Validation succeeded.")
+        if backend_name is not None:
+            print(f"  Backend: {backend_name}")
         for row in plan:
             scope = "schema" if row.group.startswith("Schema") else "data"
             print(f"  [{scope}] {row.target}: {row.requirement} — passed")
 
 
 def print_validation_failure(
-    schema: Any, exc: SchemaError | SchemaErrors
+    schema: Any,
+    exc: SchemaError | SchemaErrors,
+    backend_name: str | None = None,
 ) -> None:
     plan, index_targets = build_validation_plan(schema)
     errors = _normalize_errors(exc)
@@ -443,9 +491,14 @@ def print_validation_failure(
                 _format_failure_cases(err.failure_cases),
                 _shorten_message(str(err)),
             )
+        body: list[Any] = []
+        meta = _backend_meta(backend_name)
+        if meta is not None:
+            body.append(meta)
+        body.append(main)
         console.print(
             Panel(
-                main,
+                _panel_body(*body),
                 title="[bold red]Validation failed[/bold red]",
                 border_style="red",
                 expand=True,
@@ -456,6 +509,8 @@ def print_validation_failure(
         )
     except ImportError:
         print("Validation failed.")
+        if backend_name is not None:
+            print(f"  Backend: {backend_name}")
         for row in plan:
             lvl = "schema" if row.group.startswith("Schema") else "data"
             st = "failed" if row.key in failed_keys else "passed"
