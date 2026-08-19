@@ -6,7 +6,11 @@ the typing module.
 
 from functools import lru_cache
 
-from pandera.typing.common import AnnotationInfo
+from pandera.typing.common import (
+    AnnotationInfo,
+    Column,
+    is_column_annotation,
+)
 
 try:
     from pandera.typing.pandas import (
@@ -121,10 +125,12 @@ def get_index_types():
 
 __all__ = [
     "AnnotationInfo",
+    "Column",
     "DataFrame",
     "Series",
     "Index",
     "get_dataframe_types",
     "get_index_types",
     "get_series_types",
+    "is_column_annotation",
 ]

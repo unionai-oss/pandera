@@ -17,7 +17,7 @@ import pandera.api.extensions as pax
 import pandera.pandas as pa
 from pandera.api.base.model import MetaModel
 from pandera.errors import SchemaError, SchemaInitError
-from pandera.typing import DataFrame, Index, Series, String
+from pandera.typing import Column, DataFrame, Index, Series, String
 from pandera.typing import pandas as pandas_typing
 
 
@@ -116,6 +116,121 @@ def test_schema_with_bare_types():
     )
 
     assert expected == Model.to_schema()
+
+
+def test_column_annotation_runtime_contract() -> None:
+    """Test the public typing-only ``Column`` model annotation."""
+
+    nullable_int = Optional[int]  # noqa: UP045
+
+    class Model(pa.DataFrameModel):
+        required: Column[int]
+        nullable_values: Column[int | None]
+        optional_presence: Column[int] | None
+        optional_values: Column[nullable_int]
+        explicit_nullable: Column[int | None] = pa.Field(nullable=False)
+        explicit_non_nullable: Column[int] = pa.Field(nullable=True)
+        aliased: Column[str] = pa.Field(alias="renamed")
+
+    schema = Model.to_schema()
+
+    assert schema.columns["required"].dtype == pa.Column(int).dtype
+    assert schema.columns["required"].required
+    assert not schema.columns["required"].nullable
+
+    assert schema.columns["nullable_values"].dtype == pa.Column(int).dtype
+    assert schema.columns["nullable_values"].required
+    assert schema.columns["nullable_values"].nullable
+
+    assert schema.columns["optional_presence"].dtype == pa.Column(int).dtype
+    assert not schema.columns["optional_presence"].required
+    assert not schema.columns["optional_presence"].nullable
+
+    assert schema.columns["optional_values"].dtype == pa.Column(int).dtype
+    assert schema.columns["optional_values"].required
+    assert schema.columns["optional_values"].nullable
+
+    assert not schema.columns["explicit_nullable"].nullable
+    assert schema.columns["explicit_non_nullable"].nullable
+    assert Model.aliased == "renamed"
+    for name in (
+        Model.required,
+        Model.nullable_values,
+        Model.optional_presence,
+    ):
+        assert isinstance(name, str)
+
+
+def test_column_annotation_metadata_and_inheritance() -> None:
+    """Test ``Column`` with ``Annotated`` metadata and inherited fields."""
+
+    class Parent(pa.DataFrameModel):
+        inherited: Column[int] = pa.Field(description="inherited")
+        overridden: Column[int] = pa.Field(description="parent")
+
+    class Child(Parent):
+        overridden: Column[int] = pa.Field(description="overridden")
+        annotated: Annotated[
+            Column[str], pa.Field(alias="annotated_name", title="Annotated")
+        ]
+        nested: Annotated[Column[int], pa.Field(description="nested")] | None
+
+    schema = Child.to_schema()
+    assert schema.columns["inherited"].description == "inherited"
+    assert schema.columns["overridden"].description == "overridden"
+    assert schema.columns["annotated_name"].title == "Annotated"
+    assert schema.columns["nested"].description == "nested"
+    assert not schema.columns["nested"].required
+    assert Child.inherited == "inherited"
+    assert Child.annotated == "annotated_name"
+
+
+def test_index_field_nullable_override() -> None:
+    """Explicit index nullability is passed to the runtime schema."""
+
+    class Model(pa.DataFrameModel):
+        index: Index[int] = pa.Field(nullable=True)
+
+    assert Model.to_schema().index.nullable
+
+
+def test_column_annotation_nullable_coercion() -> None:
+    """Inferred nullability must also guide pandas dtype coercion."""
+
+    class Model(pa.DataFrameModel):
+        value: Column[int | None] = pa.Field(coerce=True)
+
+    validated = Model.validate(pd.DataFrame({"value": [1, None]}))
+    assert validated["value"].isna().sum() == 1
+
+
+def test_unparameterized_column_annotation_error() -> None:
+    """Test that an unparameterized marker has a public schema error."""
+
+    class Invalid(pa.DataFrameModel):
+        bad: Column
+
+    with pytest.raises(
+        SchemaInitError,
+        match="bad.*Column annotations must be parameterized as Column",
+    ):
+        Invalid.to_schema()
+
+
+def test_unsupported_column_annotation_error() -> None:
+    """Test that an unsupported dtype has a public schema error."""
+
+    class UnsupportedDtype:
+        pass
+
+    class Invalid(pa.DataFrameModel):
+        bad: Column[UnsupportedDtype]
+
+    with pytest.raises(
+        SchemaInitError,
+        match="bad.*Column dtype is not supported",
+    ):
+        Invalid.to_schema()
 
 
 def test_empty_schema() -> None:
@@ -2002,6 +2117,20 @@ def test_generic_optional_field() -> None:
     with pytest.raises(SchemaError):
         FloatYModel.validate(pd.DataFrame({"x": [1, 2, 3], "y": [4, 5, 6]}))
     FloatYModel.validate(pd.DataFrame({"x": [1, 2, 3], "y": [4.0, 5.0, 6.0]}))
+
+
+def test_generic_column_nullable_field() -> None:
+    """Preserve inner ``Column`` nullability through generic substitution."""
+    T = TypeVar("T", int, float, str)
+
+    class GenericModel(pa.DataFrameModel, Generic[T]):
+        value: Column[T | None]
+
+    class IntModel(GenericModel[int]): ...
+
+    column = IntModel.to_schema().columns["value"]
+    assert column.dtype == pa.Column(int).dtype
+    assert column.nullable
 
 
 def test_generic_model_multiple_inheritance() -> None:

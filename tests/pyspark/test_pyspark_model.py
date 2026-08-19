@@ -2,7 +2,7 @@
 
 import decimal
 from contextlib import nullcontext as does_not_raise
-from typing import Annotated, Optional
+from typing import Annotated, Generic, Optional, TypeVar
 
 import pyspark.sql.types as T
 import pytest
@@ -14,8 +14,14 @@ import pandera.pyspark as pa
 from pandera.api.checks import Check
 from pandera.api.pyspark.model import docstring_substitution
 from pandera.config import CONFIG, PanderaConfig, ValidationDepth
-from pandera.errors import SchemaDefinitionError, SchemaError, SchemaErrors
+from pandera.errors import (
+    SchemaDefinitionError,
+    SchemaError,
+    SchemaErrors,
+    SchemaInitError,
+)
 from pandera.pyspark import DataFrameModel, DataFrameSchema, Field
+from pandera.typing import Column as TypingColumn
 from tests.pyspark.conftest import spark_df, validate_collecting_errors
 
 pytestmark = pytest.mark.parametrize(
@@ -49,6 +55,70 @@ def test_schema_with_bare_types(
     )
 
     assert expected == Model.to_schema()
+
+
+def test_typing_column_runtime_contract(spark_session):
+    """Test the backend-neutral ``Column`` annotation with PySpark."""
+
+    class Model(DataFrameModel):
+        required: TypingColumn[T.IntegerType]
+        nullable_values: TypingColumn[T.IntegerType | None]
+        nullable_with_omitted_field: TypingColumn[T.IntegerType | None] = (
+            Field()
+        )
+        optional_presence: TypingColumn[T.IntegerType] | None
+        explicit_nullable: TypingColumn[T.IntegerType | None] = Field(
+            nullable=False
+        )
+
+    schema = Model.to_schema()
+    assert schema.columns["required"].dtype == pa.Column(T.IntegerType()).dtype
+    assert schema.columns["required"].required
+    assert not schema.columns["required"].nullable
+    assert schema.columns["nullable_values"].required
+    assert schema.columns["nullable_values"].nullable
+    assert schema.columns["nullable_with_omitted_field"].nullable
+    assert not schema.columns["optional_presence"].required
+    assert not schema.columns["explicit_nullable"].nullable
+    assert Model.required == "required"
+    assert isinstance(Model.optional_presence, str)
+
+
+def test_generic_typing_column_nullable(spark_session):
+    """Preserve inner ``Column`` nullability through PySpark generics."""
+    Dtype = TypeVar("Dtype")
+
+    class GenericModel(DataFrameModel, Generic[Dtype]):
+        value: TypingColumn[Dtype | None]
+
+    class IntegerModel(GenericModel[T.IntegerType]): ...
+
+    schema = IntegerModel.to_schema()
+    assert schema.columns["value"].nullable
+
+
+def test_typing_column_unsupported_dtype_error(spark_session):
+    """Unsupported ``Column`` dtypes receive a public schema error."""
+
+    class UnsupportedDtype:
+        pass
+
+    class Invalid(DataFrameModel):
+        bad: TypingColumn[UnsupportedDtype]
+
+    with pytest.raises(SchemaInitError, match="Column dtype is not supported"):
+        Invalid.to_schema()
+
+
+def test_unsupported_dtype_error_is_reraised(spark_session):
+    class UnsupportedDtype:
+        pass
+
+    class Invalid(DataFrameModel):
+        bad: UnsupportedDtype
+
+    with pytest.raises((TypeError, ValueError)):
+        Invalid.to_schema()
 
 
 def test_schema_with_bare_types_and_field(

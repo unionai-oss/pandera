@@ -37,6 +37,7 @@ class BaseFieldInfo:
         "checks",
         "parses",
         "nullable",
+        "nullable_explicit",
         "unique",
         "coerce",
         "regex",
@@ -55,6 +56,7 @@ class BaseFieldInfo:
         checks: CheckArg | None = None,
         parses: ParserArg | None = None,
         nullable: bool = False,
+        nullable_explicit: bool = False,
         unique: bool = False,
         coerce: bool = False,
         regex: bool = False,
@@ -69,6 +71,7 @@ class BaseFieldInfo:
         self.checks = to_checklist(checks)
         self.parses = to_parserlist(parses)
         self.nullable = nullable
+        self.nullable_explicit = nullable_explicit
         self.unique = unique
         self.coerce = coerce
         self.regex = regex

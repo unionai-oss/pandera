@@ -20,7 +20,12 @@ from polars.testing.parametric import column, dataframes
 import pandera.backends.polars.utils as polars_utils
 import pandera.engines.polars_engine as pe
 from pandera.config import CONFIG
-from pandera.errors import ParserError, SchemaError, SchemaErrors
+from pandera.errors import (
+    ParserError,
+    SchemaError,
+    SchemaErrors,
+    SchemaInitError,
+)
 from pandera.polars import (
     Column,
     DataFrameModel,
@@ -30,6 +35,7 @@ from pandera.polars import (
     check,
     dataframe_check,
 )
+from pandera.typing import Column as TypingColumn
 
 
 @pytest.fixture
@@ -156,6 +162,71 @@ def test_model_schema_equivalency_with_optional():
         },
     )
     assert ModelWithOptional.to_schema() == schema
+
+
+def test_typing_column_runtime_contract():
+    """Test the backend-neutral ``Column`` annotation with Polars dtypes."""
+
+    class Model(DataFrameModel):
+        items: TypingColumn[pl.List]
+        nullable_values: TypingColumn[int | None]
+        optional_presence: TypingColumn[int] | None
+        explicit_nullable: TypingColumn[int | None] = Field(nullable=False)
+
+    schema = Model.to_schema()
+    assert schema.columns["items"].dtype == Column(pl.List).dtype
+    assert schema.columns["nullable_values"].nullable
+    assert schema.columns["nullable_values"].required
+    assert not schema.columns["optional_presence"].required
+    assert not schema.columns["optional_presence"].nullable
+    assert not schema.columns["explicit_nullable"].nullable
+    assert Model.items == "items"
+    assert isinstance(Model.optional_presence, str)
+
+
+def test_typing_column_unsupported_dtype_error():
+    """Unsupported ``Column`` dtypes receive a public schema error."""
+
+    class UnsupportedDtype:
+        pass
+
+    class Invalid(DataFrameModel):
+        bad: TypingColumn[UnsupportedDtype]
+
+    with pytest.raises(SchemaInitError, match="Column dtype is not supported"):
+        Invalid.to_schema()
+
+
+def test_unsupported_dtype_error_is_reraised():
+    class UnsupportedDtype:
+        pass
+
+    class Invalid(DataFrameModel):
+        bad: UnsupportedDtype
+
+    with pytest.raises((TypeError, ValueError)):
+        Invalid.to_schema()
+
+
+def test_typing_column_metadata_and_inheritance():
+    """Test ``Column`` metadata and field inheritance with Polars."""
+
+    class Parent(DataFrameModel):
+        inherited: TypingColumn[int] = Field(description="inherited")
+        overridden: TypingColumn[int] = Field(description="parent")
+
+    class Child(Parent):
+        overridden: TypingColumn[int] = Field(description="overridden")
+        annotated: Annotated[
+            TypingColumn[str], Field(alias="annotated_name", title="Annotated")
+        ]
+
+    schema = Child.to_schema()
+    assert schema.columns["inherited"].description == "inherited"
+    assert schema.columns["overridden"].description == "overridden"
+    assert schema.columns["annotated_name"].title == "Annotated"
+    assert Child.inherited == "inherited"
+    assert Child.annotated == "annotated_name"
 
 
 @pytest.mark.parametrize(

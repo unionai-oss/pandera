@@ -13,6 +13,7 @@ from typing import (  # type: ignore[attr-defined]
     _GenericAlias,
     get_args,
     get_origin,
+    overload,
 )
 
 import typing_inspect
@@ -70,6 +71,7 @@ GenericDtype = TypeVar(  # type: ignore
 )
 
 DataFrameModel = TypeVar("DataFrameModel", bound="DataFrameModel")  # type: ignore
+ColumnDtype = TypeVar("ColumnDtype")
 
 
 if TYPE_CHECKING:
@@ -183,6 +185,27 @@ class IndexBase(Generic[GenericDtype]):
         raise AttributeError("Indexes should resolve to pa.Index-s")
 
 
+class Column(Generic[ColumnDtype]):
+    """Typing-only descriptor for a :class:`DataFrameModel` column.
+
+    The annotation's generic argument is the dtype consumed by Pandera's
+    runtime model parser. The descriptor models the runtime replacement made
+    by ``DataFrameModel``: required class-level access is a column name, while
+    instance-level access retains the generic dtype.
+    """
+
+    @overload
+    def __get__(self, instance: None, owner: type[Any]) -> str: ...
+
+    @overload
+    def __get__(self, instance: object, owner: type[Any]) -> ColumnDtype: ...
+
+    def __get__(
+        self, instance: object | None, owner: type[Any]
+    ) -> str | ColumnDtype:
+        raise AttributeError("Column should resolve to a DataFrameModel field")
+
+
 class AnnotationInfo:
     """Captures extra information about an annotation.
 
@@ -193,6 +216,8 @@ class AnnotationInfo:
             1 argument).
         literal: Whether the annotation is a literal.
         optional: Whether the annotation is optional.
+        nullable: Whether the annotation's values are nullable.
+        is_column: Whether the annotation uses ``Column[T]``.
         raw_annotation: The raw annotation.
         metadata: Extra arguments passed to :data:`typing.Annotated`.
     """
@@ -236,6 +261,8 @@ class AnnotationInfo:
         self.raw_annotation = raw_annotation
         self.origin = self.arg = None
         self.is_annotated_type = False
+        self.is_column = False
+        self.nullable = False
 
         self.optional = typing_inspect.is_optional_type(raw_annotation)
         if self.optional and typing_inspect.is_union_type(raw_annotation):
@@ -244,26 +271,54 @@ class AnnotationInfo:
             raw_annotation = get_args(raw_annotation)[0]
             self.raw_annotation = raw_annotation
 
+        metadata = getattr(raw_annotation, "__metadata__", None)
+        if metadata:
+            self.is_annotated_type = True
+            raw_annotation = get_args(raw_annotation)[0]
+
         self.origin = get_origin(raw_annotation)
         # Replace empty tuple returned from get_args by None
         args = get_args(raw_annotation) or None
         self.args = args
-        self.arg = args[0] if args else args
+        self.arg = (
+            args[0]
+            if args
+            else raw_annotation
+            if self.is_annotated_type
+            else None
+        )
 
-        metadata = getattr(raw_annotation, "__metadata__", None)
+        if metadata and self.arg is not None:
+            try:
+                inspect.signature(self.arg)
+            except (TypeError, ValueError):
+                # Preserve the historical behavior for arbitrary Annotated
+                # metadata that is not a dtype constructor argument.
+                metadata = None
 
-        if metadata:
-            self.is_annotated_type = True
-            if self.arg is not None:
-                try:
-                    inspect.signature(self.arg)
-                except ValueError:
-                    metadata = None
-
-        elif metadata := getattr(self.arg, "__metadata__", None):
+        if not metadata and (
+            nested_metadata := getattr(self.arg, "__metadata__", None)
+        ):
+            metadata = nested_metadata
             self.arg = get_args(self.arg)[0]
 
         self.metadata = metadata
+
+        if raw_annotation is Column:
+            self.is_column = True
+            self.literal = False
+            self.args = None
+            self.arg = None
+            self.default_dtype = None
+            return
+
+        if self.origin is Column:
+            self.is_column = True
+            self.literal = False
+            self.arg, self.nullable = _unwrap_column_dtype(self.arg)
+            self.args = (self.arg,)
+            self.default_dtype = getattr(self.arg, "default_dtype", None)
+            return
 
         self.literal = get_origin(self.arg) is typing.Literal
 
@@ -279,3 +334,17 @@ class AnnotationInfo:
                 # otherwise assume that the annotation is the data type itself.
                 self.arg = raw_annotation
         self.default_dtype = getattr(raw_annotation, "default_dtype", None)
+
+
+def _unwrap_column_dtype(dtype: Any) -> tuple[Any, bool]:
+    """Unwrap ``Column[T | None]`` and return its value-nullability."""
+    if typing_inspect.is_optional_type(dtype) and typing_inspect.is_union_type(
+        dtype
+    ):
+        return get_args(dtype)[0], True
+    return dtype, False
+
+
+def is_column_annotation(annotation: AnnotationInfo) -> bool:
+    """Return whether an annotation uses the shared ``Column[T]`` marker."""
+    return annotation.is_column

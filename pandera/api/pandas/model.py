@@ -10,7 +10,11 @@ from pandera.api.checks import Check
 from pandera.api.dataframe.model import (
     DataFrameModel as _DataFrameModel,
 )
-from pandera.api.dataframe.model import _dtype_metadata, get_dtype_kwargs
+from pandera.api.dataframe.model import (
+    _dtype_metadata,
+    _raise_invalid_column_annotation,
+    get_dtype_kwargs,
+)
 from pandera.api.dataframe.model_components import FieldInfo
 from pandera.api.pandas.components import Column, Index, MultiIndex
 from pandera.api.pandas.container import DataFrameSchema
@@ -25,6 +29,7 @@ from pandera.typing import (
     DataFrame,
     get_index_types,
     get_series_types,
+    is_column_annotation,
 )
 from pandera.utils import docstring_substitution
 
@@ -163,15 +168,21 @@ class DataFrameModel(_DataFrameModel[pd.DataFrame, DataFrameSchema]):
                 or use_raw_annotation
                 or annotation.origin in get_series_types()
                 or annotation.raw_annotation in get_series_types()
+                or is_column_annotation(annotation)
             ):
                 if check_name is False:
                     raise SchemaInitError(
                         f"'check_name' is not supported for {field_name}."
                     )
 
+                nullable = (
+                    field.nullable
+                    if field.nullable_explicit
+                    else annotation.nullable
+                )
                 dtype = _get_nullable_coercion_dtype(
                     dtype,
-                    nullable=field.nullable,
+                    nullable=nullable,
                     coerce=field.coerce
                     or bool(getattr(cls.__config__, "coerce", False)),
                 )
@@ -179,6 +190,7 @@ class DataFrameModel(_DataFrameModel[pd.DataFrame, DataFrameSchema]):
                 column_kwargs = (
                     field.column_properties(
                         dtype,
+                        nullable=annotation.nullable,
                         required=not annotation.optional,
                         checks=field_checks,
                         parsers=field_parsers,
@@ -187,7 +199,14 @@ class DataFrameModel(_DataFrameModel[pd.DataFrame, DataFrameSchema]):
                     if field
                     else {}
                 )
-                columns[field_name] = Column(**column_kwargs)
+                try:
+                    columns[field_name] = Column(**column_kwargs)
+                except (TypeError, ValueError) as exc:
+                    if is_column_annotation(annotation):
+                        _raise_invalid_column_annotation(
+                            field_name, annotation, exc
+                        )
+                    raise
 
             elif (
                 annotation.origin in get_index_types()

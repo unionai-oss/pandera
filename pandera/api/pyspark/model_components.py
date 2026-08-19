@@ -44,7 +44,7 @@ def Field(
     ] = None,
     str_matches: str | None = None,
     str_startswith: str | None = None,
-    nullable: bool = False,
+    nullable: bool | None = None,
     unique: bool = False,
     coerce: bool = False,
     regex: bool = False,

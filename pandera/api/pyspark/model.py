@@ -21,10 +21,13 @@ from pandera.api.checks import Check
 from pandera.api.dataframe.model import (
     DataFrameModel as _DataFrameModel,
 )
-from pandera.api.dataframe.model import _dtype_metadata
+from pandera.api.dataframe.model import (
+    _dtype_metadata,
+    _raise_invalid_column_annotation,
+)
 from pandera.api.dataframe.model_components import Field, FieldInfo
 from pandera.errors import SchemaInitError
-from pandera.typing import AnnotationInfo
+from pandera.typing import AnnotationInfo, is_column_annotation
 from pandera.typing.common import DataFrameBase
 from pandera.typing.pyspark import DataFrame as PySparkPandasDataFrame
 from pandera.typing.pyspark_sql import DataFrame as PySparkSQLDataFrame
@@ -202,7 +205,10 @@ class DataFrameModel(_DataFrameModel[PySparkFrame, DataFrameSchema]):
         for field, (annot_info, field_info) in cls._collect_fields().items():
             if isinstance(annot_info.arg, TypeVar):
                 if annot_info.arg in param_dict:
-                    raw_annot = annot_info.origin[param_dict[annot_info.arg]]  # type: ignore
+                    raw_dtype: Any = param_dict[annot_info.arg]
+                    if annot_info.is_column and annot_info.nullable:
+                        raw_dtype = Optional[raw_dtype]  # noqa: UP045
+                    raw_annot = annot_info.origin[raw_dtype]  # type: ignore
                     if annot_info.optional:
                         raw_annot = Optional[raw_annot]  # noqa: UP045
                     extra["__annotations__"][field] = raw_annot
@@ -273,10 +279,15 @@ class DataFrameModel(_DataFrameModel[PySparkFrame, DataFrameSchema]):
 
             dtype = None if dtype is Any else dtype
 
-            if annotation.origin is None or annotation.is_annotated_type:
+            if (
+                annotation.origin is None
+                or annotation.is_annotated_type
+                or is_column_annotation(annotation)
+            ):
                 column_kwargs = (
                     field.column_properties(
                         dtype,
+                        nullable=annotation.nullable,
                         required=not annotation.optional,
                         checks=field_checks,
                         name=field_name,
@@ -291,7 +302,14 @@ class DataFrameModel(_DataFrameModel[PySparkFrame, DataFrameSchema]):
                 # remove unsupported kwargs
                 for key in ["parsers", "unique", "default"]:
                     column_kwargs.pop(key, None)
-                columns[field_name] = Column(**column_kwargs)
+                try:
+                    columns[field_name] = Column(**column_kwargs)
+                except (TypeError, ValueError) as exc:
+                    if is_column_annotation(annotation):
+                        _raise_invalid_column_annotation(
+                            field_name, annotation, exc
+                        )
+                    raise
             else:
                 raise SchemaInitError(
                     f"Invalid annotation '{field_name}: "

@@ -103,3 +103,49 @@ def test_mypy_polars_column_parametrized_dtypes() -> None:
     )
 
     assert result.returncode == 0, result.stdout + result.stderr
+
+
+def test_mypy_polars_typing_column_no_plugin() -> None:
+    """Check the public ``Column`` descriptor without a Pandera plugin."""
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "mypy",
+            "--config-file",
+            str(test_module_dir / "config" / "no_plugin.ini"),
+            str(
+                test_module_dir
+                / "polars_modules"
+                / "polars_model_typing_column.py"
+            ),
+            "--cache-dir",
+            str(test_module_dir / ".mypy_cache" / "test-polars-column"),
+            "--show-error-codes",
+        ],
+        check=False,
+        text=True,
+        capture_output=True,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+
+
+def test_ty_polars_typing_column_no_plugin() -> None:
+    """Check the public ``Column`` descriptor with ty."""
+
+    result = subprocess.run(
+        [
+            "ty",
+            "check",
+            str(
+                test_module_dir
+                / "polars_modules"
+                / "polars_model_typing_column.py"
+            ),
+        ],
+        check=False,
+        text=True,
+        capture_output=True,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr

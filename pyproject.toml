@@ -156,6 +156,7 @@ dev = [
     "python-multipart",
     "pytz",
     "ruff",
+    "ty",
     "uv",
     "uvicorn",
     "xdoctest",
