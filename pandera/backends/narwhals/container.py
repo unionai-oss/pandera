@@ -543,8 +543,7 @@ class DataFrameSchemaBackend(NarwhalsSchemaBackend):
 
     def collect_column_info(self, check_obj, schema):
         """Collect column metadata for the dataframe."""
-        # Use collect_schema().names() — lazy-safe Narwhals equivalent of
-        # get_lazyframe_column_names()
+
         frame_column_names = check_obj.collect_schema().names()
 
         column_names: list[Any] = []
