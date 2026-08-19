@@ -19,6 +19,33 @@ from pandera.engines.type_aliases import PandasObject
 from pandera.system import FLOAT_128_AVAILABLE
 
 
+def _check_integer_overflow(original: Any, coerced: Any) -> None:
+    """Raise if an integer-to-integer coercion silently wrapped around.
+
+    numpy integer casts wrap on overflow, so ``astype`` "succeeds" while
+    changing the value (``300`` to ``int8`` gives ``44``, ``-1`` to ``uint8``
+    gives ``255``). Only integer-to-integer casts are checked: float-to-integer
+    truncation is an intentional, documented cast.
+    """
+    original_kind = getattr(getattr(original, "dtype", None), "kind", None)
+    coerced_kind = getattr(getattr(coerced, "dtype", None), "kind", None)
+    if original_kind not in ("i", "u") or coerced_kind not in ("i", "u"):
+        return
+    if len(original) == 0:
+        return
+
+    # Compare against the target's bounds rather than round-tripping: a
+    # round-trip cannot detect every wrap (-1 -> uint64 -> int64 is -1 again).
+    # Reducing first keeps this to two passes, and int() is exact for the
+    # arbitrary-precision comparison against uint64 bounds.
+    info = np.iinfo(np.dtype(coerced.dtype))
+    if int(np.min(original)) < info.min or int(np.max(original)) > info.max:
+        raise OverflowError(
+            f"Cannot coerce {original.dtype} to {coerced.dtype}: value(s) "
+            f"outside [{info.min}, {info.max}] would wrap around."
+        )
+
+
 @immutable(init=True)
 class DataType(dtypes.DataType):
     """Base `DataType` for boxing Numpy data types."""
@@ -53,6 +80,7 @@ class DataType(dtypes.DataType):
         if type(data_container).__module__.startswith("modin.pandas"):
             # NOTE: this is a hack to enable catching of errors in modin
             coerced.__str__()
+        _check_integer_overflow(data_container, coerced)
         return coerced
 
     def coerce_value(self, value: Any) -> Any:
