@@ -139,6 +139,15 @@ def run_infer(
     )
 
 
-def assert_validate_ok(proc: subprocess.CompletedProcess[str]) -> None:
+def assert_validate_ok(
+    proc: subprocess.CompletedProcess[str], backend: str | None = None
+) -> None:
     assert proc.returncode == 0, proc.stderr + proc.stdout
     assert "Validation succeeded" in proc.stdout
+    if backend is not None:
+        out = proc.stdout
+        # The report names the validation backend that actually ran, so this
+        # also proves the backend selection (e.g. the Narwhals-powered backend
+        # swapping ``pd.DataFrame`` dispatch) took effect.
+        assert "Backend" in out, out
+        assert f"{backend}" in out, out
