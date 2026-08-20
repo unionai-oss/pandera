@@ -11,7 +11,11 @@ import pyarrow as pa
 from pandera.api.base.schema import BaseSchema
 from pandera.api.checks import Check
 from pandera.api.dataframe.model import DataFrameModel as _DataFrameModel
-from pandera.api.dataframe.model import _dtype_metadata, get_dtype_kwargs
+from pandera.api.dataframe.model import (
+    _dtype_metadata,
+    _raise_invalid_column_annotation,
+    get_dtype_kwargs,
+)
 from pandera.api.dataframe.model_components import FieldInfo
 from pandera.api.pyarrow.components import Column
 from pandera.api.pyarrow.container import DataFrameSchema
@@ -19,7 +23,7 @@ from pandera.api.pyarrow.model_config import BaseConfig
 from pandera.api.pyarrow.utils import resolve_dtype
 from pandera.engines import narwhals_engine
 from pandera.errors import SchemaInitError
-from pandera.typing import AnnotationInfo
+from pandera.typing import AnnotationInfo, is_column_annotation
 from pandera.typing.pyarrow import Table
 from pandera.utils import docstring_substitution
 
@@ -89,7 +93,11 @@ class DataFrameModel(_DataFrameModel[pa.Table, DataFrameSchema]):
                 else:
                     dtype = annotation.arg  # type: ignore
 
-            if annotation.origin is None or dtype:
+            if (
+                annotation.origin is None
+                or is_column_annotation(annotation)
+                or dtype
+            ):
                 if check_name is False:
                     raise SchemaInitError(
                         f"'check_name' is not supported for {field_name}."
@@ -98,6 +106,7 @@ class DataFrameModel(_DataFrameModel[pa.Table, DataFrameSchema]):
                 column_kwargs = (
                     field.column_properties(
                         dtype,
+                        nullable=annotation.nullable,
                         required=not annotation.optional,
                         checks=field_checks,
                         name=field_name,
@@ -105,7 +114,14 @@ class DataFrameModel(_DataFrameModel[pa.Table, DataFrameSchema]):
                     if field
                     else {}
                 )
-                columns[field_name] = Column(**column_kwargs)
+                try:
+                    columns[field_name] = Column(**column_kwargs)
+                except (TypeError, ValueError) as exc:
+                    if is_column_annotation(annotation):
+                        _raise_invalid_column_annotation(
+                            field_name, annotation, exc
+                        )
+                    raise
 
             else:
                 raise SchemaInitError(

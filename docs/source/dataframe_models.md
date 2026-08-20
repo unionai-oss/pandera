@@ -110,6 +110,43 @@ class InputSchema(pa.DataFrameModel):
     day: int = pa.Field(ge=0, le=365, coerce=True)
 ```
 
+## Portable Column Type Annotations
+
+Use {py:class}`~pandera.typing.Column` when a model should express its
+column dtype through one backend-neutral annotation. The generic argument is
+the dtype used by the active `DataFrameModel` backend; it is not the runtime
+{py:class}`~pandera.api.pandas.components.Column` schema component.
+The current parser path covers pandas and GeoPandas, Polars, Ibis, PySpark,
+and PyArrow `DataFrameModel` implementations.
+
+```python
+from pandera.typing import Column
+
+
+class InputSchema(pa.DataFrameModel):
+    required: Column[int]
+    nullable_values: Column[int | None]
+    optional_presence: Column[int] | None
+```
+
+`Column[T]` keeps the column required and non-nullable. Put `None` inside the
+generic argument to allow null values, or outside it to make the column's
+presence optional. These choices are independent:
+
+| Annotation | Column required? | Values nullable? | Static class access |
+| ---------- | ---------------- | ---------------- | ------------------- |
+| `Column[T]` | Yes | No | `str` |
+| `Column[T | None]` | Yes | Yes | `str` |
+| `Column[T] | None` | No | No | `str | None` |
+
+An explicit `pa.Field(nullable=...)` setting takes precedence over the
+nullability inferred from the annotation. The existing bare dtype and
+{py:class}`~pandera.typing.Series` forms remain supported, so this syntax can
+be introduced incrementally. At runtime, a class-level model attribute still
+resolves to the column name (for example, `InputSchema.required ==
+"required"`); the static access types describe how type checkers treat that
+attribute.
+
 ### Reusing Field objects
 
 To define reusable `Field` definitions, you need to use `functools.partial`.

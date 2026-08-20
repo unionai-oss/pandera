@@ -15,13 +15,17 @@ from pandera.api.checks import Check
 from pandera.api.dataframe.model import (
     DataFrameModel as _DataFrameModel,
 )
-from pandera.api.dataframe.model import _dtype_metadata, get_dtype_kwargs
+from pandera.api.dataframe.model import (
+    _dtype_metadata,
+    _raise_invalid_column_annotation,
+    get_dtype_kwargs,
+)
 from pandera.api.dataframe.model_components import FieldInfo
 from pandera.api.ibis.components import Column
 from pandera.api.ibis.container import DataFrameSchema
 from pandera.engines import ibis_engine
 from pandera.errors import SchemaInitError
-from pandera.typing import AnnotationInfo
+from pandera.typing import AnnotationInfo, is_column_annotation
 from pandera.typing.ibis import Table
 from pandera.utils import docstring_substitution
 
@@ -98,6 +102,7 @@ class DataFrameModel(_DataFrameModel[ibis.Table, DataFrameSchema]):
                 annotation.origin is None
                 or isinstance(annotation.origin, dt.DataType)
                 # or annotation.origin is Series  # TODO(deepyaman): Implement `Series`.
+                or is_column_annotation(annotation)
                 or dtype
             ):
                 if check_name is False:
@@ -108,6 +113,7 @@ class DataFrameModel(_DataFrameModel[ibis.Table, DataFrameSchema]):
                 column_kwargs = (
                     field.column_properties(
                         dtype,
+                        nullable=annotation.nullable,
                         required=not annotation.optional,
                         checks=field_checks,
                         name=field_name,
@@ -115,7 +121,14 @@ class DataFrameModel(_DataFrameModel[ibis.Table, DataFrameSchema]):
                     if field
                     else {}
                 )
-                columns[field_name] = Column(**column_kwargs)
+                try:
+                    columns[field_name] = Column(**column_kwargs)
+                except (TypeError, ValueError) as exc:
+                    if is_column_annotation(annotation):
+                        _raise_invalid_column_annotation(
+                            field_name, annotation, exc
+                        )
+                    raise
 
             else:
                 raise SchemaInitError(

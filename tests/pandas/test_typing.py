@@ -10,12 +10,19 @@ import pytest
 import pandera.pandas as pa
 from pandera.api.pandas.model import _get_nullable_coercion_dtype
 from pandera.dtypes import DataType
-from pandera.typing import DataFrame, Index, Series
+from pandera.typing import Column, DataFrame, Index, Series
 
 try:  # python 3.9+
     from typing import Annotated  # type: ignore
 except ImportError:
     from typing import Annotated  # type: ignore
+
+
+def test_typing_column_descriptor_runtime_guard() -> None:
+    """The typing-only descriptor must not be used as a runtime field."""
+
+    with pytest.raises(AttributeError, match="Column should resolve"):
+        Column().__get__(None, object)
 
 
 class SchemaBool(pa.DataFrameModel):

@@ -28,7 +28,7 @@ from pandera.engines import PYDANTIC_V2
 from pandera.errors import SchemaInitError
 from pandera.import_utils import strategy_import_error
 from pandera.typing import AnnotationInfo
-from pandera.typing.common import DataFrameBase
+from pandera.typing.common import Column, DataFrameBase
 from pandera.utils import docstring_substitution
 
 from .model_components import (
@@ -75,6 +75,16 @@ def _dtype_metadata(annotation: AnnotationInfo) -> tuple[Any, ...]:
     return tuple(item for item in metadata if not isinstance(item, FieldInfo))
 
 
+def _raise_invalid_column_annotation(
+    field_name: str, annotation: AnnotationInfo, exc: Exception
+) -> None:
+    """Raise a public error for an unsupported ``Column`` dtype."""
+    raise SchemaInitError(
+        f"Invalid annotation '{field_name}: {annotation.raw_annotation}'. "
+        f"Column dtype is not supported: {annotation.arg!r}."
+    ) from exc
+
+
 def _extract_annotated_field_info(annotation: Any) -> FieldInfo | None:
     """Return the first ``FieldInfo`` embedded in an ``Annotated`` annotation.
 
@@ -84,6 +94,10 @@ def _extract_annotated_field_info(annotation: Any) -> FieldInfo | None:
     """
     metadata = getattr(annotation, "__metadata__", None)
     if not metadata:
+        for arg in typing.get_args(annotation):
+            field_info = _extract_annotated_field_info(arg)
+            if field_info is not None:
+                return field_info
         return None
     for item in metadata:
         if isinstance(item, FieldInfo):
@@ -328,7 +342,10 @@ class DataFrameModel(Generic[TDataFrame, TSchema], BaseModel):
         for field, (annot_info, field_info) in cls._collect_fields().items():
             if isinstance(annot_info.arg, TypeVar):
                 if annot_info.arg in param_dict:
-                    raw_annot = annot_info.origin[param_dict[annot_info.arg]]  # type: ignore
+                    raw_dtype: Any = param_dict[annot_info.arg]
+                    if annot_info.is_column and annot_info.nullable:
+                        raw_dtype = Optional[raw_dtype]  # noqa: UP045
+                    raw_annot = annot_info.origin[raw_dtype]  # type: ignore
                     if annot_info.optional:
                         raw_annot = Optional[raw_annot]  # noqa: UP045
                     extra["__annotations__"][field] = raw_annot
@@ -463,7 +480,13 @@ class DataFrameModel(Generic[TDataFrame, TSchema], BaseModel):
                     + f"not a '{type(field)}.'"
                 )
 
-            fields[field.name] = (AnnotationInfo(annotation), field)
+            annotation_info = AnnotationInfo(annotation)
+            if annotation_info.is_column and annotation_info.arg is None:
+                raise SchemaInitError(
+                    f"Invalid annotation '{field_name}: {annotation}'. "
+                    "Column annotations must be parameterized as Column[T]."
+                )
+            fields[field.name] = (annotation_info, field)
         return fields
 
     @classmethod

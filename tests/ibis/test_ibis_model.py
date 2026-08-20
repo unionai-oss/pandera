@@ -7,8 +7,9 @@ import ibis.expr.datatypes as dt
 import pytest
 
 import pandera.ibis as pa
-from pandera.errors import SchemaError
+from pandera.errors import SchemaError, SchemaInitError
 from pandera.ibis import Column, DataFrameModel, DataFrameSchema
+from pandera.typing import Column as TypingColumn
 
 
 @pytest.fixture
@@ -52,6 +53,53 @@ def test_model_schema_equivalency_with_optional():
         },
     )
     assert ModelWithOptional.to_schema() == schema
+
+
+def test_typing_column_runtime_contract():
+    """Test the backend-neutral ``Column`` annotation with Ibis."""
+
+    class Model(DataFrameModel):
+        required: TypingColumn[dt.Int64]
+        nullable_values: TypingColumn[dt.Int64 | None]
+        optional_presence: TypingColumn[dt.Int64] | None
+        explicit_nullable: TypingColumn[dt.Int64 | None] = pa.Field(
+            nullable=False
+        )
+
+    schema = Model.to_schema()
+    assert schema.columns["required"].dtype == Column(dt.Int64).dtype
+    assert schema.columns["required"].required
+    assert not schema.columns["required"].nullable
+    assert schema.columns["nullable_values"].required
+    assert schema.columns["nullable_values"].nullable
+    assert not schema.columns["optional_presence"].required
+    assert not schema.columns["explicit_nullable"].nullable
+    assert Model.required == "required"
+    assert isinstance(Model.optional_presence, str)
+
+
+def test_typing_column_unsupported_dtype_error():
+    """Unsupported ``Column`` dtypes receive a public schema error."""
+
+    class UnsupportedDtype:
+        pass
+
+    class Invalid(DataFrameModel):
+        bad: TypingColumn[UnsupportedDtype]
+
+    with pytest.raises(SchemaInitError, match="Column dtype is not supported"):
+        Invalid.to_schema()
+
+
+def test_unsupported_dtype_error_is_reraised():
+    class UnsupportedDtype:
+        pass
+
+    class Invalid(DataFrameModel):
+        bad: UnsupportedDtype
+
+    with pytest.raises((TypeError, ValueError)):
+        Invalid.to_schema()
 
 
 def test_annotated_field_metadata_propagation():

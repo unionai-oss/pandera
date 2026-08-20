@@ -54,13 +54,15 @@ class FieldInfo(BaseFieldInfo):
         dtype: Any,
         checks: CheckArg | None = None,
         parsers: ParserArg | None = None,
+        nullable: bool = False,
         required: bool = True,
         name: str | None = None,
     ) -> dict[str, Any]:
         """Create a schema_components.Column from a field."""
+        nullable = self.nullable if self.nullable_explicit else nullable
         return self._get_schema_properties(
             dtype,
-            nullable=self.nullable,
+            nullable=nullable,
             unique=self.unique,
             coerce=self.coerce,
             regex=self.regex,
@@ -79,12 +81,14 @@ class FieldInfo(BaseFieldInfo):
         dtype: Any,
         checks: CheckArg | None = None,
         parsers: ParserArg | None = None,
+        nullable: bool = False,
         name: str | None = None,
     ) -> dict[str, Any]:
         """Create a schema_components.Index from a field."""
+        nullable = self.nullable if self.nullable_explicit else nullable
         return self._get_schema_properties(
             dtype,
-            nullable=self.nullable,
+            nullable=nullable,
             unique=self.unique,
             coerce=self.coerce,
             name=name,
@@ -142,7 +146,7 @@ def Field(
     ] = None,
     str_matches: str | None = None,
     str_startswith: str | None = None,
-    nullable: bool = False,
+    nullable: bool | None = None,
     unique: bool = False,
     coerce: bool = False,
     regex: bool = False,
@@ -250,7 +254,8 @@ def Field(
 
     return FieldInfo(
         checks=checks or None,
-        nullable=nullable,
+        nullable=nullable if nullable is not None else False,
+        nullable_explicit=nullable is not None,
         unique=unique,
         coerce=coerce,
         regex=regex,

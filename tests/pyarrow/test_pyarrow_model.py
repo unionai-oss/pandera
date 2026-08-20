@@ -4,7 +4,8 @@ import pyarrow
 import pytest
 
 import pandera.pyarrow as pa
-from pandera.errors import SchemaError
+from pandera.errors import SchemaError, SchemaInitError
+from pandera.typing import Column as TypingColumn
 from pandera.typing.pyarrow import Table
 
 
@@ -17,6 +18,51 @@ def test_model_to_schema():
     schema = SimpleModel.to_schema()
     assert isinstance(schema, pa.DataFrameSchema)
     assert list(schema.columns) == ["int_col", "str_col"]
+
+
+def test_model_typing_column_runtime_contract():
+    """Test the backend-neutral ``Column`` annotation with PyArrow."""
+
+    class Model(pa.DataFrameModel):
+        required: TypingColumn[int]
+        nullable_values: TypingColumn[int | None]
+        optional_presence: TypingColumn[int] | None
+        explicit_nullable: TypingColumn[int | None] = pa.Field(nullable=False)
+
+    schema = Model.to_schema()
+    assert schema.columns["required"].dtype == pa.Column(int).dtype
+    assert schema.columns["required"].required
+    assert not schema.columns["required"].nullable
+    assert schema.columns["nullable_values"].required
+    assert schema.columns["nullable_values"].nullable
+    assert not schema.columns["optional_presence"].required
+    assert not schema.columns["explicit_nullable"].nullable
+    assert Model.required == "required"
+    assert isinstance(Model.optional_presence, str)
+
+
+def test_model_typing_column_unsupported_dtype_error():
+    """Unsupported ``Column`` dtypes receive a public schema error."""
+
+    class UnsupportedDtype:
+        pass
+
+    class Invalid(pa.DataFrameModel):
+        bad: TypingColumn[UnsupportedDtype]
+
+    with pytest.raises(SchemaInitError, match="Column dtype is not supported"):
+        Invalid.to_schema()
+
+
+def test_unsupported_dtype_error_is_reraised():
+    class UnsupportedDtype:
+        pass
+
+    class Invalid(pa.DataFrameModel):
+        bad: UnsupportedDtype
+
+    with pytest.raises((TypeError, ValueError)):
+        Invalid.to_schema()
 
 
 def test_model_validate():

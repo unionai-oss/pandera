@@ -89,6 +89,25 @@ the function is of the correct type.
 :lines: 67-68
 ```
 
+## Checking `Column` annotations without a plugin
+
+The backend-neutral {py:class}`~pandera.typing.Column` annotation is a
+typing-only descriptor. It does not require a Pandera checker plugin: class
+access is typed as `str` for required columns and `str | None` for optional
+columns, while runtime model access still returns the column name.
+
+The repository's no-plugin fixture exercises this contract for Polars:
+
+```bash
+python -m mypy --config-file tests/mypy/config/no_plugin.ini \
+  tests/mypy/polars_modules/polars_model_typing_column.py
+ty check tests/mypy/polars_modules/polars_model_typing_column.py
+```
+
+`ty` is a development-only checker dependency. These commands check the
+static descriptor contract; schema construction and dtype validation remain
+runtime Pandera responsibilities.
+
 ## Limitations
 
 An important caveat to static type-linting with pandera dataframe types is that,
