@@ -1433,10 +1433,12 @@ class PydanticModel(DataType):
 
     @property
     def column_names(self) -> list[str]:
-        """Return pydantic field aliases, falling back to field names."""
+        """Return serialized pydantic field names."""
         if PYDANTIC_V2:
             return [
-                field.alias or name
+                getattr(field, "serialization_alias", None)
+                or field.alias
+                or name
                 for name, field in self.type.model_fields.items()  # type: ignore[attr-defined]
             ]
         return [
