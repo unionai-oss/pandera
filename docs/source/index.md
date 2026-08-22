@@ -362,6 +362,7 @@ for the {ref}`supported dataframe libraries <dataframe-libraries>`:
 | :------ | ------ | ------- | ------ | ---- | ------- |
 | {ref}`DataFrameSchema validation <dataframeschemas>`                      | ✅ | ✅ | ✅ | ✅ | ✅ |
 | {ref}`DataFrameModel validation <dataframe-models>`                       | ✅ | ✅ | ✅ | ✅ | ✅ |
+| {ref}`Nested DataFrameModels/DataFrameSchemas <nested-schemas>`           | ❌ | ❌ | ✅ | ❌ | ❌ |
 | {ref}`SeriesSchema validation <seriesschemas>`                            | ✅ | 🚫 | ❌ | ❌ | ❌ |
 | {ref}`Index/MultiIndex validation <index-validation>`                     | ✅ | 🚫 | 🚫 | 🚫 | 🚫 |
 | {ref}`Built-in and custom Checks <checks>`                                | ✅ | ✅ | ✅ | ✅ | ✅ |

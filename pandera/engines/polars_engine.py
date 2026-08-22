@@ -229,6 +229,10 @@ class Engine(metaclass=engine.Engine, base_pandera_dtypes=DataType):
     def dtype(cls, data_type: Any) -> dtypes.DataType:
         """Convert input into a polars-compatible
         Pandera :class:`~pandera.dtypes.DataType` object."""
+        nested_schema = cls._as_nested_schema(data_type)
+        if nested_schema is not None:
+            return PanderaSchema(nested_schema)
+
         try:
             return engine.Engine.dtype(cls, data_type)
         except TypeError:
@@ -245,6 +249,20 @@ class Engine(metaclass=engine.Engine, base_pandera_dtypes=DataType):
             except TypeError:
                 return DataType(data_type)
 
+    @staticmethod
+    def _as_nested_schema(data_type: Any):
+        """If data_type is a polars DataFrameModel/DataFrameSchema, return the
+        corresponding DataFrameSchema so it can be wrapped as PanderaSchema."""
+        from pandera.api.polars.container import (
+            DataFrameSchema as PolarsDataFrameSchema,
+        )
+        from pandera.api.polars.model import DataFrameModel as PolarsModel
+
+        if isinstance(data_type, PolarsDataFrameSchema):
+            return data_type
+        if inspect.isclass(data_type) and issubclass(data_type, PolarsModel):
+            return data_type.to_schema()
+        return None
 
 ###############################################################################
 # Numeric types
@@ -691,7 +709,135 @@ class Struct(DataType):
     def from_parametrized_dtype(cls, polars_dtype: pl.Struct):
         return cls(fields=polars_dtype.fields)
 
+@immutable(init=True)
+class PanderaSchema(DataType):
+    """A nested pandera schema applied to a Struct column.
 
+    Makes it possible to compose DataFrameModel/DataFrameSchema objects as
+    columns of another one, e.g.::
+
+        class Foo(pa.DataFrameModel):
+            x: int = pa.Field(nullable=False)
+
+        class Bar(pa.DataFrameModel):
+            foo: Foo
+    """
+
+    type: DataTypeClass = dataclasses.field(default=None, init=False)
+    auto_coerce = True
+
+    def __init__(self, schema) -> None:
+        from pandera.api.polars.container import (
+            DataFrameSchema as PolarsDataFrameSchema,
+        )
+
+        if inspect.isclass(schema) and hasattr(schema, "to_schema"):
+            schema = schema.to_schema()
+
+        if not isinstance(schema, PolarsDataFrameSchema):
+            raise TypeError(
+                "PanderaSchema expects a pandera.polars.DataFrameSchema or "
+                f"DataFrameModel, got {type(schema)}"
+            )
+
+        object.__setattr__(self, "schema", schema)
+        object.__setattr__(
+            self, "type", pl.Struct(self._struct_fields(schema))
+        )
+
+    @staticmethod
+    def _struct_fields(schema) -> list[pl.Field]:
+        fields = []
+        for name, column in schema.columns.items():
+            dtype = column.dtype.type if column.dtype is not None else pl.Null
+            fields.append(pl.Field(name, dtype))
+        return fields
+
+    def coerce(self, data_container: PolarsDataContainer) -> pl.LazyFrame:
+        """Validate the nested struct column(s) against the nested schema."""
+        from pandera.api.polars.utils import get_lazyframe_column_names
+
+        if isinstance(data_container, pl.LazyFrame):
+            data_container = PolarsData(data_container)
+
+        lf = data_container.lazyframe
+        key = data_container.key
+
+        keys = (
+            get_lazyframe_column_names(lf) if key in (None, "*") else [key]
+        )
+        row_idx_col = "__pandera_nested_row_idx__"
+
+        for column_name in keys:
+            n_rows = lf.select(pl.len()).collect().item()
+
+            non_null = (
+                lf.with_row_index(row_idx_col)
+                .filter(pl.col(column_name).is_not_null())
+                .select(row_idx_col, column_name)
+                .collect()
+            )
+            original_indices = non_null[row_idx_col].to_list()
+            unnested = non_null.select(column_name).lazy().unnest(column_name)
+            n_valid_rows = len(original_indices)
+
+            try:
+                self.schema.validate(unnested, lazy=True)
+            except errors.SchemaErrors as exc:
+                local_failing = sorted(
+                    {
+                        int(i)
+                        for i in exc.failure_cases["index"].to_list()
+                        if i is not None
+                    }
+                )
+                if not local_failing:
+                    local_failing = list(range(n_valid_rows))
+                failing_indices = [
+                    original_indices[i]
+                    for i in local_failing
+                    if i < n_valid_rows
+                ]
+
+                passed_mask = [True] * n_rows
+                for i in failing_indices:
+                    passed_mask[i] = False
+
+                check_output = pl.DataFrame({CHECK_OUTPUT_KEY: passed_mask})
+                failure_cases = (
+                    lf.select(column_name)
+                    .collect()[failing_indices]
+                    .rename({column_name: "failure_case"})
+                )
+
+                schema_label = self.schema.name or f"'{column_name}'"
+                raise errors.ParserError(
+                    f"Could not validate nested column '{column_name}' "
+                    f"against schema {schema_label}: {exc.message}",
+                    failure_cases=failure_cases,
+                    parser_output=check_output,
+                ) from exc
+
+        return lf
+
+    def try_coerce(self, data_container: PolarsDataContainer) -> pl.LazyFrame:
+        return self.coerce(data_container)
+
+    def check(
+        self,
+        pandera_dtype: dtypes.DataType,
+        data_container: PolarsDataContainer | None = None,
+    ) -> Union[bool, Iterable[bool]]:
+        try:
+            pandera_dtype = Engine.dtype(pandera_dtype)
+        except TypeError:
+            return False
+        return self.type == pandera_dtype.type
+
+    def __str__(self) -> str:
+        return f"PanderaSchema({self.schema})"
+
+    
 ###############################################################################
 # Other types
 ###############################################################################
