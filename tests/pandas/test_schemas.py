@@ -3,6 +3,7 @@
 # pylint: disable=too-many-lines,redefined-outer-name
 
 import copy
+import warnings
 from collections.abc import Callable
 from datetime import datetime, timedelta
 from functools import partial
@@ -587,6 +588,71 @@ def test_add_missing_columns_reports_all_in_lazy_validation():
         ]
     )
     assert missing_columns == {"a", "c"}
+
+
+def test_on_missing_columns_warns_for_absent_optional_column() -> None:
+    """A missing optional column warns when on_missing is set to 'warn'."""
+    df = pd.DataFrame({"a": [1, 2]})
+
+    # schema-wide default
+    schema = DataFrameSchema(
+        {"a": Column(int), "b": Column(str, required=False)},
+        on_missing_columns="warn",
+    )
+    with pytest.warns(errors.SchemaWarning, match="optional column 'b'"):
+        schema.validate(df)
+
+    # per-column override takes precedence over the (unset) schema default
+    schema = DataFrameSchema(
+        {"a": Column(int), "b": Column(str, required=False, on_missing="warn")}
+    )
+    with pytest.warns(errors.SchemaWarning, match="optional column 'b'"):
+        schema.validate(df)
+
+
+def test_on_missing_columns_default_is_silent() -> None:
+    """Missing optional columns pass silently unless on_missing is set."""
+    df = pd.DataFrame({"a": [1, 2]})
+    schema = DataFrameSchema(
+        {"a": Column(int), "b": Column(str, required=False)}
+    )
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        schema.validate(df)
+
+
+def test_on_missing_columns_no_warning_when_present() -> None:
+    """No warning is raised when the optional column is present."""
+    df = pd.DataFrame({"a": [1, 2], "b": ["x", "y"]})
+    schema = DataFrameSchema(
+        {"a": Column(int), "b": Column(str, required=False)},
+        on_missing_columns="warn",
+    )
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        schema.validate(df)
+
+
+def test_on_missing_columns_does_not_affect_required_columns() -> None:
+    """on_missing does not downgrade a required column's absence to a warning."""
+    df = pd.DataFrame({"a": [1, 2]})
+    schema = DataFrameSchema(
+        {"a": Column(int), "b": Column(str, on_missing="warn")}
+    )
+    with pytest.raises(
+        errors.SchemaError, match="column 'b' not in dataframe"
+    ):
+        schema.validate(df)
+
+
+def test_on_missing_columns_invalid_value_raises_init_error() -> None:
+    """Invalid on_missing / on_missing_columns values raise SchemaInitError."""
+    with pytest.raises(errors.SchemaInitError, match="on_missing must be"):
+        Column(str, required=False, on_missing="raise")
+    with pytest.raises(
+        errors.SchemaInitError, match="on_missing_columns must be"
+    ):
+        DataFrameSchema({"a": Column(int)}, on_missing_columns="raise")
 
 
 def test_series_schema() -> None:

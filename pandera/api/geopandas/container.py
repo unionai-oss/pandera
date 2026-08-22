@@ -53,6 +53,7 @@ class GeoDataFrameSchema(DataFrameSchema):
             report_duplicates=schema.report_duplicates,
             unique_column_names=schema.unique_column_names,
             add_missing_columns=schema.add_missing_columns,
+            on_missing_columns=schema.on_missing_columns,
             title=schema.title,
             description=schema.description,
             metadata=schema.metadata,
