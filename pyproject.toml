@@ -149,6 +149,7 @@ dev = [
     "joblib",
     "mypy == 1.10.0",
     "nox",
+    "pyright",
     "pip",
     "polars >= 1.20.0",
     "prek",
@@ -197,7 +198,7 @@ package-data = {"pandera" = ["py.typed"]}
 [tool.pyright]
 typeCheckingMode = "basic"
 include = ["pandera", "tests"]
-exclude = [".nox/**", ".nox-*/**"]
+exclude = [".nox/**", ".nox-*/**", "tests/pyright/**"]
 
 [tool.pytest.ini_options]
 log_cli = true
