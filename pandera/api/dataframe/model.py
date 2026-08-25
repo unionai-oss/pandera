@@ -65,25 +65,32 @@ GENERIC_SCHEMA_CACHE: dict[
 
 
 def _dtype_metadata(annotation: AnnotationInfo) -> tuple[Any, ...]:
-    """Return ``annotation.metadata`` with any ``FieldInfo`` entries removed.
+    """Return dtype metadata with any ``FieldInfo`` entries removed.
 
-    ``Annotated`` types can carry a ``FieldInfo`` alongside dtype parameters
-    (e.g. ``Annotated[Decimal, 19, 4, pa.Field(...)]``). The FieldInfo is
-    consumed elsewhere and must not be forwarded as a dtype argument.
+    ``Annotated`` and ``FieldType`` annotations can carry a ``FieldInfo``
+    alongside dtype parameters. The FieldInfo is consumed elsewhere and must
+    not be forwarded as a dtype argument.
     """
     metadata = annotation.metadata or ()
     return tuple(item for item in metadata if not isinstance(item, FieldInfo))
 
 
-def _extract_annotated_field_info(annotation: Any) -> FieldInfo | None:
-    """Return the first ``FieldInfo`` embedded in an ``Annotated`` annotation.
+def _extract_field_info(annotation: Any) -> FieldInfo | None:
+    """Return the first ``FieldInfo`` embedded in an annotation.
 
-    Returns ``None`` if the annotation is not an ``Annotated`` type or has no
-    embedded ``FieldInfo``. The returned instance is copied so that mutating
-    the model's class attribute does not affect the original.
+    This handles both ``typing.Annotated`` metadata and the additional
+    metadata arguments accepted by ``pandera.typing.FieldType``. The returned
+    instance is copied so that mutating the model's class attribute does not
+    affect the original.
     """
+    if isinstance(annotation, FieldInfo):
+        return copy.deepcopy(annotation)
     metadata = getattr(annotation, "__metadata__", None)
     if not metadata:
+        for arg in typing.get_args(annotation):
+            field_info = _extract_field_info(arg)
+            if field_info is not None:
+                return field_info
         return None
     for item in metadata:
         if isinstance(item, FieldInfo):
@@ -288,15 +295,21 @@ class DataFrameModel(Generic[TDataFrame, TSchema], BaseModel):
             cls.Config = type("Config", (cls.Config,), {"name": cls.__name__})
 
         super().__init_subclass__(**kwargs)
-        subclass_annotations = inspect.get_annotations(cls)
+        # Evaluate postponed annotations so metadata embedded in a
+        # ``FieldType`` alias is available while installing the descriptor.
+        # Fall back to the unevaluated annotations when a forward reference
+        # is not resolvable until schema collection.
+        try:
+            subclass_annotations = inspect.get_annotations(cls, eval_str=True)
+        except (NameError, TypeError):
+            subclass_annotations = inspect.get_annotations(cls)
 
         for field_name, annotation in subclass_annotations.items():
             if _is_field(field_name) and field_name not in cls.__dict__:
-                # No explicit Field assignment. If the annotation is an
-                # ``Annotated`` type that embeds a FieldInfo (e.g.
-                # ``Annotated[str, pa.Field(...)]``), use that FieldInfo so
-                # its metadata (description, title, etc.) is preserved.
-                field = _extract_annotated_field_info(annotation) or Field()
+                # No explicit Field assignment. If the annotation embeds a
+                # FieldInfo in ``Annotated`` or ``FieldType`` metadata, use
+                # it so its metadata is preserved.
+                field = _extract_field_info(annotation) or Field()
                 field.__set_name__(cls, field_name)
                 setattr(cls, field_name, field)
 
@@ -328,8 +341,13 @@ class DataFrameModel(Generic[TDataFrame, TSchema], BaseModel):
         for field, (annot_info, field_info) in cls._collect_fields().items():
             if isinstance(annot_info.arg, TypeVar):
                 if annot_info.arg in param_dict:
-                    raw_annot = annot_info.origin[param_dict[annot_info.arg]]  # type: ignore
-                    if annot_info.optional:
+                    raw_dtype: Any = param_dict[annot_info.arg]
+                    raw_annot = (
+                        annot_info.origin[raw_dtype]  # type: ignore
+                        if annot_info.origin is not None
+                        else raw_dtype
+                    )
+                    if annot_info.nullable or annot_info.optional:
                         raw_annot = Optional[raw_annot]  # noqa: UP045
                     extra["__annotations__"][field] = raw_annot
                     extra[field] = copy.deepcopy(field_info)
@@ -463,7 +481,14 @@ class DataFrameModel(Generic[TDataFrame, TSchema], BaseModel):
                     + f"not a '{type(field)}.'"
                 )
 
-            fields[field.name] = (AnnotationInfo(annotation), field)
+            annotation_info = AnnotationInfo(annotation)
+            if annotation_info.is_field and annotation_info.arg is None:
+                raise SchemaInitError(
+                    f"Invalid annotation '{field_name}: {annotation}'. "
+                    "pandera.typing.FieldType must be parameterized as "
+                    "FieldType[T]."
+                )
+            fields[field.name] = (annotation_info, field)
         return fields
 
     @classmethod

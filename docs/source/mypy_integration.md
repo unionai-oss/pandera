@@ -27,6 +27,47 @@ plugins = pandera.mypy
 Mypy static type-linting is supported for only pandas dataframes.
 :::
 
+## Static DataFrameModel field names with ty
+
+`DataFrameModel` replaces field attributes with column-name descriptors at
+runtime. Plain dtype annotations are treated as the dtype by a generic static
+checker, so they do not by themselves prevent a `ty` false positive when a
+field is passed to an API expecting a `str`.
+
+Use the backend-neutral, typing-only
+{py:class}`pandera.typing.FieldType` descriptor when that static contract is
+needed:
+
+```python
+import polars as pl
+import pandera.polars as pa
+from pandera.typing import FieldType
+
+
+class Schema(pa.DataFrameModel):
+    values: FieldType[pl.List] = pa.Field()
+    nullable: FieldType[int | None] = pa.Field()
+    optional: FieldType[int] | None
+
+
+def accepts_name(name: str) -> str:
+    return name
+
+
+accepts_name(Schema.values)  # accepted by ty without a Pandera plugin
+```
+
+`FieldType[T]` models class-level access as `str` and leaves `T` available to
+Pandera's runtime parser. It is not instantiated. The backend-specific
+`pa.Field(...)` remains the runtime metadata object, either as the assigned
+value shown above or as an additional `FieldType` metadata argument:
+`FieldType[T, pa.Field(...)]`. Because generic checkers may reject calls inside
+type arguments, use the assignment form shown above when running `ty`. The
+descriptor does not change the required, nullable, optional-presence,
+explicit-override, or legacy
+`Optional[Series[T]]` semantics documented in the
+{ref}`DataFrameModel guide <dataframe-models>`.
+
 :::{warning}
 This functionality is experimental 🧪. Since the
 [pandas-stubs](https://github.com/pandas-dev/pandas-stubs) type stub

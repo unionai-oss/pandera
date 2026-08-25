@@ -54,13 +54,16 @@ class FieldInfo(BaseFieldInfo):
         dtype: Any,
         checks: CheckArg | None = None,
         parsers: ParserArg | None = None,
+        nullable: bool = False,
         required: bool = True,
         name: str | None = None,
     ) -> dict[str, Any]:
         """Create a schema_components.Column from a field."""
+        nullable = self.nullable if self.nullable_explicit else nullable
+        required = self.required if self.required_explicit else required
         return self._get_schema_properties(
             dtype,
-            nullable=self.nullable,
+            nullable=nullable,
             unique=self.unique,
             coerce=self.coerce,
             regex=self.regex,
@@ -79,12 +82,14 @@ class FieldInfo(BaseFieldInfo):
         dtype: Any,
         checks: CheckArg | None = None,
         parsers: ParserArg | None = None,
+        nullable: bool = False,
         name: str | None = None,
     ) -> dict[str, Any]:
         """Create a schema_components.Index from a field."""
+        nullable = self.nullable if self.nullable_explicit else nullable
         return self._get_schema_properties(
             dtype,
-            nullable=self.nullable,
+            nullable=nullable,
             unique=self.unique,
             coerce=self.coerce,
             name=name,
@@ -142,7 +147,8 @@ def Field(
     ] = None,
     str_matches: str | None = None,
     str_startswith: str | None = None,
-    nullable: bool = False,
+    nullable: bool | None = None,
+    required: bool | None = None,
     unique: bool = False,
     coerce: bool = False,
     regex: bool = False,
@@ -198,6 +204,7 @@ def Field(
     :param str_startswith: Check that the column/index starts with a substring.
         See :func:`~pandera.api.checks.Check.str_startswith` for more information.
     :param nullable: Whether or not the column/index can contain null values.
+    :param required: Whether or not the column is allowed to be missing.
     :param unique: Whether column values should be unique.
     :param coerce: coerces the data type if ``True``.
     :param regex: whether or not the field name or alias is a regex pattern.
@@ -250,7 +257,9 @@ def Field(
 
     return FieldInfo(
         checks=checks or None,
-        nullable=nullable,
+        nullable=nullable if nullable is not None else False,
+        nullable_explicit=nullable is not None,
+        required=required,
         unique=unique,
         coerce=coerce,
         regex=regex,

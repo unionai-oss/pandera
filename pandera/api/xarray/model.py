@@ -5,7 +5,7 @@ from __future__ import annotations
 import inspect
 import threading
 import typing
-from typing import Any, ClassVar, cast, get_args, get_origin
+from typing import Any, ClassVar, TypeGuard, cast, get_args, get_origin
 
 import typing_inspect
 
@@ -661,7 +661,7 @@ class DatasetModel(_XarrayModelBase):
         )
 
 
-def _is_dataset_model(cls: Any) -> bool:
+def _is_dataset_model(cls: Any) -> TypeGuard[type[DatasetModel]]:
     return isinstance(cls, type) and issubclass(cls, DatasetModel)
 
 
