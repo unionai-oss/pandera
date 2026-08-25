@@ -75,6 +75,7 @@ instance/
 
 # Sphinx documentation
 docs/_build/
+docs/source/_intersphinx_cache/
 
 # PyBuilder
 target/

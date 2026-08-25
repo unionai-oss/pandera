@@ -20,6 +20,10 @@ import re
 import shutil
 import subprocess
 import sys
+import time
+import urllib.error
+import urllib.request
+from concurrent.futures import ThreadPoolExecutor
 
 import sphinx.application
 from sphinx.util import logging
@@ -185,7 +189,11 @@ master_doc = "index"
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
-exclude_patterns = [".ipynb_checkpoints/*", "notebooks/try_pandera.ipynb"]
+exclude_patterns = [
+    ".ipynb_checkpoints/*",
+    "notebooks/try_pandera.ipynb",
+    "_intersphinx_cache/*",
+]
 
 # sphinxcontrib-typer emits pdf/png image nodes for non-html builders (e.g.
 # the doctest builder), but those files are only generated for the html build.
@@ -273,6 +281,102 @@ intersphinx_mapping = {
     "typeguard": ("https://typeguard.readthedocs.io/en/stable/", None),
     "xarray": ("https://docs.xarray.dev/en/stable/", None),
 }
+
+
+# -- Intersphinx inventory prefetch ------------------------------------------
+# Sphinx fetches the remote intersphinx inventories at build time, and a
+# transient network error (e.g. a CDN 503) is reported as a warning, which
+# fails the build under -W (warnings-as-errors). To keep the build resilient
+# to that kind of flakiness, download each inventory into
+# ``_intersphinx_cache/`` (with retries and a TTL) and point
+# ``intersphinx_mapping`` at the local copies. The target URIs are left
+# untouched, so cross-references still resolve to the published docs.
+
+_INTERSPHINX_CACHE_DIR = os.path.join(root_dir, "_intersphinx_cache")
+_INTERSPHINX_CACHE_TTL = int(
+    os.getenv("PANDERA_DOCS_INTERSPHINX_TTL", "86400")
+)
+
+
+def _is_valid_inventory(data: bytes) -> bool:
+    """Guard against writing HTML error pages into the cache."""
+    return data.startswith(b"# Sphinx inventory version")
+
+
+def _fetch_inventory_with_retries(
+    url: str,
+    dest: str,
+    attempts: int = 4,
+    timeout: float = 20.0,
+) -> bool:
+    """Download *url* to *dest*, retrying with exponential backoff."""
+    for attempt in range(1, attempts + 1):
+        try:
+            request = urllib.request.Request(
+                url, headers={"User-Agent": "pandera-docs (intersphinx)"}
+            )
+            with urllib.request.urlopen(request, timeout=timeout) as response:
+                data = response.read()
+            if _is_valid_inventory(data):
+                os.makedirs(os.path.dirname(dest), exist_ok=True)
+                tmp_path = f"{dest}.tmp"
+                with open(tmp_path, "wb") as fh:
+                    fh.write(data)
+                os.replace(tmp_path, dest)
+                return True
+        except (OSError, ValueError) as exc:
+            print(
+                f"[intersphinx] {url}: attempt {attempt}/{attempts} "
+                f"failed: {exc}"
+            )
+        if attempt < attempts:
+            time.sleep(2.0 * 2 ** (attempt - 1))
+    return False
+
+
+def _prefetch_intersphinx_inventories(mapping):
+    """Point each mapping entry at a locally cached inventory file.
+
+    Falls back to the previous cache copy if the download keeps failing; if
+    there is no cache at all, keeps the live location so the build fails
+    loudly rather than silently losing the cross-references.
+    """
+
+    def prepare(name: str, base_url: str):
+        inv_url = base_url.rstrip("/") + "/objects.inv"
+        dest = os.path.join(_INTERSPHINX_CACHE_DIR, name, "objects.inv")
+        cached = os.path.isfile(dest)
+        fresh_enough = (
+            cached
+            and time.time() - os.path.getmtime(dest) < _INTERSPHINX_CACHE_TTL
+        )
+        if not fresh_enough:
+            if not _fetch_inventory_with_retries(inv_url, dest):
+                if not cached:
+                    print(
+                        f"[intersphinx] {name}: download failed and no "
+                        f"cached copy exists; sphinx will attempt a live "
+                        f"fetch and fail the build if it also fails"
+                    )
+                    return name, (base_url, None)
+                print(
+                    f"[intersphinx] {name}: using cached copy "
+                    f"({inv_url} unreachable)"
+                )
+        location = os.path.relpath(dest, root_dir).replace(os.sep, "/")
+        return name, (base_url, location)
+
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        results = list(
+            pool.map(
+                lambda item: prepare(item[0], item[1]),
+                [(name, url) for name, (url, _loc) in mapping.items()],
+            )
+        )
+    return dict(results)
+
+
+intersphinx_mapping = _prefetch_intersphinx_inventories(intersphinx_mapping)
 
 # strip prompts
 copybutton_prompt_text = (
