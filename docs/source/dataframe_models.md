@@ -457,6 +457,26 @@ class SchemaExplicitWins(pa.DataFrameModel):
 SchemaExplicitWins.to_schema().columns["value"].description
 ```
 
+You can also embed field metadata with {data}`typing.Annotated`:
+
+```{code-cell} python
+from typing import Annotated
+
+
+class AnnotatedSchema(pa.DataFrameModel):
+    value: Annotated[int, pa.Field(gt=0, description="A positive value")]
+
+
+AnnotatedSchema.to_schema().columns["value"].description
+```
+
+This syntax is valid at runtime and may be convenient when you prefer standard
+typing constructs. Its trade-off is that `Annotated` preserves the underlying
+`int` annotation for static analysis; it does not provide the class-level `str`
+descriptor contract. If model fields are not passed to string-taking APIs, this
+limitation may not matter. If `ty` is part of your tooling, use `FieldType`
+instead.
+
 `FieldType[T]` supplies the static descriptor contract: class-level access is
 a `str`, while `T` remains the dtype Pandera parses at runtime. It is not the
 runtime metadata function and must not be instantiated. Existing bare dtypes,
