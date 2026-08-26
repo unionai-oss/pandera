@@ -1909,3 +1909,38 @@ def test_check_types_catches_inplace_mutation():
     df = DataFrame[InSchema]({"id": [1], "name": ["foo"]})
     with pytest.raises(errors.SchemaError):
         mutate_after_typing(df)
+
+
+def test_check_input_keyword_only_args():
+    """check_input must not crash on functions with no positional args (#2422)."""
+
+    @check_input(DataFrameSchema({"col": Column(int)}))
+    def process(*, df):
+        return df
+
+    expected = pd.DataFrame({"col": [1, 2]})
+    out = process(df=expected)
+    pd.testing.assert_frame_equal(out, expected)
+
+
+def test_get_fn_argnames_no_positional_args():
+    from pandera.decorators import _get_fn_argnames
+
+    def keyword_only(*, df, output_col):
+        pass
+
+    def variadic(*args):
+        pass
+
+    def keywords(**kwargs):
+        pass
+
+    class Widget:
+        def method(self, x):
+            pass
+
+    assert _get_fn_argnames(keyword_only) == []
+    assert _get_fn_argnames(variadic) == []
+    assert _get_fn_argnames(keywords) == []
+    # regression guard: self-exclusion semantics unchanged
+    assert _get_fn_argnames(Widget.method) == ["x"]
