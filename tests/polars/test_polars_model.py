@@ -30,6 +30,7 @@ from pandera.polars import (
     check,
     dataframe_check,
 )
+from pandera.typing import FieldType
 
 
 @pytest.fixture
@@ -143,19 +144,103 @@ def test_model_schema_equivalency(
     assert ldf_model_basic.to_schema() == ldf_schema_basic
 
 
-def test_model_schema_equivalency_with_optional():
-    class ModelWithOptional(DataFrameModel):
+def test_model_schema_equivalency_with_nullable():
+    class ModelWithNullable(DataFrameModel):
         string_col: str | None
         int_col: int
 
     schema = DataFrameSchema(
-        name="ModelWithOptional",
+        name="ModelWithNullable",
         columns={
-            "string_col": Column(pl.Utf8, required=False),
+            "string_col": Column(pl.Utf8, nullable=True),
             "int_col": Column(pl.Int64),
         },
     )
-    assert ModelWithOptional.to_schema() == schema
+    assert ModelWithNullable.to_schema() == schema
+
+
+def test_field_type_presence_and_nullability():
+    """Test the ``FieldType`` presence and nullability contract."""
+
+    class Model(DataFrameModel):
+        items: pl.List
+        nullable_values: int | None
+        optional_presence: FieldType[int] | None
+        explicit_nullable: int | None = Field(nullable=False)
+
+    schema = Model.to_schema()
+    assert schema.columns["items"].dtype == Column(pl.List).dtype
+    assert schema.columns["nullable_values"].nullable
+    assert schema.columns["nullable_values"].required
+    assert not schema.columns["optional_presence"].required
+    assert not schema.columns["optional_presence"].nullable
+    assert not schema.columns["explicit_nullable"].nullable
+    assert Model.items == "items"
+    assert isinstance(Model.optional_presence, str)
+
+
+def test_field_type_contract():
+    """The typing-only field marker composes with runtime field metadata."""
+
+    class Model(DataFrameModel):
+        checked: FieldType[
+            int,
+            Field(
+                alias="renamed",
+                description="checked field",
+                metadata={"source": "typing-field"},
+                title="Checked",
+                unique=True,
+                gt=0,
+            ),
+        ]
+        nullable: FieldType[int | None, Field()]
+        optional: FieldType[str] | None
+        assigned: FieldType[int] = Field(description="assigned")
+
+    schema = Model.to_schema()
+    checked = schema.columns["renamed"]
+    assert checked.required
+    assert not checked.nullable
+    assert checked.description == "checked field"
+    assert checked.metadata == {"source": "typing-field"}
+    assert checked.title == "Checked"
+    assert checked.unique
+    assert checked.checks
+    assert schema.columns["nullable"].required
+    assert schema.columns["nullable"].nullable
+    assert not schema.columns["optional"].required
+    assert schema.columns["assigned"].description == "assigned"
+    assert Model.checked == "renamed"
+
+    valid = pl.DataFrame({"renamed": [1], "nullable": [1], "assigned": [2]})
+    Model.validate(valid)
+    with pytest.raises(SchemaError):
+        Model.validate(valid.with_columns(pl.lit(0).alias("renamed")))
+
+
+def test_field_type_metadata_and_inheritance():
+    """Test ``FieldType`` metadata and inheritance with Polars."""
+
+    class Parent(DataFrameModel):
+        inherited: FieldType[int, Field(description="inherited")]
+        overridden: FieldType[int, Field(description="parent")]
+
+    class Child(Parent):
+        overridden: FieldType[int, Field(description="overridden")]
+        annotated: FieldType[
+            str, Field(alias="annotated_name", title="Annotated")
+        ]
+        optional: FieldType[int, Field(description="optional", required=False)]
+
+    schema = Child.to_schema()
+    assert schema.columns["inherited"].description == "inherited"
+    assert schema.columns["overridden"].description == "overridden"
+    assert schema.columns["annotated_name"].title == "Annotated"
+    assert schema.columns["optional"].description == "optional"
+    assert not schema.columns["optional"].required
+    assert Child.inherited == "inherited"
+    assert Child.annotated == "annotated_name"
 
 
 @pytest.mark.parametrize(
@@ -371,19 +456,19 @@ def test_model_field_access_returns_string():
     assert ModelWithBareTypes.y == "y"
 
 
-def test_annotated_field_metadata_propagation():
-    """``Annotated[T, pa.Field(...)]`` should propagate the embedded
-    ``FieldInfo`` metadata (description, title, unique, checks, etc.) to
+def test_field_type_metadata_propagation():
+    """``FieldType[T, pa.Field(...)]`` should propagate field metadata
+    (description, title, unique, checks, etc.) to
     the polars schema. See
     https://github.com/unionai-oss/pandera/issues/2110.
     """
 
     class Schema(DataFrameModel):
-        name: Annotated[str, Field(description="Name of the person")]
+        name: FieldType[str, Field(description="Name of the person")]
         age: int = Field(ge=0, description="Age of the person")
-        val: Annotated[float, Field(ge=0.0, description="A value")]
-        identifier: Annotated[int, Field(unique=True, title="Identifier")]
-        tag: Annotated[str, Field(metadata={"k": "v"})]
+        val: FieldType[float, Field(ge=0.0, description="A value")]
+        identifier: FieldType[int, Field(unique=True, title="Identifier")]
+        tag: FieldType[str, Field(metadata={"k": "v"})]
 
     schema = Schema.to_schema()
 
@@ -394,7 +479,7 @@ def test_annotated_field_metadata_propagation():
     assert schema.columns["identifier"].title == "Identifier"
     assert schema.columns["tag"].metadata == {"k": "v"}
 
-    # ``ge`` check defined inside the Annotated FieldInfo should also
+    # ``ge`` check defined inside the FieldType metadata should also
     # be applied during validation.
     valid = pl.DataFrame(
         {
@@ -412,18 +497,14 @@ def test_annotated_field_metadata_propagation():
         Schema.validate(invalid)
 
 
-def test_annotated_field_no_metadata_dedup():
-    """Two ``Annotated`` annotations using independent ``Field(...)``
-    calls must not be deduplicated by Python's ``typing.Annotated`` cache.
-    Without unique hashing on un-named ``FieldInfo`` instances, the second
-    model would inadvertently inherit the first model's field configuration.
-    """
+def test_field_type_metadata_no_dedup():
+    """Independent ``FieldType`` metadata objects must remain distinct."""
 
     class ModelA(DataFrameModel):
-        value: Annotated[int, Field(ge=18, le=100)]
+        value: FieldType[int, Field(ge=18, le=100)]
 
     class ModelB(DataFrameModel):
-        value: Annotated[int, Field(unique=True, title="ID")]
+        value: FieldType[int, Field(unique=True, title="ID")]
 
     schema_a = ModelA.to_schema()
     schema_b = ModelB.to_schema()

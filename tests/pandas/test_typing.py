@@ -1,7 +1,7 @@
 """Test typing annotations for the model api."""
 
 import re
-from typing import Any, Optional
+from typing import Any, Literal, Optional
 
 import numpy as np
 import pandas as pd
@@ -10,7 +10,7 @@ import pytest
 import pandera.pandas as pa
 from pandera.api.pandas.model import _get_nullable_coercion_dtype
 from pandera.dtypes import DataType
-from pandera.typing import DataFrame, Index, Series
+from pandera.typing import AnnotationInfo, DataFrame, Index, Series
 
 try:  # python 3.9+
     from typing import Annotated  # type: ignore
@@ -394,6 +394,23 @@ def test_invalid_annotated_dtype():
     )
     with pytest.raises(TypeError, match=err_msg):
         SchemaInvalidAnnotatedDtype.to_schema()
+
+
+def test_annotation_info_metadata_and_literal_annotations() -> None:
+    """Parse nested metadata, nullable values, and literal dtypes."""
+    optional_series = AnnotationInfo(Annotated[Series[int], "metadata"] | None)
+    assert optional_series.optional
+    assert optional_series.is_optional_field
+
+    nullable = AnnotationInfo(Annotated[int | None, "metadata"])
+    assert nullable.nullable
+
+    annotated_literal = AnnotationInfo(Annotated[Literal["value"], "metadata"])
+    assert annotated_literal.arg == "value"
+
+    literal = AnnotationInfo(Series[Literal["value"]])
+    assert literal.literal
+    assert literal.arg == "value"
 
 
 class SchemaRedundantField(pa.DataFrameModel):

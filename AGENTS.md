@@ -167,7 +167,7 @@ The nox `tests` session maps extras to test directories: `extra=None` runs
 
 - **Ruff:** Linting (`I`, `UP` rules) and formatting. Line length: 79.
 - **isort:** Import sorting (line length 79).
-- **mypy:** Static type checking (v1.10.0). Config in `mypy.ini`.
+- **mypy:** Static type checking (v1.19.1). Config in `mypy.ini`.
 - **pyupgrade:** Python 3.9+ syntax upgrades.
 - **flynt:** f-string conversion.
 - **codespell:** Spell checking.

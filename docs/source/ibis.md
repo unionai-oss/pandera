@@ -279,29 +279,32 @@ The ``time_zone_agnostic`` argument for the timestamp data type is not yet
 supported in the Ibis integration.
 :::
 
-### Embedding `Field` metadata in `Annotated`
+### Field metadata for typed model fields
 
-You can also embed a {func}`~pandera.api.dataframe.model_components.Field`
-directly inside {data}`typing.Annotated` to attach column-level metadata
-— such as `description`, `title`, `unique`, checks (`ge`, `le`, `isin`,
-…), or custom `metadata` — without providing an explicit `= pa.Field(...)`
-assignment. This works for plain types as well as parameterized Ibis
-dtypes:
+You can embed a backend-specific `pa.Field(...)` object as additional metadata
+in the typing-only {py:class}`pandera.typing.FieldType` descriptor. This
+attaches column-level metadata such as `description`, `title`, `unique`,
+checks such as `ge`, `le`, and `isin`, or custom `metadata` without a separate
+assignment. For parameterized Ibis dtypes, use the checker-friendly assignment
+form to pass `dtype_kwargs`:
+
+These metadata-in-type-argument examples are runtime syntax. When checking a
+model with `ty`, use `FieldType[T] = pa.Field(...)` so the type argument contains
+only types.
 
 ```{code-cell} python
-from typing import Annotated
-
 import ibis.expr.datatypes as dt
+from pandera.typing import FieldType
 
 
 class ProductsModel(pa.DataFrameModel):
-    name: Annotated[str, pa.Field(description="Product name")]
-    price: Annotated[float, pa.Field(ge=0.0, description="Unit price")]
-    sku: Annotated[int, pa.Field(unique=True, title="SKU")]
-    # parameterized dtypes can be combined with FieldInfo
-    created_at: Annotated[
-        dt.Timestamp, "UTC", 6, True, pa.Field(description="Created at")
-    ]
+    name: FieldType[str, pa.Field(description="Product name")]
+    price: FieldType[float, pa.Field(ge=0.0, description="Unit price")]
+    sku: FieldType[int, pa.Field(unique=True, title="SKU")]
+    created_at: FieldType[dt.Timestamp] = pa.Field(
+        dtype_kwargs={"timezone": "UTC", "scale": 6, "nullable": True},
+        description="Created at",
+    )
 
 
 schema = ProductsModel.to_schema()
