@@ -223,7 +223,7 @@ html_theme = "furo"
 # documentation.
 
 announcement = """
-📢 New in Pandera: validate schemas from the command line with the
+📢 New in Pandera 0.33.0: validate schemas from the command line with the
 <a href='./cli.html'>Pandera CLI</a>, and validate <a href='./pyarrow.html'>PyArrow</a>
 dataframes natively!
 """
