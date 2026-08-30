@@ -63,15 +63,18 @@ def _java_specification_major() -> int | None:
 
 
 def _ensure_pyspark_jdk24_jvm_opts() -> None:
-    """Let local Spark start on JDK 24+ (Hadoop UGI / Subject.getSubject).
+    """Let local Spark start on JDK 24 (Hadoop UGI / Subject.getSubject).
 
-    See JEP 486. Notebook kernels inherit this process env. No-op on JDK < 24.
+    See JEP 486. Notebook kernels inherit this process env. Only applies to
+    JDK 24: on JDK 25+ the JVM hard-fails at startup ("Enabling a Security
+    Manager is not supported") if this flag is present at all, and Spark
+    starts fine there without it, so this is a no-op outside JDK 24.
     """
     flag = "-Djava.security.manager=allow"
     if flag in os.environ.get("JAVA_TOOL_OPTIONS", ""):
         return
     major = _java_specification_major()
-    if major is None or major < 24:
+    if major != 24:
         return
     prev = os.environ.get("JAVA_TOOL_OPTIONS", "").strip()
     os.environ["JAVA_TOOL_OPTIONS"] = (
