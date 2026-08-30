@@ -1,3 +1,10 @@
+# Unit test matrix across Python/OS/pandas/pydantic/polars versions.
+#
+# The `changes` job classifies the files changed in a PR/push using
+# dorny/paths-filter (see .github/filters.yaml) and combines the results
+# (see scripts/ci/derive_test_flags.sh) so each test area only runs when its
+# code is touched. Changes to shared modules or build config trigger every
+# area.
 name: CI Tests
 on:
   push:
@@ -26,9 +33,69 @@ concurrency:
 
 jobs:
 
+  # Classify the files changed in this run so downstream jobs can skip
+  # test areas that are not affected (see .github/filters.yaml and
+  # scripts/ci/derive_test_flags.sh).
+  changes:
+    name: Changed areas
+    runs-on: ubuntu-latest
+    outputs:
+      lint: ${{ steps.filter.outputs.lint }}
+      docs: ${{ steps.filter.outputs.docs }}
+      import_test: ${{ steps.flags.outputs.import_test }}
+      base: ${{ steps.flags.outputs.base }}
+      pandas: ${{ steps.flags.outputs.pandas }}
+      supplemental: ${{ steps.flags.outputs.supplemental }}
+      supplemental_extras:
+        ${{ steps.flags.outputs.supplemental_extras }}
+      dataframe: ${{ steps.flags.outputs.dataframe }}
+      dataframe_extras:
+        ${{ steps.flags.outputs.dataframe_extras }}
+      narwhals_backend:
+        ${{ steps.flags.outputs.narwhals_backend }}
+      narwhals_backend_extras:
+        ${{ steps.flags.outputs.narwhals_backend_extras }}
+      narwhals: ${{ steps.flags.outputs.narwhals }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Classify changed files
+        id: filter
+        uses: dorny/paths-filter@v4
+        with:
+          filters: .github/filters.yaml
+
+      - name: Derive job flags
+        id: flags
+        env:
+          GLOBAL: ${{ steps.filter.outputs.global }}
+          COMMON: ${{ steps.filter.outputs.common }}
+          BASE: ${{ steps.filter.outputs.base }}
+          PANDAS: ${{ steps.filter.outputs.pandas }}
+          POLARS: ${{ steps.filter.outputs.polars }}
+          PYSPARK: ${{ steps.filter.outputs.pyspark }}
+          IBIS: ${{ steps.filter.outputs.ibis }}
+          GEOPANDAS: ${{ steps.filter.outputs.geopandas }}
+          DASK: ${{ steps.filter.outputs.dask }}
+          MODIN: ${{ steps.filter.outputs.modin }}
+          XARRAY: ${{ steps.filter.outputs.xarray }}
+          PYARROW: ${{ steps.filter.outputs.pyarrow }}
+          NARWHALS: ${{ steps.filter.outputs.narwhals }}
+          HYPOTHESES: ${{ steps.filter.outputs.hypotheses }}
+          IO: ${{ steps.filter.outputs.io }}
+          MYPY: ${{ steps.filter.outputs.mypy }}
+          STRATEGIES: ${{ steps.filter.outputs.strategies }}
+          FASTAPI: ${{ steps.filter.outputs.fastapi }}
+        run: bash scripts/ci/derive_test_flags.sh >> "${GITHUB_OUTPUT}"
+
   lint:
     name: Linters (python=${{ matrix.python-version }} polars=${{ matrix.polars-version }} )
     runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.lint == 'true'
     strategy:
       fail-fast: true
       matrix:
@@ -94,6 +161,8 @@ jobs:
   import-test-polars-no-pandas:
     name: Import Test Polars (no pandas)
     runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.import_test == 'true'
     steps:
       - uses: actions/checkout@v4
 
@@ -120,6 +189,8 @@ jobs:
     name: >
       Unit Tests Base: python-${{ matrix.python-version }} ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
+    needs: changes
+    if: needs.changes.outputs.base == 'true'
     defaults:
       run:
         shell: pwsh
@@ -175,6 +246,8 @@ jobs:
     name: >
       Unit Tests Pandas: python-${{ matrix.python-version }} ${{ matrix.os }} (extra-pandas, pandas-${{ matrix.pandas-version }}, pydantic-${{ matrix.pydantic-version }})
     runs-on: ${{ matrix.os }}
+    needs: changes
+    if: needs.changes.outputs.pandas == 'true'
     defaults:
       run:
         shell: pwsh
@@ -239,6 +312,8 @@ jobs:
     name: >
       Unit Tests Supplemental Extras: python-${{ matrix.python-version }} ${{ matrix.os }} (extra-${{ matrix.extra }}, pandas-${{ matrix.pandas-version }}, pydantic-${{ matrix.pydantic-version }})
     runs-on: ${{ matrix.os }}
+    needs: changes
+    if: needs.changes.outputs.supplemental == 'true'
     defaults:
       run:
         shell: pwsh
@@ -251,13 +326,10 @@ jobs:
         python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
         pandas-version: ["2.3.3", "3.0.0"]
         pydantic-version: ["2.12.3"]
-        extra:
-        - hypotheses
-        - io
-        - mypy
-        - strategies
-        - fastapi
-        - geopandas
+        # Only the extras whose areas were changed in this PR/push (see
+        # .github/filters.yaml, scripts/ci/derive_test_flags.sh); the job is skipped when the list
+        # is empty via the `if` above.
+        extra: ${{ fromJSON(needs.changes.outputs.supplemental_extras) }}
         exclude:
         - extra: mypy
           os: windows-latest
@@ -314,6 +386,8 @@ jobs:
     name: >
       Unit Tests DataFrame Extras: python-${{ matrix.python-version }} ${{ matrix.os }} (extra-${{ matrix.extra }} pandas-${{ matrix.pandas-version }} polars=${{ matrix.polars-version }})
     runs-on: ${{ matrix.os }}
+    needs: changes
+    if: needs.changes.outputs.dataframe == 'true'
     defaults:
       run:
         shell: pwsh
@@ -327,15 +401,10 @@ jobs:
         os: [ubuntu-latest, windows-latest, macos-latest]
         python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
         pandas-version: ["2.3.3"]
-        extra:
-        - dask
-        - polars
-        - pyspark
-        - modin-dask
-        - modin-ray
-        - ibis
-        - xarray
-        - pyarrow
+        # Only the extras whose areas were changed in this PR/push (see
+        # .github/filters.yaml, scripts/ci/derive_test_flags.sh); the job is skipped when the list
+        # is empty via the `if` above.
+        extra: ${{ fromJSON(needs.changes.outputs.dataframe_extras) }}
         include:
         - extra: polars
           python-version: "3.10"
@@ -436,6 +505,8 @@ jobs:
     name: >
       Unit Tests Narwhals Backend: python-${{ matrix.python-version }} (extra-${{ matrix.extra }})
     runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.narwhals_backend == 'true'
     defaults:
       run:
         shell: bash
@@ -445,7 +516,10 @@ jobs:
       fail-fast: false
       matrix:
         python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
-        extra: [polars, ibis, pyspark]
+        # Only the extras whose areas were changed in this PR/push (see
+        # .github/filters.yaml, scripts/ci/derive_test_flags.sh); the job is skipped when the list
+        # is empty via the `if` above.
+        extra: ${{ fromJSON(needs.changes.outputs.narwhals_backend_extras) }}
         exclude:
         - extra: pyspark
           python-version: "3.12"
@@ -502,6 +576,8 @@ jobs:
     name: >
       Unit Tests Narwhals: python-${{ matrix.python-version }} ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
+    needs: changes
+    if: needs.changes.outputs.narwhals == 'true'
     defaults:
       run:
         shell: bash
@@ -553,6 +629,8 @@ jobs:
   docs:
     name: Docs (${{ matrix.python-version }})
     runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.docs == 'true'
     strategy:
       fail-fast: true
       matrix:
