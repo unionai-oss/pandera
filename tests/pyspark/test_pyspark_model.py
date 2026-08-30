@@ -2,7 +2,7 @@
 
 import decimal
 from contextlib import nullcontext as does_not_raise
-from typing import Annotated, Optional
+from typing import Generic, Optional, TypeVar
 
 import pyspark.sql.types as T
 import pytest
@@ -14,8 +14,13 @@ import pandera.pyspark as pa
 from pandera.api.checks import Check
 from pandera.api.pyspark.model import docstring_substitution
 from pandera.config import CONFIG, PanderaConfig, ValidationDepth
-from pandera.errors import SchemaDefinitionError, SchemaError, SchemaErrors
+from pandera.errors import (
+    SchemaDefinitionError,
+    SchemaError,
+    SchemaErrors,
+)
 from pandera.pyspark import DataFrameModel, DataFrameSchema, Field
+from pandera.typing import FieldType
 from tests.pyspark.conftest import spark_df, validate_collecting_errors
 
 pytestmark = pytest.mark.parametrize(
@@ -49,6 +54,88 @@ def test_schema_with_bare_types(
     )
 
     assert expected == Model.to_schema()
+
+
+def test_field_type_presence_and_nullability(spark_session):
+    """Test the ``FieldType`` presence and nullability contract."""
+
+    class Model(DataFrameModel):
+        required: T.IntegerType
+        nullable_values: T.IntegerType | None
+        nullable_with_omitted_field: T.IntegerType | None = Field()
+        optional_presence: FieldType[T.IntegerType] | None
+        explicit_nullable: T.IntegerType | None = Field(nullable=False)
+
+    schema = Model.to_schema()
+    assert schema.columns["required"].dtype == pa.Column(T.IntegerType()).dtype
+    assert schema.columns["required"].required
+    assert not schema.columns["required"].nullable
+    assert schema.columns["nullable_values"].required
+    assert schema.columns["nullable_values"].nullable
+    assert schema.columns["nullable_with_omitted_field"].nullable
+    assert not schema.columns["optional_presence"].required
+    assert not schema.columns["explicit_nullable"].nullable
+    assert Model.required == "required"
+    assert isinstance(Model.optional_presence, str)
+
+
+def test_field_type_contract(spark_session):
+    """The typing-only field marker composes with runtime field metadata."""
+
+    class Model(DataFrameModel):
+        checked: FieldType[
+            T.IntegerType,
+            Field(
+                alias="renamed",
+                description="checked field",
+                metadata={"source": "typing-field"},
+                title="Checked",
+                gt=0,
+            ),
+        ]
+        nullable: FieldType[T.IntegerType | None, Field()]
+        optional: FieldType[T.StringType] | None
+        assigned: FieldType[T.IntegerType] = Field(description="assigned")
+
+    schema = Model.to_schema()
+    checked = schema.columns["renamed"]
+    assert checked.required
+    assert not checked.nullable
+    assert checked.description == "checked field"
+    assert checked.metadata == {"source": "typing-field"}
+    assert checked.title == "Checked"
+    assert checked.checks
+    assert schema.columns["nullable"].required
+    assert schema.columns["nullable"].nullable
+    assert not schema.columns["optional"].required
+    assert schema.columns["assigned"].description == "assigned"
+    assert Model.checked == "renamed"
+
+
+def test_generic_nullable_field(spark_session):
+    """Preserve nullable values through PySpark generic substitution."""
+    Dtype = TypeVar("Dtype")
+
+    class GenericModel(DataFrameModel, Generic[Dtype]):
+        value: Dtype | None
+
+    class IntegerModel(GenericModel[T.IntegerType]): ...
+
+    schema = IntegerModel.to_schema()
+    assert schema.columns["value"].nullable
+
+
+def test_generic_non_nullable_field(spark_session):
+    """Preserve non-nullable values through PySpark generic substitution."""
+    Dtype = TypeVar("Dtype")
+
+    class GenericModel(DataFrameModel, Generic[Dtype]):
+        value: Dtype
+
+    class IntegerModel(GenericModel[T.IntegerType]): ...
+
+    schema = IntegerModel.to_schema()
+    assert not schema.columns["value"].nullable
 
 
 def test_schema_with_bare_types_and_field(
@@ -146,22 +233,22 @@ def test_schema_with_bare_types_field_type(spark_session, request):
     assert errors is not None
 
 
-def test_annotated_field_metadata_propagation(spark_session, request):
-    """``Annotated[T, pa.Field(...)]`` should propagate the embedded
-    ``FieldInfo`` metadata (description, title, checks, etc.) to the
+def test_field_type_metadata_propagation(spark_session, request):
+    """``FieldType[T, pa.Field(...)]`` should propagate field metadata
+    (description, title, checks, etc.) to the
     pyspark schema. See
     https://github.com/unionai-oss/pandera/issues/2110.
     """
 
     class ProductsModel(DataFrameModel):
-        """Test schema using ``typing.Annotated`` for metadata."""
+        """Test schema using ``FieldType`` for metadata."""
 
-        product_id: Annotated[T.IntegerType, Field(title="Product ID")]
-        product_name: Annotated[
+        product_id: FieldType[T.IntegerType, Field(title="Product ID")]
+        product_name: FieldType[
             T.StringType, Field(description="Product name")
         ]
-        price: Annotated[T.DoubleType, Field(gt=0.0, description="Unit price")]
-        list_price: Annotated[
+        price: FieldType[T.DoubleType, Field(gt=0.0, description="Unit price")]
+        list_price: FieldType[
             T.DecimalType, 20, 5, Field(description="Listed price")
         ]
 
@@ -173,16 +260,14 @@ def test_annotated_field_metadata_propagation(spark_session, request):
     assert isinstance(schema.columns["list_price"].dtype.type, T.DecimalType)
 
 
-def test_annotated_field_no_metadata_dedup(spark_session, request):
-    """Two ``Annotated`` annotations using independent ``Field(...)``
-    calls must not be deduplicated by Python's ``typing.Annotated`` cache.
-    """
+def test_field_type_metadata_no_dedup(spark_session, request):
+    """Independent ``FieldType`` metadata objects must remain distinct."""
 
     class ModelA(DataFrameModel):
-        value: Annotated[T.IntegerType, Field(gt=18)]
+        value: FieldType[T.IntegerType, Field(gt=18)]
 
     class ModelB(DataFrameModel):
-        value: Annotated[T.IntegerType, Field(title="ID")]
+        value: FieldType[T.IntegerType, Field(title="ID")]
 
     schema_a = ModelA.to_schema()
     schema_b = ModelB.to_schema()
@@ -547,9 +632,9 @@ def test_schema():
     class Schema(pa.DataFrameModel):
         """Simple DataFrameModel containing optional columns."""
 
-        a: str | None
-        b: str | None = pa.Field(eq="b")
-        c: str | None  # test pandera.typing alias
+        a: FieldType[str] | None
+        b: FieldType[str, pa.Field(eq="b", required=False)]
+        c: FieldType[str, pa.Field(required=False)]
 
     return Schema
 

@@ -72,6 +72,7 @@ pandera validate -s /tmp/schema.yaml -d /tmp/dataset.csv
 
 ```
 ╭──────────────────────────── Validation succeeded ────────────────────────────╮
+│   Backend    pandas                                                          │
 │                                    Checks                                    │
 │ ┏━━━━━━━━━┳━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━┓ │
 │ ┃ Level   ┃ Target    ┃ Requirement                              ┃ Status  ┃ │
@@ -116,6 +117,7 @@ pandera validate -s /tmp/schema.yaml -d /tmp/invalid_dataset.csv
 
 ```
 ╭───────────────────────────── Validation failed ──────────────────────────────╮
+│   Backend    pandas                                                          │
 │                                Check results                                 │
 │ ┏━━━━━━━━━┳━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━┓ │
 │ ┃ Level   ┃ Target    ┃ Requirement                              ┃ Status  ┃ │
@@ -233,21 +235,33 @@ narwhals` to `pandera validate`. Install the `narwhals` extra alongside the
 dataframe library you use:
 
 ```bash
-pip install 'pandera[cli,narwhals,polars]'
+pip install 'pandera[cli,narwhals,pandas]'
 ```
 
 Then pass the option when validating a pandas, Polars, Ibis, or PySpark SQL
-schema:
+schema. With the pandas schema and dataset from the steps above:
 
 ```bash
-pandera validate -s /tmp/polars_schema.yaml -d /tmp/dataset.csv --backend narwhals
+pandera validate -s /tmp/schema.yaml -d /tmp/dataset.csv --backend narwhals
+```
+
+The report names the validation backend that actually ran, so you can see
+the Narwhals backend in effect (`Backend: narwhals` instead of
+`Backend: pandas`):
+
+```
+╭──────────────────────────── Validation succeeded ────────────────────────────╮
+│   Backend    narwhals                                                        │
+│                                    Checks                                    │
+│ ...                                                                          │
+╰─────────── All listed schema- and data-level requirements passed. ───────────╯
 ```
 
 This is equivalent to running the CLI with the
 `PANDERA_USE_NARWHALS_BACKEND=True` environment variable set:
 
 ```bash
-PANDERA_USE_NARWHALS_BACKEND=True pandera validate -s /tmp/polars_schema.yaml -d /tmp/dataset.csv
+PANDERA_USE_NARWHALS_BACKEND=True pandera validate -s /tmp/schema.yaml -d /tmp/dataset.csv
 ```
 
 The data is loaded per the schema's `api` field above, which must be

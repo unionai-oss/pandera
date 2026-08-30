@@ -159,7 +159,7 @@ The nox `tests` session maps extras to test directories: `extra=None` runs
 - Python: 3.10, 3.11, 3.12, 3.13, 3.14
 - Pandas: 2.1.1, 2.3.3
 - Pydantic: 1.10.11, 2.12.3
-- Polars: 0.20.0, 1.33.1
+- Polars: 1.20.0, 1.33.1, 1.42.1
 
 ## Code Quality
 
@@ -167,7 +167,7 @@ The nox `tests` session maps extras to test directories: `extra=None` runs
 
 - **Ruff:** Linting (`I`, `UP` rules) and formatting. Line length: 79.
 - **isort:** Import sorting (line length 79).
-- **mypy:** Static type checking (v1.10.0). Config in `mypy.ini`.
+- **mypy:** Static type checking (v1.19.1). Config in `mypy.ini`.
 - **pyupgrade:** Python 3.9+ syntax upgrades.
 - **flynt:** f-string conversion.
 - **codespell:** Spell checking.
@@ -194,7 +194,7 @@ prek run --all-files
 | Extra        | Key packages                          |
 |--------------|---------------------------------------|
 | `pandas`     | numpy, pandas >= 2.1.1                |
-| `polars`     | polars >= 0.20.0                      |
+| `polars`     | polars >= 1.20.0                     |
 | `pyspark`    | pyspark[connect] >= 3.2.0             |
 | `ibis`       | ibis-framework >= 9.0.0               |
 | `dask`       | dask[dataframe], distributed          |

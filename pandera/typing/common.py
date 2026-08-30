@@ -13,9 +13,11 @@ from typing import (  # type: ignore[attr-defined]
     _GenericAlias,
     get_args,
     get_origin,
+    overload,
 )
 
 import typing_inspect
+from typing_extensions import TypeVarTuple, Unpack
 
 from pandera import dtypes, errors
 
@@ -70,6 +72,8 @@ GenericDtype = TypeVar(  # type: ignore
 )
 
 DataFrameModel = TypeVar("DataFrameModel", bound="DataFrameModel")  # type: ignore
+FieldDtype = TypeVar("FieldDtype")
+FieldMetadata = TypeVarTuple("FieldMetadata")
 
 
 if TYPE_CHECKING:
@@ -183,21 +187,69 @@ class IndexBase(Generic[GenericDtype]):
         raise AttributeError("Indexes should resolve to pa.Index-s")
 
 
+class FieldType(Generic[FieldDtype, Unpack[FieldMetadata]]):
+    """Typing-only descriptor for a :class:`DataFrameModel` field.
+
+    ``FieldType[T]`` describes the dtype consumed by Pandera's runtime model
+    parser while modeling class-level access as the field name. A backend
+    ``pa.Field(...)`` object may be supplied as additional metadata, or as the
+    assigned value of the field.
+
+    The additional type parameters are intentionally variadic so that the
+    runtime parser can accept field metadata without requiring a second type
+    parameter when no metadata is present.
+    """
+
+    def __new__(cls, *args: Any, **kwargs: Any):
+        raise TypeError(
+            "pandera.typing.FieldType is for type annotations only; use "
+            "the backend Field function for runtime metadata"
+        )
+
+    @overload
+    def __get__(self, instance: None, owner: type[Any]) -> str: ...
+
+    @overload
+    def __get__(self, instance: object, owner: type[Any]) -> FieldDtype: ...
+
+    def __get__(
+        self, instance: object | None, owner: type[Any]
+    ) -> str | FieldDtype:
+        raise AttributeError(
+            "FieldType should resolve to a DataFrameModel field"
+        )
+
+
+def _is_optional_field_annotation(annotation: Any) -> bool:
+    """Return whether an annotation has optional field presence semantics."""
+    if getattr(annotation, "__metadata__", None):
+        annotation = get_args(annotation)[0]
+    origin = get_origin(annotation)
+    if origin is None or not isinstance(origin, type):
+        return False
+    return issubclass(origin, (SeriesBase, IndexBase, FieldType))
+
+
 class AnnotationInfo:
     """Captures extra information about an annotation.
 
     Attributes:
         origin: The non-parameterized generic class.
         args: All generic types for accessing as an iterable.
-        arg: The first generic type (DataFrameModel does not support more than
-            1 argument).
+        arg: The first generic type. ``FieldType`` may have additional
+            metadata arguments.
         literal: Whether the annotation is a literal.
         optional: Whether the annotation is optional.
+        nullable: Whether the annotation's values are nullable.
+        is_optional_field: Whether an outer ``None`` marks an optional field.
+        is_field: Whether the annotation uses
+            ``pandera.typing.FieldType[T]``.
         raw_annotation: The raw annotation.
-        metadata: Extra arguments passed to :data:`typing.Annotated`.
+        metadata: Extra arguments passed to :data:`typing.Annotated` or
+            ``FieldType``.
     """
 
-    def __init__(self, raw_annotation: type) -> None:
+    def __init__(self, raw_annotation: Any) -> None:
         self._parse_annotation(raw_annotation)
 
     @property
@@ -227,7 +279,7 @@ class AnnotationInfo:
         """True if the annotation wraps a pandera model class."""
         return self.is_generic_df or self.is_generic_xarray
 
-    def _parse_annotation(self, raw_annotation: type) -> None:
+    def _parse_annotation(self, raw_annotation: Any) -> None:
         """Parse key information from annotation.
 
         :param annotation: A subscripted type.
@@ -236,34 +288,94 @@ class AnnotationInfo:
         self.raw_annotation = raw_annotation
         self.origin = self.arg = None
         self.is_annotated_type = False
+        self.is_optional_field = False
+        self.is_field = False
+        self.nullable = False
 
-        self.optional = typing_inspect.is_optional_type(raw_annotation)
-        if self.optional and typing_inspect.is_union_type(raw_annotation):
-            # Annotated with Optional or Union[..., NoneType]
+        is_optional = typing_inspect.is_optional_type(raw_annotation)
+        optional_arg = (
+            get_args(raw_annotation)[0]
+            if is_optional and typing_inspect.is_union_type(raw_annotation)
+            else raw_annotation
+        )
+        self.optional = is_optional
+        self.is_optional_field = is_optional and _is_optional_field_annotation(
+            optional_arg
+        )
+        self.nullable = is_optional and not self.is_optional_field
+        if is_optional and typing_inspect.is_union_type(raw_annotation):
+            # Unwrap Optional or Union[..., NoneType]
             # get_args -> (pandera.typing.Index[str], <class 'NoneType'>)
             raw_annotation = get_args(raw_annotation)[0]
             self.raw_annotation = raw_annotation
+
+        metadata = getattr(raw_annotation, "__metadata__", None)
+        if metadata:
+            self.is_annotated_type = True
+            raw_annotation = get_args(raw_annotation)[0]
 
         self.origin = get_origin(raw_annotation)
         # Replace empty tuple returned from get_args by None
         args = get_args(raw_annotation) or None
         self.args = args
-        self.arg = args[0] if args else args
+        self.arg = (
+            args[0]
+            if args
+            else raw_annotation
+            if self.is_annotated_type
+            else None
+        )
 
-        metadata = getattr(raw_annotation, "__metadata__", None)
-
-        if metadata:
-            self.is_annotated_type = True
-            if self.arg is not None:
-                try:
-                    inspect.signature(self.arg)
-                except ValueError:
+        is_typing_field = (
+            raw_annotation is FieldType or self.origin is FieldType
+        )
+        if metadata and self.arg is not None:
+            try:
+                inspect.signature(self.arg)
+            except (TypeError, ValueError):
+                # Preserve the historical behavior for arbitrary Annotated
+                # metadata that is not a dtype constructor argument.
+                if not is_typing_field:
                     metadata = None
 
-        elif metadata := getattr(self.arg, "__metadata__", None):
+        if not metadata and (
+            nested_metadata := getattr(self.arg, "__metadata__", None)
+        ):
+            metadata = nested_metadata
             self.arg = get_args(self.arg)[0]
 
         self.metadata = metadata
+
+        if is_typing_field:
+            self.is_field = True
+            field_args = get_args(raw_annotation)
+            field_dtype = field_args[0] if field_args else None
+            field_metadata = field_args[1:]
+            self.metadata = tuple(self.metadata or ()) + field_metadata or None
+            if typing_inspect.is_optional_type(
+                field_dtype
+            ) and typing_inspect.is_union_type(field_dtype):
+                self.nullable = True
+                field_dtype = get_args(field_dtype)[0]
+
+            raw_annotation = field_dtype
+            self.raw_annotation = raw_annotation
+            self.origin = get_origin(raw_annotation)
+            self.args = get_args(raw_annotation) or None
+            self.arg = (
+                self.args[0]
+                if self.args
+                else raw_annotation
+                if raw_annotation is not None
+                else None
+            )
+
+        if typing_inspect.is_optional_type(
+            raw_annotation
+        ) and typing_inspect.is_union_type(raw_annotation):
+            self.nullable = True
+            raw_annotation = get_args(raw_annotation)[0]
+            self.raw_annotation = raw_annotation
 
         self.literal = get_origin(self.arg) is typing.Literal
 

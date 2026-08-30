@@ -60,7 +60,7 @@ def test_validate_polars_backend_narwhals_ok(tmp_path: Path) -> None:
     _write_polars_schema(schema_path)
     _write_polars_data(data_path)
     proc = run_validate(schema_path, data_path, backend="narwhals")
-    assert_validate_ok(proc)
+    assert_validate_ok(proc, backend="narwhals")
 
 
 def test_validate_polars_backend_narwhals_failure_exits_nonzero(
@@ -87,7 +87,7 @@ def test_validate_polars_narwhals_env_var_ok(tmp_path: Path) -> None:
         data_path,
         env={"PANDERA_USE_NARWHALS_BACKEND": "True"},
     )
-    assert_validate_ok(proc)
+    assert_validate_ok(proc, backend="narwhals")
 
 
 def test_validate_ibis_backend_narwhals_ok(tmp_path: Path) -> None:
@@ -99,17 +99,84 @@ def test_validate_ibis_backend_narwhals_ok(tmp_path: Path) -> None:
 
     pd.DataFrame({"x": [1, 2], "y": ["a", "b"]}).to_csv(data_path, index=False)
     proc = run_validate(schema_path, data_path, backend="narwhals")
-    assert_validate_ok(proc)
+    assert_validate_ok(proc, backend="narwhals")
+
+
+def _write_pandas_checked_schema(path: Path) -> None:
+    import pandera.pandas as pa
+    from pandera.io import pandas_io
+
+    schema = pa.DataFrameSchema(
+        {
+            "x": pa.Column(int, checks=pa.Check.ge(1)),
+            "y": pa.Column(str),
+        }
+    )
+    pandas_io.to_yaml(schema, path)
+
+
+def _write_pandas_data(path: Path, *, valid: bool = True) -> None:
+    import pandas as pd
+
+    if valid:
+        df = pd.DataFrame({"x": [1, 2], "y": ["a", "b"]})
+    else:
+        df = pd.DataFrame({"x": [1, 0], "y": ["a", "b"]})
+    df.to_csv(path, index=False)
 
 
 def test_validate_pandas_backend_narwhals_ok(tmp_path: Path) -> None:
-    """The Narwhals backend swaps ``pd.DataFrame`` dispatch, so pandas works."""
+    """The Narwhals backend swaps ``pd.DataFrame`` dispatch, so pandas works.
+
+    Asserting the report names the ``narwhals`` backend proves the
+    Narwhals-powered backend actually ran — a silent fallback to the native
+    pandas backend would report ``Backend: pandas`` instead.
+    """
     schema_path = tmp_path / "schema.yaml"
     data_path = tmp_path / "data.csv"
     write_pandas_api_schema(schema_path, schema_kind="yaml")
     write_pandas_compatible_data(data_path, "csv")
     proc = run_validate(schema_path, data_path, backend="narwhals")
-    assert_validate_ok(proc)
+    assert_validate_ok(proc, backend="narwhals")
+
+
+def test_validate_pandas_backend_narwhals_failure_exits_nonzero(
+    tmp_path: Path,
+) -> None:
+    """A failing pandas check exits non-zero with a narwhals failure report."""
+    schema_path = tmp_path / "schema.yaml"
+    data_path = tmp_path / "data.csv"
+    _write_pandas_checked_schema(schema_path)
+    _write_pandas_data(data_path, valid=False)
+    proc = run_validate(schema_path, data_path, backend="narwhals")
+    assert proc.returncode != 0
+    assert "Validation failed" in proc.stderr + proc.stdout
+    assert "Backend" in proc.stdout, proc.stdout
+    assert "narwhals" in proc.stdout, proc.stdout
+
+
+def test_validate_pandas_narwhals_env_var_ok(tmp_path: Path) -> None:
+    """``PANDERA_USE_NARWHALS_BACKEND=True`` routes pandas through Narwhals."""
+    schema_path = tmp_path / "schema.yaml"
+    data_path = tmp_path / "data.csv"
+    write_pandas_api_schema(schema_path, schema_kind="yaml")
+    write_pandas_compatible_data(data_path, "csv")
+    proc = run_validate(
+        schema_path,
+        data_path,
+        env={"PANDERA_USE_NARWHALS_BACKEND": "True"},
+    )
+    assert_validate_ok(proc, backend="narwhals")
+
+
+def test_validate_pandas_default_uses_native_backend(tmp_path: Path) -> None:
+    """Without the narwhals flag, pandas keeps its native backend."""
+    schema_path = tmp_path / "schema.yaml"
+    data_path = tmp_path / "data.csv"
+    write_pandas_api_schema(schema_path, schema_kind="yaml")
+    write_pandas_compatible_data(data_path, "csv")
+    proc = run_validate(schema_path, data_path)
+    assert_validate_ok(proc, backend="pandas")
 
 
 @pytest.mark.parametrize("library", ["modin", "dask", "pyspark.pandas"])

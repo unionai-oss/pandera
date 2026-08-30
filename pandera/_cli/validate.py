@@ -78,13 +78,16 @@ def validate(
     pandera validate -s schema.yaml -d data.csv --backend polars
     ```
 
-    Validate a Polars schema through the Narwhals-powered backend
+    Validate a pandas or Polars schema through the Narwhals-powered backend
     ```
     pandera validate -s schema.yaml -d data.csv --backend narwhals
     ```
 
     ``--backend narwhals`` is equivalent to setting
     ``PANDERA_USE_NARWHALS_BACKEND=True``.
+
+    The report shows the validation backend that actually ran (e.g.
+    ``Backend: narwhals`` or ``Backend: pandas``).
     """
     if not schema.is_file():
         typer.secho(f"Schema file not found: {schema}", err=True)
@@ -115,18 +118,28 @@ def validate(
     obj = load_dataset(data, api)
     import_accessor_modules(api)
 
+    # The backend actually in use (``narwhals`` when the Narwhals-powered
+    # backend swapped the dispatch, otherwise the native backend for the
+    # schema's API). Show it in the report so ``--backend narwhals`` is
+    # verifiable.
+    backend_name = rich_report.backend_label(type(schema_obj.get_backend(obj)))
+
     try:
         schema_obj.validate(obj, lazy=True)
     except SchemaErrors as exc:
         typer.secho("Validation failed.", err=True)
-        rich_report.print_validation_failure(schema_obj, exc)
+        rich_report.print_validation_failure(
+            schema_obj, exc, backend_name=backend_name
+        )
         raise typer.Exit(1) from exc
     except SchemaError as exc:
         typer.secho("Validation failed.", err=True)
-        rich_report.print_validation_failure(schema_obj, exc)
+        rich_report.print_validation_failure(
+            schema_obj, exc, backend_name=backend_name
+        )
         raise typer.Exit(1) from exc
     except Exception as exc:
         typer.secho(f"Validation failed:\n{exc}", err=True)
         raise typer.Exit(1) from exc
 
-    rich_report.print_validation_success(schema_obj)
+    rich_report.print_validation_success(schema_obj, backend_name=backend_name)

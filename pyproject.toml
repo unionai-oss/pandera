@@ -101,7 +101,7 @@ ibis = [
     "ibis-framework >= 9.0.0",
     "pyarrow-hotfix",
 ]
-polars = ["polars >= 0.20.0"]
+polars = ["polars >= 1.20.0"]
 xarray = [
     "xarray >= 2024.10.0",
     "numpy >= 1.24.4",
@@ -131,7 +131,7 @@ all = [
     "shapely",
     "ibis-framework >= 9.0.0",
     "pyarrow-hotfix",
-    "polars >= 0.20.0",
+    "polars >= 1.20.0",
     "xarray >= 2024.10.0",
     "numpy >= 1.24.4",
     "narwhals >= 1.26.0",
@@ -147,15 +147,16 @@ dev = [
     "hypothesis >= 6.92.7",
     "ipdb",
     "joblib",
-    "mypy == 1.10.0",
+    "mypy == 1.19.1",
     "nox",
     "pip",
-    "polars >= 0.20.0",
+    "polars >= 1.20.0",
     "prek",
     "pyarrow >= 13",
     "python-multipart",
     "pytz",
     "ruff",
+    "ty",
     "uv",
     "uvicorn",
     "xdoctest",
