@@ -38,8 +38,15 @@ def _check_integer_overflow(original: Any, coerced: Any) -> None:
     # round-trip cannot detect every wrap (-1 -> uint64 -> int64 is -1 again).
     # Reducing first keeps this to two passes, and int() is exact for the
     # arbitrary-precision comparison against uint64 bounds.
+    #
+    # Use the container's own bound .min()/.max() methods rather than the
+    # np.min()/np.max() free functions: numpy's reduction dispatch calls
+    # obj.min(axis=..., out=..., **kwargs) under the hood, which modin and
+    # pyspark.pandas Series don't support, raising unrelated errors that get
+    # reported as coercion failures. The bound methods work uniformly across
+    # numpy arrays, pandas, modin, and pyspark.pandas.
     info = np.iinfo(np.dtype(coerced.dtype))
-    if int(np.min(original)) < info.min or int(np.max(original)) > info.max:
+    if int(original.min()) < info.min or int(original.max()) > info.max:
         raise OverflowError(
             f"Cannot coerce {original.dtype} to {coerced.dtype}: value(s) "
             f"outside [{info.min}, {info.max}] would wrap around."
