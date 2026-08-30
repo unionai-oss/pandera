@@ -1,8 +1,10 @@
 # Unit test matrix across Python/OS/pandas/pydantic/polars versions.
 #
-# The `changes` job classifies the files changed in a PR/push (see
-# scripts/ci/changed_areas.sh) so each test area only runs when its code is
-# touched. Changes to shared modules or build config trigger every area.
+# The `changes` job classifies the files changed in a PR/push using
+# dorny/paths-filter (see .github/filters.yaml) and combines the results
+# (see scripts/ci/derive_test_flags.sh) so each test area only runs when its
+# code is touched. Changes to shared modules or build config trigger every
+# area.
 name: CI Tests
 on:
   push:
@@ -32,54 +34,62 @@ concurrency:
 jobs:
 
   # Classify the files changed in this run so downstream jobs can skip
-  # test areas that are not affected (see scripts/ci/changed_areas.sh).
+  # test areas that are not affected (see .github/filters.yaml and
+  # scripts/ci/derive_test_flags.sh).
   changes:
     name: Changed areas
     runs-on: ubuntu-latest
     outputs:
-      lint: ${{ steps.areas.outputs.lint }}
-      docs: ${{ steps.areas.outputs.docs }}
-      import_test: ${{ steps.areas.outputs.import_test }}
-      base: ${{ steps.areas.outputs.base }}
-      pandas: ${{ steps.areas.outputs.pandas }}
-      supplemental: ${{ steps.areas.outputs.supplemental }}
+      lint: ${{ steps.filter.outputs.lint }}
+      docs: ${{ steps.filter.outputs.docs }}
+      import_test: ${{ steps.flags.outputs.import_test }}
+      base: ${{ steps.flags.outputs.base }}
+      pandas: ${{ steps.flags.outputs.pandas }}
+      supplemental: ${{ steps.flags.outputs.supplemental }}
       supplemental_extras:
-        ${{ steps.areas.outputs.supplemental_extras }}
-      dataframe: ${{ steps.areas.outputs.dataframe }}
+        ${{ steps.flags.outputs.supplemental_extras }}
+      dataframe: ${{ steps.flags.outputs.dataframe }}
       dataframe_extras:
-        ${{ steps.areas.outputs.dataframe_extras }}
+        ${{ steps.flags.outputs.dataframe_extras }}
       narwhals_backend:
-        ${{ steps.areas.outputs.narwhals_backend }}
+        ${{ steps.flags.outputs.narwhals_backend }}
       narwhals_backend_extras:
-        ${{ steps.areas.outputs.narwhals_backend_extras }}
-      narwhals: ${{ steps.areas.outputs.narwhals }}
+        ${{ steps.flags.outputs.narwhals_backend_extras }}
+      narwhals: ${{ steps.flags.outputs.narwhals }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Determine changed areas
-        id: areas
-        run: |
-          set -euo pipefail
+      - name: Classify changed files
+        id: filter
+        uses: dorny/paths-filter@v4
+        with:
+          filters: .github/filters.yaml
 
-          if [[ "${GITHUB_EVENT_NAME}" == "pull_request" || "${GITHUB_EVENT_NAME}" == "pull_request_target" ]]; then
-            base_sha=$(git merge-base "origin/${GITHUB_BASE_REF}" HEAD)
-          elif git rev-parse --verify --quiet "HEAD~1" >/dev/null; then
-            base_sha=$(git rev-parse HEAD~1)
-          else
-            base_sha=$(git rev-list --max-parents=0 HEAD)
-          fi
-          echo "Comparing ${base_sha}...HEAD"
-          git diff --name-only "${base_sha}" HEAD > changed_files.txt
-          echo "Changed files:"
-          cat changed_files.txt
-
-          bash scripts/ci/changed_areas.sh < changed_files.txt > areas.txt
-          echo "Affected areas:"
-          cat areas.txt
-          cat areas.txt >> "${GITHUB_OUTPUT}"
+      - name: Derive job flags
+        id: flags
+        env:
+          GLOBAL: ${{ steps.filter.outputs.global }}
+          COMMON: ${{ steps.filter.outputs.common }}
+          BASE: ${{ steps.filter.outputs.base }}
+          PANDAS: ${{ steps.filter.outputs.pandas }}
+          POLARS: ${{ steps.filter.outputs.polars }}
+          PYSPARK: ${{ steps.filter.outputs.pyspark }}
+          IBIS: ${{ steps.filter.outputs.ibis }}
+          GEOPANDAS: ${{ steps.filter.outputs.geopandas }}
+          DASK: ${{ steps.filter.outputs.dask }}
+          MODIN: ${{ steps.filter.outputs.modin }}
+          XARRAY: ${{ steps.filter.outputs.xarray }}
+          PYARROW: ${{ steps.filter.outputs.pyarrow }}
+          NARWHALS: ${{ steps.filter.outputs.narwhals }}
+          HYPOTHESES: ${{ steps.filter.outputs.hypotheses }}
+          IO: ${{ steps.filter.outputs.io }}
+          MYPY: ${{ steps.filter.outputs.mypy }}
+          STRATEGIES: ${{ steps.filter.outputs.strategies }}
+          FASTAPI: ${{ steps.filter.outputs.fastapi }}
+        run: bash scripts/ci/derive_test_flags.sh >> "${GITHUB_OUTPUT}"
 
   lint:
     name: Linters (python=${{ matrix.python-version }} polars=${{ matrix.polars-version }} )
@@ -317,7 +327,7 @@ jobs:
         pandas-version: ["2.3.3", "3.0.0"]
         pydantic-version: ["2.12.3"]
         # Only the extras whose areas were changed in this PR/push (see
-        # scripts/ci/changed_areas.sh); the job is skipped when the list
+        # .github/filters.yaml, scripts/ci/derive_test_flags.sh); the job is skipped when the list
         # is empty via the `if` above.
         extra: ${{ fromJSON(needs.changes.outputs.supplemental_extras) }}
         exclude:
@@ -392,7 +402,7 @@ jobs:
         python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
         pandas-version: ["2.3.3"]
         # Only the extras whose areas were changed in this PR/push (see
-        # scripts/ci/changed_areas.sh); the job is skipped when the list
+        # .github/filters.yaml, scripts/ci/derive_test_flags.sh); the job is skipped when the list
         # is empty via the `if` above.
         extra: ${{ fromJSON(needs.changes.outputs.dataframe_extras) }}
         include:
@@ -507,7 +517,7 @@ jobs:
       matrix:
         python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
         # Only the extras whose areas were changed in this PR/push (see
-        # scripts/ci/changed_areas.sh); the job is skipped when the list
+        # .github/filters.yaml, scripts/ci/derive_test_flags.sh); the job is skipped when the list
         # is empty via the `if` above.
         extra: ${{ fromJSON(needs.changes.outputs.narwhals_backend_extras) }}
         exclude:
