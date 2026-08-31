@@ -220,16 +220,6 @@ class FieldType(Generic[FieldDtype, Unpack[FieldMetadata]]):
         )
 
 
-def _is_optional_field_annotation(annotation: Any) -> bool:
-    """Return whether an annotation has optional field presence semantics."""
-    if getattr(annotation, "__metadata__", None):
-        annotation = get_args(annotation)[0]
-    origin = get_origin(annotation)
-    if origin is None or not isinstance(origin, type):
-        return False
-    return issubclass(origin, (SeriesBase, IndexBase, FieldType))
-
-
 class AnnotationInfo:
     """Captures extra information about an annotation.
 
@@ -241,7 +231,8 @@ class AnnotationInfo:
         literal: Whether the annotation is a literal.
         optional: Whether the annotation is optional.
         nullable: Whether the annotation's values are nullable.
-        is_optional_field: Whether an outer ``None`` marks an optional field.
+        is_optional_field: Whether the field may be absent from the data, i.e.
+            whether the annotation has an outer ``| None``.
         is_field: Whether the annotation uses
             ``pandera.typing.FieldType[T]``.
         raw_annotation: The raw annotation.
@@ -292,17 +283,14 @@ class AnnotationInfo:
         self.is_field = False
         self.nullable = False
 
+        # An outer ``| None`` always marks optional field presence, e.g.
+        # ``int | None``, ``Optional[Series[int]]``, or ``FieldType[int] | None``.
+        # Value nullability is expressed by a ``None`` *inside* the dtype
+        # position, e.g. ``FieldType[int | None]``, or by
+        # ``Field(nullable=True)``.
         is_optional = typing_inspect.is_optional_type(raw_annotation)
-        optional_arg = (
-            get_args(raw_annotation)[0]
-            if is_optional and typing_inspect.is_union_type(raw_annotation)
-            else raw_annotation
-        )
         self.optional = is_optional
-        self.is_optional_field = is_optional and _is_optional_field_annotation(
-            optional_arg
-        )
-        self.nullable = is_optional and not self.is_optional_field
+        self.is_optional_field = is_optional
         if is_optional and typing_inspect.is_union_type(raw_annotation):
             # Unwrap Optional or Union[..., NoneType]
             # get_args -> (pandera.typing.Index[str], <class 'NoneType'>)
