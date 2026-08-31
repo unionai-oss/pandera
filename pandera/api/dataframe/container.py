@@ -262,7 +262,7 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
             )
         return {n: c.dtype for n, c in self.columns.items() if not c.regex}
 
-    def get_metadata(self) -> dict | None:
+    def get_metadata(self) -> dict[Any, Any]:
         """Provide metadata for columns and schema level"""
         res: dict[Any, Any] = {"columns": {}}
         for k in self.columns.keys():
