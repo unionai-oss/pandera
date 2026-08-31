@@ -223,9 +223,9 @@ html_theme = "furo"
 # documentation.
 
 announcement = """
-📢 Pandera 0.32.0 introduces the <i> Narwhals-powered backend </i>!
-Use a unified backend to power the validation of different dataframe libraries.
-Learn more details <a href='./narwhals_backend.html'>here</a>
+📢 New in Pandera 0.33.0: validate schemas from the command line with the
+<a href='./cli.html'>Pandera CLI</a>, and validate <a href='./pyarrow.html'>PyArrow</a>
+dataframes natively!
 """
 
 html_logo = "_static/pandera-banner.png"
