@@ -6,9 +6,7 @@ import enum
 import json
 from collections.abc import Mapping
 from pathlib import Path
-from typing import Any
-
-import numpy as np
+from typing import Any, Literal
 
 from pandera import dtypes
 from pandera.api.checks import Check
@@ -115,6 +113,8 @@ def serialize_schema(
     """Serialize an Ibis table schema into a JSON/YAML-compatible dict.
 
     :param minimal: If True (default), omit keys equal to constructor defaults.
+
+    The output includes an ``api`` field set to ``ibis``.
     """
     from pandera import __version__
 
@@ -133,6 +133,7 @@ def serialize_schema(
     out = {
         "schema_type": "ibis_table",
         "version": __version__,
+        "api": "ibis",
         "columns": columns,
         "checks": checks,
         "index": None,
@@ -198,6 +199,8 @@ def _deserialize_check_stats(check, serialized_check_stats, dtype=None):
 
 def _deserialize_ibis_dtype(serialized_dtype):
     """Restore an Ibis engine dtype from a serialized string or value."""
+    import numpy as np
+
     if serialized_dtype is None:
         return None
     if not isinstance(serialized_dtype, str):
@@ -392,3 +395,22 @@ def to_json(dataframe_schema, target=None, *, minimal: bool = True, **kwargs):
             json.dump(serialized_schema, fp=f, sort_keys=False, **kwargs)
     else:
         json.dump(serialized_schema, fp=target, sort_keys=False, **kwargs)
+
+
+def to_script(
+    dataframe_schema,
+    path_or_buf=None,
+    *,
+    minimal: bool = True,
+    script_type: Literal["schema", "model"] = "schema",
+):
+    """Write an Ibis :class:`DataFrameSchema` (or model) to a Python script."""
+    from pandera.io import common_io
+
+    return common_io.to_script(
+        dataframe_schema,
+        path_or_buf,
+        minimal=minimal,
+        script_type=script_type,
+        backend="ibis",
+    )

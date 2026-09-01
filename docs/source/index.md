@@ -162,6 +162,7 @@ pip install 'pandera[ibis]'         # validate ibis tables
 pip install 'pandera[pyarrow]'      # validate pyarrow tables
 pip install 'pandera[xarray]'       # validate xarray data structures
 pip install 'pandera[narwhals]'     # use the Narwhals-powered backend
+pip install 'pandera[cli]'          # command-line interface (Typer)
 ```
 :::
 
@@ -477,6 +478,7 @@ checks
 dtypes
 lazy_validation
 error_report
+cli_guide
 ```
 
 ```{toctree}
@@ -510,6 +512,7 @@ integrations
 :hidden: true
 :maxdepth: 6
 
+cli
 reference/index
 ```
 

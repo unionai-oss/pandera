@@ -6,8 +6,8 @@ import ibis
 
 from pandera.api.ibis.components import Column
 from pandera.api.ibis.container import DataFrameSchema
+from pandera.schema_statistics.common import parse_check_statistics
 from pandera.schema_statistics.ibis import infer_ibis_table_statistics
-from pandera.schema_statistics.pandas import parse_check_statistics
 
 
 def infer_dataframe_schema(table: ibis.Table) -> DataFrameSchema:

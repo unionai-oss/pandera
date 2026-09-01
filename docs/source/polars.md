@@ -567,26 +567,33 @@ class DateTimeModel(pa.DataFrameModel):
 
 ::::
 
-### Embedding `Field` metadata in `Annotated`
+### Field metadata for typed model fields
 
-You can also embed a {func}`~pandera.api.dataframe.model_components.Field`
-directly inside {data}`typing.Annotated` to attach column-level metadata
-— such as `description`, `title`, `unique`, checks (`ge`, `le`, `isin`,
-…), or custom `metadata` — without providing an explicit `= pa.Field(...)`
-assignment. This works for plain types as well as parameterized polars
-dtypes:
+You can embed a backend-specific `pa.Field(...)` object as additional metadata
+in the typing-only {py:class}`pandera.typing.FieldType` descriptor. This
+attaches column-level metadata such as `description`, `title`, `unique`,
+checks such as `ge`, `le`, and `isin`, or custom `metadata` without a separate
+assignment. For parameterized polars dtypes, use the checker-friendly
+assignment form to pass `dtype_kwargs`:
+
+These metadata-in-type-argument examples are runtime syntax. When checking a
+model with `ty`, use `FieldType[T] = pa.Field(...)` so the type argument contains
+only types.
 
 ```{testcode} polars
 import polars as pl
+from pandera.typing import FieldType
+from pandera.engines import polars_engine as pe
 
 
 class ProductsModel(pa.DataFrameModel):
-    name: Annotated[str, pa.Field(description="Product name")]
-    price: Annotated[float, pa.Field(ge=0.0, description="Unit price")]
-    sku: Annotated[int, pa.Field(unique=True, title="SKU")]
-    created_at: Annotated[
-        pl.Datetime, "ms", "UTC", pa.Field(description="Created timestamp")
-    ]
+    name: FieldType[str, pa.Field(description="Product name")]
+    price: FieldType[float, pa.Field(ge=0.0, description="Unit price")]
+    sku: FieldType[int, pa.Field(unique=True, title="SKU")]
+    created_at: FieldType[pe.DateTime] = pa.Field(
+        dtype_kwargs={"time_unit": "ms", "time_zone": "UTC"},
+        description="Created timestamp",
+    )
 
 
 schema = ProductsModel.to_schema()

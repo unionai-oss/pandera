@@ -238,7 +238,7 @@ class Hypothesis(Check):
 
         :example:
 
-        The the built-in class method to do a two-sample t-test.
+        Use the built-in class method to do a two-sample t-test.
 
         >>> import pandas as pd
         >>> import pandera.pandas as pa

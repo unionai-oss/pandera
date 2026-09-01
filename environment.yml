@@ -28,7 +28,7 @@ dependencies:
   - pyspark[connect] >= 3.2.0
 
   # polars extra
-  - polars >= 0.20.0
+  - polars >= 1.20.0
 
   # xarray extra
   - xarray >= 2024.10.0
@@ -55,7 +55,7 @@ dependencies:
   - pandas >= 2.1.1
   - isort >= 5.7.0
   - joblib
-  - mypy = 1.10.0
+  - mypy = 1.19.1
   - pytest
   - pytest-cov
   - pytest-xdist
@@ -100,6 +100,7 @@ dependencies:
 
       # docs
       - furo
+      - sphinxcontrib-typer >= 0.8.0
       - sphinx-docsearch
       - grpcio
       - ray
@@ -109,3 +110,7 @@ dependencies:
       - types-pyyaml
       - types-requests
       - types-setuptools
+
+      # cli extra
+      - typer >= 0.12.3
+      - rich

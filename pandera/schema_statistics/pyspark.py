@@ -6,7 +6,10 @@ from typing import Any
 
 from pandera import dtypes
 from pandera.engines import pyspark_engine
-from pandera.schema_statistics.pandas import parse_checks
+from pandera.schema_statistics.common import (
+    parse_checks,
+    string_length_check_statistics,
+)
 
 
 def infer_pyspark_dataframe_statistics(df: Any) -> dict[str, Any]:
@@ -55,6 +58,16 @@ def infer_pyspark_dataframe_statistics(df: Any) -> dict[str, Any]:
             elif dtypes.is_category(pdt):
                 dist = df.select(c).distinct().limit(256).collect()
                 checks = {"isin": [r[0] for r in dist]}
+            elif dtypes.is_string(pdt):
+                row = df.select(
+                    F.min(F.length(F.col(c))),
+                    F.max(F.length(F.col(c))),
+                ).collect()[0]
+                min_l, max_l = row[0], row[1]
+                if min_l is not None and max_l is not None:
+                    checks = string_length_check_statistics(
+                        int(min_l), int(max_l)
+                    )
         column_statistics[c] = {
             "dtype": pdt,
             "nullable": nullable,

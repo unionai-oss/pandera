@@ -5,7 +5,6 @@ from typing import NamedTuple, TypeVar, Union
 
 import pyspark
 import pyspark.sql.types as pst
-from numpy import bool_ as np_bool
 from packaging import version
 from pyspark.pandas import DataFrame as PySparkPandasDataFrame
 from pyspark.sql import DataFrame as PySparkSQLDataFrame
@@ -115,4 +114,6 @@ def is_table(obj):
 
 def is_bool(x):
     """Verifies whether an object is a boolean type."""
-    return isinstance(x, (bool, type(pst.BooleanType()), np_bool))
+    from numpy import bool_
+
+    return isinstance(x, (bool, type(pst.BooleanType()), bool_))

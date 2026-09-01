@@ -143,6 +143,7 @@ def _create_schema(index="single"):
 YAML_SCHEMA = f"""
 schema_type: dataframe
 version: {_PANDERA_VERSION}
+api: pandas
 columns:
   int_column:
     title: integer_col
@@ -1598,6 +1599,23 @@ def test_to_script_lambda_check():
         io.to_script(schema2)
 
 
+def test_to_script_model_roundtrip():
+    """``script_type='model'`` emits an executable :class:`DataFrameModel`."""
+    schema = pandera.DataFrameSchema(
+        {"a": pandera.Column(int, checks=pandera.Check.ge(0))},
+        strict=True,
+    )
+    script = io.to_script(schema, script_type="model", minimal=True)
+    # Single-namespace exec: class bodies resolve names from the global dict
+    # passed to exec; a separate locals dict leaves imports invisible there.
+    ns: dict = {"__builtins__": __builtins__}
+    exec(script, ns)
+    model_cls = ns["GeneratedModel"]
+    restored = model_cls.to_schema()
+    assert restored.columns["a"].checks is not None
+    assert restored.strict is True
+
+
 def test_to_yaml_lambda_check():
     """Test writing DataFrameSchema to a yaml with lambda check."""
     schema = pandera.DataFrameSchema(
@@ -1617,8 +1635,10 @@ def test_to_yaml_lambda_check():
 
 def test_format_checks_warning():
     """Test that unregistered checks raise a warning when formatting checks."""
+    from pandera.io import common_io
+
     with pytest.warns(UserWarning):
-        io._format_checks({"my_check": None})
+        common_io._format_checks({"my_check": None})
 
 
 @mock.patch("pandera.Check.REGISTERED_CUSTOM_CHECKS", new_callable=dict)
@@ -1859,6 +1879,7 @@ INT_DTYPE_ALIAS = str(pandas_engine.Engine.dtype("int"))
 YAML_FROM_FRICTIONLESS = f"""
 schema_type: dataframe
 version: {_PANDERA_VERSION}
+api: pandas
 columns:
   integer_col:
     title: null
@@ -2266,6 +2287,49 @@ def test_dataframe_library_metadata_roundtrip():
 
     as_json = json.loads(pandas_io.to_json(schema, dataframe_library="modin"))
     assert as_json["dataframe_library"] == "modin"
+
+
+def test_serialize_schema_includes_api_field():
+    """Serialized schemas carry the underlying dataframe ``api`` tag."""
+    import pandera
+    from pandera.io import pandas_io
+
+    schema = pandera.DataFrameSchema({"x": pandera.Column(int)})
+    assert pandas_io.serialize_schema(schema)["api"] == "pandas"
+    assert (
+        pandas_io.serialize_schema(schema, dataframe_library="modin")["api"]
+        == "modin"
+    )
+
+
+def test_deserialize_schema_api_field_is_optional():
+    """The ``api`` field is optional; absent or pandas keeps metadata unset."""
+    import pandera
+    from pandera.io import pandas_io
+
+    schema = pandera.DataFrameSchema({"x": pandera.Column(int)})
+    legacy = {
+        "schema_type": "dataframe",
+        "columns": {"x": {"dtype": "int64"}},
+        "checks": None,
+        "coerce": False,
+        "strict": False,
+    }
+    # Legacy schema (no ``api``/``dataframe_library``) still deserializes.
+    assert pandas_io.deserialize_schema(dict(legacy)).metadata is None
+
+    # New-style ``api`` field (without ``dataframe_library``) restores the
+    # dataframe library metadata.
+    api_only = {**legacy, "api": "dask"}
+    restored = pandas_io.deserialize_schema(api_only)
+    assert restored.metadata is not None
+    assert restored.metadata.get("dataframe_library") == "dask"
+
+    # The default (``api: pandas``) adds no metadata, so roundtrips stay
+    # equal to the original schema.
+    payload = pandas_io.serialize_schema(schema)
+    assert payload["api"] == "pandas"
+    assert pandas_io.deserialize_schema(payload) == schema
 
 
 class TestDataFrameModelIO:

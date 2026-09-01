@@ -1,0 +1,246 @@
+# Named path filters consumed by dorny/paths-filter in the `changes` job of
+# ci-tests.yml, which decides which CI unit-test areas need to run for a
+# given diff (see scripts/ci/derive_test_flags.sh for how these booleans are
+# combined into job-level flags and extras matrices).
+#
+# Rules:
+#   - A file under a backend-specific path (e.g. pandera/api/ibis/,
+#     tests/ibis/) matches only that backend's area filter. A file may match
+#     several areas (e.g. pandera/io/ibis_io.py matches both `io` and `ibis`).
+#   - `common` matches any other file under pandera/ or tests/ that isn't
+#     covered by a backend-specific area filter below; `global` matches
+#     shared build/CI config. Either one affects every test area, since that
+#     code can affect any backend (see derive_test_flags.sh).
+#   - Pure docs changes match only `docs`.
+
+global:
+  - pyproject.toml
+  - setup.py
+  - noxfile.py
+  - requirements.txt
+  - requirements-*.txt
+  - environment.yml
+  - .coveragerc
+  - .github/**
+  - scripts/**
+
+lint:
+  - pyproject.toml
+  - setup.py
+  - noxfile.py
+  - requirements.txt
+  - requirements-*.txt
+  - environment.yml
+  - .coveragerc
+  - .github/**
+  - scripts/**
+  - "**/*.py"
+  - "**/*.pyi"
+  - mypy.ini
+  - .pylintrc
+
+docs:
+  - pyproject.toml
+  - setup.py
+  - noxfile.py
+  - requirements.txt
+  - requirements-*.txt
+  - environment.yml
+  - .coveragerc
+  - .github/**
+  - scripts/**
+  - docs/**
+  - .readthedocs.yml
+  - Makefile
+
+pandas:
+  - pandera/api/pandas/**
+  - pandera/backends/pandas/**
+  - pandera/engines/pandas_engine.py
+  - pandera/engines/numpy_engine.py
+  - pandera/pandas.py
+  - pandera/_pandas_deprecated.py
+  - pandera/_patch_numpy2.py
+  - pandera/accessors/**
+  - pandera/io/pandas_io.py
+  - pandera/typing/pandas.py
+  - tests/pandas/**
+
+polars:
+  - pandera/api/polars/**
+  - pandera/backends/polars/**
+  - pandera/engines/polars_engine.py
+  - pandera/polars.py
+  - pandera/io/polars_io.py
+  - pandera/typing/polars.py
+  - tests/polars/**
+  - tests/common/**
+
+pyspark:
+  # tests/cli/ and the CLI modules also run in the pyspark nox session
+  # (PANDERA_RUN_SPARK_CLI=1), so they belong to this area as well.
+  - pandera/api/pyspark/**
+  - pandera/backends/pyspark/**
+  - pandera/engines/pyspark_engine.py
+  - pandera/pyspark.py
+  - pandera/io/pyspark_sql_io.py
+  - pandera/typing/pyspark.py
+  - pandera/typing/pyspark_sql.py
+  - tests/pyspark/**
+  - pandera/cli.py
+  - pandera/_cli/**
+  - tests/cli/**
+
+ibis:
+  - pandera/api/ibis/**
+  - pandera/backends/ibis/**
+  - pandera/engines/ibis_engine.py
+  - pandera/ibis.py
+  - pandera/io/ibis_io.py
+  - pandera/typing/ibis.py
+  - tests/ibis/**
+  - tests/common/**
+
+geopandas:
+  - pandera/api/geopandas/**
+  - pandera/engines/geopandas_engine.py
+  - pandera/geopandas.py
+  - pandera/typing/geopandas.py
+  - tests/geopandas/**
+
+dask:
+  - tests/dask/**
+  - pandera/typing/dask.py
+
+modin:
+  - tests/modin/**
+  - pandera/typing/modin.py
+
+xarray:
+  - pandera/api/xarray/**
+  - pandera/backends/xarray/**
+  - pandera/engines/xarray_engine.py
+  - pandera/xarray.py
+  - pandera/io/xarray_io.py
+  - pandera/typing/xarray.py
+  - tests/xarray/**
+
+pyarrow:
+  - pandera/api/pyarrow/**
+  - pandera/backends/pyarrow/**
+  - pandera/engines/pyarrow_engine.py
+  - pandera/pyarrow.py
+  - pandera/typing/pyarrow.py
+  - tests/pyarrow/**
+
+narwhals:
+  - pandera/api/narwhals/**
+  - pandera/backends/narwhals/**
+  - pandera/engines/narwhals_engine.py
+  - tests/narwhals/**
+
+hypotheses:
+  - pandera/api/hypotheses.py
+  - pandera/schema_statistics/**
+  - tests/hypotheses/**
+
+io:
+  - pandera/io/**
+  - tests/io/**
+
+mypy:
+  - pandera/typing/**
+  - pandera/mypy.py
+  - tests/mypy/**
+  - tests/pyright/**
+
+strategies:
+  - pandera/strategies/**
+  - tests/strategies/**
+
+fastapi:
+  - tests/fastapi/**
+  - pandera/typing/fastapi.py
+
+base:
+  # The extra=None session runs tests/base/ and tests/cli/
+  - tests/base/**
+  - tests/cli/**
+  - tests/conftest.py
+  - tests/__init__.py
+  - pandera/cli.py
+  - pandera/_cli/**
+  - pandera/__main__.py
+
+# Any other pandera/ or tests/ change not covered by a backend-specific
+# filter above (e.g. pandera/api/base/, pandera/api/checks.py,
+# pandera/engines/engine.py) is shared code that can affect every backend.
+# `pandera/io/**` and `pandera/typing/**` are excluded wholesale since every
+# file in those directories is already covered by the `io` and `mypy`
+# filters above, regardless of which backend it belongs to.
+common:
+  - pandera/**
+  - tests/**
+  - "!pandera/api/pandas/**"
+  - "!pandera/api/polars/**"
+  - "!pandera/api/pyspark/**"
+  - "!pandera/api/ibis/**"
+  - "!pandera/api/geopandas/**"
+  - "!pandera/api/xarray/**"
+  - "!pandera/api/pyarrow/**"
+  - "!pandera/api/narwhals/**"
+  - "!pandera/api/hypotheses.py"
+  - "!pandera/backends/pandas/**"
+  - "!pandera/backends/polars/**"
+  - "!pandera/backends/pyspark/**"
+  - "!pandera/backends/ibis/**"
+  - "!pandera/backends/xarray/**"
+  - "!pandera/backends/pyarrow/**"
+  - "!pandera/backends/narwhals/**"
+  - "!pandera/engines/pandas_engine.py"
+  - "!pandera/engines/numpy_engine.py"
+  - "!pandera/engines/polars_engine.py"
+  - "!pandera/engines/pyspark_engine.py"
+  - "!pandera/engines/ibis_engine.py"
+  - "!pandera/engines/geopandas_engine.py"
+  - "!pandera/engines/xarray_engine.py"
+  - "!pandera/engines/pyarrow_engine.py"
+  - "!pandera/engines/narwhals_engine.py"
+  - "!pandera/pandas.py"
+  - "!pandera/_pandas_deprecated.py"
+  - "!pandera/_patch_numpy2.py"
+  - "!pandera/accessors/**"
+  - "!pandera/polars.py"
+  - "!pandera/pyspark.py"
+  - "!pandera/ibis.py"
+  - "!pandera/geopandas.py"
+  - "!pandera/xarray.py"
+  - "!pandera/pyarrow.py"
+  - "!pandera/io/**"
+  - "!pandera/typing/**"
+  - "!pandera/schema_statistics/**"
+  - "!pandera/strategies/**"
+  - "!pandera/cli.py"
+  - "!pandera/_cli/**"
+  - "!pandera/__main__.py"
+  - "!tests/pandas/**"
+  - "!tests/polars/**"
+  - "!tests/pyspark/**"
+  - "!tests/ibis/**"
+  - "!tests/geopandas/**"
+  - "!tests/dask/**"
+  - "!tests/modin/**"
+  - "!tests/xarray/**"
+  - "!tests/pyarrow/**"
+  - "!tests/narwhals/**"
+  - "!tests/hypotheses/**"
+  - "!tests/io/**"
+  - "!tests/mypy/**"
+  - "!tests/pyright/**"
+  - "!tests/strategies/**"
+  - "!tests/fastapi/**"
+  - "!tests/cli/**"
+  - "!tests/base/**"
+  - "!tests/common/**"
+  - "!tests/conftest.py"
+  - "!tests/__init__.py"
