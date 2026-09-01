@@ -115,6 +115,23 @@ import pandera.ibis as pa      # Ibis
 The top-level `import pandera` falls back to the pandas API for backward
 compatibility.
 
+## Backward Compatibility
+
+Pandera is a public library, so established behavior—including annotation
+semantics, backend APIs, and behavior exercised by existing tests—is part of
+the compatibility contract. Before changing such behavior, identify the
+affected user-facing contract and preserve it unless the change is
+intentional and justified. Do not rewrite existing tests simply to match a
+new implementation; add regression tests for any intentionally changed
+behavior and document migration or deprecation considerations.
+
+Any pull request that modifies an existing test must include a
+`## Backward compatibility` section in its description. Explain the behavior
+covered by the changed test, whether it changes for users, why the change is
+necessary, and how compatibility is preserved or communicated. This section
+is required even when the test change appears to be an implementation detail;
+state explicitly when there is no user-facing behavior change.
+
 ## Development Setup
 
 ```bash
