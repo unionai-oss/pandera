@@ -7,7 +7,25 @@ import polars as pl
 import pytest
 
 import pandera.polars as pa
+from pandera.config import CONFIG
 from pandera.engines.polars_engine import PanderaSchema
+
+# Nested schema validation is driven by column-level coercion: the
+# ``PanderaSchema`` dtype is an ``auto_coerce`` dtype whose ``coerce`` method
+# unnests the struct column and validates it against the nested schema. The
+# narwhals backend does not implement column-level coercion (see the
+# ``tests_narwhals_backend`` session in noxfile.py), so the nested dtype is
+# never resolved and the column is reported as a ``WRONG_DATATYPE`` mismatch
+# instead. Tests that only exercise the error path still pass there, because
+# they expect a ``SchemaError`` either way.
+narwhals_backend_xfail = pytest.mark.xfail(
+    condition=CONFIG.use_narwhals_backend,
+    reason=(
+        "narwhals backend does not implement column-level coercion, which "
+        "nested DataFrameModel validation relies on"
+    ),
+    strict=True,
+)
 
 
 class Foo(pa.DataFrameModel):
@@ -48,6 +66,7 @@ def test_nested_model_nullability_violation():
         Bar.validate(data)
 
 
+@narwhals_backend_xfail
 def test_nested_model_valid_data():
     data = pl.DataFrame({"foo": [{"x": 1}, {"x": 2}]})
     validated = Bar.validate(data)
@@ -74,6 +93,7 @@ def test_nested_model_check_violation():
         HasPositive.validate(data)
 
 
+@narwhals_backend_xfail
 def test_nested_model_check_passes():
     data = pl.DataFrame({"positive": [{"y": 5}, {"y": 1}]})
     validated = HasPositive.validate(data)
@@ -111,6 +131,7 @@ def test_deeply_nested_model_invalid():
         Outer.validate(data)
 
 
+@narwhals_backend_xfail
 def test_deeply_nested_model_valid():
     data = pl.DataFrame(
         {
@@ -147,6 +168,7 @@ class OptionalFooModel(pa.DataFrameModel):
     foo: Foo = pa.Field(nullable=True)
 
 
+@narwhals_backend_xfail
 def test_nullable_outer_struct_allows_null_record():
     data = pl.DataFrame(
         {"foo": [{"x": 1}, None]},
@@ -171,6 +193,7 @@ def test_non_nullable_outer_struct_rejects_null_record():
 # ---------------------------------------------------------------------------
 
 
+@narwhals_backend_xfail
 def test_nested_dataframe_schema_api():
     foo_schema = pa.DataFrameSchema({"x": pa.Column(int, nullable=False)})
     bar_schema = pa.DataFrameSchema(
@@ -208,6 +231,7 @@ def test_panderaschema_rejects_non_schema_input():
 # ---------------------------------------------------------------------------
 
 
+@narwhals_backend_xfail
 def test_nested_model_with_lazyframe():
     lf = pl.LazyFrame({"foo": [{"x": 1}, {"x": 2}]})
     validated = Bar.validate(lf)

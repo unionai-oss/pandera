@@ -10,6 +10,7 @@ import types
 import warnings
 from collections.abc import Iterable, Mapping, Sequence
 from typing import (
+    TYPE_CHECKING,
     Any,
     Literal,
     Optional,
@@ -30,6 +31,11 @@ from pandera.backends.polars.utils import horizontal_concat, polars_version
 from pandera.constants import CHECK_OUTPUT_KEY
 from pandera.dtypes import immutable
 from pandera.engines import PYDANTIC_V2, engine
+
+if TYPE_CHECKING:
+    from pandera.api.polars.container import (
+        DataFrameSchema as PolarsDataFrameSchema,
+    )
 
 logger = logging.getLogger(__name__)
 
@@ -274,6 +280,7 @@ class Engine(metaclass=engine.Engine, base_pandera_dtypes=DataType):
         if inspect.isclass(data_type) and issubclass(data_type, PolarsModel):
             return data_type.to_schema()
         return None
+
 
 ###############################################################################
 # Numeric types
@@ -698,6 +705,7 @@ class Struct(DataType):
     def from_parametrized_dtype(cls, polars_dtype: pl.Struct):
         return cls(fields=polars_dtype.fields)
 
+
 @immutable(init=True)
 class PanderaSchema(DataType):
     """A nested pandera schema applied to a Struct column.
@@ -712,10 +720,13 @@ class PanderaSchema(DataType):
             foo: Foo
     """
 
-    type: DataTypeClass = dataclasses.field(default=None, init=False)
+    type: DataTypeClass = dataclasses.field(default=None, init=False)  # type: ignore[assignment]
+    schema: "PolarsDataFrameSchema" = dataclasses.field(
+        default=None, init=False
+    )  # type: ignore[assignment]
     auto_coerce = True
 
-    def __init__(self, schema) -> None:
+    def __init__(self, schema: Any) -> None:
         from pandera.api.polars.container import (
             DataFrameSchema as PolarsDataFrameSchema,
         )
@@ -744,17 +755,13 @@ class PanderaSchema(DataType):
 
     def coerce(self, data_container: PolarsDataContainer) -> pl.LazyFrame:
         """Validate the nested struct column(s) against the nested schema."""
-        from pandera.api.polars.utils import get_lazyframe_column_names
-
         if isinstance(data_container, pl.LazyFrame):
             data_container = PolarsData(data_container)
 
         lf = data_container.lazyframe
         key = data_container.key
 
-        keys = (
-            get_lazyframe_column_names(lf) if key in (None, "*") else [key]
-        )
+        keys = lf.collect_schema().names() if key in (None, "*") else [key]
         row_idx_col = "__pandera_nested_row_idx__"
 
         for column_name in keys:
@@ -826,7 +833,7 @@ class PanderaSchema(DataType):
     def __str__(self) -> str:
         return f"PanderaSchema({self.schema})"
 
-    
+
 ###############################################################################
 # Other types
 ###############################################################################

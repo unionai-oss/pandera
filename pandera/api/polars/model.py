@@ -84,7 +84,7 @@ class DataFrameModel(_DataFrameModel[pl.LazyFrame, DataFrameSchema]):
                     # resolved engine dtype object (not just its raw
                     # pl.Struct .type) so the nested schema is preserved for
                     # validation, instead of collapsing to a plain struct.
-                    dtype = engine_dtype
+                    dtype = engine_dtype  # type: ignore[assignment]
                 else:
                     dtype = engine_dtype.type
             except (TypeError, ValueError) as exc:

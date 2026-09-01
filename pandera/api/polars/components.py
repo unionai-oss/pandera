@@ -114,6 +114,7 @@ class Column(ComponentSchema[PolarsCheckObjects]):
             self.coerce = True
 
         self.set_regex()
+
     @staticmethod
     def register_default_backends(
         check_obj_cls: type,
