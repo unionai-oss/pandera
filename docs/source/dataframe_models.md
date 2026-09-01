@@ -486,9 +486,8 @@ runtime metadata function and must not be instantiated. Existing bare dtypes,
 
 By default all columns specified in the schema are {ref}`required<required>`
 and non-nullable, meaning that a missing column or a null value raises an
-exception. Put `None` inside `FieldType[...]` to allow null values, and use an
-outer `| None` or `required=False` metadata to allow the column itself to be
-missing.
+exception. An outer `| None` on the annotation makes the column itself
+optional, and `None` *inside* `FieldType[...]` allows null values.
 
 ```{code-cell} python
 import pandas as pd
@@ -499,7 +498,8 @@ from pandera.typing import FieldType
 class Schema(pa.DataFrameModel):
     required: str
     nullable: FieldType[int | None]
-    optional: FieldType[float] | None
+    optional: float | None
+    optional_checked: FieldType[float] | None
 
 df = pd.DataFrame(
     {
@@ -515,7 +515,8 @@ The meanings are:
 | Annotation | Column required? | Values nullable? |
 | ---------- | ---------------- | ---------------- |
 | `T` | Yes | No |
-| `T | None` | Yes | Yes |
+| `FieldType[T | None]` | Yes | Yes |
+| `T | None` | No | No |
 | `FieldType[T] | None` | No | No |
 
 The same meanings apply to `FieldType[T, pa.Field(...)]`. An explicit
@@ -525,9 +526,9 @@ precedence over metadata supplied in `FieldType`.
 
 An explicit `pa.Field(nullable=...)` setting takes precedence over the
 nullability inferred from the annotation. Existing
-`Optional[Series[T]]` annotations remain supported for optional column
-presence. An optional field does not get added during validation. To add
-missing fields, use
+`Optional[Series[T]]` and bare `Optional[T]` annotations remain supported for
+optional column presence. An optional field does not get added during
+validation. To add missing fields, use
 {ref}`add_missing_columns=True <adding-missing-columns>` in the model
 `Config` with required fields that specify a `default` value or
 `nullable=True`.

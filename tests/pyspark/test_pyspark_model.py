@@ -61,10 +61,11 @@ def test_field_type_presence_and_nullability(spark_session):
 
     class Model(DataFrameModel):
         required: T.IntegerType
-        nullable_values: T.IntegerType | None
-        nullable_with_omitted_field: T.IntegerType | None = Field()
+        nullable_values: FieldType[T.IntegerType | None]
+        nullable_with_omitted_field: FieldType[T.IntegerType | None] = Field()
         optional_presence: FieldType[T.IntegerType] | None
-        explicit_nullable: T.IntegerType | None = Field(nullable=False)
+        legacy_optional_presence: T.IntegerType | None
+        explicit_nullable: T.IntegerType = Field(nullable=True)
 
     schema = Model.to_schema()
     assert schema.columns["required"].dtype == pa.Column(T.IntegerType()).dtype
@@ -74,7 +75,10 @@ def test_field_type_presence_and_nullability(spark_session):
     assert schema.columns["nullable_values"].nullable
     assert schema.columns["nullable_with_omitted_field"].nullable
     assert not schema.columns["optional_presence"].required
-    assert not schema.columns["explicit_nullable"].nullable
+    # bare ``T | None`` keeps its historical optional-presence meaning
+    assert not schema.columns["legacy_optional_presence"].required
+    assert not schema.columns["legacy_optional_presence"].nullable
+    assert schema.columns["explicit_nullable"].nullable
     assert Model.required == "required"
     assert isinstance(Model.optional_presence, str)
 
@@ -117,7 +121,7 @@ def test_generic_nullable_field(spark_session):
     Dtype = TypeVar("Dtype")
 
     class GenericModel(DataFrameModel, Generic[Dtype]):
-        value: Dtype | None
+        value: Dtype = Field(nullable=True)
 
     class IntegerModel(GenericModel[T.IntegerType]): ...
 
@@ -632,9 +636,9 @@ def test_schema():
     class Schema(pa.DataFrameModel):
         """Simple DataFrameModel containing optional columns."""
 
-        a: FieldType[str] | None
-        b: FieldType[str, pa.Field(eq="b", required=False)]
-        c: FieldType[str, pa.Field(required=False)]
+        a: str | None
+        b: str | None = pa.Field(eq="b")
+        c: FieldType[str] | None
 
     return Schema
 

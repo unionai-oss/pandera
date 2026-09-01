@@ -125,10 +125,11 @@ def test_field_type_presence_and_nullability() -> None:
 
     class Model(pa.DataFrameModel):
         required: int
-        nullable_values: int | None
+        nullable_values: FieldType[int | None]  # type: ignore[valid-type]
         optional_presence: FieldType[int] | None
-        explicit_nullable: int | None = pa.Field(nullable=False)
-        explicit_non_nullable: int = pa.Field(nullable=True)
+        legacy_optional_presence: int | None
+        explicit_nullable: int = pa.Field(nullable=True)
+        explicit_required: FieldType[int] | None = pa.Field(required=True)
         aliased: str = pa.Field(alias="renamed")
 
     schema = Model.to_schema()
@@ -144,8 +145,14 @@ def test_field_type_presence_and_nullability() -> None:
     assert not schema.columns["optional_presence"].required
     assert not schema.columns["optional_presence"].nullable
 
-    assert not schema.columns["explicit_nullable"].nullable
-    assert schema.columns["explicit_non_nullable"].nullable
+    # a bare ``T | None`` annotation keeps its historical meaning: the column
+    # may be absent, and its values are non-nullable unless stated otherwise.
+    # See https://github.com/unionai-oss/pandera/issues/2457
+    assert not schema.columns["legacy_optional_presence"].required
+    assert not schema.columns["legacy_optional_presence"].nullable
+
+    assert schema.columns["explicit_nullable"].nullable
+    assert schema.columns["explicit_required"].required
     assert Model.aliased == "renamed"
     for name in (
         Model.required,
@@ -312,7 +319,7 @@ def test_nullable_annotation_coercion() -> None:
     """Inferred nullability must also guide pandas dtype coercion."""
 
     class Model(pa.DataFrameModel):
-        value: int | None = pa.Field(coerce=True)
+        value: FieldType[int | None] = pa.Field(coerce=True)  # type: ignore[valid-type]
 
     validated = Model.validate(pd.DataFrame({"value": [1, None]}))
     assert validated["value"].isna().sum() == 1
@@ -431,6 +438,29 @@ def test_optional_column() -> None:
     assert not schema.columns["b"].required
     assert not schema.columns["c"].required
     assert not schema.columns["d"].required
+
+
+def test_optional_bare_dtype_column() -> None:
+    """Bare ``T | None`` annotations declare an optional column.
+
+    Regression test for https://github.com/unionai-oss/pandera/issues/2457
+    """
+
+    class Schema(pa.DataFrameModel):
+        a: int
+        b: int | None
+        c: Optional[str]  # noqa: UP045
+        d: Annotated[int, pa.Field(gt=0)] | None
+        e: int | None = pa.Field(required=True)
+
+    schema = Schema.to_schema()
+    assert schema.columns["a"].required
+    for name in ("b", "c", "d"):
+        assert not schema.columns[name].required
+        assert not schema.columns[name].nullable
+    assert schema.columns["e"].required
+
+    Schema.validate(pd.DataFrame({"a": [1], "e": [1]}))
 
 
 def test_optional_column_with_typing_module_alias() -> None:
@@ -2209,7 +2239,7 @@ def test_generic_nullable_field() -> None:
     T = TypeVar("T", int, float, str)
 
     class GenericModel(pa.DataFrameModel, Generic[T]):
-        value: T | None
+        value: T = pa.Field(nullable=True)
 
     class IntModel(GenericModel[int]): ...
 

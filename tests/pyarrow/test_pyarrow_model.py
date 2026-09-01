@@ -25,9 +25,10 @@ def test_model_field_type_presence_and_nullability():
 
     class Model(pa.DataFrameModel):
         required: int
-        nullable_values: int | None
+        nullable_values: FieldType[int | None]
         optional_presence: FieldType[int] | None
-        explicit_nullable: int | None = pa.Field(nullable=False)
+        legacy_optional_presence: int | None
+        explicit_nullable: int = pa.Field(nullable=True)
 
     schema = Model.to_schema()
     assert schema.columns["required"].dtype == pa.Column(int).dtype
@@ -36,7 +37,10 @@ def test_model_field_type_presence_and_nullability():
     assert schema.columns["nullable_values"].required
     assert schema.columns["nullable_values"].nullable
     assert not schema.columns["optional_presence"].required
-    assert not schema.columns["explicit_nullable"].nullable
+    # bare ``T | None`` keeps its historical optional-presence meaning
+    assert not schema.columns["legacy_optional_presence"].required
+    assert not schema.columns["legacy_optional_presence"].nullable
+    assert schema.columns["explicit_nullable"].nullable
     assert Model.required == "required"
     assert isinstance(Model.optional_presence, str)
 
@@ -114,7 +118,7 @@ def test_model_with_field_checks():
 def test_model_optional_column():
     class WithOptional(pa.DataFrameModel):
         a: int
-        b: FieldType[str] | None
+        b: str | None
 
     # 'b' is optional, so a table without it validates...
     tbl = pyarrow.table({"a": [1]})

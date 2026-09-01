@@ -40,19 +40,19 @@ def test_model_schema_equivalency(
     assert t_model_basic.to_schema() == t_schema_basic
 
 
-def test_model_schema_equivalency_with_nullable():
-    class ModelWithNullable(DataFrameModel):
+def test_model_schema_equivalency_with_optional():
+    class ModelWithOptional(DataFrameModel):
         string_col: str | None
         int_col: int
 
     schema = DataFrameSchema(
-        name="ModelWithNullable",
+        name="ModelWithOptional",
         columns={
-            "string_col": Column(dt.String, nullable=True),
+            "string_col": Column(dt.String, required=False),
             "int_col": Column(dt.Int64),
         },
     )
-    assert ModelWithNullable.to_schema() == schema
+    assert ModelWithOptional.to_schema() == schema
 
 
 def test_field_type_presence_and_nullability():
@@ -60,9 +60,10 @@ def test_field_type_presence_and_nullability():
 
     class Model(DataFrameModel):
         required: dt.Int64
-        nullable_values: dt.Int64 | None
+        nullable_values: FieldType[dt.Int64 | None]
         optional_presence: FieldType[dt.Int64] | None
-        explicit_nullable: dt.Int64 | None = pa.Field(nullable=False)
+        legacy_optional_presence: dt.Int64 | None
+        explicit_nullable: dt.Int64 = pa.Field(nullable=True)
 
     schema = Model.to_schema()
     assert schema.columns["required"].dtype == Column(dt.Int64).dtype
@@ -71,7 +72,10 @@ def test_field_type_presence_and_nullability():
     assert schema.columns["nullable_values"].required
     assert schema.columns["nullable_values"].nullable
     assert not schema.columns["optional_presence"].required
-    assert not schema.columns["explicit_nullable"].nullable
+    # bare ``T | None`` keeps its historical optional-presence meaning
+    assert not schema.columns["legacy_optional_presence"].required
+    assert not schema.columns["legacy_optional_presence"].nullable
+    assert schema.columns["explicit_nullable"].nullable
     assert Model.required == "required"
     assert isinstance(Model.optional_presence, str)
 

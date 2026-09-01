@@ -144,19 +144,19 @@ def test_model_schema_equivalency(
     assert ldf_model_basic.to_schema() == ldf_schema_basic
 
 
-def test_model_schema_equivalency_with_nullable():
-    class ModelWithNullable(DataFrameModel):
+def test_model_schema_equivalency_with_optional():
+    class ModelWithOptional(DataFrameModel):
         string_col: str | None
         int_col: int
 
     schema = DataFrameSchema(
-        name="ModelWithNullable",
+        name="ModelWithOptional",
         columns={
-            "string_col": Column(pl.Utf8, nullable=True),
+            "string_col": Column(pl.Utf8, required=False),
             "int_col": Column(pl.Int64),
         },
     )
-    assert ModelWithNullable.to_schema() == schema
+    assert ModelWithOptional.to_schema() == schema
 
 
 def test_field_type_presence_and_nullability():
@@ -164,9 +164,10 @@ def test_field_type_presence_and_nullability():
 
     class Model(DataFrameModel):
         items: pl.List
-        nullable_values: int | None
+        nullable_values: FieldType[int | None]
         optional_presence: FieldType[int] | None
-        explicit_nullable: int | None = Field(nullable=False)
+        legacy_optional_presence: int | None
+        explicit_nullable: int = Field(nullable=True)
 
     schema = Model.to_schema()
     assert schema.columns["items"].dtype == Column(pl.List).dtype
@@ -174,7 +175,10 @@ def test_field_type_presence_and_nullability():
     assert schema.columns["nullable_values"].required
     assert not schema.columns["optional_presence"].required
     assert not schema.columns["optional_presence"].nullable
-    assert not schema.columns["explicit_nullable"].nullable
+    # bare ``T | None`` keeps its historical optional-presence meaning
+    assert not schema.columns["legacy_optional_presence"].required
+    assert not schema.columns["legacy_optional_presence"].nullable
+    assert schema.columns["explicit_nullable"].nullable
     assert Model.items == "items"
     assert isinstance(Model.optional_presence, str)
 
