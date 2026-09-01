@@ -11,6 +11,7 @@ from pandera.api.base.types import CheckList, ParserList
 from pandera.api.pandas.array import ArraySchema
 from pandera.api.pandas.container import DataFrameSchema
 from pandera.api.pandas.types import PandasDtypeInputTypes
+from pandera.constants import ON_MISSING_ACTIONS
 from pandera.dtypes import UniqueSettings
 from pandera.import_utils import strategy_import_error
 from pandera.utils import is_regex
@@ -36,6 +37,7 @@ class Column(ArraySchema[pd.DataFrame]):
         default: Any | None = None,
         metadata: dict | None = None,
         drop_invalid_rows: bool = False,
+        on_missing: str | None = None,
     ) -> None:
         """Create column validator object.
 
@@ -63,6 +65,13 @@ class Column(ArraySchema[pd.DataFrame]):
         :param default: The default value for missing values in the column.
         :param metadata: An optional key value data.
         :param drop_invalid_rows: if True, drop invalid rows on validation.
+        :param on_missing: action to take when this column is optional
+            (``required=False``) and absent from the dataframe. By default
+            (``None``) a missing optional column passes silently. If
+            ``"warn"``, a :class:`~pandera.errors.SchemaWarning` is emitted
+            when the column is missing. This overrides the schema-level
+            ``on_missing_columns`` option for this column. It has no effect on
+            required columns, whose absence is always an error.
 
         :raises SchemaInitError: if impossible to build schema from parameters
 
@@ -107,9 +116,15 @@ class Column(ArraySchema[pd.DataFrame]):
             raise ValueError(
                 "You cannot specify a non-string name when setting regex=True"
             )
+        if on_missing not in (None, *ON_MISSING_ACTIONS):
+            raise errors.SchemaInitError(
+                "on_missing must be one of "
+                f"{(None, *ON_MISSING_ACTIONS)}, got {on_missing!r}."
+            )
         self.required = required
         self.name = name
         self.regex = regex
+        self.on_missing = on_missing
 
     @property
     def _allow_groupby(self) -> bool:
@@ -151,6 +166,7 @@ class Column(ArraySchema[pd.DataFrame]):
             "description": self.description,
             "default": self.default,
             "metadata": self.metadata,
+            "on_missing": self.on_missing,
         }
 
     def set_name(self, name: str):

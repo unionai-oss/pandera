@@ -3,6 +3,7 @@
 import copy
 import itertools
 import traceback
+import warnings
 from collections.abc import Callable
 from typing import Any, TypeVar
 
@@ -28,6 +29,7 @@ from pandera.errors import (
     SchemaError,
     SchemaErrorReason,
     SchemaErrors,
+    SchemaWarning,
 )
 from pandera.validation_depth import validate_scope, validation_type
 
@@ -82,6 +84,10 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
 
         # Collect status of columns against schema
         column_info = self.collect_column_info(check_obj, schema)
+
+        # Warn about optional columns that are absent from the input, based on
+        # the data as provided (i.e. before add_missing_columns runs).
+        self.warn_missing_optional_columns(check_obj, schema)
 
         core_parsers: list[tuple[Callable[..., Any], tuple[Any, ...]]] = [
             (self.add_missing_columns, (schema, column_info, lazy)),
@@ -322,6 +328,44 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
                     )
                 )
         return check_results
+
+    def warn_missing_optional_columns(
+        self,
+        check_obj: pd.DataFrame,
+        schema,
+    ) -> None:
+        """Emit a warning for optional columns absent from the dataframe.
+
+        A column is considered here only when it is optional
+        (``required=False``) and not a regex column. The action is resolved
+        from the column's ``on_missing`` attribute, falling back to the
+        schema-wide ``on_missing_columns`` option. Currently only ``"warn"``
+        is supported; anything else (including ``None``) is a no-op, which
+        preserves the default behavior of silently ignoring missing optional
+        columns.
+        """
+        schema_default = getattr(schema, "on_missing_columns", None)
+        if schema_default is None and not any(
+            getattr(col, "on_missing", None) is not None
+            for col in schema.columns.values()
+        ):
+            return
+
+        for col_name, col_schema in schema.columns.items():
+            if (
+                col_schema.regex
+                or col_schema.required
+                or col_name in check_obj.columns
+            ):
+                continue
+            action = getattr(col_schema, "on_missing", None) or schema_default
+            if action == "warn":
+                warnings.warn(
+                    f"optional column '{col_name}' is missing from the "
+                    "dataframe",
+                    SchemaWarning,
+                    stacklevel=2,
+                )
 
     def collect_column_info(
         self,

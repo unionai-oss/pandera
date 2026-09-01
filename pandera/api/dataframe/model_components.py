@@ -61,6 +61,11 @@ class FieldInfo(BaseFieldInfo):
         """Create a schema_components.Column from a field."""
         nullable = self.nullable if self.nullable_explicit else nullable
         required = self.required if self.required_explicit else required
+        # ``on_missing`` is only forwarded when explicitly set so that
+        # backends whose ``Column`` does not (yet) support it are unaffected.
+        extra = (
+            {} if self.on_missing is None else {"on_missing": self.on_missing}
+        )
         return self._get_schema_properties(
             dtype,
             nullable=nullable,
@@ -75,6 +80,7 @@ class FieldInfo(BaseFieldInfo):
             description=self.description,
             default=self.default,
             metadata=self.metadata,
+            **extra,
         )
 
     def index_properties(
@@ -115,6 +121,7 @@ class FieldInfo(BaseFieldInfo):
             "title": self.title,
             "description": self.description,
             "metadata": self.metadata,
+            "on_missing": self.on_missing,
         }
 
 
@@ -162,6 +169,7 @@ def Field(
     description: str | None = None,
     default: Any | None = None,
     metadata: dict[str, Any] | None = None,
+    on_missing: str | None = None,
     **kwargs: Any,
 ) -> Any:
     """Column or index field specification of a DataFrameModel.
@@ -222,6 +230,12 @@ def Field(
     :param description: An arbitrary textual description of the field.
     :param default: Optional default value of the field.
     :param metadata: An optional key-value data.
+    :param on_missing: action to take when the field maps to an optional
+        column (``typing.Optional``) that is absent from the dataframe. By
+        default (``None``) a missing optional column passes silently; if
+        ``"warn"`` a :class:`~pandera.errors.SchemaWarning` is emitted. This
+        overrides the schema-wide ``on_missing_columns`` config option. Only
+        supported by the pandas backend for now.
     :param kwargs: Specify custom checks that have been registered with the
         :class:`~pandera.extensions.register_check_method` decorator.
     """
@@ -270,6 +284,7 @@ def Field(
         default=default,
         dtype_kwargs=dtype_kwargs,
         metadata=metadata,
+        on_missing=on_missing,
     )
 
 

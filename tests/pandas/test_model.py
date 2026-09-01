@@ -3,6 +3,7 @@
 import os
 import re
 import runpy
+import warnings
 from collections.abc import Iterable
 from copy import deepcopy
 from enum import Enum
@@ -18,7 +19,7 @@ import pandera.api.dataframe.model as dataframe_model
 import pandera.api.extensions as pax
 import pandera.pandas as pa
 from pandera.api.base.model import MetaModel
-from pandera.errors import SchemaError, SchemaInitError
+from pandera.errors import SchemaError, SchemaInitError, SchemaWarning
 from pandera.typing import DataFrame, FieldType, Index, Series, String
 from pandera.typing import pandas as pandas_typing
 
@@ -2659,3 +2660,57 @@ def test_model_with_pydantic_base_model_with_df_init():
         df: pa.typing.DataFrame[PanderaDataFrameModel] = pd.DataFrame(
             {"field": [1, 2, 3]}
         )
+
+
+def test_field_on_missing_warns_for_optional_column():
+    """Field(on_missing='warn') warns when the optional column is absent."""
+
+    class Schema(pa.DataFrameModel):
+        a: Series[int]
+        b: Series[str] | None = pa.Field(on_missing="warn")
+        c: Series[str] | None  # no on_missing -> stays silent
+
+    df = pd.DataFrame({"a": [1, 2]})
+    with pytest.warns(SchemaWarning, match="optional column 'b'") as record:
+        Schema.validate(df)
+    messages = [str(w.message) for w in record]
+    assert not any("'c'" in m for m in messages)
+
+
+def test_config_on_missing_columns_warns_for_optional_column():
+    """Config.on_missing_columns applies to every optional column."""
+
+    class Schema(pa.DataFrameModel):
+        a: Series[int]
+        b: Series[str] | None
+
+        class Config:
+            on_missing_columns = "warn"
+
+    df = pd.DataFrame({"a": [1, 2]})
+    with pytest.warns(SchemaWarning, match="optional column 'b'"):
+        Schema.validate(df)
+
+
+def test_on_missing_default_does_not_warn():
+    """Without on_missing configured, missing optional columns are silent."""
+
+    class Schema(pa.DataFrameModel):
+        a: Series[int]
+        b: Series[str] | None
+
+    df = pd.DataFrame({"a": [1, 2]})
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        Schema.validate(df)
+
+
+def test_field_on_missing_invalid_value_raises_init_error():
+    """An invalid on_missing value raises a SchemaInitError."""
+
+    class Schema(pa.DataFrameModel):
+        a: Series[int]
+        b: Series[str] | None = pa.Field(on_missing="raise")
+
+    with pytest.raises(SchemaInitError, match="on_missing must be"):
+        Schema.validate(pd.DataFrame({"a": [1, 2]}))
