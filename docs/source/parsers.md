@@ -84,13 +84,56 @@ schema.validate(data)
 You can specify both dataframe- and column-level parsers, where
 dataframe-level parsers are performed before column-level parsers. Assuming
 that a schema contains parsers and checks, the validation process consists of
-the following steps:
+the following steps, in order:
 
 1. dataframe-level parsing
-2. column-level parsing
-3. dataframe-level checks
-4. column-level and index-level checks
+2. for each column: column-level parsing, then column-level checks
+3. index-level parsing, then index-level checks
+4. dataframe-level checks
 
+This ordering is intentional: dataframe-level checks are meant to be applied
+only once all of the parsing steps have finished, so that they validate the
+data in the state that represents the user's best effort at parsing the raw
+dataframe into a valid one. Since checks are independent of one another by
+design, there's no functional difference between running dataframe-level
+checks before or after column- and index-level checks, but running
+dataframe-level checks *before* the column-level parsers have run would break
+the assumption that checks operate on already-parsed data.
+
+```{note}
+`coerce=True` is itself a built-in parser (see {ref}`coerced` for more details
+on dtype coercion), so coercion happens during the parsing phase described
+above, before any checks run. A column's own parsers run *before* that column
+is coerced, so if a value needs to be transformed into a coercible form —
+for example, normalizing `"1,0"` to `"1.0"` before it can be coerced to a
+float — you can do that either in a dataframe-level parser or in a parser on
+the column itself.
+```
+
+You can verify the order of operations for yourself by adding some print
+statements to your parsers and checks:
+
+```{code-cell} python
+schema = pa.DataFrameSchema(
+    parsers=pa.Parser(lambda df: print("=== dataframe parser ===") or df),
+    columns={
+        "a": pa.Column(
+            int,
+            parsers=pa.Parser(lambda s: print("=== column a parser ===") or s),
+            checks=pa.Check(lambda s: print("=== column a check ===") or True),
+        ),
+        "b": pa.Column(
+            int,
+            parsers=pa.Parser(lambda s: print("=== column b parser ===") or s),
+            checks=pa.Check(lambda s: print("=== column b check ===") or True),
+        ),
+    },
+    checks=pa.Check(lambda df: print("=== dataframe check ===") or True),
+)
+
+data = pd.DataFrame({"a": [1, 2], "b": [3, 4]})
+schema.validate(data)
+```
 
 ## Parsing columns
 
