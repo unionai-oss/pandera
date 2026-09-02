@@ -40,7 +40,6 @@ jobs:
     name: Changed areas
     runs-on: ubuntu-latest
     outputs:
-      lint: ${{ steps.filter.outputs.lint }}
       docs: ${{ steps.filter.outputs.docs }}
       import_test: ${{ steps.flags.outputs.import_test }}
       base: ${{ steps.flags.outputs.base }}
@@ -91,11 +90,12 @@ jobs:
           FASTAPI: ${{ steps.filter.outputs.fastapi }}
         run: bash scripts/ci/derive_test_flags.sh >> "${GITHUB_OUTPUT}"
 
+  # Linters always run: formatting/typing rules apply repo-wide, and a missed
+  # lint failure costs more than a few extra short jobs. Do NOT gate this job
+  # on the `changes` job.
   lint:
     name: Linters (python=${{ matrix.python-version }} polars=${{ matrix.polars-version }} )
     runs-on: ubuntu-latest
-    needs: changes
-    if: needs.changes.outputs.lint == 'true'
     strategy:
       fail-fast: true
       matrix:

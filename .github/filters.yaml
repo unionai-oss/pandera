@@ -12,6 +12,8 @@
 #     shared build/CI config. Either one affects every test area, since that
 #     code can affect any backend (see derive_test_flags.sh).
 #   - Pure docs changes match only `docs`.
+#   - There is deliberately no `lint` filter: the lint job in ci-tests.yml
+#     is ungated and runs on every push/PR.
 
 global:
   - pyproject.toml
@@ -23,21 +25,6 @@ global:
   - .coveragerc
   - .github/**
   - scripts/**
-
-lint:
-  - pyproject.toml
-  - setup.py
-  - noxfile.py
-  - requirements.txt
-  - requirements-*.txt
-  - environment.yml
-  - .coveragerc
-  - .github/**
-  - scripts/**
-  - "**/*.py"
-  - "**/*.pyi"
-  - mypy.ini
-  - .pylintrc
 
 docs:
   - pyproject.toml
