@@ -1263,8 +1263,28 @@ def test_coerce_integer_overflow_does_not_bypass_checks():
         ([True, False], "int64", [1, 0]),
     ],
 )
-def test_coerce_valid_integer_conversions_still_work(values, target_dtype, expected):
+def test_coerce_valid_integer_conversions_still_work(
+    values, target_dtype, expected
+):
     """Legitimate coercions are unaffected: widening, float truncation,
     string parsing and bool conversion all still succeed."""
     schema = pa.DataFrameSchema({"a": pa.Column(target_dtype, coerce=True)})
-    assert schema.validate(pd.DataFrame({"a": values}))["a"].tolist() == expected
+    assert (
+        schema.validate(pd.DataFrame({"a": values}))["a"].tolist() == expected
+    )
+
+
+def test_coerce_empty_integer_column_is_not_an_overflow():
+    """An empty integer column has no values to wrap, so coercion succeeds.
+
+    The bounds check reduces with ``.min()``/``.max()``, which are
+    undefined on an empty container: pandas returns ``nan``, and
+    ``int(nan)`` raises. Without the empty guard that surfaces as a
+    spurious coercion failure.
+    """
+    schema = pa.DataFrameSchema({"a": pa.Column("int8", coerce=True)})
+    validated = schema.validate(
+        pd.DataFrame({"a": pd.Series([], dtype="int64")})
+    )
+    assert validated.empty
+    assert validated["a"].dtype == "int8"
