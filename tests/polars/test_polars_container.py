@@ -279,6 +279,22 @@ def test_add_missing_columns_with_nullable(ldf_basic, ldf_schema_basic):
     )
 
 
+@pytest.mark.xfail(
+    condition=CONFIG.use_narwhals_backend,
+    reason="add_missing_columns parser not implemented in Narwhals backend",
+    strict=True,
+)
+def test_add_missing_columns_with_string_default(ldf_basic, ldf_schema_basic):
+    """A string default is added as a literal, not resolved as a column name."""
+    ldf_schema_basic.add_missing_columns = True
+    ldf_schema_basic.columns["string_col"].default = "int_col"
+    modified_data = ldf_basic.drop("string_col")
+    validated_data = modified_data.pipe(ldf_schema_basic.validate)
+    assert validated_data.collect().equals(
+        ldf_basic.with_columns(string_col=pl.lit("int_col")).collect()
+    )
+
+
 def test_required_columns():
     """Test required columns."""
     schema = DataFrameSchema(
