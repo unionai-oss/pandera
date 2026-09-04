@@ -1003,6 +1003,7 @@ class Category(DataType, dtypes.Category):
                 f"Could not coerce {type(data_container)} data_container "
                 f"into type {self.type}. Invalid categories found in data_container.",
                 failure_cases=failure_cases,
+                parser_output=is_coercible.collect(),
             ) from exc
 
     def __belongs_to_categories(

@@ -707,6 +707,25 @@ def test_lazy_validation_errors():
         assert exc.failure_cases.shape[0] == 6
 
 
+def test_lazy_validation_errors_category_coerce():
+    """A Category coercion failure reports SchemaErrors, not an AssertionError.
+
+    Category.try_coerce raised ParserError without the parser_output kwarg
+    that failure_cases_metadata asserts is set (#1806).
+    """
+    schema = DataFrameSchema(
+        {"a": Column(pe.Category(categories=["a", "b", "c"]), coerce=True)}
+    )
+    # "x" and "y" fail coercion; the column is then also reported as still
+    # being a String, since the failed coercion left its dtype unchanged.
+    invalid_df = pl.DataFrame({"a": ["a", "x", "y"]})
+
+    try:
+        schema.validate(invalid_df, lazy=True)
+    except pa.errors.SchemaErrors as exc:
+        assert exc.failure_cases.shape[0] == 3
+
+
 def test_dataframe_validation_errors_nullable():
     schema = DataFrameSchema(
         {"a": Column(str, pa.Check.isin([*"abc"]), nullable=False)}

@@ -276,6 +276,21 @@ def test_try_coerce_cast_failed(to_dtype, container):
         to_dtype.try_coerce(data_container=container)
 
 
+def test_try_coerce_category_cast_failed_sets_parser_output():
+    """Category.try_coerce's ParserError must carry parser_output.
+
+    failure_cases_metadata asserts SchemaError.check_output (populated from
+    ParserError.parser_output) is not None; leaving it unset crashed lazy
+    validation with a bare AssertionError instead of a SchemaErrors report
+    (#1806).
+    """
+    to_dtype = pe.Category(categories=["a", "b", "c"])
+    container = pl.LazyFrame({"0": ["a", "b", "f"]})
+    with pytest.raises(pandera.errors.ParserError) as exc_info:
+        to_dtype.try_coerce(data_container=container)
+    assert exc_info.value.parser_output is not None
+
+
 @pytest.mark.parametrize("dtype", all_types + special_types)
 def test_check_not_equivalent(dtype):
     """Test that check() rejects non-equivalent dtypes."""
