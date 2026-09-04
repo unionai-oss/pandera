@@ -157,6 +157,25 @@ def test_coerce_no_cast_special(to_dtype, strategy):
         assert dtype == to_dtype.type
 
 
+def test_category_coerce_on_named_column():
+    """Category.coerce() on a named (non-"*") column (#1806).
+
+    coerce() cast the whole lazyframe to Utf8 instead of scoping the cast
+    to the target column, silently converting sibling columns to string;
+    its own validity check then looked up the target column name in a
+    frame that only has a "belongs" column, raising ColumnNotFoundError
+    for every named-column coercion regardless of whether the data was
+    actually coercible.
+    """
+    lf = pl.LazyFrame({"a": [datetime.datetime(2024, 1, 1)], "b": ["a"]})
+    coerced = pe.Category(categories=["a", "b", "c"]).coerce(
+        PolarsData(lf, key="b")
+    )
+    schema = coerced.collect_schema()
+    assert schema["a"] == pl.Datetime("us")
+    assert coerced.collect()["b"].to_list() == ["a"]
+
+
 @pytest.mark.parametrize(
     "data_type_cls", list(pe.Engine.get_registered_dtypes())
 )

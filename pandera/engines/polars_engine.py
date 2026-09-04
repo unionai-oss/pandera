@@ -958,14 +958,25 @@ class Category(DataType, dtypes.Category):
         if isinstance(data_container, pl.LazyFrame):
             data_container = PolarsData(data_container)
 
-        lf = data_container.lazyframe.cast(self.type, strict=True)
-
         key = data_container.key or "*"
+
+        cast_dtypes: Union[
+            Mapping[
+                Union[ColumnNameOrSelector, PolarsDataType],
+                Union[PolarsDataType, PythonDataType],
+            ],
+            PolarsDataType,
+        ]
+        if key == "*":
+            cast_dtypes = self.type
+        else:
+            cast_dtypes = {key: self.type}
+        lf = data_container.lazyframe.cast(cast_dtypes, strict=True)
+
         belongs_to_categories = self.__belongs_to_categories(lf, key=key)
 
         all_true = (
-            belongs_to_categories.select(pl.all_horizontal(key))
-            .select(pl.all().all())
+            belongs_to_categories.select(pl.col("belongs").all())
             .collect()
             .item()
         )
