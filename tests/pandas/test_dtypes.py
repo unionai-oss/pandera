@@ -1223,3 +1223,68 @@ def test_direct_pyarrow_engine_import_registers_pyarrow_dtypes():
         )
     finally:
         engine.Engine._registry[pandas_engine.Engine] = registry_snapshot
+
+
+@pytest.mark.parametrize(
+    "values, target_dtype",
+    [
+        ([1, 2, 300], "int8"),
+        ([-1], "uint8"),
+        ([70000], "int16"),
+        ([-1], "uint64"),
+    ],
+)
+def test_coerce_integer_overflow_is_reported(values, target_dtype):
+    """Integer coercion that would wrap around is a coercion failure.
+
+    numpy integer casts wrap silently, so ``astype`` "succeeds" while changing
+    the value (300 -> int8 gives 44, -1 -> uint8 gives 255).
+    """
+    schema = pa.DataFrameSchema({"a": pa.Column(target_dtype, coerce=True)})
+    with pytest.raises((pa.errors.SchemaError, pa.errors.SchemaErrors)):
+        schema.validate(pd.DataFrame({"a": values}))
+
+
+def test_coerce_integer_overflow_does_not_bypass_checks():
+    """A wrapped value must not pass a check the original value violated."""
+    schema = pa.DataFrameSchema(
+        {"a": pa.Column("int8", checks=pa.Check.le(100), coerce=True)}
+    )
+    with pytest.raises((pa.errors.SchemaError, pa.errors.SchemaErrors)):
+        schema.validate(pd.DataFrame({"a": [1, 2, 300]}))
+
+
+@pytest.mark.parametrize(
+    "values, target_dtype, expected",
+    [
+        ([1, 2, 3], "int8", [1, 2, 3]),
+        ([1.7, 2.9], "int64", [1, 2]),
+        (["1", "2"], "int64", [1, 2]),
+        ([True, False], "int64", [1, 0]),
+    ],
+)
+def test_coerce_valid_integer_conversions_still_work(
+    values, target_dtype, expected
+):
+    """Legitimate coercions are unaffected: widening, float truncation,
+    string parsing and bool conversion all still succeed."""
+    schema = pa.DataFrameSchema({"a": pa.Column(target_dtype, coerce=True)})
+    assert (
+        schema.validate(pd.DataFrame({"a": values}))["a"].tolist() == expected
+    )
+
+
+def test_coerce_empty_integer_column_is_not_an_overflow():
+    """An empty integer column has no values to wrap, so coercion succeeds.
+
+    The bounds check reduces with ``.min()``/``.max()``, which are
+    undefined on an empty container: pandas returns ``nan``, and
+    ``int(nan)`` raises. Without the empty guard that surfaces as a
+    spurious coercion failure.
+    """
+    schema = pa.DataFrameSchema({"a": pa.Column("int8", coerce=True)})
+    validated = schema.validate(
+        pd.DataFrame({"a": pd.Series([], dtype="int64")})
+    )
+    assert validated.empty
+    assert validated["a"].dtype == "int8"
