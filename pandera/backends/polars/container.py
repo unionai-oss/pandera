@@ -365,9 +365,17 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
             if k in column_info.absent_column_names
         }
 
-        # Append missing columns
+        # Append missing columns. A default that is already an expression is
+        # used as-is; any other value is wrapped in pl.lit, because polars
+        # resolves a bare str in this position as a column reference rather
+        # than as the literal the default is meant to be.
         check_obj = check_obj.with_columns(
-            **{k: v.default for k, v in missing_cols_schema.items()}
+            **{
+                k: v.default
+                if isinstance(v.default, pl.Expr)
+                else pl.lit(v.default)
+                for k, v in missing_cols_schema.items()
+            }
         ).cast({k: v.dtype.type for k, v in missing_cols_schema.items()})
 
         # Get columns present in df but not in schema
