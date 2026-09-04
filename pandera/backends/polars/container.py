@@ -370,15 +370,20 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
             **{k: v.default for k, v in missing_cols_schema.items()}
         ).cast({k: v.dtype.type for k, v in missing_cols_schema.items()})
 
+        df_column_names = check_obj.collect_schema().names()
+
         # Get columns present in df but not in schema
         cols_not_in_schema = [
-            col
-            for col in check_obj.collect_schema().names()
-            if col not in schema.columns
+            col for col in df_column_names if col not in schema.columns
         ]
 
-        # Set column order
-        check_obj = check_obj.select([*schema.columns, *cols_not_in_schema])
+        # Set column order. Absent optional columns are never added above, so
+        # selecting every schema column would ask for one that does not exist.
+        cols_in_schema = [
+            col for col in schema.columns if col in df_column_names
+        ]
+
+        check_obj = check_obj.select([*cols_in_schema, *cols_not_in_schema])
         return check_obj
 
     def strict_filter_columns(
