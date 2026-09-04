@@ -157,6 +157,25 @@ def test_coerce_no_cast_special(to_dtype, strategy):
         assert dtype == to_dtype.type
 
 
+def test_category_coerce_on_named_column():
+    """Category.coerce() on a named (non-"*") column (#1806).
+
+    coerce() cast the whole lazyframe to Utf8 instead of scoping the cast
+    to the target column, silently converting sibling columns to string;
+    its own validity check then looked up the target column name in a
+    frame that only has a "belongs" column, raising ColumnNotFoundError
+    for every named-column coercion regardless of whether the data was
+    actually coercible.
+    """
+    lf = pl.LazyFrame({"a": [datetime.datetime(2024, 1, 1)], "b": ["a"]})
+    coerced = pe.Category(categories=["a", "b", "c"]).coerce(
+        PolarsData(lf, key="b")
+    )
+    schema = coerced.collect_schema()
+    assert schema["a"] == pl.Datetime("us")
+    assert coerced.collect()["b"].to_list() == ["a"]
+
+
 @pytest.mark.parametrize(
     "data_type_cls", list(pe.Engine.get_registered_dtypes())
 )
@@ -274,6 +293,21 @@ def test_try_coerce_cast_failed(to_dtype, container):
     """Test that try_coerce() raises ParserError when not coercible."""
     with pytest.raises(pandera.errors.ParserError):
         to_dtype.try_coerce(data_container=container)
+
+
+def test_try_coerce_category_cast_failed_sets_parser_output():
+    """Category.try_coerce's ParserError must carry parser_output.
+
+    failure_cases_metadata asserts SchemaError.check_output (populated from
+    ParserError.parser_output) is not None; leaving it unset crashed lazy
+    validation with a bare AssertionError instead of a SchemaErrors report
+    (#1806).
+    """
+    to_dtype = pe.Category(categories=["a", "b", "c"])
+    container = pl.LazyFrame({"0": ["a", "b", "f"]})
+    with pytest.raises(pandera.errors.ParserError) as exc_info:
+        to_dtype.try_coerce(data_container=container)
+    assert exc_info.value.parser_output is not None
 
 
 @pytest.mark.parametrize("dtype", all_types + special_types)
