@@ -279,6 +279,25 @@ def test_add_missing_columns_with_nullable(ldf_basic, ldf_schema_basic):
     )
 
 
+@pytest.mark.xfail(
+    condition=CONFIG.use_narwhals_backend,
+    reason="add_missing_columns parser not implemented in Narwhals backend",
+    strict=True,
+)
+def test_add_missing_columns_with_absent_optional_column(
+    ldf_basic, ldf_schema_basic
+):
+    """Absent optional columns are skipped, not selected."""
+    ldf_schema_basic.add_missing_columns = True
+    ldf_schema_basic.columns["int_col"].default = 1
+    ldf_schema_basic.columns["opt_col"] = Column(pl.Float64, required=False)
+    modified_data = ldf_basic.drop("int_col")
+    validated_data = modified_data.pipe(ldf_schema_basic.validate)
+    assert validated_data.collect().equals(
+        ldf_basic.with_columns(int_col=pl.lit(1)).collect()
+    )
+
+
 def test_required_columns():
     """Test required columns."""
     schema = DataFrameSchema(
