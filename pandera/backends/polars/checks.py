@@ -91,6 +91,12 @@ class PolarsCheckBackend(BaseCheckBackend):
             results = results.with_columns(
                 pl.col(CHECK_OUTPUT_KEY) | pl.col(CHECK_OUTPUT_KEY).is_null()
             )
+        else:
+            # a null check output is not a pass: all() and filter(not_())
+            # both discard nulls, which makes ignore_na=False inert.
+            results = results.with_columns(
+                pl.col(CHECK_OUTPUT_KEY).fill_null(False)
+            )
         passed = results.select([pl.col(CHECK_OUTPUT_KEY).all()])
         failure_cases = horizontal_concat(
             [check_obj.lazyframe, results]
