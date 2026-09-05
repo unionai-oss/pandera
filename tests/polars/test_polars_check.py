@@ -55,6 +55,12 @@ def _column_check_fn_scalar_out(data: pa.PolarsData) -> pl.LazyFrame:
             True,
         ],
         [_column_check_fn_scalar_out, [-1, 2, 3, None], [False], True],
+        [
+            _column_check_fn_df_out,
+            [-1, 2, 3, None],
+            [False, True, True, False],
+            False,
+        ],
     ],
 )
 def test_polars_column_check(
@@ -75,6 +81,26 @@ def test_polars_column_check(
         invalid_check_result.check_output.collect()[CHECK_OUTPUT_KEY].to_list()
         == expected_output
     )
+
+
+@pytest.mark.xfail(
+    condition=CONFIG.use_narwhals_backend,
+    reason="The narwhals backend ignores null check outputs on polars frames even when ignore_na=False",
+    strict=True,
+)
+def test_polars_check_ignore_na_false_fails_null_rows():
+    """A null value fails the check when ignore_na=False."""
+    lf = pl.LazyFrame({"col": pl.Series([None, 1, 2], dtype=int)})
+    schema = pa.DataFrameSchema(
+        {"col": pa.Column(int, pa.Check.ge(0, ignore_na=False), nullable=True)}
+    )
+
+    with pytest.raises(pa.errors.SchemaError):
+        schema.validate(lf)
+
+    with pytest.raises(pa.errors.SchemaErrors) as exc_info:
+        schema.validate(lf, lazy=True)
+    assert exc_info.value.failure_cases["failure_case"].to_list() == [None]
 
 
 def _df_check_fn_df_out(data: pa.PolarsData) -> pl.LazyFrame:
