@@ -20,7 +20,7 @@ class Column(ComponentSchema[ibis.Table]):
 
     def __init__(
         self,
-        dtype: IbisDtypeInputTypes = None,
+        dtype: IbisDtypeInputTypes | None = None,
         checks: CheckList | None = None,
         nullable: bool = False,
         unique: bool = False,
