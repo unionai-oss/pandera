@@ -707,6 +707,16 @@ def test_lazy_validation_errors():
         assert exc.failure_cases.shape[0] == 6
 
 
+@pytest.mark.xfail(
+    condition=CONFIG.use_narwhals_backend,
+    reason=(
+        "The narwhals backend does not apply coerce=True at all (a "
+        "SchemaWarning fires and the column is left as-is), so "
+        "Category.try_coerce's ParserError path this test targets is never "
+        "reached there; only the plain dtype-mismatch failure case shows up."
+    ),
+    strict=True,
+)
 def test_lazy_validation_errors_category_coerce():
     """A Category coercion failure reports SchemaErrors, not an AssertionError.
 
