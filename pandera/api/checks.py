@@ -717,6 +717,19 @@ class Check(BaseCheck):
                 "At least a minimum or a maximum need to be specified. Got "
                 "None."
             )
+        # Both bounds are inclusive here, so only max < min is empty. Without
+        # this the check builds and then fails every string, which reads as a
+        # data problem rather than a transposed pair of arguments. in_range
+        # refuses the same mistake.
+        if (
+            min_value is not None
+            and max_value is not None
+            and max_value < min_value
+        ):
+            raise ValueError(
+                f"The combination of min_value = {min_value} and "
+                f"max_value = {max_value} defines an empty interval!"
+            )
         return cls.from_builtin_check_name(
             "str_length",
             kwargs,

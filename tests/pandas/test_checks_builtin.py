@@ -400,6 +400,45 @@ class TestLessThanOrEqualTo:
         check_none_failures(values, check_fn(max_value, ignore_na=False))
 
 
+class TestStrLengthArguments:
+    """Tests for Check.str_length argument validation"""
+
+    @staticmethod
+    @pytest.mark.parametrize("args", [(3, 1), (5, 0)])
+    def test_reversed_bounds_are_rejected(args):
+        """A max below the min can never match, so refuse it at construction.
+
+        Without this the check builds and then fails every string, which
+        reads as a data problem rather than a transposed argument pair.
+        """
+        with pytest.raises(ValueError, match="empty interval"):
+            Check.str_length(*args)
+
+    @staticmethod
+    @pytest.mark.parametrize(
+        "args, kwargs",
+        [
+            ((1, 5), {}),
+            ((2, 2), {}),
+            ((5,), {}),
+            ((), {"min_value": 2}),
+            ((), {"max_value": 2}),
+        ],
+    )
+    def test_valid_bounds_still_build(args, kwargs):
+        """The guard must not catch any form that was already accepted."""
+        assert Check.str_length(*args, **kwargs) is not None
+
+    @staticmethod
+    def test_matches_the_in_range_message():
+        """The same mistake reports the same way in both checks."""
+        with pytest.raises(ValueError) as str_length_error:
+            Check.str_length(3, 1)
+        with pytest.raises(ValueError) as in_range_error:
+            Check.in_range(3, 1)
+        assert str(str_length_error.value) == str(in_range_error.value)
+
+
 class TestInRange:
     """Tests for Check.in_range"""
 
