@@ -33,6 +33,11 @@ def _to_lazy(df: PolarsFrame) -> pl.LazyFrame:
         return df
 
 
+def get_lazyframe_column_names(df: PolarsFrame) -> list[str]:
+    """Return the column names of a polars DataFrame or LazyFrame."""
+    return df.collect_schema().names()
+
+
 def _to_frame_kind(lf: pl.LazyFrame, kind: type[PolarsFrame]) -> PolarsFrame:
     if issubclass(kind, pl.DataFrame):
         return lf.collect()
