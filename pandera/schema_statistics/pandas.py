@@ -6,19 +6,33 @@ from typing import Any, Union
 import pandas as pd
 
 from pandera import dtypes
-from pandera.api.checks import Check
 from pandera.engines import pandas_engine
+from pandera.schema_statistics.common import (
+    parse_check_statistics,  # noqa: F401  (re-exported for compatibility)
+    parse_checks,
+    string_length_check_statistics,  # noqa: F401  (re-exported)
+)
 
 
-def infer_dataframe_statistics(df: pd.DataFrame) -> dict[str, Any]:
-    """Infer column and index statistics from a pandas DataFrame."""
+def infer_dataframe_statistics(
+    df: pd.DataFrame, *, infer_str_length: bool = False
+) -> dict[str, Any]:
+    """Infer column and index statistics from a pandas DataFrame.
+
+    :param infer_str_length: also infer ``str_length`` checks for
+        string-like columns. Off by default so that inferred schemas keep
+        validating after a column's dtype is updated (e.g. together with a
+        parser).
+    """
     nullable_columns = df.isna().any()
     inferred_column_dtypes = {col: _get_array_type(df[col]) for col in df}
     column_statistics = {
         col: {
             "dtype": dtype,
             "nullable": bool(nullable_columns[col]),  # type: ignore
-            "checks": _get_array_check_statistics(df[col], dtype),
+            "checks": _get_array_check_statistics(
+                df[col], dtype, infer_str_length=infer_str_length
+            ),
         }
         for col, dtype in inferred_column_dtypes.items()
     }
@@ -28,26 +42,40 @@ def infer_dataframe_statistics(df: pd.DataFrame) -> dict[str, Any]:
     }
 
 
-def infer_series_statistics(series: pd.Series) -> dict[str, Any]:
-    """Infer column and index statistics from a pandas Series."""
+def infer_series_statistics(
+    series: pd.Series, *, infer_str_length: bool = False
+) -> dict[str, Any]:
+    """Infer column and index statistics from a pandas Series.
+
+    :param infer_str_length: also infer ``str_length`` checks for
+        string-like values (see :func:`infer_dataframe_statistics`).
+    """
     dtype = _get_array_type(series)
     return {
         "dtype": dtype,
         "nullable": bool(series.isna().any()),
-        "checks": _get_array_check_statistics(series, dtype),
+        "checks": _get_array_check_statistics(
+            series, dtype, infer_str_length=infer_str_length
+        ),
         "name": series.name,
     }
 
 
 def infer_index_statistics(index: Union[pd.Index, pd.MultiIndex]):
-    """Infer index statistics given a pandas Index object."""
+    """Infer index statistics given a pandas Index object.
+
+    Only dtype, nullability, and level names are inferred; index levels do not
+    receive inferred checks (unlike dataframe columns).
+    """
 
     def _index_stats(index_level):
         dtype = _get_array_type(index_level)
         return {
             "dtype": dtype,
             "nullable": bool(index_level.isna().any()),
-            "checks": _get_array_check_statistics(index_level, dtype),
+            # Index dtypes are inferred only; do not attach min/max, str_length,
+            # isin, etc. (unlike columns).
+            "checks": None,
             "name": index_level.name,
         }
 
@@ -65,36 +93,6 @@ def infer_index_statistics(index: Union[pd.Index, pd.MultiIndex]):
         )
         index_statistics = []
     return index_statistics if index_statistics else None
-
-
-def parse_check_statistics(check_stats: Union[dict[str, Any], None]):
-    """Convert check statistics to a list of Check objects, including their options."""
-    if check_stats is None:
-        return None
-    checks = []
-    for check_name, stats in check_stats.items():
-        check = getattr(Check, check_name)
-        try:
-            # Extract options if present
-            if isinstance(stats, dict):
-                options = (
-                    stats.pop("options", {}) if "options" in stats else {}
-                )
-                if stats:  # If there are remaining stats
-                    check_instance = check(**stats)
-                else:  # Handle case where all stats were in options
-                    check_instance = check()
-                # Apply options to the check instance
-                for option_name, option_value in options.items():
-                    setattr(check_instance, option_name, option_value)
-                checks.append(check_instance)
-            else:
-                # Handle unary check case
-                checks.append(check(stats))
-        except TypeError:
-            # if stats cannot be unpacked as key-word args, assume unary check.
-            checks.append(check(stats))
-    return checks if checks else None
 
 
 def get_dataframe_schema_statistics(dataframe_schema):
@@ -158,63 +156,6 @@ def get_series_schema_statistics(series_schema):
     return _get_series_base_schema_statistics(series_schema)
 
 
-def parse_checks(checks) -> Union[list[dict[str, Any]], None]:
-    """Convert Check object to check statistics including options."""
-
-    def _has_custom_error(check: Check) -> bool:
-        """Determine whether a check has a user-defined error message."""
-        if check.error is None:
-            return False
-
-        if check.name is None or not Check.is_builtin_check(check.name):
-            return True
-
-        try:
-            default_check = getattr(Check, check.name)(
-                **(check.statistics or {})
-            )
-        except (AttributeError, TypeError, ValueError):
-            return True
-
-        return check.error != default_check.error
-
-    check_statistics = []
-
-    for check in checks:
-        if check not in Check:
-            warnings.warn(
-                "Only registered checks may be serialized to statistics. "
-                "Did you forget to register it with the extension API? "
-                f"Check `{check.name}` will be skipped."
-            )
-            continue
-
-        # Get base statistics
-        base_stats = {} if check.statistics is None else check.statistics
-
-        # Collect check options
-        check_options = {
-            "check_name": check.name,
-            "raise_warning": check.raise_warning,
-            "n_failure_cases": check.n_failure_cases,
-            "ignore_na": check.ignore_na,
-        }
-        if _has_custom_error(check):
-            check_options["error"] = check.error
-
-        # Filter out None values from options
-        check_options = {
-            k: v for k, v in check_options.items() if v is not None
-        }
-
-        # Combine statistics with options
-        if check_options:
-            base_stats["options"] = check_options
-            check_statistics.append(base_stats)
-
-    return check_statistics if check_statistics else None
-
-
 def _get_array_type(x):
     # get most granular type possible
 
@@ -227,8 +168,38 @@ def _get_array_type(x):
     return data_type
 
 
+def _should_infer_str_length(x: pd.Series, data_type: dtypes.DataType) -> bool:
+    """True if the series is string-like (not categorical or numeric, etc.)."""
+    if dtypes.is_category(data_type):
+        return False
+    if dtypes.is_numeric(data_type) or dtypes.is_bool(data_type):
+        return False
+    if dtypes.is_datetime(data_type) or dtypes.is_timedelta(data_type):
+        return False
+    if dtypes.is_binary(data_type):
+        return False
+    if dtypes.is_string(data_type):
+        return True
+    inferred = pd.api.types.infer_dtype(x, skipna=True)
+    return inferred == "string"
+
+
+def _string_length_bounds(x: pd.Series) -> tuple[int, int] | None:
+    """Min and max string length over non-null values."""
+    vals = x.dropna()
+    if vals.empty:
+        return None
+    try:
+        lens = vals.str.len()
+    except (AttributeError, TypeError):
+        return None
+    if lens.isna().any():
+        return None
+    return int(lens.min()), int(lens.max())
+
+
 def _get_array_check_statistics(
-    x, data_type: dtypes.DataType
+    x, data_type: dtypes.DataType, *, infer_str_length: bool = False
 ) -> Union[dict[str, Any], None]:
     """Get check statistics from an array-like object."""
     if x.isna().all():
@@ -251,6 +222,12 @@ def _get_array_check_statistics(
         check_stats = {
             "isin": categories.tolist(),
         }
+    elif infer_str_length and _should_infer_str_length(x, data_type):
+        bounds = _string_length_bounds(x)
+        if bounds is None:
+            check_stats = {}
+        else:
+            check_stats = string_length_check_statistics(*bounds)
     else:
         check_stats = {}
     return check_stats if check_stats else None

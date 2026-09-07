@@ -11,6 +11,8 @@ import narwhals.stable.v1 as nw
 from pandera.api.base.error_handler import get_error_category
 from pandera.api.narwhals.error_handler import ErrorHandler
 from pandera.api.narwhals.utils import (
+    _EAGER_PANDAS_LIKE_IMPLEMENTATIONS,
+    _is_pandas_like,
     _materialize,
     _to_native,
     _unwrap_failure_cases,
@@ -140,7 +142,18 @@ class ColumnBackend(NarwhalsSchemaBackend):
         return check_lf
 
     def get_regex_columns(self, schema, check_obj) -> Iterable:
-        """Get column names matching a regex pattern."""
+        """Get column names matching a regex pattern.
+
+        Accepts either a Narwhals frame or a native frame: native pandas frames
+        arrive here when native pandas backend code (e.g. ``coerce_dtype``)
+        dispatches regex handling through this backend under the narwhals
+        override, since ``Column`` is registered to this backend for
+        ``pd.DataFrame``.
+        """
+        if not isinstance(check_obj, (nw.DataFrame, nw.LazyFrame)):
+            check_obj = nw.from_native(
+                check_obj, eager_or_interchange_only=False
+            )
         frame_cols = check_obj.collect_schema().names()
         return [c for c in frame_cols if re.search(schema.selector, c)]
 
@@ -282,12 +295,42 @@ class ColumnBackend(NarwhalsSchemaBackend):
         except ImportError:
             uses_pyspark_dtype = False
 
+        try:
+            from pandera.engines import numpy_engine as _numpy_engine
+            from pandera.engines import pandas_engine as _pandas_engine
+
+            uses_pandas_dtype = isinstance(
+                schema.dtype,
+                (_pandas_engine.DataType, _numpy_engine.DataType),
+            )
+        except ImportError:  # pragma: no cover — pandas-free installs only
+            uses_pandas_dtype = False
+
         results = []
         schema_obj = check_obj.select(schema.selector).collect_schema()
 
         native_pyspark_schema = (
             nw.to_native(check_obj).schema if uses_pyspark_dtype else None
         )
+
+        # Schema configured with a pandas/numpy dtype on a pandas-like frame:
+        # compare against the *native* pandas dtypes instead of the narwhals
+        # ones. Narwhals normalizes pandas dtypes (object and string[python]
+        # both map to nw.String; int64 and nullable Int64 both map to
+        # nw.Int64), which would erase distinctions the pandas engine
+        # preserves — e.g. Column(str) must accept object columns, and native
+        # semantics for nullable extension dtypes must be kept. Like the
+        # pyspark branch above, this dispatch is schema-driven (isinstance on
+        # schema.dtype); the frame check guards the cross-engine case where a
+        # pandas dtype is used with a non-pandas frame.
+        native_pandas_dtypes = None
+        if (
+            uses_pandas_dtype
+            and check_obj.implementation in _EAGER_PANDAS_LIKE_IMPLEMENTATIONS
+        ):
+            native_pandas_dtypes = nw.to_native(
+                check_obj.select(schema.selector)
+            ).dtypes
 
         for column, nw_dtype in zip(schema_obj.names(), schema_obj.dtypes()):
             if uses_pyspark_dtype:
@@ -317,9 +360,41 @@ class ColumnBackend(NarwhalsSchemaBackend):
                             if not passed
                             else None
                         ),
-                        failure_cases=pyspark_dtype_str
-                        if not passed
-                        else None,
+                        failure_cases=(
+                            pyspark_dtype_str if not passed else None
+                        ),
+                    )
+                )
+                continue
+
+            if native_pandas_dtypes is not None:
+                # pandas-like frame with a pandas/numpy schema dtype: compare
+                # native dtypes through the pandas engine so native semantics
+                # are preserved (see native_pandas_dtypes comment above).
+                native_dtype = native_pandas_dtypes[column]
+                try:
+                    actual_dtype = _pandas_engine.Engine.dtype(native_dtype)
+                except TypeError:  # pragma: no cover — unknown native dtype
+                    actual_dtype = native_dtype
+                dtype_check_results = schema.dtype.check(actual_dtype)
+                if isinstance(dtype_check_results, bool):
+                    passed = dtype_check_results
+                else:
+                    passed = all(dtype_check_results)
+                results.append(
+                    CoreCheckResult(
+                        passed=bool(passed),
+                        check=f"dtype('{schema.dtype}')",
+                        reason_code=SchemaErrorReason.WRONG_DATATYPE,
+                        message=(
+                            f"expected column '{column}' to have type "
+                            f"{schema.dtype}, got {native_dtype}"
+                            if not passed
+                            else None
+                        ),
+                        failure_cases=(
+                            str(native_dtype) if not passed else None
+                        ),
                     )
                 )
                 continue
@@ -369,11 +444,30 @@ class ColumnBackend(NarwhalsSchemaBackend):
         check_results: list[CoreCheckResult] = []
         for check_index, check in enumerate(schema.checks):
             try:
-                check_results.append(
-                    self.run_check(
-                        check_obj, schema, check, check_index, schema.selector
+                if self.is_native_delegated_check(check) and _is_pandas_like(
+                    check_obj
+                ):
+                    # Hypothesis / groupby checks on pandas frames run through
+                    # the native pandas backend (see run_native_check).
+                    check_results.append(
+                        self.run_native_check(
+                            check_obj,
+                            schema,
+                            check,
+                            check_index,
+                            schema.name,
+                        )
                     )
-                )
+                else:
+                    check_results.append(
+                        self.run_check(
+                            check_obj,
+                            schema,
+                            check,
+                            check_index,
+                            schema.selector,
+                        )
+                    )
             except Exception as err:
                 err_msg = f'"{err.args[0]}"' if err.args else ""
                 msg = f"{err.__class__.__name__}({err_msg})"

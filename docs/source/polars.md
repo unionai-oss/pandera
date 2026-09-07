@@ -516,6 +516,73 @@ class ModelWithDtypeKwargs(pa.DataFrameModel):
 
 ::::
 
+(nested-schemas)=
+### Nested DataFrameModels/DataFrameSchemas
+
+:::{note}
+This feature is currently only supported for the `polars` backend.
+:::
+
+In addition to plain `pl.Struct` columns, you can compose a
+`DataFrameModel`/`DataFrameSchema` as a column of another one. The struct
+dtype is derived automatically from the nested schema's columns, and
+validating the outer dataframe also validates every field of the nested
+struct against the nested schema's own constraints -- dtypes, nullability,
+uniqueness, and checks -- including further levels of nesting:
+
+```python
+import polars as pl
+import pandera.polars as pa
+
+class Coordinates(pa.DataFrameModel):
+    x: int = pa.Field(nullable=False)
+    y: int = pa.Field(nullable=False)
+
+class Location(pa.DataFrameModel):
+    name: str
+    coordinates: Coordinates
+
+data = pl.DataFrame({
+    "name": ["home", "work"],
+    "coordinates": [{"x": 0, "y": 0}, {"x": 1, "y": 2}],
+})
+Location.validate(data)
+```
+
+This also works with the object-based `DataFrameSchema` API:
+
+```python
+coordinates_schema = pa.DataFrameSchema({
+    "x": pa.Column(int, nullable=False),
+    "y": pa.Column(int, nullable=False),
+})
+
+location_schema = pa.DataFrameSchema({
+    "name": pa.Column(str),
+    "coordinates": pa.Column(coordinates_schema, coerce=True),
+})
+
+location_schema.validate(data)
+```
+
+A nested column is coerced automatically (there's no need to set
+`coerce=True` on a `DataFrameModel` field), since coercion is how the
+nested schema's validation logic runs. If a nested field fails validation,
+the raised `SchemaError`/`SchemaErrors` reports which nested column failed
+and why.
+
+If the outer column itself is nullable (`pa.Field(nullable=True)` or
+`pa.Column(..., nullable=True)`), rows where the whole nested record is
+`null` are not validated against the nested schema's field-level
+constraints -- that's the outer column's own nullability to enforce.
+
+:::{warning}
+Nested `DataFrameModel`/`DataFrameSchema` columns are currently supported
+for `pl.Struct`-typed columns. Validating a `DataFrameModel`/`DataFrameSchema`
+nested inside a `pl.List` (i.e. a list of structs) is not yet supported.
+:::
+
+
 ### Time-agnostic DateTime
 
 In some use cases, it may not matter whether a column containing `pl.DateTime`
@@ -567,26 +634,33 @@ class DateTimeModel(pa.DataFrameModel):
 
 ::::
 
-### Embedding `Field` metadata in `Annotated`
+### Field metadata for typed model fields
 
-You can also embed a {func}`~pandera.api.dataframe.model_components.Field`
-directly inside {data}`typing.Annotated` to attach column-level metadata
-— such as `description`, `title`, `unique`, checks (`ge`, `le`, `isin`,
-…), or custom `metadata` — without providing an explicit `= pa.Field(...)`
-assignment. This works for plain types as well as parameterized polars
-dtypes:
+You can embed a backend-specific `pa.Field(...)` object as additional metadata
+in the typing-only {py:class}`pandera.typing.FieldType` descriptor. This
+attaches column-level metadata such as `description`, `title`, `unique`,
+checks such as `ge`, `le`, and `isin`, or custom `metadata` without a separate
+assignment. For parameterized polars dtypes, use the checker-friendly
+assignment form to pass `dtype_kwargs`:
+
+These metadata-in-type-argument examples are runtime syntax. When checking a
+model with `ty`, use `FieldType[T] = pa.Field(...)` so the type argument contains
+only types.
 
 ```{testcode} polars
 import polars as pl
+from pandera.typing import FieldType
+from pandera.engines import polars_engine as pe
 
 
 class ProductsModel(pa.DataFrameModel):
-    name: Annotated[str, pa.Field(description="Product name")]
-    price: Annotated[float, pa.Field(ge=0.0, description="Unit price")]
-    sku: Annotated[int, pa.Field(unique=True, title="SKU")]
-    created_at: Annotated[
-        pl.Datetime, "ms", "UTC", pa.Field(description="Created timestamp")
-    ]
+    name: FieldType[str, pa.Field(description="Product name")]
+    price: FieldType[float, pa.Field(ge=0.0, description="Unit price")]
+    sku: FieldType[int, pa.Field(unique=True, title="SKU")]
+    created_at: FieldType[pe.DateTime] = pa.Field(
+        dtype_kwargs={"time_unit": "ms", "time_zone": "UTC"},
+        description="Created timestamp",
+    )
 
 
 schema = ProductsModel.to_schema()

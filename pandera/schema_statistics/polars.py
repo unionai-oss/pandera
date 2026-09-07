@@ -8,6 +8,7 @@ from typing import Any, Union
 from pandera import dtypes
 from pandera.api.checks import Check
 from pandera.engines import polars_engine
+from pandera.schema_statistics.common import string_length_check_statistics
 
 
 def _infer_polars_series_checks(
@@ -29,6 +30,12 @@ def _infer_polars_series_checks(
         }
     if dtypes.is_category(data_type):
         return {"isin": series.drop_nulls().unique().to_list()}
+    if dtypes.is_string(data_type):
+        non_null = series.drop_nulls()
+        if len(non_null) == 0:
+            return None
+        lens = non_null.str.len_chars()
+        return string_length_check_statistics(int(lens.min()), int(lens.max()))
     return None
 
 

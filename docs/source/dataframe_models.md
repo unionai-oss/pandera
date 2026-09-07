@@ -27,8 +27,10 @@ explicitly converted to a {class}`~pandera.api.pandas.container.DataFrameSchema`
 :::{note}
 Due to current limitations in the pandas library (see discussion
 [here](https://github.com/pandera-dev/pandera/issues/253#issuecomment-665338337)),
-`pandera` annotations are only used for **run-time** validation and has
+`pandera` annotations are primarily used for **run-time** validation and have
 limited support for static-type checkers like [mypy](http://mypy-lang.org/).
+The typing-only {py:class}`pandera.typing.FieldType` descriptor also models
+class-level column-name access for generic checkers such as `ty`.
 See the {ref}`Mypy Integration <mypy-integration>` for more details.
 :::
 
@@ -110,7 +112,7 @@ class InputSchema(pa.DataFrameModel):
     day: int = pa.Field(ge=0, le=365, coerce=True)
 ```
 
-### Reusing Field objects
+## Reusing Field objects
 
 To define reusable `Field` definitions, you need to use `functools.partial`.
 This makes sure that each field attribute is bound to a unique `Field` instance.
@@ -405,85 +407,128 @@ class SchemaFieldDatetimeTZDtype(pa.DataFrameModel):
 Schema.to_schema()
 ```
 
-### Embedding `Field` metadata in `Annotated`
+### Field metadata and static field names
 
-You can also embed a {func}`~pandera.api.dataframe.model_components.Field`
-directly inside {data}`typing.Annotated` to attach field-level metadata —
-such as `description`, `title`, `unique`, checks (`ge`, `le`, `isin`,
-etc.), or custom `metadata` — without having to provide an explicit `=
-pa.Field(...)` assignment. This is useful when you want the type
-annotation itself to fully describe the column.
+Use the typing-only {py:class}`pandera.typing.FieldType` descriptor when a
+generic checker such as `ty` needs to accept a model field as a column name.
+The backend-specific `pa.Field(...)` object can be supplied as additional
+`FieldType` metadata:
 
 ```{code-cell} python
-from typing import Annotated
-
 import pandas as pd
 import pandera.pandas as pa
+from pandera.typing import FieldType
 
 
 class Schema(pa.DataFrameModel):
-    name: Annotated[str, pa.Field(description="Name of the person")]
-    age: Annotated[int, pa.Field(ge=0, description="Age of the person")]
-    month: Annotated[int, pa.Field(ge=1, le=12)]
-    identifier: Annotated[int, pa.Field(unique=True, title="Identifier")]
+    name: FieldType[str, pa.Field(description="Name of the person")]
+    age: FieldType[int, pa.Field(ge=0, description="Age of the person")]
+    month: FieldType[int, pa.Field(ge=1, le=12)]
+    identifier: FieldType[int, pa.Field(unique=True, title="Identifier")]
 
 
 schema = Schema.to_schema()
 schema.columns["name"].description
 ```
 
-```{code-cell} python
-schema.columns["month"].checks
-```
-
-When the annotation also carries dtype parameters (e.g.
-`Annotated[pd.DatetimeTZDtype, "ns", "est"]`), you can still append a
-`Field` at the end:
+For parameterized dtypes, use the checker-friendly assignment form to pass
+`dtype_kwargs`:
 
 ```{code-cell} python
 class SchemaWithDtypeParamsAndField(pa.DataFrameModel):
-    ts: Annotated[
-        pd.DatetimeTZDtype, "ns", "est", pa.Field(description="Timestamp")
-    ]
+    ts: FieldType[pd.DatetimeTZDtype] = pa.Field(
+        dtype_kwargs={"unit": "ns", "tz": "EST"},
+        description="Timestamp",
+    )
 ```
 
-If both an embedded `Field` and an explicit assignment are provided,
-the explicit assignment takes precedence:
+The assignment form is the checker-friendly spelling: it keeps the value
+expression out of the type argument while preserving metadata precedence:
+
+The `FieldType[T, pa.Field(...)]` form is also accepted by Pandera's runtime
+parser. Generic checkers may reject the function call inside the type argument,
+so use assignment when running `ty`.
 
 ```{code-cell} python
 class SchemaExplicitWins(pa.DataFrameModel):
-    value: Annotated[int, pa.Field(description="from annotated")] = (
-        pa.Field(description="from assignment")
-    )
+    value: FieldType[int] = pa.Field(description="from assignment")
 
 
 SchemaExplicitWins.to_schema().columns["value"].description
 ```
 
-## Required Columns
-
-By default all columns specified in the schema are {ref}`required<required>`, meaning
-that if a column is missing in the input DataFrame an exception will be
-thrown. If you want to make a column optional, annotate it with {data}`typing.Optional`.
+You can also embed field metadata with {data}`typing.Annotated`:
 
 ```{code-cell} python
-from typing import Optional
+from typing import Annotated
 
+
+class AnnotatedSchema(pa.DataFrameModel):
+    value: Annotated[int, pa.Field(gt=0, description="A positive value")]
+
+
+AnnotatedSchema.to_schema().columns["value"].description
+```
+
+This syntax is valid at runtime and may be convenient when you prefer standard
+typing constructs. Its trade-off is that `Annotated` preserves the underlying
+`int` annotation for static analysis; it does not provide the class-level `str`
+descriptor contract. If model fields are not passed to string-taking APIs, this
+limitation may not matter. If `ty` is part of your tooling, use `FieldType`
+instead.
+
+`FieldType[T]` supplies the static descriptor contract: class-level access is
+a `str`, while `T` remains the dtype Pandera parses at runtime. It is not the
+runtime metadata function and must not be instantiated. Existing bare dtypes,
+`Series[T]`, and `Annotated` forms used for dtype parameters remain supported.
+
+## Required columns
+
+By default all columns specified in the schema are {ref}`required<required>`
+and non-nullable, meaning that a missing column or a null value raises an
+exception. An outer `| None` on the annotation makes the column itself
+optional, and `None` *inside* `FieldType[...]` allows null values.
+
+```{code-cell} python
 import pandas as pd
 import pandera.pandas as pa
-from pandera.typing import Series
+from pandera.typing import FieldType
 
 
 class Schema(pa.DataFrameModel):
-    a: Series[str]
-    b: Optional[Series[int]]
+    required: str
+    nullable: FieldType[int | None]
+    optional: float | None
+    optional_checked: FieldType[float] | None
 
-df = pd.DataFrame({"a": ["2001", "2002", "2003"]})
+df = pd.DataFrame(
+    {
+        "required": ["2001", "2002", "2003"],
+        "nullable": pd.Series([1, None, 3], dtype="Int64"),
+    }
+)
 Schema.validate(df)
 ```
 
-`Optional` means that a field may be absent from the input DataFrame. It
-does not add the field during validation. To add missing fields, use
+The meanings are:
+
+| Annotation | Column required? | Values nullable? |
+| ---------- | ---------------- | ---------------- |
+| `T` | Yes | No |
+| `FieldType[T | None]` | Yes | Yes |
+| `T | None` | No | No |
+| `FieldType[T] | None` | No | No |
+
+The same meanings apply to `FieldType[T, pa.Field(...)]`. An explicit
+`required` or `nullable` argument in `pa.Field` overrides the inferred value
+without changing the other dimension. Explicit assignment also takes
+precedence over metadata supplied in `FieldType`.
+
+An explicit `pa.Field(nullable=...)` setting takes precedence over the
+nullability inferred from the annotation. Existing
+`Optional[Series[T]]` and bare `Optional[T]` annotations remain supported for
+optional column presence. An optional field does not get added during
+validation. To add missing fields, use
 {ref}`add_missing_columns=True <adding-missing-columns>` in the model
 `Config` with required fields that specify a `default` value or
 `nullable=True`.
@@ -516,7 +561,7 @@ def transform(df: DataFrame[BaseSchema]) -> DataFrame[FinalSchema]:
 transform(df)
 ```
 
-### Multiple Inheritance
+### Multiple inheritance
 
 Multiple inheritance is also supported, making it easy to compose schemas from
 reusable "mixin" models without repeating yourself. For this to work, each of

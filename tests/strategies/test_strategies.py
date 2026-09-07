@@ -399,23 +399,12 @@ def test_str_length_checks(chained, data, value_range):
     assert min_value <= len(example) <= max_value
 
 
-def test_str_length_exact_value_example() -> None:
-    """Ensure example generation supports Check.str_length(exact_value=...)."""
-    schema = pa.DataFrameSchema(
-        {"colA": pa.Column(str, checks=[Check.str_length(exact_value=3)])}
-    )
-
-    example = schema.example(size=5)
-    assert example["colA"].map(len).eq(3).all()
-
-
-def test_str_length_requires_bounds_or_exact_value() -> None:
-    """Ensure strategy errors when no length constraints are provided."""
-    with pytest.raises(
-        ValueError,
-        match="At least one of min_value/max_value or exact_value",
-    ):
-        strategies.str_length_strategy(cast(Any, pa.String))
+@hypothesis.given(st.data(), st.integers(min_value=0, max_value=50))
+def test_str_length_strategy_exact_value_keyword(data, exact):
+    """``exact_value`` matches :meth:`~pandera.api.checks.Check.str_length` stats."""
+    strat = strategies.str_length_strategy(pa.String, exact_value=exact)
+    example = data.draw(strat)
+    assert len(example) == exact
 
 
 @hypothesis.given(st.data())

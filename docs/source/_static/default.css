@@ -111,6 +111,10 @@ table.autosummary {
   width: 100%;
 }
 
+table.docutils {
+  margin: 0;
+}
+
 article .align-center, article .align-default {
   text-align: left;
 }

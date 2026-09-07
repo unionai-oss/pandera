@@ -7,22 +7,16 @@ import polars as pl
 import pytest
 from hypothesis import given
 from hypothesis import strategies as st
+from polars._typing import PolarsDataType
 from polars.testing import assert_frame_equal
 from polars.testing.parametric import column, dataframes
 
 import pandera.polars as pa
 from pandera import Check as C
 from pandera.api.polars.types import PolarsData
-from pandera.api.polars.utils import get_lazyframe_column_names
+from pandera.config import CONFIG
 from pandera.engines import polars_engine as pe
 from pandera.polars import Column, DataFrameModel, DataFrameSchema
-
-try:
-    from polars._typing import PolarsDataType  # type: ignore
-except NameError:
-    from polars.type_aliases import PolarsDataType  # type: ignore
-
-from pandera.config import CONFIG
 
 
 @pytest.fixture
@@ -448,11 +442,6 @@ def test_drop_invalid_rows_nullable(
     assert validated_data.collect().equals(expected_valid_data.collect())
 
 
-@pytest.mark.xfail(
-    condition=CONFIG.use_narwhals_backend,
-    reason="set_default not implemented in Narwhals backend",
-    strict=True,
-)
 def test_set_defaults(ldf_basic, ldf_schema_basic):
     ldf_schema_basic.columns["int_col"].default = 1
     ldf_schema_basic.columns["string_col"].default = "a"
@@ -523,7 +512,7 @@ def test_regex_selector(
 
         assert result.equals(ldf_for_regex_match.collect())
 
-        for column in get_lazyframe_column_names(ldf_for_regex_match):
+        for column in ldf_for_regex_match.collect_schema().names():
             # this should raise an error since columns are not nullable by default
             modified_data = transform_fn(ldf_for_regex_match, column)
             # Container wraps component errors in SchemaErrors; accept both
@@ -545,7 +534,7 @@ def test_regex_selector(
         # has nothing to validate, matching the pandas backend.
         # See https://github.com/unionai-oss/pandera/issues/2364
         modified_data = ldf_for_regex_match.drop(
-            get_lazyframe_column_names(ldf_for_regex_match)
+            ldf_for_regex_match.collect_schema().names()
         )
         modified_data.pipe(schema.validate).collect()  # should not raise
 
@@ -868,7 +857,7 @@ def test_dataframe_schema_with_kwargs_nested_types(lf_with_nested_types):
     class ModelWithDtypeKwargs(DataFrameModel):
         list_col: pl.List = pa.Field(dtype_kwargs={"inner": pl.Int64()})
         array_col: pl.Array = pa.Field(
-            dtype_kwargs={"inner": pl.Int64(), "shape": 3, "width": None}
+            dtype_kwargs={"inner": pl.Int64(), "shape": 3}
         )
         struct_col: pl.Struct = pa.Field(
             dtype_kwargs={"fields": {"a": pl.Utf8(), "b": pl.Float64()}}

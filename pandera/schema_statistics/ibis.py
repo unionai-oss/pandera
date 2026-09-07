@@ -4,18 +4,18 @@ from __future__ import annotations
 
 from typing import Any
 
-import pandas as pd
-
 from pandera.engines import ibis_engine
-from pandera.schema_statistics.pandas import (
-    infer_dataframe_statistics,
-    parse_checks,
-)
+from pandera.schema_statistics.common import parse_checks
 
 
 def infer_ibis_table_statistics(table: Any) -> dict[str, Any]:
     """Infer column statistics from an Ibis :class:`~ibis.Table` (executes the table)."""
     import ibis
+    import pandas as pd
+
+    from pandera.schema_statistics.pandas import (
+        infer_dataframe_statistics,
+    )
 
     if not isinstance(table, ibis.Table):
         raise TypeError(f"Expected an ibis.Table, got {type(table).__name__}")

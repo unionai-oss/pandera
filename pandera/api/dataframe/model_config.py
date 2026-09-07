@@ -52,6 +52,12 @@ class BaseConfig(BaseModelConfig):
     #: add columns to dataframe if they are missing
     add_missing_columns: bool = False
 
+    #: action to take when an optional column is missing from the dataframe.
+    #: ``None`` (default) passes silently, ``"warn"`` emits a
+    #: :class:`~pandera.errors.SchemaWarning`. Overridable per field via
+    #: ``Field(on_missing=...)``.
+    on_missing_columns: str | None = None
+
     #: data format before validation. This option only applies to
     #: schemas used in the context of the pandera type constructor
     #: ``pa.typing.DataFrame[Schema](data)``. If None, assumes a data structure

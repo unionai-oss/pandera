@@ -6,7 +6,7 @@ from typing import Any
 
 from pandera.api.pyspark.components import Column
 from pandera.api.pyspark.container import DataFrameSchema
-from pandera.schema_statistics.pandas import parse_check_statistics
+from pandera.schema_statistics.common import parse_check_statistics
 from pandera.schema_statistics.pyspark import (
     infer_pyspark_dataframe_statistics,
 )

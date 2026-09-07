@@ -133,6 +133,7 @@ def in_range(
         max_value.
     """
     col = pl.col(data.key)
+
     compare_min = col.ge(min_value) if include_min else col.gt(min_value)
     compare_max = col.le(max_value) if include_max else col.lt(max_value)
 
@@ -296,6 +297,7 @@ def unique_values_eq(data: PolarsData, values: Iterable) -> bool:
     :param values: The set of values that must be present. May be any iterable.
     """
 
+    # Use to_list(): polars < 1.21.0 can't call `unique` on Decimal columns.
     return (
-        set(data.lazyframe.collect().get_column(data.key).unique()) == values
+        set(data.lazyframe.collect().get_column(data.key).to_list()) == values
     )

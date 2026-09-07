@@ -363,6 +363,23 @@ def test_check_input_on_fn_with_kwarg():
     fn_with_check_input(df, kwarg=True)
 
 
+def test_check_input_on_method_with_keyword_arg():
+    """Test that a method still binds ``self`` correctly when one of the
+    remaining arguments is passed by keyword."""
+    schema = DataFrameSchema({"col": Column(Int)})
+
+    class Example:
+        # pylint: disable=missing-function-docstring,no-self-use
+        @check_input(schema, "df")
+        def method(self, df, other):
+            return df
+
+    df = pd.DataFrame({"col": [1]})
+    example = Example()
+    pd.testing.assert_frame_equal(example.method(df, "foo"), df)
+    pd.testing.assert_frame_equal(example.method(df, other="foo"), df)
+
+
 def test_check_io() -> None:
     # pylint: disable=too-many-locals
     """Test that check_io correctly validates/invalidates data."""
@@ -1892,3 +1909,38 @@ def test_check_types_catches_inplace_mutation():
     df = DataFrame[InSchema]({"id": [1], "name": ["foo"]})
     with pytest.raises(errors.SchemaError):
         mutate_after_typing(df)
+
+
+def test_check_input_keyword_only_args():
+    """check_input must not crash on functions with no positional args (#2422)."""
+
+    @check_input(DataFrameSchema({"col": Column(int)}))
+    def process(*, df):
+        return df
+
+    expected = pd.DataFrame({"col": [1, 2]})
+    out = process(df=expected)
+    pd.testing.assert_frame_equal(out, expected)
+
+
+def test_get_fn_argnames_no_positional_args():
+    from pandera.decorators import _get_fn_argnames
+
+    def keyword_only(*, df, output_col):
+        pass
+
+    def variadic(*args):
+        pass
+
+    def keywords(**kwargs):
+        pass
+
+    class Widget:
+        def method(self, x):
+            pass
+
+    assert _get_fn_argnames(keyword_only) == []
+    assert _get_fn_argnames(variadic) == []
+    assert _get_fn_argnames(keywords) == []
+    # regression guard: self-exclusion semantics unchanged
+    assert _get_fn_argnames(Widget.method) == ["x"]

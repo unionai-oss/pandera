@@ -45,15 +45,24 @@ class ArraySchema(ComponentSchema[TDataObject]):
     @staticmethod
     def register_default_backends(check_obj_cls: type):
         from pandera.backends.pandas.register import register_pandas_backends
+        from pandera.config import CONFIG
+
+        use_narwhals_backend = CONFIG.use_narwhals_backend
 
         _cls = check_obj_cls
         try:
-            register_pandas_backends(f"{_cls.__module__}.{_cls.__name__}")
+            register_pandas_backends(
+                f"{_cls.__module__}.{_cls.__name__}",
+                use_narwhals_backend=use_narwhals_backend,
+            )
         except BackendNotFoundError:
             for base_cls in _cls.__bases__:
                 base_cls_name = f"{base_cls.__module__}.{base_cls.__name__}"
                 try:
-                    register_pandas_backends(base_cls_name)
+                    register_pandas_backends(
+                        base_cls_name,
+                        use_narwhals_backend=use_narwhals_backend,
+                    )
                 except BackendNotFoundError:
                     pass
 

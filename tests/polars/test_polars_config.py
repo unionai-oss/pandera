@@ -6,7 +6,6 @@ import pytest
 
 import pandera.polars as pa
 from pandera.api.base.error_handler import ErrorCategory
-from pandera.api.polars.utils import get_lazyframe_schema
 from pandera.config import (
     CONFIG,
     ValidationDepth,
@@ -15,7 +14,6 @@ from pandera.config import (
     get_config_global,
     reset_config_context,
 )
-from pandera.engines.polars_engine import polars_version
 
 
 @pytest.fixture(scope="function")
@@ -197,14 +195,9 @@ def test_coerce_validation_depth_none(validation_depth_none, schema):
     # simply calling validation shouldn't raise a coercion error, since we're
     # casting the types lazily
     validated_data = schema.validate(data)
-    assert get_lazyframe_schema(validated_data)["a"] == pl.Int64
+    assert validated_data.collect_schema()["a"] == pl.Int64
 
-    ErrorCls = (
-        pl.exceptions.InvalidOperationError
-        if polars_version().release >= (1, 0, 0)
-        else pl.exceptions.ComputeError
-    )
-    with pytest.raises(ErrorCls):
+    with pytest.raises(pl.exceptions.InvalidOperationError):
         validated_data.collect()
 
     # when validation explicitly with PANDERA_VALIDATION_DEPTH=SCHEMA_AND_DATA

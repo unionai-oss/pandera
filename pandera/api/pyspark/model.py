@@ -21,7 +21,9 @@ from pandera.api.checks import Check
 from pandera.api.dataframe.model import (
     DataFrameModel as _DataFrameModel,
 )
-from pandera.api.dataframe.model import _dtype_metadata
+from pandera.api.dataframe.model import (
+    _dtype_metadata,
+)
 from pandera.api.dataframe.model_components import Field, FieldInfo
 from pandera.errors import SchemaInitError
 from pandera.typing import AnnotationInfo
@@ -202,8 +204,13 @@ class DataFrameModel(_DataFrameModel[PySparkFrame, DataFrameSchema]):
         for field, (annot_info, field_info) in cls._collect_fields().items():
             if isinstance(annot_info.arg, TypeVar):
                 if annot_info.arg in param_dict:
-                    raw_annot = annot_info.origin[param_dict[annot_info.arg]]  # type: ignore
-                    if annot_info.optional:
+                    raw_dtype: Any = param_dict[annot_info.arg]
+                    raw_annot = (
+                        annot_info.origin[raw_dtype]  # type: ignore
+                        if annot_info.origin is not None
+                        else raw_dtype
+                    )
+                    if annot_info.nullable or annot_info.optional:
                         raw_annot = Optional[raw_annot]  # noqa: UP045
                     extra["__annotations__"][field] = raw_annot
                     extra[field] = copy.deepcopy(field_info)
@@ -277,7 +284,8 @@ class DataFrameModel(_DataFrameModel[PySparkFrame, DataFrameSchema]):
                 column_kwargs = (
                     field.column_properties(
                         dtype,
-                        required=not annotation.optional,
+                        nullable=annotation.nullable,
+                        required=not annotation.is_optional_field,
                         checks=field_checks,
                         name=field_name,
                     )

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import os
 import sys
-from typing import TYPE_CHECKING, overload
+from typing import TYPE_CHECKING, Literal, overload
 
 from pyspark.sql import SparkSession
 from pyspark.sql.types import StructField, StructType
@@ -207,6 +207,20 @@ class DataFrameSchema(_DataFrameSchema[PySparkDataFrameTypes]):
         from pandera.io import pyspark_sql_io
 
         return pyspark_sql_io.to_yaml(self, stream=stream, minimal=minimal)
+
+    def to_script(
+        self,
+        fp: str | os.PathLike | None = None,
+        *,
+        minimal: bool = True,
+        script_type: Literal["schema", "model"] = "schema",
+    ) -> str | None:
+        """Write schema or model script (see :mod:`pandera.io.pyspark_sql_io`)."""
+        from pandera.io import pyspark_sql_io
+
+        return pyspark_sql_io.to_script(
+            self, fp, minimal=minimal, script_type=script_type
+        )
 
     @classmethod
     def from_json(cls, source) -> Self:

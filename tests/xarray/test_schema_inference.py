@@ -66,6 +66,15 @@ class TestInferDataArraySchema:
         assert "greater_than_or_equal_to" in check_names
         assert "less_than_or_equal_to" in check_names
 
+    def test_check_statistics_for_string_dtype(self):
+        da = xr.DataArray(
+            np.array(["a", "bb", "ccc"]),
+            dims=("x",),
+        )
+        schema = infer_data_array_schema(da)
+        assert schema.checks is not None
+        assert any(c.name == "str_length" for c in schema.checks)
+
     def test_validates_with_inferred_schema(self):
         da = xr.DataArray(
             np.array([1.0, 2.0, 3.0]),

@@ -39,8 +39,8 @@ class PanderaConfig:
     export PANDERA_USE_NARWHALS_BACKEND=True
     export SILENCE_WARNING_PYDANTIC_MODEL=true
 
-    ``use_narwhals_backend``: when ``True``, Polars, Ibis, and PySpark SQL use
-    the Narwhals-powered validation backend. Backends register lazily on first
+    ``use_narwhals_backend``: when ``True``, Polars, Ibis, PySpark SQL, and
+    pandas use the Narwhals-powered validation backend. Backends register lazily on first
     schema use; changing this flag via :func:`~pandera.config.set_config`
     re-registers backends that were already registered in the current process.
     """
@@ -163,8 +163,9 @@ def set_config(
         silenced_warnings: List of warning names to silence (default: None)
 
     Note:
-        Changing ``use_narwhals_backend`` re-registers Polars, Ibis, and PySpark
-        validation backends that were already registered in the current process.
+        Changing ``use_narwhals_backend`` re-registers Polars, Ibis, PySpark,
+        and pandas validation backends that were already registered in the
+        current process.
         Backends that have not yet been registered pick up the new value on first
         schema use. See the Narwhals backend documentation for details.
     """

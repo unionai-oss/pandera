@@ -21,6 +21,15 @@ def test_field_to_column() -> None:
             assert col.required == value
 
 
+def test_field_required_override() -> None:
+    """Explicit ``required`` metadata overrides inferred presence."""
+    for value in [True, False]:
+        col_kwargs = pa.Field(required=value).column_properties(
+            pa.DateTime, required=not value
+        )
+        assert pa.Column(**col_kwargs).required == value
+
+
 def test_field_to_index() -> None:
     """Test that Field outputs the correct index options."""
     for flag in ["nullable", "unique"]:

@@ -51,6 +51,8 @@ pandera/                  # Main package
 ├── dtypes.py             # Abstract data type definitions
 ├── errors.py             # SchemaError, SchemaInitError, ParserError, etc.
 ├── extensions.py         # Custom check/parser extension mechanism
+├── cli.py                # Console script entry (imports ``pandera._cli.run``)
+├── _cli/                 # Typer CLI: ``common``, ``validate``, ``infer``, ``generate``
 ├── pandas.py             # Pandas entry point: `import pandera.pandas as pa`
 ├── geopandas.py          # GeoPandas entry (`pg`): pandas API + GeoDataFrameSchema/Model
 ├── polars.py             # Polars entry point: `import pandera.polars as pa`
@@ -59,6 +61,7 @@ pandera/                  # Main package
 
 tests/                    # Test suite (mirrors backend structure)
 ├── base/                 # Core tests (no backend-specific deps)
+├── cli/                  # CLI tests (format/backend matrices; PySpark combos need ``PANDERA_RUN_SPARK_CLI=1``)
 ├── pandas/               # Pandas backend tests (~38 files)
 ├── polars/               # Polars backend tests
 ├── pyspark/              # PySpark backend tests
@@ -112,6 +115,23 @@ import pandera.ibis as pa      # Ibis
 The top-level `import pandera` falls back to the pandas API for backward
 compatibility.
 
+## Backward Compatibility
+
+Pandera is a public library, so established behavior—including annotation
+semantics, backend APIs, and behavior exercised by existing tests—is part of
+the compatibility contract. Before changing such behavior, identify the
+affected user-facing contract and preserve it unless the change is
+intentional and justified. Do not rewrite existing tests simply to match a
+new implementation; add regression tests for any intentionally changed
+behavior and document migration or deprecation considerations.
+
+Any pull request that modifies an existing test must include a
+`## Backward compatibility` section in its description. Explain the behavior
+covered by the changed test, whether it changes for users, why the change is
+necessary, and how compatibility is preserved or communicated. This section
+is required even when the test change appears to be an implementation detail;
+state explicitly when there is no user-facing behavior change.
+
 ## Development Setup
 
 ```bash
@@ -156,7 +176,7 @@ The nox `tests` session maps extras to test directories: `extra=None` runs
 - Python: 3.10, 3.11, 3.12, 3.13, 3.14
 - Pandas: 2.1.1, 2.3.3
 - Pydantic: 1.10.11, 2.12.3
-- Polars: 0.20.0, 1.33.1
+- Polars: 1.20.0, 1.33.1, 1.42.1
 
 ## Code Quality
 
@@ -164,7 +184,7 @@ The nox `tests` session maps extras to test directories: `extra=None` runs
 
 - **Ruff:** Linting (`I`, `UP` rules) and formatting. Line length: 79.
 - **isort:** Import sorting (line length 79).
-- **mypy:** Static type checking (v1.10.0). Config in `mypy.ini`.
+- **mypy:** Static type checking (v1.19.1). Config in `mypy.ini`.
 - **pyupgrade:** Python 3.9+ syntax upgrades.
 - **flynt:** f-string conversion.
 - **codespell:** Spell checking.
@@ -191,7 +211,7 @@ prek run --all-files
 | Extra        | Key packages                          |
 |--------------|---------------------------------------|
 | `pandas`     | numpy, pandas >= 2.1.1                |
-| `polars`     | polars >= 0.20.0                      |
+| `polars`     | polars >= 1.20.0                     |
 | `pyspark`    | pyspark[connect] >= 3.2.0             |
 | `ibis`       | ibis-framework >= 9.0.0               |
 | `dask`       | dask[dataframe], distributed          |

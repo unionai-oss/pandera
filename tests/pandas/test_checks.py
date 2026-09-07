@@ -99,6 +99,46 @@ def test_check_groupby() -> None:
             schema.validate(df)
 
 
+def test_check_groupby_scalar_keys() -> None:
+    """Regression test for issue #1235: groupby with a single string column
+    whose values are non-string scalars (e.g. integers) should not raise
+    TypeError from calling len() on a scalar group key."""
+    df = pd.DataFrame({"group": [1, 1, 2, 2], "val": [10, 20, 30, 40]})
+
+    # groupby as a plain string (not a list) produces scalar keys
+    schema = DataFrameSchema(
+        {
+            "group": Column(Int),
+            "val": Column(
+                Int,
+                Check(
+                    lambda d: all(s.gt(0).all() for s in d.values()),
+                    groupby="group",
+                ),
+            ),
+        }
+    )
+    result = schema.validate(df)
+    assert isinstance(result, pd.DataFrame)
+
+    # Also test with groups filter on scalar keys
+    schema_with_groups = DataFrameSchema(
+        {
+            "group": Column(Int),
+            "val": Column(
+                Int,
+                Check(
+                    lambda d: all(s.gt(0).all() for s in d.values()),
+                    groupby="group",
+                    groups=[1],
+                ),
+            ),
+        }
+    )
+    result2 = schema_with_groups.validate(df)
+    assert isinstance(result2, pd.DataFrame)
+
+
 def test_check_groupby_multiple_columns() -> None:
     """Tests uses of groupby to specify dependencies between one column and a
     number of other columns, including error handling."""

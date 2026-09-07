@@ -38,7 +38,7 @@ This can be achieved by setting the environment variable
 
 Pandera ships an optional
 [Narwhals](https://narwhals-dev.github.io/narwhals/)-powered backend that
-unifies the Polars, Ibis, and PySpark SQL validation paths. It is **opt-in**; by
+unifies the Polars, Ibis, PySpark SQL, and pandas validation paths. It is **opt-in**; by
 default the native backends are used.
 
 Install the `narwhals` extra and enable the backend with either:

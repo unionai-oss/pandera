@@ -44,7 +44,8 @@ def Field(
     ] = None,
     str_matches: str | None = None,
     str_startswith: str | None = None,
-    nullable: bool = False,
+    nullable: bool | None = None,
+    required: bool | None = None,
     unique: bool = False,
     coerce: bool = False,
     regex: bool = False,
@@ -99,6 +100,7 @@ def Field(
     :param str_startswith: Check that the column/index starts with a substring.
         See :func:`~pandera.api.checks.Check.str_startswith` for more information.
     :param nullable: Whether or not the column/index can contain null values.
+    :param required: Whether or not the column is allowed to be missing.
     :param unique: Whether column values should be unique. Currently Not supported
     :param coerce: coerces the data type if ``True``.
     :param regex: whether or not the field name or alias is a regex pattern.
@@ -139,6 +141,7 @@ def Field(
         str_matches=str_matches,
         str_startswith=str_startswith,
         nullable=nullable,
+        required=required,
         unique=unique,
         coerce=coerce,
         regex=regex,

@@ -103,3 +103,25 @@ def test_mypy_polars_column_parametrized_dtypes() -> None:
     )
 
     assert result.returncode == 0, result.stdout + result.stderr
+
+
+def test_ty_polars_typing_field_type_no_plugin() -> None:
+    """Check the public ``FieldType`` descriptor with ty and no plugin."""
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "ty",
+            "check",
+            str(
+                test_module_dir
+                / "polars_modules"
+                / "polars_model_typing_field_type.py"
+            ),
+        ],
+        check=False,
+        text=True,
+        capture_output=True,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr

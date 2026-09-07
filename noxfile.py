@@ -22,7 +22,7 @@ nox.options.sessions = (
 PYTHON_VERSIONS = ["3.10", "3.11", "3.12", "3.13", "3.14"]
 PANDAS_VERSIONS = ["2.3.3", "3.0.0"]
 PYDANTIC_VERSIONS = ["1.10.11", "2.12.3"]
-POLARS_VERSIONS = ["0.20.0", "1.33.1"]
+POLARS_VERSIONS = ["1.20.0", "1.33.1", "1.42.1"]
 PACKAGE = "pandera"
 SOURCE_PATHS = PACKAGE, "tests", "noxfile.py"
 REQUIREMENT_PATH = "requirements.txt"
@@ -142,7 +142,10 @@ def _testing_requirements(
     pydantic = pydantic or PYDANTIC_VERSIONS[-1]
     polars = polars or POLARS_VERSIONS[-1]
 
-    _requirements = PYPROJECT["project"]["dependencies"]
+    _requirements = [
+        *PYPROJECT["project"]["dependencies"],
+        *PYPROJECT["project"]["optional-dependencies"]["cli"],
+    ]
     if extra is not None:
         _requirements += PYPROJECT["project"]["optional-dependencies"][extra]
     # narwhals backend tests run with polars+ibis co-installed (TEST-03).
@@ -184,7 +187,7 @@ def _testing_requirements(
             req = "pyarrow >= 13"
         if req == "ibis-framework" or req.startswith("ibis-framework "):
             req = "ibis-framework[duckdb] >= 11.0.0"
-        if req == "polars":
+        if req == "polars" or req.startswith("polars "):
             req = f"polars=={polars}"
 
         # for some reason uv will try to install an old version of dask,
@@ -221,8 +224,13 @@ DATAFRAME_EXTRAS = {
     "ibis",
     "xarray",
     "narwhals",  # TEST-03: narwhals backend runs with polars+ibis co-installed
+    "pyarrow",  # pyarrow.Table validation, served by the narwhals backends
 }
 for extra in OPTIONAL_DEPENDENCIES:
+    if extra == "cli":
+        # Typer is merged into every test env via _testing_requirements; no
+        # separate tests/cli matrix session.
+        continue
     if extra == "pandas":
         # Only test upper and lower bounds of pandas and pydantic with the
         # pandas extra. The other dataframe library intregations assume either
@@ -317,7 +325,18 @@ def tests(
         ]
         if not CI_RUN:
             cov_args.append("--cov-report=html")
-        args = [*cov_args, path]
+        if extra == "all":
+            paths = ["tests"]
+        elif extra is None:
+            paths = ["tests/base/", "tests/cli/"]
+        elif extra == "pyspark":
+            paths = [path, "tests/cli/"]
+        else:
+            paths = [path]
+        args = [*cov_args, *paths]
+
+    if not session.posargs and extra == "pyspark":
+        env = {**env, "PANDERA_RUN_SPARK_CLI": "1"}
 
     session.run("pytest", *args, env=env)
     # tests/common/ has no pyspark marker — pytest -m pyspark would deselect every test there.
@@ -340,6 +359,13 @@ def tests_narwhals_backend(session: Session, extra: str) -> None:
     or tests/ibis/ suite then exercises the narwhals backend rather than the
     native one. Tests that expose narwhals backend gaps should be marked
     xfail in the test files.
+
+    pandas is intentionally NOT in this matrix: the full tests/pandas/ suite
+    exercises features the narwhals backend does not support (column-level
+    coerce, index/multiindex validation, parsers, hypothesis strategies).
+    Narwhals-backed pandas coverage lives in tests/narwhals/ (test_pandas_e2e,
+    test_pandas_narwhals_register, and the backends/ parity suite), which runs
+    in the unit-tests-narwhals CI job.
     """
     deps = PYPROJECT["project"]["optional-dependencies"]
     requirements = [

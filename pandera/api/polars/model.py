@@ -12,7 +12,10 @@ from pandera.api.checks import Check
 from pandera.api.dataframe.model import (
     DataFrameModel as _DataFrameModel,
 )
-from pandera.api.dataframe.model import _dtype_metadata, get_dtype_kwargs
+from pandera.api.dataframe.model import (
+    _dtype_metadata,
+    get_dtype_kwargs,
+)
 from pandera.api.dataframe.model_components import FieldInfo
 from pandera.api.polars.components import Column
 from pandera.api.polars.container import DataFrameSchema
@@ -59,6 +62,19 @@ class DataFrameModel(_DataFrameModel[pl.LazyFrame, DataFrameSchema]):
                 ) and issubclass(annotation.raw_annotation, pe.DataType)
             except TypeError:
                 is_polars_dtype = False
+            if (
+                annotation.origin is list
+                and inspect.isclass(annotation.arg)
+                and issubclass(annotation.arg, DataFrameModel)
+            ):
+                raise SchemaInitError(
+                    f"Error while parsing field '{field_name}': nesting a "
+                    f"DataFrameModel inside a list (`{annotation.raw_annotation}`) "
+                    "is not yet supported. Only a single nested "
+                    "DataFrameModel/DataFrameSchema per struct column is "
+                    "currently supported, e.g. `foo: Foo` instead of "
+                    "`foos: List[Foo]`."
+                )
 
             try:
                 engine_dtype = pe.Engine.dtype(annotation.raw_annotation)
@@ -66,6 +82,12 @@ class DataFrameModel(_DataFrameModel[pl.LazyFrame, DataFrameSchema]):
                     # use the raw annotation as the dtype if it's a native
                     # pandera polars datatype
                     dtype = annotation.raw_annotation
+                elif isinstance(engine_dtype, pe.PanderaSchema):
+                    # nested DataFrameModel/DataFrameSchema field: keep the
+                    # resolved engine dtype object (not just its raw
+                    # pl.Struct .type) so the nested schema is preserved for
+                    # validation, instead of collapsing to a plain struct.
+                    dtype = engine_dtype  # type: ignore[assignment]
                 else:
                     dtype = engine_dtype.type
             except (TypeError, ValueError) as exc:
@@ -104,7 +126,8 @@ class DataFrameModel(_DataFrameModel[pl.LazyFrame, DataFrameSchema]):
                 column_kwargs = (
                     field.column_properties(
                         dtype,
-                        required=not annotation.optional,
+                        nullable=annotation.nullable,
+                        required=not annotation.is_optional_field,
                         checks=field_checks,
                         name=field_name,
                     )

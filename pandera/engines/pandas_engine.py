@@ -265,7 +265,14 @@ class Engine(
                 if isinstance(np_or_pd_dtype, np.dtype):
                     # cast alias to platform-agnostic dtype
                     # e.g.: np.intc -> np.int32
-                    common_np_dtype = np.dtype(np_or_pd_dtype.name)
+                    try:
+                        common_np_dtype = np.dtype(np_or_pd_dtype.name)
+                    except TypeError:
+                        # Itemsize-parameterized dtypes encode their width in
+                        # ``name`` in a form ``np.dtype`` cannot parse back,
+                        # e.g. np.dtype("S16").name == "bytes128". Their scalar
+                        # type is already platform-agnostic, so use it as-is.
+                        common_np_dtype = np_or_pd_dtype
                     np_or_pd_dtype = common_np_dtype.type
 
             return engine.Engine.dtype(cls, np_or_pd_dtype)
@@ -577,8 +584,10 @@ class Decimal(DataType, dtypes.Decimal):
     supported by the Python :py:class:`decimal.Decimal` class.
     """
 
-    _exp: decimal.Decimal = dataclasses.field(init=False)
-    _ctx: decimal.Context = dataclasses.field(init=False)
+    # attributes derived from precision, scale, and rounding, so they are
+    # excluded from comparisons: decimal.Context doesn't implement __eq__.
+    _exp: decimal.Decimal = dataclasses.field(init=False, compare=False)
+    _ctx: decimal.Context = dataclasses.field(init=False, compare=False)
 
     def __init__(
         self,
@@ -1424,10 +1433,12 @@ class PydanticModel(DataType):
 
     @property
     def column_names(self) -> list[str]:
-        """Return pydantic field aliases, falling back to field names."""
+        """Return serialized pydantic field names."""
         if PYDANTIC_V2:
             return [
-                field.alias or name
+                getattr(field, "serialization_alias", None)
+                or field.alias
+                or name
                 for name, field in self.type.model_fields.items()  # type: ignore[attr-defined]
             ]
         return [

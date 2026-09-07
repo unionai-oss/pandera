@@ -38,12 +38,20 @@ dependencies = [
     "typing_inspect >= 0.6.0",
 ]
 
+[project.scripts]
+pandera = "pandera.cli:main"
+
 [project.urls]
 Documentation = "https://pandera.readthedocs.io"
 "Issue Tracker" = "https://github.com/pandera-dev/pandera/issues"
 Homepage = "https://github.com/pandera-dev/pandera"
 
 [project.optional-dependencies]
+cli = [
+    "typer >= 0.12.3",
+    "rich",
+    "pyyaml >= 5.1",
+]
 pandas = [
     "numpy >= 1.24.4",
     "pandas >= 2.1.1",
@@ -93,13 +101,19 @@ ibis = [
     "ibis-framework >= 9.0.0",
     "pyarrow-hotfix",
 ]
-polars = ["polars >= 0.20.0"]
+polars = ["polars >= 1.20.0"]
 xarray = [
     "xarray >= 2024.10.0",
     "numpy >= 1.24.4",
 ]
 narwhals = ["narwhals >= 1.26.0"]
+pyarrow = [
+    "pyarrow >= 13",
+    "narwhals >= 1.26.0",
+]
 all = [
+    "typer >= 0.12.3",
+    "rich",
     "hypothesis >= 6.92.7",
     "scipy",
     "scipy-stubs; python_version>='3.10'",
@@ -117,10 +131,11 @@ all = [
     "shapely",
     "ibis-framework >= 9.0.0",
     "pyarrow-hotfix",
-    "polars >= 0.20.0",
+    "polars >= 1.20.0",
     "xarray >= 2024.10.0",
     "numpy >= 1.24.4",
     "narwhals >= 1.26.0",
+    "pyarrow >= 13",
 ]
 
 [dependency-groups]
@@ -132,15 +147,16 @@ dev = [
     "hypothesis >= 6.92.7",
     "ipdb",
     "joblib",
-    "mypy == 1.10.0",
+    "mypy == 1.19.1",
     "nox",
     "pip",
-    "polars >= 0.20.0",
+    "polars >= 1.20.0",
     "prek",
     "pyarrow >= 13",
     "python-multipart",
     "pytz",
     "ruff",
+    "ty",
     "uv",
     "uvicorn",
     "xdoctest",
@@ -155,6 +171,7 @@ testing = [
 ]
 docs = [
     "setuptools",
+    "typer >= 0.12.3",
     "pyarrow-hotfix",
     "sphinx<9",
     "sphinx-design",
@@ -163,6 +180,7 @@ docs = [
     "recommonmark",
     "myst-nb",
     "furo",
+    "sphinxcontrib-typer >= 0.8.0",
     "sphinx-docsearch",
     "grpcio",
     "ray",
@@ -189,6 +207,7 @@ xfail_strict = true
 markers = [
     "polars: tests for the Polars backend",
     "ibis: tests for the Ibis backend",
+    "pandas: tests for the pandas backend",
 ]
 
 [tool.ruff]

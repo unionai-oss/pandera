@@ -11,7 +11,6 @@ import polars as pl
 from pandera.api.base.error_handler import ErrorHandler, get_error_category
 from pandera.api.polars.container import DataFrameSchema
 from pandera.api.polars.types import PolarsData, PolarsFrame
-from pandera.api.polars.utils import get_lazyframe_column_names
 from pandera.backends.base import ColumnInfo, CoreCheckResult
 from pandera.backends.polars.base import PolarsSchemaBackend
 from pandera.config import ValidationDepth, ValidationScope, get_config_context
@@ -242,7 +241,7 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
         for col_name, col_schema in schema.columns.items():
             if (
                 not col_schema.regex
-                and col_name not in get_lazyframe_column_names(check_obj)
+                and col_name not in check_obj.collect_schema().names()
                 and col_schema.required
             ):
                 absent_column_names.append(col_name)
@@ -257,11 +256,11 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
                     regex_match_patterns.append(col_schema.selector)
                 except SchemaError:
                     pass
-            elif col_name in get_lazyframe_column_names(check_obj):
+            elif col_name in check_obj.collect_schema().names():
                 column_names.append(col_name)
 
         # drop adjacent duplicated column names
-        destuttered_column_names = [*get_lazyframe_column_names(check_obj)]
+        destuttered_column_names = [*check_obj.collect_schema().names()]
 
         return ColumnInfo(
             sorted_column_names=dict.fromkeys(column_names),
@@ -298,7 +297,7 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
             # PydanticModel applies row-wise, so per-column components
             # are not created for it.
             columns = {}
-            for col_name in get_lazyframe_column_names(check_obj):
+            for col_name in check_obj.collect_schema().names():
                 columns[col_name] = Column(schema.dtype, name=str(col_name))
 
         schema_components = []
@@ -506,7 +505,7 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
             else "coerce"
         )
 
-        lf_columns = get_lazyframe_column_names(obj)
+        lf_columns = obj.collect_schema().names()
 
         try:
             if schema.dtype is not None:
@@ -525,8 +524,10 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
                             # a coercion failure reports the concrete column
                             # name instead of the regex pattern (issue #2363,
                             # mirroring the check path fixed in #2221).
-                            matched_columns = get_lazyframe_column_names(
+                            matched_columns = (
                                 obj.select(pl.col(col_schema.selector))
+                                .collect_schema()
+                                .names()
                             )
                             for matched_column in matched_columns:
                                 obj = getattr(col_schema.dtype, coerce_fn)(
@@ -660,7 +661,7 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
         check_output = None
         for lst in temp_unique:
             subset = [
-                x for x in lst if x in get_lazyframe_column_names(check_obj)
+                x for x in lst if x in check_obj.collect_schema().names()
             ]
             duplicates = check_obj.select(subset).collect().is_duplicated()
 

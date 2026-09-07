@@ -9,10 +9,6 @@ import polars as pl
 from pandera.api.base.error_handler import ErrorHandler, get_error_category
 from pandera.api.polars.components import Column
 from pandera.api.polars.types import PolarsData
-from pandera.api.polars.utils import (
-    get_lazyframe_column_names,
-    get_lazyframe_schema,
-)
 from pandera.backends.base import CoreCheckResult
 from pandera.backends.polars.base import PolarsSchemaBackend, is_float_dtype
 from pandera.backends.polars.utils import horizontal_concat
@@ -99,7 +95,7 @@ class ColumnBackend(PolarsSchemaBackend):
                             "regex pattern so that it matches at least one "
                             "column."
                         ),
-                        failure_cases=get_lazyframe_column_names(check_obj),
+                        failure_cases=check_obj.collect_schema().names(),
                         check=f"no_regex_column_match('{schema.selector}')",
                         reason_code=SchemaErrorReason.INVALID_COLUMN_NAME,
                     )
@@ -155,7 +151,7 @@ class ColumnBackend(PolarsSchemaBackend):
         return check_obj
 
     def get_regex_columns(self, schema, check_obj) -> Iterable:
-        return get_lazyframe_schema(check_obj.select(pl.col(schema.selector)))
+        return check_obj.select(pl.col(schema.selector)).collect_schema()
 
     def run_checks_and_handle_errors(
         self,
@@ -269,7 +265,7 @@ class ColumnBackend(PolarsSchemaBackend):
         isna = check_obj.select(expr)
         passed = isna.select([pl.col("*").all()]).collect()
         results = []
-        for column in get_lazyframe_column_names(isna):
+        for column in isna.collect_schema().names():
             if passed.select(column).item():
                 continue
             failure_cases = (
@@ -378,9 +374,7 @@ class ColumnBackend(PolarsSchemaBackend):
 
         results = []
         check_obj_subset = check_obj.select(schema.selector)
-        for column, obj_dtype in get_lazyframe_schema(
-            check_obj_subset
-        ).items():
+        for column, obj_dtype in check_obj_subset.collect_schema().items():
             results.append(
                 CoreCheckResult(
                     passed=schema.dtype.check(

@@ -10,7 +10,10 @@ from pandera.api.checks import Check
 from pandera.api.dataframe.model import (
     DataFrameModel as _DataFrameModel,
 )
-from pandera.api.dataframe.model import _dtype_metadata, get_dtype_kwargs
+from pandera.api.dataframe.model import (
+    _dtype_metadata,
+    get_dtype_kwargs,
+)
 from pandera.api.dataframe.model_components import FieldInfo
 from pandera.api.pandas.components import Column, Index, MultiIndex
 from pandera.api.pandas.container import DataFrameSchema
@@ -169,9 +172,14 @@ class DataFrameModel(_DataFrameModel[pd.DataFrame, DataFrameSchema]):
                         f"'check_name' is not supported for {field_name}."
                     )
 
+                nullable = (
+                    field.nullable
+                    if field.nullable_explicit
+                    else annotation.nullable
+                )
                 dtype = _get_nullable_coercion_dtype(
                     dtype,
-                    nullable=field.nullable,
+                    nullable=nullable,
                     coerce=field.coerce
                     or bool(getattr(cls.__config__, "coerce", False)),
                 )
@@ -179,7 +187,8 @@ class DataFrameModel(_DataFrameModel[pd.DataFrame, DataFrameSchema]):
                 column_kwargs = (
                     field.column_properties(
                         dtype,
-                        required=not annotation.optional,
+                        nullable=annotation.nullable,
+                        required=not annotation.is_optional_field,
                         checks=field_checks,
                         parsers=field_parsers,
                         name=field_name,
@@ -193,7 +202,7 @@ class DataFrameModel(_DataFrameModel[pd.DataFrame, DataFrameSchema]):
                 annotation.origin in get_index_types()
                 or annotation.raw_annotation in get_index_types()
             ):
-                if annotation.optional:
+                if annotation.is_optional_field:
                     raise SchemaInitError(
                         f"Index '{field_name}' cannot be Optional."
                     )
@@ -208,6 +217,7 @@ class DataFrameModel(_DataFrameModel[pd.DataFrame, DataFrameSchema]):
                     field.index_properties(
                         dtype,
                         checks=field_checks,
+                        parsers=field_parsers,
                         name=field_name,
                     )
                     if field

@@ -4,7 +4,7 @@ import os
 import sys
 import warnings
 from pathlib import Path
-from typing import Optional, overload
+from typing import Literal, Optional, overload
 
 import pandas as pd
 
@@ -14,7 +14,7 @@ else:
     from typing import Self
 
 from pandera.api.dataframe.container import DataFrameSchema as _DataFrameSchema
-from pandera.api.pandas.types import PandasDtypeInputTypes
+from pandera.api.pandas.types import PandasDtypeInputTypes, is_table_or_field
 from pandera.config import get_config_context
 from pandera.engines import pandas_engine
 from pandera.errors import BackendNotFoundError
@@ -39,6 +39,7 @@ class DataFrameSchema(_DataFrameSchema[pd.DataFrame]):
         report_duplicates="all",
         unique_column_names: bool = False,
         add_missing_columns: bool = False,
+        on_missing_columns: str | None = None,
         title=None,
         description=None,
         metadata=None,
@@ -58,6 +59,7 @@ class DataFrameSchema(_DataFrameSchema[pd.DataFrame]):
             report_duplicates=report_duplicates,
             unique_column_names=unique_column_names,
             add_missing_columns=add_missing_columns,
+            on_missing_columns=on_missing_columns,
             title=title,
             description=description,
             metadata=metadata,
@@ -71,11 +73,49 @@ class DataFrameSchema(_DataFrameSchema[pd.DataFrame]):
                 for name in self.dtype.column_names
             }
 
-    @staticmethod
-    def _build_pydantic_column(name: str):
+    def _build_pydantic_column(self, name: str):
         from pandera.api.pandas.components import Column
 
-        return Column(None, name=name)
+        # Determine whether the pydantic field is Optional so the
+        # generated column allows null values.  A field is optional
+        # when its annotation includes None (e.g. ``int | None`` or
+        # ``Optional[int]``) or when it has a default of None.
+        nullable = False
+        model_type = self.dtype.type
+        try:
+            if hasattr(model_type, "model_fields"):
+                # Pydantic v2
+                field_info = model_type.model_fields.get(name)
+            else:
+                # Pydantic v1
+                field_info = model_type.__fields__.get(name)
+
+            if field_info is not None:
+                annotation = getattr(field_info, "annotation", None)
+                if annotation is not None:
+                    origin = getattr(annotation, "__origin__", None)
+                    import typing
+
+                    if origin is typing.Union:
+                        args = getattr(annotation, "__args__", ())
+                        if type(None) in args:
+                            nullable = True
+                # Also treat fields with a None default as nullable.  Pydantic
+                # v1 reports required fields as ``default=None``, so only
+                # consider the default when the field itself is optional.
+                is_required = (
+                    field_info.is_required()
+                    if hasattr(field_info, "is_required")
+                    else bool(getattr(field_info, "required", False))
+                )
+                if not nullable and not is_required:
+                    default = getattr(field_info, "default", ...)
+                    if default is None:
+                        nullable = True
+        except Exception:
+            pass
+
+        return Column(None, name=name, nullable=nullable)
 
     @_DataFrameSchema.dtype.setter  # type: ignore[attr-defined]
     def dtype(self, value: PandasDtypeInputTypes) -> None:
@@ -149,6 +189,19 @@ class DataFrameSchema(_DataFrameSchema[pd.DataFrame]):
         if not get_config_context().validation_enabled:
             return check_obj
 
+        # Fail early with an informative error for non-dataframe inputs.
+        # Without this guard, backend dispatch raises an opaque
+        # ``BackendNotFoundError`` (or ``AttributeError``) instead of clearly
+        # communicating that a dataframe-like object was expected. This mirrors
+        # the ``is_field`` guard in ``SeriesSchema.validate``. Field-like
+        # objects (e.g. ``pd.Series``) are permitted here because
+        # ``MultiIndex`` (a ``DataFrameSchema`` subclass) reuses this method to
+        # validate the index of a ``SeriesSchema``.
+        if not is_table_or_field(check_obj):
+            raise TypeError(
+                f"expected pd.DataFrame, got {type(check_obj)}"
+            )
+
         # NOTE: Move this into its own schema-backend variant. This is where
         # the benefits of separating the schema spec from the backend
         # implementation comes in.
@@ -209,15 +262,24 @@ class DataFrameSchema(_DataFrameSchema[pd.DataFrame]):
     @staticmethod
     def register_default_backends(check_obj_cls: type):
         from pandera.backends.pandas.register import register_pandas_backends
+        from pandera.config import CONFIG
+
+        use_narwhals_backend = CONFIG.use_narwhals_backend
 
         _cls = check_obj_cls
         try:
-            register_pandas_backends(f"{_cls.__module__}.{_cls.__name__}")
+            register_pandas_backends(
+                f"{_cls.__module__}.{_cls.__name__}",
+                use_narwhals_backend=use_narwhals_backend,
+            )
         except BackendNotFoundError:
             for base_cls in _cls.__bases__:
                 base_cls_name = f"{base_cls.__module__}.{base_cls.__name__}"
                 try:
-                    register_pandas_backends(base_cls_name)
+                    register_pandas_backends(
+                        base_cls_name,
+                        use_narwhals_backend=use_narwhals_backend,
+                    )
                 except BackendNotFoundError:
                     pass
 
@@ -272,12 +334,18 @@ class DataFrameSchema(_DataFrameSchema[pd.DataFrame]):
     #####################
 
     def to_script(
-        self, fp: str | Path | None = None, *, minimal: bool = True
+        self,
+        fp: str | Path | None = None,
+        *,
+        minimal: bool = True,
+        script_type: Literal["schema", "model"] = "schema",
     ) -> str | None:
-        """Write :class:`DataFrameSchema` to a Python script via ``pandas_io``."""
+        """Write :class:`DataFrameSchema` or a model script via ``pandas_io``."""
         from pandera.io import pandas_io
 
-        return pandas_io.to_script(self, fp, minimal=minimal)
+        return pandas_io.to_script(
+            self, fp, minimal=minimal, script_type=script_type
+        )
 
     @classmethod
     def from_yaml(cls, yaml_schema) -> Self:

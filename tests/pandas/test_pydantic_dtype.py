@@ -161,7 +161,9 @@ def test_pydantic_model_validates_empty_dataframe_with_aliases():
         name: str = Field(alias="Name")
         amount: float = Field(alias="Amount in local currency")
 
-    schema = pa.DataFrameSchema(dtype=PydanticModel(Row), coerce=True, strict=True)
+    schema = pa.DataFrameSchema(
+        dtype=PydanticModel(Row), coerce=True, strict=True
+    )
     data = pd.DataFrame(columns=["Name", "Amount in local currency"])
     validated = schema.validate(data)
     assert validated.columns.tolist() == [
@@ -169,3 +171,30 @@ def test_pydantic_model_validates_empty_dataframe_with_aliases():
         "Amount in local currency",
     ]
     assert validated.empty
+
+
+@pytest.mark.skipif(
+    not PYDANTIC_V2,
+    reason="serialization_alias is only available in Pydantic v2",
+)
+def test_pydantic_model_preserves_serialization_aliases():
+    """Schema columns should match Pydantic's serialized row keys."""
+
+    class Row(BaseModel):
+        dash_length: float = Field(
+            default=1.0, serialization_alias="dashLength"
+        )
+
+    schema = pa.DataFrameSchema(dtype=PydanticModel(Row), coerce=False)
+    data = pd.DataFrame({"dash_length": [2.0]})
+
+    validated = schema.validate(data)
+    assert validated.columns.tolist() == ["dashLength"]
+    assert validated["dashLength"].tolist() == [2.0]
+
+    empty = pd.DataFrame(columns=["dashLength"])
+    with pytest.warns(
+        UserWarning, match="PydanticModel cannot validate an empty dataframe"
+    ):
+        validated_empty = schema.validate(empty)
+    assert validated_empty.columns.tolist() == ["dashLength"]

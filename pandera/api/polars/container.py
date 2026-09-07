@@ -5,7 +5,7 @@ from __future__ import annotations
 import os
 import sys
 import warnings
-from typing import TYPE_CHECKING, overload
+from typing import TYPE_CHECKING, Literal, overload
 
 from pandera.api.dataframe.container import DataFrameSchema as _DataFrameSchema
 from pandera.api.polars.types import PolarsCheckObjects, PolarsFrame
@@ -142,6 +142,20 @@ class DataFrameSchema(_DataFrameSchema[PolarsCheckObjects]):
         from pandera.io import polars_io
 
         return polars_io.to_yaml(self, stream=stream, minimal=minimal)
+
+    def to_script(
+        self,
+        fp: str | os.PathLike | None = None,
+        *,
+        minimal: bool = True,
+        script_type: Literal["schema", "model"] = "schema",
+    ) -> str | None:
+        """Write schema or model script (see :mod:`pandera.io.polars_io`)."""
+        from pandera.io import polars_io
+
+        return polars_io.to_script(
+            self, fp, minimal=minimal, script_type=script_type
+        )
 
     @classmethod
     def from_json(cls, source) -> Self:

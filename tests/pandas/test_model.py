@@ -3,21 +3,24 @@
 import os
 import re
 import runpy
+import warnings
 from collections.abc import Iterable
 from copy import deepcopy
 from enum import Enum
 from typing import Annotated, Any, Generic, Optional, TypeVar
+from unittest.mock import patch
 
 import numpy as np
 import pandas as pd
 import pytest
 from pandas._testing import assert_frame_equal
 
+import pandera.api.dataframe.model as dataframe_model
 import pandera.api.extensions as pax
 import pandera.pandas as pa
 from pandera.api.base.model import MetaModel
-from pandera.errors import SchemaError, SchemaInitError
-from pandera.typing import DataFrame, Index, Series, String
+from pandera.errors import SchemaError, SchemaInitError, SchemaWarning
+from pandera.typing import DataFrame, FieldType, Index, Series, String
 from pandera.typing import pandas as pandas_typing
 
 
@@ -116,6 +119,211 @@ def test_schema_with_bare_types():
     )
 
     assert expected == Model.to_schema()
+
+
+def test_field_type_presence_and_nullability() -> None:
+    """Test the ``FieldType`` presence and nullability contract."""
+
+    class Model(pa.DataFrameModel):
+        required: int
+        nullable_values: FieldType[int | None]  # type: ignore[valid-type]
+        optional_presence: FieldType[int] | None
+        legacy_optional_presence: int | None
+        explicit_nullable: int = pa.Field(nullable=True)
+        explicit_required: FieldType[int] | None = pa.Field(required=True)
+        aliased: str = pa.Field(alias="renamed")
+
+    schema = Model.to_schema()
+
+    assert schema.columns["required"].dtype == pa.Column(int).dtype
+    assert schema.columns["required"].required
+    assert not schema.columns["required"].nullable
+
+    assert schema.columns["nullable_values"].dtype == pa.Column(int).dtype
+    assert schema.columns["nullable_values"].required
+    assert schema.columns["nullable_values"].nullable
+
+    assert not schema.columns["optional_presence"].required
+    assert not schema.columns["optional_presence"].nullable
+
+    # a bare ``T | None`` annotation keeps its historical meaning: the column
+    # may be absent, and its values are non-nullable unless stated otherwise.
+    # See https://github.com/unionai-oss/pandera/issues/2457
+    assert not schema.columns["legacy_optional_presence"].required
+    assert not schema.columns["legacy_optional_presence"].nullable
+
+    assert schema.columns["explicit_nullable"].nullable
+    assert schema.columns["explicit_required"].required
+    assert Model.aliased == "renamed"
+    for name in (
+        Model.required,
+        Model.nullable_values,
+        Model.optional_presence,
+    ):
+        assert isinstance(name, str)
+
+
+def test_field_type_contract() -> None:
+    """The typing-only field marker composes with runtime field metadata."""
+
+    class Model(pa.DataFrameModel):
+        checked: FieldType[  # type: ignore[valid-type]
+            int,
+            pa.Field(
+                alias="renamed",
+                description="checked field",
+                metadata={"source": "typing-field"},
+                title="Checked",
+                unique=True,
+                gt=0,
+            ),
+        ]
+        nullable: FieldType[int | None, pa.Field()]  # type: ignore[valid-type]
+        optional: FieldType[str] | None
+        required_override: FieldType[int] | None = pa.Field(required=True)
+        assigned: FieldType[int] = pa.Field(description="assigned")
+
+    schema = Model.to_schema()
+    checked = schema.columns["renamed"]
+    assert checked.required
+    assert not checked.nullable
+    assert checked.description == "checked field"
+    assert checked.metadata == {"source": "typing-field"}
+    assert checked.title == "Checked"
+    assert checked.unique
+    assert checked.checks
+    assert schema.columns["nullable"].required
+    assert schema.columns["nullable"].nullable
+    assert not schema.columns["optional"].required
+    assert schema.columns["required_override"].required
+    assert schema.columns["assigned"].description == "assigned"
+    assert Model.checked == "renamed"
+
+    valid = pd.DataFrame(
+        {
+            "renamed": [1],
+            "nullable": pd.Series([1, None], dtype="Int64").iloc[:1],
+            "required_override": [3],
+            "assigned": [2],
+        }
+    )
+    Model.validate(valid)
+    with pytest.raises(SchemaError):
+        Model.validate(valid.assign(renamed=[0]))
+
+
+def test_field_type_metadata_with_postponed_annotation() -> None:
+    """Embedded metadata survives annotations evaluated after class creation."""
+
+    class Model(pa.DataFrameModel):
+        # Static checkers reject value expressions inside type arguments; this
+        # test intentionally exercises postponed runtime evaluation.
+        embedded: "FieldType[int, pa.Field(description='embedded')]"  # type: ignore[valid-type]
+
+    assert Model.to_schema().columns["embedded"].description == "embedded"
+
+
+def test_field_type_metadata_with_unresolved_annotation() -> None:
+    """Install fields when postponed annotation evaluation is unavailable."""
+    get_annotations = dataframe_model.inspect.get_annotations
+
+    def unresolved_annotations(
+        cls: type, *, eval_str: bool = False
+    ) -> dict[str, object]:
+        if eval_str:
+            raise NameError("unresolved annotation")
+        return get_annotations(cls, eval_str=eval_str)
+
+    with patch.object(
+        dataframe_model.inspect,
+        "get_annotations",
+        unresolved_annotations,
+    ):
+
+        class Model(pa.DataFrameModel):
+            value: FieldType[int]
+
+    assert Model.to_schema().columns["value"].dtype == pa.Column(int).dtype
+
+
+def test_field_type_annotated_metadata() -> None:
+    """FieldType remains compatible with embedded Annotated metadata."""
+
+    class Model(pa.DataFrameModel):
+        value: Annotated[FieldType[int], pa.Field(description="annotated")]
+
+    assert Model.to_schema().columns["value"].description == "annotated"
+
+
+def test_field_type_requires_a_dtype_parameter() -> None:
+    """The typing-only marker cannot be used as an unparameterized dtype."""
+
+    with pytest.raises(TypeError):
+        FieldType()
+
+    class DescriptorField(FieldType[int]):
+        pass
+
+    descriptor = object.__new__(DescriptorField)
+    with pytest.raises(AttributeError, match="should resolve"):
+        descriptor.__get__(None, pa.DataFrameModel)
+
+    class Invalid(pa.DataFrameModel):
+        value: FieldType
+
+    with pytest.raises(SchemaInitError, match="must be parameterized"):
+        Invalid.to_schema()
+
+
+def test_field_type_metadata_and_inheritance() -> None:
+    """Test ``FieldType`` metadata and inherited fields."""
+
+    class Parent(pa.DataFrameModel):
+        inherited: FieldType[  # type: ignore[valid-type]
+            int, pa.Field(description="inherited")
+        ]
+        overridden: FieldType[  # type: ignore[valid-type]
+            int, pa.Field(description="parent")
+        ]
+
+    class Child(Parent):
+        overridden: FieldType[  # type: ignore[valid-type]
+            int, pa.Field(description="overridden")
+        ]
+        annotated: FieldType[  # type: ignore[valid-type]
+            str, pa.Field(alias="annotated_name", title="Annotated")
+        ]
+        optional: FieldType[  # type: ignore[valid-type]
+            int, pa.Field(description="optional", required=False)
+        ]
+
+    schema = Child.to_schema()
+    assert schema.columns["inherited"].description == "inherited"
+    assert schema.columns["overridden"].description == "overridden"
+    assert schema.columns["annotated_name"].title == "Annotated"
+    assert schema.columns["optional"].description == "optional"
+    assert not schema.columns["optional"].required
+    assert Child.inherited == "inherited"
+    assert Child.annotated == "annotated_name"
+
+
+def test_index_field_nullable_override() -> None:
+    """Explicit index nullability is passed to the runtime schema."""
+
+    class Model(pa.DataFrameModel):
+        index: Index[int] = pa.Field(nullable=True)
+
+    assert Model.to_schema().index.nullable
+
+
+def test_nullable_annotation_coercion() -> None:
+    """Inferred nullability must also guide pandas dtype coercion."""
+
+    class Model(pa.DataFrameModel):
+        value: FieldType[int | None] = pa.Field(coerce=True)  # type: ignore[valid-type]
+
+    validated = Model.validate(pd.DataFrame({"value": [1, None]}))
+    assert validated["value"].isna().sum() == 1
 
 
 def test_empty_schema() -> None:
@@ -231,6 +439,29 @@ def test_optional_column() -> None:
     assert not schema.columns["b"].required
     assert not schema.columns["c"].required
     assert not schema.columns["d"].required
+
+
+def test_optional_bare_dtype_column() -> None:
+    """Bare ``T | None`` annotations declare an optional column.
+
+    Regression test for https://github.com/unionai-oss/pandera/issues/2457
+    """
+
+    class Schema(pa.DataFrameModel):
+        a: int
+        b: int | None
+        c: Optional[str]  # noqa: UP045
+        d: Annotated[int, pa.Field(gt=0)] | None
+        e: int | None = pa.Field(required=True)
+
+    schema = Schema.to_schema()
+    assert schema.columns["a"].required
+    for name in ("b", "c", "d"):
+        assert not schema.columns[name].required
+        assert not schema.columns[name].nullable
+    assert schema.columns["e"].required
+
+    Schema.validate(pd.DataFrame({"a": [1], "e": [1]}))
 
 
 def test_optional_column_with_typing_module_alias() -> None:
@@ -2004,6 +2235,20 @@ def test_generic_optional_field() -> None:
     FloatYModel.validate(pd.DataFrame({"x": [1, 2, 3], "y": [4.0, 5.0, 6.0]}))
 
 
+def test_generic_nullable_field() -> None:
+    """Preserve nullable values through generic substitution."""
+    T = TypeVar("T", int, float, str)
+
+    class GenericModel(pa.DataFrameModel, Generic[T]):
+        value: T = pa.Field(nullable=True)
+
+    class IntModel(GenericModel[int]): ...
+
+    column = IntModel.to_schema().columns["value"]
+    assert column.dtype == pa.Column(int).dtype
+    assert column.nullable
+
+
 def test_generic_model_multiple_inheritance() -> None:
     T = TypeVar("T", int, float, str)
 
@@ -2150,20 +2395,21 @@ def test_pandas_fields_metadata():
     assert PanderaSchema.get_metadata() == expected
 
 
-def test_annotated_field_metadata_propagation():
-    """``Annotated[T, pa.Field(...)]`` should propagate the embedded
-    ``FieldInfo`` metadata (description, title, unique, checks, etc.) to
+def test_field_type_metadata_propagation():
+    """``FieldType[T, pa.Field(...)]`` should propagate field metadata
+    (description, title, unique, checks, etc.) to
     the resulting schema. See https://github.com/unionai-oss/pandera/issues/2110.
     """
 
     class Schema(pa.DataFrameModel):
-        name: Annotated[str, pa.Field(description="Name of the person")]
+        name: FieldType[str, pa.Field(description="Name of the person")]
         age: int = pa.Field(ge=0, description="Age of the person")
-        month: Annotated[
-            int, pa.Field(ge=1, le=12, description="Month of the year")
+        month: FieldType[
+            int,
+            pa.Field(ge=1, le=12, description="Month of the year"),
         ]
-        identifier: Annotated[int, pa.Field(unique=True, title="Identifier")]
-        tag: Annotated[str, pa.Field(metadata={"k": "v"})]
+        identifier: FieldType[int, pa.Field(unique=True, title="Identifier")]
+        tag: FieldType[str, pa.Field(metadata={"k": "v"})]
 
     schema = Schema.to_schema()
 
@@ -2174,7 +2420,7 @@ def test_annotated_field_metadata_propagation():
     assert schema.columns["identifier"].title == "Identifier"
     assert schema.columns["tag"].metadata == {"k": "v"}
 
-    # ``ge``/``le`` checks defined inside the Annotated FieldInfo should
+    # ``ge``/``le`` checks defined inside the FieldType metadata should
     # also be applied during validation.
     valid = pd.DataFrame(
         {
@@ -2193,18 +2439,14 @@ def test_annotated_field_metadata_propagation():
         Schema.validate(invalid)
 
 
-def test_annotated_field_no_metadata_dedup():
-    """Two ``Annotated`` annotations using independent ``pa.Field(...)``
-    calls must not be deduplicated by Python's ``typing.Annotated`` cache.
-    Without unique hashing on un-named ``FieldInfo`` instances, the second
-    model would inadvertently inherit the first model's field configuration.
-    """
+def test_field_type_metadata_no_dedup():
+    """Independent ``FieldType`` metadata objects must remain distinct."""
 
     class ModelA(pa.DataFrameModel):
-        value: Annotated[int, pa.Field(ge=18, le=100)]
+        value: FieldType[int, pa.Field(ge=18, le=100)]
 
     class ModelB(pa.DataFrameModel):
-        value: Annotated[int, pa.Field(unique=True, title="ID")]
+        value: FieldType[int, pa.Field(unique=True, title="ID")]
 
     schema_a = ModelA.to_schema()
     schema_b = ModelB.to_schema()
@@ -2216,14 +2458,11 @@ def test_annotated_field_no_metadata_dedup():
     assert schema_b.columns["value"].checks == []
 
 
-def test_annotated_field_explicit_assignment_wins():
-    """When a field is annotated with ``Annotated[T, pa.Field(...)]`` and
-    also explicitly assigned a ``pa.Field(...)``, the explicit assignment
-    takes precedence.
-    """
+def test_field_type_explicit_assignment_wins():
+    """An explicit ``pa.Field(...)`` assignment takes precedence."""
 
     class Schema(pa.DataFrameModel):
-        value: Annotated[int, pa.Field(description="from annotated")] = (
+        value: FieldType[int, pa.Field(description="from metadata")] = (
             pa.Field(description="from assignment")
         )
 
@@ -2421,3 +2660,57 @@ def test_model_with_pydantic_base_model_with_df_init():
         df: pa.typing.DataFrame[PanderaDataFrameModel] = pd.DataFrame(
             {"field": [1, 2, 3]}
         )
+
+
+def test_field_on_missing_warns_for_optional_column():
+    """Field(on_missing='warn') warns when the optional column is absent."""
+
+    class Schema(pa.DataFrameModel):
+        a: Series[int]
+        b: Series[str] | None = pa.Field(on_missing="warn")
+        c: Series[str] | None  # no on_missing -> stays silent
+
+    df = pd.DataFrame({"a": [1, 2]})
+    with pytest.warns(SchemaWarning, match="optional column 'b'") as record:
+        Schema.validate(df)
+    messages = [str(w.message) for w in record]
+    assert not any("'c'" in m for m in messages)
+
+
+def test_config_on_missing_columns_warns_for_optional_column():
+    """Config.on_missing_columns applies to every optional column."""
+
+    class Schema(pa.DataFrameModel):
+        a: Series[int]
+        b: Series[str] | None
+
+        class Config:
+            on_missing_columns = "warn"
+
+    df = pd.DataFrame({"a": [1, 2]})
+    with pytest.warns(SchemaWarning, match="optional column 'b'"):
+        Schema.validate(df)
+
+
+def test_on_missing_default_does_not_warn():
+    """Without on_missing configured, missing optional columns are silent."""
+
+    class Schema(pa.DataFrameModel):
+        a: Series[int]
+        b: Series[str] | None
+
+    df = pd.DataFrame({"a": [1, 2]})
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        Schema.validate(df)
+
+
+def test_field_on_missing_invalid_value_raises_init_error():
+    """An invalid on_missing value raises a SchemaInitError."""
+
+    class Schema(pa.DataFrameModel):
+        a: Series[int]
+        b: Series[str] | None = pa.Field(on_missing="raise")
+
+    with pytest.raises(SchemaInitError, match="on_missing must be"):
+        Schema.validate(pd.DataFrame({"a": [1, 2]}))

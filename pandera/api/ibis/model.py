@@ -15,7 +15,10 @@ from pandera.api.checks import Check
 from pandera.api.dataframe.model import (
     DataFrameModel as _DataFrameModel,
 )
-from pandera.api.dataframe.model import _dtype_metadata, get_dtype_kwargs
+from pandera.api.dataframe.model import (
+    _dtype_metadata,
+    get_dtype_kwargs,
+)
 from pandera.api.dataframe.model_components import FieldInfo
 from pandera.api.ibis.components import Column
 from pandera.api.ibis.container import DataFrameSchema
@@ -108,7 +111,8 @@ class DataFrameModel(_DataFrameModel[ibis.Table, DataFrameSchema]):
                 column_kwargs = (
                     field.column_properties(
                         dtype,
-                        required=not annotation.optional,
+                        nullable=annotation.nullable,
+                        required=not annotation.is_optional_field,
                         checks=field_checks,
                         name=field_name,
                     )

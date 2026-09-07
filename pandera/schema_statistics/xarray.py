@@ -9,6 +9,7 @@ import numpy as np
 import xarray as xr
 
 from pandera.api.checks import Check
+from pandera.schema_statistics.common import string_length_check_statistics
 
 
 def infer_data_array_statistics(da: xr.DataArray) -> dict[str, Any]:
@@ -267,6 +268,61 @@ def _get_dtype_string(da: xr.DataArray) -> str:
     return str(da.dtype)
 
 
+def _xarray_value_is_missing(val: Any) -> bool:
+    if val is None:
+        return True
+    try:
+        if isinstance(val, (float, np.floating)) and np.isnan(float(val)):
+            return True
+    except (TypeError, ValueError):
+        pass
+    try:
+        if isinstance(val, np.datetime64) and np.isnat(val):
+            return True
+    except (TypeError, ValueError):
+        pass
+    return False
+
+
+def _xarray_element_str_len(val: Any) -> int | None:
+    if isinstance(val, (str, np.str_)):
+        return len(val)
+    if isinstance(val, (bytes, np.bytes_)):
+        return len(val)
+    return None
+
+
+def _xarray_should_infer_str_length(da: xr.DataArray) -> bool:
+    kind = getattr(da.dtype, "kind", None)
+    return kind in ("U", "S", "O")
+
+
+def _xarray_string_length_bounds(
+    da: xr.DataArray,
+) -> tuple[int, int] | None:
+    """Min/max string length for unicode, bytes, or object string arrays."""
+    arr = np.asarray(da.values)
+    if arr.dtype.kind in ("U", "S"):
+        flat = arr.ravel()
+        if flat.size == 0:
+            return None
+        lengths = np.char.str_len(flat)
+        return int(lengths.min()), int(lengths.max())
+    if arr.dtype.kind == "O":
+        lens: list[int] = []
+        for x in arr.ravel():
+            if _xarray_value_is_missing(x):
+                continue
+            elen = _xarray_element_str_len(x)
+            if elen is None:
+                return None
+            lens.append(elen)
+        if not lens:
+            return None
+        return min(lens), max(lens)
+    return None
+
+
 def _get_array_check_statistics(
     da: xr.DataArray,
 ) -> Union[dict[str, Any], None]:
@@ -298,6 +354,12 @@ def _get_array_check_statistics(
             "greater_than_or_equal_to": float(da.min().values),
             "less_than_or_equal_to": float(da.max().values),
         }
+    elif _xarray_should_infer_str_length(da):
+        bounds = _xarray_string_length_bounds(da)
+        if bounds is None:
+            check_stats = {}
+        else:
+            check_stats = string_length_check_statistics(*bounds)
     else:
         check_stats = {}
 

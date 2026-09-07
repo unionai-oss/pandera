@@ -32,6 +32,7 @@ class TestPandasSerdesMinimal:
         assert "version" in full
         assert "version" not in mini
         assert full["schema_type"] == mini["schema_type"] == "dataframe"
+        assert full["api"] == mini["api"] == "pandas"
 
     def test_serialize_minimal_omits_default_column_fields(self) -> None:
         schema = pa.DataFrameSchema({"a": pa.Column(int, nullable=False)})
@@ -81,6 +82,7 @@ class TestPandasSerdesMinimal:
             schema, dataframe_library="dask", minimal=True
         )
         assert mini.get("dataframe_library") == "dask"
+        assert mini.get("api") == "dask"
 
     def test_schema_method_accepts_minimal(self) -> None:
         schema = pa.DataFrameSchema({"a": pa.Column(int)})
@@ -162,6 +164,7 @@ class TestPolarsSerdesMinimal:
         assert "version" not in mini
         full = polars_io.serialize_schema(schema, minimal=False)
         assert "version" in full
+        assert mini["api"] == full["api"] == "polars"
 
     def test_minimal_strips_default_check_options(self) -> None:
         import pandera.polars as pl_pa
@@ -215,6 +218,8 @@ class TestIbisPysparkSerdesMinimal:
         assert "version" not in mini
         full = io_mod.serialize_schema(schema, minimal=False)
         assert "version" in full
+        expected_api = "ibis" if backend == "ibis" else "pyspark.sql"
+        assert mini["api"] == full["api"] == expected_api
 
 
 class TestXarraySerdesMinimal:

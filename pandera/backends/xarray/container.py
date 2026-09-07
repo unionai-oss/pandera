@@ -585,7 +585,6 @@ class DataArraySchemaBackend(XarraySchemaBackend):
         _parent_strict_coords: bool | str,
     ) -> list[CoreCheckResult]:
         results: list[CoreCheckResult] = []
-        coord_da = parent.coords[coord_name]
         parent_dims = set(parent.dims)
 
         if isinstance(spec, Coordinate):
@@ -648,8 +647,8 @@ class DataArraySchemaBackend(XarraySchemaBackend):
                 )
             sub = c.to_data_array_schema(coord_name)
             try:
-                self.validate(
-                    coord_da,
+                parent.coords[coord_name] = self.validate(
+                    parent.coords[coord_name],
                     sub,
                     lazy=True,
                     inplace=True,
@@ -1176,7 +1175,7 @@ class DatasetSchemaBackend(XarraySchemaBackend):
                 sub = copy.copy(spec.to_data_array_schema(logical))
             sub = sub.set_name(actual)
             try:
-                da_backend.validate(
+                ds[actual] = da_backend.validate(
                     ds[actual],
                     sub,
                     head=head,

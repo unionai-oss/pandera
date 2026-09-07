@@ -8,10 +8,6 @@ import polars as pl
 
 from pandera.api.base.error_handler import ErrorHandler
 from pandera.api.polars.types import CheckResult, PolarsFrame
-from pandera.api.polars.utils import (
-    get_lazyframe_column_dtypes,
-    get_lazyframe_schema,
-)
 from pandera.backends.base import BaseSchemaBackend, CoreCheckResult
 from pandera.constants import CHECK_OUTPUT_KEY
 from pandera.errors import (
@@ -26,9 +22,9 @@ def is_float_dtype(check_obj: pl.LazyFrame, selector):
     """Check if a column/selector is a float."""
     return all(
         dtype in {pl.Float32, pl.Float64}
-        for dtype in get_lazyframe_column_dtypes(
-            check_obj.select(pl.col(selector))
-        )
+        for dtype in check_obj.select(pl.col(selector))
+        .collect_schema()
+        .dtypes()
     )
 
 
@@ -96,7 +92,7 @@ class PolarsSchemaBackend(BaseSchemaBackend):
             else:
                 # use check_result
                 _failure_cases = check_result.failure_cases
-                if CHECK_OUTPUT_KEY in get_lazyframe_schema(_failure_cases):
+                if CHECK_OUTPUT_KEY in _failure_cases.collect_schema():
                     _failure_cases = _failure_cases.drop(CHECK_OUTPUT_KEY)
 
                 failure_cases = _failure_cases.collect()
@@ -167,10 +163,8 @@ class PolarsSchemaBackend(BaseSchemaBackend):
                 failure_cases_df = err.failure_cases
 
                 # get row number of the failure cases
-                if hasattr(err.check_output, "with_row_index"):
-                    _index_lf = err.check_output.with_row_index("index")
-                else:
-                    _index_lf = err.check_output.with_row_count("index")
+                assert err.check_output is not None
+                _index_lf = err.check_output.with_row_index("index")
 
                 index = _index_lf.filter(pl.col(CHECK_OUTPUT_KEY).eq(False))[
                     "index"

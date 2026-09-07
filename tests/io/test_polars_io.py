@@ -36,6 +36,7 @@ def test_polars_full_serdes_includes_version():
 
     payload = polars_io.serialize_schema(schema, minimal=False)
     assert "version" in payload
+    assert payload["api"] == "polars"
     assert (
         polars_io.from_yaml(polars_io.to_yaml(schema, minimal=False)) == schema
     )

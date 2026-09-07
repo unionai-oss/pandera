@@ -37,6 +37,9 @@ class BaseFieldInfo:
         "checks",
         "parses",
         "nullable",
+        "nullable_explicit",
+        "required",
+        "required_explicit",
         "unique",
         "coerce",
         "regex",
@@ -48,6 +51,7 @@ class BaseFieldInfo:
         "description",
         "default",
         "metadata",
+        "on_missing",
     )
 
     def __init__(
@@ -55,6 +59,8 @@ class BaseFieldInfo:
         checks: CheckArg | None = None,
         parses: ParserArg | None = None,
         nullable: bool = False,
+        nullable_explicit: bool = False,
+        required: bool | None = None,
         unique: bool = False,
         coerce: bool = False,
         regex: bool = False,
@@ -65,10 +71,14 @@ class BaseFieldInfo:
         description: str | None = None,
         default: Any | None = None,
         metadata: dict | None = None,
+        on_missing: str | None = None,
     ) -> None:
         self.checks = to_checklist(checks)
         self.parses = to_parserlist(parses)
         self.nullable = nullable
+        self.nullable_explicit = nullable_explicit
+        self.required = required if required is not None else True
+        self.required_explicit = required is not None
         self.unique = unique
         self.coerce = coerce
         self.regex = regex
@@ -80,6 +90,7 @@ class BaseFieldInfo:
         self.description = description
         self.default = default
         self.metadata = metadata
+        self.on_missing = on_missing
 
     @property
     def name(self) -> str:

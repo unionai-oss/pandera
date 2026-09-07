@@ -214,6 +214,37 @@ DataFrame. It does not add the column during validation. To add missing
 columns, use {ref}`add_missing_columns=True <adding-missing-columns>`
 with required columns that specify a `default` value or `nullable=True`.
 
+(warn-on-missing-columns)=
+
+### Warning on missing optional columns
+
+Optional columns pass silently when they are absent, which can hide typos or
+upstream changes in long pipelines. Set `on_missing="warn"` on a column to
+emit a {class}`~pandera.errors.SchemaWarning` when that optional column is
+missing, instead of ignoring it:
+
+```{code-cell} python
+import warnings
+
+df = pd.DataFrame({"column2": ["hello", "pandera"]})
+schema = pa.DataFrameSchema({
+    "column1": pa.Column(int, required=False, on_missing="warn"),
+    "column2": pa.Column(str),
+})
+
+with warnings.catch_warnings(record=True) as caught:
+    warnings.simplefilter("always")
+    schema.validate(df)
+print([str(w.message) for w in caught])
+```
+
+To apply this to every optional column in a schema, set the schema-wide
+`on_missing_columns="warn"` option instead. A per-column `on_missing` value
+takes precedence over the schema-wide setting. This has no effect on required
+columns, whose absence is always an error. With
+{ref}`class-based schemas <dataframe-models>`, use `Field(on_missing="warn")`
+on a field or `on_missing_columns = "warn"` in the model's `Config`.
+
 (column-validation-1)=
 
 ### Stand-alone Column Validation

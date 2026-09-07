@@ -56,6 +56,21 @@ class TestDataTreeModel:
         assert "surface" in schema.children
         assert "upper" in schema.children
 
+    def test_nested_data_tree_model(self):
+        class NestedTree(pa.DataTreeModel):
+            surface: SurfaceModel
+
+        class ClimateTree(pa.DataTreeModel):
+            nested: NestedTree
+
+        schema = ClimateTree.to_schema()
+
+        assert isinstance(schema.children["nested"], pa.DataTreeSchema)
+        assert isinstance(
+            schema.children["nested"].children["surface"],
+            pa.DatasetSchema,
+        )
+
     def test_validate(self, simple_tree):
         class ClimateTree(pa.DataTreeModel):
             surface: SurfaceModel

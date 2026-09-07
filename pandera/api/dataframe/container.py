@@ -21,6 +21,7 @@ from pandera.api.base.types import CheckList, ParserList, StrictType
 from pandera.api.checks import Check
 from pandera.api.hypotheses import Hypothesis
 from pandera.api.parsers import Parser
+from pandera.constants import ON_MISSING_ACTIONS
 from pandera.dtypes import DataType, UniqueSettings
 from pandera.engines import PYDANTIC_V2
 
@@ -57,6 +58,7 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
         report_duplicates: UniqueSettings = "all",
         unique_column_names: bool = False,
         add_missing_columns: bool = False,
+        on_missing_columns: str | None = None,
         title: str | None = None,
         description: str | None = None,
         metadata: dict | None = None,
@@ -94,6 +96,13 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
         :param unique_column_names: whether or not column names must be unique.
         :param add_missing_columns: add missing column names with either default
             value, if specified in column schema, or NaN if column is nullable.
+        :param on_missing_columns: action to take when an optional column
+            (``required=False``) declared in the schema is absent from the
+            dataframe. By default (``None``) missing optional columns pass
+            silently. If ``"warn"``, a :class:`~pandera.errors.SchemaWarning`
+            is emitted for each missing optional column. This acts as the
+            default for every optional column; it can be overridden per column
+            with the ``on_missing`` argument on :class:`Column`.
         :param title: A human-readable label for the schema.
         :param description: An arbitrary textual description of the schema.
         :param metadata: An optional key-value data.
@@ -173,6 +182,7 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
         self.report_duplicates = report_duplicates
         self.unique_column_names = unique_column_names
         self.add_missing_columns = add_missing_columns
+        self.on_missing_columns = on_missing_columns
         self.drop_invalid_rows = drop_invalid_rows
 
         self.metadata = metadata
@@ -183,6 +193,12 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
         if self.strict not in (False, True, "filter"):
             raise errors.SchemaInitError(
                 "strict parameter must equal either `True`, `False`, or `'filter'`."
+            )
+        if self.on_missing_columns not in (None, *ON_MISSING_ACTIONS):
+            raise errors.SchemaInitError(
+                "on_missing_columns must be one of "
+                f"{(None, *ON_MISSING_ACTIONS)}, got "
+                f"{self.on_missing_columns!r}."
             )
 
     def infer_columns(self, column_names: list) -> list:
@@ -348,6 +364,7 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
             f"report_duplicates={self.report_duplicates}, "
             f"unique_column_names={self.unique_column_names}, "
             f"add_missing_columns={self.add_missing_columns}, "
+            f"on_missing_columns={self.on_missing_columns}, "
             f"title={self.title}, "
             f"description={self.description}, "
             f"metadata={self.metadata}, "
@@ -411,7 +428,8 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
             f"{indent}ordered={self.ordered},\n"
             f"{indent}unique_column_names={self.unique_column_names},\n"
             f"{indent}metadata={self.metadata}, \n"
-            f"{indent}add_missing_columns={self.add_missing_columns}\n"
+            f"{indent}add_missing_columns={self.add_missing_columns},\n"
+            f"{indent}on_missing_columns={self.on_missing_columns}\n"
             ")>"
         )
 
@@ -491,7 +509,8 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
             ordered=False,
             unique_column_names=False,
             metadata=None,
-            add_missing_columns=False
+            add_missing_columns=False,
+            on_missing_columns=None
         )>
 
         .. seealso:: :func:`remove_columns`
@@ -545,7 +564,8 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
             ordered=False,
             unique_column_names=False,
             metadata=None,
-            add_missing_columns=False
+            add_missing_columns=False,
+            on_missing_columns=None
         )>
 
         .. seealso:: :func:`add_columns`
@@ -610,7 +630,8 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
             ordered=False,
             unique_column_names=False,
             metadata=None,
-            add_missing_columns=False
+            add_missing_columns=False,
+            on_missing_columns=None
         )>
 
         .. seealso:: :func:`rename_columns`
@@ -679,7 +700,8 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
             ordered=False,
             unique_column_names=False,
             metadata=None,
-            add_missing_columns=False
+            add_missing_columns=False,
+            on_missing_columns=None
         )>
 
         """
@@ -764,7 +786,8 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
             ordered=False,
             unique_column_names=False,
             metadata=None,
-            add_missing_columns=False
+            add_missing_columns=False,
+            on_missing_columns=None
         )>
 
         .. seealso:: :func:`update_column`
@@ -964,7 +987,8 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
             ordered=False,
             unique_column_names=False,
             metadata=None,
-            add_missing_columns=False
+            add_missing_columns=False,
+            on_missing_columns=None
         )>
 
         .. note:: If an index is present in the schema, it will also be
@@ -1031,7 +1055,8 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
             ordered=False,
             unique_column_names=False,
             metadata=None,
-            add_missing_columns=False
+            add_missing_columns=False,
+            on_missing_columns=None
         )>
 
         If you have an existing index in your schema, and you would like to
@@ -1070,7 +1095,8 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
             ordered=False,
             unique_column_names=False,
             metadata=None,
-            add_missing_columns=False
+            add_missing_columns=False,
+            on_missing_columns=None
         )>
 
         .. seealso:: :func:`reset_index`
@@ -1176,7 +1202,8 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
             ordered=False,
             unique_column_names=False,
             metadata=None,
-            add_missing_columns=False
+            add_missing_columns=False,
+            on_missing_columns=None
         )>
 
         This reclassifies an index (or indices) as a column (or columns).
@@ -1209,7 +1236,8 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
             ordered=False,
             unique_column_names=False,
             metadata=None,
-            add_missing_columns=False
+            add_missing_columns=False,
+            on_missing_columns=None
         )>
 
         .. seealso:: :func:`set_index`

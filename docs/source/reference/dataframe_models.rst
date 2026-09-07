@@ -54,6 +54,7 @@ Pandas
    pandera.typing.DataFrame
    pandera.typing.Series
    pandera.typing.Index
+   pandera.typing.FieldType
 
 Geopandas
 *********

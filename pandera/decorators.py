@@ -70,6 +70,11 @@ def _get_fn_argnames(fn: Callable) -> list[str]:
 
     arg_spec_args = inspect.getfullargspec(fn).args
 
+    if not arg_spec_args:
+        # keyword-only / variadic functions have no positional args to
+        # introspect; there is no self/cls to exclude either.
+        return arg_spec_args
+
     first_arg_is_self = arg_spec_args[0] == "self"
     first_arg_is_cls = arg_spec_args[0] == "cls"
     is_py_newer_than_39 = sys.version_info[:2] >= (3, 9)
@@ -228,7 +233,10 @@ def check_input(
 
             sig = inspect.signature(_unwrap_fn(wrapped))
             is_method = [*sig.parameters][0] in ("self", "cls")
-            if is_method and len(args) == len(sig.parameters) - 1:
+            if (
+                is_method
+                and len(args) + len(kwargs) == len(sig.parameters) - 1
+            ):
                 pos_args = sig.bind_partial(None, *args).arguments
             else:
                 pos_args = sig.bind_partial(*args).arguments
@@ -258,10 +266,31 @@ def check_input(
             elif obj_getter is None:
                 try:
                     _fn = _unwrap_fn(wrapped)
-                    obj_arg_name, *_ = _get_fn_argnames(wrapped)
+                    argnames = _get_fn_argnames(wrapped)
+                    if argnames:
+                        obj_arg_name = argnames[0]
+                    else:
+                        # No positional args (keyword-only / variadic
+                        # function): fall back to the first signature
+                        # parameter of any kind, minus implicit self/cls.
+                        sig_params = [
+                            name
+                            for name in inspect.signature(_fn).parameters
+                            if name not in ("self", "cls")
+                        ]
+                        if not sig_params:
+                            raise ValueError(
+                                f"error in check_input decorator of function "
+                                f"'{wrapped.__name__}': no argument to validate"
+                            )
+                        obj_arg_name = sig_params[0]
                     arg_spec_args = inspect.getfullargspec(_fn).args
 
-                    arg_idx = arg_spec_args.index(obj_arg_name)
+                    arg_idx = (
+                        arg_spec_args.index(obj_arg_name)
+                        if obj_arg_name in arg_spec_args
+                        else -1
+                    )
 
                     if obj_arg_name in kwargs:
                         obj = kwargs[obj_arg_name]

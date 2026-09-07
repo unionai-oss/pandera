@@ -11,6 +11,7 @@ from pandera.xarray import (
     Coordinate,
     DatasetSchema,
     DataVar,
+    Parser,
 )
 
 
@@ -32,6 +33,65 @@ def test_data_vars_and_coords():
         sizes={"x": 3},
     )
     schema.validate(ds)
+
+
+@pytest.mark.parametrize("inplace", [False, True])
+def test_data_vars_and_coords_coerced(inplace):
+    ds = xr.Dataset(
+        {
+            "a": (["x"], np.zeros(3, dtype=np.float32)),
+            "b": (["x"], np.ones(3, dtype=np.float32)),
+        },
+        coords={"x": np.arange(3, dtype=np.float32)},
+    )
+    schema = DatasetSchema(
+        data_vars={
+            "a": DataVar(dtype=np.int16, dims=("x",), coerce=True),
+            "b": DataVar(dtype=np.float64, dims=("x",), coerce=True),
+        },
+        coords={"x": Coordinate(dtype=np.int16, coerce=True)},
+    )
+    out = schema.validate(ds, inplace=inplace)
+
+    assert out.data_vars["a"].dtype == np.int16
+    assert out.data_vars["b"].dtype == np.float64
+    assert out.coords["x"].dtype == np.int16
+    if inplace:
+        assert ds.data_vars["a"].dtype == np.int16
+        assert ds.data_vars["b"].dtype == np.float64
+        assert ds.coords["x"].dtype == np.int16
+    else:
+        assert ds.data_vars["a"].dtype == np.float32
+        assert ds.data_vars["b"].dtype == np.float32
+        assert ds.coords["x"].dtype == np.float32
+
+
+@pytest.mark.parametrize("inplace", [False, True])
+def test_data_vars_and_coords_parsed(inplace):
+    ds = xr.Dataset(
+        {
+            "a": (["x"], np.zeros(3, dtype=np.float32)),
+            "b": (["x"], np.ones(3, dtype=np.float32)),
+        },
+        coords={"x": np.arange(3, dtype=np.float32)},
+    )
+    schema = DatasetSchema(
+        data_vars={
+            "a": DataVar(parsers=[Parser(xr.ones_like)]),
+            "b": DataVar(),
+        },
+        coords={"x": Coordinate(parsers=[Parser(np.square)])},
+    )
+    original = ds.copy(deep=True)
+    out = schema.validate(ds, inplace=inplace)
+
+    assert (out.data_vars["a"] == 1.0).all().item()
+    assert (out.data_vars["b"] == 1.0).all().item()
+    assert out.coords["x"].max().item() == 4.0
+    if inplace:
+        xr.testing.assert_identical(ds, out)
+    else:
+        xr.testing.assert_identical(ds, original)
 
 
 def test_optional_default_fill():
@@ -309,6 +369,63 @@ class TestDatasetCheckMethods:
         results = backend.check_coords(ds, schema)
         assert any(not r.passed for r in results)
 
+    def test_check_coords_dtype_pass(self, backend):
+        ds = xr.Dataset(
+            {"a": (["x"], np.zeros(2))},
+            coords={"x": np.arange(2, dtype=np.int16)},
+        )
+        schema = DatasetSchema(
+            data_vars={"a": DataVar()},
+            coords={"x": Coordinate(dtype=np.int16)},
+        )
+        results = backend.check_coords(ds, schema)
+        assert all(r.passed for r in results) or not results
+
+    def test_check_coords_dtype_fail(self, backend):
+        ds = xr.Dataset(
+            {"a": (["x"], np.zeros(2))},
+            coords={"x": np.arange(2, dtype=np.int16)},
+        )
+        schema = DatasetSchema(
+            data_vars={"a": DataVar()},
+            coords={"x": Coordinate(dtype=np.float32)},
+        )
+        results = backend.check_coords(ds, schema)
+        assert any(not r.passed for r in results)
+
+    def test_check_coords_dtype_coerced(self, backend):
+        ds = xr.Dataset(
+            {"a": (["x"], np.zeros(2))},
+            coords={"x": np.arange(2, dtype=np.int16)},
+        )
+        schema = DatasetSchema(
+            data_vars={"a": DataVar()},
+            coords={"x": Coordinate(dtype=np.float32, coerce=True)},
+        )
+        results = backend.check_coords(ds, schema)
+        assert all(r.passed for r in results) or not results
+        assert ds.coords["x"].dtype == np.float32
+
+    def test_check_coords_parser(self, backend):
+        ds = xr.Dataset(
+            {"a": (["x"], np.zeros(2))},
+            coords={"x": np.arange(2, dtype=np.float32)},
+        )
+        schema = DatasetSchema(
+            data_vars={"a": DataVar()},
+            coords={
+                "x": Coordinate(
+                    dtype=np.float32,
+                    coerce=False,
+                    parsers=Parser(lambda da: da + np.float32(1.0)),
+                )
+            },
+        )
+        results = backend.check_coords(ds, schema)
+        assert all(r.passed for r in results) or not results
+        assert ds.coords["x"].dtype == np.float32
+        assert ds.coords["x"].max().item() == np.float32(2.0)
+
     def test_check_strict_coords_pass(self, backend):
         ds = xr.Dataset(
             {"a": (["x"], np.zeros(2))},
@@ -388,6 +505,65 @@ class TestDatasetCheckMethods:
             ds, schema, {"a": "a", "b": "b"}
         )
         assert not results
+
+    def test_check_data_vars_dtype_pass(self, backend):
+        ds = xr.Dataset({"a": (["x"], np.zeros(2, dtype=np.int16))})
+        schema = DatasetSchema(
+            data_vars={"a": DataVar(dtype=np.int16)},
+        )
+        logical_to_actual = {"a": "a"}
+        results = backend.run_schema_component_checks(
+            ds, schema, logical_to_actual
+        )
+        assert all(r.passed for r in results) or not results
+
+    def test_check_data_vars_dtype_fail(self, backend):
+        ds = xr.Dataset(
+            {"a": (["x"], np.zeros(2, dtype=np.int16))},
+        )
+        schema = DatasetSchema(
+            data_vars={"a": DataVar(dtype=np.float32)},
+        )
+        logical_to_actual = {"a": "a"}
+        results = backend.run_schema_component_checks(
+            ds, schema, logical_to_actual
+        )
+        assert any(not r.passed for r in results)
+
+    def test_check_data_vars_dtype_coerced(self, backend):
+        ds = xr.Dataset(
+            {"a": (["x"], np.zeros(2, dtype=np.int16))},
+        )
+        schema = DatasetSchema(
+            data_vars={"a": DataVar(dtype=np.float32, coerce=True)},
+        )
+        logical_to_actual = {"a": "a"}
+        results = backend.run_schema_component_checks(
+            ds, schema, logical_to_actual
+        )
+        assert all(r.passed for r in results) or not results
+        assert ds.data_vars["a"].dtype == np.float32
+
+    def test_check_data_vars_parser(self, backend):
+        ds = xr.Dataset(
+            {"a": (["x"], np.arange(2, dtype=np.int16))},
+        )
+        schema = DatasetSchema(
+            data_vars={
+                "a": DataVar(
+                    dtype=np.float32,
+                    coerce=False,
+                    parsers=Parser(lambda da: da + np.float32(1.0)),
+                )
+            },
+        )
+        logical_to_actual = {"a": "a"}
+        results = backend.run_schema_component_checks(
+            ds, schema, logical_to_actual
+        )
+        assert all(r.passed for r in results) or not results
+        assert ds.data_vars["a"].dtype == np.float32
+        assert ds.data_vars["a"].max().item() == np.float32(2.0)
 
     def test_check_data_var_alignment_pass(self, backend):
         ds = xr.Dataset(

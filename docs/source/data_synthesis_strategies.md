@@ -29,6 +29,22 @@ The `hypotheses` dependency set is for pandera hypothesis checks and does
 not install the `hypothesis` library.
 :::
 
+:::{note}
+The generated data uses `hypothesis` to generate random data that satisfies
+the schema. This means that the generated data will not be exactly the same as
+the data in the original dataset, and in many cases will not qualitatively look
+like the original data, however it will be valid according to the schema.
+
+The purpose of the `pandera generate` command is to help you test your schema
+and data validation logic, not to generate data that is exactly the same as the
+original data.
+
+For libraries that generate realistic data, refer to:
+- [Faker](https://github.com/joke2k/faker)
+- [Mimesis](https://github.com/lk-geimfari/mimesis)
+- [SDV](https://github.com/sdv-dev/sdv)
+:::
+
 ## Basic Usage
 
 Once you've defined a schema, it's easy to generate examples:
