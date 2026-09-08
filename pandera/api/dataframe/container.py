@@ -1165,7 +1165,7 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
         :class:`~pandera.api.dataframe.container.DataFrameSchema`
 
         :param level: list of labels
-        :param drop: bool, default True
+        :param drop: bool, default False
         :return: a new :class:`~pandera.api.dataframe.container.DataFrameSchema`
             with specified column(s) in the index.
         :raises: :class:`~pandera.errors.SchemaInitError` if no index set in
