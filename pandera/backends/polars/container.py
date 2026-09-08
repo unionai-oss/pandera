@@ -67,6 +67,18 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
                 "When drop_invalid_rows is True, lazy must be set to True."
             )
 
+        # User-defined parsers are not supported by the polars backend yet:
+        # neither the model builder nor this backend wires them up. Fail
+        # loudly instead of validating un-transformed data (#2472).
+        declared_parsers = list(getattr(schema, "parsers", None) or [])
+        for component in (getattr(schema, "columns", {}) or {}).values():
+            declared_parsers.extend(getattr(component, "parsers", None) or [])
+        if declared_parsers:
+            raise NotImplementedError(
+                "user-defined parsers are not supported by the polars "
+                "backend (see issue #2472)"
+            )
+
         core_parsers: list[tuple[Callable[..., Any], tuple[Any, ...]]] = [
             (self.add_missing_columns, (schema, column_info)),
             (self.strict_filter_columns, (schema, column_info)),

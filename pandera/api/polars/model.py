@@ -38,6 +38,13 @@ class DataFrameModel(_DataFrameModel[pl.LazyFrame, DataFrameSchema]):
 
     @classmethod
     def build_schema_(cls, **kwargs) -> DataFrameSchema:
+        # User-defined parsers are not supported by the polars backend yet
+        # (see issue #2472): fail loudly instead of silently dropping them.
+        if cls.__parsers__ or cls.__root_parsers__:
+            raise SchemaInitError(
+                "user-defined parsers are not supported by the polars "
+                "backend (see issue #2472)"
+            )
         return DataFrameSchema(
             cls._build_columns(cls.__fields__, cls.__checks__),
             checks=cls.__root_checks__,
