@@ -64,6 +64,22 @@ class PanderaConfig:
 _TRUTHY = {"true", "True", "1"}
 
 
+def _coerce_validation_depth(
+    validation_depth: ValidationDepth | str | None,
+) -> ValidationDepth | None:
+    """Coerce a user-supplied validation depth into a ``ValidationDepth``.
+
+    ``ValidationDepth`` is a plain ``Enum``, so an un-coerced string compares
+    unequal to every member. Every ``@validate_scope`` gate is a
+    ``config.validation_depth == ValidationDepth.X`` comparison, so storing
+    the raw string turns depth gating into a silent no-op. Coercing here also
+    makes an unknown value raise ``ValueError`` instead of disabling gating.
+    """
+    if validation_depth is None:
+        return None
+    return ValidationDepth(validation_depth)
+
+
 def _silenced_warnings_from_env() -> list[str]:
     """Collect silenced warnings from environment variables."""
     all_warning_names = [
@@ -81,9 +97,9 @@ def _config_from_env_vars():
         os.environ.get("PANDERA_VALIDATION_ENABLED", "True") in _TRUTHY
     )
 
-    validation_depth = os.environ.get("PANDERA_VALIDATION_DEPTH", None)
-    if validation_depth is not None:
-        validation_depth = ValidationDepth(validation_depth)
+    validation_depth = _coerce_validation_depth(
+        os.environ.get("PANDERA_VALIDATION_DEPTH", None)
+    )
 
     cache_dataframe = (
         os.environ.get("PANDERA_CACHE_DATAFRAME", "False") in _TRUTHY
@@ -146,7 +162,7 @@ _CONTEXT_CONFIG = _ContextConfig(_copy_config(CONFIG))
 
 def set_config(
     validation_enabled: bool | None = None,
-    validation_depth: ValidationDepth | None = None,
+    validation_depth: ValidationDepth | str | None = None,
     cache_dataframe: bool | None = None,
     keep_cached_dataframe: bool | None = None,
     use_narwhals_backend: bool | None = None,
@@ -156,7 +172,8 @@ def set_config(
 
     Args:
         validation_enabled: Enable or disable validation (default: None)
-        validation_depth: Validation depth level (SCHEMA_ONLY, DATA_ONLY, SCHEMA_AND_DATA)
+        validation_depth: Validation depth level (SCHEMA_ONLY, DATA_ONLY,
+            SCHEMA_AND_DATA), as a ``ValidationDepth`` or its string name
         cache_dataframe: Whether to cache dataframes during validation (default: None)
         keep_cached_dataframe: Whether to keep cached dataframes after validation (default: None)
         use_narwhals_backend: Enable Narwhals-powered backend for compatible backends (default: None)
@@ -174,7 +191,7 @@ def set_config(
     if validation_enabled is not None:
         CONFIG.validation_enabled = validation_enabled
     if validation_depth is not None:
-        CONFIG.validation_depth = validation_depth
+        CONFIG.validation_depth = _coerce_validation_depth(validation_depth)
     if cache_dataframe is not None:
         CONFIG.cache_dataframe = cache_dataframe
     if keep_cached_dataframe is not None:
@@ -200,7 +217,7 @@ def set_config(
 @contextmanager
 def config_context(
     validation_enabled: bool | None = None,
-    validation_depth: ValidationDepth | None = None,
+    validation_depth: ValidationDepth | str | None = None,
     cache_dataframe: bool | None = None,
     keep_cached_dataframe: bool | None = None,
     use_narwhals_backend: bool | None = None,
@@ -213,7 +230,9 @@ def config_context(
     if validation_enabled is not None:
         context_config.validation_enabled = validation_enabled
     if validation_depth is not None:
-        context_config.validation_depth = validation_depth
+        context_config.validation_depth = _coerce_validation_depth(
+            validation_depth
+        )
     if cache_dataframe is not None:
         context_config.cache_dataframe = cache_dataframe
     if keep_cached_dataframe is not None:

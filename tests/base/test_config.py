@@ -38,7 +38,9 @@ def test_set_config_updates_attributes():
         )
 
         assert CONFIG.validation_enabled is False
-        assert CONFIG.validation_depth == "DATA_ONLY"
+        # the string is coerced on the way in, so the stored value compares
+        # equal to the enum member the @validate_scope gates check against
+        assert CONFIG.validation_depth is ValidationDepth.DATA_ONLY
         assert CONFIG.cache_dataframe is True
         assert CONFIG.keep_cached_dataframe is True
         assert CONFIG.use_narwhals_backend is True
@@ -47,6 +49,41 @@ def test_set_config_updates_attributes():
         # Restore original values
         set_config(**original_values)
         CONFIG.validation_depth = original_values["validation_depth"]
+        reset_config_context()
+
+
+@pytest.mark.parametrize(
+    "validation_depth",
+    ["SCHEMA_ONLY", "DATA_ONLY", "SCHEMA_AND_DATA"],
+)
+def test_config_context_coerces_string_validation_depth(validation_depth):
+    """A string depth is stored as the matching ValidationDepth member.
+
+    ValidationDepth is a plain Enum, so an un-coerced string compares unequal
+    to every member and turns each @validate_scope gate into a no-op.
+    """
+    with config_context(validation_depth=validation_depth):
+        stored = get_config_context().validation_depth
+
+    assert stored is ValidationDepth(validation_depth)
+
+
+def test_config_context_rejects_unknown_validation_depth():
+    """An unknown depth raises instead of silently disabling gating."""
+    with pytest.raises(ValueError, match="not a valid ValidationDepth"):
+        with config_context(validation_depth="NOT_A_DEPTH"):
+            pass
+
+
+def test_set_config_rejects_unknown_validation_depth():
+    """set_config coerces on the same terms as config_context."""
+    original = CONFIG.validation_depth
+    try:
+        with pytest.raises(ValueError, match="not a valid ValidationDepth"):
+            set_config(validation_depth="NOT_A_DEPTH")
+        assert CONFIG.validation_depth == original
+    finally:
+        CONFIG.validation_depth = original
         reset_config_context()
 
 
