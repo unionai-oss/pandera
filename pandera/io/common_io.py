@@ -441,7 +441,7 @@ def to_script(
 
     script = SCRIPT_TEMPLATE.format(
         columns=column_str,
-        checks=statistics["checks"],
+        checks=_format_checks(statistics["checks"], qual=qual),
         index=index,
         dtype=dataframe_schema.dtype,
         coerce=dataframe_schema.coerce,
