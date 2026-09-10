@@ -1,0 +1,3 @@
+36e944f0a009745af319fec94ac884c60a772b27 # Upgrade `pyupgrade` hook and target Python version
+035e4c0b85fe4f03ad948c8c0f31eb804a5bb22e # Remove unused imports, using ruff with manual help
+ff8674a54c5e86d2a185ff6cb6197c0961af09bb # Use Ruff instead of Black, `pyupgrade` and `isort`

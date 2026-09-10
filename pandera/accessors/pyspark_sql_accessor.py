@@ -1,0 +1,163 @@
+"""Custom accessor functionality for PySpark.Sql. Register pyspark accessor for pandera schema metadata."""
+
+import logging
+import warnings
+
+import pyspark
+from packaging import version
+
+from pandera.api.base.error_handler import ErrorHandler
+from pandera.api.pyspark.container import DataFrameSchema
+
+Schemas = DataFrameSchema  # type: ignore
+Errors = ErrorHandler  # type: ignore
+
+
+logger = logging.getLogger(__name__)
+
+
+class PanderaAccessor:
+    """Pandera accessor for pyspark object."""
+
+    def __init__(self, pyspark_obj):
+        """Initialize the pandera accessor."""
+        self._pyspark_obj = pyspark_obj
+        self._schema: Schemas | None = None
+        self._errors: Errors | None = None
+
+    @staticmethod
+    def check_schema_type(schema: Schemas):  # type: ignore
+        """Abstract method for checking the schema type."""
+        raise NotImplementedError
+
+    def add_schema(self, schema):
+        """Add a schema to the pyspark object."""
+        self.check_schema_type(schema)
+        self._schema = schema
+        return self._pyspark_obj
+
+    @property
+    def schema(self) -> Schemas | None:  # type: ignore
+        """Access schema metadata."""
+        return self._schema
+
+    @property
+    def errors(self) -> Errors | None:  # type: ignore
+        """Access errors details."""
+        return self._errors
+
+    @errors.setter
+    def errors(self, value: Errors | None):  # type: ignore
+        """Set errors details."""
+        self._errors = value
+
+
+class CachedAccessor:
+    """
+    Custom property-like object.
+
+    A descriptor for caching accessors:
+
+    :param name: Namespace that accessor's methods, properties, etc will be
+        accessed under, e.g. "foo" for a dataframe accessor yields the accessor
+        ``df.foo``
+    :param cls: Class with the extension methods.
+
+    For accessor, the class's __init__ method assumes that you are registering
+    an accessor for one of ``Series``, ``DataFrame``, or ``Index``.
+    """
+
+    def __init__(self, name, accessor):
+        self._name = name
+        self._accessor = accessor
+
+    def __get__(self, obj, cls):
+        if obj is None:  # pragma: no cover
+            return self._accessor
+        accessor_obj = self._accessor(obj)
+        object.__setattr__(obj, self._name, accessor_obj)
+        return accessor_obj
+
+
+def _register_accessor(name, cls):
+    """
+    Register a custom accessor on {class} objects.
+
+    :param name: Name under which the accessor should be registered. A warning
+        is issued if this name conflicts with a preexisting attribute.
+    :returns: A class decorator callable.
+    """
+
+    def decorator(accessor):
+        if hasattr(cls, name):
+            msg = (
+                f"registration of accessor {accessor} under name '{name}' for "
+                f"type {cls.__name__} is overriding a preexisting attribute "
+                "with the same name."
+            )
+
+            warnings.warn(
+                msg,
+                UserWarning,
+                stacklevel=2,
+            )
+        setattr(cls, name, CachedAccessor(name, accessor))
+        return accessor
+
+    return decorator
+
+
+def register_dataframe_accessor(name):
+    """
+    Register a custom accessor with a classical Spark DataFrame
+
+    :param name: name used when calling the accessor after its registered
+    :returns: a class decorator callable.
+    """
+
+    from pyspark.sql import DataFrame
+
+    return _register_accessor(name, DataFrame)
+
+
+def register_connect_dataframe_accessor(name):
+    """
+    Register a custom accessor with a Spark Connect DataFrame
+
+    :param name: name used when calling the accessor after its registered
+    :returns: a class decorator callable.
+    """
+
+    from pyspark.sql.connect.dataframe import DataFrame as psc_DataFrame
+
+    if hasattr(psc_DataFrame, name):
+        logger.info(
+            f"Accessor {name} already registered for "
+            "pyspark.sql.connect.dataframe.DataFrame",
+        )
+        return lambda x: None  # type: ignore
+
+    return _register_accessor(name, psc_DataFrame)
+
+
+class PanderaDataFrameAccessor(PanderaAccessor):
+    """Pandera accessor for pyspark DataFrame."""
+
+    @staticmethod
+    def check_schema_type(schema):
+        if not isinstance(schema, DataFrameSchema):
+            raise TypeError(
+                f"schema arg must be a DataFrameSchema, found {type(schema)}"
+            )
+
+
+register_dataframe_accessor("pandera")(PanderaDataFrameAccessor)
+# Handle optional Spark Connect imports for pyspark>=3.4 (if available)
+if version.parse(pyspark.__version__) >= version.parse("3.4"):
+    try:
+        register_connect_dataframe_accessor("pandera")(
+            PanderaDataFrameAccessor
+        )
+    except ImportError:
+        # grpcio-status or other Spark Connect dependencies not installed
+        pass
