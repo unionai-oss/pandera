@@ -1,0 +1,1189 @@
+"""Polars engine and data types."""
+
+import builtins
+import dataclasses
+import datetime
+import decimal
+import inspect
+import logging
+import types
+import warnings
+from collections.abc import Iterable, Mapping, Sequence
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Literal,
+    TypedDict,
+    Union,
+    overload,
+)
+
+import polars as pl
+from polars._typing import ColumnNameOrSelector, PythonDataType
+from polars.datatypes import DataTypeClass
+from polars.datatypes._parse import parse_py_type_into_dtype
+from pydantic import BaseModel, ValidationError
+from typing_extensions import NotRequired, deprecated
+
+from pandera import dtypes, errors
+from pandera.api.polars.types import PolarsData
+from pandera.backends.polars.utils import horizontal_concat, polars_version
+from pandera.constants import CHECK_OUTPUT_KEY
+from pandera.dtypes import immutable
+from pandera.engines import PYDANTIC_V2, engine
+
+if TYPE_CHECKING:
+    from pandera.api.polars.container import (
+        DataFrameSchema as PolarsDataFrameSchema,
+    )
+
+logger = logging.getLogger(__name__)
+
+PolarsDataContainer = Union[pl.LazyFrame, PolarsData]
+PolarsDataType = Union[DataTypeClass, pl.DataType]
+
+COERCION_ERRORS = (
+    TypeError,
+    pl.exceptions.InvalidOperationError,
+    pl.exceptions.ComputeError,
+)
+
+
+SchemaDict = Mapping[str, PolarsDataType]
+
+
+def convert_py_dtype_to_polars_dtype(dtype):
+    if isinstance(dtype, DataTypeClass):
+        return dtype
+
+    return parse_py_type_into_dtype(dtype)
+
+
+def polars_object_coercible(
+    data_container: PolarsData, type_: PolarsDataType
+) -> pl.LazyFrame:
+    """Checks whether a polars object is coercible with respect to a type."""
+    key = data_container.key or "*"
+
+    # do a strict cast for list types since is_not_null() cannot correctly
+    # evaluate null values in lists.
+    strict = isinstance(type_, pl.List)
+    coercible = data_container.lazyframe.cast(
+        {key: type_}, strict=strict
+    ).select(pl.col(key).is_not_null())
+    # reduce to a single boolean column
+    return coercible.select(pl.all_horizontal(key).alias(CHECK_OUTPUT_KEY))
+
+
+def polars_failure_cases_from_coercible(
+    data_container: PolarsData,
+    is_coercible: pl.LazyFrame,
+) -> pl.DataFrame:
+    """Get the failure cases resulting from trying to coerce a polars object."""
+    return (
+        horizontal_concat([data_container.lazyframe, is_coercible])
+        .filter(pl.col(CHECK_OUTPUT_KEY).not_())
+        .collect()
+    )
+
+
+def polars_coerce_failure_cases(
+    data_container: PolarsData,
+    type_: Any,
+) -> tuple[pl.DataFrame, pl.DataFrame]:
+    """
+    Get the failure cases resulting from trying to coerce a polars object
+    into particular data type.
+    """
+    try:
+        is_coercible = polars_object_coercible(data_container, type_)
+    except (TypeError, pl.exceptions.InvalidOperationError):
+        is_coercible = data_container.lazyframe.with_columns(
+            **{CHECK_OUTPUT_KEY: pl.lit(False)}
+        ).select(CHECK_OUTPUT_KEY)
+
+    try:
+        failure_cases = polars_failure_cases_from_coercible(
+            data_container, is_coercible
+        )
+        is_coercible_df = is_coercible.collect()
+    except COERCION_ERRORS:
+        # If coercion fails, all of the relevant rows are failure cases
+        failure_cases = data_container.lazyframe.select(
+            data_container.key or "*"
+        ).collect()
+
+        is_coercible_df = (
+            data_container.lazyframe.with_columns(
+                **{CHECK_OUTPUT_KEY: pl.lit(False)}
+            ).select(CHECK_OUTPUT_KEY)
+        ).collect()
+
+    return is_coercible_df, failure_cases
+
+
+@immutable(init=True)
+class DataType(dtypes.DataType):
+    """Base `DataType` for boxing Polars data types."""
+
+    type: Union[builtins.type[pl.DataType], DataTypeClass] = dataclasses.field(
+        repr=False, init=False
+    )
+
+    def __init__(self, dtype: Any | None = None):
+        super().__init__()
+
+        try:
+            object.__setattr__(
+                self, "type", convert_py_dtype_to_polars_dtype(dtype)
+            )
+        except ValueError:
+            object.__setattr__(self, "type", pl.Object)
+
+        dtype_cls = dtype if inspect.isclass(dtype) else dtype.__class__
+        warnings.warn(
+            f"'{dtype_cls}' support is not guaranteed.\n"
+            + "Usage Tip: Consider writing a custom "
+            + "pandera.dtypes.DataType or opening an issue at "
+            + "https://github.com/pandera-dev/pandera"
+        )
+
+    def __post_init__(self):
+        # this method isn't called if __init__ is defined
+        if not isinstance(self.type, DataTypeClass):
+            try:
+                object.__setattr__(
+                    self, "type", convert_py_dtype_to_polars_dtype(self.type)
+                )
+            except ValueError:
+                object.__setattr__(self, "type", pl.Object)
+
+    def coerce(self, data_container: PolarsDataContainer) -> pl.LazyFrame:
+        """Coerce data container to the data type."""
+        if isinstance(data_container, pl.LazyFrame):
+            data_container = PolarsData(data_container)
+
+        dtypes: Union[
+            Mapping[
+                Union[ColumnNameOrSelector, PolarsDataType],
+                Union[PolarsDataType, PythonDataType],
+            ],
+            PolarsDataType,
+        ]
+
+        if data_container.key == "*":
+            dtypes = self.type
+        else:
+            dtypes = {data_container.key: self.type}
+
+        return data_container.lazyframe.cast(dtypes, strict=True)
+
+    def try_coerce(self, data_container: PolarsDataContainer) -> pl.LazyFrame:
+        """Coerce data container to the data type,
+        raises a :class:`~pandera.errors.ParserError` if the coercion fails
+        :raises: :class:`~pandera.errors.ParserError`: if coercion fails
+        """
+        if isinstance(data_container, pl.LazyFrame):
+            data_container = PolarsData(data_container)
+
+        try:
+            lf = self.coerce(data_container)
+            lf.collect()
+            return lf
+        except COERCION_ERRORS as exc:
+            _key = (
+                ""
+                if data_container.key == "*"
+                else f"'{data_container.key}' in"
+            )
+            is_coercible, failure_cases = polars_coerce_failure_cases(
+                data_container=data_container, type_=self.type
+            )
+            if data_container.key != "*":
+                failure_cases = failure_cases.select(data_container.key)
+            raise errors.ParserError(
+                f"Could not coerce {_key} LazyFrame with schema "
+                f"{data_container.lazyframe.collect_schema()} "
+                f"into type {self.type}",
+                failure_cases=failure_cases,
+                parser_output=is_coercible,
+            ) from exc
+
+    def check(
+        self,
+        pandera_dtype: dtypes.DataType,
+        data_container: PolarsDataContainer | None = None,
+    ) -> Union[bool, Iterable[bool]]:
+        try:
+            pandera_dtype = Engine.dtype(pandera_dtype)
+        except TypeError:
+            return False
+
+        return self.type == pandera_dtype.type and super().check(pandera_dtype)
+
+    def __str__(self) -> str:
+        return str(self.type)
+
+    def __repr__(self) -> str:
+        return f"DataType({self})"
+
+
+class Engine(metaclass=engine.Engine, base_pandera_dtypes=DataType):
+    """Polars data type engine."""
+
+    @classmethod
+    def dtype(cls, data_type: Any) -> dtypes.DataType:
+        """Convert input into a polars-compatible
+        Pandera :class:`~pandera.dtypes.DataType` object."""
+        nested_schema = cls._as_nested_schema(data_type)
+        if nested_schema is not None:
+            return PanderaSchema(nested_schema)
+
+        try:
+            return engine.Engine.dtype(cls, data_type)
+        except TypeError:
+            try:
+                pl_dtype = convert_py_dtype_to_polars_dtype(data_type)
+            except ValueError:
+                raise TypeError(
+                    f"data type '{data_type}' not understood by "
+                    f"{cls.__name__}."
+                ) from None
+
+            try:
+                return engine.Engine.dtype(cls, pl_dtype)
+            except TypeError:
+                return DataType(data_type)
+
+    @staticmethod
+    def _as_nested_schema(data_type: Any):
+        """If data_type is a polars DataFrameModel/DataFrameSchema, return the
+        corresponding DataFrameSchema so it can be wrapped as PanderaSchema."""
+        from pandera.api.polars.container import (
+            DataFrameSchema as PolarsDataFrameSchema,
+        )
+        from pandera.api.polars.model import DataFrameModel as PolarsModel
+
+        if isinstance(data_type, PolarsDataFrameSchema):
+            return data_type
+        if inspect.isclass(data_type) and issubclass(data_type, PolarsModel):
+            return data_type.to_schema()
+        return None
+
+
+###############################################################################
+# Numeric types
+###############################################################################
+@Engine.register_dtype(
+    equivalents=["int8", pl.Int8, dtypes.Int8, dtypes.Int8()]
+)
+@immutable
+class Int8(DataType, dtypes.Int8):
+    """Polars signed 8-bit integer data type."""
+
+    type = pl.Int8
+
+
+@Engine.register_dtype(
+    equivalents=["int16", pl.Int16, dtypes.Int16, dtypes.Int16()]
+)
+@immutable
+class Int16(DataType, dtypes.Int16):
+    """Polars signed 16-bit integer data type."""
+
+    type = pl.Int16
+
+
+@Engine.register_dtype(
+    equivalents=["int32", pl.Int32, dtypes.Int32, dtypes.Int32()]
+)
+@immutable
+class Int32(DataType, dtypes.Int32):
+    """Polars signed 32-bit integer data type."""
+
+    type = pl.Int32
+
+
+@Engine.register_dtype(
+    equivalents=["int64", int, pl.Int64, dtypes.Int64, dtypes.Int64()]
+)
+@immutable
+class Int64(DataType, dtypes.Int64):
+    """Polars signed 64-bit integer data type."""
+
+    type = pl.Int64
+
+
+@Engine.register_dtype(
+    equivalents=["uint8", pl.UInt8, dtypes.UInt8, dtypes.UInt8()]
+)
+@immutable
+class UInt8(DataType, dtypes.UInt8):
+    """Polars unsigned 8-bit integer data type."""
+
+    type = pl.UInt8
+
+
+@Engine.register_dtype(
+    equivalents=["uint16", pl.UInt16, dtypes.UInt16, dtypes.UInt16()]
+)
+@immutable
+class UInt16(DataType, dtypes.UInt16):
+    """Polars unsigned 16-bit integer data type."""
+
+    type = pl.UInt16
+
+
+@Engine.register_dtype(
+    equivalents=["uint32", pl.UInt32, dtypes.UInt32, dtypes.UInt32()]
+)
+@immutable
+class UInt32(DataType, dtypes.UInt32):
+    """Polars unsigned 32-bit integer data type."""
+
+    type = pl.UInt32
+
+
+@Engine.register_dtype(
+    equivalents=["uint64", pl.UInt64, dtypes.UInt64, dtypes.UInt64()]
+)
+@immutable
+class UInt64(DataType, dtypes.UInt64):
+    """Polars unsigned 64-bit integer data type."""
+
+    type = pl.UInt64
+
+
+@Engine.register_dtype(
+    equivalents=["float32", pl.Float32, dtypes.Float32, dtypes.Float32()]
+)
+@immutable
+class Float32(DataType, dtypes.Float32):
+    """Polars 32-bit floating point data type."""
+
+    type = pl.Float32
+
+
+@Engine.register_dtype(
+    equivalents=[
+        "float64",
+        float,
+        pl.Float64,
+        dtypes.Float64,
+        dtypes.Float64(),
+    ]
+)
+@immutable
+class Float64(DataType, dtypes.Float64):
+    """Polars 64-bit floating point data type."""
+
+    type = pl.Float64
+
+
+@Engine.register_dtype(
+    equivalents=[
+        "decimal",
+        decimal.Decimal,
+        pl.Decimal,
+        dtypes.Decimal,
+        dtypes.Decimal(),
+    ]
+)
+@immutable(init=True)
+class Decimal(DataType, dtypes.Decimal):
+    """Polars decimal data type."""
+
+    type = pl.Decimal
+
+    # Polars Decimal doesn't have a rounding attribute.
+    rounding = None
+
+    def __init__(
+        self,
+        precision: int = dtypes.DEFAULT_PYTHON_PREC,
+        scale: int = 0,
+    ) -> None:
+        object.__setattr__(self, "precision", precision)
+        object.__setattr__(self, "scale", scale)
+        object.__setattr__(
+            self, "type", pl.Decimal(precision=precision, scale=scale)
+        )
+
+    @classmethod
+    def from_parametrized_dtype(cls, polars_dtype: pl.Decimal):
+        """Convert a :class:`polars.Decimal` to
+        a Pandera :class:`pandera.engines.polars_engine.Decimal`."""
+        # Polars precision may be nullable; Pandera imposes a default.
+        precision = (
+            polars_dtype.precision
+            if polars_dtype.precision is not None
+            else dtypes.DEFAULT_PYTHON_PREC
+        )
+        return cls(precision=precision, scale=polars_dtype.scale)
+
+    def coerce(self, data_container: PolarsDataContainer) -> pl.LazyFrame:
+        """Coerce data container to the data type."""
+        if isinstance(data_container, pl.LazyFrame):
+            data_container = PolarsData(data_container)
+
+        key = data_container.key or "*"
+        return data_container.lazyframe.cast({key: pl.Float64}).cast(
+            {key: pl.Decimal(scale=self.scale, precision=self.precision)},
+            strict=True,
+        )
+
+    def check(
+        self,
+        pandera_dtype: dtypes.DataType,
+        data_container: PolarsDataContainer | None = None,
+    ) -> Union[bool, Iterable[bool]]:
+        try:
+            pandera_dtype = Engine.dtype(pandera_dtype)
+            assert isinstance(pandera_dtype, Decimal), (
+                "The return is expected to be of Decimal class"
+            )
+        except TypeError:  # pragma: no cover
+            return False
+
+        try:
+            return (
+                (self.type == pandera_dtype.type)
+                & (self.scale == pandera_dtype.scale)
+                & (self.precision == pandera_dtype.precision)
+            )
+
+        except TypeError:  # pragma: no cover
+            return super().check(pandera_dtype)
+
+    def __str__(self) -> str:
+        return f"Decimal(precision={self.precision}, scale={self.scale})"
+
+
+###############################################################################
+# Temporal types
+###############################################################################
+
+
+@Engine.register_dtype(
+    equivalents=[
+        "date",
+        datetime.date,
+        pl.Date,
+        dtypes.Date,
+        dtypes.Date(),
+    ]
+)
+@immutable
+class Date(DataType, dtypes.Date):
+    """Polars date data type."""
+
+    type = pl.Date
+
+
+@Engine.register_dtype(
+    equivalents=[
+        "datetime",
+        datetime.datetime,
+        pl.Datetime,
+        dtypes.DateTime,
+        dtypes.DateTime(),
+    ]
+)
+@immutable(init=True)
+class DateTime(DataType, dtypes.DateTime):
+    """Polars datetime data type."""
+
+    type: builtins.type[pl.Datetime] = pl.Datetime
+    time_zone_agnostic: bool = False
+
+    def __init__(
+        self,
+        time_zone_agnostic: bool = False,
+        time_zone: str | None = None,
+        time_unit: Literal["ns", "us", "ms"] | None = None,
+    ) -> None:
+        # avoid deprecated warning when initializing pl.Datetime:
+        # passing time_unit=None is deprecated.
+        if time_unit is not None:
+            datetime = pl.Datetime(time_zone=time_zone, time_unit=time_unit)
+        else:
+            datetime = pl.Datetime(time_zone=time_zone)
+
+        object.__setattr__(self, "type", datetime)
+        object.__setattr__(self, "time_zone_agnostic", time_zone_agnostic)
+
+    @classmethod
+    def from_parametrized_dtype(cls, polars_dtype: pl.Datetime):
+        """Convert a :class:`polars.Datetime` to
+        a Pandera :class:`pandera.engines.polars_engine.DateTime`."""
+        return cls(
+            time_zone=polars_dtype.time_zone, time_unit=polars_dtype.time_unit
+        )
+
+    def check(
+        self,
+        pandera_dtype: dtypes.DataType,
+        data_container: PolarsDataContainer | None = None,
+    ) -> Union[bool, Iterable[bool]]:
+        try:
+            pandera_dtype = Engine.dtype(pandera_dtype)
+        except TypeError:
+            return False
+
+        if self.time_zone_agnostic:
+            return (
+                isinstance(pandera_dtype.type, pl.Datetime)
+                and pandera_dtype.type.time_unit == self.type.time_unit
+            )
+
+        return self.type == pandera_dtype.type and super().check(pandera_dtype)
+
+
+@Engine.register_dtype(
+    equivalents=[
+        "time",
+        datetime.time,
+        pl.Time,
+        dtypes.Time,
+        dtypes.Time(),
+    ]
+)
+@immutable
+class Time(DataType, dtypes.Time):
+    """Polars time data type."""
+
+    type = pl.Time
+
+
+@Engine.register_dtype(
+    equivalents=[
+        "timedelta",
+        datetime.timedelta,
+        pl.Duration,
+        dtypes.Timedelta,
+        dtypes.Timedelta(),
+    ]
+)
+@immutable(init=True)
+class Timedelta(DataType, dtypes.Timedelta):
+    """Polars timedelta data type."""
+
+    type = pl.Duration
+
+    def __init__(
+        self,
+        time_unit: Literal["ns", "us", "ms"] = "us",
+    ) -> None:
+        object.__setattr__(self, "type", pl.Duration(time_unit))
+
+    @classmethod
+    def from_parametrized_dtype(cls, polars_dtype: pl.Duration):
+        """Convert a :class:`polars.Duration` to
+        a Pandera :class:`pandera.engines.polars_engine.Duration`."""
+        if polars_dtype.time_unit is None:
+            return cls()
+        return cls(time_unit=polars_dtype.time_unit)
+
+
+###############################################################################
+# Nested types
+###############################################################################
+
+
+class _ArrayKwargs(TypedDict):
+    """typeddict for mypy."""
+
+    shape: NotRequired[Union[int, tuple[int, ...]]]
+    width: NotRequired[Union[int, None]]
+
+
+@Engine.register_dtype(equivalents=[pl.Array])
+@immutable(init=True)
+class Array(DataType):
+    """Polars Array nested type."""
+
+    type = pl.Array
+
+    @overload
+    def __init__(
+        self,
+        inner: Literal[None] = ...,
+        shape: Literal[None] = ...,
+        *,
+        width: Literal[None] = ...,
+    ) -> None: ...
+
+    @overload
+    @deprecated(
+        "The `width` argument of `Array` is deprecated, use `shape` instead."
+    )
+    def __init__(
+        self,
+        inner: PolarsDataType = ...,
+        shape: Union[int, tuple[int, ...], None] = ...,
+        *,
+        width: int,
+    ) -> None: ...
+
+    @overload
+    def __init__(
+        self,
+        inner: PolarsDataType = ...,
+        shape: Union[int, tuple[int, ...], None] = ...,
+        *,
+        width: None = ...,
+    ) -> None: ...
+
+    def __init__(
+        self,
+        inner: PolarsDataType | None = None,
+        shape: Union[int, tuple[int, ...], None] = None,
+        *,
+        width: int | None = None,
+    ) -> None:
+        """Construct a Polars Array dtype.
+
+        .. deprecated::
+          The ``width`` argument is deprecated, use ``shape`` instead.
+        """
+        kwargs: _ArrayKwargs = {}
+        if width is not None:
+            warnings.warn(
+                "The `width` argument of `Array` is deprecated and will be "
+                "removed in a future version. Use `shape` instead.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            kwargs["shape"] = width
+        elif shape is not None:
+            kwargs["shape"] = shape
+
+        if inner is not None:
+            object.__setattr__(self, "type", pl.Array(inner=inner, **kwargs))
+
+    @classmethod
+    def from_parametrized_dtype(cls, polars_dtype: pl.Array):
+        shape = polars_dtype.shape
+
+        if (
+            isinstance(shape, tuple)
+            and isinstance(shape[0], int)
+            and len(shape) > 1
+        ):
+            offset = len(shape) - 1
+            shape = shape[offset:]
+
+        return cls(
+            inner=polars_dtype.inner,
+            shape=shape,
+        )
+
+
+@Engine.register_dtype(equivalents=[pl.List])
+@immutable(init=True)
+class List(DataType):
+    """Polars List nested type."""
+
+    type = pl.List
+
+    def __init__(
+        self,
+        inner: PolarsDataType | None = None,
+    ) -> None:
+        if inner is not None:
+            object.__setattr__(self, "type", pl.List(inner=inner))
+
+    @classmethod
+    def from_parametrized_dtype(cls, polars_dtype: pl.List):
+        return cls(inner=polars_dtype.inner)
+
+
+@Engine.register_dtype(equivalents=[pl.Struct])
+@immutable(init=True)
+class Struct(DataType):
+    """Polars Struct nested type."""
+
+    type = pl.Struct
+
+    def __init__(
+        self,
+        fields: Union[Sequence[pl.Field], SchemaDict] | None = None,
+    ) -> None:
+        if fields is not None:
+            object.__setattr__(self, "type", pl.Struct(fields=fields))
+
+    @classmethod
+    def from_parametrized_dtype(cls, polars_dtype: pl.Struct):
+        return cls(fields=polars_dtype.fields)
+
+
+@immutable(init=True)
+class PanderaSchema(DataType):
+    """A nested pandera schema applied to a Struct column.
+
+    Makes it possible to compose DataFrameModel/DataFrameSchema objects as
+    columns of another one, e.g.::
+
+        class Foo(pa.DataFrameModel):
+            x: int = pa.Field(nullable=False)
+
+        class Bar(pa.DataFrameModel):
+            foo: Foo
+    """
+
+    type: DataTypeClass = dataclasses.field(default=None, init=False)  # type: ignore[assignment]
+    schema: "PolarsDataFrameSchema" = dataclasses.field(
+        default=None, init=False
+    )  # type: ignore[assignment]
+    auto_coerce = True
+
+    def __init__(self, schema: Any) -> None:
+        from pandera.api.polars.container import (
+            DataFrameSchema as PolarsDataFrameSchema,
+        )
+
+        if inspect.isclass(schema) and hasattr(schema, "to_schema"):
+            schema = schema.to_schema()
+
+        if not isinstance(schema, PolarsDataFrameSchema):
+            raise TypeError(
+                "PanderaSchema expects a pandera.polars.DataFrameSchema or "
+                f"DataFrameModel, got {type(schema)}"
+            )
+
+        object.__setattr__(self, "schema", schema)
+        object.__setattr__(
+            self, "type", pl.Struct(self._struct_fields(schema))
+        )
+
+    @staticmethod
+    def _struct_fields(schema) -> list[pl.Field]:
+        fields = []
+        for name, column in schema.columns.items():
+            dtype = column.dtype.type if column.dtype is not None else pl.Null
+            fields.append(pl.Field(name, dtype))
+        return fields
+
+    def coerce(self, data_container: PolarsDataContainer) -> pl.LazyFrame:
+        """Validate the nested struct column(s) against the nested schema."""
+        if isinstance(data_container, pl.LazyFrame):
+            data_container = PolarsData(data_container)
+
+        lf = data_container.lazyframe
+        key = data_container.key
+
+        keys = lf.collect_schema().names() if key in (None, "*") else [key]
+        row_idx_col = "__pandera_nested_row_idx__"
+
+        for column_name in keys:
+            n_rows = lf.select(pl.len()).collect().item()
+
+            non_null = (
+                lf.with_row_index(row_idx_col)
+                .filter(pl.col(column_name).is_not_null())
+                .select(row_idx_col, column_name)
+                .collect()
+            )
+            original_indices = non_null[row_idx_col].to_list()
+            unnested = non_null.select(column_name).lazy().unnest(column_name)
+            n_valid_rows = len(original_indices)
+
+            try:
+                self.schema.validate(unnested, lazy=True)
+            except errors.SchemaErrors as exc:
+                local_failing = sorted(
+                    {
+                        int(i)
+                        for i in exc.failure_cases["index"].to_list()
+                        if i is not None
+                    }
+                )
+                if not local_failing:
+                    local_failing = list(range(n_valid_rows))
+                failing_indices = [
+                    original_indices[i]
+                    for i in local_failing
+                    if i < n_valid_rows
+                ]
+
+                passed_mask = [True] * n_rows
+                for i in failing_indices:
+                    passed_mask[i] = False
+
+                check_output = pl.DataFrame({CHECK_OUTPUT_KEY: passed_mask})
+                failure_cases = (
+                    lf.select(column_name)
+                    .collect()[failing_indices]
+                    .rename({column_name: "failure_case"})
+                )
+
+                schema_label = self.schema.name or f"'{column_name}'"
+                raise errors.ParserError(
+                    f"Could not validate nested column '{column_name}' "
+                    f"against schema {schema_label}: {exc.message}",
+                    failure_cases=failure_cases,
+                    parser_output=check_output,
+                ) from exc
+
+        return lf
+
+    def try_coerce(self, data_container: PolarsDataContainer) -> pl.LazyFrame:
+        return self.coerce(data_container)
+
+    def check(
+        self,
+        pandera_dtype: dtypes.DataType,
+        data_container: PolarsDataContainer | None = None,
+    ) -> Union[bool, Iterable[bool]]:
+        try:
+            pandera_dtype = Engine.dtype(pandera_dtype)
+        except TypeError:
+            return False
+        return self.type == pandera_dtype.type
+
+    def __str__(self) -> str:
+        return f"PanderaSchema({self.schema})"
+
+
+###############################################################################
+# Other types
+###############################################################################
+
+
+@Engine.register_dtype(
+    equivalents=["bool", bool, pl.Boolean, dtypes.Bool, dtypes.Bool()]
+)
+@immutable
+class Bool(DataType, dtypes.Bool):
+    """Polars boolean data type."""
+
+    type = pl.Boolean
+
+
+@Engine.register_dtype(
+    equivalents=["binary", bytes, pl.Binary, dtypes.Binary, dtypes.Binary()]
+)
+@immutable
+class Binary(DataType, dtypes.Binary):
+    """Polars binary data type."""
+
+    type = pl.Binary
+
+
+@Engine.register_dtype(
+    equivalents=["string", str, pl.Utf8, dtypes.String, dtypes.String()]
+)
+@immutable
+class String(DataType, dtypes.String):
+    """Polars string data type."""
+
+    type = pl.Utf8
+
+
+@Engine.register_dtype(equivalents=[pl.Categorical])
+@immutable(init=True)
+class Categorical(DataType):
+    """Polars categorical data type."""
+
+    type = pl.Categorical
+
+    def __init__(self) -> None:
+        object.__setattr__(self, "type", pl.Categorical())
+
+    def __deepcopy__(self, memo):
+        """Custom deepcopy to avoid pickling issues with pl.Categorical()."""
+        return self.__class__()
+
+    @classmethod
+    def from_parametrized_dtype(cls, polars_dtype: pl.Categorical):
+        """Convert a :class:`polars.Categorical` to
+        a Pandera :class:`pandera.engines.polars_engine.Categorical`."""
+        return cls()
+
+
+@Engine.register_dtype(equivalents=[pl.Enum])
+@immutable(init=True)
+class Enum(DataType):
+    """Polars enum data type."""
+
+    type = pl.Enum
+
+    categories: pl.Series
+
+    def __init__(
+        self,
+        categories: Union[pl.Series, Iterable[str], None] = None,
+    ) -> None:
+        if categories is not None:
+            # skip setting categories when no arg pl.Enum() called as part of registration
+            object.__setattr__(self, "categories", categories)
+            object.__setattr__(self, "type", pl.Enum(categories=categories))
+
+    @classmethod
+    def from_parametrized_dtype(cls, polars_dtype: pl.Enum):
+        """Convert a :class:`polars.Enum` to
+        a Pandera :class:`pandera.engines.polars_engine.Enum`."""
+        return cls(categories=polars_dtype.categories)
+
+    def check(
+        self,
+        pandera_dtype: dtypes.DataType,
+        data_container: PolarsDataContainer | None = None,
+    ) -> Union[bool, Iterable[bool]]:
+        try:
+            pandera_dtype = Engine.dtype(pandera_dtype)
+        except TypeError:
+            return False
+
+        return (
+            self.type == pandera_dtype.type
+            and (self.type.categories == pandera_dtype.categories).all()  # type: ignore
+        )
+
+
+@Engine.register_dtype(
+    equivalents=["category", dtypes.Category, dtypes.Category()]
+)
+@immutable(init=True)
+class Category(DataType, dtypes.Category):
+    """Pandera categorical data type for polars."""
+
+    type = pl.Utf8
+
+    def __init__(self, categories: Iterable[Any] | None = None):
+        dtypes.Category.__init__(self, categories, ordered=False)
+
+    def coerce(self, data_container: PolarsDataContainer) -> pl.LazyFrame:
+        """Coerce data container to the data type."""
+        if isinstance(data_container, pl.LazyFrame):
+            data_container = PolarsData(data_container)
+
+        key = data_container.key or "*"
+
+        cast_dtypes: Union[
+            Mapping[
+                Union[ColumnNameOrSelector, PolarsDataType],
+                Union[PolarsDataType, PythonDataType],
+            ],
+            PolarsDataType,
+        ]
+        if key == "*":
+            cast_dtypes = self.type
+        else:
+            cast_dtypes = {key: self.type}
+        lf = data_container.lazyframe.cast(cast_dtypes, strict=True)
+
+        belongs_to_categories = self.__belongs_to_categories(lf, key=key)
+
+        all_true = (
+            belongs_to_categories.select(pl.col("belongs").all())
+            .collect()
+            .item()
+        )
+        if not all_true:
+            raise ValueError(
+                f"Could not coerce {type(lf)} data_container "
+                f"into type {self.type}. Invalid categories found in data_container."
+            )
+        return lf
+
+    def try_coerce(self, data_container: PolarsDataContainer) -> pl.LazyFrame:
+        """Coerce data container to the data type,
+
+        raises a :class:`~pandera.errors.ParserError` if the coercion fails
+        :raises: :class:`~pandera.errors.ParserError`: if coercion fails
+        """
+        if isinstance(data_container, pl.LazyFrame):
+            data_container = PolarsData(data_container)
+
+        try:
+            return self.coerce(data_container)
+        except Exception as exc:
+            coercible = polars_object_coercible(data_container, self.type)
+            match_categories = self.__belongs_to_categories(
+                data_container.lazyframe, key=data_container.key
+            )
+            is_coercible: pl.LazyFrame = horizontal_concat(
+                [coercible, match_categories]
+            ).select(pl.all_horizontal(CHECK_OUTPUT_KEY, "belongs"))
+
+            failure_cases = polars_failure_cases_from_coercible(
+                data_container, is_coercible
+            )
+            raise errors.ParserError(
+                f"Could not coerce {type(data_container)} data_container "
+                f"into type {self.type}. Invalid categories found in data_container.",
+                failure_cases=failure_cases,
+                parser_output=is_coercible.collect(),
+            ) from exc
+
+    def __belongs_to_categories(
+        self,
+        lf: pl.LazyFrame,
+        key: str = "*",
+    ) -> pl.LazyFrame:
+        # self.categories can be None, and polars won't crash on this, though the types indicate this should not
+        # be None
+        return lf.select(
+            pl.col(key)
+            .is_in(self.categories)  # type:ignore [arg-type]
+            .alias("belongs")
+        )
+
+    def __str__(self):
+        return "Category"
+
+
+@Engine.register_dtype(equivalents=["null", pl.Null])
+@immutable
+class Null(DataType):
+    """Polars null data type."""
+
+    type = pl.Null
+
+
+@Engine.register_dtype(equivalents=["object", object, pl.Object])
+@immutable
+class Object(DataType):
+    """Semantic representation of a :class:`numpy.object_`."""
+
+    type = pl.Object
+
+
+###############################################################################
+# pydantic
+###############################################################################
+
+
+@Engine.register_dtype
+@dtypes.immutable(init=True)
+class PydanticModel(DataType):
+    """A pydantic model datatype applying to rows in a polars dataframe."""
+
+    type: builtins.type[BaseModel] = dataclasses.field(
+        default=None, init=False
+    )  # type: ignore[assignment]
+    auto_coerce = True
+
+    def __init__(self, model: builtins.type[BaseModel]) -> None:
+        object.__setattr__(self, "type", model)
+
+    def _get_column_names(self) -> list[str]:
+        if PYDANTIC_V2:
+            return list(self.type.model_fields.keys())  # type: ignore[attr-defined]
+        return list(self.type.__fields__.keys())  # type: ignore[attr-defined]
+
+    def _get_polars_schema(self) -> dict[str, DataTypeClass]:
+        """Derive a {col_name: polars_dtype} mapping from the Pydantic model."""
+        from typing import Union, get_args, get_origin
+
+        annotations: dict[str, Any] = {}
+        if hasattr(self.type, "model_fields"):
+            for name, info in self.type.model_fields.items():
+                annotations[name] = info.annotation
+        else:
+            # TODO: remove pydantic v1 branch after dropping v1 support
+            for name, info in getattr(self.type, "__fields__").items():
+                annotations[name] = getattr(info, "outer_type_")
+
+        schema: dict[str, DataTypeClass] = {}
+        for name, ann in annotations.items():
+            origin = get_origin(ann)
+            if origin is Union or isinstance(ann, types.UnionType):
+                non_none = [a for a in get_args(ann) if a is not type(None)]
+                if len(non_none) == 1:
+                    ann = non_none[0]
+            try:
+                schema[name] = convert_py_dtype_to_polars_dtype(ann)
+            except (TypeError, ValueError):
+                schema[name] = pl.Null
+        return schema
+
+    def _check_column_names(
+        self,
+        data_container: pl.LazyFrame,
+        column_names: list[str],
+    ) -> None:
+        lf_columns = data_container.collect_schema().names()
+        absent_columns = [col for col in column_names if col not in lf_columns]
+
+        if absent_columns:
+            raise errors.ParserError(
+                f"Missing columns in LazyFrame: {absent_columns}",
+                failure_cases=absent_columns,
+            )
+
+    def coerce(self, data_container: PolarsDataContainer) -> pl.LazyFrame:
+        """Coerce polars dataframe with pydantic record model."""
+        if isinstance(data_container, pl.LazyFrame):
+            data_container = PolarsData(data_container)
+
+        lf = data_container.lazyframe
+
+        from pandera.config import (
+            SILENCE_WARNING_PYDANTIC_MODEL,
+            get_config_context,
+        )
+
+        if not get_config_context().is_warning_silenced(
+            SILENCE_WARNING_PYDANTIC_MODEL
+        ):
+            logger.warning(
+                "PydanticModel will materialize a LazyFrame with a "
+                "collect() call, which may be slow for large "
+                "datasets. For better performance, define column "
+                "types and checks with native DataFrameModel field "
+                "annotations instead. Silence this warning with "
+                "export SILENCE_WARNING_PYDANTIC_MODEL=true"
+            )
+        df = lf.collect()
+
+        if df.is_empty():
+            warnings.warn(
+                "PydanticModel cannot validate an empty dataframe "
+                "because it requires at least one row of data to "
+                "coerce. The PydanticModel will perform no type "
+                "checking on the empty dataframe.",
+                UserWarning,
+            )
+            column_names = self._get_column_names()
+            self._check_column_names(lf, column_names)
+            return lf
+
+        coerced_rows: list[dict[str, Any]] = []
+        failure_cases: list[str] = []
+        row_passed: list[bool] = []
+
+        for row in df.iter_rows(named=True):
+            try:
+                if PYDANTIC_V2:
+                    coerced = self.type.model_validate(row).model_dump()
+                else:
+                    coerced = self.type.parse_obj(row).dict()
+                coerced_rows.append(coerced)
+                row_passed.append(True)
+            except ValidationError as exc:
+                failed_fields = {
+                    k: row.get(k, "<missing>")
+                    for k in (x["loc"][0] for x in exc.errors())
+                }
+                failure_cases.append(str(failed_fields))
+                coerced_rows.append(row)
+                row_passed.append(False)
+
+        if failure_cases:
+            check_output = pl.DataFrame({CHECK_OUTPUT_KEY: row_passed})
+            fc_df = pl.DataFrame(coerced_rows).filter(
+                pl.lit(pl.Series(row_passed)).not_()
+            )
+            raise errors.ParserError(
+                f"Could not coerce LazyFrame into type {self.type.__name__}",
+                failure_cases=fc_df,
+                parser_output=check_output,
+            )
+
+        return pl.DataFrame(coerced_rows).lazy()
+
+    def try_coerce(self, data_container: PolarsDataContainer) -> pl.LazyFrame:
+        """Coerce data container, raising ParserError on failure."""
+        return self.coerce(data_container)
