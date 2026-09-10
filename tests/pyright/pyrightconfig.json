@@ -1,0 +1,8 @@
+{
+  "include": ["modules"],
+  "typeCheckingMode": "basic",
+  "pythonVersion": "3.11",
+  "reportMissingImports": false,
+  "reportMissingModuleSource": false,
+  "extraPaths": ["../.."]
+}
