@@ -178,6 +178,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
             (self.check_column_names_are_unique, (check_obj, schema)),
             (self.check_column_presence, (check_obj, schema, column_info)),
             (self.check_column_values_are_unique, (sample, schema)),
+            (self.check_index_not_in_schema, (check_obj, schema)),
             (
                 self.run_schema_component_checks,
                 (sample, schema, components, lazy),
@@ -903,6 +904,55 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
             passed=passed,
             check="dataframe_column_labels_unique",
             reason_code=SchemaErrorReason.DUPLICATE_COLUMN_LABELS,
+            message=message,
+            failure_cases=failure_cases,
+        )
+
+    @validate_scope(scope=ValidationScope.SCHEMA)
+    def check_index_not_in_schema(
+        self,
+        check_obj: pd.DataFrame,
+        schema,
+    ) -> CoreCheckResult:
+        """Under ``strict=True``, ensure the dataframe has the default index
+        if the schema doesn't declare one.
+
+        ``strict`` otherwise only constrains the dataframe's columns, so a
+        dataframe with a non-default index (e.g. one that's been filtered,
+        set to a column, or renamed) would silently pass validation even
+        though it carries information the schema knows nothing about.
+        """
+        passed = True
+        message = None
+        failure_cases = None
+
+        if schema.strict is not True or schema.index is not None:
+            return CoreCheckResult(
+                passed=passed,
+                check="index_not_in_schema",
+            )
+
+        index = check_obj.index
+        is_default_index = (
+            isinstance(index, pd.RangeIndex)
+            and index.name is None
+            and index.start == 0
+            and index.step == 1
+        )
+        if not is_default_index:
+            passed = False
+            message = (
+                "index is not the default pandas RangeIndex, but the "
+                f"{schema.__class__.__name__} does not declare an index and "
+                "strict=True. Either specify an index in the schema or "
+                "reset the dataframe's index to the default."
+            )
+            failure_cases = str(index)
+
+        return CoreCheckResult(
+            passed=passed,
+            check="index_not_in_schema",
+            reason_code=SchemaErrorReason.INDEX_NOT_IN_SCHEMA,
             message=message,
             failure_cases=failure_cases,
         )
