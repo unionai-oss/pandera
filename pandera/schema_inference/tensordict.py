@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, overload
+from typing import Any
 
 import torch
 
@@ -10,17 +10,7 @@ from pandera.api.tensordict.components import Tensor
 from pandera.api.tensordict.container import TensorDictSchema
 
 
-@overload
-def infer_schema(
-    tensordict: torch.TensorDict,
-) -> TensorDictSchema: ...
-@overload
-def infer_schema(
-    tensordict: Any,
-) -> TensorDictSchema: ...
-
-
-def infer_schema(tensordict: Any):
+def infer_schema(tensordict: Any) -> TensorDictSchema:
     """Infer schema for a TensorDict or tensorclass object.
 
     Automatically detects dtypes, shapes, and value statistics from data.

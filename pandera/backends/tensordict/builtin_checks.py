@@ -116,10 +116,11 @@ except ImportError:
     # extensions not available yet
     def register_builtin_check(
         fn: Any = None,
-        strategy: Callable | None = None,
+        strategy: Callable[..., Any] | None = None,
+        constraint: Callable[..., Any] | None = None,
         _check_cls: type = None,  # type: ignore[assignment]
         aliases: list[str] | None = None,
-        **kwargs: Any,
+        **outer_kwargs: Any,
     ) -> Any:
         def decorator(f):
             return f
@@ -128,8 +129,9 @@ except ImportError:
             return partial(
                 register_builtin_check,
                 strategy=strategy,
+                constraint=constraint,
                 _check_cls=_check_cls,
                 aliases=aliases,
-                **kwargs,
+                **outer_kwargs,
             )
         return decorator(fn)

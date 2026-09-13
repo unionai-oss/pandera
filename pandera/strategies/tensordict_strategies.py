@@ -11,6 +11,7 @@ package.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from functools import wraps
 from typing import Any, TypeVar, cast
 
@@ -24,7 +25,7 @@ if HAS_HYPOTHESIS:
 else:  # pragma: no cover
     from pandera.strategies.base_strategies import SearchStrategy, composite
 
-F = TypeVar("F")
+F = TypeVar("F", bound=Callable[..., Any])
 
 
 def _strategy_import_error(fn: F) -> F:
