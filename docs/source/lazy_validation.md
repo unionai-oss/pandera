@@ -138,7 +138,7 @@ except pa.errors.SchemaErrors as exc:
 ```
 
 You can set the same option on {func}`~pandera.api.dataframe.model_components.Field`
-when using the class-based {class}`~pandera.api.dataframe.model.DataFrameModel`
+when using the class-based {class}`~pandera.api.pandas.model.DataFrameModel`
 API:
 
 ```{code-cell} python
