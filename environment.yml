@@ -105,6 +105,7 @@ dependencies:
       # docs
       - furo
       - sphinxcontrib-typer >= 0.8.0
+      - cairosvg
       - sphinx-docsearch
       - grpcio
       - ray
