@@ -891,7 +891,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
             )
 
         failed = check_obj.columns[check_obj.columns.duplicated()]
-        if failed.any():
+        if not failed.empty:
             passed = False
             message = (
                 "dataframe contains multiple columns with label(s): "
