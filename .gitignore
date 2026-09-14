@@ -1,3 +1,4 @@
+.agent-workspace
 pandera/_version.py
 uv.lock
 *.db
