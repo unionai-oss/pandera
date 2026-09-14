@@ -624,6 +624,40 @@ def test_multiindex_check_name() -> None:
     assert isinstance(NotCheckNameSchema.validate(df), pd.DataFrame)
 
 
+def test_partial_multiindex_check_name() -> None:
+    """Regression test for #1460: a DataFrameModel with a single
+    ``check_name=True`` index field should validate just that one named
+    level of an actual pandas MultiIndex, not only a plain Index."""
+
+    m_idx = pd.MultiIndex.from_tuples(
+        ((1, 0, 0), (0, 1, 0), (0, 0, 1)), names=["a", "b", "c"]
+    )
+    df = pd.DataFrame({"col": (1, 2, 3)}, index=m_idx)
+
+    class TwoLevelSchema(pa.DataFrameModel):
+        b: Index[int] = pa.Field(check_name=True)
+        c: Index[int] = pa.Field(check_name=True)
+
+    assert isinstance(TwoLevelSchema.validate(df), pd.DataFrame)
+
+    class OneLevelSchema(pa.DataFrameModel):
+        c: Index[int] = pa.Field(check_name=True)
+
+    assert isinstance(OneLevelSchema.validate(df), pd.DataFrame)
+
+    class WrongNameSchema(pa.DataFrameModel):
+        z: Index[int] = pa.Field(check_name=True)
+
+    with pytest.raises(pa.errors.SchemaError):
+        WrongNameSchema.validate(df)
+
+    class WrongDtypeSchema(pa.DataFrameModel):
+        c: Index[str] = pa.Field(check_name=True)
+
+    with pytest.raises(pa.errors.SchemaError):
+        WrongDtypeSchema.validate(df)
+
+
 def test_multiindex_check_has_context() -> None:
     """Test that checks on MultiIndex levels can access the level by name."""
 

@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 
 from pandera.api.base.error_handler import ErrorHandler, get_error_category
-from pandera.api.pandas.components import Column
+from pandera.api.pandas.components import Column, MultiIndex
 from pandera.api.pandas.types import (
     is_field,
     is_index,
@@ -309,6 +309,28 @@ class IndexBackend(ArraySchemaBackend):
         inplace: bool = False,
     ) -> Union[pd.DataFrame, pd.Series]:
         if is_multiindex(check_obj.index):
+            if (
+                schema.name is not None
+                and schema.name in check_obj.index.names
+            ):
+                # This Index schema names one level of an actual pandas
+                # MultiIndex, e.g. a DataFrameModel with a single
+                # ``check_name=True`` index field validated against a
+                # dataframe with more index levels than the schema
+                # declares. Delegate to MultiIndexBackend, which knows how
+                # to validate a single named level without requiring (or
+                # touching) the other levels.
+                multiindex_schema = MultiIndex([schema])
+                return multiindex_schema.get_backend(check_obj).validate(
+                    check_obj,
+                    multiindex_schema,
+                    head=head,
+                    tail=tail,
+                    sample=sample,
+                    random_state=random_state,
+                    lazy=lazy,
+                    inplace=inplace,
+                )
             raise SchemaError(
                 schema,
                 check_obj,
@@ -1245,34 +1267,35 @@ class MultiIndexBackend(PandasSchemaBackend):
             ):
                 current_level_pos += 1
 
-            # Now walk forward until we find the index name
+            # Now walk forward until we find the index name. Levels that
+            # aren't declared by this schema (a partial/subset MultiIndex
+            # schema) are simply skipped here rather than flagged as
+            # out-of-order: `_validate_index_names` performs the
+            # authoritative order and duplicate-name checks once the full
+            # mapping is known, so raising here would incorrectly reject
+            # a schema that only checks a subset of the index levels.
             while (
                 current_level_pos < n_levels
                 and mi_names[current_level_pos] != idx_name
             ):
-                # Any *other* name before we meet `idx_name` => out-of-order
-                self._collect_or_raise(
-                    error_handler,
-                    SchemaError(
-                        schema=schema,
-                        data=mi,
-                        message=f"column '{idx_name}' out-of-order",
-                        failure_cases=idx_name,
-                        check="column_ordered",
-                        reason_code=SchemaErrorReason.COLUMN_NOT_ORDERED,
-                    ),
-                    schema,
-                )
                 current_level_pos += 1
 
             if current_level_pos >= n_levels:
-                # ran off the end without finding target index level
+                # Ran off the end without finding the target index level. If
+                # the name exists elsewhere in the dataframe's levels, we
+                # must have already walked past it while matching an
+                # earlier schema level, i.e. a genuine ordering violation.
+                # Otherwise the name simply isn't in the dataframe at all.
+                if idx_name in mi_names:
+                    message = f"column '{idx_name}' out-of-order"
+                else:
+                    message = f"index level with name '{idx_name}' not found"
                 self._collect_or_raise(
                     error_handler,
                     SchemaError(
                         schema=schema,
                         data=mi,
-                        message=f"index level with name '{idx_name}' not found",
+                        message=message,
                         failure_cases=idx_name,
                         check="column_ordered",
                         reason_code=SchemaErrorReason.COLUMN_NOT_ORDERED,
