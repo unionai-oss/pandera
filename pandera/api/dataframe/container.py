@@ -439,6 +439,9 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
 
         return self.__dict__ == other.__dict__
 
+    def __hash__(self) -> int:
+        return hash(repr(self))
+
     if PYDANTIC_V2:
 
         @classmethod
