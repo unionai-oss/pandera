@@ -10,6 +10,7 @@ import decimal
 import enum
 import inspect
 import logging
+import re
 import sys
 import warnings
 from collections.abc import Callable, Iterable
@@ -99,6 +100,31 @@ def is_pyarrow_dtype(
         return False
 
     return isinstance(pd_dtype, pd.ArrowDtype)
+
+
+def _parse_pyarrow_list_dtype(dtype: Any) -> pd.ArrowDtype | None:
+    """Parse pandas string representations of PyArrow list dtypes."""
+    if not PYARROW_INSTALLED or not isinstance(dtype, str):
+        return None
+
+    match = re.fullmatch(
+        r"list<(?:item|element): (?P<value_type>.+)>\[pyarrow\]",
+        dtype,
+    )
+    if match is None:
+        return None
+
+    value_type = match.group("value_type")
+    nested_dtype = _parse_pyarrow_list_dtype(value_type)
+    if nested_dtype is not None:
+        value_type = nested_dtype.pyarrow_dtype
+    else:
+        try:
+            value_type = pyarrow.type_for_alias(value_type)
+        except ValueError:
+            return None
+
+    return pd.ArrowDtype(pyarrow.list_(value_type))
 
 
 def is_geopandas_dtype(
@@ -261,7 +287,11 @@ class Engine(
             else:
                 # let pandas transform any acceptable value
                 # into a numpy or pandas dtype.
-                np_or_pd_dtype = pd.api.types.pandas_dtype(data_type)
+                np_or_pd_dtype = _parse_pyarrow_list_dtype(data_type)
+                if np_or_pd_dtype is None:
+                    np_or_pd_dtype = pd.api.types.pandas_dtype(data_type)
+                elif is_pyarrow_dtype(np_or_pd_dtype):
+                    np_or_pd_dtype = np_or_pd_dtype.pyarrow_dtype
                 if isinstance(np_or_pd_dtype, np.dtype):
                     # cast alias to platform-agnostic dtype
                     # e.g.: np.intc -> np.int32
