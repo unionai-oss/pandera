@@ -1541,6 +1541,77 @@ def test_check_custom_error_yaml_serialization_roundtrip():
     assert restored_checks[0].error == "column must be greater than 10"
 
 
+def _register_groupby_mean_gt():
+    @pa_ext.register_check_method(
+        statistics=["group_a", "group_b"], check_type="groupby"
+    )
+    def groupby_mean_gt(dict_groups, *, group_a, group_b):
+        return dict_groups[group_a].mean() > dict_groups[group_b].mean()
+
+
+@pytest.mark.skipif(
+    SKIP_YAML_TESTS,
+    reason="pyyaml >= 5.1.0 required",
+)
+@pytest.mark.parametrize("fmt", ["yaml", "json"])
+@mock.patch("pandera.Check.REGISTERED_CUSTOM_CHECKS", new_callable=dict)
+def test_groupby_check_serialization_roundtrip(_, fmt):
+    """Test that groupby and groups survive a serialization roundtrip."""
+    _register_groupby_mean_gt()
+    schema = pandera.DataFrameSchema(
+        {
+            "values": pandera.Column(
+                int,
+                pandera.Check.groupby_mean_gt(
+                    group_a="x",
+                    group_b="y",
+                    groupby="groups",
+                    groups=["x", "y"],
+                ),
+            ),
+            "groups": pandera.Column(str),
+        }
+    )
+
+    if fmt == "yaml":
+        restored = io.from_yaml(io.to_yaml(schema))
+    else:
+        restored = io.from_json(io.to_json(schema))
+
+    check = restored.columns["values"].checks[0]
+    assert check.groupby == ["groups"]
+    assert check.groups == ["x", "y"]
+
+    data = pd.DataFrame({"values": [20, 10, 1, 15], "groups": list("xxyz")})
+    restored.validate(data)
+    with pytest.raises(pandera.errors.SchemaError):
+        restored.validate(data.assign(values=[1, 2, 20, 15]))
+
+
+@mock.patch("pandera.Check.REGISTERED_CUSTOM_CHECKS", new_callable=dict)
+def test_groupby_callable_check_serialization_warns(_):
+    """Test that a check with a callable groupby is skipped with a warning."""
+    _register_groupby_mean_gt()
+    schema = pandera.DataFrameSchema(
+        {
+            "values": pandera.Column(
+                int,
+                pandera.Check.groupby_mean_gt(
+                    group_a="x",
+                    group_b="y",
+                    groupby=lambda df: df.groupby("groups"),
+                ),
+            ),
+            "groups": pandera.Column(str),
+        }
+    )
+
+    with pytest.warns(UserWarning, match="callable `groupby`"):
+        restored = io.from_yaml(io.to_yaml(schema))
+
+    assert not restored.columns["values"].checks
+
+
 @pytest.mark.skipif(
     platform.system() == "Windows",
     reason="skipping due to issues with opening file names for temp files.",

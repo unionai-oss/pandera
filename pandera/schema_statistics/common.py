@@ -88,6 +88,13 @@ def parse_checks(checks) -> Union[list[dict[str, Any]], None]:
             )
             continue
 
+        if callable(check.groupby):
+            warnings.warn(
+                "Checks with a callable `groupby` cannot be serialized to "
+                f"statistics. Check `{check.name}` will be skipped."
+            )
+            continue
+
         # Get base statistics
         base_stats = {} if check.statistics is None else check.statistics
 
@@ -97,6 +104,8 @@ def parse_checks(checks) -> Union[list[dict[str, Any]], None]:
             "raise_warning": check.raise_warning,
             "n_failure_cases": check.n_failure_cases,
             "ignore_na": check.ignore_na,
+            "groupby": check.groupby,
+            "groups": check.groups,
         }
         if check.name != registration_name:
             check_options["name"] = check.name
