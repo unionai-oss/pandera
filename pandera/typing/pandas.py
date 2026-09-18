@@ -42,6 +42,35 @@ if PYDANTIC_V2:
     from pydantic import GetCoreSchemaHandler
     from pydantic_core import core_schema
 
+    def _core_schema_for_column_type(
+        column_type: str,
+        type_map: Mapping[str, core_schema.CoreSchema],
+    ) -> core_schema.CoreSchema:
+        """Return the pydantic core schema for a json-schema column type.
+
+        :meth:`pandera.api.pandas.model.DataFrameModel.to_json_schema` reports a
+        column as one of the json-schema family names in ``type_map``, except
+        for dtypes pandas cannot express as a json-schema type: those arrive as
+        the dtype string itself, e.g. ``"timestamp[ns][pyarrow]"`` or
+        ``"interval"``. A timestamp or duration dtype keeps the core schema of
+        its numpy counterpart so generated schemas don't lose the type;
+        anything else is left untyped instead of raising.
+        """
+        if column_type in type_map:
+            return type_map[column_type]
+
+        # Match the dtype family, not a substring of the whole label: a nested
+        # dtype's label embeds its own field types, and a struct with a
+        # timestamp field is not a temporal column. Dates and times are left
+        # untyped here because pandera itself does not distinguish them from
+        # plain strings in its json-schema output.
+        family = column_type.split("[", 1)[0].split("<", 1)[0].lower()
+        if family.startswith(("datetime", "timestamp")):
+            return core_schema.datetime_schema()
+        if family.startswith(("duration", "timedelta")):
+            return core_schema.timedelta_schema()
+        return core_schema.any_schema()
+
 
 Bool = dtypes.Bool  #: ``"bool"`` numpy dtype
 Date = dtypes.Date  #: ``datetime.date`` object dtype
@@ -309,9 +338,10 @@ class DataFrame(DataFrameBase, pd.DataFrame, Generic[T]):
                     core_schema.typed_dict_schema(
                         {
                             key: core_schema.typed_dict_field(
-                                type_map[
-                                    schema_json_columns[key]["items"]["type"]
-                                ]
+                                _core_schema_for_column_type(
+                                    schema_json_columns[key]["items"]["type"],
+                                    type_map,
+                                )
                             )
                             for key in schema.columns.keys()
                         },
