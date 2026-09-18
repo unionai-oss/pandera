@@ -267,11 +267,7 @@ class DataFrameModel(_DataFrameModel[pd.DataFrame, DataFrameSchema]):
         """
         schema = cls.to_schema()
         dtypes = {
-            k: (
-                v.type
-                if not isinstance(v.type, PythonGenericType)
-                else "object"
-            )
+            k: (v.type if not isinstance(v, PythonGenericType) else "object")
             if v
             else None
             for k, v in schema.dtypes.items()

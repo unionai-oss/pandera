@@ -170,7 +170,14 @@ class DataFrame(DataFrameBase, pd.DataFrame, Generic[T]):
                     and column_name in self.columns
                     and self[column_name].dtype == np.dtype("float64")
                 ):
-                    dtype_map[column_name] = dtype.type
+                    # python generics carry the builtin class as their type,
+                    # which pandas cannot use as a dtype; their pandas type is
+                    # object.
+                    dtype_map[column_name] = (
+                        "object"
+                        if isinstance(dtype, pandas_engine.PythonGenericType)
+                        else dtype.type
+                    )
             if dtype_map:
                 return self.astype(dtype_map)
         return self
