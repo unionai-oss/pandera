@@ -6,6 +6,7 @@ from io import StringIO
 from pathlib import Path
 from unittest import mock
 
+import numpy as np
 import pandas as pd
 import pytest
 from packaging import version
@@ -1610,6 +1611,247 @@ def test_groupby_callable_check_serialization_warns(_):
         restored = io.from_yaml(io.to_yaml(schema))
 
     assert not restored.columns["values"].checks
+
+
+def _register_groupby_n_groups():
+    @pa_ext.register_check_method(
+        statistics=["n_groups"], check_type="groupby"
+    )
+    def groupby_n_groups(dict_groups, *, n_groups):
+        return len(dict_groups) == n_groups
+
+
+# (group column values, group keys selected by the check, python type they
+# serialize to). Every case selects fewer groups than the column has, so a
+# lost `groups` shows up as a failing check rather than a passing one.
+_NUMPY_GROUP_KEY_CASES = {
+    "int64": ([1, 2, 3], np.array([1, 2], dtype="int64"), int),
+    "float64": ([1.5, 2.5, 3.5], np.array([1.5, 2.5], dtype="float64"), float),
+    "bool": ([True, False], np.array([True]), bool),
+    "str": (["x", "y", "z"], np.array(["x", "y"]), str),
+}
+
+
+@pytest.mark.skipif(
+    SKIP_YAML_TESTS,
+    reason="pyyaml >= 5.1.0 required",
+)
+@pytest.mark.parametrize("fmt", ["yaml", "json"])
+@pytest.mark.parametrize("case", list(_NUMPY_GROUP_KEY_CASES))
+@mock.patch("pandera.Check.REGISTERED_CUSTOM_CHECKS", new_callable=dict)
+def test_groupby_check_numpy_group_keys_roundtrip(_, case, fmt):
+    """Test that numpy group keys serialize as the equivalent builtins."""
+    _register_groupby_n_groups()
+    column_values, group_keys, expected_type = _NUMPY_GROUP_KEY_CASES[case]
+    groups = list(group_keys)
+    schema = pandera.DataFrameSchema(
+        {
+            "values": pandera.Column(
+                int,
+                pandera.Check.groupby_n_groups(
+                    n_groups=len(groups), groupby="grp", groups=groups
+                ),
+            ),
+            "grp": pandera.Column(),
+        }
+    )
+
+    if fmt == "yaml":
+        restored = io.from_yaml(io.to_yaml(schema))
+    else:
+        restored = io.from_json(io.to_json(schema))
+
+    check = restored.columns["values"].checks[0]
+    assert check.groupby == ["grp"]
+    assert check.groups == [expected_type(key) for key in groups]
+    assert [type(key) for key in check.groups] == [expected_type] * len(groups)
+
+    data = pd.DataFrame(
+        {"values": range(len(column_values)), "grp": column_values}
+    )
+    restored.validate(data)
+
+
+@pytest.mark.skipif(
+    SKIP_YAML_TESTS,
+    reason="pyyaml >= 5.1.0 required",
+)
+@pytest.mark.parametrize("fmt", ["yaml", "json"])
+@mock.patch("pandera.Check.REGISTERED_CUSTOM_CHECKS", new_callable=dict)
+def test_groupby_check_tuple_group_keys_roundtrip(_, fmt):
+    """Test that tuple group keys survive as tuples, which stay hashable."""
+    _register_groupby_n_groups()
+    schema = pandera.DataFrameSchema(
+        {
+            "values": pandera.Column(
+                int,
+                pandera.Check.groupby_n_groups(
+                    n_groups=2,
+                    groupby=["grp_a", "grp_b"],
+                    groups=[("x", 1), ("y", 2)],
+                ),
+            ),
+            "grp_a": pandera.Column(str),
+            "grp_b": pandera.Column(int),
+        }
+    )
+
+    if fmt == "yaml":
+        restored = io.from_yaml(io.to_yaml(schema))
+    else:
+        restored = io.from_json(io.to_json(schema))
+
+    check = restored.columns["values"].checks[0]
+    assert check.groups == [("x", 1), ("y", 2)]
+
+    data = pd.DataFrame(
+        {
+            "values": [1, 2, 3],
+            "grp_a": ["x", "y", "z"],
+            "grp_b": [1, 2, 3],
+        }
+    )
+    restored.validate(data)
+
+
+@pytest.mark.skipif(
+    SKIP_YAML_TESTS,
+    reason="pyyaml >= 5.1.0 required",
+)
+@pytest.mark.parametrize("fmt", ["yaml", "json"])
+@mock.patch("pandera.Check.REGISTERED_CUSTOM_CHECKS", new_callable=dict)
+def test_groupby_check_unserializable_group_keys_warns(_, fmt):
+    """Test that group keys with no serializable equivalent are skipped."""
+    _register_groupby_n_groups()
+    schema = pandera.DataFrameSchema(
+        {
+            "values": pandera.Column(
+                int,
+                pandera.Check.groupby_n_groups(
+                    n_groups=1,
+                    groupby="grp",
+                    groups=list(pd.to_datetime(["2020-01-01"])),
+                ),
+            ),
+            "grp": pandera.Column("datetime64[ns]"),
+        }
+    )
+
+    with pytest.warns(UserWarning, match="no serializable equivalent"):
+        serialized = (
+            io.to_yaml(schema) if fmt == "yaml" else io.to_json(schema)
+        )
+
+    restored = (
+        io.from_yaml(serialized) if fmt == "yaml" else io.from_json(serialized)
+    )
+    assert not restored.columns["values"].checks
+
+
+@pytest.mark.parametrize(
+    "groupby,groups",
+    [
+        # a tuple column name would serialize as a list, which is not the
+        # column name that was passed in
+        ([("grp_a", "grp_b")], ["x"]),
+        # an array is not a scalar, so `.item()` cannot convert it
+        (["grp"], [np.array([1, 2])]),
+    ],
+    ids=["tuple-column-name", "array-group-key"],
+)
+@mock.patch("pandera.Check.REGISTERED_CUSTOM_CHECKS", new_callable=dict)
+def test_groupby_check_unserializable_values_are_skipped(_, groupby, groups):
+    """Test that no groupby value is written as something it was not."""
+    _register_groupby_n_groups()
+    schema = pandera.DataFrameSchema(
+        {
+            "values": pandera.Column(
+                int,
+                pandera.Check.groupby_n_groups(
+                    n_groups=1, groupby=groupby, groups=groups
+                ),
+            ),
+            **{name: pandera.Column() for name in groupby},
+        }
+    )
+
+    with pytest.warns(UserWarning, match="no serializable equivalent"):
+        serialized = io.to_json(schema)
+
+    assert not io.from_json(serialized).columns["values"].checks
+
+
+@pytest.mark.skipif(
+    SKIP_YAML_TESTS,
+    reason="pyyaml >= 5.1.0 required",
+)
+@pytest.mark.parametrize("fmt", ["yaml", "json"])
+@mock.patch("pandera.Check.REGISTERED_CUSTOM_CHECKS", new_callable=dict)
+def test_groupby_check_list_shape_roundtrip(_, fmt):
+    """Test that the ``checks:`` list shape also keeps groupby and groups."""
+    _register_groupby_n_groups()
+    schema = pandera.DataFrameSchema(
+        {
+            "values": pandera.Column(
+                int,
+                [
+                    pandera.Check.groupby_n_groups(
+                        n_groups=1, groupby="grp", groups=["x"]
+                    ),
+                    pandera.Check.groupby_n_groups(
+                        n_groups=2, groupby="grp", groups=["x", "y"]
+                    ),
+                ],
+            ),
+            "grp": pandera.Column(str),
+        }
+    )
+    # two checks of the same name cannot be flattened, so this exercises the
+    # `checks:` list shape and its `options` branch.
+    assert "checks" in io.serialize_schema(schema)["columns"]["values"]
+
+    if fmt == "yaml":
+        restored = io.from_yaml(io.to_yaml(schema))
+    else:
+        restored = io.from_json(io.to_json(schema))
+
+    checks = restored.columns["values"].checks
+    assert [check.groupby for check in checks] == [["grp"], ["grp"]]
+    assert [check.groups for check in checks] == [["x"], ["x", "y"]]
+
+    data = pd.DataFrame({"values": [1, 2, 3], "grp": ["x", "y", "z"]})
+    restored.validate(data)
+
+
+@mock.patch("pandera.Check.REGISTERED_CUSTOM_CHECKS", new_callable=dict)
+def test_groupby_check_to_script_keeps_tuple_group_keys(_):
+    """Test that a generated script keeps group keys hashable."""
+    _register_groupby_n_groups()
+    schema = pandera.DataFrameSchema(
+        {
+            "values": pandera.Column(
+                int,
+                pandera.Check.groupby_n_groups(
+                    n_groups=2,
+                    groupby=["grp_a", "grp_b"],
+                    groups=[("x", 1), ("y", 2)],
+                ),
+            ),
+            "grp_a": pandera.Column(str),
+            "grp_b": pandera.Column(int),
+        }
+    )
+
+    namespace: dict = {}
+    exec(io.to_script(schema), namespace)  # pylint: disable=exec-used
+    restored = namespace["schema"]
+
+    assert restored.columns["values"].checks[0].groups == [("x", 1), ("y", 2)]
+    restored.validate(
+        pd.DataFrame(
+            {"values": [1, 2, 3], "grp_a": ["x", "y", "z"], "grp_b": [1, 2, 3]}
+        )
+    )
 
 
 @pytest.mark.skipif(

@@ -215,6 +215,8 @@ def _format_checks(checks_list, *, qual: str = ""):
     imports (``pa.`` for non-pandas backends, which import
     ``pandera.<library> as pa`` rather than the names themselves).
     """
+    from pandera.schema_statistics.common import deserialize_group_keys
+
     if checks_list is None:
         return "None"
 
@@ -239,6 +241,12 @@ def _format_checks(checks_list, *, qual: str = ""):
             continue
 
         check_name = options.pop("check_name")
+
+        # group keys serialize as lists, but a script can carry the tuple
+        # keys a multi-column groupby actually needs.
+        for kwargs in (check_kwargs, options):
+            if isinstance(kwargs, dict) and "groups" in kwargs:
+                kwargs["groups"] = deserialize_group_keys(kwargs["groups"])
 
         if isinstance(check_kwargs, dict):
             args = ", ".join(
