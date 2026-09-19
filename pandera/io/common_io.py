@@ -68,8 +68,29 @@ INDEX_TEMPLATE = """
 """
 
 MULTIINDEX_TEMPLATE = """
-{qual}MultiIndex(indexes=[{indexes}])
+{qual}MultiIndex(indexes=[{indexes}]{options})
 """
+
+
+def _multiindex_options(index, *, minimal: bool) -> dict:
+    """Options of a ``MultiIndex`` component to emit in a script.
+
+    Returns an empty dict for a single ``Index`` or no index. In minimal
+    mode, options equal to the ``MultiIndex`` constructor defaults are left
+    out.
+    """
+    from pandera.io._minimal import MULTIINDEX_DEFAULTS
+
+    if index is None or not hasattr(index, "indexes"):
+        return {}
+    options = {key: getattr(index, key) for key in MULTIINDEX_DEFAULTS}
+    if minimal:
+        options = {
+            key: val
+            for key, val in options.items()
+            if val != MULTIINDEX_DEFAULTS[key]
+        }
+    return options
 
 
 def _get_dtype_string_alias(dtype: pandas_engine.DataType) -> str:
@@ -259,7 +280,9 @@ def _format_checks(checks_list, *, qual: str = ""):
     return f"[{', '.join(checks)}]"
 
 
-def _format_index(index_statistics, *, backend: str = "pandas"):
+def _format_index(
+    index_statistics, *, backend: str = "pandas", multiindex_options=None
+):
     qual = _schema_script_qual(backend)
     index = []
     for properties in index_statistics:
@@ -289,8 +312,11 @@ def _format_index(index_statistics, *, backend: str = "pandas"):
     if len(index) == 1:
         return index[0]
 
+    options = "".join(
+        f", {key}={val!r}" for key, val in (multiindex_options or {}).items()
+    )
     return MULTIINDEX_TEMPLATE.format(
-        qual=qual, indexes=",".join(index)
+        qual=qual, indexes=",".join(index), options=options
     ).strip()
 
 
@@ -338,7 +364,14 @@ def _to_script_minimal(dataframe_schema, *, backend: str = "pandas"):
         parts.append(f"checks={_format_checks(pc, qual=qual)}")
     stats = get_stats(dataframe_schema)
     if stats["index"] is not None:
-        parts.append(f"index={_format_index(stats['index'], backend=backend)}")
+        index_code = _format_index(
+            stats["index"],
+            backend=backend,
+            multiindex_options=_multiindex_options(
+                getattr(dataframe_schema, "index", None), minimal=True
+            ),
+        )
+        parts.append(f"index={index_code}")
     for key in DF_SCHEMA_DEFAULTS:
         val = getattr(dataframe_schema, key)
         if val == DF_SCHEMA_DEFAULTS[key]:
@@ -434,7 +467,13 @@ def to_script(
     index = (
         None
         if statistics["index"] is None
-        else _format_index(statistics["index"], backend=backend)
+        else _format_index(
+            statistics["index"],
+            backend=backend,
+            multiindex_options=_multiindex_options(
+                getattr(dataframe_schema, "index", None), minimal=False
+            ),
+        )
     )
 
     column_str = ", ".join(f"'{k}': {v}" for k, v in columns.items())

@@ -37,6 +37,16 @@ COLUMN_DEFAULTS: dict[str, Any] = {
     "name": None,
 }
 
+# MultiIndex (api.pandas.components.MultiIndex) options, serialized under
+# the ``multiindex`` key next to the per-level ``index`` list.
+MULTIINDEX_DEFAULTS: dict[str, Any] = {
+    "coerce": False,
+    "strict": False,
+    "name": None,
+    "ordered": True,
+    "unique": None,
+}
+
 # Check.options keys that mirror Check.__init__ defaults
 CHECK_OPTION_DEFAULTS: dict[str, Any] = {
     "ignore_na": True,
@@ -122,6 +132,14 @@ def apply_minimal_dataframe_container(
 
     if getattr(schema, "index", None) is None:
         out.pop("index", None)
+
+    multiindex = out.get("multiindex")
+    if isinstance(multiindex, dict):
+        for key, default in MULTIINDEX_DEFAULTS.items():
+            if key in multiindex and multiindex[key] == default:
+                multiindex.pop(key)
+        if not multiindex:
+            out.pop("multiindex", None)
 
     lib = out.get("dataframe_library")
     if lib in (None, "pandas"):

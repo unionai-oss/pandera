@@ -143,6 +143,22 @@ def _serialize_component_stats(component_stats):
     }
 
 
+_MULTIINDEX_OPTION_KEYS = ("coerce", "strict", "name", "ordered", "unique")
+
+
+def _serialize_multiindex_options(index):
+    """Serialize the options of a ``MultiIndex`` schema component.
+
+    The per-level ``Index`` components are serialized separately under the
+    ``index`` key; this captures the options that belong to the
+    ``MultiIndex`` itself. Returns ``None`` for a single ``Index`` or when
+    the schema has no index.
+    """
+    if index is None or not hasattr(index, "indexes"):
+        return None
+    return {key: getattr(index, key) for key in _MULTIINDEX_OPTION_KEYS}
+
+
 def _serialize_column_name(col_name):
     """Serialize column names that are not valid JSON object keys."""
     if isinstance(col_name, tuple):
@@ -216,6 +232,8 @@ def serialize_schema(
     if statistics["checks"] is not None:
         checks = _serialize_dataframe_stats(statistics["checks"])
 
+    multiindex = _serialize_multiindex_options(dataframe_schema.index)
+
     out = {
         "schema_type": "dataframe",
         "version": __version__,
@@ -223,6 +241,7 @@ def serialize_schema(
         "columns": columns,
         "checks": checks,
         "index": index,
+        **({} if multiindex is None else {"multiindex": multiindex}),
         "dtype": dataframe_schema.dtype,
         "coerce": dataframe_schema.coerce,
         "strict": dataframe_schema.strict,
@@ -418,7 +437,8 @@ def deserialize_schema(serialized_schema):
         index = Index(**index[0])
     else:
         index = MultiIndex(
-            indexes=[Index(**index_properties) for index_properties in index]
+            indexes=[Index(**index_properties) for index_properties in index],
+            **(serialized_schema.get("multiindex") or {}),
         )
 
     metadata = None
