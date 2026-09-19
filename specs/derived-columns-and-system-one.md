@@ -3,18 +3,18 @@
 > **Status:** Draft / RFC
 > **Author:** pandera maintainers
 > **Install:** `pip install 'pandera[typesafe-ai]'`
-> **Prior art:**
-> [Pydantic AI — TypeSafe (Jev) integration](https://pydantic.dev/docs/ai/models/typesafe/)
+> **Related:** [TypeSafe Jev](https://pydantic.dev/docs/ai/models/typesafe/)
 
 ---
 
 ## 0. TL;DR
 
-This spec proposes **two layers**, one of which is useful on its own.
+Two layers. The lower one is a pandera feature with its own users; the upper one
+is a plugin into it.
 
 **Layer 1 — derived columns (pandera core).** Today a `Parser` transforms data
-that already exists. Generalize it so a parser can *produce* a column from a
-source column, with the relationship declared rather than implied:
+that already exists. Generalize it so a column can declare that it is *derived
+from* another column:
 
 ```python
 class Tickets(pa.DataFrameModel):
@@ -22,37 +22,62 @@ class Tickets(pa.DataFrameModel):
     n_words: int = pa.ParsedField(source="body", parser=lambda s: s.str.split().str.len())
 ```
 
-**Layer 2 — System One parsing (`pandera[typesafe-ai]`).** A parser that fills
-its target columns by asking a decision model. The schema being filled is a
-**plain pandera model** — no new field arguments, no new annotations, nothing
-that only makes sense when an AI provider is attached:
+**Layer 2 — System One parsing (`pandera[typesafe-ai]`).** `parser=` accepts a
+plain callable *or* a parser object. The System One question types are parser
+objects, so asking a decision model is the same construct as any other
+derivation:
 
 ```python
+import enum
 import pandera.pandas as pa
-from pandera.system_one import SystemOneParser
+import pandera.system_one as system_one
 
-class Triage(pa.DataFrameModel):                      # an ordinary model
-    department: Department = pa.Field(description="Which team should handle this ticket")
-    frustration: Frustration = pa.Field(description="How frustrated the customer appears")
-    is_urgent: bool = pa.Field(description="The message conveys time-sensitivity")
+class Department(enum.StrEnum):
+    billing = "billing"
+    """Payment, invoices or subscription issues."""
+    technical = "technical"
+    """Bugs, outages or integration problems."""
+    sales = "sales"
+    """Pricing, plans or account expansion."""
 
-triage = SystemOneParser(
-    "typesafe:jev-1.13.0",
-    output=Triage,                                    # the "output type"
-    source="ticket_body",
-)
+class Frustration(enum.IntEnum):
+    calm = 0
+    """Calm, simply stating facts."""
+    annoyed = 1
+    """Frustrated but civil."""
+    angry = 2
+    """Very angry, strong language."""
 
-triaged = triage(tickets_df)                          # or: schema(parsers=[triage])
+class Triage(pa.DataFrameModel):
+    ticket_body: str
+    department: Department = pa.ParsedField(
+        description="Which team should handle this ticket",
+        parser=system_one.Choice(),
+    )
+    frustration: Frustration = pa.ParsedField(
+        description="How frustrated the customer appears",
+        parser=system_one.Score(),
+    )
+    is_urgent: bool = pa.ParsedField(
+        description="The message conveys time-sensitivity",
+        parser=system_one.Noul(),
+    )
+
+    class Config:
+        parser_source = "ticket_body"
+
+triaged = Triage.validate(tickets_df)
 ```
 
-This mirrors how Pydantic AI factors the same problem. There, `output_type` is
-an untouched `BaseModel` and the provider binding lives in the `Agent`. Here,
-`output` is an untouched `DataFrameModel` and the binding lives in the
-`Parser` — so `Triage` is still a normal schema you can validate with,
-serialize, and reuse with no provider in sight.
+`Choice()`, `Score()`, and `Noul()` take `instructions` and `criteria`
+explicitly. Given neither, they infer: instructions from the field's
+`description`, options and criteria from the annotated type — `Department`'s
+members and their docstrings, `Frustration`'s ordered levels and theirs. Plain
+Python carries the type information; the field carries the question.
 
-A previous draft of this spec put `system_one_source` and `system_one_provider`
-on `Field`/`Column`/`Config`. §12 records why that was abandoned.
+The three fields share a source and a provider, so the compiler batches them
+into **one request per row**, not three (§5.1). The declarations are per column
+because that is where they are legible; the batching is pandera's job.
 
 ---
 
@@ -67,7 +92,7 @@ that is supposed to describe the data — cannot express that `n_words` comes fr
 `body`. That costs:
 
 - **Provenance.** A schema does not record which columns are derived, or from
-  what. The YAML form of a schema is an incomplete description of the pipeline.
+  what. The YAML form is an incomplete description of the pipeline.
 - **Error quality.** A parser that reads a column that isn't there raises a bare
   `KeyError: 'nope'` — no schema context, not even a `SchemaError` (§6.1).
 - **Ordering.** Chained parsers work only because list order happens to be
@@ -80,8 +105,8 @@ that is supposed to describe the data — cannot express that `n_words` comes fr
 
 Filling `department` from `ticket_body` by asking a model is a derived column.
 It differs from `n_words` only in how the values are computed. If layer 1
-exists, layer 2 is a `Parser` subclass and little else — which is the test of
-whether the abstraction is right.
+exists, layer 2 is a handful of parser objects — which is the test of whether
+the abstraction is right.
 
 Pandera already draws this line, in `docs/source/parsers.md`:
 
@@ -89,11 +114,11 @@ Pandera already draws this line, in `docs/source/parsers.md`:
 > constraints, whereas parsing transforms raw data into some desired set of
 > constraints.
 
-### 1.3 Why Jev is a good fit for the layer-2 slot
+### 1.3 Why Jev fits the layer-2 slot
 
 Jev is a **System One model**: it does not generate text. It answers typed
 questions and can only return values from the schema it was given. Three
-question types:
+question types, which become the three parser objects:
 
 | Question | Returns | Shape |
 |---|---|---|
@@ -103,8 +128,8 @@ question types:
 
 Vendor-reported: 70–500 ms latency, 1,200 req/min, 250k tokens/sec, $0.042/M
 input tokens with output free, a 0% structured-output error rate, and *"a tenth
-question costs tokens but almost no time"* — which makes a whole schema per row
-the natural request unit.
+question costs tokens but almost no time"* — which is what makes per-column
+declarations affordable, since the compiler can batch them back together.
 
 The 0% structured-output rate is the load-bearing fact for pandera. It **moves
 validation up a level**. There is no question of whether the model returned
@@ -117,15 +142,15 @@ are guaranteed by construction. What remains uncertain is whether the
 - Do 30% of rows now fall below the abstention threshold?
 
 Those are `Check`s and `Hypothesis`es over a column — pandera's home turf, and
-with no per-object analogue in Pydantic AI.
+with no per-object analogue in a per-record API.
 
 ### 1.4 Cost
 
-10,000 tickets, ~400 tokens of state each, 6 fields: ~4M input tokens ≈ **$0.17**
-in one pass of ~10,000 requests.
+10,000 tickets, ~400 tokens of state each, 6 derived fields: ~4M input tokens ≈
+**$0.17** in one pass of ~10,000 requests.
 
-*(All figures in §1.3 and §1.4 are vendor-reported. §12 covers verification
-before any of them appear in user-facing docs.)*
+*(All figures in §1.3–§1.4 are vendor-reported. §12 covers verification before
+any of them appear in user-facing docs.)*
 
 ---
 
@@ -134,20 +159,22 @@ before any of them appear in user-facing docs.)*
 1. **Two layers, and the lower one ships alone.** Derived columns are a pandera
    feature with its own users. If layer 2 is never built, layer 1 still pays for
    itself.
-2. **The schema stays plain.** No argument on `Field`, `Column`, or `Config`
-   exists only to serve an AI provider. A model used as a System One `output` is
-   indistinguishable from any other model — which is the property that makes
-   Pydantic AI's `output_type` pleasant to work with.
-3. **The binding lives in the parser.** Provider, source, concurrency, caching,
-   and thresholds are constructor arguments on a `SystemOneParser` object —
-   the analogue of Pydantic AI's `Agent`.
-4. **Plain Python carries the type information.** `Enum`, `IntEnum`, `Literal`,
-   and `bool` already say everything the question compiler needs. No pandera-
-   specific annotation is introduced.
-5. **Unsupported is a construction-time error.** A column that cannot be
-   expressed as a question raises `SchemaInitError` when the parser is built,
-   before any request — matching Pydantic AI's `UserError` contract.
-6. **Deterministic tests.** No test in pandera's suite may require an API key or
+2. **One derivation mechanism.** A System One column is declared exactly like a
+   `lambda`-derived column. There is no second path, no separate step to
+   remember, and no "AI mode" for a schema.
+3. **Plain Python carries the types.** `Enum`, `IntEnum`, `Literal`, and `bool`
+   already say everything the question compiler needs. No pandera-specific
+   annotation is introduced.
+4. **Declarative per column, batched by the engine.** The user writes one
+   declaration per column because that is where it is legible; pandera groups
+   them into as few requests as possible. Writing per-column should never cost
+   more than writing per-schema.
+5. **The schema says what to ask; the runtime says who answers.** Providers are
+   configured out of band (§4.6), so one schema runs against a recorded cassette
+   in CI and a live provider in production without edits.
+6. **Unsupported is a schema-build error.** A question that cannot be posed
+   raises `SchemaInitError` when the schema is built, before any request.
+7. **Deterministic tests.** No test in pandera's suite may require an API key or
    network access.
 
 ---
@@ -170,8 +197,7 @@ can already create columns, and the rest of the pipeline handles them correctly:
 | chained parsers (`body → a → b`) | ✅ works, by list order |
 | **column-level** parser on a not-yet-existing column | ❌ `SchemaError: column 'n_words' not in dataframe` |
 
-This is a better starting point than expected. The pipeline ordering pandera
-documents —
+The documented pipeline order —
 
 > 1. dataframe-level parsing
 > 2. column-level parsing
@@ -193,12 +219,63 @@ So layer 1 is not about making derivation *possible*. It is about making it
 | No declared `target` | Pandera cannot tell a derived column from one the caller must supply |
 | No dependency graph | Chaining depends on list order; cycles are undetectable |
 | No provenance in serialization | A YAML schema omits how derived columns are produced |
-| No error attribution | A bad derived column is not traceable to the parser that made it |
 | Column-level parsers cannot create their own column | Provenance cannot live next to the column it describes |
+| No way for a parser to see its own column's type | Every parser must be told what it is producing |
 
-### 3.3 `Parser(source=..., target=...)`
+The last one is what layer 2 turns out to need most.
 
-The primitive. Two new optional arguments on the existing class:
+### 3.3 `ParsedField` and `ParsedColumn`
+
+The declarative spelling, and the primary API for both layers:
+
+```python
+class Tickets(pa.DataFrameModel):
+    body: str
+    n_words: int = pa.ParsedField(
+        source="body",
+        parser=lambda s: s.str.split().str.len(),
+        ge=1,                          # everything Field accepts still works
+    )
+```
+
+```python
+schema = pa.DataFrameSchema({
+    "body": pa.Column(str),
+    "n_words": pa.ParsedColumn(
+        int,
+        source="body",
+        parser=lambda s: s.str.split().str.len(),
+        checks=pa.Check.ge(1),
+        coerce=True,
+    ),
+})
+```
+
+```python
+def ParsedField(
+    *,
+    parser: Callable | ColumnParser,
+    source: str | list[str] | Callable[[Any], Any] | None = None,
+    on_error: Literal["raise", "null", "drop"] = "raise",
+    **field_kwargs,                    # description, checks, nullable, coerce, ...
+) -> Any: ...
+```
+
+`ParsedColumn` is a `Column` subclass and `ParsedField` a `FieldInfo` subclass.
+At schema-build time each desugars into (a) an ordinary `Column` and (b) a
+`Parser` with `source`/`target` set, registered on the schema in dependency
+order. `source` defaults to `Config.parser_source` when the field omits it,
+which is what lets every field in the §0 example stay a one-liner.
+
+Adding a *construct* whose entire purpose is derivation is the point here. An
+earlier draft of this spec added `system_one_source=` as an *argument* to
+`Column`, which put provider concerns in a namespace shared with every ordinary
+column option; §12 records the reversal.
+
+### 3.4 `Parser(source=..., target=...)`
+
+The primitive `ParsedField` compiles to. Two new optional arguments on the
+existing class:
 
 ```python
 class Parser(BaseParser):
@@ -213,87 +290,84 @@ class Parser(BaseParser):
     ): ...
 ```
 
-Semantics:
-
 - `source=None, target=None` — today's behavior exactly. Nothing changes for
   existing code.
 - `source` declared — pandera checks those columns exist **before** invoking the
-  function and raises `ParserError` naming the parser and the missing column.
-- `target` declared — those columns are known to be produced. They are exempt
-  from "missing column" errors before parsing, they are permitted under
-  `strict=True`, and the parser's output is checked to actually contain them
-  (`ParserError` if not).
-- Both declared — the parser participates in a dependency graph (§3.6).
-
-```python
-word_count = pa.Parser(
-    lambda d: d.assign(n_words=d["body"].str.split().str.len()),
-    source="body",
-    target="n_words",
-)
-
-schema = pa.DataFrameSchema(
-    {"body": pa.Column(str), "n_words": pa.Column(int)},
-    parsers=[word_count],
-)
-```
-
-When `source` and `target` are both single columns, the function may be written
-`Series -> Series` instead of `DataFrame -> DataFrame`; the backend adapts,
-matching how `element_wise` already switches the calling convention.
+  function, raising `ParserSourceError` naming the parser and the missing column.
+- `target` declared — those columns are known to be produced: exempt from
+  "missing column" errors before parsing, permitted under `strict=True`, and the
+  output is checked to actually contain them (`ParserTargetError` if not).
+- Both declared — the parser joins the dependency graph (§3.6).
 
 **Compatibility note.** `Parser` currently forwards unrecognized keyword
 arguments to the parser function — verified: `Parser(fn, source="body")` today
 calls `fn(series, source="body")`. Promoting `source`/`target` to real
-parameters is therefore a small breaking change for anyone whose parser function
-takes a keyword by those names. Worth a deprecation cycle, or `**parser_kwargs`
-could be narrowed to an explicit `parser_kwargs={...}` dict, which is the
-cleaner long-term shape regardless.
+parameters is a small breaking change for anyone whose parser function takes a
+keyword by those names. Worth a deprecation cycle, or `**parser_kwargs` could be
+narrowed to an explicit `parser_kwargs={...}` dict, which is the cleaner
+long-term shape regardless.
 
-### 3.4 Declarative: `ParsedColumn` and `ParsedField`
+### 3.5 The `ColumnParser` protocol
 
-Sugar that puts the provenance next to the column, fixing the locality problem
-and the "column-level parsers cannot create their own column" gap:
-
-```python
-schema = pa.DataFrameSchema({
-    "body": pa.Column(str),
-    "n_words": pa.ParsedColumn(
-        int,
-        source="body",
-        parser=lambda s: s.str.split().str.len(),
-        checks=pa.Check.ge(1),          # everything Column accepts still works
-        coerce=True,
-    ),
-})
-```
+`parser=` accepts a plain callable, or an object that knows how to build one.
+This is the extension point layer 2 plugs into, and the only part of layer 1
+that exists because of it:
 
 ```python
-class Tickets(pa.DataFrameModel):
-    body: str
-    n_words: int = pa.ParsedField(
-        source="body",
-        parser=lambda s: s.str.split().str.len(),
-        ge=1,
-    )
+class ColumnParser(Protocol):
+    def bind(self, ctx: ParseContext) -> Callable: ...
+    def batch_key(self, ctx: ParseContext) -> Hashable | None: ...
+
+@dataclass(frozen=True)
+class ParseContext:
+    target: str                        # column being produced
+    dtype: DataType                    # its declared dtype
+    description: str | None            # the field's description
+    nullable: bool
+    checks: list[Check]
+    source: tuple[str, ...] | Callable
+    schema: DataFrameSchema            # for cross-field resolution
 ```
 
-`ParsedColumn` is a `Column` subclass. At schema-build time it desugars into
-(a) an ordinary `Column` and (b) a `Parser` with `source`/`target` set, appended
-to the schema's `parsers` in dependency order. `ParsedField` is the `FieldInfo`
-equivalent. Both are pure sugar over §3.3 — the same relationship `Field` has to
-`Column`.
+`bind` is called once at schema-build time and returns the function the parser
+will run. Two consequences that matter:
 
-This is where the earlier draft's mistake is corrected. `ParsedColumn` adds a
-*construct* whose entire purpose is derivation; `Column(system_one_source=...)`
-added an *argument* to a construct that is mostly not about derivation, which is
-what made it feel bolted on.
+- **A parser sees its own column's declared type.** `system_one.Choice()` can
+  read `Department` off the context and derive its options from it. No parser
+  needs to be told what it is producing.
+- **A parser can refuse early.** `bind` raising `SchemaInitError` surfaces at
+  schema-build time, before any data or any network call.
 
-### 3.5 Imperative: `@pa.parser`
+`batch_key` is how per-column declarations avoid per-column cost. Parsers
+returning equal non-`None` keys are handed to a `batch()` classmethod that
+compiles them into a single `Parser` with the union of their targets. Callables
+return `None` and are never batched. Layer 2's key is
+`(provider, source, on_error)` — §5.1.
+
+### 3.6 Ordering, errors, and serialization
+
+**Ordering.** With `source`/`target` declared, parsers are topologically sorted
+by column dependencies rather than run in list order. Undeclared parsers keep
+their list position and run first, preserving today's behavior. A cycle is a
+`SchemaInitError` naming the columns in it.
+
+**Errors.** `ParserError` gains `ParserSourceError` (a declared source is absent
+or mistyped) and `ParserTargetError` (the function ran but did not produce its
+declared targets). `on_error="null"` and `"drop"` degrade per row instead of
+failing the batch, composing with the existing `drop_invalid_rows`.
+
+**Serialization.** `source` and `target` serialize per parser in `pandera.io`.
+A callable body cannot be serialized — a YAML schema records the dependency
+edges plus the parser's `name`/`description`, and deserializing a schema whose
+parsers are unresolved raises on `validate` rather than silently skipping.
+`ColumnParser` objects declare a `to_dict`/`from_dict` pair, so layer 2 schemas
+round-trip **completely** (§4.8). That asymmetry is worth stating plainly: a
+lambda is opaque, a declared question is not.
+
+### 3.7 Imperative escape hatch
 
 `@pa.parser(*fields)` already exists and attaches a transform to those fields.
-Generalize it: with `source`, the decorated method *derives* the named fields
-instead of transforming them.
+Generalize it: with `source`, the decorated method *derives* the named fields.
 
 ```python
 class Tickets(pa.DataFrameModel):
@@ -306,59 +380,67 @@ class Tickets(pa.DataFrameModel):
         return s.str.split().str.len()
 ```
 
-No `source` → today's meaning, unchanged. This keeps one decorator for one
-concept rather than introducing `@pa.derives` alongside it.
+No `source` → today's meaning, unchanged. One decorator for one concept, rather
+than a second decorator alongside it.
 
-### 3.6 Ordering, errors, and serialization
-
-**Ordering.** With `source`/`target` declared, parsers are topologically sorted
-by their column dependencies rather than run in list order. Undeclared parsers
-keep their list position and run first, preserving today's behavior. A cycle is
-a `SchemaInitError` naming the columns in it.
-
-**Errors.** Derivation failures are parsing failures, and pandera has a category
-for that. `ParserError` gains subclasses:
-
-- `ParserSourceError` — a declared source column is absent, or has the wrong
-  dtype for the parser's declared input.
-- `ParserTargetError` — the function ran but did not produce its declared
-  targets.
-
-`on_error="null"` and `on_error="drop"` degrade per row instead of failing the
-batch, composing with the existing `drop_invalid_rows`.
-
-**Serialization.** `source` and `target` serialize per parser in
-`pandera.io`. A callable body cannot be serialized — a YAML schema records the
-dependency edges and the parser's `name`/`description`, and deserializing a
-schema whose parsers are unresolved raises on `validate` rather than silently
-skipping. Layer 2 parsers serialize *completely*, because their "function" is a
-declarative question set (§4.8).
-
-### 3.7 Backend scope
+### 3.8 Backend scope
 
 Parsers are pandas-only today, and non-pandas backends **silently ignore them**
-(§6.4) — which is a much worse failure for derived columns than for transforms,
-since the column simply will not be there. Closing that silent path is a
-prerequisite, and is independently worth doing (§6.4).
+(§6.4) — much worse for a derived column than for a transform, since the column
+simply will not be there. Closing that silent path is a prerequisite, and is
+independently worth doing.
 
 ---
 
-## 4. Layer 2: System One parsing
+## 4. Layer 2: System One parsers
 
-### 4.1 The output model is a plain pandera model
+### 4.1 Three parser objects
 
 ```python
-import enum
-import pandera.pandas as pa
+import pandera.system_one as system_one
 
-class Department(enum.StrEnum):
-    billing = "billing"
-    """Payment, invoices or subscription issues."""
-    technical = "technical"
-    """Bugs, outages or integration problems."""
-    sales = "sales"
-    """Pricing, plans or account expansion."""
+system_one.Choice(instructions=None, criteria=None, *, provider=None, **opts)
+system_one.Score(instructions=None, criteria=None, *, provider=None, **opts)
+system_one.Noul(instructions=None, *, threshold=0.5, provider=None, **opts)
+```
 
+Each implements `ColumnParser`. Everything is explicit if you want it to be:
+
+```python
+department: Department = pa.ParsedField(
+    parser=system_one.Choice(
+        instructions="Which team should handle this ticket",
+        criteria={
+            "billing": "Payment, invoices or subscription issues",
+            "technical": "Bugs, outages or integration problems",
+            "sales": "Pricing, plans or account expansion",
+        },
+    ),
+)
+```
+
+and inferred if you don't. Naming the question type explicitly rather than
+deriving it from the dtype is deliberate: it is one word, it reads as
+documentation, and it removes the only genuinely ambiguous inference in the
+design (§4.3).
+
+### 4.2 What gets inferred
+
+| Question part | Explicit | Inferred from |
+|---|---|---|
+| instructions | `instructions=` | the field's `description` |
+| `Choice` options | `criteria` keys | the annotated type's members (`Enum`, `StrEnum`, `Literal`, `Category` categories) |
+| `Choice` criteria | `criteria` values | enum **member docstrings**; falls back to member names |
+| `Score` levels | `criteria` list order | the annotated `IntEnum`'s members in value order |
+| `Score` rubric | `criteria` values | enum member docstrings |
+| "or none" branch | — | `nullable=True` on the field |
+| option subset | — | `isin=[...]` on the field |
+| `Noul` → `bool` | `threshold=` | `True` iff `p >= threshold` |
+| `Noul` → `float` | — | raw probability when the field is `float` with `in_range=(0, 1)` |
+
+So this:
+
+```python
 class Frustration(enum.IntEnum):
     calm = 0
     """Calm, simply stating facts."""
@@ -367,188 +449,170 @@ class Frustration(enum.IntEnum):
     angry = 2
     """Very angry, strong language."""
 
-class Triage(pa.DataFrameModel):
-    department: Department = pa.Field(description="Which team should handle this ticket")
-    frustration: Frustration = pa.Field(description="How frustrated the customer appears")
-    is_urgent: bool = pa.Field(description="The message conveys time-sensitivity")
-```
-
-Everything here is either plain Python (`StrEnum`, `IntEnum`, `bool`, member
-docstrings) or plain pandera (`Field(description=...)`). `Triage` validates a
-dataframe, serializes to YAML, and generates docs with no provider configured.
-Nothing about it is AI-specific — which is the whole point, and the property
-Pydantic AI's `output_type` has that the earlier draft of this spec gave away.
-
-### 4.2 `SystemOneParser`
-
-```python
-class SystemOneParser(pandera.api.parsers.Parser):
-    def __init__(
-        self,
-        provider: str | DecisionProvider,       # "typesafe:jev-1.13.0"
-        *,
-        output: type[DataFrameModel] | DataFrameSchema | None = None,
-        source: str | list[str] | Callable[[Any], dict],
-        target: str | list[str] | None = None,
-        boolean_threshold: float = 0.5,
-        abstain_below: float | None = None,
-        confidence: bool | list[str] = False,
-        max_concurrency: int = 16,
-        cache: ExtractionCache | None = None,
-        on_error: Literal["raise", "null", "drop"] = "raise",
-    ): ...
-```
-
-It is an ordinary layer-1 parser: `source` is what it reads, its `target` is the
-columns of `output`. At construction it compiles `output`'s columns into a
-question set and raises `SchemaInitError` for any column it cannot express —
-before any request is sent.
-
-Note what the argument names are *not*: there is no `system_one_` prefix,
-because these arguments live on a dedicated object rather than sharing a
-namespace with the rest of `Column`. Removing the need for that prefix is a
-direct consequence of the modular factoring.
-
-### 4.3 Three ways to use it
-
-**Standalone**, the closest analogue to `agent.run_sync`:
-
-```python
-triage = SystemOneParser("typesafe:jev-1.13.0", output=Triage, source="ticket_body")
-
-triaged = triage(tickets_df)        # -> tickets_df + Triage's columns, validated
-```
-
-**Composed into a schema**, where it is just a parser:
-
-```python
-schema = pa.DataFrameSchema(
-    {"ticket_body": pa.Column(str), **Triage.to_schema().columns},
-    parsers=[triage],
-    checks=[pa.Check(lambda df: df["department"].isna().mean() < 0.05,
-                     name="abstention_rate")],
+frustration: Frustration = pa.ParsedField(
+    description="How frustrated the customer appears",
+    parser=system_one.Score(),
 )
-
-triaged = schema.validate(tickets_df)
 ```
 
-**Declared on a model.** `Config` has no `parsers` attribute today; adding one
-is a small generic core change that mirrors `DataFrameSchema(parsers=...)` and
-is useful for every parser, not just this one:
-
-```python
-class TicketTriage(Triage):                 # inherits the three answer columns
-    ticket_body: str
-
-    class Config:
-        parsers = [SystemOneParser("typesafe:jev-1.13.0", source="ticket_body")]
-```
-
-With no `output`, the parser resolves its targets from the schema it is attached
-to: every column that has a `description`, has an answerable dtype, and is not a
-source. Convenient, and the one implicit thing in the design — §12 asks whether
-it should exist at all.
-
-### 4.4 Type mapping
-
-The column's dtype determines the question type. This is the pandera
-re-expression of Pydantic AI's supported-field-types table.
-
-| Column dtype | Question | Answer → column | Notes |
-|---|---|---|---|
-| `bool` | `Noul` | `True` iff `p >= boolean_threshold` | |
-| `float` + `Field(in_range=(0, 1))` | `Noul` | raw probability, unrounded | |
-| `StrEnum` / `Enum` | `Choice` | chosen option | members are the options; ≤ 255 |
-| `Literal["a", "b"]` | `Choice` | chosen option | **needs §6.2** |
-| any of the above + `nullable=True` | `Choice` or none | option or `NA` | abstention |
-| `IntEnum` *(ordered)* | `Score` | nearest level | member docstrings are the rubric; 2–10 levels; **needs §6.3** |
-| `float` + ordered `IntEnum` | `Score` | unrounded position (e.g. `1.035`) | |
-| `list[EnumT]` | `Noul` per option | list of selected options | multi-label |
-| `str`, `datetime`, unbounded numerics, `dict` | ✗ | — | `SchemaInitError` at parser construction |
-
-`Choice` versus `Score` is decided by **ordering**: an unordered category is a
-`Choice`, an ordered one is a `Score`. That is semantically right — a `Score`
-answer can land *between* levels at `1.035`, which only means something for an
-ordered domain — and it is why §6.3 matters.
-
-`Field` arguments shape the question and then validate the answer:
-
-| `Field` argument | Effect |
-|---|---|
-| `description` | the question text |
-| `nullable=True` | adds the "or none" branch; abstention → `NA` |
-| `isin=[...]` | narrows a `Choice` to a subset of the dtype's options |
-| `in_range=(0, 1)` | marks a `float` as a raw `Noul` probability |
-
-### 4.5 Criteria come from member docstrings
-
-`Choice` takes `criteria={option: description}` and `Score` an ordered list of
-level descriptions. Those come from enum member docstrings, mirroring Pydantic
-AI's `UseEnumMemberDocstrings`. `Frustration` above compiles to:
+compiles to exactly this:
 
 ```python
 Score(
-    instructions="How frustrated the customer appears",   # Field(description=...)
+    instructions="How frustrated the customer appears",
     criteria=["Calm, simply stating facts",
               "Frustrated but civil",
-              "Very angry, strong language"],             # member docstrings
+              "Very angry, strong language"],
 )
 ```
 
-Python discards member docstrings at runtime, so this needs source inspection
-(§6.5). Worth doing in core rather than the extra: these descriptions belong on
-`Column.description` and in generated docs regardless of any provider.
+Anything given explicitly wins; anything omitted is inferred; anything that can
+be neither is a `SchemaInitError` naming the column and saying which part is
+missing. Python discards member docstrings at runtime, so the inference needs
+source introspection (§6.7) — worth doing in core, since those descriptions
+belong on `Column.description` and in generated docs regardless of any provider.
 
-Without docstrings, member names are used as bare criteria. That works, but the
-docs should push hard toward docstrings — criteria quality is the biggest single
-lever on answer quality, and putting it in the enum keeps it in the schema
-rather than in a prompt somewhere else.
+Criteria quality is the single biggest lever on answer quality, so the docs
+should push hard toward docstrings. Keeping them on the enum keeps them in the
+schema, versioned, rather than in a prompt string somewhere else.
 
-### 4.6 Confidence
+### 4.3 Type compatibility
 
-Jev returns calibrated confidence with every answer. Per-object that is a number
-you might log; per-dataframe it is a **column**, and therefore something pandera
-can validate.
+Each parser declares which dtypes it can fill, checked at schema build:
+
+| Parser | Valid target dtype | Rejected |
+|---|---|---|
+| `Choice()` | `Enum`, `StrEnum`, `Literal[...]`, `Category` (≤ 255 options) | `bool`, numerics, `str`, `datetime` |
+| `Score()` | ordered `IntEnum` or ordered `Category` (2–10 levels); `float` for an unrounded position | unordered categoricals, `bool` |
+| `Noul()` | `bool`; `float` with `in_range=(0, 1)` | everything else |
+
+`Score()` on an unordered `Enum` raises `SchemaInitError` telling you to use
+`Choice()` or make the type ordered. That message is the whole argument for
+naming the question type: an earlier draft inferred `Choice` vs `Score` from
+whether the category was ordered, which is correct but silent — a user who
+forgot `ordered=True` would get a `Choice` and never know they had asked a
+different question than they meant.
+
+This also **demotes the ordered-category gap** (§6.5) from a blocker to a
+nice-to-have: an `IntEnum` under `Score()` gets its ordering from member values,
+so ordering is no longer load-bearing for question selection.
+
+### 4.4 Source
+
+`source` is a layer-1 concept — every derived column has one — so it lives on
+`ParsedField`, with a schema-wide default for the common case where every
+derived column reads the same material:
+
+```python
+class Config:
+    parser_source = "ticket_body"          # schema-wide default
+```
+
+```python
+reply_is_on_policy: bool = pa.ParsedField(
+    description="The reply follows the stated refund policy",
+    parser=system_one.Noul(),
+    source=["ticket_body", "agent_reply"],  # per-field override
+)
+```
+
+```python
+def _ticket_state(row):                     # callable, for constants/truncation
+    return {"message": row["ticket_body"][:4000],
+            "policy": "Refunds within 30 days."}
+```
+
+Jev's accuracy degrades with irrelevant context, so a source is always named,
+never "the whole row". A source naming an undeclared column is a
+`SchemaInitError` at schema build, not a `KeyError` at parse time.
+
+### 4.5 Confidence is just another derived column
 
 ```python
 class Triage(pa.DataFrameModel):
-    department: Department = pa.Field(description="...", nullable=True)
-    department__confidence: float = pa.Field(ge=0.70)
-    ...
+    ticket_body: str
+    department: Department = pa.ParsedField(
+        description="Which team should handle this ticket",
+        parser=system_one.Choice(abstain_below=0.55),
+        nullable=True,
+    )
+    department_confidence: float = pa.ParsedField(
+        parser=system_one.Confidence("department"),
+        ge=0.70,
+    )
 
-triage = SystemOneParser(
-    "typesafe:jev-1.13.0",
-    output=Triage,
-    source="ticket_body",
-    confidence=["department"],       # fills department__confidence
-    abstain_below=0.55,
-)
+    @pa.dataframe_check
+    def routing_distribution_is_stable(cls, df):
+        observed = df["department"].value_counts(normalize=True)
+        return observed.reindex(BASELINE.index).sub(BASELINE).abs().max() < 0.15
 ```
+
+`Confidence("department")` is a `ColumnParser` that reads the decision already
+produced for another field rather than issuing its own request — a dependency
+edge in the layer-1 graph, which is what makes it free.
+
+This resolves a naming problem earlier drafts had. Confidence columns were
+auto-injected with a `__confidence` suffix, which collided with regex column
+matching and meant pandera added columns the schema did not declare. Here the
+column is declared like any other, named whatever you want, and validated with
+an ordinary `Field(ge=...)`.
 
 Three levels of strictness compose, all from existing features:
 
 1. `abstain_below` — per row: low-confidence answers become `NA`.
-2. `Field(ge=...)` on the confidence column — per row: hard failure with normal
-   failure-case reporting.
-3. `@pa.dataframe_check` — per batch: "mean confidence > 0.8", "≤5% abstentions",
-   "routing distribution hasn't drifted".
+2. `ge=` on the confidence column — per row: hard failure, normal failure-case
+   reporting.
+3. `@pa.dataframe_check` — per batch: mean confidence, abstention rate,
+   distribution drift.
 
-The confidence column is declared like any other, not auto-injected: a schema
-should describe every column in the frame it validates, and `strict=True` would
-otherwise reject a column pandera itself added.
+### 4.6 Providers are runtime, not schema
+
+A schema says what to ask. Who answers is configured out of band:
+
+```python
+import pandera.system_one as system_one
+
+system_one.set_provider("typesafe:jev-1.13.0")        # process-wide
+
+with system_one.provider(ReplayProvider(cassette)):   # scoped, for tests
+    Triage.validate(df)
+```
+
+plus `PANDERA_SYSTEM_ONE_PROVIDER` as the env-var form, and
+`system_one.Choice(provider=...)` as a per-parser override.
+
+**There is no default provider.** Validating a System One schema with none
+configured raises `SystemOneConfigError` telling you how to set one. That is the
+safety property that matters here: `Triage.validate(df)` does issue paid
+requests — inherent to putting the question in the schema — so it must be
+impossible to reach that state without having deliberately configured a
+provider.
+
+Supporting mitigations:
+
+```python
+Triage.questions()
+#> {'department': Choice(...), 'frustration': Score(...), 'is_urgent': Noul(...)}
+
+Triage.parse_plan(tickets_df)
+#> SystemOnePlan(rows=10_000, batches=1, requests=10_000,
+#>               est_input_tokens=4_812_000, est_cost_usd=0.2021)
+```
+
+`questions()` compiles and inspects without a provider at all, so a schema's
+questions are reviewable in a test with no credentials.
 
 ### 4.7 Semantic checks
 
-Judging an existing column, rather than producing a new one, is a `Check` — not
-a parser:
+Judging an existing column rather than producing a new one is a `Check`, not a
+parser:
 
 ```python
 class Products(pa.DataFrameModel):
     name: str
     category: Category
     description: str = pa.Field(
-        checks=SystemOneCheck(
-            "typesafe:jev-1.13.0",
+        checks=system_one.Holds(
             "The description is a coherent description of a product "
             "belonging to the stated category",
             context=["name", "category"],
@@ -557,15 +621,15 @@ class Products(pa.DataFrameModel):
     )
 ```
 
-`SystemOneCheck` is an ordinary `Check` with a vectorized predicate, so failure
-cases, `lazy=True`, `n_failure_cases`, and `raise_warning` work untouched. It is
-guarded by a `PANDERA_SYSTEM_ONE_ENABLED` env var so schemas carrying semantic
-checks still run offline, degrading to a skip with a warning.
+`Holds` is an ordinary `Check` with a vectorized predicate, so failure cases,
+`lazy=True`, `n_failure_cases`, and `raise_warning` work untouched. A
+`PANDERA_SYSTEM_ONE_ENABLED` guard lets schemas carrying semantic checks run
+offline, degrading to a skip with a warning.
 
 ### 4.8 Serialization
 
-Unlike a general derived column, a System One parser has no opaque callable —
-its "function" *is* its declarative question set, so it round-trips completely:
+Unlike a lambda, a question set is declarative, so layer 2 schemas round-trip
+completely:
 
 ```yaml
 columns:
@@ -573,39 +637,65 @@ columns:
     dtype: category
     description: Which team should handle this ticket
     nullable: true
-parsers:
-  - type: system_one
-    provider: typesafe:jev-1.13.0
-    source: [ticket_body]
-    target: [department, frustration, is_urgent]
-    criteria:
-      department:
+    parser:
+      type: system_one.choice
+      source: [ticket_body]
+      criteria:
         billing: Payment, invoices or subscription issues
         technical: Bugs, outages or integration problems
+      abstain_below: 0.55
+  department_confidence:
+    dtype: float64
+    parser:
+      type: system_one.confidence
+      of: department
+    checks:
+      greater_than_or_equal_to: 0.70
 ```
 
-A YAML file is therefore a complete, reviewable specification of a System One
-parsing step — questions, sources, types, and checks — with no Python at all.
-Because the question text is part of the cache key (§5.3), rewording a
-`description` correctly invalidates its cached answers.
+No provider appears, because the provider is not part of the schema (§4.6). A
+YAML file is a complete, reviewable specification of what will be asked — and
+because question text is part of the cache key (§5.3), rewording a `description`
+correctly invalidates its cached answers.
 
 ---
 
 ## 5. Execution
 
-### 5.1 Two axes of parallelism
+### 5.1 Batching: per-column declarations, per-request cost
 
-**Within a row — one request per parser.** Jev's request shape is one state plus
-many questions, so every column a parser fills shares a call. TypeSafe reports
-this speculative fan-out at 12.2× cheaper and 10.0× faster than one call per
-field. A 12-column `output` is one request per row, not twelve.
+Jev's request shape is one state plus many questions, and a tenth question costs
+tokens but almost no time. Per-column declarations would be pathological if each
+became its own request, so the compiler groups them.
 
-Two parsers reading different sources are two requests per row — and the parser
-object is the unit that makes that legible, since each one names its own source.
+`batch_key` for all three parsers is `(provider, source, on_error)`. Fields with
+equal keys are compiled into a single `Parser` whose target is their union:
 
-**Across rows — bounded async fan-out**, through an
-`asyncio.Semaphore(max_concurrency)` behind a token-bucket limiter sized to the
-provider's published limits, with exponential backoff honoring `retry-after`.
+```python
+class Conversation(pa.DataFrameModel):
+    customer_msg: str
+    agent_reply: str
+
+    intent: Intent = pa.ParsedField(parser=system_one.Choice(), source="customer_msg")   # ┐
+    is_urgent: bool = pa.ParsedField(parser=system_one.Noul(), source="customer_msg")    # ┘ batch A
+
+    reply_is_on_policy: bool = pa.ParsedField(                                           # ┐ batch B
+        parser=system_one.Noul(), source=["customer_msg", "agent_reply"],                # ┘
+    )
+```
+
+Two batches → two requests per row. A 12-column schema over one source is one
+request per row, not twelve. `parse_plan()` reports the batch count, so the
+grouping is inspectable rather than a thing you hope happened.
+
+TypeSafe reports this speculative fan-out at 12.2× cheaper and 10.0× faster than
+one call per field.
+
+### 5.2 Across rows
+
+Bounded async fan-out through an `asyncio.Semaphore(max_concurrency)` behind a
+token-bucket limiter sized to the provider's published limits, with exponential
+backoff honoring `retry-after`:
 
 ```python
 async def _parse(states, compiled, provider, limits):
@@ -622,13 +712,12 @@ async def _parse(states, compiled, provider, limits):
 
 Ordering is restored by index. A parser must return a frame whose index aligns
 with its input — non-negotiable, since answers are joined onto an existing frame.
+Concurrency and cache settings are provider-level, configured alongside it
+(§4.6), since they are runtime concerns rather than schema ones.
 
-### 5.2 Partitions
-
-Once parsers work on more than pandas (§6.4), the same parser runs
-per-partition: `pandas` locally, `polars` per chunk, `dask` one event loop per
-partition, `pyspark` via `mapInPandas`. Backend-specific work is confined to
-pulling state out of rows and putting typed arrays back into columns.
+State size is checked against the 64k combined / 32k individual token limits
+before dispatch, raising with the offending row index rather than surfacing a
+provider HTTP error.
 
 ### 5.3 Caching
 
@@ -636,60 +725,32 @@ Dataframe workloads re-run constantly — a new day appended to last week's, a
 notebook cell run six times, a backfill overlapping a prior run. Key:
 `sha256(provider_id, resolved_model_version, canonical(state), canonical(questions))`.
 
-Built-ins: in-memory dict, SQLite, parquet directory. `ExtractionCache` is a
-`get`/`set`/`stats` protocol. Stats land on the validated frame:
+Built-ins: in-memory dict, SQLite, parquet directory. Stats land on the
+validated frame:
 
 ```python
 out.attrs["pandera.system_one"]
-#> {'rows': 10_000, 'cached': 9_412, 'called': 588, 'model_version': 'jev-1.13.0',
-#>  'input_tokens': 241_305, 'est_cost_usd': 0.0101, 'wall_seconds': 4.3}
+#> {'rows': 10_000, 'batches': 1, 'cached': 9_412, 'called': 588,
+#>  'model_version': 'jev-1.13.0', 'input_tokens': 241_305,
+#>  'est_cost_usd': 0.0101, 'wall_seconds': 4.3}
 ```
 
-Model version pinning matters: `jev-latest` can change answers between runs, so
-the resolved version is part of the key and an unpinned provider warns when a
-cache is configured.
+`jev-latest` can change answers between runs, so the resolved version is part of
+the key and an unpinned provider warns when a cache is configured.
 
-### 5.4 State construction
+### 5.4 Partitions
 
-Jev's accuracy degrades with irrelevant context, so `source` is explicit, never
-"the whole row":
-
-```python
-SystemOneParser(..., source="ticket_body")                          # one column
-SystemOneParser(..., source=["ticket_body", "customer_tier"])       # a dict
-SystemOneParser(..., source=lambda row: {                           # full control
-    "message": row["ticket_body"][:4000],
-    "policy": "Refunds within 30 days.",
-})
-```
-
-Sources are checked against the schema at construction (`SchemaInitError`, not a
-runtime `KeyError`), and against the 64k combined / 32k individual token limits
-before dispatch, raising with the offending row index rather than surfacing a
-provider HTTP error.
-
-### 5.5 No hidden cost
-
-A parser is an object you constructed with a provider argument, so there is no
-way to accidentally make a paid call by validating an ordinary schema — the
-strongest safety property of the layered design, and one the earlier draft had
-to work for.
-
-```python
-triage.questions()
-#> {'department': Choice(...), 'frustration': Score(...), 'is_urgent': Noul(...)}
-
-triage.plan(tickets_df)
-#> SystemOnePlan(rows=10_000, requests=10_000,
-#>               est_input_tokens=4_812_000, est_cost_usd=0.2021)
-```
+Once parsers work on more than pandas (§6.4), the same schema runs
+per-partition: pandas locally, polars per chunk, dask one event loop per
+partition, pyspark via `mapInPandas`. Backend-specific work is confined to
+pulling state out of rows and putting typed arrays back into columns.
 
 ---
 
 ## 6. Gaps to close first
 
 Verified empirically against `main` (`62f55e2d`) with pandas and polars
-installed. Every one of these is a pandera bug or hole that stands on its own.
+installed. Every one is a pandera bug or hole that stands on its own.
 
 ### 6.1 Parsers have no declared source, so failures are opaque 🔴
 
@@ -702,12 +763,9 @@ pa.DataFrameSchema(
 ```
 
 A bare `KeyError`: not a `SchemaError`, no schema context, no parser name, no
-indication of which of several parsers failed. §3.3 fixes this by construction.
+indication of which of several parsers failed. §3.4 fixes this by construction.
 
 ### 6.2 `Literal` is not a supported dtype 🔴
-
-`Literal` is one of Pydantic AI's two primary `Choice` spellings. How it fails
-depends on how it is spelled.
 
 ```python
 class M(pa.DataFrameModel):
@@ -730,8 +788,8 @@ x: Series[Literal["int64", "float64"]]
 ```
 
 The last case is the dangerous one: whenever a literal value happens to be a
-valid dtype string, the option set is silently discarded and the column is typed
-as that dtype, with no membership constraint and no warning.
+valid dtype string, the option set is silently discarded and the column typed as
+that dtype, with no membership constraint and no warning.
 
 **Fix:** map `Literal[...]` to a `Category` over its args (or `pl.Enum` for
 polars) in both annotation forms; raise `SchemaInitError` naming the field for a
@@ -763,8 +821,8 @@ pa.DataFrameSchema({"d": pa.Column(Dept, coerce=True)}).validate(
 ```
 
 `IntEnum` and `StrEnum` work by accident: their members subclass `int`/`str`
-with matching `__eq__`/`__hash__`. Plain `Enum` — the most common spelling — does
-not. A blocker, since Jev returns option *values*.
+with matching `__eq__`/`__hash__`. Plain `Enum` — the most common spelling —
+does not. A blocker, since Jev returns option *values*.
 
 **Fix:** use `.value` for categories; let `coerce` accept members, values, or
 names.
@@ -786,11 +844,13 @@ parsers, closing the silent path immediately; (b) implement `run_parsers` for
 polars; (c) extend to remaining backends. Step (a) is small and independently
 shippable.
 
-### 6.5 Ordered categories are unreachable from an annotation 🟡
+### 6.5 Ordered categories are unreachable from an annotation 🟢
 
 `Engine.dtype(SomeEnum)` always constructs `Category(..., ordered=False)` —
-verified. Ordering distinguishes `Score` from `Choice` (§4.4) and independently
-enables `ge`/`le` and monotonicity checks on categorical columns.
+verified. Now only a nice-to-have, since naming `Score()` explicitly (§4.3)
+removes ordering from question selection. Still worth fixing: an ordered
+category supports `ge`/`le` and monotonicity checks that an unordered one does
+not.
 
 **Fix:** `IntEnum` → `ordered=True`; `Field(dtype_kwargs={"ordered": True})` as
 the general escape hatch (already works, undocumented for this purpose).
@@ -809,32 +869,38 @@ This survived because nothing tests both engines against the same enum.
 **Fix:** converge on polars' behavior (§6.3); add a cross-backend enum
 conformance test.
 
-### 6.7 Enum member docstrings are not captured 🟡
+### 6.7 Enum member docstrings are not captured 🔴
 
-Needed for `Choice` criteria and `Score` rubrics (§4.5). **Fix:** a
-`pandera.dtypes.member_descriptions(EnumT)` helper using `inspect.getsource` +
-`ast`, cached per class, with a graceful fallback when source is unavailable.
+Now a blocker rather than a nicety: §4.2's inference is the design's main
+ergonomic claim, and it rests entirely on member docstrings. Without them every
+`Choice()` falls back to bare member names as criteria, which is exactly the
+low-quality-criteria case the docs warn against.
+
+**Fix:** a `pandera.dtypes.member_descriptions(EnumT)` helper using
+`inspect.getsource` + `ast`, cached per class, with a graceful fallback when
+source is unavailable (REPL, frozen app). Belongs in core: these descriptions
+should reach `Column.description` and generated docs regardless of any provider.
 
 ### 6.8 `Category` has no per-category description slot 🟡
 
 Criteria for a non-enum categorical have nowhere to live but a `metadata` blob.
 This bites when building schemas programmatically from a runtime taxonomy, where
 there is no enum class to hang docstrings on. A first-class
-`Category(categories=..., descriptions={...})` would fix it and improve generated
-docs for ordinary categorical columns.
+`Category(categories=..., descriptions={...})` would fix it and improve
+generated docs for ordinary categorical columns.
 
 ### 6.9 Summary
 
 | # | Gap | Severity | Blocks | Standalone value |
 |---|---|---|---|---|
 | 6.1 | Parsers have no declared source/target | 🔴 | layer 1 | yes — error quality |
-| 6.2 | `Literal` unsupported; can silently mistype a column | 🔴 | `Choice` | yes — silent data loss |
-| 6.3 | `Enum` → members not values | 🔴 | `Choice` | yes — pre-existing bug |
+| 6.2 | `Literal` unsupported; can silently mistype a column | 🔴 | `Choice()` | yes — silent data loss |
+| 6.3 | `Enum` → members not values | 🔴 | `Choice()` | yes — pre-existing bug |
 | 6.4 | Parsers pandas-only, silently ignored | 🔴 | non-pandas backends | yes — silent failure |
-| 6.5 | No ordered categories from annotation | 🟡 | `Score` | yes |
+| 6.7 | No member docstring capture | 🔴 | criteria inference | yes — docs |
 | 6.6 | pandas/polars enum divergence | 🟡 | portability | yes |
-| 6.7 | No member docstring capture | 🟡 | criteria quality | yes — docs |
 | 6.8 | No per-category descriptions | 🟡 | programmatic schemas | yes — docs |
+| 6.5 | No ordered categories from annotation | 🟢 | — | yes |
 
 ---
 
@@ -871,8 +937,9 @@ typesafe-ai = ["typesafe-sdk"]
 ```
 
 - Layer 1 is **core pandera** — no extra, no new dependency.
-- Layer 2 is `pandera.system_one`, installed with `pip install 'pandera[typesafe-ai]'`;
-  Jev-specific code lives in `pandera.system_one.providers.typesafe`.
+- Layer 2 is `pandera.system_one`, installed with
+  `pip install 'pandera[typesafe-ai]'`; Jev-specific code lives in
+  `pandera.system_one.providers.typesafe`.
 - Importing `pandera` without the extra is byte-for-byte unaffected.
 
 ---
@@ -881,12 +948,12 @@ typesafe-ai = ["typesafe-sdk"]
 
 | Phase | Layer | Scope | Exit criteria |
 |---|---|---|---|
-| **0** | core | §6.2, §6.3, §6.4(a); cross-backend enum conformance tests | `Enum` and `Literal` round-trip on pandas and polars; non-pandas parsers raise instead of no-op |
-| **1** | 1 | `Parser(source=, target=)`, dependency sort, `ParserSourceError`/`ParserTargetError`, `ParsedColumn`/`ParsedField`, `@pa.parser(source=)`, `Config.parsers` | Derived columns work end-to-end on pandas with declared provenance. **Ships with no AI code at all.** |
-| **2** | 2 | `Question`/`Decision`, `DecisionProvider`, `TypeSafeProvider`, question compiler + `SchemaInitError` coverage, `SystemOneParser`, async fan-out + limiter | The §0 example runs end-to-end; full §4.4 table covered by replay tests |
-| **3** | 2 | §6.5, §6.7; confidence columns, `abstain_below`, cache, stats, `plan()` | Confidence floors and distribution checks work; cache-hit path makes zero network calls |
-| **4** | both | §6.4(b), §6.8; polars parsers, `SystemOneCheck`, YAML round-trip, CLI | Same model validates on pandas and polars with identical output |
-| **5** | both | dask/modin/pyspark partitioning, multi-label, nested models | 1M-row parse on dask with bounded memory and correct rate limiting |
+| **0** | core | §6.2, §6.3, §6.4(a), §6.7; cross-backend enum conformance tests | `Enum` and `Literal` round-trip on pandas and polars; member docstrings readable; non-pandas parsers raise instead of no-op |
+| **1** | 1 | `Parser(source=, target=)`, dependency sort, `ParserSourceError`/`ParserTargetError`, `ParsedColumn`/`ParsedField`, `ColumnParser` protocol + batching, `Config.parser_source`, `@pa.parser(source=)` | Derived columns work end-to-end on pandas with declared provenance. **Ships with no AI code at all.** |
+| **2** | 2 | `Question`/`Decision`, `DecisionProvider`, `TypeSafeProvider`, `Choice`/`Score`/`Noul` + inference, provider configuration, async fan-out + limiter | The §0 example runs end-to-end; §4.2 inference and §4.3 compatibility fully covered by replay tests |
+| **3** | 2 | `Confidence`, `abstain_below`, cache, stats, `parse_plan()` | Confidence floors and distribution checks work; cache-hit path makes zero network calls |
+| **4** | both | §6.4(b), §6.8; polars parsers, `Holds`, YAML round-trip, CLI | Same model validates on pandas and polars with identical output |
+| **5** | both | dask/modin/pyspark partitioning, multi-label, `ParsedIndex` | 1M-row parse on dask with bounded memory and correct rate limiting |
 
 Phases 0 and 1 are worth doing whether or not layer 2 is ever built.
 
@@ -898,14 +965,19 @@ Hard constraint: **no test requires an API key or network access.**
 
 - **Layer 1 tests need no provider at all** — the biggest testability win from
   the split. Dependency sorting, cycle detection, source/target validation,
-  error types, and serialization are all exercised with `lambda s: s * 2`.
+  batching, error types, and serialization are exercised with `lambda s: s * 2`.
+- **Question compilation is testable without a provider.** `Triage.questions()`
+  compiles §4.2's inference with no credentials, so the inference rules —
+  the design's main ergonomic claim — are unit tests, not integration tests.
+- **Batching tests.** Fields sharing `(provider, source, on_error)` produce one
+  request per row; differing keys produce one batch each; `parse_plan()` reports
+  the true count.
 - **Cassettes.** `RecordingProvider` captures real responses once behind
-  `PANDERA_RECORD_CASSETTES=1`; `ReplayProvider` serves them in CI.
-- **Compiler contract tests.** §4.4 as a parametrized test: every supported
-  dtype compiles to the expected question type and criteria; every unsupported
-  one raises `SchemaInitError` naming the column.
-- **Type-system regression tests** for §6.2–§6.8, written before the fixes,
-  including the cross-backend enum matrix.
+  `PANDERA_RECORD_CASSETTES=1`; `ReplayProvider` serves them in CI via the
+  `system_one.provider(...)` context manager.
+- **Compatibility tests.** §4.3 as a parametrized matrix: every (parser, dtype)
+  pair either compiles or raises `SchemaInitError` naming the column.
+- **Type-system regression tests** for §6.2–§6.8, written before the fixes.
 - **Concurrency tests** with a latency-injecting fake provider: ordering
   preserved, concurrency capped, token bucket throttles, `retry-after` honored,
   one row's failure does not poison the batch.
@@ -918,10 +990,10 @@ Hard constraint: **no test requires an API key or network access.**
 ## 11. Documentation plan
 
 - `docs/source/parsers.md` — extend with derived columns as a first-class
-  concept, and update the "pandas only" note as §6.4 lands.
+  concept; update the "pandas only" note as §6.4 lands.
 - `docs/source/derived_columns.md` — layer 1 user guide.
-- `docs/source/system_one.md` — layer 2 user guide: the §0 example, type
-  mapping, writing good criteria, confidence, caching, cost.
+- `docs/source/system_one.md` — layer 2 user guide: the §0 example, the
+  inference rules, writing good criteria, confidence, providers, caching, cost.
 - `docs/source/dtypes.md` — document enum/`Literal`/ordered-category behavior
   once §6 is fixed. Currently undocumented, which is why the gaps went unnoticed.
 - `docs/source/integrations.md` — add a **TypeSafe AI (Jev)** row.
@@ -931,6 +1003,13 @@ Hard constraint: **no test requires an API key or network access.**
 ---
 
 ## 12. Risks and open questions
+
+**`validate()` can cost money.** Putting the question in the schema means
+`Triage.validate(df)` issues requests. This is inherent to the design and worth
+stating plainly. Mitigations: no default provider, so an unconfigured schema
+raises rather than calls (§4.6); `questions()` and `parse_plan()` inspect without
+calling; stats always attached to the result. Worth considering an opt-in
+confirmation above a configurable row threshold.
 
 **Vendor concentration.** Jev is one vendor's proprietary model in early access
 (opened 2026-09-15 — this is very new). Mitigation: the `DecisionProvider`
@@ -946,45 +1025,64 @@ caching.
 
 **Open questions:**
 
-1. Should `SystemOneParser` be allowed to infer its targets from the attached
-   schema (§4.3), or always require an explicit `output`? Inference is the nicer
-   one-liner and the only implicit thing left in the design.
-2. Does `ParsedColumn` need `ParsedIndex` for symmetry, or is deriving an index
-   out of scope?
+1. Does `Config.parser_source` earn its place (§4.4)? It keeps the §0 example a
+   one-liner per field, but it is a schema-wide default for something that is
+   conceptually per column. The alternative is repeating `source=` on every
+   field, which is explicit but noisy.
+2. Should `system_one.Ask()` exist — a parser that picks `Choice`/`Score`/`Noul`
+   from the dtype? It would shorten the common case, at the cost of
+   reintroducing the silent inference §4.3 deliberately removed.
 3. Enum columns holding values vs. members (§6.3) — values recommended; either
    choice is a small breaking change.
-4. `Choice`/`Score` disambiguation by ordering (§4.4) is correct but implicit.
-   Does it need an explicit override?
-5. Confidence column naming — the `__confidence` suffix can collide with regex
-   column matching. Alternative: an accessor returning a parallel frame.
-6. Should layer 1 allow a parser to *remove* columns, or is
-   `strict="filter"` sufficient? Removal would complete the derivation story but
-   complicates the dependency graph.
+4. Should `Confidence` be able to reference a field in a *different* batch, or
+   only a sibling? Cross-batch would need the layer-1 graph to carry decision
+   objects, not just columns.
+5. Should layer 1 allow a parser to *remove* columns, or is `strict="filter"`
+   sufficient? Removal would complete the derivation story but complicates the
+   dependency graph.
+6. `ParsedIndex` for symmetry, or is deriving an index out of scope?
 
 **Resolved during review:**
 
-- *Where does the AI binding live?* **In the parser object**, not on
-  `Field`/`Column`/`Config` (§4.2). Earlier drafts added `system_one_source` and
-  `system_one_provider` as schema arguments. That made every schema partly an AI
-  artifact, put provider concerns in a namespace shared with ordinary column
-  options, and — worst — meant `validate()` on a plain-looking schema could
-  issue paid requests. Factoring the binding into a `Parser` keeps the schema a
-  plain schema, matches how Pydantic AI separates `output_type` from `Agent`,
-  and makes the whole feature testable without a provider.
-- *Where does the source column live?* On the **parser**, which is the object
-  that reads it. An earlier draft put it on `Config`, then on each `Field`.
+- *How is a System One column declared?* Through **`ParsedField`/`ParsedColumn`
+  with a parser object** (§0), not a separate step. Earlier drafts proposed a
+  standalone `SystemOneParser(output=Model, source=...)` mirroring Pydantic AI's
+  `Agent`. That was a faithful port of someone else's API rather than a pandera
+  design: it split column declarations across two places, and it made the
+  question set a property of a side object rather than of the column it fills.
+  One derivation mechanism, with question types as parsers, is the pandera
+  shape — and batching (§5.1) recovers the per-request economics that made the
+  bundled form attractive.
+- *Where do AI arguments live on `Field`/`Column`/`Config`?* **Nowhere.** An
+  earlier draft added `system_one_source=` and `system_one_provider=` to the
+  core constructs. `ParsedField(parser=...)` gives derivation its own construct,
+  and providers moved to runtime configuration entirely.
+- *`Choice` vs `Score`* — named explicitly rather than inferred from category
+  ordering (§4.3), which also demoted §6.5 from blocker to nice-to-have.
+- *Confidence column naming* — declared as an ordinary `ParsedField` (§4.5),
+  replacing auto-injected `__confidence` suffixes.
 
 ---
 
 ## 13. Summary
 
-Pydantic AI's Jev integration answers *"fill this object from this text"*, and
-it does it without changing what a `BaseModel` is. The pandera analogue should
-answer *"fill this **column** from this **corpus**, and tell me when the answers
-stop looking right"* — without changing what a schema is.
+The question "which team should handle this ticket" belongs next to the column
+that holds the answer, in the same place a `lambda` would go if the answer were
+computable. That is the whole design:
 
-That requires one primitive pandera is missing: a parser that declares the
-columns it reads and the columns it produces. Build that, and the System One
-integration is a `Parser` subclass whose function happens to be a question set.
-Build it well, and derived columns become a pandera feature that people who have
-never heard of Jev will use.
+```python
+department: Department = pa.ParsedField(
+    description="Which team should handle this ticket",
+    parser=system_one.Choice(),
+)
+```
+
+Everything else follows. The type is plain Python and supplies the options; the
+docstrings supply the criteria; the description supplies the question; the
+engine batches the columns back into one request; and the answers are validated
+by the same `Check`s as any other column.
+
+Getting there needs one primitive pandera is missing — a parser that declares
+the columns it reads and produces — plus a handful of type-system holes closed.
+Both are worth having on their own, and a user who never installs the extra
+still gets derived columns out of it.
