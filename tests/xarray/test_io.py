@@ -612,3 +612,51 @@ class TestNamedCheckSerialization:
                     coords={"x": np.array([0])},
                 )
             )
+
+
+class TestCheckErrorSerialization:
+    """A check's custom error message must survive xarray serialization."""
+
+    def test_parse_checks_includes_custom_error(self):
+        [serialized] = parse_checks([Check.gt(0, error="must be positive")])
+        assert serialized["options"]["error"] == "must be positive"
+
+    def test_parse_checks_omits_default_error(self):
+        [serialized] = parse_checks([Check.gt(0)])
+        assert "error" not in serialized["options"]
+
+    @pytest.mark.parametrize(
+        "serialize, deserialize",
+        [(to_yaml, from_yaml), (to_json, from_json)],
+    )
+    def test_data_array_error_survives_roundtrip(self, serialize, deserialize):
+        schema = DataArraySchema(
+            dtype="int64",
+            dims=("x",),
+            checks=Check.gt(0, error="must be positive"),
+        )
+        payload = serialize(schema, minimal=False)
+        assert "must be positive" in payload
+
+        [check] = deserialize(payload).checks
+        assert check.error == "must be positive"
+
+    def test_component_errors_survive_roundtrip(self):
+        schema = DatasetSchema(
+            data_vars={
+                "v": DataVar(
+                    dtype="int64",
+                    dims=("x",),
+                    checks=Check.gt(0, error="var message"),
+                )
+            },
+            coords={
+                "x": Coordinate(
+                    dtype="int64", checks=Check.ge(0, error="coord message")
+                )
+            },
+        )
+        restored = from_json(to_json(schema, minimal=False))
+
+        assert restored.data_vars["v"].checks[0].error == "var message"
+        assert restored.coords["x"].checks[0].error == "coord message"
