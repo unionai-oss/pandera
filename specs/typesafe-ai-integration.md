@@ -424,7 +424,11 @@ request count, token count, and cost, then stops.
 
 ---
 
-## 5. Configuration: `ai_source` and `ai_provider`
+## 5. The two APIs
+
+Pandera treats `DataFrameModel` and `DataFrameSchema` as peers, and so does this
+design: everything expressible in one is expressible in the other, and the
+model form compiles to the object form.
 
 ### 5.1 Where each setting lives
 
@@ -455,48 +459,7 @@ whose `Column` does not (yet) support it are unaffected". `ai_source` should
 follow that pattern exactly, which keeps non-pandas backends untouched until
 §8.6 lands.
 
-### 5.2 Settings reference
-
-**Model API:**
-
-```python
-class TicketTriage(pa.DataFrameModel):
-    ...
-    class Config:
-        ai_provider = "typesafe:jev-1.13.0"   # or a DecisionProvider instance
-        ai_source = "ticket_body"             # optional per-schema default
-        ai_boolean_threshold = 0.5
-        ai_abstain_below = None
-        ai_max_concurrency = 16
-        ai_cache = None
-        ai_confidence_suffix = "__confidence"
-        ai_on_error = "raise"
-```
-
-**Schema API:**
-
-```python
-schema = pa.DataFrameSchema(
-    columns={
-        "ticket_body": pa.Column(str),
-        "department": pa.Column(
-            Department,
-            description="Which team should handle this ticket",
-            ai_source="ticket_body",
-        ),
-        "is_urgent": pa.Column(
-            bool,
-            description="The message conveys urgency or time-sensitivity",
-            ai_source="ticket_body",
-        ),
-    },
-    ai_provider="typesafe:jev-1.13.0",
-)
-
-triaged = schema.validate(tickets_df)
-```
-
-`ai_provider` accepts:
+### 5.2 `ai_provider` values
 
 | Value | Meaning |
 |---|---|
@@ -508,6 +471,225 @@ triaged = schema.validate(tickets_df)
 A global default is settable through the existing `PanderaConfig` /
 `PANDERA_AI_PROVIDER` env var, so the same schema definition runs against a
 recorded cassette in CI and the real provider in production without edits.
+
+### 5.3 Model-based API
+
+```python
+class TicketTriage(pa.DataFrameModel):
+    ticket_body: Series[str]
+    department: Series[Department] = pa.Field(
+        description="Which team should handle this ticket",
+        ai_source="ticket_body",
+    )
+    is_urgent: Series[bool] = pa.Field(
+        description="The message conveys urgency or time-sensitivity",
+        ai_source="ticket_body",
+    )
+
+    class Config:
+        ai_provider = "typesafe:jev-1.13.0"   # or a DecisionProvider instance
+        ai_source = "ticket_body"             # optional per-schema default
+        ai_boolean_threshold = 0.5
+        ai_abstain_below = None
+        ai_max_concurrency = 16
+        ai_cache = None
+        ai_confidence_suffix = "__confidence"
+        ai_on_error = "raise"
+
+triaged = TicketTriage.validate(tickets_df)
+```
+
+### 5.4 Object-based API
+
+The same schema, built from objects. `ai_source` sits on `Column` beside the
+existing `description`, `parsers`, `metadata`, and `on_missing`; every `ai_*`
+`Config` key is a `DataFrameSchema` keyword argument of the same name.
+
+```python
+import pandera.pandas as pa
+
+schema = pa.DataFrameSchema(
+    columns={
+        "ticket_body": pa.Column(str),
+        "department": pa.Column(
+            Department,                      # Enum class -> Choice
+            description="Which team should handle this ticket",
+            ai_source="ticket_body",
+            nullable=True,
+        ),
+        "department__confidence": pa.Column(float, pa.Check.ge(0.70)),
+        "frustration": pa.Column(
+            Frustration,                     # ordered IntEnum -> Score
+            description="How frustrated the customer appears",
+            ai_source="ticket_body",
+        ),
+        "is_urgent": pa.Column(
+            bool,                            # bool -> Noul
+            description="The message conveys urgency or time-sensitivity",
+            ai_source="ticket_body",
+        ),
+        "reply_is_on_policy": pa.Column(
+            bool,
+            description="The reply follows the stated refund policy",
+            ai_source=["ticket_body", "agent_reply"],   # a second source group
+        ),
+    },
+    checks=[
+        pa.Check(
+            lambda df: (df["department"].isna().mean() < 0.05),
+            name="abstention_rate",
+        ),
+    ],
+    ai_provider="typesafe:jev-1.13.0",
+    ai_abstain_below=0.55,
+    coerce=True,
+)
+
+triaged = schema.validate(tickets_df)
+```
+
+A `SeriesSchema` works the same way for the single-column case, where the
+source is the series itself — the "judge an existing column" shape from §4.3:
+
+```python
+sentiment = pa.SeriesSchema(
+    float,
+    description="The review expresses a positive opinion of the product",
+    ai_source=...,           # the series under validation
+    checks=pa.Check.in_range(0, 1),
+    ai_provider="typesafe:jev-1.13.0",
+)
+```
+
+### 5.5 Building schemas programmatically
+
+This is the object API's reason to exist, and the AI case leans on it harder
+than most: taxonomies live in config files, feature stores, and label registries,
+and a class body cannot be written against a taxonomy that is only known at
+runtime.
+
+```python
+# taxonomy loaded from a config file, a DB, or a labeling tool
+TAXONOMY = load_taxonomy()
+#> {"department": {"question": "Which team should handle this ticket",
+#>                 "options": {"billing": "Payment, invoices or subscriptions",
+#>                             "technical": "Bugs, outages or integrations"}}, ...}
+
+schema = pa.DataFrameSchema(
+    columns={
+        "ticket_body": pa.Column(str),
+        **{
+            name: pa.Column(
+                pa.Category(categories=list(spec["options"])),
+                description=spec["question"],
+                ai_source="ticket_body",
+                metadata={"typesafe": {"criteria": spec["options"]}},
+            )
+            for name, spec in TAXONOMY.items()
+        },
+    },
+    ai_provider="typesafe:jev-1.13.0",
+)
+```
+
+Note where the per-option descriptions had to go: a `metadata` blob. With an
+enum, criteria come from member docstrings (§3.3); with a runtime-built
+`Category` there is nowhere else to put them. **This is the case that upgrades
+§8.7 from a nicety to something worth doing** — a first-class
+`Category(categories=..., descriptions={...})` would make the object API a
+first-class citizen here instead of a metadata-stuffing exercise, and would
+improve generated docs for ordinary categorical columns at the same time.
+
+### 5.6 Composing with an existing schema
+
+AI columns can be layered onto a schema that already exists — including one
+loaded from YAML or inferred from data — using the existing mutation API:
+
+```python
+base = pa.infer_schema(tickets_df)   # or pandera.io.pandas_io.deserialize_schema(...)
+
+triage = base.add_columns({
+    "department": pa.Column(
+        Department,
+        description="Which team should handle this ticket",
+        ai_source="ticket_body",
+    ),
+}).update_config(ai_provider="typesafe:jev-1.13.0")
+```
+
+`add_columns`, `remove_columns`, `update_column`, and `set_index` all behave
+normally; an AI column is an ordinary `Column` that happens to carry an
+`ai_source`. `update_config` is the one new mutator, mirroring the existing
+`update_column` shape for schema-level `ai_*` settings.
+
+### 5.7 Dropping to `AIParser` directly
+
+The lowest level requires **no new API at all**. `DataFrameSchema` already
+accepts `parsers` ("dataframe-wide parsers"), and `AIParser` is a `Parser`:
+
+```python
+from pandera.ai import AIParser
+from pandera.ai.providers.typesafe import TypeSafeProvider, Choice, Noul
+
+parser = AIParser(
+    question_groups={
+        ("ticket_body",): {
+            "department": Choice(
+                instructions="Which team should handle this ticket",
+                criteria={"billing": "Payment, invoices or subscriptions",
+                          "technical": "Bugs, outages or integrations"},
+            ),
+            "is_urgent": Noul(
+                instructions="The message conveys time-sensitivity",
+            ),
+        },
+    },
+    provider=TypeSafeProvider("jev-1.13.0"),
+    max_concurrency=32,
+)
+
+schema = pa.DataFrameSchema(
+    columns={
+        "ticket_body": pa.Column(str),
+        "department": pa.Column(pa.Category(categories=["billing", "technical"])),
+        "is_urgent": pa.Column(bool),
+    },
+    parsers=[parser],        # existing argument, no changes needed
+    coerce=True,
+)
+```
+
+That `ai_source` + `ai_provider` compiles down to something already expressible
+is the main evidence that the parser framing (§1.2) is the right one: the sugar
+is genuinely sugar. This level is also what the test suite exercises — a
+provider and a question set with no model class in sight — and it is the escape
+hatch for question shapes the compiler does not yet cover.
+
+### 5.8 Equivalence and inspection
+
+`TicketTriage.to_schema()` returns exactly the §5.4 `DataFrameSchema`, including
+the compiled parser. The two APIs are one implementation:
+
+```python
+assert TicketTriage.to_schema() == schema
+```
+
+Both expose the same inspection surface, which never makes a request:
+
+```python
+schema.ai_questions()
+#> {('ticket_body',): {'department': Choice(...), 'is_urgent': Noul(...)},
+#>  ('ticket_body', 'agent_reply'): {'reply_is_on_policy': Noul(...)}}
+
+schema.validate(tickets_df, ai_dry_run=True)
+#> AIPlan(rows=10_000, groups=2, requests=20_000,
+#>        est_input_tokens=4_812_000, est_cost_usd=0.2021)
+```
+
+And both round-trip through `pandera.io`: `ai_source` serializes per column
+alongside `description`, `ai_provider` in the schema-level config block. A
+YAML-defined schema is therefore a complete, reviewable specification of an AI
+parsing step — questions, sources, types, and checks — with no Python at all.
 
 ---
 
@@ -826,13 +1008,17 @@ schema is given parsers, so the silent path closes regardless of this
 integration's timeline; (b) implement `run_parsers` for polars; (c) extend to
 the remaining backends. Step (a) is a small, independently shippable bug fix.
 
-### 8.7 `Category` has no per-category description slot 🟢
+### 8.7 `Category` has no per-category description slot 🟡
 
 Choice criteria are per-option descriptions. Today they can only live in enum
 member docstrings (§8.5) or a `metadata` blob. A first-class
 `Category(categories=..., descriptions={...})` would let non-enum categorical
-columns carry criteria and would improve generated docs generally. Nice to have,
-not a blocker — `metadata` is sufficient for v1.
+columns carry criteria and would improve generated docs generally.
+
+Not a blocker — `metadata` is sufficient for v1 — but it bites specifically in
+the object-based API, where a runtime-built taxonomy has no enum class to hang
+docstrings on (§5.5). Anyone constructing schemas programmatically, which is the
+object API's whole reason to exist, hits it immediately.
 
 ### 8.8 Summary
 
@@ -844,7 +1030,7 @@ not a blocker — `metadata` is sufficient for v1.
 | 8.4 | pandas/polars enum divergence | 🟡 | portability | yes |
 | 8.5 | No member docstring capture | 🟡 | criteria quality | yes — docs |
 | 8.6 | Parsers pandas-only, silently ignored | 🔴 blocker | non-pandas backends | yes — silent failure |
-| 8.7 | No per-category descriptions | 🟢 | — | yes |
+| 8.7 | No per-category descriptions | 🟡 | object-API ergonomics (§5.5) | yes — docs |
 
 Every one of these is a pandera-core improvement that stands on its own. That is
 a feature of this design, not a coincidence: routing the integration through
