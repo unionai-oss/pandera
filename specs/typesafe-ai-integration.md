@@ -43,30 +43,30 @@ class TicketTriage(pa.DataFrameModel):
     ticket_body: Series[str]
     department: Series[Department] = pa.Field(
         description="Which team should handle this ticket",
-        ai_source="ticket_body",
+        system_one_source="ticket_body",
     )
     frustration: Series[Frustration] = pa.Field(
         description="How frustrated the customer appears",
-        ai_source="ticket_body",
+        system_one_source="ticket_body",
     )
     is_urgent: Series[bool] = pa.Field(
         description="The message conveys urgency or time-sensitivity",
-        ai_source="ticket_body",
+        system_one_source="ticket_body",
     )
 
     class Config:
-        ai_provider = "typesafe:jev-1.13.0"
+        system_one_provider = "typesafe:jev-1.13.0"
 
 triaged = TicketTriage.validate(tickets_df)
 ```
 
-Each field declares **what it reads** (`ai_source`) and **what it asks**
+Each field declares **what it reads** (`system_one_source`) and **what it asks**
 (`description`) next to **what it produces** (the annotation). Fields that share
 a source share a request, so the three questions above are one call per row, not
 three (§6.1).
 
 `tickets_df` has one column. `triaged` has four, typed and checked. There is no
-separate `extract()` call: the AI layer is a dataframe-level parser, so it runs
+separate `extract()` call: the System One layer is a dataframe-level parser, so it runs
 at step 1 of the pipeline pandera already documents, and everything downstream —
 coercion, column checks, dataframe checks, `lazy=True`, `drop_invalid_rows` —
 works unmodified.
@@ -143,18 +143,18 @@ before any of them appear in user-facing docs.)*
 
 1. **`Field` is the only new surface.** No `Ask()`, no `Question` objects in
    user code, no parallel spec. `Field` gains exactly one argument,
-   `ai_source`; question text reuses the existing `description`; the question
+   `system_one_source`; question text reuses the existing `description`; the question
    *type* is derived from the annotation, exactly as Pydantic AI derives it
    from the output type's fields.
-2. **Parsing is the integration point.** The AI layer is a `Parser`. It slots
+2. **Parsing is the integration point.** The System One layer is a `Parser`. It slots
    into the documented pipeline rather than bypassing it.
 3. **Validation stays ordinary.** After the parser runs, the frame is validated
    by the same schema through the same code path as any other frame.
 4. **Minimal core surface.** Core pandera gains two plumbing arguments
-   (`Field(ai_source=...)`, `ai_provider` on schemas — §5.1) and the
+   (`Field(system_one_source=...)`, `system_one_provider` on schemas — §5.1) and the
    type-system fixes in §8, which are bugs and existing holes rather than new
    concepts. Everything Jev-specific lands behind the `typesafe-ai` extra.
-5. **Provider-pluggable.** `ai_provider` names a provider; Jev is the first
+5. **Provider-pluggable.** `system_one_provider` names a provider; Jev is the first
    implementation of a protocol, not a hardcoded dependency.
 6. **Unsupported is an init-time error.** A field that cannot be expressed as a
    question raises `SchemaInitError` when the schema is built — matching
@@ -175,10 +175,10 @@ Straight from the Pydantic AI docs, and adopted verbatim:
 > output type's fields via `Field(description=...)`.
 
 In pandera terms, both halves live on the field:
-**`Field(ai_source=...)` names the columns that carry the material;
-`Field(description=...)` carries the question.** A field with an `ai_source`
-and an AI-answerable annotation, in a schema with an `ai_provider`, is an
-AI-parsed column. Every other field is an ordinary column and is left alone.
+**`Field(system_one_source=...)` names the columns that carry the material;
+`Field(description=...)` carries the question.** A field with an `system_one_source`
+and a System One-answerable annotation, in a schema with an `system_one_provider`, is a
+System One-parsed column. Every other field is an ordinary column and is left alone.
 
 Keeping the source on the field rather than on `Config` buys three things:
 
@@ -189,14 +189,14 @@ Keeping the source on the field rather than on `Config` buys three things:
    `ticket_body` and separately score `agent_reply` in the same pass — which is
    the normal case for any frame with more than one text column, and is not
    expressible with a single schema-wide source.
-3. **The marker is explicit.** `ai_source` is what makes a field AI-parsed, not
-   the presence of a `description` — so `description` keeps its ordinary
-   documentation meaning everywhere else. This resolves the largest design risk
-   in earlier drafts of this spec (§13).
+3. **The marker is explicit.** `system_one_source` is what makes a field
+   System One-parsed, not the presence of a `description` — so `description`
+   keeps its ordinary documentation meaning everywhere else. This resolves the
+   largest design risk in earlier drafts of this spec (§13).
 
 `description` is not a new argument: it already exists on `Field`, already flows
 to `Column.description`, and already round-trips through `pandera.io` YAML. An
-AI-parsed schema is reviewable in a PR and diffable when a question is reworded.
+System One-parsed schema is reviewable in a PR and diffable when a question is reworded.
 
 ### 3.2 Type mapping
 
@@ -205,7 +205,7 @@ re-expression of Pydantic AI's supported-field-types table.
 
 | Annotation | Question | Answer → column | Notes |
 |---|---|---|---|
-| `Series[bool]` | `Noul` | `True` iff `p >= ai_boolean_threshold` (default `0.5`) | |
+| `Series[bool]` | `Noul` | `True` iff `p >= system_one_boolean_threshold` (default `0.5`) | |
 | `Series[float]` + `Field(in_range=(0, 1))` | `Noul` | raw probability, unrounded | |
 | `Series[StrEnum]` / `Series[Enum]` | `Choice` | chosen option | members are the options; ≤ 255 |
 | `Series[Literal["a", "b"]]` | `Choice` | chosen option | **needs §8.2** |
@@ -257,7 +257,7 @@ Score(
 Python does not retain member docstrings at runtime, so this requires source
 inspection (§8.5). Pydantic AI solves the same problem with a mixin; pandera
 should solve it centrally so that `Column.description` and the generated docs
-get the descriptions too, not just the AI layer.
+get the descriptions too, not just the System One layer.
 
 Without docstrings, the member names are used as bare criteria. That works and
 is a reasonable default, but the docs should push hard toward docstrings:
@@ -270,8 +270,8 @@ Existing `Field` arguments are reused rather than shadowed:
 
 | `Field` argument | Effect on the question |
 |---|---|
-| `ai_source` | the column(s) whose values become the state (**required** to mark a field as AI-parsed) |
-| `description` | the question text (required alongside `ai_source`) |
+| `system_one_source` | the column(s) whose values become the state (**required** to mark a field as System One-parsed) |
+| `description` | the question text (required alongside `system_one_source`) |
 | `nullable=True` | adds the "or none" branch; abstention → `NA` |
 | `isin=[...]` | narrows a `Choice` to a subset of the annotation's options |
 | `in_range=(0, 1)` | marks a `float` as a raw `Noul` probability |
@@ -295,9 +295,9 @@ validates the answer, which is belt-and-braces but costs nothing.
 > 3. dataframe-level checks
 > 4. column-level and index-level checks
 
-AI parsing is **step 1**. One dataframe-level parser is synthesized per schema,
-holding the compiled question set for every AI-parsed column grouped by
-`ai_source`. It receives the frame, builds one state per row per distinct
+System One parsing is **step 1**. One dataframe-level parser is synthesized per schema,
+holding the compiled question set for every System One-parsed column grouped by
+`system_one_source`. It receives the frame, builds one state per row per distinct
 source group, dispatches the batch, and returns the frame with the answer
 columns added.
 
@@ -317,7 +317,7 @@ So the sequence for the §0 example is:
 ```
 validate(tickets_df)
   ├─ 1. dataframe-level parsing
-  │     └─ AIParser: 1 request/row, all 3 questions per request
+  │     └─ SystemOneParser: 1 request/row, all 3 questions per request
   │        → adds department, frustration, is_urgent
   ├─ 2. column-level parsing        (user parsers, unchanged)
   ├─    coercion                    (answers → Category / IntEnum / bool)
@@ -325,15 +325,15 @@ validate(tickets_df)
   └─ 4. column-level checks         (Field(isin=...), confidence floors)
 ```
 
-### 4.2 `AIParser`
+### 4.2 `SystemOneParser`
 
 ```python
-class AIParser(pandera.api.parsers.Parser):
+class SystemOneParser(pandera.api.parsers.Parser):
     """Dataframe-level parser that fills columns from unstructured source data."""
 
     def __init__(
         self,
-        # compiled from fields, grouped by resolved ai_source; not user-facing
+        # compiled from fields, grouped by resolved system_one_source; not user-facing
         question_groups: dict[SourceKey, dict[str, Question]],
         provider: DecisionProvider,
         *,
@@ -362,16 +362,16 @@ class Reviews(pa.DataFrameModel):
     review_text: Series[str]
     sentiment: Series[float] = pa.Field(
         description="The review expresses a positive opinion of the product",
-        ai_source="review_text",
+        system_one_source="review_text",
         in_range=(0, 1),
         ge=0.0,
     )
 
     class Config:
-        ai_provider = "typesafe:jev-latest"
+        system_one_provider = "typesafe:jev-latest"
 ```
 
-Here `ai_source` points at a column the schema already declares, which is the
+Here `system_one_source` points at a column the schema already declares, which is the
 case field-level sourcing makes natural and a schema-wide source makes
 ambiguous.
 
@@ -380,7 +380,7 @@ column), the same compiler emits a `Check`:
 
 ```python
 description: Series[str] = pa.Field(
-    checks=pa.Check.ai(
+    checks=pa.Check.system_one(
         "The description is a coherent description of a product "
         "belonging to the stated category",
         context=["name", "category"],
@@ -389,18 +389,18 @@ description: Series[str] = pa.Field(
 )
 ```
 
-`Check.ai` is an ordinary `Check` with a vectorized predicate, so failure cases,
+`Check.system_one` is an ordinary `Check` with a vectorized predicate, so failure cases,
 `lazy=True`, `n_failure_cases`, and `raise_warning` all work untouched.
 
 ### 4.4 Errors
 
 A failed request is a parsing failure, and pandera already has a category for
-that: `ParserError`. `AIParser` raises `pandera.errors.ParserError` subclasses:
+that: `ParserError`. `SystemOneParser` raises `pandera.errors.ParserError` subclasses:
 
-- `AIProviderError` — transport, auth, rate-limit exhaustion.
-- `AIQuestionError` — a question the provider rejected (should be impossible;
+- `SystemOneProviderError` — transport, auth, rate-limit exhaustion.
+- `SystemOneQuestionError` — a question the provider rejected (should be impossible;
   §2 principle 6 catches these at schema-build time).
-- `AIStateError` — state exceeded the 64k combined / 32k individual token
+- `SystemOneStateError` — state exceeded the 64k combined / 32k individual token
   limits, raised with the offending row index *before* dispatch rather than
   surfacing as a provider HTTP error.
 
@@ -410,16 +410,16 @@ batch, which composes with `drop_invalid_rows` for a manual-review queue.
 ### 4.5 What this design deliberately does not do
 
 **No implicit network calls on an ordinary schema.** Two independent things must
-both be true for a field to issue a request: the field sets `ai_source`, and the
-schema sets `ai_provider`. Neither alone does anything — a `description` is
-still just documentation, and an `ai_provider` on a schema whose fields declare
+both be true for a field to issue a request: the field sets `system_one_source`, and the
+schema sets `system_one_provider`. Neither alone does anything — a `description` is
+still just documentation, and an `system_one_provider` on a schema whose fields declare
 no source is inert. This is the single most important safety property in the
 design, since `validate()` looks free and is not, and it is the main reason
-`ai_source` belongs on the field: the opt-in is visible on the line that
+`system_one_source` belongs on the field: the opt-in is visible on the line that
 triggers it, rather than inferred from a documentation string.
 
-**No hidden cost.** `schema.ai_questions()` returns the compiled question set
-without making a call; `schema.validate(df, ai_dry_run=True)` reports projected
+**No hidden cost.** `schema.system_one_questions()` returns the compiled question set
+without making a call; `schema.validate(df, system_one_dry_run=True)` reports projected
 request count, token count, and cost, then stops.
 
 ---
@@ -437,39 +437,39 @@ argument that takes on a second job:
 
 | Setting | Lives on | Why |
 |---|---|---|
-| `ai_source` | **`Field` / `Column`** | per-field: what this column reads (§3.1) |
+| `system_one_source` | **`Field` / `Column`** | per-field: what this column reads (§3.1) |
 | `description` | `Field` / `Column` (existing) | per-field: what this column asks |
-| `ai_provider` | **`Config` / `DataFrameSchema`** | one provider per schema; batching depends on it |
+| `system_one_provider` | **`Config` / `DataFrameSchema`** | one provider per schema; batching depends on it |
 
 Settings that rarely vary between fields — thresholds, concurrency, caching —
-stay schema-wide. `Config.ai_source` also exists as an **optional default** for
-the common case where every AI-parsed field reads the same column, overridden by
+stay schema-wide. `Config.system_one_source` also exists as an **optional default** for
+the common case where every System One-parsed field reads the same column, overridden by
 any field that sets its own. That default-plus-override shape is the same one
 `on_missing_columns` / `Field(on_missing=...)` already uses, down to the
 docstring wording ("This overrides the schema-wide `on_missing_columns` config
 option").
 
-**Implementation note.** `ai_source` is a genuine core change, small but not
+**Implementation note.** `system_one_source` is a genuine core change, small but not
 free: `Field(**kwargs)` raises `SchemaInitError` for any key it does not
 recognize (`model_components.py:250-256`), and `BaseFieldInfo` uses `__slots__`,
 so the attribute must be declared. `on_missing` is the template for this — it
 threads `Field` → `FieldInfo.__slots__` → `column_properties`, where it is
 forwarded through an `extra` dict *only when explicitly set* "so that backends
-whose `Column` does not (yet) support it are unaffected". `ai_source` should
+whose `Column` does not (yet) support it are unaffected". `system_one_source` should
 follow that pattern exactly, which keeps non-pandas backends untouched until
 §8.6 lands.
 
-### 5.2 `ai_provider` values
+### 5.2 `system_one_provider` values
 
 | Value | Meaning |
 |---|---|
 | `"typesafe:jev-1.13.0"` | pinned version, recommended |
-| `"typesafe:jev-latest"` | unpinned; warns when `ai_cache` is set |
+| `"typesafe:jev-latest"` | unpinned; warns when `system_one_cache` is set |
 | `TypeSafeProvider(...)` | an instance, for custom clients/retry policy |
-| `None` (default) | no AI parsing; schema behaves exactly as today |
+| `None` (default) | no System One parsing; schema behaves exactly as today |
 
 A global default is settable through the existing `PanderaConfig` /
-`PANDERA_AI_PROVIDER` env var, so the same schema definition runs against a
+`PANDERA_SYSTEM_ONE_PROVIDER` env var, so the same schema definition runs against a
 recorded cassette in CI and the real provider in production without edits.
 
 ### 5.3 Model-based API
@@ -479,30 +479,30 @@ class TicketTriage(pa.DataFrameModel):
     ticket_body: Series[str]
     department: Series[Department] = pa.Field(
         description="Which team should handle this ticket",
-        ai_source="ticket_body",
+        system_one_source="ticket_body",
     )
     is_urgent: Series[bool] = pa.Field(
         description="The message conveys urgency or time-sensitivity",
-        ai_source="ticket_body",
+        system_one_source="ticket_body",
     )
 
     class Config:
-        ai_provider = "typesafe:jev-1.13.0"   # or a DecisionProvider instance
-        ai_source = "ticket_body"             # optional per-schema default
-        ai_boolean_threshold = 0.5
-        ai_abstain_below = None
-        ai_max_concurrency = 16
-        ai_cache = None
-        ai_confidence_suffix = "__confidence"
-        ai_on_error = "raise"
+        system_one_provider = "typesafe:jev-1.13.0"   # or a DecisionProvider instance
+        system_one_source = "ticket_body"             # optional per-schema default
+        system_one_boolean_threshold = 0.5
+        system_one_abstain_below = None
+        system_one_max_concurrency = 16
+        system_one_cache = None
+        system_one_confidence_suffix = "__confidence"
+        system_one_on_error = "raise"
 
 triaged = TicketTriage.validate(tickets_df)
 ```
 
 ### 5.4 Object-based API
 
-The same schema, built from objects. `ai_source` sits on `Column` beside the
-existing `description`, `parsers`, `metadata`, and `on_missing`; every `ai_*`
+The same schema, built from objects. `system_one_source` sits on `Column` beside the
+existing `description`, `parsers`, `metadata`, and `on_missing`; every `system_one_*`
 `Config` key is a `DataFrameSchema` keyword argument of the same name.
 
 ```python
@@ -514,24 +514,24 @@ schema = pa.DataFrameSchema(
         "department": pa.Column(
             Department,                      # Enum class -> Choice
             description="Which team should handle this ticket",
-            ai_source="ticket_body",
+            system_one_source="ticket_body",
             nullable=True,
         ),
         "department__confidence": pa.Column(float, pa.Check.ge(0.70)),
         "frustration": pa.Column(
             Frustration,                     # ordered IntEnum -> Score
             description="How frustrated the customer appears",
-            ai_source="ticket_body",
+            system_one_source="ticket_body",
         ),
         "is_urgent": pa.Column(
             bool,                            # bool -> Noul
             description="The message conveys urgency or time-sensitivity",
-            ai_source="ticket_body",
+            system_one_source="ticket_body",
         ),
         "reply_is_on_policy": pa.Column(
             bool,
             description="The reply follows the stated refund policy",
-            ai_source=["ticket_body", "agent_reply"],   # a second source group
+            system_one_source=["ticket_body", "agent_reply"],   # a second source group
         ),
     },
     checks=[
@@ -540,8 +540,8 @@ schema = pa.DataFrameSchema(
             name="abstention_rate",
         ),
     ],
-    ai_provider="typesafe:jev-1.13.0",
-    ai_abstain_below=0.55,
+    system_one_provider="typesafe:jev-1.13.0",
+    system_one_abstain_below=0.55,
     coerce=True,
 )
 
@@ -555,15 +555,15 @@ source is the series itself — the "judge an existing column" shape from §4.3:
 sentiment = pa.SeriesSchema(
     float,
     description="The review expresses a positive opinion of the product",
-    ai_source=...,           # the series under validation
+    system_one_source=...,           # the series under validation
     checks=pa.Check.in_range(0, 1),
-    ai_provider="typesafe:jev-1.13.0",
+    system_one_provider="typesafe:jev-1.13.0",
 )
 ```
 
 ### 5.5 Building schemas programmatically
 
-This is the object API's reason to exist, and the AI case leans on it harder
+This is the object API's reason to exist, and the System One case leans on it harder
 than most: taxonomies live in config files, feature stores, and label registries,
 and a class body cannot be written against a taxonomy that is only known at
 runtime.
@@ -582,13 +582,13 @@ schema = pa.DataFrameSchema(
             name: pa.Column(
                 pa.Category(categories=list(spec["options"])),
                 description=spec["question"],
-                ai_source="ticket_body",
+                system_one_source="ticket_body",
                 metadata={"typesafe": {"criteria": spec["options"]}},
             )
             for name, spec in TAXONOMY.items()
         },
     },
-    ai_provider="typesafe:jev-1.13.0",
+    system_one_provider="typesafe:jev-1.13.0",
 )
 ```
 
@@ -602,7 +602,7 @@ improve generated docs for ordinary categorical columns at the same time.
 
 ### 5.6 Composing with an existing schema
 
-AI columns can be layered onto a schema that already exists — including one
+System One columns can be layered onto a schema that already exists — including one
 loaded from YAML or inferred from data — using the existing mutation API:
 
 ```python
@@ -612,26 +612,26 @@ triage = base.add_columns({
     "department": pa.Column(
         Department,
         description="Which team should handle this ticket",
-        ai_source="ticket_body",
+        system_one_source="ticket_body",
     ),
-}).update_config(ai_provider="typesafe:jev-1.13.0")
+}).update_config(system_one_provider="typesafe:jev-1.13.0")
 ```
 
 `add_columns`, `remove_columns`, `update_column`, and `set_index` all behave
-normally; an AI column is an ordinary `Column` that happens to carry an
-`ai_source`. `update_config` is the one new mutator, mirroring the existing
-`update_column` shape for schema-level `ai_*` settings.
+normally; a System One column is an ordinary `Column` that happens to carry an
+`system_one_source`. `update_config` is the one new mutator, mirroring the existing
+`update_column` shape for schema-level `system_one_*` settings.
 
-### 5.7 Dropping to `AIParser` directly
+### 5.7 Dropping to `SystemOneParser` directly
 
 The lowest level requires **no new API at all**. `DataFrameSchema` already
-accepts `parsers` ("dataframe-wide parsers"), and `AIParser` is a `Parser`:
+accepts `parsers` ("dataframe-wide parsers"), and `SystemOneParser` is a `Parser`:
 
 ```python
-from pandera.ai import AIParser
-from pandera.ai.providers.typesafe import TypeSafeProvider, Choice, Noul
+from pandera.system_one import SystemOneParser
+from pandera.system_one.providers.typesafe import TypeSafeProvider, Choice, Noul
 
-parser = AIParser(
+parser = SystemOneParser(
     question_groups={
         ("ticket_body",): {
             "department": Choice(
@@ -659,11 +659,11 @@ schema = pa.DataFrameSchema(
 )
 ```
 
-That `ai_source` + `ai_provider` compiles down to something already expressible
-is the main evidence that the parser framing (§1.2) is the right one: the sugar
-is genuinely sugar. This level is also what the test suite exercises — a
-provider and a question set with no model class in sight — and it is the escape
-hatch for question shapes the compiler does not yet cover.
+That `system_one_source` + `system_one_provider` compiles down to something
+already expressible is the main evidence that the parser framing (§1.2) is the
+right one: the sugar is genuinely sugar. This level is also what the test suite
+exercises — a provider and a question set with no model class in sight — and it
+is the escape hatch for question shapes the compiler does not yet cover.
 
 ### 5.8 Equivalence and inspection
 
@@ -677,19 +677,20 @@ assert TicketTriage.to_schema() == schema
 Both expose the same inspection surface, which never makes a request:
 
 ```python
-schema.ai_questions()
+schema.system_one_questions()
 #> {('ticket_body',): {'department': Choice(...), 'is_urgent': Noul(...)},
 #>  ('ticket_body', 'agent_reply'): {'reply_is_on_policy': Noul(...)}}
 
-schema.validate(tickets_df, ai_dry_run=True)
-#> AIPlan(rows=10_000, groups=2, requests=20_000,
+schema.validate(tickets_df, system_one_dry_run=True)
+#> SystemOnePlan(rows=10_000, groups=2, requests=20_000,
 #>        est_input_tokens=4_812_000, est_cost_usd=0.2021)
 ```
 
-And both round-trip through `pandera.io`: `ai_source` serializes per column
-alongside `description`, `ai_provider` in the schema-level config block. A
-YAML-defined schema is therefore a complete, reviewable specification of an AI
-parsing step — questions, sources, types, and checks — with no Python at all.
+And both round-trip through `pandera.io`: `system_one_source` serializes per
+column alongside `description`, `system_one_provider` in the schema-level config
+block. A YAML-defined schema is therefore a complete, reviewable specification
+of a System One parsing step — questions, sources, types, and checks — with no
+Python at all.
 
 ---
 
@@ -699,7 +700,7 @@ parsing step — questions, sources, types, and checks — with no Python at all
 
 **Within a row — one request per source group.** Jev's request shape is one
 state plus many questions, so every field reading the *same* state can share a
-call. The parser groups fields by resolved `ai_source` and issues one
+call. The parser groups fields by resolved `system_one_source` and issues one
 `system_one` call per group per row. TypeSafe reports this speculative fan-out
 at 12.2× cheaper and 10.0× faster than one call per field with identical
 answers: a 12-field schema over one source column is one request, not twelve.
@@ -713,23 +714,23 @@ class Conversation(pa.DataFrameModel):
     customer_msg: Series[str]
     agent_reply: Series[str]
 
-    intent: Series[Intent] = pa.Field(..., ai_source="customer_msg")   # ┐ group A
-    is_urgent: Series[bool] = pa.Field(..., ai_source="customer_msg")  # ┘ 1 request
+    intent: Series[Intent] = pa.Field(..., system_one_source="customer_msg")   # ┐ group A
+    is_urgent: Series[bool] = pa.Field(..., system_one_source="customer_msg")  # ┘ 1 request
 
     reply_is_on_policy: Series[bool] = pa.Field(                       # ┐ group B
-        ..., ai_source=["customer_msg", "agent_reply"],                # ┘ 1 request
+        ..., system_one_source=["customer_msg", "agent_reply"],                # ┘ 1 request
     )
 ```
 
 Two groups → two requests per row. The grouping key is the canonicalized source
 spec: an ordered tuple of column names for declarative sources, or the callable's
 identity for callable sources (so sharing one function across fields groups
-them, while two equivalent lambdas do not). `schema.ai_questions()` returns the
+them, while two equivalent lambdas do not). `schema.system_one_questions()` returns the
 groups, making the request count visible before anything is dispatched.
 
 **Across rows and groups — bounded async fan-out.** Every (row, source group)
 pair is a unit of work, dispatched concurrently through an
-`asyncio.Semaphore(ai_max_concurrency)` behind a token-bucket limiter sized to
+`asyncio.Semaphore(system_one_max_concurrency)` behind a token-bucket limiter sized to
 the provider's published limits, with exponential backoff honoring `retry-after`.
 Groups are flattened into the same queue rather than run in sequence, so a
 schema with two source groups saturates the same concurrency budget as one with
@@ -786,7 +787,7 @@ questions in the schema rather than in a prompt string somewhere.
 
 ```python
 class Config:
-    ai_cache = "sqlite:///.pandera_ai_cache.db"
+    system_one_cache = "sqlite:///.pandera_system_one_cache.db"
 ```
 
 Built-ins: in-memory dict, SQLite, parquet directory. `ExtractionCache` is a
@@ -794,7 +795,7 @@ Built-ins: in-memory dict, SQLite, parquet directory. `ExtractionCache` is a
 Stats land on the validated frame:
 
 ```python
-out.attrs["pandera.ai"]
+out.attrs["pandera.system_one"]
 #> {'rows': 10_000, 'cached': 9_412, 'called': 588, 'model_version': 'jev-1.13.0',
 #>  'input_tokens': 241_305, 'est_cost_usd': 0.0101, 'wall_seconds': 4.3}
 ```
@@ -802,19 +803,19 @@ out.attrs["pandera.ai"]
 ### 6.4 State construction
 
 Jev's accuracy degrades with irrelevant context, so state is explicit, never
-"the whole row". `ai_source` accepts three spellings:
+"the whole row". `system_one_source` accepts three spellings:
 
 ```python
 # one column: the value is the state
 department: Series[Department] = pa.Field(
     description="Which team should handle this ticket",
-    ai_source="ticket_body",
+    system_one_source="ticket_body",
 )
 
 # several columns: a dict of {column: value}
 reply_is_on_policy: Series[bool] = pa.Field(
     description="The reply follows the stated refund policy",
-    ai_source=["customer_msg", "agent_reply", "policy_text"],
+    system_one_source=["customer_msg", "agent_reply", "policy_text"],
 )
 
 # a callable: full control, including constants and truncation
@@ -824,7 +825,7 @@ def _ticket_state(row):
 
 is_refundable: Series[bool] = pa.Field(
     description="This ticket describes a refundable purchase",
-    ai_source=_ticket_state,
+    system_one_source=_ticket_state,
 )
 ```
 
@@ -845,15 +846,15 @@ class TicketTriage(pa.DataFrameModel):
     ticket_body: Series[str]
     department: Series[Department] = pa.Field(
         description="Which team should handle this ticket",
-        ai_source="ticket_body",
+        system_one_source="ticket_body",
         nullable=True,
         metadata={"typesafe": {"confidence": True}},
     )
     department__confidence: Series[float] = pa.Field(ge=0.70)
 
     class Config:
-        ai_provider = "typesafe:jev-1.13.0"
-        ai_abstain_below = 0.55
+        system_one_provider = "typesafe:jev-1.13.0"
+        system_one_abstain_below = 0.55
 
     @pa.dataframe_check
     def routing_distribution_is_stable(cls, df):
@@ -863,7 +864,7 @@ class TicketTriage(pa.DataFrameModel):
 
 Three levels of strictness compose, all from existing features:
 
-1. `ai_abstain_below` — per row: low-confidence answers become `NA`.
+1. `system_one_abstain_below` — per row: low-confidence answers become `NA`.
 2. `Field(ge=...)` on the confidence column — per row: hard failure, normal
    failure-case reporting.
 3. `@pa.dataframe_check` — per batch: "mean confidence > 0.8", "≤5% abstentions",
@@ -871,7 +872,7 @@ Three levels of strictness compose, all from existing features:
 
 Full `probabilities` and `scores` distributions are attached to the frame's
 `attrs` rather than materialized as columns (they can be 255-wide), retrievable
-via `pandera.ai.probabilities(df, "department")`.
+via `pandera.system_one.probabilities(df, "department")`.
 
 Declaring the confidence column explicitly — rather than auto-injecting it — is
 deliberate: a schema should describe every column in the frame it validates, and
@@ -985,7 +986,7 @@ Python discards them at runtime. Pydantic AI solves this with a
 `inspect.getsource` + `ast`, with results cached per class and a graceful
 fallback when source is unavailable (REPL, frozen app). Worth doing in core
 rather than in the extra: these descriptions belong on `Column.description` and
-in generated schema documentation regardless of whether an AI provider is
+in generated schema documentation regardless of whether a System One provider is
 configured.
 
 ### 8.6 Parsers are pandas-only — and polars ignores them silently 🔴
@@ -1000,7 +1001,7 @@ schema.validate(pl.DataFrame({"a": [1, 2, 3]}))   # succeeds; fn never called
 
 `Column(parsers=...)` is accepted by the polars API and the polars
 `ColumnBackend` has no `run_parsers` at all — the parser is silently dropped. A
-user who writes an AI-parsed polars schema would get a passing validation on a
+user who writes a System One-parsed polars schema would get a passing validation on a
 frame with no answer columns, or a confusing missing-column error.
 
 **Fix, in order:** (a) immediately raise `SchemaInitError` when a non-pandas
@@ -1080,10 +1081,10 @@ typesafe-ai = [
 pip install 'pandera[typesafe-ai]'
 ```
 
-- Module namespace: `pandera.ai` (provider-neutral), with
-  `pandera.ai.providers.typesafe` holding everything Jev-specific.
+- Module namespace: `pandera.system_one` (provider-neutral), with
+  `pandera.system_one.providers.typesafe` holding everything Jev-specific.
 - Importing `pandera` without the extra must be byte-for-byte unaffected. The
-  `ai_*` config keys exist but reject a non-`None` `ai_provider` with an
+  `system_one_*` config keys exist but reject a non-`None` `system_one_provider` with an
   actionable `ImportError` naming the extra.
 - `typesafe-ai` is added to the `all` extra and to a dedicated nox session.
 
@@ -1093,10 +1094,10 @@ pip install 'pandera[typesafe-ai]'
 
 | Phase | Scope | Exit criteria |
 |---|---|---|
-| **0 — Type system** | §8.1, §8.2, §8.6(a); cross-backend enum conformance tests | Plain `Enum` and `Literal` round-trip on pandas and polars; non-pandas parsers raise instead of no-op. **Ships independently of any AI work.** |
-| **1 — Core** | `Field(ai_source=...)` / `Column(ai_source=...)` plumbing (§5.1) and `ai_provider` on both APIs; `Question`/`Decision`, `DecisionProvider`, `TypeSafeProvider`, question compiler + `SchemaInitError` coverage, source grouping, `AIParser`, pandas backend, async fan-out + limiter | The §0 example runs end-to-end on pandas; full §3.2 table covered by replay tests |
-| **2 — Ergonomics** | §8.3, §8.5; confidence columns, `ai_abstain_below`, cache, stats, `ai_dry_run` | Confidence floors and distribution checks work; cache-hit path makes zero network calls |
-| **3 — Breadth** | §8.6(b); polars backend, `Check.ai`, YAML round-trip, CLI | Identical model class validates on pandas and polars with identical output |
+| **0 — Type system** | §8.1, §8.2, §8.6(a); cross-backend enum conformance tests | Plain `Enum` and `Literal` round-trip on pandas and polars; non-pandas parsers raise instead of no-op. **Ships independently of any System One work.** |
+| **1 — Core** | `Field(system_one_source=...)` / `Column(system_one_source=...)` plumbing (§5.1) and `system_one_provider` on both APIs; `Question`/`Decision`, `DecisionProvider`, `TypeSafeProvider`, question compiler + `SchemaInitError` coverage, source grouping, `SystemOneParser`, pandas backend, async fan-out + limiter | The §0 example runs end-to-end on pandas; full §3.2 table covered by replay tests |
+| **2 — Ergonomics** | §8.3, §8.5; confidence columns, `system_one_abstain_below`, cache, stats, `system_one_dry_run` | Confidence floors and distribution checks work; cache-hit path makes zero network calls |
+| **3 — Breadth** | §8.6(b); polars backend, `Check.system_one`, YAML round-trip, CLI | Identical model class validates on pandas and polars with identical output |
 | **4 — Scale** | dask/modin/pyspark partitioning, multi-label, nested models | 1M-row parse on dask with bounded memory and correct rate limiting |
 
 Phase 0 is worth doing whether or not the rest of this spec is accepted.
@@ -1113,17 +1114,17 @@ Hard constraint: **no test requires an API key or network access.**
 - **Compiler contract tests.** §3.2 becomes a parametrized test: every supported
   annotation compiles to the expected question type and criteria; every
   unsupported one raises `SchemaInitError` naming the field.
-- **Source-grouping tests.** Fields sharing an `ai_source` produce exactly one
-  request per row; distinct sources produce one each; `Config.ai_source` is
-  used only where a field does not override it; an `ai_source` naming an
-  undeclared column raises `SchemaInitError`; a field with `ai_source` but no
-  `ai_provider` (and vice versa) makes no request at all.
+- **Source-grouping tests.** Fields sharing an `system_one_source` produce exactly one
+  request per row; distinct sources produce one each; `Config.system_one_source` is
+  used only where a field does not override it; an `system_one_source` naming an
+  undeclared column raises `SchemaInitError`; a field with `system_one_source` but no
+  `system_one_provider` (and vice versa) makes no request at all.
 - **Type-system regression tests** for every item in §8, written *before* the
   fixes, including the cross-backend enum conformance matrix from §8.4.
 - **Concurrency tests** with a fake latency-injecting provider: ordering
   preserved, concurrency capped, token bucket throttles, `retry-after` honored,
   one row's failure does not poison the batch.
-- **Pipeline-order tests** asserting AI parsing runs before column parsing,
+- **Pipeline-order tests** asserting System One parsing runs before column parsing,
   before coercion, before checks — the property §4.1 depends on.
 - **Nightly key-gated smoke test** against `jev-latest`, non-blocking, to detect
   upstream drift.
@@ -1142,10 +1143,11 @@ ours; until then the docs describe cost and latency qualitatively.
 
 **`validate()` now costs money.** This is the sharpest edge in the design. A
 method that has always been free can now issue thousands of paid requests.
-Mitigations in §4.5: AI parsing is inert unless `ai_provider` is set,
-`ai_questions()` inspects without calling, `ai_dry_run=True` reports projected
-cost, and stats are always attached to the result. Worth considering an
-additional opt-in confirmation above a configurable row threshold.
+Mitigations in §4.5: System One parsing is inert unless `system_one_provider` is set,
+`system_one_questions()` inspects without calling, `system_one_dry_run=True`
+reports projected cost, and stats are always attached to the result. Worth
+considering an additional opt-in confirmation above a configurable row
+threshold.
 
 **Reproducibility.** Answers change across model versions. Mitigations:
 resolved version in the cache key and in `attrs`, warning on unpinned
@@ -1160,17 +1162,18 @@ resolved version in the cache key and in `attrs`, warning on unpinned
    Is `Field(metadata={"typesafe": {"type": "score"}})` needed as an override?
 3. Confidence column naming — `__confidence` suffix can collide with regex
    column matching. Alternative: an accessor returning a parallel frame.
-4. Is `Config.ai_source` worth keeping at all as a schema-wide default (§5.1)?
+4. Is `Config.system_one_source` worth keeping at all as a schema-wide default (§5.1)?
    It saves repetition in the single-source case, but two ways to say the same
    thing is the kind of thing pandera has regretted before. Dropping it costs
    one line per field and makes the opt-in unmissable.
 
 **Resolved during review:**
 
-- *Where does `ai_source` live?* **On the field** (§3.1). An earlier draft put it
-  on `Config` and used `description` as the AI-parsed marker; that overloaded a
-  documentation field, made the opt-in invisible at the point of use, and could
-  not express a schema whose fields read different columns. Grouping fields by
+- *Where does `system_one_source` live?* **On the field** (§3.1). An earlier
+  draft put it on `Config` and used `description` as the System One-parsed
+  marker; that overloaded a documentation field, made the opt-in invisible at
+  the point of use, and could not express a schema whose fields read different
+  columns. Grouping fields by
   source (§6.1) preserves the one-request-per-row economics that motivated the
   `Config` version.
 
@@ -1178,16 +1181,16 @@ resolved version in the cache key and in `attrs`, warning on unpinned
 
 ## 14. Documentation plan
 
-- `docs/source/ai_parsing.md` — user guide: the §0 example, type mapping,
+- `docs/source/system_one.md` — user guide: the §0 example, type mapping,
   writing good criteria, confidence, caching, cost.
-- `docs/source/parsers.md` — extend with AI parsing as a parser kind, and update
-  the "pandas only" note as §8.6 lands.
+- `docs/source/parsers.md` — extend with System One parsing as a parser kind,
+  and update the "pandas only" note as §8.6 lands.
 - `docs/source/dtypes.md` — document enum/`Literal`/ordered-category behavior
   once §8 is fixed. This is currently undocumented and is why the gaps went
   unnoticed.
 - `docs/source/integrations.md` — add a **TypeSafe AI (Jev)** row alongside
   FastAPI / Pydantic / Mypy.
-- `docs/source/reference/ai.rst` — API reference.
+- `docs/source/reference/system_one.rst` — API reference.
 - A notebook doing end-to-end ticket triage, runnable with `MockProvider` for
   readers without a key.
 
@@ -1199,8 +1202,9 @@ Pydantic AI's Jev integration answers *"fill this object from this text."* The
 pandera analogue answers *"fill this **column** from this **corpus**, and tell me
 when the answers stop looking right."*
 
-The design adds two arguments to user-facing pandera — `Field(ai_source=...)`
-for what a column reads and `ai_provider` for who answers — and otherwise reuses
+The design adds two arguments to user-facing pandera —
+`Field(system_one_source=...)` for what a column reads and
+`system_one_provider` for who answers — and otherwise reuses
 `Field(description=...)` for questions, the annotation for question types,
 `Parser` for the call, and `Check` for everything downstream. Both arguments are
 required for anything to happen, which keeps the opt-in visible on the line that
