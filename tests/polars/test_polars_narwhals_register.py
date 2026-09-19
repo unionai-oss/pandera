@@ -159,6 +159,16 @@ def test_this_module_leaves_other_backends_usable():
     shares, so a wholesale ``clear()`` also unregisters pandas -- and since
     ``register_pandas_backends`` is ``lru_cache``d, the lazy re-registration
     in ``get_backend`` never puts it back.
+
+    This assertion is order-dependent by design, and the ordering is an
+    implicit contract worth stating: it only guards anything when the three
+    ``set_config`` tests above have already run, because it is their
+    ``reset_polars_backend_registry()`` calls that could have clobbered the
+    shared registry. pytest runs a module in definition order, so this
+    function being last in the file is what makes it a guard rather than a
+    no-op. Do not move it above them and do not split it into its own module;
+    if this file grows an order-independent shape is preferable, e.g. an
+    autouse module-scoped fixture that asserts this after ``yield``.
     """
     pd = pytest.importorskip("pandas")
     pa_pandas = pytest.importorskip("pandera.pandas")
