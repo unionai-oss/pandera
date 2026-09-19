@@ -193,3 +193,13 @@ def test_failure_cases_is_native():
         assert isinstance(fc, pl.DataFrame), (
             f"failure_cases should be native pl.DataFrame, got {type(fc)}"
         )
+
+
+def test_container_inplace_warns():
+    """The narwhals container warns that ``inplace=True`` is a no-op, like the native one."""
+    schema = DataFrameSchema(columns={"a": Column(pl.Int64)})
+    with pytest.warns(
+        UserWarning,
+        match="setting inplace=True will have no effect",
+    ):
+        schema.validate(pl.DataFrame({"a": [1, 2, 3]}), inplace=True)
