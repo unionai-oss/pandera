@@ -141,7 +141,7 @@ class DataFrameSchema(_DataFrameSchema):
     def __init__(self, *args, **kwargs):
         global _IMPORT_WARNING_ISSUED
         if not DISABLE_PANDERA_IMPORT_WARNING and not _IMPORT_WARNING_ISSUED:
-            warnings.warn(_future_warning, FutureWarning)
+            warnings.warn(_future_warning, FutureWarning, stacklevel=2)
             _IMPORT_WARNING_ISSUED = True
         super().__init__(*args, **kwargs)
 
@@ -152,7 +152,7 @@ class DataFrameModel(_DataFrameModel):
     def __init_subclass__(cls, **kwargs):
         global _IMPORT_WARNING_ISSUED
         if not DISABLE_PANDERA_IMPORT_WARNING and not _IMPORT_WARNING_ISSUED:
-            warnings.warn(_future_warning, FutureWarning)
+            warnings.warn(_future_warning, FutureWarning, stacklevel=2)
             _IMPORT_WARNING_ISSUED = True
         super().__init_subclass__(**kwargs)
 

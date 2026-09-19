@@ -145,7 +145,8 @@ class DataType(dtypes.DataType):
             f"'{dtype_cls}' support is not guaranteed.\n"
             + "Usage Tip: Consider writing a custom "
             + "pandera.dtypes.DataType or opening an issue at "
-            + "https://github.com/pandera-dev/pandera"
+            + "https://github.com/pandera-dev/pandera",
+            stacklevel=2,
         )
 
     def __post_init__(self):
@@ -1145,6 +1146,7 @@ class PydanticModel(DataType):
                 "coerce. The PydanticModel will perform no type "
                 "checking on the empty dataframe.",
                 UserWarning,
+                stacklevel=2,
             )
             column_names = self._get_column_names()
             self._check_column_names(lf, column_names)

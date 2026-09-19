@@ -113,6 +113,7 @@ class IbisSchemaBackend(BaseSchemaBackend):
                 warnings.warn(
                     message,
                     SchemaWarning,
+                    stacklevel=2,
                 )
                 return CoreCheckResult(
                     passed=True,

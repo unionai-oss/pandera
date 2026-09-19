@@ -90,6 +90,7 @@ def infer_index_statistics(index: Union[pd.Index, pd.MultiIndex]):
         warnings.warn(
             f"index type {type(index)} not recognized, skipping index inference",
             UserWarning,
+            stacklevel=2,
         )
         index_statistics = []
     return index_statistics if index_statistics else None

@@ -543,6 +543,7 @@ def simulate_polars_1_42_1(monkeypatch):
                 "breaking release. Use how='horizontal_extend' to keep "
                 "the current behavior.",
                 DeprecationWarning,
+                stacklevel=2,
             )
         elif how == "horizontal_extend":
             kwargs = dict(kwargs)

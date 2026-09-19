@@ -223,6 +223,9 @@ select = [
     "I",
     "UP",
 ]
+extend-select = [
+    "B028",
+]
 ignore = [
     "UP007",
 ]
