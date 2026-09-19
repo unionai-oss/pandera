@@ -21,7 +21,6 @@ parse-then-validate pipeline:
 ```python
 import enum
 import pandera.pandas as pa
-from pandera.typing import Series
 
 class Department(enum.StrEnum):
     billing = "billing"
@@ -40,16 +39,16 @@ class Frustration(enum.IntEnum):
     """Very angry, strong language."""
 
 class TicketTriage(pa.DataFrameModel):
-    ticket_body: Series[str]
-    department: Series[Department] = pa.Field(
+    ticket_body: str
+    department: Department = pa.Field(
         description="Which team should handle this ticket",
         system_one_source="ticket_body",
     )
-    frustration: Series[Frustration] = pa.Field(
+    frustration: Frustration = pa.Field(
         description="How frustrated the customer appears",
         system_one_source="ticket_body",
     )
-    is_urgent: Series[bool] = pa.Field(
+    is_urgent: bool = pa.Field(
         description="The message conveys urgency or time-sensitivity",
         system_one_source="ticket_body",
     )
@@ -74,7 +73,7 @@ works unmodified.
 The spec has two halves. §1–§7 describe the integration. **§8 describes the
 gaps in pandera's own type system that have to close first** — plain
 `enum.Enum` does not currently round-trip through the pandas engine, `Literal`
-silently degrades to `object`, ordered categories are unreachable from an
+is not a supported dtype at all, ordered categories are unreachable from an
 annotation, and parsers are pandas-only and *silently ignored* by polars. Those
 are pre-existing bugs this integration turns into blockers.
 
@@ -205,16 +204,16 @@ re-expression of Pydantic AI's supported-field-types table.
 
 | Annotation | Question | Answer → column | Notes |
 |---|---|---|---|
-| `Series[bool]` | `Noul` | `True` iff `p >= system_one_boolean_threshold` (default `0.5`) | |
-| `Series[float]` + `Field(in_range=(0, 1))` | `Noul` | raw probability, unrounded | |
-| `Series[StrEnum]` / `Series[Enum]` | `Choice` | chosen option | members are the options; ≤ 255 |
-| `Series[Literal["a", "b"]]` | `Choice` | chosen option | **needs §8.2** |
-| `Series[EnumT]` + `Field(nullable=True)` | `Choice` or none | option or `NA` | abstention |
-| `Series[IntEnum]` *(ordered)* | `Score` | nearest level | member docstrings are the rubric; 2–10 levels; **needs §8.3** |
-| `Series[float]` + ordered `IntEnum` in `Field(dtype_kwargs)` | `Score` | unrounded position (e.g. `1.035`) | |
-| `Series[list[EnumT]]` | `Noul` per option | list of selected options | multi-label |
+| `bool` | `Noul` | `True` iff `p >= system_one_boolean_threshold` (default `0.5`) | |
+| `float` + `Field(in_range=(0, 1))` | `Noul` | raw probability, unrounded | |
+| `StrEnum` / `Enum` | `Choice` | chosen option | members are the options; ≤ 255 |
+| `Literal["a", "b"]` | `Choice` | chosen option | **needs §8.2** |
+| `EnumT` + `Field(nullable=True)` | `Choice` or none | option or `NA` | abstention |
+| `IntEnum` *(ordered)* | `Score` | nearest level | member docstrings are the rubric; 2–10 levels; **needs §8.3** |
+| `float` + ordered `IntEnum` in `Field(dtype_kwargs)` | `Score` | unrounded position (e.g. `1.035`) | |
+| `list[EnumT]` | `Noul` per option | list of selected options | multi-label |
 | Nested `DataFrameModel` | its fields, flattened | `outer_inner` columns | |
-| `Series[str]`, `Series[datetime]`, unbounded numerics, `Series[dict]` | ✗ | — | `SchemaInitError` at schema build |
+| `str`, `datetime`, unbounded numerics, `dict` | ✗ | — | `SchemaInitError` at schema build |
 
 Disambiguating `Choice` from `Score` is the one place the annotation is not
 quite enough on its own: both are "pick one of an ordered-or-unordered set". The
@@ -359,8 +358,8 @@ The mirror case — a column that already exists, and a question about it — is
 
 ```python
 class Reviews(pa.DataFrameModel):
-    review_text: Series[str]
-    sentiment: Series[float] = pa.Field(
+    review_text: str
+    sentiment: float = pa.Field(
         description="The review expresses a positive opinion of the product",
         system_one_source="review_text",
         in_range=(0, 1),
@@ -371,15 +370,15 @@ class Reviews(pa.DataFrameModel):
         system_one_provider = "typesafe:jev-latest"
 ```
 
-Here `system_one_source` points at a column the schema already declares, which is the
-case field-level sourcing makes natural and a schema-wide source makes
+Here `system_one_source` points at a column the schema already declares, which
+is the case field-level sourcing makes natural and a schema-wide source makes
 ambiguous.
 
 and for pure validation (a question whose answer is a pass/fail rather than a
 column), the same compiler emits a `Check`:
 
 ```python
-description: Series[str] = pa.Field(
+description: str = pa.Field(
     checks=pa.Check.system_one(
         "The description is a coherent description of a product "
         "belonging to the stated category",
@@ -476,12 +475,12 @@ recorded cassette in CI and the real provider in production without edits.
 
 ```python
 class TicketTriage(pa.DataFrameModel):
-    ticket_body: Series[str]
-    department: Series[Department] = pa.Field(
+    ticket_body: str
+    department: Department = pa.Field(
         description="Which team should handle this ticket",
         system_one_source="ticket_body",
     )
-    is_urgent: Series[bool] = pa.Field(
+    is_urgent: bool = pa.Field(
         description="The message conveys urgency or time-sensitivity",
         system_one_source="ticket_body",
     )
@@ -711,14 +710,14 @@ whenever fields agree on a source, which is the common case:
 
 ```python
 class Conversation(pa.DataFrameModel):
-    customer_msg: Series[str]
-    agent_reply: Series[str]
+    customer_msg: str
+    agent_reply: str
 
-    intent: Series[Intent] = pa.Field(..., system_one_source="customer_msg")   # ┐ group A
-    is_urgent: Series[bool] = pa.Field(..., system_one_source="customer_msg")  # ┘ 1 request
+    intent: Intent = pa.Field(..., system_one_source="customer_msg")   # ┐ group A
+    is_urgent: bool = pa.Field(..., system_one_source="customer_msg")  # ┘ 1 request
 
-    reply_is_on_policy: Series[bool] = pa.Field(                       # ┐ group B
-        ..., system_one_source=["customer_msg", "agent_reply"],                # ┘ 1 request
+    reply_is_on_policy: bool = pa.Field(                               # ┐ group B
+        ..., system_one_source=["customer_msg", "agent_reply"],        # ┘ 1 request
     )
 ```
 
@@ -807,13 +806,13 @@ Jev's accuracy degrades with irrelevant context, so state is explicit, never
 
 ```python
 # one column: the value is the state
-department: Series[Department] = pa.Field(
+department: Department = pa.Field(
     description="Which team should handle this ticket",
     system_one_source="ticket_body",
 )
 
 # several columns: a dict of {column: value}
-reply_is_on_policy: Series[bool] = pa.Field(
+reply_is_on_policy: bool = pa.Field(
     description="The reply follows the stated refund policy",
     system_one_source=["customer_msg", "agent_reply", "policy_text"],
 )
@@ -823,7 +822,7 @@ def _ticket_state(row):
     return {"message": row["ticket_body"][:4000],
             "policy": "Refunds within 30 days."}
 
-is_refundable: Series[bool] = pa.Field(
+is_refundable: bool = pa.Field(
     description="This ticket describes a refundable purchase",
     system_one_source=_ticket_state,
 )
@@ -843,14 +842,14 @@ therefore something pandera can validate.
 
 ```python
 class TicketTriage(pa.DataFrameModel):
-    ticket_body: Series[str]
-    department: Series[Department] = pa.Field(
+    ticket_body: str
+    department: Department = pa.Field(
         description="Which team should handle this ticket",
         system_one_source="ticket_body",
         nullable=True,
         metadata={"typesafe": {"confidence": True}},
     )
-    department__confidence: Series[float] = pa.Field(ge=0.70)
+    department__confidence: float = pa.Field(ge=0.70)
 
     class Config:
         system_one_provider = "typesafe:jev-1.13.0"
@@ -901,7 +900,7 @@ class Dept(enum.Enum):
     technical = "technical"
 
 class M(pa.DataFrameModel):
-    d: Series[Dept]
+    d: Dept
 
 M.validate(pd.DataFrame({"d": pd.Categorical(["billing", "technical"])}))
 # SchemaError: expected series 'd' to have type category with categories
@@ -926,26 +925,47 @@ values, or names. Decide explicitly whether the validated column holds values
 (recommended — it is what serializes, what every backend can store, and what
 the provider returns) or members.
 
-### 8.2 `Literal` silently degrades to `object` 🔴
+### 8.2 `Literal` is not a supported dtype 🔴
 
-`pandera/typing/common.py:368-371` sets `self.literal` when the annotation arg
-is a `Literal`, then takes `get_args(self.arg)[0]` — the *first* literal value —
-and `self.literal` is never read anywhere else in the codebase.
+`Literal` is one of Pydantic AI's two primary `Choice` spellings, and pandera
+has no mapping for it. How it fails depends on how it is spelled.
+
+**Bare annotation — fails loudly:**
 
 ```python
 class M(pa.DataFrameModel):
-    x: Series[typing.Literal["a", "b"]]
+    x: typing.Literal["billing", "technical"]
 
 M.to_schema()
-#> Column(name=x, type=DataType(object))     # option set silently discarded
+#> SchemaInitError: Invalid annotation 'x: typing.Literal['billing', 'technical']'
 ```
 
-No error, no membership constraint. `Literal` is one of Pydantic AI's two
-primary `Choice` spellings, so this has to work.
+**Wrapped in `Series[...]` — fails confusingly, and sometimes not at all.**
+`pandera/typing/common.py:368-371` sets `self.literal` when the annotation arg
+is a `Literal`, then replaces `self.arg` with `get_args(self.arg)[0]` — the
+*first literal value* — and `self.literal` is never read again anywhere in the
+codebase. That first value is then handed to the dtype engine as if it were a
+dtype:
+
+```python
+x: Series[Literal["billing", "technical"]]
+#> TypeError: data type 'billing' not understood      # opaque; no mention of x
+
+x: Series[Literal["a", "b"]]
+#> Column(name=x, type=DataType(object))              # 'a' is a numpy alias
+
+x: Series[Literal["int64", "float64"]]
+#> Column(name=x, type=DataType(int64))               # silently an int column
+```
+
+The third case is the dangerous one: whenever a literal value happens to be a
+valid dtype string, the option set is silently discarded and the column is typed
+as that dtype with no membership constraint and no warning.
 
 **Fix:** map `Literal[...]` to a `Category` over its args (or `pl.Enum` for
-polars), and make a heterogeneous `Literal` a `SchemaInitError` rather than a
-silent `object`.
+polars) in both annotation forms, and raise `SchemaInitError` naming the field
+for a heterogeneous `Literal` — never fall through to the dtype engine with a
+literal value.
 
 ### 8.3 Ordered categories are unreachable from an annotation 🟡
 
@@ -1026,7 +1046,7 @@ object API's whole reason to exist, hits it immediately.
 | # | Gap | Severity | Blocks | Independently valuable |
 |---|---|---|---|---|
 | 8.1 | `Enum` → members not values | 🔴 blocker | `Choice` | yes — pre-existing bug |
-| 8.2 | `Literal` → silent `object` | 🔴 blocker | `Choice` | yes — silent data-quality hole |
+| 8.2 | `Literal` unsupported; `Series[Literal[...]]` can silently mistype a column | 🔴 blocker | `Choice` | yes — silent data-quality hole |
 | 8.3 | No ordered categories from annotation | 🟡 | `Score` | yes |
 | 8.4 | pandas/polars enum divergence | 🟡 | portability | yes |
 | 8.5 | No member docstring capture | 🟡 | criteria quality | yes — docs |
