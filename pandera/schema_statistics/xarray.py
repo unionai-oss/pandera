@@ -192,7 +192,8 @@ def parse_checks(checks) -> Union[list[dict[str, Any]], None]:
     check_statistics: list[dict[str, Any]] = []
 
     for check in checks:
-        if check not in Check:
+        registration_name = check.registry_name
+        if registration_name is None:
             warnings.warn(
                 "Only registered checks may be serialized to statistics. "
                 "Did you forget to register it with the extension API? "
@@ -203,11 +204,13 @@ def parse_checks(checks) -> Union[list[dict[str, Any]], None]:
         base_stats = {} if check.statistics is None else check.statistics
 
         check_options = {
-            "check_name": check.name,
+            "check_name": registration_name,
             "raise_warning": check.raise_warning,
             "n_failure_cases": check.n_failure_cases,
             "ignore_na": check.ignore_na,
         }
+        if check.name != registration_name:
+            check_options["name"] = check.name
         check_options = {
             k: v for k, v in check_options.items() if v is not None
         }
