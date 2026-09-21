@@ -19,7 +19,7 @@ pl = pytest.importorskip("polars")
 from pandera.api.checks import Check
 from pandera.api.polars.components import Column
 from pandera.api.polars.container import DataFrameSchema
-from pandera.errors import SchemaError, SchemaErrors
+from pandera.errors import SchemaError, SchemaErrors, SchemaWarning
 
 # ---------------------------------------------------------------------------
 # CONTAINER-01: NarwhalsSchemaBackend.failure_cases_metadata / drop_invalid_rows
@@ -203,3 +203,35 @@ def test_container_inplace_warns():
         match="setting inplace=True will have no effect",
     ):
         schema.validate(pl.DataFrame({"a": [1, 2, 3]}), inplace=True)
+
+
+def test_check_raise_warning_warns_and_passes():
+    """``raise_warning=True`` turns a failing check into a warning on the
+    narwhals backend too.
+
+    ``NarwhalsSchemaBackend.run_check`` carries its own copy of that branch.
+    No test outside ``tests/pandas/`` passes ``raise_warning=True``, and
+    Codecov reported the ``warnings.warn`` in it as uncovered, so the narwhals
+    copy was pinned only by accident of sharing a contract with pandas.
+
+    A builtin check is used deliberately: an element-wise lambda is not
+    evaluable against ``PolarsData`` on the narwhals path and fails with
+    ``TypeError: '>' not supported between instances of 'PolarsData' and
+    'int'``, which would make this test assert the wrong thing.
+    """
+    schema = DataFrameSchema(
+        columns={"a": Column(pl.Int64, checks=Check.gt(0, raise_warning=True))}
+    )
+    data = pl.DataFrame({"a": [-1, 2]})
+
+    with pytest.warns(SchemaWarning, match="failed"):
+        result = schema.validate(data)
+
+    assert result.equals(data)
+
+    # without the flag the same schema fails rather than warning
+    strict = DataFrameSchema(
+        columns={"a": Column(pl.Int64, checks=Check.gt(0))}
+    )
+    with pytest.raises(SchemaError):
+        strict.validate(data)
