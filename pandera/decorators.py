@@ -715,6 +715,13 @@ def check_types(
         ):
             return arg_value
 
+        # An unresolved type variable (e.g. ``DataFrame[T]`` where ``T`` is a
+        # ``TypeVar``) does not point to a concrete ``DataFrameModel``, so there
+        # is no schema to validate against. Pass the value through unchanged
+        # instead of raising an ``AttributeError``.
+        if isinstance(schema_model, TypeVar):
+            return arg_value
+
         config = schema_model.__config__
         data_container_type = annotation_info.origin
         schema = schema_model.to_schema()
