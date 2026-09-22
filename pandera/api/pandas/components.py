@@ -11,6 +11,7 @@ from pandera.api.base.types import CheckList, ParserList
 from pandera.api.pandas.array import ArraySchema
 from pandera.api.pandas.container import DataFrameSchema
 from pandera.api.pandas.types import PandasDtypeInputTypes
+from pandera.api.parsers import ParseContext, Parser
 from pandera.constants import ON_MISSING_ACTIONS
 from pandera.dtypes import UniqueSettings
 from pandera.import_utils import strategy_import_error
@@ -500,6 +501,109 @@ class MultiIndex(DataFrameSchema):
                 category=hypothesis.errors.NonInteractiveExampleWarning,
             )
             return self.strategy(size=size).example()
+
+
+class ParsedColumn(Column):
+    """A column that declares how it is derived from other columns.
+
+    ``ParsedColumn`` is an ordinary :class:`Column` -- dtype, checks,
+    nullability and coercion all behave the same -- that additionally carries
+    the provenance of its values, so the schema states that ``n_words`` comes
+    from ``body`` instead of leaving it to a closure in a schema-level
+    ``parsers`` list:
+
+    >>> import pandas as pd
+    >>> import pandera.pandas as pa
+    >>>
+    >>> schema = pa.DataFrameSchema({
+    ...     "body": pa.Column(str),
+    ...     "n_words": pa.ParsedColumn(
+    ...         int,
+    ...         source="body",
+    ...         parser=lambda s: s.str.split().str.len(),
+    ...     ),
+    ... })
+    >>> schema.validate(pd.DataFrame({"body": ["a b c"]}))
+        body  n_words
+    0  a b c        3
+    """
+
+    def __init__(
+        self,
+        dtype: PandasDtypeInputTypes = None,
+        *,
+        parser: Any,
+        source: Union[str, Iterable[str], None] = None,
+        on_error: str = "raise",
+        **column_kwargs: Any,
+    ) -> None:
+        """Create a derived column.
+
+        :param parser: a callable producing this column's values, or an object
+            implementing the :class:`~pandera.api.parsers.ColumnParser`
+            protocol. A callable receives the source column as a ``Series``
+            when a single source is declared, and the selected source columns
+            as a ``DataFrame`` otherwise.
+        :param source: the column(s) this column is derived from. Defaults to
+            the schema's ``parser_source``.
+        :param on_error: what to do when the parser fails.
+        :param column_kwargs: everything :class:`Column` accepts.
+        """
+        if parser is None:
+            raise errors.SchemaInitError(
+                "ParsedColumn requires a `parser`. Use a plain Column for a "
+                "column the caller supplies."
+            )
+        super().__init__(dtype, **column_kwargs)
+        self.parser = parser
+        self.source = (
+            (source,)
+            if isinstance(source, str)
+            else None
+            if source is None
+            else tuple(source)
+        )
+        self.on_error = on_error
+
+    def build_parse_context(self, name: str, schema: Any) -> ParseContext:
+        """Describe this column to its parser."""
+        source = self.source
+        if source is None:
+            default = getattr(schema, "parser_source", None)
+            if default is not None:
+                source = (
+                    (default,) if isinstance(default, str) else tuple(default)
+                )
+        if source is not None:
+            declared = set(getattr(schema, "columns", {}))
+            unknown = [col for col in source if col not in declared]
+            if unknown:
+                raise errors.SchemaInitError(
+                    f"column '{name}' is derived from {unknown}, which "
+                    f"{'is' if len(unknown) == 1 else 'are'} not declared in "
+                    f"the schema. Declared columns: {sorted(declared)}"
+                )
+        return ParseContext(
+            target=name,
+            dtype=self.dtype,
+            description=self.description,
+            nullable=self.nullable,
+            checks=tuple(self.checks or ()),
+            source=source,
+            schema=schema,
+            on_error=self.on_error,
+        )
+
+    def compile_parser(self, ctx: ParseContext) -> Parser:
+        """Compile this column's plain-callable parser."""
+        return Parser(
+            self.parser,
+            source=list(ctx.source) if ctx.source else None,
+            target=ctx.target,
+            name=getattr(
+                self.parser, "__name__", f"parsed_column[{ctx.target}]"
+            ),
+        )
 
 
 def is_valid_multiindex_key(x: tuple[Any, ...]) -> bool:
