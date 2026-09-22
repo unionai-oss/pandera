@@ -353,6 +353,32 @@ def test_single_index_schema_validates_one_level_of_multiindex() -> None:
         DataFrameSchema(index=Index(str, name="key")).validate(df)
 
 
+def test_single_index_schema_matches_first_of_duplicate_named_levels() -> None:
+    """Pandas allows a MultiIndex to have more than one level with the same
+    name. A single named Index schema validated against such a MultiIndex
+    (the delegation path exercised by
+    test_single_index_schema_validates_one_level_of_multiindex) matches the
+    first (lowest-position) level with that name, consistent with how
+    MultiIndexBackend._map_schema_to_levels and _map_ordered_levels already
+    resolve named levels elsewhere: both walk forward from position 0 and
+    stop at the first match."""
+    ind = pd.MultiIndex.from_tuples(
+        [(1, "x"), (2, "y")],
+        names=("a", "a"),
+    )
+    df = pd.DataFrame(index=ind)
+
+    # matches the dtype of the first "a" (level 0, int), not the second
+    # (level 1, str)
+    validated = DataFrameSchema(index=Index(int, name="a")).validate(df)
+    assert isinstance(validated, pd.DataFrame)
+
+    # the second "a" (level 1, str) is never considered: a schema that only
+    # matches it fails, even though a same-named level exists
+    with pytest.raises(errors.SchemaError):
+        DataFrameSchema(index=Index(str, name="a")).validate(df)
+
+
 def test_multi_index_schema_coerce() -> None:
     """Test that multi index can be type-coerced."""
     indexes = [
