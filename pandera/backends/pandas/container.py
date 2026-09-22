@@ -12,7 +12,7 @@ from pydantic import BaseModel
 
 from pandera.api.base.error_handler import ErrorHandler, get_error_category
 from pandera.api.pandas.types import is_table
-from pandera.api.parsers import order_parsers
+from pandera.api.parsers import compile_column_parsers
 from pandera.backends.base import ColumnInfo, CoreCheckResult, CoreParserResult
 from pandera.backends.pandas.base import (
     PandasSchemaBackend,
@@ -859,7 +859,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
     def run_parsers(self, schema, check_obj: T) -> T:
         """Run parsers"""
         parser_results: list[CoreParserResult] = []
-        for parser_index, parser in enumerate(order_parsers(schema.parsers)):
+        for parser_index, parser in enumerate(compile_column_parsers(schema)):
             result = self.run_parser(
                 check_obj,
                 parser,

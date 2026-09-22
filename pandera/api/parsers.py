@@ -1,7 +1,8 @@
 """Data validation parse definition."""
 
-from collections.abc import Callable, Sequence
-from typing import Any, Optional, Union
+import dataclasses
+from collections.abc import Callable, Hashable, Sequence
+from typing import Any, Optional, Protocol, Union, runtime_checkable
 
 from pandera.api.base.parsers import BaseParser, ParserResult
 from pandera.errors import SchemaInitError
@@ -36,6 +37,144 @@ def _as_column_tuple(
             f"{duplicates}."
         )
     return columns
+
+
+@dataclasses.dataclass(frozen=True)
+class ParseContext:
+    """Everything a :class:`ColumnParser` knows about the column it fills.
+
+    Passed to ``bind`` at schema-build time, which is what lets a parser read
+    its own column's declared type rather than having to be told what it is
+    producing.
+    """
+
+    target: str
+    """Name of the column being produced."""
+
+    dtype: Any
+    """The column's declared data type, or ``None`` if it has none."""
+
+    description: str | None
+    """The column's description."""
+
+    nullable: bool
+    """Whether the column accepts nulls."""
+
+    checks: tuple[Any, ...]
+    """The column's checks."""
+
+    source: tuple[str, ...] | None
+    """Columns this parser reads, resolved against the schema-wide default."""
+
+    schema: Any
+    """The schema being built, for cross-column resolution."""
+
+    on_error: str = "raise"
+    """What to do when the parser fails: ``raise``, ``null`` or ``drop``."""
+
+
+@runtime_checkable
+class ColumnParser(Protocol):
+    """An object that knows how to produce a column.
+
+    ``ParsedColumn(parser=...)`` accepts a plain callable or an object
+    implementing this protocol. The protocol exists so a parser can inspect
+    the column it is filling (via ``bind``) and so independent parsers that
+    would otherwise each do their own work can be merged (via ``batch_key``).
+    """
+
+    def bind(self, ctx: ParseContext) -> Callable:
+        """Return the function that produces this column.
+
+        Called once at schema-build time. Raising
+        :class:`~pandera.errors.SchemaInitError` here surfaces the problem
+        before any data is touched.
+        """
+        ...  # pragma: no cover
+
+    def batch_key(self, ctx: ParseContext) -> Hashable:
+        """Group key for merging with sibling parsers, or ``None`` to opt out.
+
+        Parsers returning equal non-``None`` keys are handed to ``batch`` and
+        compiled into a single :class:`Parser` covering all their targets.
+        """
+        ...  # pragma: no cover
+
+
+def _parser_name(column_parser: Any, targets: Sequence[str]) -> str:
+    return f"{type(column_parser).__name__.lower()}[{','.join(targets)}]"
+
+
+def _single_parser(column_parser: ColumnParser, ctx: ParseContext) -> "Parser":
+    return Parser(
+        column_parser.bind(ctx),
+        source=list(ctx.source) if ctx.source else None,
+        target=ctx.target,
+        name=_parser_name(column_parser, [ctx.target]),
+    )
+
+
+def _batched_parser(
+    items: Sequence[tuple[ColumnParser, ParseContext]],
+) -> "Parser":
+    """Compile a group of batchable column parsers into one ``Parser``."""
+    first = items[0][0]
+    batch = getattr(type(first), "batch", None)
+    if batch is None:
+        raise SchemaInitError(
+            f"{type(first).__name__} returns a batch_key but does not "
+            "implement a `batch` classmethod, so its columns cannot be "
+            "merged. Return None from batch_key to opt out of batching."
+        )
+    sources: list[str] = []
+    for _, ctx in items:
+        for column in ctx.source or ():
+            if column not in sources:
+                sources.append(column)
+    targets = [ctx.target for _, ctx in items]
+    return Parser(
+        batch(items),
+        source=sources or None,
+        target=targets,
+        frame_input=True,
+        name=_parser_name(first, targets),
+    )
+
+
+def compile_column_parsers(schema: Any) -> list["Parser"]:
+    """Collect a schema's parsers, including those declared on its columns.
+
+    Columns that declare their own derivation contribute a :class:`Parser`
+    each, except where siblings share a ``batch_key`` and are merged into one.
+    The result is ordered by dependency.
+    """
+    parsers: list[Parser] = list(schema.parsers)
+    batches: dict[Hashable, list[tuple[ColumnParser, ParseContext]]] = {}
+
+    for name, column in getattr(schema, "columns", {}).items():
+        build = getattr(column, "build_parse_context", None)
+        if build is None:
+            continue
+        ctx = build(name, schema)
+        column_parser = column.parser
+
+        if not hasattr(column_parser, "bind"):
+            # a plain callable
+            parsers.append(column.compile_parser(ctx))
+            continue
+
+        key = column_parser.batch_key(ctx)
+        if key is None:
+            parsers.append(_single_parser(column_parser, ctx))
+        else:
+            batches.setdefault(key, []).append((column_parser, ctx))
+
+    # A non-None batch_key always goes through ``batch``, even for a group of
+    # one, so a parser that opts into batching has exactly one code path.
+    for items in batches.values():
+        parsers.append(_batched_parser(items))
+
+    return order_parsers(parsers)
 
 
 def order_parsers(parsers: Sequence["Parser"]) -> list["Parser"]:
@@ -107,6 +246,7 @@ class Parser(BaseParser):
         description: str | None = None,
         source: Union[str, Sequence[str], None] = None,
         target: Union[str, Sequence[str], None] = None,
+        frame_input: bool = False,
         **parser_kwargs,
     ) -> None:
         """Apply a parser function to a data object.
@@ -144,6 +284,10 @@ class Parser(BaseParser):
             pandera order parsers by their dependencies rather than by list
             position, and verify the function produced what it promised
             (:class:`~pandera.errors.ParserTargetError`).
+        :param frame_input: always call ``parser_fn`` with a ``DataFrame``,
+            even when a single source and target are declared. Used by
+            batched column parsers, which fill several columns from one call
+            and so cannot take the ``Series -> Series`` shortcut.
         :param parse_kwargs: key-word arguments to pass into ``parse_fn``
 
         When ``source`` and ``target`` are both a single column, ``parser_fn``
@@ -167,6 +311,7 @@ class Parser(BaseParser):
         self.description = description
         self.source = _as_column_tuple(source, "source", self.name)
         self.target = _as_column_tuple(target, "target", self.name)
+        self.frame_input = frame_input
 
     @property
     def derives_columns(self) -> bool:
