@@ -31,6 +31,7 @@ in production without being edited.
 """
 
 from pandera.system_one.cache import MemoryCache, SQLiteCache
+from pandera.system_one.checks import Holds, holds
 from pandera.system_one.inspection import Plan, plan, questions
 from pandera.system_one.parsers import (
     Choice,
@@ -63,6 +64,7 @@ __all__ = [
     "Confidence",
     "Decision",
     "DecisionProvider",
+    "Holds",
     "MemoryCache",
     "MockProvider",
     "Noul",
@@ -76,6 +78,7 @@ __all__ = [
     "SystemOneConfigError",
     "enabled",
     "get_provider",
+    "holds",
     "plan",
     "provider",
     "questions",
