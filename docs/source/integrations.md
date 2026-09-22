@@ -19,6 +19,8 @@ the goal of interoperating with libraries that you know and love.
      - Type-lint your pandas and pandera code with mypy for static type safety [experimental 🧪]
    * - :ref:`Pydantic <pydantic-integration>`
      - Use pandera DataFrameModels when defining  your pydantic BaseModels
+   * - :ref:`System One <system-one>`
+     - Fill columns by asking a System One model (TypeSafe Jev) typed questions
 ```
 
 ```{toctree}
@@ -31,6 +33,7 @@ Frictionless <frictionless>
 Hypothesis <data_synthesis_strategies>
 Mypy <mypy_integration>
 Pydantic <pydantic_integration>
+System One <system_one>
 ```
 
 :::{note}
