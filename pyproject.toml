@@ -73,6 +73,7 @@ mypy = [
     "scipy-stubs; python_version>='3.10'",
 ]
 fastapi = ["fastapi"]
+typesafe-ai = ["typesafe-sdk"]
 geopandas = [
     "geopandas",
     "shapely",
