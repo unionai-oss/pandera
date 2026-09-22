@@ -9,6 +9,7 @@ supply the criteria -- so nothing has to be repeated.
 
 from __future__ import annotations
 
+import time
 from collections.abc import Mapping, Sequence
 from typing import Any, cast
 
@@ -17,13 +18,16 @@ import pandas as pd
 from pandera import _enum_literal
 from pandera.api.parsers import ParseContext
 from pandera.errors import SchemaInitError
-from pandera.system_one import questions as q
+from pandera.system_one import primitives as q
+from pandera.system_one.cache import build_cache, cache_key
 from pandera.system_one.execution import gather_decisions, run_sync
 from pandera.system_one.providers import base as provider_base
 
 MAX_CHOICE_OPTIONS = 255
 MIN_SCORE_LEVELS = 2
 MAX_SCORE_LEVELS = 10
+
+STATS_KEY = "pandera.system_one"
 
 
 class _SystemOneParser:
@@ -39,10 +43,25 @@ class _SystemOneParser:
         criteria: Any = None,
         *,
         provider: Any = None,
+        abstain_below: float | None = None,
+        cache: Any = None,
     ):
         self.instructions = instructions
         self.criteria = criteria
         self.provider = provider
+        self.abstain_below = abstain_below
+        self.cache = cache
+
+    def _abstains(self, decision: Any) -> bool:
+        """Whether an answer is too uncertain to record.
+
+        Below the floor the column gets a null rather than a guess, which is
+        what turns "the model was unsure" into something the schema can see.
+        """
+        if self.abstain_below is None or decision is None:
+            return False
+        confidence = getattr(decision, "confidence", None)
+        return confidence is not None and confidence < self.abstain_below
 
     # -- protocol ---------------------------------------------------------
 
@@ -68,19 +87,61 @@ class _SystemOneParser:
     @classmethod
     def batch(cls, items: Sequence[tuple[Any, ParseContext]]):
         """Compile a group of columns into a single request per row."""
-        compiled = [
-            (parser, ctx, parser.to_question(ctx)) for parser, ctx in items
+        # Columns that ask a question, and columns that only read an answer
+        # some sibling already asked for (``Confidence``). Splitting them is
+        # what makes a confidence column free.
+        asking = [
+            (parser, ctx, parser.to_question(ctx))
+            for parser, ctx in items
+            if not isinstance(parser, Confidence)
         ]
-        questions = {ctx.target: question for _, ctx, question in compiled}
-        targets = [ctx.target for _, ctx, _ in compiled]
-        first_ctx = compiled[0][1]
+        reading = [
+            (parser, ctx)
+            for parser, ctx in items
+            if isinstance(parser, Confidence)
+        ]
+
+        questions = {ctx.target: question for _, ctx, question in asking}
+        targets = [ctx.target for _, ctx, _ in asking]
+
+        for parser, ctx in reading:
+            if parser.of not in questions:
+                raise SchemaInitError(
+                    f"column '{ctx.target}' reports the confidence of column "
+                    f"'{parser.of}', but '{parser.of}' is not answered in the "
+                    "same request. They must share a provider and a source; "
+                    f"columns in this request: {sorted(questions)}."
+                )
+
+        if not asking:
+            raise SchemaInitError(  # pragma: no cover - defensive
+                "a System One request must ask at least one question."
+            )
+
+        first_ctx = asking[0][1]
+        # ``is not None`` rather than truthiness: an empty cache is falsy.
         declared_provider = next(
-            (parser.provider for parser, _, _ in compiled if parser.provider),
+            (
+                parser.provider
+                for parser, _, _ in asking
+                if parser.provider is not None
+            ),
             None,
         )
         on_error = first_ctx.on_error
+        cache = build_cache(
+            next(
+                (
+                    parser.cache
+                    for parser, _, _ in asking
+                    if parser.cache is not None
+                ),
+                None,
+            )
+        )
 
         def _fn(df: pd.DataFrame) -> pd.DataFrame:
+            started = time.monotonic()
             provider = (
                 provider_base._coerce(declared_provider)
                 if declared_provider is not None
@@ -88,26 +149,52 @@ class _SystemOneParser:
             )
             states = _build_states(df, first_ctx.source)
             prepared = provider.compile(questions)
+            stats = {"rows": len(df), "cached": 0, "called": 0}
 
             async def _decide(state: Any) -> Mapping[str, q.Decision]:
-                return await provider.decide(state, prepared)
+                if cache is None:
+                    stats["called"] += 1
+                    return await provider.decide(state, prepared)
+
+                key = cache_key(
+                    provider.id, provider.model_version, state, questions
+                )
+                hit = cache.get(key)
+                if hit is not None:
+                    stats["cached"] += 1
+                    return hit
+                stats["called"] += 1
+                answer = await provider.decide(state, prepared)
+                cache.set(key, answer)
+                return answer
 
             answers = run_sync(
                 gather_decisions(
-                    states,
-                    _decide,
-                    provider.limits,
-                    on_error=on_error,
+                    states, _decide, provider.limits, on_error=on_error
                 )
             )
 
             out = df.copy()
-            for parser, ctx, question in compiled:
+            for parser, ctx, question in asking:
                 values = [
                     parser.to_value(question, ctx, row and row.get(ctx.target))
                     for row in answers
                 ]
                 out[ctx.target] = _as_declared(values, df.index, ctx.dtype)
+
+            for parser, ctx in reading:
+                values = [
+                    parser.read(row and row.get(parser.of)) for row in answers
+                ]
+                out[ctx.target] = _as_declared(values, df.index, ctx.dtype)
+
+            _record_stats(
+                out,
+                provider,
+                batches=1,
+                seconds=time.monotonic() - started,
+                **stats,
+            )
             return out
 
         return _fn
@@ -151,8 +238,15 @@ class Noul(_SystemOneParser):
         true_description: str | None = None,
         false_description: str | None = None,
         provider: Any = None,
+        abstain_below: float | None = None,
+        cache: Any = None,
     ):
-        super().__init__(instructions, provider=provider)
+        super().__init__(
+            instructions,
+            provider=provider,
+            abstain_below=abstain_below,
+            cache=cache,
+        )
         self.threshold = threshold
         self.true_description = true_description
         self.false_description = false_description
@@ -174,7 +268,7 @@ class Noul(_SystemOneParser):
     def to_value(
         self, question: q.Question, ctx: ParseContext, decision: Any
     ) -> Any:
-        if decision is None:
+        if decision is None or self._abstains(decision):
             return None
         probability = float(decision.value)
         # A bool column wants a decision, a float column wants the calibrated
@@ -246,7 +340,7 @@ class Choice(_SystemOneParser):
     def to_value(
         self, question: q.Question, ctx: ParseContext, decision: Any
     ) -> Any:
-        if decision is None:
+        if decision is None or self._abstains(decision):
             return None
         # Answers come back as option labels; map them to the column's own
         # value domain, which may not be strings.
@@ -321,7 +415,7 @@ class Score(_SystemOneParser):
     def to_value(
         self, question: q.Question, ctx: ParseContext, decision: Any
     ) -> Any:
-        if decision is None:
+        if decision is None or self._abstains(decision):
             return None
         score = float(decision.value)
         # A score may land between levels. A float column keeps the unrounded
@@ -331,6 +425,83 @@ class Score(_SystemOneParser):
         levels = cast(q.Score, question).levels
         index = max(0, min(int(round(score)), len(levels) - 1))
         return levels[index]
+
+
+class Confidence(_SystemOneParser):
+    """Reports how certain the model was about another column.
+
+    Confidence is a column like any other, so an ordinary check governs it::
+
+        department: Department = pa.ParsedField(
+            description="Which team should handle this ticket",
+            parser=system_one.Choice(),
+            nullable=True,
+        )
+        department_confidence: float = pa.ParsedField(
+            parser=system_one.Confidence("department"),
+            ge=0.70,
+        )
+
+    It asks nothing of its own -- it reads a decision a sibling column already
+    paid for -- so it must share that column's request, which it does by
+    default since both resolve the same source.
+    """
+
+    def __init__(self, of: str, *, provider: Any = None):
+        super().__init__(provider=provider)
+        self.of = of
+
+    def to_question(self, ctx: ParseContext) -> q.Question:  # pragma: no cover
+        raise SchemaInitError(
+            f"column '{ctx.target}' reports confidence and asks nothing, so "
+            "it cannot be compiled into a question."
+        )
+
+    def read(self, decision: Any) -> Any:
+        """Pull the confidence out of the referenced column's decision."""
+        if decision is None:
+            return None
+        return getattr(decision, "confidence", None)
+
+
+def _record_stats(
+    frame: pd.DataFrame,
+    provider: Any,
+    *,
+    batches: int,
+    seconds: float,
+    rows: int,
+    cached: int,
+    called: int,
+) -> None:
+    """Accumulate per-batch statistics onto the validated frame.
+
+    Several batches may fill one frame, so this merges rather than replaces.
+    Attached to ``attrs`` rather than returned, because the parser's job is to
+    produce columns and the caller still gets a plain dataframe.
+    """
+    stats = dict(frame.attrs.get(STATS_KEY) or {})
+    stats["rows"] = rows
+    stats["batches"] = stats.get("batches", 0) + batches
+    stats["cached"] = stats.get("cached", 0) + cached
+    stats["called"] = stats.get("called", 0) + called
+    stats["seconds"] = round(stats.get("seconds", 0.0) + seconds, 4)
+    stats["provider"] = provider.id
+    stats["model_version"] = provider.model_version
+    frame.attrs[STATS_KEY] = stats
+
+
+def stats(frame: pd.DataFrame) -> dict[str, Any]:
+    """Statistics for the System One work that filled a validated frame.
+
+    Always attached, so the cost of a validation is visible rather than
+    inferred::
+
+        {'rows': 10000, 'batches': 1, 'cached': 9412, 'called': 588,
+         'seconds': 4.31, 'provider': 'typesafe:jev-1.13.0',
+         'model_version': 'jev-1.13.0'}
+    """
+    return dict(frame.attrs.get(STATS_KEY) or {})
 
 
 # ---------------------------------------------------------------------------

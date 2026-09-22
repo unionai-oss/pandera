@@ -14,7 +14,7 @@ import time
 from collections.abc import Awaitable, Callable, Mapping, Sequence
 from typing import Any
 
-from pandera.system_one.questions import Decision, ProviderLimits
+from pandera.system_one.primitives import Decision, ProviderLimits
 
 
 class TokenBucket:

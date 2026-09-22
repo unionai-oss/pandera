@@ -156,6 +156,9 @@ class PandasParserBackend(BaseParserBackend):
             )
         for column in target:
             parse_obj[column] = parser_output[column]
+        # Only the target columns are taken from the parser's output, so any
+        # frame-level metadata it attached would otherwise be dropped here.
+        parse_obj.attrs.update(parser_output.attrs)
         return parse_obj
 
     def __call__(

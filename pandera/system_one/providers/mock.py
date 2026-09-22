@@ -13,7 +13,7 @@ from collections.abc import Mapping
 from typing import Any
 
 from pandera.errors import SchemaInitError
-from pandera.system_one.questions import (
+from pandera.system_one.primitives import (
     Choice,
     Decision,
     Noul,
