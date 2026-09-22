@@ -135,6 +135,76 @@ data = pd.DataFrame({"a": [1, 2], "b": [3, 4]})
 schema.validate(data)
 ```
 
+(derived-columns)=
+
+## Deriving columns
+
+A parser can declare the columns it reads and the columns it produces, which
+turns "this column is computed from that one" into something the schema states
+rather than something a closure happens to do:
+
+```{code-cell} python
+import pandas as pd
+import pandera.pandas as pa
+
+schema = pa.DataFrameSchema(
+    {"body": pa.Column(str), "n_words": pa.Column(int)},
+    parsers=[
+        pa.Parser(
+            lambda s: s.str.split().str.len(),
+            source="body",
+            target="n_words",
+        )
+    ],
+)
+
+schema.validate(pd.DataFrame({"body": ["a b c", "d e"]}))
+```
+
+The derived column is an ordinary column from there on: it is coerced to its
+declared dtype, its checks run, and it is permitted under `strict=True`.
+
+Declaring `source` and `target` buys three things beyond documentation.
+
+**Errors name the parser.** A parser reading a column that is not there raises
+{class}`~pandera.errors.ParserSourceError` identifying the parser, the missing
+column, and the columns that *are* present — rather than a bare `KeyError`. A
+parser that does not produce what it promised raises
+{class}`~pandera.errors.ParserTargetError`.
+
+**Ordering follows dependencies, not list position.** Parsers are sorted so
+each runs after the parsers producing its sources, so the order they are
+written in does not matter:
+
+```{code-cell} python
+schema = pa.DataFrameSchema(
+    {"body": pa.Column(str), "a": pa.Column(int), "b": pa.Column(int)},
+    parsers=[
+        pa.Parser(lambda s: s * 2, source="a", target="b"),      # listed first
+        pa.Parser(lambda s: s.str.len(), source="body", target="a"),
+    ],
+)
+
+schema.validate(pd.DataFrame({"body": ["abc"]}))
+```
+
+A cycle among derived columns raises `SchemaInitError` naming the columns
+involved. Parsers that declare neither a source nor a target keep their list
+position and run first, so existing schemas are unaffected.
+
+**Calling conventions.** With a single `source` and a single `target`, the
+function is called with the source column as a `Series` and must return a
+`Series`. Otherwise it is called with the selected source columns (or the whole
+dataframe, when only `target` is declared) and must return a `DataFrame`
+containing the targets.
+
+:::{note}
+`Parser` forwards unrecognized keyword arguments to the parser function, so
+`source` and `target` previously arrived as function kwargs. Promoting them to
+real parameters is a breaking change for a parser function that took a keyword
+by either name.
+:::
+
 ## Parsing columns
 
 {class}`~pandera.api.parsers.Parser` objects accept a function as a required
