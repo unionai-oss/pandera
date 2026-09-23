@@ -254,6 +254,15 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
                 )
 
                 check_passed.append(is_table(result))
+                if getattr(
+                    schema_component, "drop_invalid_rows", False
+                ) and is_table(result):
+                    # The component already dropped its own invalid rows into
+                    # `result` instead of raising. Mutate check_obj in place
+                    # so the caller, which shares this same object, sees it.
+                    dropped = check_obj.index.difference(result.index)
+                    if len(dropped):
+                        check_obj.drop(index=dropped, inplace=True)
             except SchemaError as err:
                 check_results.append(
                     CoreCheckResult(
