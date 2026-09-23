@@ -100,7 +100,7 @@ dependencies:
 
       # docs
       - furo
-      - sphinxcontrib-typer >= 0.8.0
+      - sphinxcontrib-typer[pdf] >= 0.8.0
       - sphinx-docsearch
       - grpcio
       - ray
