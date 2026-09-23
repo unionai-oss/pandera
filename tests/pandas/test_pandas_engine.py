@@ -72,6 +72,54 @@ def test_pandas_data_type(data_type):
 
 
 @pytest.mark.parametrize(
+    ("dtype_alias", "pyarrow_dtype", "data"),
+    [
+        (
+            "list<item: int32>[pyarrow]",
+            pyarrow.list_(pyarrow.int32()),
+            [[1, 2], [3]],
+        ),
+        (
+            "list<element: int32>[pyarrow]",
+            pyarrow.list_(pyarrow.int32()),
+            [[1, 2], [3]],
+        ),
+        (
+            "list<item: list<item: int32>>[pyarrow]",
+            pyarrow.list_(pyarrow.list_(pyarrow.int32())),
+            [[[1, 2]], [[3]]],
+        ),
+        (
+            "large_list<item: int32>[pyarrow]",
+            pyarrow.large_list(pyarrow.int32()),
+            [[1, 2], [3]],
+        ),
+    ],
+)
+def test_pandas_pyarrow_list_dtype_string(dtype_alias, pyarrow_dtype, data):
+    """Test pandas string representations of PyArrow list dtypes."""
+    dtype = pandas_engine.Engine.dtype(dtype_alias)
+    expected_dtype = pd.ArrowDtype(pyarrow_dtype)
+
+    assert dtype.type == expected_dtype
+
+    dataframe = pd.DataFrame(
+        {
+            "feature": pd.Series(
+                data,
+                dtype=expected_dtype,
+            )
+        }
+    )
+
+    assert (
+        pa.DataFrameSchema({"feature": pa.Column(dtype_alias)})
+        .validate(dataframe)
+        .equals(dataframe)
+    )
+
+
+@pytest.mark.parametrize(
     "data_type_cls", list(pandas_engine.Engine.get_registered_dtypes())
 )
 def test_pandas_data_type_coerce(data_type_cls):
