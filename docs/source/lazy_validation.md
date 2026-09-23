@@ -92,3 +92,74 @@ except pa.errors.SchemaErrors as exc:
     print("\nDataFrame object that failed validation:")
     print(exc.data)
 ```
+
+(n-failure-cases)=
+
+## Limiting reported failure cases with `n_failure_cases`
+
+When a {class}`~pandera.api.checks.Check` fails, pandera collects the failing
+values so you can inspect them via `SchemaError.failure_cases` /
+`SchemaErrors.failure_cases`. By default, **all** failure cases are reported
+(`n_failure_cases=None`).
+
+For large datasets this can produce very large failure reports. Pass an integer
+`n_failure_cases` to truncate the reported cases to the first *n* unique
+failures for that check:
+
+```{code-cell} python
+import pandas as pd
+import pandera.pandas as pa
+
+df = pd.DataFrame({"n": range(20)})
+
+# Default: report every failure case (n_failure_cases=None)
+schema_all = pa.DataFrameSchema({
+    "n": pa.Column(int, pa.Check.greater_than(30)),
+})
+
+# Limit: report only the first 5 failure cases for this check
+schema_limited = pa.DataFrameSchema({
+    "n": pa.Column(
+        int,
+        pa.Check.greater_than(30, n_failure_cases=5),
+    ),
+})
+
+try:
+    schema_all.validate(df, lazy=True)
+except pa.errors.SchemaErrors as exc:
+    print(f"all failures: {len(exc.failure_cases)}")
+
+try:
+    schema_limited.validate(df, lazy=True)
+except pa.errors.SchemaErrors as exc:
+    print(f"limited failures: {len(exc.failure_cases)}")
+    print(exc.failure_cases)
+```
+
+You can set the same option on {func}`~pandera.api.dataframe.model_components.Field`
+when using the class-based {class}`~pandera.api.pandas.model.DataFrameModel`
+API:
+
+```{code-cell} python
+import pandas as pd
+import pandera.pandas as pa
+from pandera.typing import Series
+
+
+class Schema(pa.DataFrameModel):
+    n: Series[int] = pa.Field(gt=30, n_failure_cases=5)
+
+
+try:
+    Schema.validate(pd.DataFrame({"n": range(20)}), lazy=True)
+except pa.errors.SchemaErrors as exc:
+    print(exc.failure_cases)
+```
+
+```{note}
+`n_failure_cases` only controls how many failure cases are **reported** for a
+check. It does not change whether the check passes or fails, and it does not
+drop invalid rows from the data. Use {ref}`drop-invalid-rows` if you need to
+filter invalid data out of the validated object.
+```
