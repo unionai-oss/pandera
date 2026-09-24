@@ -664,7 +664,9 @@ class DataFrameModel(Generic[TDataFrame, TSchema], BaseModel):
         for k, (_, v) in columns.items():
             res["columns"][k] = v.properties["metadata"]
 
-        res["dataframe"] = cls.Config.metadata
+        # A user-defined ``Config`` need not inherit from ``BaseConfig``, so
+        # fall back to the ``BaseConfig.metadata`` default of ``None``.
+        res["dataframe"] = getattr(cls.Config, "metadata", None)
 
         meta = {}
         meta[cls.Config.name] = res
