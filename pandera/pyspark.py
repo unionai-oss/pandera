@@ -15,6 +15,7 @@ from pandera.api.dataframe.model_components import check, dataframe_check
 from pandera.api.pyspark import Column, DataFrameSchema
 from pandera.api.pyspark.model import DataFrameModel
 from pandera.api.pyspark.model_components import Field
+from pandera.config import set_config
 from pandera.decorators import check_input, check_io, check_output, check_types
 from pandera.dtypes import (
     Bool,
