@@ -229,6 +229,45 @@ def test_dataframe_schema_strict_and_ordered_raises_both_errors() -> None:
     assert errors.SchemaErrorReason.COLUMN_NOT_IN_SCHEMA in reason_codes
 
 
+def test_dataframe_schema_strict_index() -> None:
+    """Regression test for #1493: strict=True should also reject a
+    non-default index when the schema doesn't declare an index."""
+    schema = DataFrameSchema(
+        {"a": Column(int)},
+        strict=True,
+    )
+
+    # default RangeIndex passes
+    df_default_index = pd.DataFrame({"a": [1, 2, 3]})
+    assert isinstance(schema.validate(df_default_index), pd.DataFrame)
+
+    # named index fails, even though the index values themselves are valid
+    df_named_index = pd.DataFrame(
+        {"a": [1]}, index=pd.Index(["x"], name="foo")
+    )
+    with pytest.raises(errors.SchemaErrors) as exc_info:
+        schema.validate(df_named_index, lazy=True)
+    reason_codes = {e.reason_code for e in exc_info.value.schema_errors}
+    assert errors.SchemaErrorReason.INDEX_NOT_IN_SCHEMA in reason_codes
+
+    # non-RangeIndex (e.g. after filtering rows) fails
+    df_filtered = pd.DataFrame({"a": [1, 2, 3]}).loc[lambda d: d["a"] > 1]
+    with pytest.raises(errors.SchemaError):
+        schema.validate(df_filtered)
+
+    # strict=False allows any index, unchanged from before
+    lenient_schema = DataFrameSchema({"a": Column(int)}, strict=False)
+    assert isinstance(lenient_schema.validate(df_named_index), pd.DataFrame)
+
+    # a schema that declares its own index is unaffected
+    schema_with_index = DataFrameSchema(
+        {"a": Column(int)},
+        index=Index(str, name="foo"),
+        strict=True,
+    )
+    assert isinstance(schema_with_index.validate(df_named_index), pd.DataFrame)
+
+
 def test_dataframe_schema_strict_regex() -> None:
     """Test that strict dataframe schema checks for regex matches."""
     schema = DataFrameSchema(

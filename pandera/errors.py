@@ -160,6 +160,7 @@ class SchemaErrorReason(Enum):
     ADD_MISSING_COLUMN_NO_DEFAULT = "add_missing_column_no_default"
     INVALID_COLUMN_NAME = "invalid_column_name"
     MISMATCH_INDEX = "mismatch_index"
+    INDEX_NOT_IN_SCHEMA = "index_not_in_schema"
 
 
 class SchemaErrors(ReducedPickleExceptionBase):
