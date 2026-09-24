@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+import ast
 import enum
 import json
 from collections.abc import Mapping
 from pathlib import Path
 from typing import Any, Literal
+
+import polars as pl
 
 from pandera import dtypes
 from pandera.api.checks import Check
@@ -201,17 +204,69 @@ def _deserialize_check_stats(check, serialized_check_stats, dtype=None):
     return check_instance
 
 
+def _polars_dtype_from_repr(text):
+    """Rebuild a polars dtype from its repr, e.g. ``List(Int64)`` or
+    ``Enum(categories=['a', 'b'])``. Only polars dtype names and literal
+    arguments are accepted, so the text is never evaluated as code.
+    """
+
+    def build(node):
+        if isinstance(node, ast.Name):
+            dtype = getattr(pl.datatypes, node.id, None)
+            if not (
+                isinstance(dtype, type) and issubclass(dtype, pl.DataType)
+            ):
+                raise ValueError(f"unknown polars dtype {node.id!r}")
+            return dtype
+        if isinstance(node, ast.Call):
+            return build(node.func)(
+                *[build(arg) for arg in node.args],
+                **{kw.arg: build(kw.value) for kw in node.keywords},
+            )
+        if isinstance(node, ast.Constant):
+            return node.value
+        if isinstance(node, ast.List):
+            return [build(elt) for elt in node.elts]
+        if isinstance(node, ast.Tuple):
+            return tuple(build(elt) for elt in node.elts)
+        if isinstance(node, ast.Dict):
+            return {
+                build(key): build(value)
+                for key, value in zip(node.keys, node.values)
+            }
+        raise ValueError(f"unsupported polars dtype repr {text!r}")
+
+    return build(ast.parse(text, mode="eval").body)
+
+
+def _deserialize_dtype(serialized_dtype):
+    """Deserialize a polars dtype written as its repr. Plain dtypes resolve
+    through the engine by name; parametrized ones such as ``Enum``,
+    ``Datetime`` or ``List`` are rebuilt from the repr.
+    """
+    s = str(serialized_dtype)
+    try:
+        return polars_engine.Engine.dtype(s)
+    except TypeError:
+        pass
+    try:
+        return polars_engine.Engine.dtype(s.lower())
+    except TypeError as exc:
+        error = exc
+    try:
+        parsed = _polars_dtype_from_repr(s)
+    except (SyntaxError, TypeError, ValueError):
+        raise error from None
+    return polars_engine.Engine.dtype(parsed)
+
+
 def _deserialize_component_stats(serialized_component_stats):
     serialized_component_stats = dict(serialized_component_stats)
     unflatten_component_checks_dict(serialized_component_stats)
 
     dtype = serialized_component_stats.get("dtype")
     if dtype:
-        s = str(dtype)
-        try:
-            dtype = polars_engine.Engine.dtype(s)
-        except TypeError:
-            dtype = polars_engine.Engine.dtype(s.lower())
+        dtype = _deserialize_dtype(dtype)
 
     description = serialized_component_stats.get("description")
     title = serialized_component_stats.get("title")

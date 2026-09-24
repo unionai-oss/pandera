@@ -79,3 +79,44 @@ def test_polars_check_options_survive_yaml_roundtrip(
     assert check.error == expected_error
     with pytest.raises(SchemaError):
         loaded.validate(pl.DataFrame({"a": [-1]}))
+
+
+@pytest.mark.parametrize(
+    "dtype",
+    [
+        pl.Categorical,
+        pl.Enum(["a", "b"]),
+        pl.Datetime("us", "UTC"),
+        pl.Duration("ms"),
+        pl.Decimal(10, 2),
+        pl.List(pl.Int64),
+        pl.Array(pl.Int64, 3),
+        pl.Struct({"a": pl.Int64, "b": pl.List(pl.String)}),
+        pl.List(pl.Struct({"a": pl.Enum(["x", "y"])})),
+    ],
+    ids=str,
+)
+@pytest.mark.parametrize("fmt", ["yaml", "json"])
+def test_polars_roundtrip_parametrized_dtypes(dtype, fmt):
+    """Parametrized polars dtypes are read back with their parameters."""
+    schema = pa.DataFrameSchema({"a": pa.Column(dtype)})
+
+    serialized = getattr(schema, f"to_{fmt}")()
+    restored = getattr(pa.DataFrameSchema, f"from_{fmt}")(serialized)
+
+    restored_dtype = restored.columns["a"].dtype.type
+    assert type(restored_dtype) is type(schema.columns["a"].dtype.type)
+    assert str(restored_dtype) == str(schema.columns["a"].dtype.type)
+
+
+@pytest.mark.parametrize(
+    "text",
+    ["__import__('os').getcwd()", "Int64.__class__", "NotADtype"],
+)
+def test_polars_from_yaml_rejects_non_dtype_text(text):
+    """Text that isn't a polars dtype fails as before and is never run."""
+    yaml_text = (
+        f'schema_type: polars_dataframe\ncolumns:\n  a:\n    dtype: "{text}"\n'
+    )
+    with pytest.raises(TypeError, match="cannot parse input"):
+        pa.DataFrameSchema.from_yaml(yaml_text)
