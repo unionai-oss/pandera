@@ -221,6 +221,22 @@ class Check(BaseCheck):
         self.strategy = strategy
         self.constraint = constraint
 
+    @property
+    def registry_name(self) -> str | None:
+        """Name this check can be looked up under in the ``Check`` registry.
+
+        ``name`` may have been replaced by a user-supplied ``name=``, which hides
+        the check from every registry lookup. The check function keeps the
+        dispatcher name, so fall back to it -- the same rule
+        :meth:`Check.__call__` applies for the backend reload (see #2042).
+        """
+        if self in Check:
+            return self.name
+        check_fn_name = getattr(self._check_fn, "__name__", None)
+        if check_fn_name is not None and hasattr(Check, check_fn_name):
+            return check_fn_name
+        return None
+
     def __call__(
         self,
         check_obj: Any,

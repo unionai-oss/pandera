@@ -9,7 +9,12 @@ import numpy as np
 import xarray as xr
 
 from pandera.api.checks import Check
-from pandera.schema_statistics.common import string_length_check_statistics
+from pandera.schema_statistics.common import (
+    parse_checks as parse_checks_common,
+)
+from pandera.schema_statistics.common import (
+    string_length_check_statistics,
+)
 
 
 def infer_data_array_statistics(da: xr.DataArray) -> dict[str, Any]:
@@ -178,10 +183,9 @@ def get_dataset_schema_statistics(dataset_schema) -> dict[str, Any]:
 def parse_checks(checks) -> Union[list[dict[str, Any]], None]:
     """Convert Check objects to serializable statistics.
 
-    Follows the same format as
-    :func:`pandera.schema_statistics.pandas.parse_checks`: each entry is
-    a dict of check statistics with an ``"options"`` sub-dict containing
-    ``check_name`` and other metadata.
+    Delegates to :func:`pandera.schema_statistics.common.parse_checks`, the
+    implementation the other backends use, so an xarray payload carries the
+    same ``options`` -- including a custom ``error`` message.
 
     :param checks: list of Check objects.
     :returns: list of dicts with check statistics, or None.
@@ -189,35 +193,7 @@ def parse_checks(checks) -> Union[list[dict[str, Any]], None]:
     if not checks:
         return None
 
-    check_statistics: list[dict[str, Any]] = []
-
-    for check in checks:
-        if check not in Check:
-            warnings.warn(
-                "Only registered checks may be serialized to statistics. "
-                "Did you forget to register it with the extension API? "
-                f"Check `{check.name}` will be skipped.",
-                stacklevel=2,
-            )
-            continue
-
-        base_stats = {} if check.statistics is None else check.statistics
-
-        check_options = {
-            "check_name": check.name,
-            "raise_warning": check.raise_warning,
-            "n_failure_cases": check.n_failure_cases,
-            "ignore_na": check.ignore_na,
-        }
-        check_options = {
-            k: v for k, v in check_options.items() if v is not None
-        }
-
-        if check_options:
-            base_stats["options"] = check_options
-            check_statistics.append(base_stats)
-
-    return check_statistics if check_statistics else None
+    return parse_checks_common(checks)
 
 
 def parse_check_statistics(

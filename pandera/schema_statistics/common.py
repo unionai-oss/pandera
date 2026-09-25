@@ -59,16 +59,16 @@ def parse_check_statistics(check_stats: Union[dict[str, Any], None]):
 def parse_checks(checks) -> Union[list[dict[str, Any]], None]:
     """Convert Check object to check statistics including options."""
 
-    def _has_custom_error(check: Check) -> bool:
+    def _has_custom_error(check: Check, registration_name: str) -> bool:
         """Determine whether a check has a user-defined error message."""
         if check.error is None:
             return False
 
-        if check.name is None or not Check.is_builtin_check(check.name):
+        if not Check.is_builtin_check(registration_name):
             return True
 
         try:
-            default_check = getattr(Check, check.name)(
+            default_check = getattr(Check, registration_name)(
                 **(check.statistics or {})
             )
         except (AttributeError, TypeError, ValueError):
@@ -79,7 +79,8 @@ def parse_checks(checks) -> Union[list[dict[str, Any]], None]:
     check_statistics = []
 
     for check in checks:
-        if check not in Check:
+        registration_name = check.registry_name
+        if registration_name is None:
             warnings.warn(
                 "Only registered checks may be serialized to statistics. "
                 "Did you forget to register it with the extension API? "
@@ -93,12 +94,14 @@ def parse_checks(checks) -> Union[list[dict[str, Any]], None]:
 
         # Collect check options
         check_options = {
-            "check_name": check.name,
+            "check_name": registration_name,
             "raise_warning": check.raise_warning,
             "n_failure_cases": check.n_failure_cases,
             "ignore_na": check.ignore_na,
         }
-        if _has_custom_error(check):
+        if check.name != registration_name:
+            check_options["name"] = check.name
+        if _has_custom_error(check, registration_name):
             check_options["error"] = check.error
 
         # Filter out None values from options
