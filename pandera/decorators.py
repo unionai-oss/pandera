@@ -738,10 +738,6 @@ def check_types(
             inplace,
         )
 
-        to_format = getattr(config, "to_format", None) if config else None
-        if data_container_type and to_format:
-            arg_value = data_container_type.to_format(arg_value, config)
-
         return arg_value
 
     def _check_arg_value_against_union(
