@@ -126,3 +126,13 @@ class ProviderCapabilities:
 
     max_questions: int | None = None
     """Most questions one request may carry, when the provider caps it."""
+
+    reports_confidence: frozenset[str] = frozenset({"choice", "score"})
+    """Kinds for which the model reports how certain it is. A noul is a bare
+    probability in every implementation so far, so it is absent by default.
+    Anything that needs a confidence -- ``abstain_below``, ``Confidence`` -- is
+    refused for a kind missing here, rather than quietly never triggering."""
+
+    price_per_million_input_tokens: float | None = None
+    """What input costs, for :func:`~pandera.system_one.plan`. ``None`` means
+    unknown, which is not the same as free: a local model says ``0.0``."""

@@ -16,6 +16,7 @@ from pandera.system_one.parsers import (
     _SystemOneParser,
 )
 from pandera.system_one.primitives import Question
+from pandera.system_one.providers import base as provider_base
 
 
 @dataclasses.dataclass(frozen=True)
@@ -60,7 +61,14 @@ def _groups(schema: Any) -> list[list[tuple[Any, Any]]]:
     return list(batches.values())
 
 
-def questions(target: Any) -> dict[str, Question]:
+def _resolve(provider: Any) -> Any:
+    """The provider to consult, if there is one; never raises for its absence."""
+    if provider is not None:
+        return provider_base._coerce(provider)
+    return provider_base.get_provider()
+
+
+def questions(target: Any, provider: Any = None) -> dict[str, Question]:
     """Compile a schema's questions without contacting a provider.
 
     The inference rules -- options from the column's type, criteria from enum
@@ -70,23 +78,58 @@ def questions(target: Any) -> dict[str, Question]:
 
         system_one.questions(Triage)
         #> {'department': Choice(instructions='Which team should ...', ...)}
+
+    Pass ``provider`` to also check the questions against what that model can
+    be asked -- still without sending anything -- so a schema that a local
+    model cannot take fails in a test rather than on its first row::
+
+        system_one.questions(Taxonomy, provider="ollaya:laya")
     """
     schema = _as_schema(target)
+    checked = None if provider is None else _resolve(provider)
     compiled: dict[str, Question] = {}
     for group in _groups(schema):
+        batch: dict[str, Question] = {}
         for parser, ctx in group:
             if isinstance(parser, Confidence):
                 # reports another column's confidence; asks nothing
                 continue
-            compiled[ctx.target] = parser.to_question(ctx)
+            batch[ctx.target] = parser.to_question(ctx)
+        if checked is not None and batch:
+            provider_base.verify_questions(
+                batch,
+                checked,
+                needs_confidence=[
+                    *(
+                        ctx.target
+                        for parser, ctx in group
+                        if not isinstance(parser, Confidence)
+                        and parser.abstain_below is not None
+                    ),
+                    *(
+                        parser.of
+                        for parser, _ in group
+                        if isinstance(parser, Confidence)
+                    ),
+                ],
+            )
+        compiled.update(batch)
     return compiled
 
 
-def plan(target: Any, data: Any = None, *, rows: int | None = None) -> Plan:
+def plan(
+    target: Any,
+    data: Any = None,
+    *,
+    rows: int | None = None,
+    provider: Any = None,
+) -> Plan:
     """Report what validating ``data`` would send, without sending it.
 
     Pass a dataframe to estimate token counts from the real states, or just
-    ``rows=`` for a rough count.
+    ``rows=`` for a rough count. The cost is estimated when a provider is
+    configured (or passed) *and* it declares a price -- ``None`` means unknown,
+    which is not the same as free: a local model reports ``0.0``.
     """
     schema = _as_schema(target)
     groups = _groups(schema)
@@ -119,11 +162,22 @@ def plan(target: Any, data: Any = None, *, rows: int | None = None) -> Plan:
             for state in _build_states(data, ctx.source):
                 tokens += estimate_tokens(state)
 
+    resolved = _resolve(provider)
+    price = (
+        None
+        if resolved is None
+        else provider_base.capabilities_of(
+            resolved
+        ).price_per_million_input_tokens
+    )
+    # Without data there are no tokens to price, and a zero would read as free.
+    cost = None if price is None or data is None else tokens * price / 1e6
+
     return Plan(
         rows=row_count,
         batches=len(asking),
         requests=request_count,
         questions=question_count,
         estimated_input_tokens=tokens,
-        estimated_cost_usd=None,
+        estimated_cost_usd=cost,
     )

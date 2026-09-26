@@ -286,6 +286,19 @@ to one model is not the object another model ends up using. Sharing a cache
 across schemas needs shared storage — SQLite, or a custom cache over a global.
 :::
 
+Not every model reports a confidence. Choices and scores do; a **noul is a
+bare probability** in every implementation so far, so it has none.
+`abstain_below` or `Confidence` on a noul is refused *before any request*,
+naming the column, rather than quietly never triggering — a floor that never
+fires is worse than an error. To act on how sure a noul is, keep it as a `float`
+column and check the probability directly, or threshold it with
+`Noul(threshold=...)`. A provider that does report one for noul questions
+declares so in its `capabilities`.
+
+An abstained answer is a *missing* value, not a guess: a `bool` column filled
+by a noul that abstains must be declared `pd.BooleanDtype` (a plain `bool` cannot
+hold it, and pandera says so rather than recording a false "no").
+
 Because `jev-latest` is a moving target, pin a version when caching.
 
 ## Seeing the cost
@@ -298,11 +311,15 @@ system_one.questions(Triage)
 
 system_one.plan(Triage, tickets_df)
 #> Plan(rows=10000, batches=1, requests=10000, questions=3, est_input_tokens=...)
+
+system_one.questions(Taxonomy, provider="ollaya:laya")   # also checks capabilities
 ```
 
 `questions()` applies the full inference chain, so what the model will be asked
-is reviewable in a test with no credentials. `plan()` reports how many requests
-a validation would make before making them.
+is reviewable in a test with no credentials; given a `provider` it also checks
+them against what that model can be asked. `plan()` reports how many requests a
+validation would make before making them, and the cost when the provider
+declares a price. Unknown is `None`, not zero: a local model declares `0.0`.
 
 After validating, the actual cost is attached to the frame:
 

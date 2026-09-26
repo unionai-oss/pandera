@@ -45,8 +45,11 @@ def _capabilities_for(model: str) -> ProviderCapabilities:
         return ProviderCapabilities(
             max_options=250 if variant == "multilingual" else 125,
             max_questions=256,
+            price_per_million_input_tokens=0.0,
         )
-    return ProviderCapabilities(max_questions=256)
+    return ProviderCapabilities(
+        max_questions=256, price_per_million_input_tokens=0.0
+    )
 
 
 def _default_base_url() -> str:

@@ -64,7 +64,15 @@ class _SystemOneParser:
         if self.abstain_below is None or decision is None:
             return False
         confidence = getattr(decision, "confidence", None)
-        return confidence is not None and confidence < self.abstain_below
+        if confidence is None:
+            # The provider declared it reports one for this kind (else
+            # ``verify_questions`` would have refused), so its absence is a
+            # provider bug. Answering anyway would make the floor a no-op.
+            raise provider_base.ProviderCapabilityError(
+                f"abstain_below={self.abstain_below} is set, but the provider "
+                "returned an answer with no confidence."
+            )
+        return confidence < self.abstain_below
 
     # -- protocol ---------------------------------------------------------
 
@@ -152,7 +160,19 @@ class _SystemOneParser:
             )
             # Before any request: which model answers is only known now, and
             # a question it cannot take should fail here, naming the column.
-            provider_base.verify_questions(questions, provider)
+            provider_base.verify_questions(
+                questions,
+                provider,
+                # abstaining and reporting confidence both read it
+                needs_confidence=[
+                    *(
+                        ctx.target
+                        for parser, ctx, _ in asking
+                        if parser.abstain_below is not None
+                    ),
+                    *(parser.of for parser, _ in reading),
+                ],
+            )
             states = _build_states(df, first_ctx.source)
             prepared = provider.compile(questions)
             stats = {"rows": len(df), "cached": 0, "called": 0}
@@ -604,6 +624,12 @@ def _as_declared(values: Sequence[Any], index: Any, dtype: Any) -> pd.Series:
     target = getattr(dtype, "type", None)
     if target is None:
         return series
+    if _dtype_kind(dtype) == "bool" and series.isna().any():
+        # ``astype(bool)`` turns a missing answer into False, so an abstention
+        # would be recorded as a confident "no". Keep it missing, in the
+        # nullable dtype; a schema declaring plain ``bool`` then reports the
+        # mismatch instead of silently holding a wrong answer.
+        return series.astype("boolean")
     try:
         return series.astype(target)
     except (TypeError, ValueError):

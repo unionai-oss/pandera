@@ -76,13 +76,21 @@ def capabilities_of(provider: Any) -> ProviderCapabilities:
 
 
 def verify_questions(
-    questions: Mapping[str, Question], provider: DecisionProvider
+    questions: Mapping[str, Question],
+    provider: DecisionProvider,
+    *,
+    needs_confidence: Sequence[str] = (),
 ) -> None:
     """Check a question set against a provider before any request is made.
 
     Which model answers is runtime configuration, so this cannot happen when
     the schema is built. It happens as soon as the provider is known, which is
     still before the first request, and it names the column and the limit.
+
+    ``needs_confidence`` names columns whose answer's confidence is used --
+    for abstention, or reported in a column of its own. A provider that does
+    not report one for that kind is refused here: an abstention floor that
+    silently never fires is worse than an error.
     """
     caps = capabilities_of(provider)
     who = f"provider {provider.id!r}"
@@ -93,6 +101,21 @@ def verify_questions(
             f"at most {caps.max_questions} per request. Give some of the "
             "columns a different source so they form separate requests."
         )
+
+    for name in needs_confidence:
+        kind = questions[name].kind
+        if kind in caps.kinds and kind not in caps.reports_confidence:
+            raise ProviderCapabilityError(
+                f"column '{name}' needs the model's confidence, but {who} "
+                f"does not report one for {kind} questions."
+                + (
+                    " A noul is already a calibrated probability: threshold "
+                    "it (`Noul(threshold=...)`) or keep it as a float column "
+                    "instead of abstaining."
+                    if kind == "noul"
+                    else ""
+                )
+            )
 
     for name, question in questions.items():
         kind = question.kind
