@@ -17,10 +17,12 @@ from pandera.system_one.primitives import (
     Choice,
     Decision,
     Noul,
+    ProviderCapabilities,
     ProviderLimits,
     Question,
     Score,
 )
+from pandera.system_one.providers.base import capabilities_of
 
 
 def _stable_unit(*parts: Any) -> float:
@@ -38,15 +40,26 @@ class MockProvider:
     ``ReplayProvider`` when a test depends on what a real model would say.
     """
 
-    def __init__(self, seed: int = 0, model_version: str = "mock-1"):
+    def __init__(
+        self,
+        seed: int = 0,
+        model_version: str = "mock-1",
+        *,
+        capabilities: ProviderCapabilities | None = None,
+        limits: ProviderLimits | None = None,
+    ):
         self.seed = seed
         self.id = f"mock:{seed}"
         self.model_version = model_version
         self.calls = 0
+        # Configurable so tests can stand in for a narrower model -- a small
+        # local one, say -- without a network or a real model.
+        self.capabilities = capabilities or ProviderCapabilities()
+        self._limits = limits or ProviderLimits(max_concurrency=8)
 
     @property
     def limits(self) -> ProviderLimits:
-        return ProviderLimits(max_concurrency=8)
+        return self._limits
 
     def compile(self, questions: Mapping[str, Question]) -> Any:
         return dict(questions)
@@ -108,6 +121,10 @@ class RecordingProvider:
     @property
     def limits(self) -> ProviderLimits:
         return self.inner.limits
+
+    @property
+    def capabilities(self) -> ProviderCapabilities:
+        return capabilities_of(self.inner)
 
     def compile(self, questions: Mapping[str, Question]) -> Any:
         self._questions = dict(questions)

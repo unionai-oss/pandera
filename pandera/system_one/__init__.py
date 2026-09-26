@@ -42,15 +42,19 @@ from pandera.system_one.parsers import (
 )
 from pandera.system_one.primitives import (
     Decision,
+    ProviderCapabilities,
     ProviderLimits,
     Question,
 )
 from pandera.system_one.providers.base import (
     DecisionProvider,
+    ProviderCapabilityError,
     SystemOneConfigError,
+    capabilities_of,
     enabled,
     get_provider,
     provider,
+    register_provider,
     set_provider,
 )
 from pandera.system_one.providers.mock import (
@@ -69,6 +73,8 @@ __all__ = [
     "MockProvider",
     "Noul",
     "Plan",
+    "ProviderCapabilities",
+    "ProviderCapabilityError",
     "ProviderLimits",
     "Question",
     "RecordingProvider",
@@ -76,12 +82,14 @@ __all__ = [
     "SQLiteCache",
     "Score",
     "SystemOneConfigError",
+    "capabilities_of",
     "enabled",
     "get_provider",
     "holds",
     "plan",
     "provider",
     "questions",
+    "register_provider",
     "set_provider",
     "stats",
 ]
@@ -94,4 +102,8 @@ def __getattr__(name: str):
         from pandera.system_one.providers.typesafe import TypeSafeProvider
 
         return TypeSafeProvider
+    if name == "OllayaProvider":
+        from pandera.system_one.providers.ollaya import OllayaProvider
+
+        return OllayaProvider
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

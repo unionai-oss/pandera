@@ -23,6 +23,9 @@ from pandera.system_one.cache import build_cache, cache_key
 from pandera.system_one.execution import gather_decisions, run_sync
 from pandera.system_one.providers import base as provider_base
 
+# The question vocabulary's own bounds, shared by every provider that speaks the
+# System One wire format. A given model may be narrower -- that is what
+# ``ProviderCapabilities`` is for, and it is checked once the provider is known.
 MAX_CHOICE_OPTIONS = 255
 MIN_SCORE_LEVELS = 2
 MAX_SCORE_LEVELS = 10
@@ -147,6 +150,9 @@ class _SystemOneParser:
                 if declared_provider is not None
                 else provider_base.require_provider(targets)
             )
+            # Before any request: which model answers is only known now, and
+            # a question it cannot take should fail here, naming the column.
+            provider_base.verify_questions(questions, provider)
             states = _build_states(df, first_ctx.source)
             prepared = provider.compile(questions)
             stats = {"rows": len(df), "cached": 0, "called": 0}
