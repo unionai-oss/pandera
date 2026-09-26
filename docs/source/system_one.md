@@ -250,3 +250,46 @@ system_one.stats(triaged)
 #>  'seconds': 4.31, 'provider': 'typesafe:jev-1.13.0',
 #>  'model_version': 'jev-1.13.0'}
 ```
+
+## Semantic checks
+
+Judging a column that already exists is a `Check`, not a parser -- it produces
+a verdict about values rather than the values themselves:
+
+```python
+schema = pa.DataFrameSchema(
+    {
+        "name": pa.Column(str),
+        "category": pa.Column(str),
+        "description": pa.Column(str),
+    },
+    checks=system_one.Holds(
+        "The description is a coherent description of a product belonging "
+        "to the stated category",
+        context=["name", "category", "description"],
+        min_probability=0.85,
+    ),
+)
+```
+
+Because it is an ordinary `Check`, failure cases, `lazy=True`,
+`n_failure_cases` and `raise_warning` all work untouched.
+
+Attached to a **column**, the column's own value is what gets judged. Attached
+to the **dataframe** with `context`, those columns are sent instead -- the only
+way to judge a value relative to another column.
+
+Inside a `@pa.dataframe_check` method use `system_one.holds(...)`, which
+returns the boolean Series rather than a `Check`:
+
+```python
+@pa.dataframe_check
+def name_fits_category(cls, df):
+    return system_one.holds(
+        "The name fits the category",
+        context=["name", "category"],
+    )(df)
+```
+
+Setting `PANDERA_SYSTEM_ONE_ENABLED=0` makes semantic checks pass with a
+warning instead of calling out, so a schema carrying them still runs offline.
