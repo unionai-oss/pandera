@@ -109,7 +109,11 @@ def get_dataframe_schema_statistics(dataframe_schema):
                 "unique": column.unique,
                 "description": column.description,
                 "title": column.title,
-                "default": column.default,
+                **(
+                    {"default": column.default}
+                    if column.default is not None
+                    else {}
+                ),
                 "drop_invalid_rows": column.drop_invalid_rows,
             }
             for col_name, column in dataframe_schema.columns.items()
