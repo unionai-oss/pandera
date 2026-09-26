@@ -37,6 +37,12 @@ EXTRAS_REQUIRING_PANDAS = frozenset(
     ]
 )
 
+EXTRAS_REQUIRING_TORCH = frozenset(
+    [
+        "torch",
+    ]
+)
+
 CI_RUN = os.environ.get("CI") == "true"
 if CI_RUN:
     print("Running on CI")
@@ -163,6 +169,12 @@ def _testing_requirements(
             PYPROJECT["project"]["optional-dependencies"]["pandas"]
         )
 
+    # torch extra requires torch and tensordict
+    if extra in EXTRAS_REQUIRING_TORCH:
+        _requirements.extend(
+            PYPROJECT["project"]["optional-dependencies"]["torch"]
+        )
+
     _requirements = list(set(_requirements))
 
     _numpy: str | None = None
@@ -185,6 +197,13 @@ def _testing_requirements(
             req = f"{req}, {_numpy}"
         if req == "pyarrow" or req.startswith("pyarrow "):
             req = "pyarrow >= 13"
+        if req.startswith("pyspark"):
+            # pyspark 4.2.0 leaks "Worker Monitor" python worker threads
+            # (regression of SPARK-35009), exhausting the macOS CI runner's
+            # per-process thread limit and crashing the JVM with
+            # "OutOfMemoryError: unable to create native thread". Pin until
+            # fixed upstream.
+            req = "pyspark[connect] >= 3.2.0, < 4.2"
         if req == "ibis-framework" or req.startswith("ibis-framework "):
             req = "ibis-framework[duckdb] >= 11.0.0"
         if req == "polars" or req.startswith("polars "):
@@ -225,6 +244,7 @@ DATAFRAME_EXTRAS = {
     "xarray",
     "narwhals",  # TEST-03: narwhals backend runs with polars+ibis co-installed
     "pyarrow",  # pyarrow.Table validation, served by the narwhals backends
+    "torch",
 }
 for extra in OPTIONAL_DEPENDENCIES:
     if extra == "cli":
@@ -470,6 +490,9 @@ def docs(session: Session) -> None:
             "sphinx-build",
             *args,
         )
+
+    # Ensure torch is available for TensorDictModel doctests
+    session.run("python", "-c", "import torch")
 
     session.run("xdoctest", PACKAGE, "--quiet")
 
