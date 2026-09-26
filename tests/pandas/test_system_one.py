@@ -14,7 +14,7 @@ import pandera.pandas as pa
 import pandera.system_one as system_one
 from pandera.api.parsers import ParseContext
 from pandera.errors import SchemaError, SchemaErrors, SchemaInitError
-from pandera.system_one import questions as q
+from pandera.system_one import primitives as q
 from pandera.system_one.execution import TokenBucket, run_sync
 from pandera.system_one.providers.base import (
     PROVIDER_ENV_VAR,

@@ -15,7 +15,7 @@ from collections.abc import Iterator, Mapping, Sequence
 from typing import Any, Protocol, Union, runtime_checkable
 
 from pandera.errors import SchemaInitError
-from pandera.system_one.questions import Decision, ProviderLimits, Question
+from pandera.system_one.primitives import Decision, ProviderLimits, Question
 
 PROVIDER_ENV_VAR = "PANDERA_SYSTEM_ONE_PROVIDER"
 ENABLED_ENV_VAR = "PANDERA_SYSTEM_ONE_ENABLED"

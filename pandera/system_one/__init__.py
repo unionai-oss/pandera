@@ -30,7 +30,21 @@ schema, so the same model class runs against a cassette in CI and a live model
 in production without being edited.
 """
 
-from pandera.system_one.parsers import Choice, Noul, Score
+from pandera.system_one.cache import MemoryCache, SQLiteCache
+from pandera.system_one.checks import Holds, holds
+from pandera.system_one.inspection import Plan, plan, questions
+from pandera.system_one.parsers import (
+    Choice,
+    Confidence,
+    Noul,
+    Score,
+    stats,
+)
+from pandera.system_one.primitives import (
+    Decision,
+    ProviderLimits,
+    Question,
+)
 from pandera.system_one.providers.base import (
     DecisionProvider,
     SystemOneConfigError,
@@ -44,28 +58,32 @@ from pandera.system_one.providers.mock import (
     RecordingProvider,
     ReplayProvider,
 )
-from pandera.system_one.questions import (
-    Decision,
-    ProviderLimits,
-    Question,
-)
 
 __all__ = [
     "Choice",
+    "Confidence",
     "Decision",
     "DecisionProvider",
+    "Holds",
+    "MemoryCache",
     "MockProvider",
     "Noul",
+    "Plan",
     "ProviderLimits",
     "Question",
     "RecordingProvider",
     "ReplayProvider",
+    "SQLiteCache",
     "Score",
     "SystemOneConfigError",
     "enabled",
     "get_provider",
+    "holds",
+    "plan",
     "provider",
+    "questions",
     "set_provider",
+    "stats",
 ]
 
 

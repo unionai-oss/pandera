@@ -172,3 +172,124 @@ class Triage(pa.DataFrameModel):
     def routing_is_not_degenerate(cls, df):
         return df["department"].value_counts(normalize=True).max() < 0.9
 ```
+
+## Confidence
+
+A System One model reports how certain it was. That is a column like any other,
+so an ordinary check governs it:
+
+```python
+class Triage(pa.DataFrameModel):
+    ticket_body: str
+    department: Department = pa.ParsedField(
+        description="Which team should handle this ticket",
+        parser=system_one.Choice(abstain_below=0.55),
+        nullable=True,
+    )
+    department_confidence: float = pa.ParsedField(
+        parser=system_one.Confidence("department"),
+        ge=0.70,
+    )
+```
+
+`Confidence` asks nothing of its own -- it reads a decision the column it names
+already paid for -- so it adds no request. It must therefore share that
+column's request, which it does by default since both resolve the same source.
+Naming a column answered in a *different* batch is an error.
+
+Three independent levers:
+
+1. `abstain_below` — per row: an answer the model was unsure of becomes null
+   rather than a guess. The column must be `nullable`.
+2. `ge=` on the confidence column — per row: a hard failure with ordinary
+   failure-case reporting.
+3. `@pa.dataframe_check` — per batch: mean confidence, abstention rate,
+   distribution drift.
+
+## Caching
+
+Dataframe workloads re-run constantly. The cache key covers the provider, the
+resolved model version, the state **and the questions**, so rewording a
+`description` correctly invalidates its cached answers:
+
+```python
+parser=system_one.Choice(cache="sqlite:///.pandera_system_one.db")
+```
+
+`"memory"`, a `sqlite:///` path, or any object with `get`/`set`.
+
+:::{note}
+Pandera deep-copies columns into a schema, so a `MemoryCache` instance handed
+to one model is not the object another model ends up using. Sharing a cache
+across schemas needs shared storage — SQLite, or a custom cache over a global.
+:::
+
+Because `jev-latest` is a moving target, pin a version when caching.
+
+## Seeing the cost
+
+Neither of these contacts a provider:
+
+```python
+system_one.questions(Triage)
+#> {'department': Choice(instructions='Which team should handle this ticket', ...)}
+
+system_one.plan(Triage, tickets_df)
+#> Plan(rows=10000, batches=1, requests=10000, questions=3, est_input_tokens=...)
+```
+
+`questions()` applies the full inference chain, so what the model will be asked
+is reviewable in a test with no credentials. `plan()` reports how many requests
+a validation would make before making them.
+
+After validating, the actual cost is attached to the frame:
+
+```python
+system_one.stats(triaged)
+#> {'rows': 10000, 'batches': 1, 'cached': 9412, 'called': 588,
+#>  'seconds': 4.31, 'provider': 'typesafe:jev-1.13.0',
+#>  'model_version': 'jev-1.13.0'}
+```
+
+## Semantic checks
+
+Judging a column that already exists is a `Check`, not a parser -- it produces
+a verdict about values rather than the values themselves:
+
+```python
+schema = pa.DataFrameSchema(
+    {
+        "name": pa.Column(str),
+        "category": pa.Column(str),
+        "description": pa.Column(str),
+    },
+    checks=system_one.Holds(
+        "The description is a coherent description of a product belonging "
+        "to the stated category",
+        context=["name", "category", "description"],
+        min_probability=0.85,
+    ),
+)
+```
+
+Because it is an ordinary `Check`, failure cases, `lazy=True`,
+`n_failure_cases` and `raise_warning` all work untouched.
+
+Attached to a **column**, the column's own value is what gets judged. Attached
+to the **dataframe** with `context`, those columns are sent instead -- the only
+way to judge a value relative to another column.
+
+Inside a `@pa.dataframe_check` method use `system_one.holds(...)`, which
+returns the boolean Series rather than a `Check`:
+
+```python
+@pa.dataframe_check
+def name_fits_category(cls, df):
+    return system_one.holds(
+        "The name fits the category",
+        context=["name", "category"],
+    )(df)
+```
+
+Setting `PANDERA_SYSTEM_ONE_ENABLED=0` makes semantic checks pass with a
+warning instead of calling out, so a schema carrying them still runs offline.
