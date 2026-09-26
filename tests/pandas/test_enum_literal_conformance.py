@@ -31,7 +31,9 @@ class Department(enum.Enum):
     technical = "technical"
 
 
-class StrDepartment(enum.StrEnum):
+class StrDepartment(
+    str, enum.Enum
+):  # StrEnum needs 3.11; pandera supports 3.10
     billing = "billing"
     technical = "technical"
 
