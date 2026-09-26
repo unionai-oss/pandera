@@ -1754,6 +1754,103 @@ def test_to_yaml_retains_ordered_keyword(is_ordered, test_data, expected):
         assert validation_df.equals(expected)
 
 
+_MULTIINDEX_OPTIONS = {
+    "coerce": True,
+    "strict": True,
+    "name": "multi",
+    "ordered": False,
+    "unique": ["int_index0", "int_index1"],
+}
+
+
+def _create_multiindex_options_schema(**options):
+    return pandera.DataFrameSchema(
+        columns={"a": pandera.Column(pandera.Int)},
+        index=pandera.MultiIndex(
+            [
+                pandera.Index(pandera.Int, name="int_index0"),
+                pandera.Index(pandera.Int, name="int_index1"),
+            ],
+            **options,
+        ),
+    )
+
+
+def _roundtrip(schema, fmt, minimal):
+    if fmt == "yaml":
+        return pandera.DataFrameSchema.from_yaml(
+            schema.to_yaml(minimal=minimal)
+        )
+    if fmt == "json":
+        return pandera.DataFrameSchema.from_json(
+            schema.to_json(minimal=minimal)
+        )
+    local_dict = {}
+    # pylint: disable=exec-used
+    exec(schema.to_script(minimal=minimal), globals(), local_dict)
+    return local_dict["schema"]
+
+
+@pytest.mark.parametrize("fmt", ["yaml", "json", "script"])
+@pytest.mark.parametrize("minimal", [True, False])
+def test_io_roundtrip_preserves_multiindex_options(fmt, minimal):
+    """MultiIndex coerce/strict/name/ordered/unique survive a round trip."""
+    schema = _create_multiindex_options_schema(**_MULTIINDEX_OPTIONS)
+    restored = _roundtrip(schema, fmt, minimal)
+    for key, value in _MULTIINDEX_OPTIONS.items():
+        assert getattr(restored.index, key) == value, key
+    assert restored == schema
+
+
+@pytest.mark.parametrize("fmt", ["yaml", "json", "script"])
+def test_io_roundtrip_multiindex_strict_still_enforced(fmt):
+    """A strict MultiIndex still rejects extra index levels after reload."""
+    schema = _create_multiindex_options_schema(strict=True)
+    restored = _roundtrip(schema, fmt, minimal=True)
+    df = pd.DataFrame(
+        {"a": [1]},
+        index=pd.MultiIndex.from_tuples(
+            [(1, 2, 3)], names=["int_index0", "int_index1", "extra"]
+        ),
+    )
+    with pytest.raises(pandera_base.errors.SchemaErrors):
+        schema.validate(df, lazy=True)
+    with pytest.raises(pandera_base.errors.SchemaErrors):
+        restored.validate(df, lazy=True)
+
+
+@pytest.mark.parametrize("fmt", ["yaml", "json", "script"])
+def test_io_roundtrip_multiindex_unordered_still_accepted(fmt):
+    """An ordered=False MultiIndex still accepts swapped levels after reload."""
+    schema = _create_multiindex_options_schema(ordered=False)
+    restored = _roundtrip(schema, fmt, minimal=True)
+    df = pd.DataFrame(
+        {"a": [1]},
+        index=pd.MultiIndex.from_tuples(
+            [(2, 1)], names=["int_index1", "int_index0"]
+        ),
+    )
+    schema.validate(df)
+    restored.validate(df)
+
+
+@pytest.mark.skipif(SKIP_YAML_TESTS, reason="pyyaml >= 5.1.0 required")
+def test_multiindex_options_omitted_when_default():
+    """Default MultiIndex options are only written in non-minimal mode, and a
+    single Index never gets a ``multiindex`` key."""
+    schema = _create_schema("multi")
+    assert "multiindex" not in yaml.safe_load(schema.to_yaml(minimal=True))
+    assert yaml.safe_load(schema.to_yaml(minimal=False))["multiindex"] == {
+        "coerce": False,
+        "strict": False,
+        "name": None,
+        "ordered": True,
+        "unique": None,
+    }
+    single = _create_schema("single")
+    assert "multiindex" not in yaml.safe_load(single.to_yaml(minimal=False))
+
+
 def test_serialize_deserialize_custom_datetime_checks():
     """
     Test that custom checks for datetime columns can be serialized and
