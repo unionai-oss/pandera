@@ -222,7 +222,8 @@ def _format_checks(checks_list, *, qual: str = ""):
     for check_kwargs in checks_list:
         if check_kwargs is None:
             warnings.warn(
-                "Check cannot be serialized. This check will be ignored"
+                "Check cannot be serialized. This check will be ignored",
+                stacklevel=2,
             )
             continue
 
@@ -234,7 +235,8 @@ def _format_checks(checks_list, *, qual: str = ""):
 
         if "check_name" not in options:
             warnings.warn(
-                "Check cannot be serialized. This check will be ignored"
+                "Check cannot be serialized. This check will be ignored",
+                stacklevel=2,
             )
             continue
 

@@ -550,6 +550,27 @@ class TestModelSerialization:
         assert isinstance(schema, DataArraySchema)
 
 
+def test_deserialize_checks_skips_unresolvable_entries():
+    """Both skip branches of ``_deserialize_checks`` warn instead of dropping silently.
+
+    Neither is reachable through a serialize/deserialize round trip, since
+    serialization always writes a ``check_name`` that exists, so the entries are
+    handed to the function directly.
+    """
+    from pandera.io.xarray_io import _deserialize_checks
+
+    with pytest.warns(UserWarning, match="missing 'check_name'"):
+        assert _deserialize_checks([{"name": "c", "options": {}}]) is None
+
+    with pytest.warns(UserWarning, match="not found, skipping"):
+        assert (
+            _deserialize_checks(
+                [{"name": "c", "options": {"check_name": "no_such_check"}}]
+            )
+            is None
+        )
+
+
 class TestNamedCheckSerialization:
     """A check renamed with ``name=`` must stay serializable."""
 

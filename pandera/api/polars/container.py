@@ -33,14 +33,16 @@ class DataFrameSchema(_DataFrameSchema[PolarsCheckObjects]):
             warnings.warn(
                 "unique_column_names=True will have no effect on validation "
                 "since polars DataFrames do not support duplicate column "
-                "names."
+                "names.",
+                stacklevel=2,
             )
 
         if self.report_duplicates != "all":
             warnings.warn(
                 "Setting report_duplicates to 'exclude_first' or "
                 "'exclude_last' will have no effect on validation. With the "
-                "polars backend, all duplicate values will be reported."
+                "polars backend, all duplicate values will be reported.",
+                stacklevel=2,
             )
 
     @staticmethod

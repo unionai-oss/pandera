@@ -53,7 +53,7 @@ class ReducedPickleExceptionBase(Exception):
 
     def __setstate__(self, state):
         """Show warning during unpickling."""
-        warnings.warn(self._unpickle_warning())
+        warnings.warn(self._unpickle_warning(), stacklevel=2)
         return super().__setstate__(state)
 
 

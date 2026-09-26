@@ -137,7 +137,10 @@ class DataFrameSchemaBackend(NarwhalsSchemaBackend):
         return_type = type(check_obj)
 
         if inplace:
-            warnings.warn("setting inplace=True will have no effect.")
+            warnings.warn(
+                "setting inplace=True will have no effect.",
+                stacklevel=2,
+            )
 
         error_handler = ErrorHandler(lazy)
 

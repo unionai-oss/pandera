@@ -1096,3 +1096,17 @@ def test_dataframe_level_check():
     except pa.errors.SchemaErrors as exc:
         # expect all rows to fail
         assert exc.failure_cases.shape[0] == 3
+
+
+def test_dataframe_schema_inplace_warns():
+    """``inplace=True`` cannot mutate a polars frame, and the container says so.
+
+    ``Column.validate`` already had this assertion; the container-level branch in
+    ``PolarsSchemaBackend._validate`` is a separate warning site.
+    """
+    schema = pa.DataFrameSchema({"column": pa.Column(int)})
+    with pytest.warns(
+        UserWarning,
+        match="setting inplace=True will have no effect",
+    ):
+        schema.validate(pl.DataFrame({"column": [1, 2, 3]}), inplace=True)

@@ -84,7 +84,8 @@ def parse_checks(checks) -> Union[list[dict[str, Any]], None]:
             warnings.warn(
                 "Only registered checks may be serialized to statistics. "
                 "Did you forget to register it with the extension API? "
-                f"Check `{check.name}` will be skipped."
+                f"Check `{check.name}` will be skipped.",
+                stacklevel=2,
             )
             continue
 

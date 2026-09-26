@@ -275,6 +275,7 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
                 f"{regex_columns}. Use the `get_dtypes` to get the datatypes "
                 "for these columns.",
                 UserWarning,
+                stacklevel=2,
             )
         return {n: c.dtype for n, c in self.columns.items() if not c.regex}
 

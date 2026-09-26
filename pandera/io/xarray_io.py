@@ -362,12 +362,16 @@ def _deserialize_checks(serialized_checks, dtype=None):
         check_name = options.get("check_name")
         if check_name is None:
             warnings.warn(
-                "Check entry missing 'check_name' in options, skipping."
+                "Check entry missing 'check_name' in options, skipping.",
+                stacklevel=2,
             )
             continue
         check_fn = getattr(Check, check_name, None)
         if check_fn is None:
-            warnings.warn(f"Check `{check_name}` not found, skipping.")
+            warnings.warn(
+                f"Check `{check_name}` not found, skipping.",
+                stacklevel=2,
+            )
             continue
         checks.append(_deserialize_check_stats(check_fn, check_entry, dtype))
 
