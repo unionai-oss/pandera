@@ -17,6 +17,10 @@ from typing import Any
 from pandera.system_one.primitives import Decision, ProviderLimits
 
 
+class StateTooLongError(ValueError):
+    """A row's state is larger than the provider's model accepts."""
+
+
 class TokenBucket:
     """Paces requests against a rate limit.
 
@@ -102,10 +106,24 @@ async def gather_decisions(
         tokens_per_second=limits.tokens_per_second,
     )
 
-    async def one(state: Any) -> Mapping[str, Decision] | None:
+    async def one(index: int, state: Any) -> Mapping[str, Decision] | None:
         async with semaphore:
-            await bucket.acquire(estimate_tokens(state))
+            tokens = estimate_tokens(state)
+            await bucket.acquire(tokens)
             try:
+                # Named by row, before dispatch, rather than surfacing as a
+                # provider's HTTP error -- or, worse, as a silently truncated
+                # state. ``estimate_tokens`` undercounts if anything, so this
+                # errs toward letting a borderline row through.
+                if (
+                    limits.max_state_tokens is not None
+                    and tokens > limits.max_state_tokens
+                ):
+                    raise StateTooLongError(
+                        f"row {index}: the state is about {tokens} tokens, "
+                        f"over the {limits.max_state_tokens} this provider "
+                        "accepts. Shorten what the column reads from."
+                    )
                 return await decide(state)
             except Exception:
                 if on_error == "raise":
@@ -116,7 +134,11 @@ async def gather_decisions(
 
     # ``gather`` preserves the order of its arguments regardless of completion
     # order, which is what keeps answers aligned with rows.
-    return list(await asyncio.gather(*(one(state) for state in states)))
+    return list(
+        await asyncio.gather(
+            *(one(index, state) for index, state in enumerate(states))
+        )
+    )
 
 
 def run_sync(coro: Awaitable[Any]) -> Any:

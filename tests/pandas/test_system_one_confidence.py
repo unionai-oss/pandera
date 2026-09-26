@@ -10,9 +10,10 @@ import pandera.system_one as system_one
 from pandera.errors import SchemaError, SchemaErrors, SchemaInitError
 from pandera.system_one import primitives as q
 from pandera.system_one.cache import MemoryCache, SQLiteCache, build_cache
+from pandera.system_one.providers.base import ProviderCapabilityError
 
 
-class Department(enum.StrEnum):
+class Department(str, enum.Enum):
     billing = "billing"
     """Payment, invoices or subscription issues."""
     technical = "technical"
@@ -188,7 +189,12 @@ def test_abstention_composes_with_a_confidence_floor():
             Model.validate(pd.DataFrame({"body": ["x", "y"]}))
 
 
-def test_noul_abstention():
+def test_abstaining_on_a_noul_is_refused_not_silently_ignored():
+    """A noul is a bare probability: no provider reports a confidence for it.
+
+    ``abstain_below`` on one used to be a no-op -- the safety floor the user
+    asked for simply never fired. It is now an error naming the fix.
+    """
     Model = _model(
         flag=(
             bool,
@@ -199,10 +205,94 @@ def test_noul_abstention():
             ),
         )
     )
-    # a noul carries no confidence of its own, so it never abstains
-    with system_one.provider(_Fixed(value=0.9, confidence=None)):
+    provider = _Fixed(value=0.9, confidence=None)
+    with system_one.provider(provider):
+        with pytest.raises(ProviderCapabilityError) as excinfo:
+            Model.validate(pd.DataFrame({"body": ["x"]}))
+    assert "'flag'" in str(excinfo.value)
+    assert "calibrated probability" in str(excinfo.value)  # the way out
+    assert provider.calls == 0  # refused before any request
+
+
+def test_confidence_of_a_noul_is_refused():
+    Model = _model(
+        flag=(
+            bool,
+            pa.ParsedField(description="q", parser=system_one.Noul()),
+        ),
+        flag_confidence=(
+            float,
+            pa.ParsedField(parser=system_one.Confidence("flag")),
+        ),
+    )
+    with system_one.provider(_Fixed(confidence=None)):
+        with pytest.raises(ProviderCapabilityError, match="'flag'"):
+            Model.validate(pd.DataFrame({"body": ["x"]}))
+
+
+class _ReportsNoulConfidence(_Fixed):
+    """A model that *does* report a confidence for noul questions."""
+
+    @property
+    def capabilities(self):
+        return system_one.ProviderCapabilities(
+            reports_confidence=frozenset({"choice", "score", "noul"})
+        )
+
+
+def test_a_provider_that_reports_noul_confidence_can_abstain_on_it():
+    Model = _model(
+        flag=(
+            pd.BooleanDtype,
+            pa.ParsedField(
+                description="q",
+                parser=system_one.Noul(abstain_below=0.8),
+                nullable=True,
+            ),
+        )
+    )
+    with system_one.provider(
+        _ReportsNoulConfidence(value=0.9, confidence=0.5)
+    ):
         out = Model.validate(pd.DataFrame({"body": ["x"]}))
-    assert out["flag"].tolist() == [True]
+    assert out["flag"].isna().all()
+
+
+def test_an_abstained_noul_is_missing_not_false():
+    """``astype(bool)`` maps a missing answer to False -- a confident "no"."""
+    Model = _model(
+        flag=(
+            bool,
+            pa.ParsedField(
+                description="q",
+                parser=system_one.Noul(abstain_below=0.8),
+                nullable=True,
+            ),
+        )
+    )
+    with system_one.provider(
+        _ReportsNoulConfidence(value=0.9, confidence=0.5)
+    ):
+        # a plain ``bool`` column cannot hold a missing answer: it says so
+        with pytest.raises((SchemaError, SchemaErrors), match="boolean|bool"):
+            Model.validate(pd.DataFrame({"body": ["x"]}))
+
+
+def test_a_provider_that_promises_confidence_and_omits_it_is_an_error():
+    Model = _model(
+        department=(
+            Department,
+            pa.ParsedField(
+                description="q",
+                parser=system_one.Choice(abstain_below=0.8),
+                nullable=True,
+            ),
+        )
+    )
+    # declares confidence for choices (the default), then does not send one
+    with system_one.provider(_Fixed(confidence=None)):
+        with pytest.raises(ProviderCapabilityError, match="no confidence"):
+            Model.validate(pd.DataFrame({"body": ["x"]}))
 
 
 # --------------------------------------------------------------------------
@@ -544,3 +634,68 @@ def test_plan_on_a_schema_with_no_system_one_columns():
     plan = system_one.plan(schema, pd.DataFrame({"a": [1]}))
     assert plan.batches == 0
     assert plan.requests == 0
+
+
+def _priced(price):
+    return system_one.MockProvider(
+        capabilities=system_one.ProviderCapabilities(
+            price_per_million_input_tokens=price
+        )
+    )
+
+
+def _one_noul_model():
+    return _model(
+        flag=(bool, pa.ParsedField(description="q", parser=system_one.Noul()))
+    )
+
+
+def test_plan_prices_the_input_when_the_provider_declares_a_price():
+    frame = pd.DataFrame({"body": ["a ticket body", "another one"]})
+    plan = system_one.plan(_one_noul_model(), frame, provider=_priced(2.0))
+    assert plan.estimated_cost_usd == pytest.approx(
+        plan.estimated_input_tokens * 2.0 / 1e6
+    )
+
+
+def test_plan_cost_is_unknown_not_zero_without_a_price():
+    frame = pd.DataFrame({"body": ["a ticket body"]})
+    assert (
+        system_one.plan(
+            _one_noul_model(), frame, provider=_priced(None)
+        ).estimated_cost_usd
+        is None
+    )
+    # no provider at all: nothing to price with
+    assert system_one.plan(_one_noul_model(), frame).estimated_cost_usd is None
+
+
+def test_a_local_model_is_free_not_unknown():
+    frame = pd.DataFrame({"body": ["a ticket body"]})
+    plan = system_one.plan(
+        _one_noul_model(), frame, provider=system_one.OllayaProvider("laya")
+    )
+    assert plan.estimated_cost_usd == 0.0
+
+
+def test_plan_without_data_has_no_cost_rather_than_a_zero():
+    plan = system_one.plan(_one_noul_model(), rows=100, provider=_priced(2.0))
+    assert plan.estimated_cost_usd is None
+
+
+def test_questions_can_be_checked_against_a_provider_without_a_request():
+    class Big(str, enum.Enum):
+        a = "a"
+        b = "b"
+        c = "c"
+
+    Model = _model(
+        big=(Big, pa.ParsedField(description="q", parser=system_one.Choice()))
+    )
+    narrow = system_one.MockProvider(
+        capabilities=system_one.ProviderCapabilities(max_options=2)
+    )
+    assert set(system_one.questions(Model)) == {"big"}  # fine with no provider
+    with pytest.raises(ProviderCapabilityError, match="3 options"):
+        system_one.questions(Model, provider=narrow)
+    assert narrow.calls == 0

@@ -1,12 +1,20 @@
-"""TypeSafe (Jev) provider.
+"""TypeSafe (Jev) provider, and the base for anything speaking its wire format.
 
 Translates pandera's provider-neutral questions into ``typesafe_sdk`` ones and
 normalizes the answers back. Everything vendor-specific lives here: nothing
 else in pandera imports ``typesafe_sdk``.
+
+The wire format -- one ``state`` plus named ``questions`` in, typed ``answers``
+out -- is not TypeSafe's alone: open-weight decision models served locally
+(see :mod:`~pandera.system_one.providers.ollaya`) implement the same endpoint,
+and the SDK works against them by changing ``base_url``. So this class takes
+``base_url`` and is written to be subclassed by a provider that only differs in
+where it points and what its model can do.
 """
 
 from __future__ import annotations
 
+import dataclasses
 from collections.abc import Mapping
 from typing import Any
 
@@ -15,6 +23,7 @@ from pandera.system_one.primitives import (
     Choice,
     Decision,
     Noul,
+    ProviderCapabilities,
     ProviderLimits,
     Question,
     Score,
@@ -36,7 +45,29 @@ _LIMITS = ProviderLimits(
 
 
 class TypeSafeProvider:
-    """Answers questions with a TypeSafe System One model."""
+    """Answers questions with a TypeSafe System One model.
+
+    :param model: the model to ask. ``jev-latest`` is a moving target, so pin a
+        version wherever answers are cached or recorded.
+    :param base_url: where to send requests, for any server speaking the same
+        wire format. Defaults to the hosted TypeSafe API.
+    :param retry: the SDK's own ``RetryPolicy``. Transport retries belong to
+        the provider, which knows which of its errors are transient; pandera
+        only paces requests.
+    :param capabilities: narrows what the model can be asked, when it is
+        narrower than the shared vocabulary.
+    :param client_options: anything else the SDK's client takes -- ``timeout``,
+        ``headers``, ``transport``. A local model on a CPU may want a longer
+        ``timeout`` than the SDK's default.
+    """
+
+    #: Prefix of :attr:`id`. Subclasses set their own.
+    _id_prefix = "typesafe"
+    #: Published limits, used to pace requests. Conservative by design:
+    #: exceeding them costs a 429 and a backoff, under-running them costs a
+    #: little latency.
+    _default_limits = _LIMITS
+    _default_capabilities = ProviderCapabilities()
 
     def __init__(
         self,
@@ -44,12 +75,20 @@ class TypeSafeProvider:
         *,
         client: Any = None,
         api_key: str | None = None,
+        base_url: str | None = None,
+        retry: Any = None,
         max_concurrency: int | None = None,
+        capabilities: ProviderCapabilities | None = None,
+        **client_options: Any,
     ):
         self._client = client
+        self._client_options = client_options
         self._api_key = api_key
+        self._base_url = base_url
+        self._retry = retry
         self._max_concurrency = max_concurrency
-        self.id = f"typesafe:{model}"
+        self._capabilities = capabilities
+        self.id = f"{self._id_prefix}:{model}"
         #: The resolved model version. ``jev-latest`` is a moving target, so
         #: anything keying on the model -- caches, cassettes -- should pin a
         #: version instead.
@@ -58,18 +97,26 @@ class TypeSafeProvider:
     @property
     def limits(self) -> ProviderLimits:
         if self._max_concurrency is None:
-            return _LIMITS
-        return ProviderLimits(
-            max_concurrency=self._max_concurrency,
-            requests_per_minute=_LIMITS.requests_per_minute,
-            tokens_per_second=_LIMITS.tokens_per_second,
-            max_state_tokens=_LIMITS.max_state_tokens,
+            return self._default_limits
+        return dataclasses.replace(
+            self._default_limits, max_concurrency=self._max_concurrency
         )
+
+    @property
+    def capabilities(self) -> ProviderCapabilities:
+        if self._capabilities is not None:
+            return self._capabilities
+        return self._default_capabilities
 
     @property
     def client(self) -> Any:
         if self._client is None:
-            self._client = _build_client(self._api_key)
+            self._client = _build_client(
+                api_key=self._api_key,
+                base_url=self._base_url,
+                retry=self._retry,
+                **self._client_options,
+            )
         return self._client
 
     def compile(self, questions: Mapping[str, Question]) -> Any:
@@ -150,8 +197,11 @@ def _import_sdk() -> Any:
     return typesafe_sdk
 
 
-def _build_client(api_key: str | None) -> Any:
+def _build_client(**options: Any) -> Any:
     sdk = _import_sdk()
-    if api_key is None:
-        return sdk.AsyncTypeSafeClient()
-    return sdk.AsyncTypeSafeClient(api_key=api_key)
+    # Only what was given, so the SDK's own defaults and environment variables
+    # (``TYPESAFE_API_KEY``, ``TYPESAFE_BASE_URL``) still apply to the rest.
+    given = {
+        name: value for name, value in options.items() if value is not None
+    }
+    return sdk.AsyncTypeSafeClient(**given)

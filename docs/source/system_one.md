@@ -128,10 +128,72 @@ Shipped providers:
   but stable, valid for the question's domain, and free: what docs and CI need.
 - `RecordingProvider` / `ReplayProvider` — capture real answers once, serve them
   offline. A state with no recording fails loudly rather than inventing one.
-- `TypeSafeProvider` — the real thing, behind the `typesafe-ai` extra.
+- `TypeSafeProvider` — TypeSafe's hosted Jev, behind the `typesafe-ai` extra.
+- `OllayaProvider` — open-weight decision models (Laya, Decider, Kev, ...)
+  served on your own hardware by [Ollaya](https://ollaya.dev).
 
-Any object with `compile`, `decide` and `limits` works; see
-{class}`~pandera.system_one.DecisionProvider`.
+### Any model, the same schema
+
+Decision models are a growing class rather than one product, and the schema is
+written once for all of them. Switching is a change of provider, never of
+schema:
+
+```python
+system_one.set_provider("typesafe:jev-1.13.0")   # hosted
+system_one.set_provider("ollaya:decider:2b")     # local, no per-token cost
+```
+
+Models that share the System One wire format — one `state` plus named
+`questions` in, typed `answers` out — need no new client. Ollaya serves the same
+endpoint TypeSafe does, so both are the same SDK pointed at different places:
+
+```python
+system_one.OllayaProvider("laya", base_url="http://gpu-box:11435")
+system_one.TypeSafeProvider("jev-1.13.0", base_url="https://proxy.internal")
+```
+
+Quality differs between models even when the interface does not, so it is worth
+running the same schema under two providers and comparing the distributions
+before switching production traffic.
+
+### What a model can be asked
+
+Providers differ in more than speed. A small local model may take fewer options
+per question than a hosted one, and a classifier-only model may not answer
+scores at all. A provider declares this as `capabilities`, and a schema is
+checked against it **before any request is made**:
+
+```python
+with system_one.provider("ollaya:laya"):     # ~125 options per question
+    Taxonomy.validate(df)
+#> ProviderCapabilityError: column 'product_type' offers 180 options, but
+#> provider 'ollaya:laya' accepts at most 125 per question. Narrow the
+#> column's type, or use a model with a larger budget.
+```
+
+The bounds the question types themselves impose — at least two options, two to
+ten score levels — hold for every provider and are checked when the schema is
+built. Anything narrower is a property of the model that answers, so it is
+checked as soon as the model is known.
+
+### Writing a provider
+
+Any object with `id`, `model_version`, `compile`, `decide` and `limits` works;
+see {class}`~pandera.system_one.DecisionProvider`. `capabilities` is optional —
+a provider that says nothing is taken to answer the whole shared vocabulary.
+`ProviderLimits` fields are all optional too: a local model has a queue, not a
+rate limit.
+
+Make it reachable by name with `register_provider`:
+
+```python
+system_one.register_provider("acme", lambda model: AcmeProvider(model))
+system_one.set_provider("acme:decider-2b")
+```
+
+Retries are the provider's job, since only it knows which of its errors are
+transient — `TypeSafeProvider(retry=...)` hands the SDK's own `RetryPolicy`
+through. pandera paces requests; it does not second-guess a transport.
 
 ## One request per row, not per column
 
@@ -224,6 +286,19 @@ to one model is not the object another model ends up using. Sharing a cache
 across schemas needs shared storage — SQLite, or a custom cache over a global.
 :::
 
+Not every model reports a confidence. Choices and scores do; a **noul is a
+bare probability** in every implementation so far, so it has none.
+`abstain_below` or `Confidence` on a noul is refused *before any request*,
+naming the column, rather than quietly never triggering — a floor that never
+fires is worse than an error. To act on how sure a noul is, keep it as a `float`
+column and check the probability directly, or threshold it with
+`Noul(threshold=...)`. A provider that does report one for noul questions
+declares so in its `capabilities`.
+
+An abstained answer is a *missing* value, not a guess: a `bool` column filled
+by a noul that abstains must be declared `pd.BooleanDtype` (a plain `bool` cannot
+hold it, and pandera says so rather than recording a false "no").
+
 Because `jev-latest` is a moving target, pin a version when caching.
 
 ## Seeing the cost
@@ -236,11 +311,15 @@ system_one.questions(Triage)
 
 system_one.plan(Triage, tickets_df)
 #> Plan(rows=10000, batches=1, requests=10000, questions=3, est_input_tokens=...)
+
+system_one.questions(Taxonomy, provider="ollaya:laya")   # also checks capabilities
 ```
 
 `questions()` applies the full inference chain, so what the model will be asked
-is reviewable in a test with no credentials. `plan()` reports how many requests
-a validation would make before making them.
+is reviewable in a test with no credentials; given a `provider` it also checks
+them against what that model can be asked. `plan()` reports how many requests a
+validation would make before making them, and the cost when the provider
+declares a price. Unknown is `None`, not zero: a local model declares `0.0`.
 
 After validating, the actual cost is attached to the frame:
 

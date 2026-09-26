@@ -70,7 +70,10 @@ class Decision:
     """One answer, normalized across providers."""
 
     value: Any
-    """The answer, already mapped onto the column's value domain."""
+    """The answer in the question's own terms: the option label for a
+    :class:`Choice`, the (possibly fractional) level position for a
+    :class:`Score`, the probability of yes for a :class:`Noul`. Mapping it onto
+    the column's value domain is the parser's job, not the provider's."""
 
     confidence: float | None = None
     """How certain the model is, from 0 to 1, when the provider reports it."""
@@ -84,9 +87,52 @@ class Decision:
 
 @dataclasses.dataclass(frozen=True)
 class ProviderLimits:
-    """Throughput limits a provider publishes, used to pace requests."""
+    """Throughput limits a provider publishes, used to pace requests.
+
+    Every field is optional, because a local model has no rate limit and a
+    hosted one may publish only some. ``None`` means "not limited".
+    """
 
     max_concurrency: int = 16
     requests_per_minute: int | None = None
     tokens_per_second: int | None = None
     max_state_tokens: int | None = None
+
+
+@dataclasses.dataclass(frozen=True)
+class ProviderCapabilities:
+    """What a provider's model can be *asked*, as opposed to how fast.
+
+    Decision models differ here even when they share a wire format: a small
+    local model may take fewer options per question than a hosted one, and a
+    classifier-only model may not answer scores at all. The defaults are the
+    question vocabulary's own bounds -- two to 255 options, two to ten levels
+    -- which every provider speaking the shared wire format inherits, so a
+    provider only declares where it is *narrower*.
+
+    A provider is checked against these before any request is made, so an
+    unsupported question is an error naming the column rather than a failure
+    from the server on row one.
+    """
+
+    kinds: frozenset[str] = frozenset({"choice", "score", "noul"})
+    """Question kinds the model answers."""
+
+    max_options: int | None = 255
+    """Most options a single :class:`Choice` may offer."""
+
+    max_levels: int | None = 10
+    """Most levels a single :class:`Score` may have."""
+
+    max_questions: int | None = None
+    """Most questions one request may carry, when the provider caps it."""
+
+    reports_confidence: frozenset[str] = frozenset({"choice", "score"})
+    """Kinds for which the model reports how certain it is. A noul is a bare
+    probability in every implementation so far, so it is absent by default.
+    Anything that needs a confidence -- ``abstain_below``, ``Confidence`` -- is
+    refused for a kind missing here, rather than quietly never triggering."""
+
+    price_per_million_input_tokens: float | None = None
+    """What input costs, for :func:`~pandera.system_one.plan`. ``None`` means
+    unknown, which is not the same as free: a local model says ``0.0``."""
