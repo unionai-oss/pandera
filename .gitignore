@@ -1,4 +1,7 @@
 .claude
+.claude/worktrees
+tmp
+.agent-workspace
 pandera/_version.py
 uv.lock
 *.db

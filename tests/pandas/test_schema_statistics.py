@@ -890,3 +890,64 @@ def test_parse_checks_invalid_builtin_stats_keeps_custom_error():
     ]
 
     assert schema_statistics.parse_checks([check]) == expectation
+
+
+def test_parse_checks_named_builtin_keeps_registered_name():
+    """A user-supplied ``name`` must not hide a built-in check."""
+    check = pa.Check.greater_than(1, name="positive")
+    expectation = [
+        {
+            "min_value": 1,
+            "options": {
+                "check_name": "greater_than",
+                "ignore_na": True,
+                "raise_warning": False,
+                "name": "positive",
+            },
+        }
+    ]
+
+    assert schema_statistics.parse_checks([check]) == expectation
+
+
+def test_parse_checks_named_builtin_keeps_custom_error():
+    """The default error is still recognized for a renamed built-in check."""
+    check = pa.Check.greater_than(
+        1,
+        name="positive",
+        error="custom gt error",
+    )
+    expectation = [
+        {
+            "min_value": 1,
+            "options": {
+                "check_name": "greater_than",
+                "ignore_na": True,
+                "raise_warning": False,
+                "name": "positive",
+                "error": "custom gt error",
+            },
+        }
+    ]
+
+    assert schema_statistics.parse_checks([check]) == expectation
+
+    unnamed = pa.Check.greater_than(1)
+    assert schema_statistics.parse_checks([unnamed]) == [
+        {
+            "min_value": 1,
+            "options": {
+                "check_name": "greater_than",
+                "ignore_na": True,
+                "raise_warning": False,
+            },
+        }
+    ]
+
+
+def test_parse_checks_unregistered_check_is_still_skipped():
+    """Checks with no registry entry are skipped, not looked up by guesswork."""
+    check = pa.Check(lambda check_obj: check_obj > 0, name="lambda")
+
+    with pytest.warns(UserWarning, match="Only registered checks"):
+        assert schema_statistics.parse_checks([check]) is None
