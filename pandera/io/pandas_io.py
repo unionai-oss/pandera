@@ -136,9 +136,11 @@ def _serialize_component_stats(component_stats):
                 "coerce",
                 "required",
                 "regex",
+                "default",
                 "drop_invalid_rows",
             ]
             if key in component_stats
+            and (key != "default" or component_stats[key] is not None)
         },
     }
 
@@ -347,6 +349,7 @@ def _deserialize_component_stats(serialized_component_stats):
                 "coerce",
                 "required",
                 "regex",
+                "default",
                 "drop_invalid_rows",
             ]
             if key in serialized_component_stats

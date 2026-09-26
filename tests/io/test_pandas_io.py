@@ -1142,6 +1142,64 @@ def test_inferred_schema_io():
     SKIP_YAML_TESTS,
     reason="pyyaml >= 5.1.0 required",
 )
+def test_yaml_roundtrip_preserves_column_default():
+    """A column ``default`` must survive a YAML round trip.
+
+    With ``add_missing_columns`` the default is what fills an absent column, so
+    losing it turns a frame that validated into one that raises ``SchemaErrors``
+    after the round trip. The polars and ibis serializers already carry it.
+    """
+    schema = pandera.DataFrameSchema(
+        {"a": pandera.Column(int, default=1), "b": pandera.Column(str)},
+        add_missing_columns=True,
+    )
+
+    restored = pandera.DataFrameSchema.from_yaml(schema.to_yaml())
+
+    assert restored.columns["a"].default == 1
+    assert restored == schema
+
+
+@pytest.mark.skipif(
+    SKIP_YAML_TESTS,
+    reason="pyyaml >= 5.1.0 required",
+)
+def test_yaml_roundtrip_keeps_add_missing_columns_working():
+    """The user-visible consequence: the same frame validates before and after."""
+    schema = pandera.DataFrameSchema(
+        {"a": pandera.Column(int, default=1), "b": pandera.Column(str)},
+        add_missing_columns=True,
+    )
+    missing = pd.DataFrame({"b": ["x"]})
+    schema.validate(missing)
+
+    restored = pandera.DataFrameSchema.from_yaml(schema.to_yaml())
+    restored.validate(missing, lazy=True)
+
+
+@pytest.mark.skipif(
+    SKIP_YAML_TESTS,
+    reason="pyyaml >= 5.1.0 required",
+)
+def test_yaml_roundtrip_without_default_is_unchanged():
+    """Guard: a schema whose columns have no default must serialize as before."""
+    schema = pandera.DataFrameSchema(
+        {"a": pandera.Column(int), "b": pandera.Column(str)},
+        add_missing_columns=True,
+    )
+    serialized = yaml.safe_load(str(schema.to_yaml(minimal=False)))
+
+    restored = pandera.DataFrameSchema.from_yaml(schema.to_yaml())
+
+    assert "default" not in serialized["columns"]["a"]
+    assert restored.columns["a"].default is None
+    assert restored == schema
+
+
+@pytest.mark.skipif(
+    SKIP_YAML_TESTS,
+    reason="pyyaml >= 5.1.0 required",
+)
 def test_to_yaml():
     """Test that to_yaml writes to yaml string."""
     schema = _create_schema()
