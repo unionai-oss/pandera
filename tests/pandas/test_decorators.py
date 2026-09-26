@@ -1944,3 +1944,29 @@ def test_get_fn_argnames_no_positional_args():
     assert _get_fn_argnames(keywords) == []
     # regression guard: self-exclusion semantics unchanged
     assert _get_fn_argnames(Widget.method) == ["x"]
+
+
+def test_check_types_with_typevar_annotation():
+    """
+    ``@check_types`` should pass values through unchanged when a ``DataFrame``
+    is annotated with an unresolved ``TypeVar`` instead of a concrete
+    ``DataFrameModel``, rather than raising ``AttributeError``.
+    """
+
+    class TypeVarSchema(DataFrameModel):
+        col1: Series[int]
+
+    T = typing.TypeVar("T", bound=DataFrameModel)
+
+    @check_types
+    def process(df: DataFrame[T]) -> DataFrame[T]:
+        return df
+
+    df = DataFrame[TypeVarSchema]({"col1": [1, 2, 3]})
+    result = process(df)
+    pd.testing.assert_frame_equal(result, df)
+
+    # An unresolved TypeVar cannot be validated against a concrete schema, so
+    # a non-conforming frame is passed through instead of raising.
+    bad_df = pd.DataFrame({"not_col1": [1, 2, 3]})
+    pd.testing.assert_frame_equal(process(bad_df), bad_df)
