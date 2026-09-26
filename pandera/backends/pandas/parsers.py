@@ -1,7 +1,7 @@
 """Parser backend for pandas"""
 
 from functools import partial
-from typing import Optional, Union
+from typing import Any, Optional, Union
 
 import pandas as pd
 
@@ -9,6 +9,7 @@ from pandera.api.base.parsers import ParserResult
 from pandera.api.pandas.types import is_field, is_table
 from pandera.api.parsers import Parser
 from pandera.backends.base import BaseParserBackend
+from pandera.errors import ParserSourceError, ParserTargetError
 
 
 class PandasParserBackend(BaseParserBackend):
@@ -73,11 +74,98 @@ class PandasParserBackend(BaseParserBackend):
             parser_output=parser_output, parsed_object=parse_obj
         )
 
+    def check_source(self, parse_obj: pd.DataFrame) -> None:
+        """Verify the declared source columns are present before calling out.
+
+        Without this a parser reading an absent column fails with a bare
+        ``KeyError`` that names neither the parser nor the schema.
+        """
+        missing = [
+            column
+            for column in self.parser.source or ()
+            if column not in parse_obj.columns
+        ]
+        if missing:
+            available = list(parse_obj.columns)
+            raise ParserSourceError(
+                f"parser '{self.parser.name}' declares source column(s) "
+                f"{missing} which are not in the dataframe. "
+                f"Columns in dataframe: {available}",
+                failure_cases=missing,
+            )
+
+    def apply_derivation(self, parse_obj: pd.DataFrame) -> pd.DataFrame:
+        """Run a parser that declares the columns it reads and/or produces."""
+        source = self.parser.source
+        target = self.parser.target
+
+        if source is None:
+            parser_input: Union[pd.Series, pd.DataFrame] = parse_obj
+        elif len(source) == 1 and target is not None and len(target) == 1:
+            # single column in, single column out: the ergonomic case, where
+            # the function is written Series -> Series.
+            parser_input = parse_obj[source[0]]
+        else:
+            parser_input = parse_obj[list(source)]
+
+        if self.parser.element_wise:
+            parser_output = parser_input.map(self.parser_fn)
+        else:
+            parser_output = self.parser_fn(parser_input)
+
+        return self.assign_target(parse_obj, parser_output)
+
+    def assign_target(
+        self,
+        parse_obj: pd.DataFrame,
+        parser_output: Any,
+    ) -> pd.DataFrame:
+        """Place a parser's output into its declared target columns."""
+        target = self.parser.target
+        if target is None:
+            if not isinstance(parser_output, pd.DataFrame):
+                raise ParserTargetError(
+                    f"parser '{self.parser.name}' declares a source but no "
+                    "target, so it must return a DataFrame; got "
+                    f"{type(parser_output).__name__}."
+                )
+            return parser_output
+
+        parse_obj = parse_obj.copy()
+
+        if len(target) == 1 and not isinstance(parser_output, pd.DataFrame):
+            parse_obj[target[0]] = parser_output
+            return parse_obj
+
+        if not isinstance(parser_output, pd.DataFrame):
+            raise ParserTargetError(
+                f"parser '{self.parser.name}' declares targets {list(target)} "
+                f"so it must return a DataFrame; got "
+                f"{type(parser_output).__name__}."
+            )
+
+        missing = [col for col in target if col not in parser_output.columns]
+        if missing:
+            raise ParserTargetError(
+                f"parser '{self.parser.name}' did not produce its declared "
+                f"target column(s) {missing}. Columns returned: "
+                f"{list(parser_output.columns)}",
+                failure_cases=missing,
+            )
+        for column in target:
+            parse_obj[column] = parser_output[column]
+        return parse_obj
+
     def __call__(
         self,
         parse_obj: Union[pd.Series, pd.DataFrame],
         key: str | None = None,
     ):
+        if self.parser.derives_columns and is_table(parse_obj):
+            self.check_source(parse_obj)
+            parser_output = self.apply_derivation(parse_obj)
+            return self.postprocess(parse_obj, parser_output)
+
         parse_obj = self.preprocess(parse_obj, key)
         parser_output = self.apply(parse_obj)
         return self.postprocess(parse_obj, parser_output)
