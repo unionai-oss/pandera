@@ -140,6 +140,7 @@ def _serialize_component_stats(component_stats):
                 "drop_invalid_rows",
             ]
             if key in component_stats
+            and (key != "default" or component_stats[key] is not None)
         },
     }
 

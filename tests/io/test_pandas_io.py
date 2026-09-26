@@ -155,7 +155,6 @@ columns:
     coerce: false
     required: true
     regex: false
-    default: null
     greater_than: 0
     less_than: 10
     in_range:
@@ -172,7 +171,6 @@ columns:
     coerce: false
     required: true
     regex: false
-    default: null
     greater_than: -10
     less_than: 20
     in_range:
@@ -189,7 +187,6 @@ columns:
     coerce: false
     required: true
     regex: false
-    default: null
     isin:
     - foo
     - bar
@@ -208,7 +205,6 @@ columns:
     coerce: false
     required: true
     regex: false
-    default: null
     greater_than: '2010-01-01 00:00:00'
     less_than: '2020-01-01 00:00:00'
   timedelta_column:
@@ -220,7 +216,6 @@ columns:
     coerce: false
     required: true
     regex: false
-    default: null
     greater_than: 1000
     less_than: 10000
   optional_props_column:
@@ -232,7 +227,6 @@ columns:
     coerce: true
     required: false
     regex: true
-    default: null
     str_length:
       min_value: 1
       max_value: 3
@@ -246,7 +240,6 @@ columns:
     coerce: false
     required: true
     regex: false
-    default: null
     isin:
     - foo
     - bar
@@ -1194,9 +1187,11 @@ def test_yaml_roundtrip_without_default_is_unchanged():
         {"a": pandera.Column(int), "b": pandera.Column(str)},
         add_missing_columns=True,
     )
+    serialized = yaml.safe_load(str(schema.to_yaml(minimal=False)))
 
     restored = pandera.DataFrameSchema.from_yaml(schema.to_yaml())
 
+    assert "default" not in serialized["columns"]["a"]
     assert restored.columns["a"].default is None
     assert restored == schema
 
