@@ -1,7 +1,7 @@
 """Data validation check definition."""
 
 import re
-from collections.abc import Callable, Hashable, Iterable
+from collections.abc import Callable, Hashable, Iterable, Iterator, MappingView
 from typing import (
     Any,
     Optional,
@@ -13,6 +13,20 @@ from pandera import errors
 from pandera.api.base.checks import BaseCheck, CheckResult
 
 T = TypeVar("T")
+
+
+def _materialize(values: Iterable) -> Iterable:
+    """Return ``values`` as something that can be iterated more than once.
+
+    ``isin`` and ``notin`` read their argument twice: once to build the
+    frozenset they match against, and again for ``statistics`` and the error
+    message. A one-shot iterable is exhausted by the first read, which leaves
+    both empty and makes the check impossible to copy. Reusable inputs are
+    returned untouched so their ``statistics`` and error text are unchanged.
+    """
+    if isinstance(values, (Iterator, MappingView)):
+        return list(values)
+    return values
 
 
 class Check(BaseCheck):
@@ -530,6 +544,7 @@ class Check(BaseCheck):
                 "Use Check.isin([1, 2, 3]) or Check.isin(allowed_values=[1, 2, 3])"
             )
         try:
+            values = _materialize(values)
             allowed_values_mod = frozenset(values)
         except TypeError as exc:
             raise ValueError(
@@ -586,6 +601,7 @@ class Check(BaseCheck):
                 "Use Check.notin([1, 2, 3]) or Check.notin(forbidden_values=[1, 2, 3])"
             )
         try:
+            values = _materialize(values)
             forbidden_values_mod = frozenset(values)
         except TypeError as exc:
             raise ValueError(
