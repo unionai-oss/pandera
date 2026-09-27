@@ -46,6 +46,11 @@ CHECK_OPTION_KEYS: frozenset[str] = frozenset(
         "ignore_na",
         "raise_warning",
         "n_failure_cases",
+        # ``error`` and the check's own ``name`` are options, not check
+        # parameters: keeping them here stops ``unflatten`` from passing them
+        # to e.g. ``Check.greater_than`` as statistics.
+        "error",
+        "name",
     }
 )
 

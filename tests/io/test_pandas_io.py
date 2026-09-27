@@ -17,6 +17,7 @@ import pandera.typing as pat
 from pandera.api.pandas.container import DataFrameSchema
 from pandera.engines import pandas_engine
 from pandera.engines.utils import pandas_version
+from pandera.errors import SchemaError
 from pandera.io import pandas_io as io
 
 HAS_IO = True
@@ -2384,3 +2385,50 @@ class TestDataFrameModelIO:
         schema = MyModel.from_yaml(yaml_str)
         df = pd.DataFrame({"a": [1, 2, 3]})
         schema.validate(df)
+
+
+@pytest.mark.skipif(
+    SKIP_YAML_TESTS,
+    reason="pyyaml >= 5.1.0 required",
+)
+@pytest.mark.parametrize(
+    "serialize, deserialize",
+    [
+        [io.to_yaml, io.from_yaml],
+        [io.to_json, io.from_json],
+    ],
+)
+def test_named_check_survives_serialization(serialize, deserialize):
+    """A check renamed with ``name=`` keeps its constraint on reload."""
+    schema = DataFrameSchema(
+        {
+            "a": pandera.Column(
+                int, checks=[pandera.Check.gt(0, name="positive")]
+            )
+        }
+    )
+    payload = serialize(schema, minimal=False)
+    assert "greater_than" in payload
+
+    loaded = deserialize(payload)
+    assert loaded == schema
+    (check,) = loaded.columns["a"].checks
+    assert check.name == "positive"
+
+    with pytest.raises(SchemaError):
+        loaded.validate(pd.DataFrame({"a": [-1]}))
+    loaded.validate(pd.DataFrame({"a": [1]}))
+
+
+def test_named_check_survives_to_script():
+    """``to_script`` regenerates the renamed check instead of dropping it."""
+    schema = DataFrameSchema(
+        {
+            "a": pandera.Column(
+                int, checks=[pandera.Check.gt(0, name="positive")]
+            )
+        }
+    )
+    script = io.to_script(schema)
+    assert "Check.greater_than" in script
+    assert 'name="positive"' in script

@@ -47,6 +47,8 @@ entry points) is documented on the dedicated {ref}`CLI <cli>` page.
 
    * - :ref:`Xarray <api-xarray>`
      - Schemas for labelled N-dimensional :mod:`xarray` arrays, datasets, and datatrees
+   * - :ref:`PyTorch <api-pytorch>`
+     - Schemas for :mod:`tensordict` TensorDict and tensorclass objects
 ```
 
 ## Configuration
@@ -73,7 +75,6 @@ entry points) is documented on the dedicated {ref}`CLI <cli>` page.
      - Reset context configuration to the global default
 ```
 
-
 ```{toctree}
 :hidden: true
 
@@ -89,4 +90,5 @@ narwhals
 extensions
 errors
 xarray
+pytorch
 ```
