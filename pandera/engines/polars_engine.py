@@ -52,6 +52,32 @@ COERCION_ERRORS = (
 SchemaDict = Mapping[str, PolarsDataType]
 
 
+def _strip_numeric_string_columns(
+    data_container: PolarsData,
+    type_: PolarsDataType,
+) -> PolarsData:
+    """Strip whitespace from string columns before numeric coercion."""
+    if not type_.is_numeric():
+        return data_container
+
+    selected_schema = data_container.lazyframe.select(
+        pl.col(data_container.key or "*")
+    ).collect_schema()
+    string_columns = [
+        column
+        for column, dtype in selected_schema.items()
+        if dtype == pl.String
+    ]
+    if not string_columns:
+        return data_container
+
+    return data_container._replace(
+        lazyframe=data_container.lazyframe.with_columns(
+            pl.col(column).str.strip_chars() for column in string_columns
+        )
+    )
+
+
 def convert_py_dtype_to_polars_dtype(dtype):
     if isinstance(dtype, DataTypeClass):
         return dtype
@@ -68,6 +94,7 @@ def polars_object_coercible(
     # do a strict cast for list types since is_not_null() cannot correctly
     # evaluate null values in lists.
     strict = isinstance(type_, pl.List)
+    data_container = _strip_numeric_string_columns(data_container, type_)
     coercible = data_container.lazyframe.cast(
         {key: type_}, strict=strict
     ).select(pl.col(key).is_not_null())
@@ -175,6 +202,10 @@ class DataType(dtypes.DataType):
             dtypes = self.type
         else:
             dtypes = {data_container.key: self.type}
+
+        data_container = _strip_numeric_string_columns(
+            data_container, self.type
+        )
 
         return data_container.lazyframe.cast(dtypes, strict=True)
 
@@ -426,6 +457,9 @@ class Decimal(DataType, dtypes.Decimal):
         if isinstance(data_container, pl.LazyFrame):
             data_container = PolarsData(data_container)
 
+        data_container = _strip_numeric_string_columns(
+            data_container, self.type
+        )
         key = data_container.key or "*"
         return data_container.lazyframe.cast({key: pl.Float64}).cast(
             {key: pl.Decimal(scale=self.scale, precision=self.precision)},
