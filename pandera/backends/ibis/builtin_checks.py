@@ -282,7 +282,7 @@ def str_matches(
     """
     pattern = pattern.pattern if isinstance(pattern, re.Pattern) else pattern
     if not pattern.startswith("^"):
-        pattern = f"^{pattern}"
+        pattern = f"^(?:{pattern})"
     return _across(data.table, data.key, _.re_search(pattern))
 
 
