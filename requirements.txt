@@ -55,6 +55,7 @@ prek
 dask[dataframe]
 distributed
 ibis-framework >= 9.0.0
+narwhals-datafusion >= 0.1.5
 furo
 sphinxcontrib-typer >= 0.8.0
 cairosvg

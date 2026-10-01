@@ -244,6 +244,7 @@ DATAFRAME_EXTRAS = {
     "xarray",
     "narwhals",  # TEST-03: narwhals backend runs with polars+ibis co-installed
     "pyarrow",  # pyarrow.Table validation, served by the narwhals backends
+    "datafusion",  # datafusion.DataFrame validation via the narwhals plugin
     "torch",
 }
 for extra in OPTIONAL_DEPENDENCIES:

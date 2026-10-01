@@ -117,6 +117,17 @@ def _is_pyarrow_native(frame: Any) -> bool:
     return mod.startswith("pyarrow") and type(frame).__name__ == "Table"
 
 
+def _is_datafusion_native(frame: Any) -> bool:
+    """Cheap ``datafusion.DataFrame`` detection, mirroring the helpers above.
+
+    DataFusion frames reach this backend through the ``narwhals-datafusion``
+    plugin; detection is by module name so datafusion is never imported on
+    installs without it.
+    """
+    mod = getattr(type(frame), "__module__", "") or ""
+    return mod.startswith("datafusion") and type(frame).__name__ == "DataFrame"
+
+
 # Root modules of pandas-like libraries. Compared against the first dotted
 # segment of ``type(obj).__module__``: pandas < 3 reports e.g.
 # "pandas.core.frame" while pandas >= 3 reports just "pandas" for its public
@@ -172,6 +183,11 @@ def _wrap_native_frame_with_key(native_frame: Any, key: str | None) -> Any:
         from pandera.api.pyarrow.types import PyArrowData
 
         return PyArrowData(table=native_frame, key=key or "*")
+
+    if _is_datafusion_native(native_frame):
+        from pandera.api.datafusion.types import DataFusionData
+
+        return DataFusionData(dataframe=native_frame, key=key or "*")
 
     if _is_pandas_like_native(native_frame):
         # pandas-style user check functions receive exactly what the native
@@ -318,8 +334,8 @@ class NarwhalsCheckBackend(BaseCheckBackend):
             except NotImplementedError:
                 raise NotImplementedError(
                     "element_wise checks are not supported on SQL-lazy backends "
-                    "(Ibis, DuckDB, PySpark) because row-level Python functions "
-                    "cannot be applied to lazy query plans. "
+                    "(Ibis, DuckDB, PySpark, DataFusion) because row-level "
+                    "Python functions cannot be applied to lazy query plans. "
                     "Use a vectorized check instead."
                 )
 
@@ -382,6 +398,8 @@ class NarwhalsCheckBackend(BaseCheckBackend):
           :class:`PolarsCheckBackend` behaviour). If the frame already
           contains a ``CHECK_OUTPUT_KEY`` column, that column is used
           directly.
+        - **datafusion**: ``datafusion.Expr``, either row-level or an
+          aggregate.
         - Any Python ``bool`` / scalar — passed through unchanged so
           ``postprocess_bool_output`` can handle it.
 
@@ -478,6 +496,30 @@ class NarwhalsCheckBackend(BaseCheckBackend):
                 return nw.from_native(tbl, eager_only=True)
 
             return out  # pragma: no cover — unexpected pyarrow type
+
+        # Handle datafusion native return types from native=True checks.
+        # Detection is by module name so datafusion is never imported here.
+        if out_mod.startswith("datafusion"):
+            if type(out).__name__ != "Expr":
+                raise TypeError(
+                    "A native DataFusion check must return a "
+                    f"``datafusion.Expr`` or a python bool, got {type(out)}."
+                )
+            native = nw.to_native(check_obj.frame)
+            wide = native.with_column(CHECK_OUTPUT_KEY, out)
+            try:
+                # Plans without executing; rejects aggregate expressions.
+                wide.execution_plan()
+            except Exception as exc:
+                try:
+                    agg = native.aggregate([], [out.alias(CHECK_OUTPUT_KEY)])
+                    passed = agg.to_pydict()[CHECK_OUTPUT_KEY][0]
+                except Exception:
+                    raise exc from None
+                # Aggregate result — hand back a plain Python bool.
+                return bool(passed)
+            # Row-level result — stays lazy.
+            return nw.from_native(wide, eager_or_interchange_only=False)
 
         # Handle pandas-like native return types (pandas, modin, cuDF) from
         # native=True checks: boolean Series / DataFrame outputs are attached
@@ -635,13 +677,15 @@ class NarwhalsCheckBackend(BaseCheckBackend):
     ) -> CheckResult:
         """Postprocesses bool check output into a CheckResult."""
         # SQL-lazy backends (ibis) do not support nw.from_dict with their
-        # native namespace — fall back to pyarrow as the eager intermediate.
+        # native namespace, and plugin backends (Implementation.UNKNOWN)
+        # have no native namespace at all — fall back to pyarrow as the
+        # eager intermediate.
         try:
             ns = nw.get_native_namespace(check_obj.frame)
             lf = nw.from_dict(
                 {CHECK_OUTPUT_KEY: [check_output]}, native_namespace=ns
             ).lazy()
-        except (ValueError, AttributeError):
+        except (ValueError, AttributeError, AssertionError):
             lf = nw.from_dict(
                 {CHECK_OUTPUT_KEY: [check_output]}, backend="pyarrow"
             ).lazy()
