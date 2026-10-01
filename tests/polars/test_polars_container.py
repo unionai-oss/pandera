@@ -508,6 +508,27 @@ def test_drop_invalid_rows_nullable(
     assert validated_data.collect().equals(expected_valid_data.collect())
 
 
+def test_drop_invalid_rows_nested_column():
+    """A nested Column with drop_invalid_rows must drop rows it fails on.
+
+    Regression test for https://github.com/unionai-oss/pandera/issues/2529:
+    the filtered frame returned by Column.validate was discarded when the
+    column was validated inside a DataFrameSchema.
+    """
+    schema = DataFrameSchema(
+        {
+            "numbers": Column(
+                pl.Int64, C.ge(3), drop_invalid_rows=True
+            ),
+        }
+    )
+    data = pl.DataFrame({"numbers": [1, 2, 3, 4, 5, 6]}).lazy()
+    validated = data.pipe(schema.validate, lazy=True)
+    assert (
+        validated.collect()["numbers"].to_list() == [3, 4, 5, 6]
+    )
+
+
 def test_set_defaults(ldf_basic, ldf_schema_basic):
     ldf_schema_basic.columns["int_col"].default = 1
     ldf_schema_basic.columns["string_col"].default = "a"

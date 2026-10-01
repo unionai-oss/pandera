@@ -283,6 +283,18 @@ class DataFrameSchemaBackend(NarwhalsSchemaBackend):
         with _check_ctx:
             for check, args in core_checks:
                 results = check(*args)  # type: ignore[operator]
+                if check == self.run_schema_component_checks:
+                    results, filtered_native = results
+                    filtered_nw = nw.from_native(filtered_native)
+                    if isinstance(filtered_nw, nw.DataFrame):
+                        filtered_nw = filtered_nw.lazy()
+                    # A component's drop_invalid_rows returns a filtered frame;
+                    # propagate it to later checks like pandas' inplace
+                    # mutation. A filtered subsample cannot be mapped back to
+                    # the full frame, matching the pandas backend.
+                    sample_lf = filtered_nw
+                    if sample_obj is check_lf:
+                        check_lf = filtered_nw
                 if isinstance(results, CoreCheckResult):
                     results = [results]
 
@@ -381,7 +393,7 @@ class DataFrameSchemaBackend(NarwhalsSchemaBackend):
         schema,
         schema_components: list,
         lazy: bool,
-    ) -> list[CoreCheckResult]:
+    ) -> tuple[list[CoreCheckResult], Any]:
         """Run checks for all schema components."""
         check_results = []
         # Convert to native frame for column component dispatch.
@@ -391,8 +403,15 @@ class DataFrameSchemaBackend(NarwhalsSchemaBackend):
         # schema-component-level checks
         for schema_component in schema_components:
             try:
-                schema_component.validate(native_obj, lazy=lazy)
+                result = schema_component.validate(native_obj, lazy=lazy)
                 # The component validate() not raising is the success signal.
+                # A drop_invalid_rows component returns a filtered frame;
+                # carry it forward so later components see the dropped rows.
+                if (
+                    getattr(schema_component, "drop_invalid_rows", False)
+                    and result is not None
+                ):
+                    native_obj = _to_native(result)
             except SchemaError as err:
                 check_results.append(
                     CoreCheckResult(
@@ -414,7 +433,7 @@ class DataFrameSchemaBackend(NarwhalsSchemaBackend):
                         for schema_error in err.schema_errors
                     ]
                 )
-        return check_results
+        return check_results, native_obj
 
     def run_native_parsers(self, check_obj, schema):
         """Run custom ``schema.parsers`` on the native pandas frame.

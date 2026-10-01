@@ -127,6 +127,17 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
 
         for check, args in core_checks:
             results = check(*args)  # type: ignore[operator]
+            if check == self.run_schema_component_checks:
+                results, filtered_lf = results
+                # A component's drop_invalid_rows filters a LazyFrame copy;
+                # propagate it to later checks like pandas' inplace mutation.
+                # A filtered subsample cannot be mapped back to the full
+                # frame, matching the pandas backend.
+                sample_lf = filtered_lf
+                if sample is check_obj_parsed:
+                    check_obj_parsed = _to_frame_kind(
+                        filtered_lf, return_type
+                    )
             if isinstance(results, CoreCheckResult):
                 results = [results]
 
@@ -211,7 +222,7 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
         schema,
         schema_components: list,
         lazy: bool,
-    ) -> list[CoreCheckResult]:
+    ) -> tuple[list[CoreCheckResult], pl.LazyFrame]:
         """Run checks for all schema components."""
         check_results = []
         check_passed = []
@@ -220,6 +231,10 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
             try:
                 result = schema_component.validate(check_obj, lazy=lazy)
                 check_passed.append(isinstance(result, pl.LazyFrame))
+                if getattr(
+                    schema_component, "drop_invalid_rows", False
+                ) and isinstance(result, pl.LazyFrame):
+                    check_obj = result
             except SchemaError as err:
                 check_results.append(
                     CoreCheckResult(
@@ -242,7 +257,7 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
                     ]
                 )
         assert all(check_passed)
-        return check_results
+        return check_results, check_obj
 
     def collect_column_info(self, check_obj: pl.LazyFrame, schema):
         """Collect column metadata for the dataframe."""
