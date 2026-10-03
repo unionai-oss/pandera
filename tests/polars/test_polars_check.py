@@ -444,3 +444,28 @@ def test_polars_lazy_failure_cases_empty_and_null_list():
     rendered = exc_info.value.failure_cases["failure_case"].to_list()
     assert "[]" in rendered
     assert any("null" in str(v) for v in rendered)
+
+
+def _aggregate_check_fn(data: pa.PolarsData) -> pl.LazyFrame:
+    """Reduce the column to a single boolean row."""
+    return data.lazyframe.select(pl.col(data.key).is_not_null().sum() > 0)
+
+
+def test_polars_aggregate_check_failure_cases_stay_a_dataframe():
+    """An aggregate check output must not corrupt failure_cases into a string.
+
+    Regression test for #2482: the check reduces the column to one row, so
+    concatenating it with the input horizontally raises ShapeError on
+    polars>=2.0.0rc1. The broad exception handler in the components backend
+    then stored the stringified error as failure_cases, turning a normal
+    validation failure into a type-confused SchemaError.
+    """
+    schema = pa.DataFrameSchema(
+        {"a": pa.Column(checks=[pa.Check(_aggregate_check_fn)], nullable=True)}
+    )
+    df = pl.DataFrame({"a": [None, None, None]})
+
+    with pytest.raises(pa.errors.SchemaError) as exc_info:
+        schema.validate(df)
+
+    assert isinstance(exc_info.value.failure_cases, pl.DataFrame)
