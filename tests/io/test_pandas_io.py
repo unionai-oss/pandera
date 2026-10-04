@@ -41,9 +41,11 @@ _PANDERA_STR_DTYPE = str(pandas_engine.Engine.dtype(pandera.String))
 
 
 def _with_drop_invalid_rows_defaults(serialized_schema):
-    """Add default drop_invalid_rows fields expected in non-minimal output."""
+    """Add default drop_invalid_rows and strict_index fields expected in
+    non-minimal output."""
     serialized_schema = dict(serialized_schema)
     serialized_schema.setdefault("drop_invalid_rows", False)
+    serialized_schema.setdefault("strict_index", False)
 
     columns = serialized_schema.get("columns")
     if isinstance(columns, dict):
@@ -1159,6 +1161,22 @@ def test_to_yaml():
     assert yaml.safe_load(
         yaml_str_schema_method
     ) == _with_drop_invalid_rows_defaults(yaml.safe_load(YAML_SCHEMA))
+
+
+@pytest.mark.skipif(
+    SKIP_YAML_TESTS,
+    reason="pyyaml >= 5.1.0 required",
+)
+@pytest.mark.parametrize("minimal", [True, False])
+def test_yaml_roundtrip_strict_index(minimal):
+    """Test that strict_index survives to_yaml / from_yaml."""
+    schema = DataFrameSchema({"a": pandera.Column(int)}, strict_index=True)
+    roundtripped = io.from_yaml(io.to_yaml(schema, minimal=minimal))
+    assert roundtripped.strict_index is True
+
+    default_schema = DataFrameSchema({"a": pandera.Column(int)})
+    assert "strict_index" not in io.to_yaml(default_schema, minimal=True)
+    assert io.from_yaml(io.to_yaml(default_schema)).strict_index is False
 
 
 @pytest.mark.skipif(

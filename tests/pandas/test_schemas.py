@@ -230,42 +230,56 @@ def test_dataframe_schema_strict_and_ordered_raises_both_errors() -> None:
 
 
 def test_dataframe_schema_strict_index() -> None:
-    """Regression test for #1493: strict=True should also reject a
-    non-default index when the schema doesn't declare an index."""
-    schema = DataFrameSchema(
-        {"a": Column(int)},
-        strict=True,
-    )
+    """Regression test for #1493: with strict_index=True, named index levels
+    that the schema doesn't declare fail validation."""
+    schema = DataFrameSchema({"a": Column(int)}, strict_index=True)
 
-    # default RangeIndex passes
-    df_default_index = pd.DataFrame({"a": [1, 2, 3]})
-    assert isinstance(schema.validate(df_default_index), pd.DataFrame)
+    # unnamed indexes are never checked, whatever their values
+    df = pd.DataFrame({"a": [3, 1, 2]})
+    for unnamed_index_df in [
+        df,
+        df.query("a > 1"),
+        df.iloc[1:],
+        df.sort_values("a"),
+        pd.concat([df, df]),
+    ]:
+        assert isinstance(schema.validate(unnamed_index_df), pd.DataFrame)
 
-    # named index fails, even though the index values themselves are valid
-    df_named_index = pd.DataFrame(
-        {"a": [1]}, index=pd.Index(["x"], name="foo")
-    )
+    df_named_index = df.set_index(pd.Index(["x", "y", "z"], name="foo"))
+    with pytest.raises(
+        errors.SchemaError, match="index level 'foo' not in DataFrameSchema"
+    ):
+        schema.validate(df_named_index)
+
     with pytest.raises(errors.SchemaErrors) as exc_info:
         schema.validate(df_named_index, lazy=True)
-    reason_codes = {e.reason_code for e in exc_info.value.schema_errors}
-    assert errors.SchemaErrorReason.INDEX_NOT_IN_SCHEMA in reason_codes
+    assert [e.reason_code for e in exc_info.value.schema_errors] == [
+        SchemaErrorReason.INDEX_NOT_IN_SCHEMA
+    ]
 
-    # non-RangeIndex (e.g. after filtering rows) fails
-    df_filtered = pd.DataFrame({"a": [1, 2, 3]}).loc[lambda d: d["a"] > 1]
-    with pytest.raises(errors.SchemaError):
-        schema.validate(df_filtered)
+    # strict=True still only applies to columns
+    strict_columns = DataFrameSchema({"a": Column(int)}, strict=True)
+    assert isinstance(strict_columns.validate(df_named_index), pd.DataFrame)
 
-    # strict=False allows any index, unchanged from before
-    lenient_schema = DataFrameSchema({"a": Column(int)}, strict=False)
-    assert isinstance(lenient_schema.validate(df_named_index), pd.DataFrame)
 
-    # a schema that declares its own index is unaffected
-    schema_with_index = DataFrameSchema(
+def test_dataframe_schema_strict_index_declared_levels() -> None:
+    """With strict_index=True, index levels declared in the schema's index
+    pass, and only named levels that it doesn't declare fail."""
+    schema = DataFrameSchema(
         {"a": Column(int)},
-        index=Index(str, name="foo"),
-        strict=True,
+        index=MultiIndex([Index(str, name="foo"), Index(int, name="bar")]),
+        strict_index=True,
     )
-    assert isinstance(schema_with_index.validate(df_named_index), pd.DataFrame)
+
+    def make_df(names):
+        index = pd.MultiIndex.from_tuples([("x", 1, 1.0), ("y", 2, 2.0)])
+        return pd.DataFrame({"a": [1, 2]}, index=index.set_names(names))
+
+    assert isinstance(
+        schema.validate(make_df(["foo", "bar", None])), pd.DataFrame
+    )
+    with pytest.raises(errors.SchemaError, match="index level 'baz'"):
+        schema.validate(make_df(["foo", "bar", "baz"]))
 
 
 def test_dataframe_schema_strict_regex() -> None:

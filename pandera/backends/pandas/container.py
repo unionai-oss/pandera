@@ -178,7 +178,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
             (self.check_column_names_are_unique, (check_obj, schema)),
             (self.check_column_presence, (check_obj, schema, column_info)),
             (self.check_column_values_are_unique, (sample, schema)),
-            (self.check_index_not_in_schema, (check_obj, schema)),
+            (self.check_index_names_in_schema, (check_obj, schema)),
             (
                 self.run_schema_component_checks,
                 (sample, schema, components, lazy),
@@ -918,53 +918,40 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
         )
 
     @validate_scope(scope=ValidationScope.SCHEMA)
-    def check_index_not_in_schema(
+    def check_index_names_in_schema(
         self,
         check_obj: pd.DataFrame,
         schema,
-    ) -> CoreCheckResult:
-        """Under ``strict=True``, ensure the dataframe has the default index
-        if the schema doesn't declare one.
+    ) -> list[CoreCheckResult]:
+        """With ``strict_index=True``, check that every named index level is
+        declared in the schema's index.
 
-        ``strict`` otherwise only constrains the dataframe's columns, so a
-        dataframe with a non-default index (e.g. one that's been filtered,
-        set to a column, or renamed) would silently pass validation even
-        though it carries information the schema knows nothing about.
+        Unnamed levels aren't checked, so a dataframe that has been filtered,
+        sorted or concatenated still passes.
         """
-        passed = True
-        message = None
-        failure_cases = None
+        if not getattr(schema, "strict_index", False):
+            return [CoreCheckResult(passed=True, check="index_in_schema")]
 
-        if schema.strict is not True or schema.index is not None:
-            return CoreCheckResult(
-                passed=passed,
-                check="index_not_in_schema",
+        if schema.index is None:
+            declared: set = set()
+            declared_msg = "which does not declare an index"
+        else:
+            declared = set(schema.index.names)
+            declared_msg = f"with index {schema.index.names}"
+        return [
+            CoreCheckResult(
+                passed=False,
+                check="index_in_schema",
+                reason_code=SchemaErrorReason.INDEX_NOT_IN_SCHEMA,
+                message=(
+                    f"index level '{name}' not in {schema.__class__.__name__} "
+                    f"{declared_msg}"
+                ),
+                failure_cases=name,
             )
-
-        index = check_obj.index
-        is_default_index = (
-            isinstance(index, pd.RangeIndex)
-            and index.name is None
-            and index.start == 0
-            and index.step == 1
-        )
-        if not is_default_index:
-            passed = False
-            message = (
-                "index is not the default pandas RangeIndex, but the "
-                f"{schema.__class__.__name__} does not declare an index and "
-                "strict=True. Either specify an index in the schema or "
-                "reset the dataframe's index to the default."
-            )
-            failure_cases = str(index)
-
-        return CoreCheckResult(
-            passed=passed,
-            check="index_not_in_schema",
-            reason_code=SchemaErrorReason.INDEX_NOT_IN_SCHEMA,
-            message=message,
-            failure_cases=failure_cases,
-        )
+            for name in check_obj.index.names
+            if name is not None and name not in declared
+        ]
 
     @validate_scope(scope=ValidationScope.SCHEMA)
     def check_column_presence(

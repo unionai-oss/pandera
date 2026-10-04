@@ -22,7 +22,15 @@ from pandera.import_utils import strategy_import_error
 
 
 class DataFrameSchema(_DataFrameSchema[pd.DataFrame]):
-    """A lightweight pandas DataFrame validator."""
+    """A lightweight pandas DataFrame validator.
+
+    In addition to the arguments below, the pandas schema accepts
+    ``strict_index``. If ``True``, every *named* level of the dataframe's
+    index must be declared in the schema's ``index``. Unnamed index levels
+    are never checked, so filtering, sorting or concatenating a dataframe
+    doesn't make it fail. ``strict`` only applies to columns, and
+    ``strict_index`` is only available for pandas.
+    """
 
     def __init__(
         self,
@@ -44,6 +52,7 @@ class DataFrameSchema(_DataFrameSchema[pd.DataFrame]):
         description=None,
         metadata=None,
         drop_invalid_rows: bool = False,
+        strict_index: bool = False,
     ) -> None:
         super().__init__(
             columns=columns,
@@ -65,6 +74,7 @@ class DataFrameSchema(_DataFrameSchema[pd.DataFrame]):
             metadata=metadata,
             drop_invalid_rows=drop_invalid_rows,
         )
+        self.strict_index = strict_index
         if not self.columns and isinstance(
             self.dtype, pandas_engine.PydanticModel
         ):
@@ -198,9 +208,7 @@ class DataFrameSchema(_DataFrameSchema[pd.DataFrame]):
         # ``MultiIndex`` (a ``DataFrameSchema`` subclass) reuses this method to
         # validate the index of a ``SeriesSchema``.
         if not is_table_or_field(check_obj):
-            raise TypeError(
-                f"expected pd.DataFrame, got {type(check_obj)}"
-            )
+            raise TypeError(f"expected pd.DataFrame, got {type(check_obj)}")
 
         # NOTE: Move this into its own schema-backend variant. This is where
         # the benefits of separating the schema spec from the backend

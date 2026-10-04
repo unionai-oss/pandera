@@ -236,6 +236,7 @@ def serialize_schema(
         "title": dataframe_schema.title,
         "description": dataframe_schema.description,
         "drop_invalid_rows": dataframe_schema.drop_invalid_rows,
+        "strict_index": dataframe_schema.strict_index,
     }
     if lib != "pandas":
         out["dataframe_library"] = lib
@@ -464,6 +465,7 @@ def deserialize_schema(serialized_schema):
         description=serialized_schema.get("description", None),
         metadata=metadata,
         drop_invalid_rows=serialized_schema.get("drop_invalid_rows", False),
+        strict_index=serialized_schema.get("strict_index", False),
     )
 
 
