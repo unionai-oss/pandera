@@ -450,6 +450,14 @@ class NarwhalsCheckBackend(BaseCheckBackend):
             else:  # pragma: no cover — unexpected polars type
                 return out
 
+            # A one-row result from a multi-row input is an aggregate boolean,
+            # not a row-level mask.  Treat it like a scalar check so that the
+            # output is not attached to the input frame as a length-mismatched
+            # column.  This mirrors the native Polars backend, where a
+            # one-row result is reduced by ``check_passed.all()``.
+            if native.height > 1 and len(bool_col) == 1:
+                return bool(bool_col.item())
+
             return nw.from_native(
                 native.with_columns(bool_col), eager_only=True
             )

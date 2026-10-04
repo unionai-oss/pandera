@@ -2,6 +2,7 @@
 
 import datetime as dt
 import warnings
+import zoneinfo
 from typing import Any, Optional
 
 import hypothesis
@@ -641,6 +642,56 @@ def test_pandas_datetime_time_zone_agnostic_invalid_data_raises():
 
     with pytest.raises(errors.ParserError, match="time_zone_agnostic=True"):
         dtype._prepare_coerce_time_zone_agnostic(pd.Series(["not_a_datetime"]))
+
+
+def test_pandas_datetime_tz_aware_check_normalizes_timezone():
+    """Timezone-aware dtypes that render identically should match (GH#1839).
+
+    Libraries such as pendulum build timezone objects that pandas does not
+    recognize as canonical UTC, so a direct ``DatetimeTZDtype`` comparison
+    fails even though both render as ``datetime64[ns, UTC]``.
+    ``zoneinfo.ZoneInfo.no_cache`` reproduces this without depending on
+    pendulum.
+    """
+    # a non-canonical UTC tz object, like the one pendulum produces
+    noncanonical_utc = zoneinfo.ZoneInfo.no_cache("UTC")
+    data_dtype = pd.DatetimeTZDtype("ns", noncanonical_utc)
+    schema_dtype = pandas_engine.DateTime(tz="UTC")
+
+    # sanity check: this reproduces the underlying mismatch
+    assert data_dtype != schema_dtype.type
+    assert str(data_dtype) == str(schema_dtype.type)
+
+    # the engine check should treat them as equivalent
+    assert schema_dtype.check(pandas_engine.Engine.dtype(data_dtype))
+
+    # end-to-end: validating a tz-aware index built from such a tz object
+    index = (
+        pd.DatetimeIndex(["2023-01-01", "2023-01-02"])
+        .tz_localize(noncanonical_utc)
+        .as_unit("ns")
+    )
+    df = pd.DataFrame({"col1": [1.0, 2.0]}, index=index)
+    schema = pa.DataFrameSchema(
+        {".*": pa.Column(float, regex=True, nullable=False)},
+        index=pa.Index(dtype=pd.DatetimeTZDtype(tz="UTC")),
+        unique_column_names=True,
+    )
+    schema.validate(df)
+
+    # a genuinely different timezone must still fail
+    mismatched = pa.DataFrameSchema(
+        index=pa.Index(dtype=pd.DatetimeTZDtype(tz="America/New_York"))
+    )
+    with pytest.raises(SchemaError):
+        mismatched.validate(df)
+
+    # the fallback must not equate tz-aware with tz-naive datetime dtypes
+    naive_dtype = pandas_engine.Engine.dtype("datetime64[ns]")
+    assert not schema_dtype.check(naive_dtype)
+
+    # nor with arguments that aren't recognized dtypes at all
+    assert not schema_dtype.check("not_a_dtype")
 
 
 @hypothesis.settings(max_examples=1000)
