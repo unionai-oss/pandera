@@ -13,6 +13,7 @@ import polars as pl
 import pytest
 
 import pandera.polars as pa
+from pandera.config import CONFIG
 from pandera.engines.polars_engine import Engine as PolarsEngine
 
 
@@ -21,7 +22,9 @@ class Department(enum.Enum):
     technical = "technical"
 
 
-class StrDepartment(enum.StrEnum):
+class StrDepartment(
+    str, enum.Enum
+):  # StrEnum needs 3.11; pandera supports 3.10
     billing = "billing"
     technical = "technical"
 
@@ -68,6 +71,14 @@ def test_heterogeneous_literal_raises():
 # --------------------------------------------------------------------------
 
 
+@pytest.mark.xfail(
+    condition=CONFIG.use_narwhals_backend,
+    reason=(
+        "The narwhals backend does not validate pl.Enum columns, and does not "
+        "apply coerce=True; a native pl.Enum column fails the same way on main."
+    ),
+    strict=True,
+)
 def test_enum_model_validates():
     class Model(pa.DataFrameModel):
         d: Department
@@ -86,12 +97,28 @@ def test_enum_model_validates():
     ]
 
 
+@pytest.mark.xfail(
+    condition=CONFIG.use_narwhals_backend,
+    reason=(
+        "The narwhals backend does not validate pl.Enum columns, and does not "
+        "apply coerce=True; a native pl.Enum column fails the same way on main."
+    ),
+    strict=True,
+)
 def test_enum_coerces_from_strings():
     schema = pa.DataFrameSchema({"d": pa.Column(Department, coerce=True)})
     out = schema.validate(pl.DataFrame({"d": ["billing", "technical"]}))
     assert out["d"].to_list() == ["billing", "technical"]
 
 
+@pytest.mark.xfail(
+    condition=CONFIG.use_narwhals_backend,
+    reason=(
+        "The narwhals backend does not validate pl.Enum columns, and does not "
+        "apply coerce=True; a native pl.Enum column fails the same way on main."
+    ),
+    strict=True,
+)
 def test_literal_coerces_from_strings():
     schema = pa.DataFrameSchema(
         {"x": pa.Column(typing.Literal["billing", "technical"], coerce=True)}

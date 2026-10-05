@@ -10,8 +10,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from pandera.errors import SchemaInitError
-from pandera.system_one.questions import (
+from pandera.decisions.questions import (
     Choice,
     Decision,
     Noul,
@@ -19,10 +18,11 @@ from pandera.system_one.questions import (
     Question,
     Score,
 )
+from pandera.errors import SchemaInitError
 
 _INSTALL_HINT = (
-    "The TypeSafe provider requires the typesafe-ai extra: "
-    "`pip install 'pandera[typesafe-ai]'`."
+    "The TypeSafe provider requires the decisions extra: "
+    "`pip install 'pandera[decisions]'`."
 )
 
 # Published limits, used to pace requests. Conservative by design: exceeding
@@ -36,7 +36,7 @@ _LIMITS = ProviderLimits(
 
 
 class TypeSafeProvider:
-    """Answers questions with a TypeSafe System One model."""
+    """Answers questions with a TypeSafe decision model."""
 
     def __init__(
         self,

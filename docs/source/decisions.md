@@ -2,16 +2,16 @@
 file_format: mystnb
 ---
 
-% pandera documentation for System One parsing
+% pandera documentation for decision parsing
 
-```{currentmodule} pandera.system_one
+```{currentmodule} pandera.decisions
 ```
 
-(system-one)=
+(decisions)=
 
-# System One parsing
+# Decision parsing
 
-A *System One* model does not generate text. It answers typed questions and can
+A decision model does not generate text. It answers typed questions and can
 only return values from the schema it was given, so producing an out-of-domain
 answer is not representable. That makes it a natural fit for a derived column:
 the column's declared type **is** the answer domain.
@@ -19,19 +19,19 @@ the column's declared type **is** the answer domain.
 Install with the extra:
 
 ```bash
-pip install 'pandera[typesafe-ai]'
+pip install 'pandera[decisions]'
 ```
 
 ## Declaring a column
 
-A System One column is declared exactly like any other derived column
+A decision column is declared exactly like any other derived column
 ({ref}`derived-columns`) — with a parser object instead of a callable:
 
 ```{code-cell} python
 import enum
 import pandas as pd
 import pandera.pandas as pa
-import pandera.system_one as system_one
+import pandera.decisions as decisions
 
 class Department(enum.StrEnum):
     billing = "billing"
@@ -53,15 +53,15 @@ class Triage(pa.DataFrameModel):
     ticket_body: str
     department: Department = pa.ParsedField(
         description="Which team should handle this ticket",
-        parser=system_one.Choice(),
+        parser=decisions.Choice(),
     )
     frustration: Frustration = pa.ParsedField(
         description="How frustrated the customer appears",
-        parser=system_one.Score(),
+        parser=decisions.Score(),
     )
     is_urgent: bool = pa.ParsedField(
         description="The message conveys time-sensitivity",
-        parser=system_one.Noul(),
+        parser=decisions.Noul(),
     )
 
     class Config:
@@ -110,17 +110,17 @@ model class runs against a cassette in CI and a live model in production
 without being edited:
 
 ```python
-system_one.set_provider("typesafe:jev-1.13.0")       # process-wide
+decisions.set_provider("typesafe:jev-1.13.0")       # process-wide
 
-with system_one.provider(system_one.MockProvider()):  # scoped
+with decisions.provider(decisions.MockProvider()):  # scoped
     Triage.validate(tickets_df)
 ```
 
-`PANDERA_SYSTEM_ONE_PROVIDER` is the environment-variable form.
+`PANDERA_DECISIONS_PROVIDER` is the environment-variable form.
 
 **There is no default provider.** Filling a column by asking a model costs
-money and time, so validating a System One schema without configuring one
-raises `SystemOneConfigError` naming the columns rather than calling out.
+money and time, so validating a decision schema without configuring one
+raises `DecisionsConfigError` naming the columns rather than calling out.
 
 Shipped providers:
 
@@ -128,26 +128,26 @@ Shipped providers:
   but stable, valid for the question's domain, and free: what docs and CI need.
 - `RecordingProvider` / `ReplayProvider` — capture real answers once, serve them
   offline. A state with no recording fails loudly rather than inventing one.
-- `TypeSafeProvider` — the real thing, behind the `typesafe-ai` extra.
+- `TypeSafeProvider` — the real thing, behind the `decisions` extra.
 
 Any object with `compile`, `decide` and `limits` works; see
-{class}`~pandera.system_one.DecisionProvider`.
+{class}`~pandera.decisions.DecisionProvider`.
 
 ## One request per row, not per column
 
-A System One request is one state plus many questions, and a tenth question
+A decision request is one state plus many questions, and a tenth question
 costs tokens but almost no time. Columns that share a provider, a source and an
 error policy are therefore filled by a **single request per row**:
 
 ```{code-cell} python
-provider = system_one.MockProvider(seed=7)
+provider = decisions.MockProvider(seed=7)
 frame = pd.DataFrame({"ticket_body": [
     "my card was declined",
     "the API is down",
     "what does the pro plan cost",
 ]})
 
-with system_one.provider(provider):
+with decisions.provider(provider):
     triaged = Triage.validate(frame)
 
 print(triaged)
@@ -160,7 +160,7 @@ row.
 ## Validating the answers
 
 The answers are ordinary column values, so ordinary checks apply — which is the
-point. A System One model cannot return an out-of-domain value, so what is
+point. A decision model cannot return an out-of-domain value, so what is
 worth checking is not the shape of an individual answer but the shape of the
 distribution:
 

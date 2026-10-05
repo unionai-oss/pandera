@@ -12,8 +12,7 @@ import json
 from collections.abc import Mapping
 from typing import Any
 
-from pandera.errors import SchemaInitError
-from pandera.system_one.questions import (
+from pandera.decisions.questions import (
     Choice,
     Decision,
     Noul,
@@ -21,6 +20,7 @@ from pandera.system_one.questions import (
     Question,
     Score,
 )
+from pandera.errors import SchemaInitError
 
 
 def _stable_unit(*parts: Any) -> float:

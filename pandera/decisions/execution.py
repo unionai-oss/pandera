@@ -14,7 +14,7 @@ import time
 from collections.abc import Awaitable, Callable, Mapping, Sequence
 from typing import Any
 
-from pandera.system_one.questions import Decision, ProviderLimits
+from pandera.decisions.questions import Decision, ProviderLimits
 
 
 class TokenBucket:
@@ -43,6 +43,20 @@ class TokenBucket:
         if self._lock is None:
             self._lock = asyncio.Lock()
 
+        # A single request is charged at most what one full bucket holds, never
+        # more. Without this a request larger than ``tokens_per_second`` would
+        # wait for an allowance that can never refill past that cap, and this
+        # loop would spin forever. Any hard upper bound on a *state* -- when a
+        # provider declares one -- is enforced by the callers
+        # ``max_state_tokens`` check before this is reached, so an oversized
+        # request only reaches here when no hard maximum was declared, in
+        # which case it is paced rather than rejected.
+        charge = (
+            tokens
+            if self.tokens_per_second is None
+            else min(tokens, float(self.tokens_per_second))
+        )
+
         async with self._lock:
             while True:
                 now = time.monotonic()
@@ -67,13 +81,13 @@ class TokenBucket:
                 )
                 token_ok = (
                     self.tokens_per_second is None
-                    or self._token_allowance >= tokens
+                    or self._token_allowance >= charge
                 )
                 if request_ok and token_ok:
                     if self.requests_per_minute is not None:
                         self._request_allowance -= 1
                     if self.tokens_per_second is not None:
-                        self._token_allowance -= tokens
+                        self._token_allowance -= charge
                     return
 
                 self.waits += 1
