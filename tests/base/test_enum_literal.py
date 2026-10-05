@@ -17,7 +17,7 @@ from pandera._enum_literal import (
 )
 
 
-class Department(enum.StrEnum):
+class Department(str, enum.Enum):  # StrEnum needs 3.11; pandera supports 3.10
     """A documented string enum."""
 
     billing = "billing"

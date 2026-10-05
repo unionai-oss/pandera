@@ -110,6 +110,7 @@ def _single_parser(column_parser: ColumnParser, ctx: ParseContext) -> "Parser":
         column_parser.bind(ctx),
         source=list(ctx.source) if ctx.source else None,
         target=ctx.target,
+        frame_input=getattr(column_parser, "frame_input", False),
         name=_parser_name(column_parser, [ctx.target]),
     )
 
