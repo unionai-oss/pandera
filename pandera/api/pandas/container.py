@@ -29,6 +29,7 @@ class DataFrameSchema(_DataFrameSchema[pd.DataFrame]):
         columns=None,
         checks=None,
         parsers=None,
+        parser_source=None,
         index=None,
         dtype=None,
         coerce: bool = False,
@@ -49,6 +50,7 @@ class DataFrameSchema(_DataFrameSchema[pd.DataFrame]):
             columns=columns,
             checks=checks,
             parsers=parsers,
+            parser_source=parser_source,
             index=index,
             dtype=dtype,
             coerce=coerce,
@@ -198,9 +200,7 @@ class DataFrameSchema(_DataFrameSchema[pd.DataFrame]):
         # ``MultiIndex`` (a ``DataFrameSchema`` subclass) reuses this method to
         # validate the index of a ``SeriesSchema``.
         if not is_table_or_field(check_obj):
-            raise TypeError(
-                f"expected pd.DataFrame, got {type(check_obj)}"
-            )
+            raise TypeError(f"expected pd.DataFrame, got {type(check_obj)}")
 
         # NOTE: Move this into its own schema-backend variant. This is where
         # the benefits of separating the schema spec from the backend

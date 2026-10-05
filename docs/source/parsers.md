@@ -205,6 +205,91 @@ real parameters is a breaking change for a parser function that took a keyword
 by either name.
 :::
 
+### Declaring derivation on the column
+
+`source`/`target` on a schema-level `Parser` states the relationship, but it
+still lives away from the column it describes. {class}`~pandera.api.pandas.components.ParsedColumn`
+and {func}`~pandera.api.dataframe.model_components.ParsedField` put it on the
+column itself:
+
+```{code-cell} python
+schema = pa.DataFrameSchema({
+    "body": pa.Column(str),
+    "n_words": pa.ParsedColumn(
+        int,
+        source="body",
+        parser=lambda s: s.str.split().str.len(),
+        checks=pa.Check.ge(1),
+    ),
+})
+
+schema.validate(pd.DataFrame({"body": ["a b c", "d e"]}))
+```
+
+and the model equivalent:
+
+```{code-cell} python
+class Tickets(pa.DataFrameModel):
+    body: str
+    n_words: int = pa.ParsedField(
+        parser=lambda s: s.str.split().str.len(),
+        ge=1,
+    )
+
+    class Config:
+        parser_source = "body"
+
+Tickets.validate(pd.DataFrame({"body": ["a b c", "d e"]}))
+```
+
+`Config.parser_source` (or `DataFrameSchema(parser_source=...)`) is the default
+for columns that do not name their own `source`. A column deriving from a
+column the schema does not declare raises `SchemaInitError`.
+
+The same thing can be written imperatively by giving `@pa.parser` a `source`,
+in which case the named fields become what it produces:
+
+```{code-cell} python
+class Tickets(pa.DataFrameModel):
+    body: str
+    n_words: int
+
+    @pa.parser("n_words", source="body")
+    def count_words(cls, s):
+        """Number of whitespace-separated tokens."""
+        return s.str.split().str.len()
+```
+
+Without `source`, `@pa.parser` keeps its original meaning — a transform applied
+to the named fields.
+
+(column-parsers)=
+
+### Parser objects
+
+`parser=` also accepts an object implementing the
+{class}`~pandera.api.parsers.ColumnParser` protocol, which is how a parser can
+inspect the column it is filling and how independent columns can be filled in
+one pass:
+
+```python
+class ColumnParser(Protocol):
+    def bind(self, ctx: ParseContext) -> Callable: ...
+    def batch_key(self, ctx: ParseContext) -> Hashable: ...
+```
+
+`bind` is called once when the schema is built and receives a `ParseContext`
+describing the target column — its name, declared dtype, description,
+nullability and checks, along with the resolved source columns and the schema
+itself. Two consequences: a parser can derive its behavior from the column's
+declared type instead of being told what it is producing, and raising
+`SchemaInitError` from `bind` surfaces the problem before any data is touched.
+
+`batch_key` groups parsers that can share work. Columns whose parsers return
+equal non-`None` keys are handed to the class's `batch` classmethod and filled
+by a single call; returning `None` opts out. This is what lets a schema declare
+one derivation per column without paying for one pass per column.
+
 ## Parsing columns
 
 {class}`~pandera.api.parsers.Parser` objects accept a function as a required

@@ -99,8 +99,10 @@ class PandasParserBackend(BaseParserBackend):
         source = self.parser.source
         target = self.parser.target
 
-        if source is None:
-            parser_input: Union[pd.Series, pd.DataFrame] = parse_obj
+        if source is None or getattr(self.parser, "frame_input", False):
+            parser_input: Union[pd.Series, pd.DataFrame] = (
+                parse_obj if source is None else parse_obj[list(source)]
+            )
         elif len(source) == 1 and target is not None and len(target) == 1:
             # single column in, single column out: the ergonomic case, where
             # the function is written Series -> Series.
@@ -154,6 +156,9 @@ class PandasParserBackend(BaseParserBackend):
             )
         for column in target:
             parse_obj[column] = parser_output[column]
+        # Only the target columns are taken from the parser's output, so any
+        # frame-level metadata it attached would otherwise be dropped here.
+        parse_obj.attrs.update(parser_output.attrs)
         return parse_obj
 
     def __call__(
