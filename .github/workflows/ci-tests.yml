@@ -66,6 +66,15 @@ jobs:
         uses: dorny/paths-filter@v4
         with:
           filters: .github/filters.yaml
+          # The `common` filter (in .github/filters.yaml) is a mix of positive
+          # (pandera/**, tests/**) and negated (!pandera/api/pandas/**, ...)
+          # patterns. Under dorny's default `some` quantifier, a negated pattern
+          # is treated as an inverted matcher, so it returns true for any file
+          # *not* in an excluded directory -- which makes `common` match almost
+          # every changed file (doc-only PRs included) and run the whole test
+          # matrix. `some-with-excludes` is the correct semantics: a file matches
+          # only if it hits an include pattern and none of the negations.
+          predicate-quantifier: some-with-excludes
 
       - name: Derive job flags
         id: flags
