@@ -47,6 +47,20 @@ class TokenBucket:
         if self._lock is None:
             self._lock = asyncio.Lock()
 
+        # A single request is charged at most what one full bucket holds, never
+        # more. Without this a request larger than ``tokens_per_second`` would
+        # wait for an allowance that can never refill past that cap, and this
+        # loop would spin forever. Any hard upper bound on a *state* -- when a
+        # provider declares one -- is enforced by the caller's
+        # ``max_state_tokens`` check before this is reached, so an oversized
+        # request only reaches here when no hard maximum was declared, in
+        # which case it is paced rather than rejected.
+        charge = (
+            tokens
+            if self.tokens_per_second is None
+            else min(tokens, float(self.tokens_per_second))
+        )
+
         async with self._lock:
             while True:
                 now = time.monotonic()
@@ -71,13 +85,13 @@ class TokenBucket:
                 )
                 token_ok = (
                     self.tokens_per_second is None
-                    or self._token_allowance >= tokens
+                    or self._token_allowance >= charge
                 )
                 if request_ok and token_ok:
                     if self.requests_per_minute is not None:
                         self._request_allowance -= 1
                     if self.tokens_per_second is not None:
-                        self._token_allowance -= tokens
+                        self._token_allowance -= charge
                     return
 
                 self.waits += 1
@@ -109,12 +123,13 @@ async def gather_decisions(
     async def one(index: int, state: Any) -> Mapping[str, Decision] | None:
         async with semaphore:
             tokens = estimate_tokens(state)
-            await bucket.acquire(tokens)
             try:
-                # Named by row, before dispatch, rather than surfacing as a
-                # provider's HTTP error -- or, worse, as a silently truncated
-                # state. ``estimate_tokens`` undercounts if anything, so this
-                # errs toward letting a borderline row through.
+                # Named by row, before dispatch -- and before the rate limiter,
+                # which could otherwise block forever on a request the provider
+                # would reject outright -- rather than surfacing as a provider's
+                # HTTP error or, worse, as a silently truncated state.
+                # ``estimate_tokens`` undercounts if anything, so this errs
+                # toward letting a borderline row through.
                 if (
                     limits.max_state_tokens is not None
                     and tokens > limits.max_state_tokens
@@ -124,6 +139,7 @@ async def gather_decisions(
                         f"over the {limits.max_state_tokens} this provider "
                         "accepts. Shorten what the column reads from."
                     )
+                await bucket.acquire(tokens)
                 return await decide(state)
             except Exception:
                 if on_error == "raise":

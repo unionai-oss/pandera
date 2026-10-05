@@ -15,7 +15,12 @@ import pandera.system_one as system_one
 from pandera.api.parsers import ParseContext
 from pandera.errors import SchemaError, SchemaErrors, SchemaInitError
 from pandera.system_one import primitives as q
-from pandera.system_one.execution import TokenBucket, run_sync
+from pandera.system_one.execution import (
+    StateTooLongError,
+    TokenBucket,
+    gather_decisions,
+    run_sync,
+)
 from pandera.system_one.providers import base as provider_base
 from pandera.system_one.providers.base import (
     PROVIDER_ENV_VAR,
@@ -673,6 +678,79 @@ def test_token_bucket_waits_when_exhausted():
 
     asyncio.run(_one())
     assert bucket.waits > 0
+
+
+def test_oversized_request_does_not_deadlock_the_rate_limiter():
+    """A request larger than the bucket's per-second capacity must be charged
+    what the bucket holds rather than waited for forever: the allowance can
+    never refill past the cap, so an unlimited ``while`` loop would spin on it
+    indefinitely. The hard ``max_state_tokens`` bound is the caller's job."""
+    import asyncio
+
+    # A request for 100 tokens against a 3-token bucket must not deadlock. It
+    # is charged 3 (one full bucket) and returns immediately.
+    bucket = TokenBucket(tokens_per_second=3)
+
+    async def _one():
+        await bucket.acquire(100)
+
+    asyncio.run(asyncio.wait_for(_one(), timeout=2))
+    # the oversized request consumed the whole bucket in lieu of hanging
+    assert bucket._token_allowance <= 0
+
+
+def test_state_over_the_limit_fails_before_the_rate_limiter_blocks():
+    """A state over ``max_state_tokens`` must raise ``StateTooLongError`` even
+    when its token estimate also exceeds the bucket capacity -- the check has to
+    fire before ``bucket.acquire``, which would otherwise spin forever on a
+    request the provider would reject outright (regression for the size guard
+    being bypassable by its own rate limiter)."""
+    import asyncio
+
+    async def _decide(state):
+        return {"x": q.Decision(value=0.9)}
+
+    # A tiny token budget, a hard state maximum below the state's token count,
+    # and a state large enough that its estimate exceeds both.
+    limits = system_one.ProviderLimits(
+        max_concurrency=2,
+        tokens_per_second=3,
+        max_state_tokens=2,
+    )
+    states = ["x" * 100]  # ~25 tokens: over the 2-token max and the 3/s bucket
+
+    with pytest.raises(StateTooLongError, match="row 0"):
+        asyncio.run(
+            asyncio.wait_for(
+                gather_decisions(states, _decide, limits), timeout=2
+            )
+        )
+
+
+def test_state_over_the_limit_is_unanswered_under_on_error_null():
+    """Under ``on_error="null"`` an over-limit row is left unanswered rather
+    than crashing, consistent with any other per-row failure."""
+    import asyncio
+
+    async def _decide(state):
+        return {"x": q.Decision(value=0.9)}
+
+    limits = system_one.ProviderLimits(
+        max_concurrency=2,
+        tokens_per_second=3,
+        max_state_tokens=2,
+    )
+    states = ["a", "x" * 100]
+
+    async def _run():
+        return await asyncio.wait_for(
+            gather_decisions(states, _decide, limits, on_error="null"),
+            timeout=2,
+        )
+
+    answers = asyncio.run(_run())
+    assert answers[0] == {"x": q.Decision(value=0.9)}
+    assert answers[1] is None
 
 
 # --------------------------------------------------------------------------
