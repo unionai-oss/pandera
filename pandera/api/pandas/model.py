@@ -14,8 +14,16 @@ from pandera.api.dataframe.model import (
     _dtype_metadata,
     get_dtype_kwargs,
 )
-from pandera.api.dataframe.model_components import FieldInfo
-from pandera.api.pandas.components import Column, Index, MultiIndex
+from pandera.api.dataframe.model_components import (
+    FieldInfo,
+    ParsedFieldInfo,
+)
+from pandera.api.pandas.components import (
+    Column,
+    Index,
+    MultiIndex,
+    ParsedColumn,
+)
 from pandera.api.pandas.container import DataFrameSchema
 from pandera.api.pandas.model_config import BaseConfig
 from pandera.api.parsers import Parser
@@ -196,7 +204,12 @@ class DataFrameModel(_DataFrameModel[pd.DataFrame, DataFrameSchema]):
                     if field
                     else {}
                 )
-                columns[field_name] = Column(**column_kwargs)
+                column_cls = (
+                    ParsedColumn
+                    if isinstance(field, ParsedFieldInfo)
+                    else Column
+                )
+                columns[field_name] = column_cls(**column_kwargs)
 
             elif (
                 annotation.origin in get_index_types()
