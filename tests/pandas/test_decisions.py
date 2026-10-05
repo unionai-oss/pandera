@@ -1,4 +1,4 @@
-"""Tests for ``pandera.system_one``.
+"""Tests for ``pandera.decisions``.
 
 No test here touches the network or needs an API key: providers are either the
 deterministic ``MockProvider`` or a local spy that records what it was asked.
@@ -10,19 +10,19 @@ import typing
 import pandas as pd
 import pytest
 
+import pandera.decisions as decisions
 import pandera.pandas as pa
-import pandera.system_one as system_one
 from pandera.api.parsers import ParseContext
-from pandera.errors import SchemaError, SchemaErrors, SchemaInitError
-from pandera.system_one import primitives as q
-from pandera.system_one.execution import TokenBucket, run_sync
-from pandera.system_one.providers.base import (
+from pandera.decisions import primitives as q
+from pandera.decisions.execution import TokenBucket, run_sync
+from pandera.decisions.providers.base import (
     PROVIDER_ENV_VAR,
-    SystemOneConfigError,
+    DecisionsConfigError,
 )
+from pandera.errors import SchemaError, SchemaErrors, SchemaInitError
 
 
-class Department(enum.StrEnum):
+class Department(str, enum.Enum):  # StrEnum needs 3.11; pandera supports 3.10
     billing = "billing"
     """Payment, invoices or subscription issues."""
     technical = "technical"
@@ -40,7 +40,9 @@ class Frustration(enum.IntEnum):
     """Very angry, strong language."""
 
 
-class Undocumented(enum.StrEnum):
+class Undocumented(
+    str, enum.Enum
+):  # StrEnum needs 3.11; pandera supports 3.10
     a = "a"
     b = "b"
 
@@ -58,7 +60,7 @@ class _Spy:
 
     @property
     def limits(self):
-        return system_one.ProviderLimits(max_concurrency=4)
+        return decisions.ProviderLimits(max_concurrency=4)
 
     def compile(self, questions):
         self.compiled.append(dict(questions))
@@ -106,10 +108,10 @@ def test_no_provider_raises_with_guidance():
     Model = _triage_model(
         is_urgent=(
             bool,
-            pa.ParsedField(description="urgent?", parser=system_one.Noul()),
+            pa.ParsedField(description="urgent?", parser=decisions.Noul()),
         )
     )
-    with pytest.raises(SystemOneConfigError) as excinfo:
+    with pytest.raises(DecisionsConfigError) as excinfo:
         Model.validate(pd.DataFrame({"body": ["x"]}))
 
     message = str(excinfo.value)
@@ -118,39 +120,39 @@ def test_no_provider_raises_with_guidance():
 
 
 def test_provider_context_manager_scopes_and_restores():
-    assert system_one.get_provider() is None
+    assert decisions.get_provider() is None
     spy = _Spy()
-    with system_one.provider(spy):
-        assert system_one.get_provider() is spy
-    assert system_one.get_provider() is None
+    with decisions.provider(spy):
+        assert decisions.get_provider() is spy
+    assert decisions.get_provider() is None
 
 
 def test_set_provider_and_unset():
     spy = _Spy()
-    system_one.set_provider(spy)
+    decisions.set_provider(spy)
     try:
-        assert system_one.get_provider() is spy
+        assert decisions.get_provider() is spy
     finally:
-        system_one.set_provider(None)
-    assert system_one.get_provider() is None
+        decisions.set_provider(None)
+    assert decisions.get_provider() is None
 
 
 def test_provider_from_env_var(monkeypatch):
     monkeypatch.setenv(PROVIDER_ENV_VAR, "mock:3")
-    resolved = system_one.get_provider()
-    assert isinstance(resolved, system_one.MockProvider)
+    resolved = decisions.get_provider()
+    assert isinstance(resolved, decisions.MockProvider)
     assert resolved.seed == 3
 
 
 def test_unknown_provider_string():
-    with pytest.raises(SystemOneConfigError, match="unknown System One"):
-        system_one.set_provider("nope:1")
+    with pytest.raises(DecisionsConfigError, match="unknown decision"):
+        decisions.set_provider("nope:1")
 
 
 def test_provider_string_builds_typesafe_provider():
-    provider = system_one.get_provider()
+    provider = decisions.get_provider()
     assert provider is None
-    with system_one.provider("typesafe:jev-1.13.0") as resolved:
+    with decisions.provider("typesafe:jev-1.13.0") as resolved:
         assert resolved.id == "typesafe:jev-1.13.0"
         assert resolved.model_version == "jev-1.13.0"
 
@@ -166,12 +168,12 @@ def test_choice_infers_options_and_criteria_from_the_enum():
             Department,
             pa.ParsedField(
                 description="Which team should handle this ticket",
-                parser=system_one.Choice(),
+                parser=decisions.Choice(),
             ),
         )
     )
     spy = _Spy()
-    with system_one.provider(spy):
+    with decisions.provider(spy):
         Model.validate(pd.DataFrame({"body": ["x"]}))
 
     question = spy.questions["department"]
@@ -190,12 +192,12 @@ def test_score_infers_rubric_in_level_order():
             Frustration,
             pa.ParsedField(
                 description="How frustrated the customer appears",
-                parser=system_one.Score(),
+                parser=decisions.Score(),
             ),
         )
     )
     spy = _Spy()
-    with system_one.provider(spy):
+    with decisions.provider(spy):
         Model.validate(pd.DataFrame({"body": ["x"]}))
 
     question = spy.questions["frustration"]
@@ -214,7 +216,7 @@ def test_explicit_instructions_and_criteria_win():
             Department,
             pa.ParsedField(
                 description="ignored",
-                parser=system_one.Choice(
+                parser=decisions.Choice(
                     instructions="explicit question",
                     criteria={"billing": "money things"},
                 ),
@@ -222,7 +224,7 @@ def test_explicit_instructions_and_criteria_win():
         )
     )
     spy = _Spy()
-    with system_one.provider(spy):
+    with decisions.provider(spy):
         Model.validate(pd.DataFrame({"body": ["x"]}))
 
     question = spy.questions["department"]
@@ -240,11 +242,11 @@ def test_criteria_naming_an_unknown_option_raises():
             Department,
             pa.ParsedField(
                 description="q",
-                parser=system_one.Choice(criteria={"nope": "x"}),
+                parser=decisions.Choice(criteria={"nope": "x"}),
             ),
         )
     )
-    with system_one.provider(_Spy()):
+    with decisions.provider(_Spy()):
         with pytest.raises(SchemaInitError, match="not among the column"):
             Model.validate(pd.DataFrame({"body": ["x"]}))
 
@@ -253,11 +255,11 @@ def test_undocumented_enum_falls_back_to_member_names():
     Model = _triage_model(
         choice=(
             Undocumented,
-            pa.ParsedField(description="q", parser=system_one.Choice()),
+            pa.ParsedField(description="q", parser=decisions.Choice()),
         )
     )
     spy = _Spy()
-    with system_one.provider(spy):
+    with decisions.provider(spy):
         Model.validate(pd.DataFrame({"body": ["x"]}))
     question = spy.questions["choice"]
     assert question.options == ("a", "b")
@@ -267,9 +269,9 @@ def test_undocumented_enum_falls_back_to_member_names():
 
 def test_missing_question_text_raises():
     Model = _triage_model(
-        is_urgent=(bool, pa.ParsedField(parser=system_one.Noul()))
+        is_urgent=(bool, pa.ParsedField(parser=decisions.Noul()))
     )
-    with system_one.provider(_Spy()):
+    with decisions.provider(_Spy()):
         with pytest.raises(SchemaInitError, match="no question to ask"):
             Model.validate(pd.DataFrame({"body": ["x"]}))
 
@@ -278,11 +280,11 @@ def test_literal_column_supplies_choice_options():
     Model = _triage_model(
         routed=(
             typing.Literal["billing", "technical"],
-            pa.ParsedField(description="q", parser=system_one.Choice()),
+            pa.ParsedField(description="q", parser=decisions.Choice()),
         )
     )
     spy = _Spy()
-    with system_one.provider(spy):
+    with decisions.provider(spy):
         Model.validate(pd.DataFrame({"body": ["x"]}))
     assert spy.questions["routed"].options == ("billing", "technical")
 
@@ -295,25 +297,25 @@ def test_literal_column_supplies_choice_options():
 @pytest.mark.parametrize(
     "parser,annotation,ok",
     [
-        (system_one.Choice, Department, True),
-        (system_one.Choice, Frustration, True),
-        (system_one.Choice, bool, False),
-        (system_one.Choice, str, False),
-        (system_one.Choice, int, False),
-        (system_one.Score, Frustration, True),
-        (system_one.Score, Department, False),  # unordered
-        (system_one.Score, bool, False),
-        (system_one.Noul, bool, True),
-        (system_one.Noul, float, True),
-        (system_one.Noul, Department, False),
-        (system_one.Noul, str, False),
+        (decisions.Choice, Department, True),
+        (decisions.Choice, Frustration, True),
+        (decisions.Choice, bool, False),
+        (decisions.Choice, str, False),
+        (decisions.Choice, int, False),
+        (decisions.Score, Frustration, True),
+        (decisions.Score, Department, False),  # unordered
+        (decisions.Score, bool, False),
+        (decisions.Noul, bool, True),
+        (decisions.Noul, float, True),
+        (decisions.Noul, Department, False),
+        (decisions.Noul, str, False),
     ],
 )
 def test_type_compatibility(parser, annotation, ok):
     Model = _triage_model(
         col=(annotation, pa.ParsedField(description="q", parser=parser()))
     )
-    with system_one.provider(_Spy()):
+    with decisions.provider(_Spy()):
         if ok:
             Model.validate(pd.DataFrame({"body": ["x"]}))
         else:
@@ -325,10 +327,10 @@ def test_score_on_unordered_type_explains_the_fix():
     Model = _triage_model(
         col=(
             Department,
-            pa.ParsedField(description="q", parser=system_one.Score()),
+            pa.ParsedField(description="q", parser=decisions.Score()),
         )
     )
-    with system_one.provider(_Spy()):
+    with decisions.provider(_Spy()):
         with pytest.raises(SchemaInitError) as excinfo:
             Model.validate(pd.DataFrame({"body": ["x"]}))
     message = str(excinfo.value)
@@ -346,15 +348,15 @@ def test_noul_thresholds_for_a_bool_column():
         flag=(
             bool,
             pa.ParsedField(
-                description="q", parser=system_one.Noul(threshold=0.8)
+                description="q", parser=decisions.Noul(threshold=0.8)
             ),
         )
     )
-    with system_one.provider(_Spy(answers={"flag": 0.9})):
+    with decisions.provider(_Spy(answers={"flag": 0.9})):
         assert Model.validate(pd.DataFrame({"body": ["x"]}))[
             "flag"
         ].tolist() == [True]
-    with system_one.provider(_Spy(answers={"flag": 0.7})):
+    with decisions.provider(_Spy(answers={"flag": 0.7})):
         assert Model.validate(pd.DataFrame({"body": ["x"]}))[
             "flag"
         ].tolist() == [False]
@@ -364,10 +366,10 @@ def test_noul_keeps_the_probability_for_a_float_column():
     Model = _triage_model(
         score=(
             float,
-            pa.ParsedField(description="q", parser=system_one.Noul()),
+            pa.ParsedField(description="q", parser=decisions.Noul()),
         )
     )
-    with system_one.provider(_Spy(answers={"score": 0.42})):
+    with decisions.provider(_Spy(answers={"score": 0.42})):
         out = Model.validate(pd.DataFrame({"body": ["x"]}))
     assert out["score"].tolist() == [0.42]
 
@@ -376,10 +378,10 @@ def test_score_snaps_to_the_nearest_level():
     Model = _triage_model(
         level=(
             Frustration,
-            pa.ParsedField(description="q", parser=system_one.Score()),
+            pa.ParsedField(description="q", parser=decisions.Score()),
         )
     )
-    with system_one.provider(_Spy(answers={"level": 1.7})):
+    with decisions.provider(_Spy(answers={"level": 1.7})):
         out = Model.validate(pd.DataFrame({"body": ["x"]}))
     assert out["level"].tolist() == [2]
 
@@ -389,12 +391,12 @@ def test_score_keeps_the_raw_position_for_a_float_column():
         body: str
         level: float = pa.ParsedField(
             description="q",
-            parser=system_one.Score(criteria=["low", "mid", "high"]),
+            parser=decisions.Score(criteria=["low", "mid", "high"]),
             source="body",
         )
 
     # a float column has no levels of its own, so the rubric must be explicit
-    with system_one.provider(_Spy(answers={"level": 1.7})):
+    with decisions.provider(_Spy(answers={"level": 1.7})):
         with pytest.raises(SchemaInitError, match="ordered categorical"):
             Model.validate(pd.DataFrame({"body": ["x"]}))
 
@@ -405,10 +407,10 @@ def test_choice_maps_labels_back_to_the_columns_values():
     Model = _triage_model(
         level=(
             Frustration,
-            pa.ParsedField(description="q", parser=system_one.Choice()),
+            pa.ParsedField(description="q", parser=decisions.Choice()),
         )
     )
-    with system_one.provider(_Spy(answers={"level": "2"})):
+    with decisions.provider(_Spy(answers={"level": "2"})):
         out = Model.validate(pd.DataFrame({"body": ["x"]}))
     assert out["level"].tolist() == [2]
 
@@ -417,10 +419,10 @@ def test_answers_land_in_the_declared_dtype():
     Model = _triage_model(
         department=(
             Department,
-            pa.ParsedField(description="q", parser=system_one.Choice()),
+            pa.ParsedField(description="q", parser=decisions.Choice()),
         )
     )
-    with system_one.provider(_Spy()):
+    with decisions.provider(_Spy()):
         out = Model.validate(pd.DataFrame({"body": ["x"]}))
     assert str(out["department"].dtype) == "category"
 
@@ -429,10 +431,10 @@ def test_checks_run_on_answered_columns():
     Model = _triage_model(
         level=(
             Frustration,
-            pa.ParsedField(description="q", parser=system_one.Score(), ge=2),
+            pa.ParsedField(description="q", parser=decisions.Score(), ge=2),
         )
     )
-    with system_one.provider(_Spy(answers={"level": 0.0})):
+    with decisions.provider(_Spy(answers={"level": 0.0})):
         with pytest.raises((SchemaError, SchemaErrors)):
             Model.validate(pd.DataFrame({"body": ["x"]}))
 
@@ -446,19 +448,19 @@ def test_columns_sharing_a_source_are_one_request_per_row():
     Model = _triage_model(
         department=(
             Department,
-            pa.ParsedField(description="a", parser=system_one.Choice()),
+            pa.ParsedField(description="a", parser=decisions.Choice()),
         ),
         frustration=(
             Frustration,
-            pa.ParsedField(description="b", parser=system_one.Score()),
+            pa.ParsedField(description="b", parser=decisions.Score()),
         ),
         is_urgent=(
             bool,
-            pa.ParsedField(description="c", parser=system_one.Noul()),
+            pa.ParsedField(description="c", parser=decisions.Noul()),
         ),
     )
-    provider = system_one.MockProvider()
-    with system_one.provider(provider):
+    provider = decisions.MockProvider()
+    with decisions.provider(provider):
         Model.validate(pd.DataFrame({"body": ["x", "y", "z"]}))
     # 3 rows x 3 columns, but one request per row
     assert provider.calls == 3
@@ -469,14 +471,14 @@ def test_distinct_sources_are_distinct_batches():
         a: str
         b: str
         from_a: bool = pa.ParsedField(
-            description="q1", parser=system_one.Noul(), source="a"
+            description="q1", parser=decisions.Noul(), source="a"
         )
         from_b: bool = pa.ParsedField(
-            description="q2", parser=system_one.Noul(), source="b"
+            description="q2", parser=decisions.Noul(), source="b"
         )
 
-    provider = system_one.MockProvider()
-    with system_one.provider(provider):
+    provider = decisions.MockProvider()
+    with decisions.provider(provider):
         Model.validate(pd.DataFrame({"a": ["x"], "b": ["y"]}))
     assert provider.calls == 2
 
@@ -485,15 +487,15 @@ def test_one_batch_asks_every_question_together():
     Model = _triage_model(
         department=(
             Department,
-            pa.ParsedField(description="a", parser=system_one.Choice()),
+            pa.ParsedField(description="a", parser=decisions.Choice()),
         ),
         is_urgent=(
             bool,
-            pa.ParsedField(description="c", parser=system_one.Noul()),
+            pa.ParsedField(description="c", parser=decisions.Noul()),
         ),
     )
     spy = _Spy()
-    with system_one.provider(spy):
+    with decisions.provider(spy):
         Model.validate(pd.DataFrame({"body": ["x"]}))
     assert set(spy.questions) == {"department", "is_urgent"}
 
@@ -504,12 +506,12 @@ def test_multi_column_source_becomes_a_mapping_state():
         body: str
         urgent: bool = pa.ParsedField(
             description="q",
-            parser=system_one.Noul(),
+            parser=decisions.Noul(),
             source=["subject", "body"],
         )
 
     spy = _Spy()
-    with system_one.provider(spy):
+    with decisions.provider(spy):
         Model.validate(pd.DataFrame({"subject": ["hi"], "body": ["there"]}))
     assert spy.states == [{"subject": "hi", "body": "there"}]
 
@@ -518,11 +520,11 @@ def test_single_column_source_sends_the_value_itself():
     Model = _triage_model(
         urgent=(
             bool,
-            pa.ParsedField(description="q", parser=system_one.Noul()),
+            pa.ParsedField(description="q", parser=decisions.Noul()),
         )
     )
     spy = _Spy()
-    with system_one.provider(spy):
+    with decisions.provider(spy):
         Model.validate(pd.DataFrame({"body": ["hello"]}))
     assert spy.states == ["hello"]
 
@@ -536,13 +538,13 @@ def test_mock_provider_is_deterministic():
     Model = _triage_model(
         department=(
             Department,
-            pa.ParsedField(description="q", parser=system_one.Choice()),
+            pa.ParsedField(description="q", parser=decisions.Choice()),
         )
     )
     frame = pd.DataFrame({"body": ["a", "b", "c"]})
-    with system_one.provider(system_one.MockProvider(seed=1)):
+    with decisions.provider(decisions.MockProvider(seed=1)):
         first = Model.validate(frame)["department"].tolist()
-    with system_one.provider(system_one.MockProvider(seed=1)):
+    with decisions.provider(decisions.MockProvider(seed=1)):
         second = Model.validate(frame)["department"].tolist()
     assert first == second
 
@@ -551,13 +553,13 @@ def test_mock_provider_seed_changes_answers():
     Model = _triage_model(
         department=(
             Department,
-            pa.ParsedField(description="q", parser=system_one.Choice()),
+            pa.ParsedField(description="q", parser=decisions.Choice()),
         )
     )
     frame = pd.DataFrame({"body": [str(i) for i in range(20)]})
-    with system_one.provider(system_one.MockProvider(seed=1)):
+    with decisions.provider(decisions.MockProvider(seed=1)):
         first = Model.validate(frame)["department"].tolist()
-    with system_one.provider(system_one.MockProvider(seed=2)):
+    with decisions.provider(decisions.MockProvider(seed=2)):
         second = Model.validate(frame)["department"].tolist()
     assert first != second
 
@@ -566,19 +568,19 @@ def test_record_then_replay():
     Model = _triage_model(
         department=(
             Department,
-            pa.ParsedField(description="q", parser=system_one.Choice()),
+            pa.ParsedField(description="q", parser=decisions.Choice()),
         )
     )
     frame = pd.DataFrame({"body": ["a", "b"]})
 
-    recorder = system_one.RecordingProvider(system_one.MockProvider(seed=5))
-    with system_one.provider(recorder):
+    recorder = decisions.RecordingProvider(decisions.MockProvider(seed=5))
+    with decisions.provider(recorder):
         recorded = Model.validate(frame)["department"].tolist()
 
-    replay = system_one.ReplayProvider(
+    replay = decisions.ReplayProvider(
         recorder.cassette, id=recorder.id, model_version=recorder.model_version
     )
-    with system_one.provider(replay):
+    with decisions.provider(replay):
         replayed = Model.validate(frame)["department"].tolist()
 
     assert recorded == replayed
@@ -588,10 +590,10 @@ def test_replay_without_a_recording_fails_loudly():
     Model = _triage_model(
         department=(
             Department,
-            pa.ParsedField(description="q", parser=system_one.Choice()),
+            pa.ParsedField(description="q", parser=decisions.Choice()),
         )
     )
-    with system_one.provider(system_one.ReplayProvider({})):
+    with decisions.provider(decisions.ReplayProvider({})):
         with pytest.raises(KeyError, match="no recorded answer"):
             Model.validate(pd.DataFrame({"body": ["unseen"]}))
 
@@ -610,7 +612,7 @@ def test_answers_stay_aligned_with_rows():
 
         @property
         def limits(self):
-            return system_one.ProviderLimits(max_concurrency=8)
+            return decisions.ProviderLimits(max_concurrency=8)
 
         def compile(self, questions):
             return dict(questions)
@@ -625,11 +627,11 @@ def test_answers_stay_aligned_with_rows():
     class Model(pa.DataFrameModel):
         body: str
         n: float = pa.ParsedField(
-            description="q", parser=system_one.Noul(), source="body"
+            description="q", parser=decisions.Noul(), source="body"
         )
 
     frame = pd.DataFrame({"body": [str(i) for i in range(10)]})
-    with system_one.provider(_Shuffled()):
+    with decisions.provider(_Shuffled()):
         out = Model.validate(frame)
     assert out["n"].tolist() == [i / 10 for i in range(10)]
 
@@ -673,6 +675,25 @@ def test_token_bucket_waits_when_exhausted():
     assert bucket.waits > 0
 
 
+def test_oversized_request_does_not_deadlock_the_rate_limiter():
+    """A request larger than the bucket's per-second capacity must be charged
+    what the bucket holds rather than waited for forever: the allowance can
+    never refill past the cap, so an unlimited ``while`` loop would spin on it
+    indefinitely. The hard ``max_state_tokens`` bound is the caller's job."""
+    import asyncio
+
+    # A request for 100 tokens against a 3-token bucket must not deadlock. It
+    # is charged 3 (one full bucket) and returns immediately.
+    bucket = TokenBucket(tokens_per_second=3)
+
+    async def _one():
+        await bucket.acquire(100)
+
+    asyncio.run(asyncio.wait_for(_one(), timeout=2))
+    # the oversized request consumed the whole bucket in lieu of hanging
+    assert bucket._token_allowance <= 0
+
+
 # --------------------------------------------------------------------------
 # typesafe provider translation (no network)
 # --------------------------------------------------------------------------
@@ -682,7 +703,7 @@ def test_typesafe_provider_translates_questions():
     pytest.importorskip("typesafe_sdk")
     import typesafe_sdk
 
-    from pandera.system_one.providers.typesafe import TypeSafeProvider
+    from pandera.decisions.providers.typesafe import TypeSafeProvider
 
     provider = TypeSafeProvider("jev-1.13.0")
     compiled = provider.compile(
@@ -708,7 +729,7 @@ def test_typesafe_provider_translates_questions():
 
 def test_typesafe_provider_normalizes_answers():
     pytest.importorskip("typesafe_sdk")
-    from pandera.system_one.providers.typesafe import _to_decision
+    from pandera.decisions.providers.typesafe import _to_decision
 
     class _ChoiceAnswer:
         type = "choice"

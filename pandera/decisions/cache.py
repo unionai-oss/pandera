@@ -20,7 +20,7 @@ import threading
 from collections.abc import Mapping
 from typing import Any, Protocol, runtime_checkable
 
-from pandera.system_one.primitives import Decision, Question
+from pandera.decisions.primitives import Decision, Question
 
 
 def cache_key(
