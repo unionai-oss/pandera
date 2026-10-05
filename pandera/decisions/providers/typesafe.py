@@ -6,7 +6,7 @@ else in pandera imports ``typesafe_sdk``.
 
 The wire format -- one ``state`` plus named ``questions`` in, typed ``answers``
 out -- is not TypeSafe's alone: open-weight decision models served locally
-(see :mod:`~pandera.system_one.providers.ollaya`) implement the same endpoint,
+(see :mod:`~pandera.decisions.providers.ollaya`) implement the same endpoint,
 and the SDK works against them by changing ``base_url``. So this class takes
 ``base_url`` and is written to be subclassed by a provider that only differs in
 where it points and what its model can do.
@@ -18,8 +18,7 @@ import dataclasses
 from collections.abc import Mapping
 from typing import Any
 
-from pandera.errors import SchemaInitError
-from pandera.system_one.primitives import (
+from pandera.decisions.primitives import (
     Choice,
     Decision,
     Noul,
@@ -28,10 +27,11 @@ from pandera.system_one.primitives import (
     Question,
     Score,
 )
+from pandera.errors import SchemaInitError
 
 _INSTALL_HINT = (
-    "The TypeSafe provider requires the typesafe-ai extra: "
-    "`pip install 'pandera[typesafe-ai]'`."
+    "The TypeSafe provider requires the decisions extra: "
+    "`pip install 'pandera[decisions]'`."
 )
 
 # Published limits, used to pace requests. Conservative by design: exceeding
@@ -45,7 +45,7 @@ _LIMITS = ProviderLimits(
 
 
 class TypeSafeProvider:
-    """Answers questions with a TypeSafe System One model.
+    """Answers questions with a TypeSafe decision model.
 
     :param model: the model to ask. ``jev-latest`` is a moving target, so pin a
         version wherever answers are cached or recorded.

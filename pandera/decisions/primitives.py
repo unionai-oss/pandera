@@ -1,9 +1,9 @@
 """Provider-neutral question and answer types.
 
-A System One model answers typed questions and can only return values from the
+A decision model answers typed questions and can only return values from the
 schema it was given, so these three question shapes are the entire vocabulary.
 They are deliberately independent of any provider SDK: a
-:class:`~pandera.system_one.providers.base.DecisionProvider` translates them on
+:class:`~pandera.decisions.providers.base.DecisionProvider` translates them on
 the way out and normalizes answers on the way back.
 """
 
@@ -50,7 +50,7 @@ class Score:
     """A question that places the state on an ordered scale.
 
     ``criteria`` is one description per level, starting at zero -- the wire
-    format every System One provider uses. ``levels`` carries the value each
+    format every decision provider uses. ``levels`` carries the value each
     position maps back to, so an ``IntEnum`` whose members are not ``0..n-1``
     still round-trips.
     """
@@ -134,5 +134,5 @@ class ProviderCapabilities:
     refused for a kind missing here, rather than quietly never triggering."""
 
     price_per_million_input_tokens: float | None = None
-    """What input costs, for :func:`~pandera.system_one.plan`. ``None`` means
+    """What input costs, for :func:`~pandera.decisions.plan`. ``None`` means
     unknown, which is not the same as free: a local model says ``0.0``."""

@@ -20,8 +20,8 @@ from __future__ import annotations
 import os
 from typing import Any
 
-from pandera.system_one.primitives import ProviderCapabilities, ProviderLimits
-from pandera.system_one.providers.typesafe import TypeSafeProvider
+from pandera.decisions.primitives import ProviderCapabilities, ProviderLimits
+from pandera.decisions.providers.typesafe import TypeSafeProvider
 
 HOST_ENV_VAR = "OLLAYA_HOST"
 API_KEY_ENV_VAR = "OLLAYA_API_KEY"
@@ -62,11 +62,11 @@ class OllayaProvider(TypeSafeProvider):
 
     ::
 
-        system_one.set_provider("ollaya:laya")
+        decisions.set_provider("ollaya:laya")
 
         # or, for a server elsewhere
-        system_one.set_provider(
-            system_one.OllayaProvider("decider:2b", base_url="http://gpu-box:11435")
+        decisions.set_provider(
+            decisions.OllayaProvider("decider:2b", base_url="http://gpu-box:11435")
         )
 
     :param model: an Ollaya model name, e.g. ``laya`` or ``decider:2b``.

@@ -5,12 +5,12 @@ import enum
 import pandas as pd
 import pytest
 
+import pandera.decisions as decisions
 import pandera.pandas as pa
-import pandera.system_one as system_one
+from pandera.decisions import primitives as q
+from pandera.decisions.cache import MemoryCache, SQLiteCache, build_cache
+from pandera.decisions.providers.base import ProviderCapabilityError
 from pandera.errors import SchemaError, SchemaErrors, SchemaInitError
-from pandera.system_one import primitives as q
-from pandera.system_one.cache import MemoryCache, SQLiteCache, build_cache
-from pandera.system_one.providers.base import ProviderCapabilityError
 
 
 class Department(str, enum.Enum):
@@ -33,7 +33,7 @@ class _Fixed:
 
     @property
     def limits(self):
-        return system_one.ProviderLimits(max_concurrency=4)
+        return decisions.ProviderLimits(max_concurrency=4)
 
     def compile(self, questions):
         return dict(questions)
@@ -66,14 +66,14 @@ def test_confidence_column_reports_a_siblings_confidence():
     Model = _model(
         department=(
             Department,
-            pa.ParsedField(description="q", parser=system_one.Choice()),
+            pa.ParsedField(description="q", parser=decisions.Choice()),
         ),
         department_confidence=(
             float,
-            pa.ParsedField(parser=system_one.Confidence("department")),
+            pa.ParsedField(parser=decisions.Confidence("department")),
         ),
     )
-    with system_one.provider(_Fixed(confidence=0.83)):
+    with decisions.provider(_Fixed(confidence=0.83)):
         out = Model.validate(pd.DataFrame({"body": ["x"]}))
     assert out["department_confidence"].tolist() == [0.83]
 
@@ -83,15 +83,15 @@ def test_confidence_column_is_free():
     Model = _model(
         department=(
             Department,
-            pa.ParsedField(description="q", parser=system_one.Choice()),
+            pa.ParsedField(description="q", parser=decisions.Choice()),
         ),
         department_confidence=(
             float,
-            pa.ParsedField(parser=system_one.Confidence("department")),
+            pa.ParsedField(parser=decisions.Confidence("department")),
         ),
     )
     provider = _Fixed()
-    with system_one.provider(provider):
+    with decisions.provider(provider):
         Model.validate(pd.DataFrame({"body": ["a", "b", "c"]}))
     assert provider.calls == 3  # one per row, not two per row
 
@@ -100,14 +100,14 @@ def test_confidence_column_is_checked_like_any_other():
     Model = _model(
         department=(
             Department,
-            pa.ParsedField(description="q", parser=system_one.Choice()),
+            pa.ParsedField(description="q", parser=decisions.Choice()),
         ),
         department_confidence=(
             float,
-            pa.ParsedField(parser=system_one.Confidence("department"), ge=0.9),
+            pa.ParsedField(parser=decisions.Confidence("department"), ge=0.9),
         ),
     )
-    with system_one.provider(_Fixed(confidence=0.5)):
+    with decisions.provider(_Fixed(confidence=0.5)):
         with pytest.raises((SchemaError, SchemaErrors)):
             Model.validate(pd.DataFrame({"body": ["x"]}))
 
@@ -117,13 +117,13 @@ def test_confidence_of_a_column_in_another_batch_is_an_error():
         a: str
         b: str
         department: Department = pa.ParsedField(
-            description="q", parser=system_one.Choice(), source="a"
+            description="q", parser=decisions.Choice(), source="a"
         )
         department_confidence: float = pa.ParsedField(
-            parser=system_one.Confidence("department"), source="b"
+            parser=decisions.Confidence("department"), source="b"
         )
 
-    with system_one.provider(_Fixed()):
+    with decisions.provider(_Fixed()):
         with pytest.raises(SchemaInitError, match="not answered in the same"):
             Model.validate(pd.DataFrame({"a": ["x"], "b": ["y"]}))
 
@@ -132,11 +132,11 @@ def test_confidence_of_an_unknown_column_is_an_error():
     Model = _model(
         department=(
             Department,
-            pa.ParsedField(description="q", parser=system_one.Choice()),
+            pa.ParsedField(description="q", parser=decisions.Choice()),
         ),
-        conf=(float, pa.ParsedField(parser=system_one.Confidence("nope"))),
+        conf=(float, pa.ParsedField(parser=decisions.Confidence("nope"))),
     )
-    with system_one.provider(_Fixed()):
+    with decisions.provider(_Fixed()):
         with pytest.raises(SchemaInitError, match="'nope'"):
             Model.validate(pd.DataFrame({"body": ["x"]}))
 
@@ -152,17 +152,17 @@ def test_abstain_below_nulls_low_confidence_answers():
             Department,
             pa.ParsedField(
                 description="q",
-                parser=system_one.Choice(abstain_below=0.8),
+                parser=decisions.Choice(abstain_below=0.8),
                 nullable=True,
             ),
         )
     )
-    with system_one.provider(_Fixed(confidence=0.9)):
+    with decisions.provider(_Fixed(confidence=0.9)):
         assert Model.validate(pd.DataFrame({"body": ["x"]}))[
             "department"
         ].tolist() == ["billing"]
 
-    with system_one.provider(_Fixed(confidence=0.5)):
+    with decisions.provider(_Fixed(confidence=0.5)):
         out = Model.validate(pd.DataFrame({"body": ["x"]}))
     assert out["department"].isna().all()
 
@@ -175,7 +175,7 @@ def test_abstention_composes_with_a_confidence_floor():
         body: str
         department: Department = pa.ParsedField(
             description="q",
-            parser=system_one.Choice(abstain_below=0.8),
+            parser=decisions.Choice(abstain_below=0.8),
             nullable=True,
             source="body",
         )
@@ -184,7 +184,7 @@ def test_abstention_composes_with_a_confidence_floor():
         def not_too_many_abstentions(cls, df):
             return df["department"].isna().mean() < 0.5
 
-    with system_one.provider(_Fixed(confidence=0.5)):
+    with decisions.provider(_Fixed(confidence=0.5)):
         with pytest.raises((SchemaError, SchemaErrors)):
             Model.validate(pd.DataFrame({"body": ["x", "y"]}))
 
@@ -200,13 +200,13 @@ def test_abstaining_on_a_noul_is_refused_not_silently_ignored():
             bool,
             pa.ParsedField(
                 description="q",
-                parser=system_one.Noul(abstain_below=0.8),
+                parser=decisions.Noul(abstain_below=0.8),
                 nullable=True,
             ),
         )
     )
     provider = _Fixed(value=0.9, confidence=None)
-    with system_one.provider(provider):
+    with decisions.provider(provider):
         with pytest.raises(ProviderCapabilityError) as excinfo:
             Model.validate(pd.DataFrame({"body": ["x"]}))
     assert "'flag'" in str(excinfo.value)
@@ -218,14 +218,14 @@ def test_confidence_of_a_noul_is_refused():
     Model = _model(
         flag=(
             bool,
-            pa.ParsedField(description="q", parser=system_one.Noul()),
+            pa.ParsedField(description="q", parser=decisions.Noul()),
         ),
         flag_confidence=(
             float,
-            pa.ParsedField(parser=system_one.Confidence("flag")),
+            pa.ParsedField(parser=decisions.Confidence("flag")),
         ),
     )
-    with system_one.provider(_Fixed(confidence=None)):
+    with decisions.provider(_Fixed(confidence=None)):
         with pytest.raises(ProviderCapabilityError, match="'flag'"):
             Model.validate(pd.DataFrame({"body": ["x"]}))
 
@@ -235,7 +235,7 @@ class _ReportsNoulConfidence(_Fixed):
 
     @property
     def capabilities(self):
-        return system_one.ProviderCapabilities(
+        return decisions.ProviderCapabilities(
             reports_confidence=frozenset({"choice", "score", "noul"})
         )
 
@@ -246,14 +246,12 @@ def test_a_provider_that_reports_noul_confidence_can_abstain_on_it():
             pd.BooleanDtype,
             pa.ParsedField(
                 description="q",
-                parser=system_one.Noul(abstain_below=0.8),
+                parser=decisions.Noul(abstain_below=0.8),
                 nullable=True,
             ),
         )
     )
-    with system_one.provider(
-        _ReportsNoulConfidence(value=0.9, confidence=0.5)
-    ):
+    with decisions.provider(_ReportsNoulConfidence(value=0.9, confidence=0.5)):
         out = Model.validate(pd.DataFrame({"body": ["x"]}))
     assert out["flag"].isna().all()
 
@@ -265,14 +263,12 @@ def test_an_abstained_noul_is_missing_not_false():
             bool,
             pa.ParsedField(
                 description="q",
-                parser=system_one.Noul(abstain_below=0.8),
+                parser=decisions.Noul(abstain_below=0.8),
                 nullable=True,
             ),
         )
     )
-    with system_one.provider(
-        _ReportsNoulConfidence(value=0.9, confidence=0.5)
-    ):
+    with decisions.provider(_ReportsNoulConfidence(value=0.9, confidence=0.5)):
         # a plain ``bool`` column cannot hold a missing answer: it says so
         with pytest.raises((SchemaError, SchemaErrors), match="boolean|bool"):
             Model.validate(pd.DataFrame({"body": ["x"]}))
@@ -284,13 +280,13 @@ def test_a_provider_that_promises_confidence_and_omits_it_is_an_error():
             Department,
             pa.ParsedField(
                 description="q",
-                parser=system_one.Choice(abstain_below=0.8),
+                parser=decisions.Choice(abstain_below=0.8),
                 nullable=True,
             ),
         )
     )
     # declares confidence for choices (the default), then does not send one
-    with system_one.provider(_Fixed(confidence=None)):
+    with decisions.provider(_Fixed(confidence=None)):
         with pytest.raises(ProviderCapabilityError, match="no confidence"):
             Model.validate(pd.DataFrame({"body": ["x"]}))
 
@@ -307,14 +303,14 @@ def test_cache_avoids_repeat_requests():
             Department,
             pa.ParsedField(
                 description="q",
-                parser=system_one.Choice(cache=cache),
+                parser=decisions.Choice(cache=cache),
             ),
         )
     )
     frame = pd.DataFrame({"body": ["a", "b"]})
 
     provider = _Fixed()
-    with system_one.provider(provider):
+    with decisions.provider(provider):
         Model.validate(frame)
         assert provider.calls == 2
         Model.validate(frame)
@@ -324,7 +320,7 @@ def test_cache_avoids_repeat_requests():
 def test_cache_key_includes_the_question_text():
     """Rewording a description must invalidate its cached answers -- the
     payoff for keeping the question in the schema rather than in a prompt."""
-    from pandera.system_one.cache import cache_key
+    from pandera.decisions.cache import cache_key
 
     def _key(instructions):
         return cache_key(
@@ -345,7 +341,7 @@ def test_cache_key_includes_the_question_text():
 
 
 def test_cache_key_includes_criteria_and_model_version():
-    from pandera.system_one.cache import cache_key
+    from pandera.decisions.cache import cache_key
 
     def _key(*, criteria, model="v1"):
         return cache_key(
@@ -380,14 +376,14 @@ def test_an_in_memory_cache_is_not_shared_between_schemas():
             department=(
                 Department,
                 pa.ParsedField(
-                    description="q", parser=system_one.Choice(cache=cache)
+                    description="q", parser=decisions.Choice(cache=cache)
                 ),
             )
         )
 
     frame = pd.DataFrame({"body": ["a"]})
     provider = _Fixed()
-    with system_one.provider(provider):
+    with decisions.provider(provider):
         _build().validate(frame)
         _build().validate(frame)
     assert provider.calls == 2  # each schema kept its own copy
@@ -400,12 +396,12 @@ def test_cache_partial_hit_only_calls_for_new_rows():
         department=(
             Department,
             pa.ParsedField(
-                description="q", parser=system_one.Choice(cache=cache)
+                description="q", parser=decisions.Choice(cache=cache)
             ),
         )
     )
     provider = _Fixed()
-    with system_one.provider(provider):
+    with decisions.provider(provider):
         Model.validate(pd.DataFrame({"body": ["a"]}))
         assert provider.calls == 1
         # yesterday's row plus a new one
@@ -420,13 +416,13 @@ def test_sqlite_cache_survives_a_new_instance(tmp_path):
             Department,
             pa.ParsedField(
                 description="q",
-                parser=system_one.Choice(cache=f"sqlite:///{path}"),
+                parser=decisions.Choice(cache=f"sqlite:///{path}"),
             ),
         )
     )
     frame = pd.DataFrame({"body": ["a"]})
     provider = _Fixed()
-    with system_one.provider(provider):
+    with decisions.provider(provider):
         Model.validate(frame)
         assert provider.calls == 1
         Model.validate(frame)
@@ -468,13 +464,13 @@ def test_stats_are_attached_to_the_validated_frame():
     Model = _model(
         department=(
             Department,
-            pa.ParsedField(description="q", parser=system_one.Choice()),
+            pa.ParsedField(description="q", parser=decisions.Choice()),
         )
     )
-    with system_one.provider(_Fixed()):
+    with decisions.provider(_Fixed()):
         out = Model.validate(pd.DataFrame({"body": ["a", "b", "c"]}))
 
-    stats = system_one.stats(out)
+    stats = decisions.stats(out)
     assert stats["rows"] == 3
     assert stats["batches"] == 1
     assert stats["called"] == 3
@@ -490,15 +486,15 @@ def test_stats_report_cache_hits():
         department=(
             Department,
             pa.ParsedField(
-                description="q", parser=system_one.Choice(cache=cache)
+                description="q", parser=decisions.Choice(cache=cache)
             ),
         )
     )
     frame = pd.DataFrame({"body": ["a", "b"]})
-    with system_one.provider(_Fixed()):
+    with decisions.provider(_Fixed()):
         Model.validate(frame)
         out = Model.validate(frame)
-    stats = system_one.stats(out)
+    stats = decisions.stats(out)
     assert stats["cached"] == 2
     assert stats["called"] == 0
 
@@ -508,21 +504,21 @@ def test_stats_accumulate_across_batches():
         a: str
         b: str
         from_a: bool = pa.ParsedField(
-            description="q1", parser=system_one.Noul(), source="a"
+            description="q1", parser=decisions.Noul(), source="a"
         )
         from_b: bool = pa.ParsedField(
-            description="q2", parser=system_one.Noul(), source="b"
+            description="q2", parser=decisions.Noul(), source="b"
         )
 
-    with system_one.provider(_Fixed(value=0.9)):
+    with decisions.provider(_Fixed(value=0.9)):
         out = Model.validate(pd.DataFrame({"a": ["x"], "b": ["y"]}))
-    stats = system_one.stats(out)
+    stats = decisions.stats(out)
     assert stats["batches"] == 2
     assert stats["called"] == 2
 
 
 def test_stats_of_a_plain_frame_are_empty():
-    assert system_one.stats(pd.DataFrame({"a": [1]})) == {}
+    assert decisions.stats(pd.DataFrame({"a": [1]})) == {}
 
 
 # --------------------------------------------------------------------------
@@ -536,12 +532,12 @@ def test_questions_compiles_without_a_provider():
             Department,
             pa.ParsedField(
                 description="Which team should handle this",
-                parser=system_one.Choice(),
+                parser=decisions.Choice(),
             ),
         )
     )
-    assert system_one.get_provider() is None
-    compiled = system_one.questions(Model)
+    assert decisions.get_provider() is None
+    compiled = decisions.questions(Model)
     assert set(compiled) == {"department"}
     assert compiled["department"].instructions == (
         "Which team should handle this"
@@ -553,14 +549,14 @@ def test_questions_omits_confidence_columns():
     Model = _model(
         department=(
             Department,
-            pa.ParsedField(description="q", parser=system_one.Choice()),
+            pa.ParsedField(description="q", parser=decisions.Choice()),
         ),
         conf=(
             float,
-            pa.ParsedField(parser=system_one.Confidence("department")),
+            pa.ParsedField(parser=decisions.Confidence("department")),
         ),
     )
-    assert set(system_one.questions(Model)) == {"department"}
+    assert set(decisions.questions(Model)) == {"department"}
 
 
 def test_questions_accepts_a_schema_too():
@@ -571,26 +567,26 @@ def test_questions_accepts_a_schema_too():
                 bool,
                 source="body",
                 description="q",
-                parser=system_one.Noul(),
+                parser=decisions.Noul(),
             ),
         }
     )
-    assert set(system_one.questions(schema)) == {"flag"}
+    assert set(decisions.questions(schema)) == {"flag"}
 
 
 def test_plan_reports_requests_without_sending_them():
     Model = _model(
         department=(
             Department,
-            pa.ParsedField(description="q", parser=system_one.Choice()),
+            pa.ParsedField(description="q", parser=decisions.Choice()),
         ),
         urgent=(
             bool,
-            pa.ParsedField(description="q2", parser=system_one.Noul()),
+            pa.ParsedField(description="q2", parser=decisions.Noul()),
         ),
     )
     frame = pd.DataFrame({"body": ["a ticket body", "another one"]})
-    plan = system_one.plan(Model, frame)
+    plan = decisions.plan(Model, frame)
 
     assert plan.rows == 2
     assert plan.batches == 1
@@ -605,13 +601,13 @@ def test_plan_counts_batches_separately():
         a: str
         b: str
         from_a: bool = pa.ParsedField(
-            description="q1", parser=system_one.Noul(), source="a"
+            description="q1", parser=decisions.Noul(), source="a"
         )
         from_b: bool = pa.ParsedField(
-            description="q2", parser=system_one.Noul(), source="b"
+            description="q2", parser=decisions.Noul(), source="b"
         )
 
-    plan = system_one.plan(Model, pd.DataFrame({"a": ["x"], "b": ["y"]}))
+    plan = decisions.plan(Model, pd.DataFrame({"a": ["x"], "b": ["y"]}))
     assert plan.batches == 2
     assert plan.requests == 2
 
@@ -620,25 +616,25 @@ def test_plan_without_data():
     Model = _model(
         urgent=(
             bool,
-            pa.ParsedField(description="q", parser=system_one.Noul()),
+            pa.ParsedField(description="q", parser=decisions.Noul()),
         )
     )
-    plan = system_one.plan(Model, rows=1000)
+    plan = decisions.plan(Model, rows=1000)
     assert plan.rows == 1000
     assert plan.requests == 1000
     assert plan.estimated_input_tokens == 0
 
 
-def test_plan_on_a_schema_with_no_system_one_columns():
+def test_plan_on_a_schema_with_no_decisions_columns():
     schema = pa.DataFrameSchema({"a": pa.Column(int)})
-    plan = system_one.plan(schema, pd.DataFrame({"a": [1]}))
+    plan = decisions.plan(schema, pd.DataFrame({"a": [1]}))
     assert plan.batches == 0
     assert plan.requests == 0
 
 
 def _priced(price):
-    return system_one.MockProvider(
-        capabilities=system_one.ProviderCapabilities(
+    return decisions.MockProvider(
+        capabilities=decisions.ProviderCapabilities(
             price_per_million_input_tokens=price
         )
     )
@@ -646,13 +642,13 @@ def _priced(price):
 
 def _one_noul_model():
     return _model(
-        flag=(bool, pa.ParsedField(description="q", parser=system_one.Noul()))
+        flag=(bool, pa.ParsedField(description="q", parser=decisions.Noul()))
     )
 
 
 def test_plan_prices_the_input_when_the_provider_declares_a_price():
     frame = pd.DataFrame({"body": ["a ticket body", "another one"]})
-    plan = system_one.plan(_one_noul_model(), frame, provider=_priced(2.0))
+    plan = decisions.plan(_one_noul_model(), frame, provider=_priced(2.0))
     assert plan.estimated_cost_usd == pytest.approx(
         plan.estimated_input_tokens * 2.0 / 1e6
     )
@@ -661,25 +657,25 @@ def test_plan_prices_the_input_when_the_provider_declares_a_price():
 def test_plan_cost_is_unknown_not_zero_without_a_price():
     frame = pd.DataFrame({"body": ["a ticket body"]})
     assert (
-        system_one.plan(
+        decisions.plan(
             _one_noul_model(), frame, provider=_priced(None)
         ).estimated_cost_usd
         is None
     )
     # no provider at all: nothing to price with
-    assert system_one.plan(_one_noul_model(), frame).estimated_cost_usd is None
+    assert decisions.plan(_one_noul_model(), frame).estimated_cost_usd is None
 
 
 def test_a_local_model_is_free_not_unknown():
     frame = pd.DataFrame({"body": ["a ticket body"]})
-    plan = system_one.plan(
-        _one_noul_model(), frame, provider=system_one.OllayaProvider("laya")
+    plan = decisions.plan(
+        _one_noul_model(), frame, provider=decisions.OllayaProvider("laya")
     )
     assert plan.estimated_cost_usd == 0.0
 
 
 def test_plan_without_data_has_no_cost_rather_than_a_zero():
-    plan = system_one.plan(_one_noul_model(), rows=100, provider=_priced(2.0))
+    plan = decisions.plan(_one_noul_model(), rows=100, provider=_priced(2.0))
     assert plan.estimated_cost_usd is None
 
 
@@ -690,12 +686,12 @@ def test_questions_can_be_checked_against_a_provider_without_a_request():
         c = "c"
 
     Model = _model(
-        big=(Big, pa.ParsedField(description="q", parser=system_one.Choice()))
+        big=(Big, pa.ParsedField(description="q", parser=decisions.Choice()))
     )
-    narrow = system_one.MockProvider(
-        capabilities=system_one.ProviderCapabilities(max_options=2)
+    narrow = decisions.MockProvider(
+        capabilities=decisions.ProviderCapabilities(max_options=2)
     )
-    assert set(system_one.questions(Model)) == {"big"}  # fine with no provider
+    assert set(decisions.questions(Model)) == {"big"}  # fine with no provider
     with pytest.raises(ProviderCapabilityError, match="3 options"):
-        system_one.questions(Model, provider=narrow)
+        decisions.questions(Model, provider=narrow)
     assert narrow.calls == 0

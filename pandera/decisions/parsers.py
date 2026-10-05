@@ -1,4 +1,4 @@
-"""The three System One column parsers: ``Choice``, ``Score`` and ``Noul``.
+"""The three decision column parsers: ``Choice``, ``Score`` and ``Noul``.
 
 Each is a :class:`~pandera.api.parsers.ColumnParser`, so asking a decision
 model to fill a column is declared exactly like any other derived column. What
@@ -17,23 +17,23 @@ import pandas as pd
 
 from pandera import _enum_literal
 from pandera.api.parsers import ParseContext
+from pandera.decisions import primitives as q
+from pandera.decisions.cache import build_cache, cache_key
+from pandera.decisions.execution import gather_decisions, run_sync
+from pandera.decisions.providers import base as provider_base
 from pandera.errors import SchemaInitError
-from pandera.system_one import primitives as q
-from pandera.system_one.cache import build_cache, cache_key
-from pandera.system_one.execution import gather_decisions, run_sync
-from pandera.system_one.providers import base as provider_base
 
 # The question vocabulary's own bounds, shared by every provider that speaks the
-# System One wire format. A given model may be narrower -- that is what
+# decision wire format. A given model may be narrower -- that is what
 # ``ProviderCapabilities`` is for, and it is checked once the provider is known.
 MAX_CHOICE_OPTIONS = 255
 MIN_SCORE_LEVELS = 2
 MAX_SCORE_LEVELS = 10
 
-STATS_KEY = "pandera.system_one"
+STATS_KEY = "pandera.decisions"
 
 
-class _SystemOneParser:
+class _DecisionParser:
     """Shared machinery for the three question types."""
 
     # These parsers fill several columns from one request, so they always
@@ -80,7 +80,7 @@ class _SystemOneParser:
         """Group by who answers and what they are shown.
 
         Columns sharing a provider, a source and an error policy can be filled
-        by one request, because a System One request is one state plus many
+        by one request, because a decision request is one state plus many
         questions. This is what keeps a per-column declaration from costing a
         per-column request.
         """
@@ -126,7 +126,7 @@ class _SystemOneParser:
 
         if not asking:
             raise SchemaInitError(  # pragma: no cover - defensive
-                "a System One request must ask at least one question."
+                "a decision request must ask at least one question."
             )
 
         first_ctx = asking[0][1]
@@ -249,7 +249,7 @@ class _SystemOneParser:
         )
 
 
-class Noul(_SystemOneParser):
+class Noul(_DecisionParser):
     """A yes/no question, answered with a calibrated probability.
 
     Fills a ``bool`` column by thresholding the probability, or a ``float``
@@ -304,7 +304,7 @@ class Noul(_SystemOneParser):
         return probability
 
 
-class Choice(_SystemOneParser):
+class Choice(_DecisionParser):
     """A question that selects one of the column's options.
 
     Options come from the column's declared type -- an ``Enum``, a
@@ -329,7 +329,7 @@ class Choice(_SystemOneParser):
             raise SchemaInitError(
                 f"column '{ctx.target}' is filled by Choice() but its type "
                 f"offers {len(options)} options, more than the "
-                f"{MAX_CHOICE_OPTIONS} a System One choice supports."
+                f"{MAX_CHOICE_OPTIONS} a decision choice supports."
             )
 
         descriptions = _descriptions(ctx.dtype, options)
@@ -373,7 +373,7 @@ class Choice(_SystemOneParser):
         return _label_to_value(cast(q.Choice, question), decision.value)
 
 
-class Score(_SystemOneParser):
+class Score(_DecisionParser):
     """A question that places the state on the column's ordered scale.
 
     Levels come from an ordered type -- typically an ``IntEnum`` -- in value
@@ -401,7 +401,7 @@ class Score(_SystemOneParser):
         if not MIN_SCORE_LEVELS <= len(levels) <= MAX_SCORE_LEVELS:
             raise SchemaInitError(
                 f"column '{ctx.target}' is filled by Score() but its type has "
-                f"{len(levels)} levels. A System One score supports "
+                f"{len(levels)} levels. A decision score supports "
                 f"{MIN_SCORE_LEVELS} to {MAX_SCORE_LEVELS}."
             )
 
@@ -453,18 +453,18 @@ class Score(_SystemOneParser):
         return levels[index]
 
 
-class Confidence(_SystemOneParser):
+class Confidence(_DecisionParser):
     """Reports how certain the model was about another column.
 
     Confidence is a column like any other, so an ordinary check governs it::
 
         department: Department = pa.ParsedField(
             description="Which team should handle this ticket",
-            parser=system_one.Choice(),
+            parser=decisions.Choice(),
             nullable=True,
         )
         department_confidence: float = pa.ParsedField(
-            parser=system_one.Confidence("department"),
+            parser=decisions.Confidence("department"),
             ge=0.70,
         )
 
@@ -518,7 +518,7 @@ def _record_stats(
 
 
 def stats(frame: pd.DataFrame) -> dict[str, Any]:
-    """Statistics for the System One work that filled a validated frame.
+    """Statistics for the decision work that filled a validated frame.
 
     Always attached, so the cost of a validation is visible rather than
     inferred::
@@ -616,7 +616,7 @@ def _build_states(
 def _as_declared(values: Sequence[Any], index: Any, dtype: Any) -> pd.Series:
     """Build the answer column in the type the schema declared.
 
-    A System One answer is always within the column's domain by construction,
+    A decision answer is always within the column's domain by construction,
     so the parser produces the declared type directly rather than leaving an
     object column for coercion to clean up.
     """

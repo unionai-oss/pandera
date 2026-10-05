@@ -15,10 +15,10 @@ from typing import Any
 import pandas as pd
 
 from pandera.api.checks import Check
+from pandera.decisions import primitives as q
+from pandera.decisions.execution import gather_decisions, run_sync
+from pandera.decisions.providers import base as provider_base
 from pandera.errors import SchemaInitError
-from pandera.system_one import primitives as q
-from pandera.system_one.execution import gather_decisions, run_sync
-from pandera.system_one.providers import base as provider_base
 
 _ANSWER = "holds"
 
@@ -42,7 +42,7 @@ def Holds(
                 "category": pa.Column(str),
                 "description": pa.Column(str),
             },
-            checks=system_one.Holds(
+            checks=decisions.Holds(
                 "The description is a coherent description of a product "
                 "belonging to the stated category",
                 context=["name", "category", "description"],
@@ -95,7 +95,7 @@ def holds(
 
         @pa.dataframe_check
         def name_fits_category(cls, df):
-            return system_one.holds(
+            return decisions.holds(
                 "The name fits the category",
                 context=["name", "category"],
             )(df)
@@ -108,7 +108,7 @@ def holds(
             # Schemas carrying semantic checks still have to run offline --
             # in CI, on a plane, in a test suite with no credentials.
             warnings.warn(
-                f"System One checks are disabled, so {instructions!r} was "
+                f"decision checks are disabled, so {instructions!r} was "
                 f"not evaluated. Unset {provider_base.ENABLED_ENV_VAR} to "
                 "enable them.",
                 stacklevel=2,

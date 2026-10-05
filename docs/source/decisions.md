@@ -2,16 +2,16 @@
 file_format: mystnb
 ---
 
-% pandera documentation for System One parsing
+% pandera documentation for decision parsing
 
-```{currentmodule} pandera.system_one
+```{currentmodule} pandera.decisions
 ```
 
-(system-one)=
+(decisions)=
 
-# System One parsing
+# Decision parsing
 
-A *System One* model does not generate text. It answers typed questions and can
+A decision model does not generate text. It answers typed questions and can
 only return values from the schema it was given, so producing an out-of-domain
 answer is not representable. That makes it a natural fit for a derived column:
 the column's declared type **is** the answer domain.
@@ -19,19 +19,19 @@ the column's declared type **is** the answer domain.
 Install with the extra:
 
 ```bash
-pip install 'pandera[typesafe-ai]'
+pip install 'pandera[decisions]'
 ```
 
 ## Declaring a column
 
-A System One column is declared exactly like any other derived column
+A decision column is declared exactly like any other derived column
 ({ref}`derived-columns`) — with a parser object instead of a callable:
 
 ```{code-cell} python
 import enum
 import pandas as pd
 import pandera.pandas as pa
-import pandera.system_one as system_one
+import pandera.decisions as decisions
 
 class Department(enum.StrEnum):
     billing = "billing"
@@ -53,15 +53,15 @@ class Triage(pa.DataFrameModel):
     ticket_body: str
     department: Department = pa.ParsedField(
         description="Which team should handle this ticket",
-        parser=system_one.Choice(),
+        parser=decisions.Choice(),
     )
     frustration: Frustration = pa.ParsedField(
         description="How frustrated the customer appears",
-        parser=system_one.Score(),
+        parser=decisions.Score(),
     )
     is_urgent: bool = pa.ParsedField(
         description="The message conveys time-sensitivity",
-        parser=system_one.Noul(),
+        parser=decisions.Noul(),
     )
 
     class Config:
@@ -110,17 +110,17 @@ model class runs against a cassette in CI and a live model in production
 without being edited:
 
 ```python
-system_one.set_provider("typesafe:jev-1.13.0")       # process-wide
+decisions.set_provider("typesafe:jev-1.13.0")       # process-wide
 
-with system_one.provider(system_one.MockProvider()):  # scoped
+with decisions.provider(decisions.MockProvider()):  # scoped
     Triage.validate(tickets_df)
 ```
 
-`PANDERA_SYSTEM_ONE_PROVIDER` is the environment-variable form.
+`PANDERA_DECISIONS_PROVIDER` is the environment-variable form.
 
 **There is no default provider.** Filling a column by asking a model costs
-money and time, so validating a System One schema without configuring one
-raises `SystemOneConfigError` naming the columns rather than calling out.
+money and time, so validating a decision schema without configuring one
+raises `DecisionsConfigError` naming the columns rather than calling out.
 
 Shipped providers:
 
@@ -128,7 +128,7 @@ Shipped providers:
   but stable, valid for the question's domain, and free: what docs and CI need.
 - `RecordingProvider` / `ReplayProvider` — capture real answers once, serve them
   offline. A state with no recording fails loudly rather than inventing one.
-- `TypeSafeProvider` — TypeSafe's hosted Jev, behind the `typesafe-ai` extra.
+- `TypeSafeProvider` — TypeSafe's hosted Jev, behind the `decisions` extra.
 - `OllayaProvider` — open-weight decision models (Laya, Decider, Kev, ...)
   served on your own hardware by [Ollaya](https://ollaya.dev).
 
@@ -139,17 +139,17 @@ written once for all of them. Switching is a change of provider, never of
 schema:
 
 ```python
-system_one.set_provider("typesafe:jev-1.13.0")   # hosted
-system_one.set_provider("ollaya:decider:2b")     # local, no per-token cost
+decisions.set_provider("typesafe:jev-1.13.0")   # hosted
+decisions.set_provider("ollaya:decider:2b")     # local, no per-token cost
 ```
 
-Models that share the System One wire format — one `state` plus named
+Models that share the decision wire format — one `state` plus named
 `questions` in, typed `answers` out — need no new client. Ollaya serves the same
 endpoint TypeSafe does, so both are the same SDK pointed at different places:
 
 ```python
-system_one.OllayaProvider("laya", base_url="http://gpu-box:11435")
-system_one.TypeSafeProvider("jev-1.13.0", base_url="https://proxy.internal")
+decisions.OllayaProvider("laya", base_url="http://gpu-box:11435")
+decisions.TypeSafeProvider("jev-1.13.0", base_url="https://proxy.internal")
 ```
 
 Quality differs between models even when the interface does not, so it is worth
@@ -164,7 +164,7 @@ scores at all. A provider declares this as `capabilities`, and a schema is
 checked against it **before any request is made**:
 
 ```python
-with system_one.provider("ollaya:laya"):     # ~125 options per question
+with decisions.provider("ollaya:laya"):     # ~125 options per question
     Taxonomy.validate(df)
 #> ProviderCapabilityError: column 'product_type' offers 180 options, but
 #> provider 'ollaya:laya' accepts at most 125 per question. Narrow the
@@ -179,7 +179,7 @@ checked as soon as the model is known.
 ### Writing a provider
 
 Any object with `id`, `model_version`, `compile`, `decide` and `limits` works;
-see {class}`~pandera.system_one.DecisionProvider`. `capabilities` is optional —
+see {class}`~pandera.decisions.DecisionProvider`. `capabilities` is optional —
 a provider that says nothing is taken to answer the whole shared vocabulary.
 `ProviderLimits` fields are all optional too: a local model has a queue, not a
 rate limit.
@@ -187,8 +187,8 @@ rate limit.
 Make it reachable by name with `register_provider`:
 
 ```python
-system_one.register_provider("acme", lambda model: AcmeProvider(model))
-system_one.set_provider("acme:decider-2b")
+decisions.register_provider("acme", lambda model: AcmeProvider(model))
+decisions.set_provider("acme:decider-2b")
 ```
 
 Retries are the provider's job, since only it knows which of its errors are
@@ -197,19 +197,19 @@ through. pandera paces requests; it does not second-guess a transport.
 
 ## One request per row, not per column
 
-A System One request is one state plus many questions, and a tenth question
+A decision request is one state plus many questions, and a tenth question
 costs tokens but almost no time. Columns that share a provider, a source and an
 error policy are therefore filled by a **single request per row**:
 
 ```{code-cell} python
-provider = system_one.MockProvider(seed=7)
+provider = decisions.MockProvider(seed=7)
 frame = pd.DataFrame({"ticket_body": [
     "my card was declined",
     "the API is down",
     "what does the pro plan cost",
 ]})
 
-with system_one.provider(provider):
+with decisions.provider(provider):
     triaged = Triage.validate(frame)
 
 print(triaged)
@@ -222,7 +222,7 @@ row.
 ## Validating the answers
 
 The answers are ordinary column values, so ordinary checks apply — which is the
-point. A System One model cannot return an out-of-domain value, so what is
+point. A decision model cannot return an out-of-domain value, so what is
 worth checking is not the shape of an individual answer but the shape of the
 distribution:
 
@@ -237,7 +237,7 @@ class Triage(pa.DataFrameModel):
 
 ## Confidence
 
-A System One model reports how certain it was. That is a column like any other,
+A decision model reports how certain it was. That is a column like any other,
 so an ordinary check governs it:
 
 ```python
@@ -245,11 +245,11 @@ class Triage(pa.DataFrameModel):
     ticket_body: str
     department: Department = pa.ParsedField(
         description="Which team should handle this ticket",
-        parser=system_one.Choice(abstain_below=0.55),
+        parser=decisions.Choice(abstain_below=0.55),
         nullable=True,
     )
     department_confidence: float = pa.ParsedField(
-        parser=system_one.Confidence("department"),
+        parser=decisions.Confidence("department"),
         ge=0.70,
     )
 ```
@@ -275,7 +275,7 @@ resolved model version, the state **and the questions**, so rewording a
 `description` correctly invalidates its cached answers:
 
 ```python
-parser=system_one.Choice(cache="sqlite:///.pandera_system_one.db")
+parser=decisions.Choice(cache="sqlite:///.pandera_decisions.db")
 ```
 
 `"memory"`, a `sqlite:///` path, or any object with `get`/`set`.
@@ -306,13 +306,13 @@ Because `jev-latest` is a moving target, pin a version when caching.
 Neither of these contacts a provider:
 
 ```python
-system_one.questions(Triage)
+decisions.questions(Triage)
 #> {'department': Choice(instructions='Which team should handle this ticket', ...)}
 
-system_one.plan(Triage, tickets_df)
+decisions.plan(Triage, tickets_df)
 #> Plan(rows=10000, batches=1, requests=10000, questions=3, est_input_tokens=...)
 
-system_one.questions(Taxonomy, provider="ollaya:laya")   # also checks capabilities
+decisions.questions(Taxonomy, provider="ollaya:laya")   # also checks capabilities
 ```
 
 `questions()` applies the full inference chain, so what the model will be asked
@@ -324,7 +324,7 @@ declares a price. Unknown is `None`, not zero: a local model declares `0.0`.
 After validating, the actual cost is attached to the frame:
 
 ```python
-system_one.stats(triaged)
+decisions.stats(triaged)
 #> {'rows': 10000, 'batches': 1, 'cached': 9412, 'called': 588,
 #>  'seconds': 4.31, 'provider': 'typesafe:jev-1.13.0',
 #>  'model_version': 'jev-1.13.0'}
@@ -342,7 +342,7 @@ schema = pa.DataFrameSchema(
         "category": pa.Column(str),
         "description": pa.Column(str),
     },
-    checks=system_one.Holds(
+    checks=decisions.Holds(
         "The description is a coherent description of a product belonging "
         "to the stated category",
         context=["name", "category", "description"],
@@ -358,17 +358,17 @@ Attached to a **column**, the column's own value is what gets judged. Attached
 to the **dataframe** with `context`, those columns are sent instead -- the only
 way to judge a value relative to another column.
 
-Inside a `@pa.dataframe_check` method use `system_one.holds(...)`, which
+Inside a `@pa.dataframe_check` method use `decisions.holds(...)`, which
 returns the boolean Series rather than a `Check`:
 
 ```python
 @pa.dataframe_check
 def name_fits_category(cls, df):
-    return system_one.holds(
+    return decisions.holds(
         "The name fits the category",
         context=["name", "category"],
     )(df)
 ```
 
-Setting `PANDERA_SYSTEM_ONE_ENABLED=0` makes semantic checks pass with a
+Setting `PANDERA_DECISIONS_ENABLED=0` makes semantic checks pass with a
 warning instead of calling out, so a schema carrying them still runs offline.

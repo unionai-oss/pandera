@@ -10,13 +10,13 @@ from __future__ import annotations
 import dataclasses
 from typing import Any
 
-from pandera.system_one.parsers import (
+from pandera.decisions.parsers import (
     Confidence,
     _build_states,
-    _SystemOneParser,
+    _DecisionParser,
 )
-from pandera.system_one.primitives import Question
-from pandera.system_one.providers import base as provider_base
+from pandera.decisions.primitives import Question
+from pandera.decisions.providers import base as provider_base
 
 
 @dataclasses.dataclass(frozen=True)
@@ -50,11 +50,11 @@ def _as_schema(target: Any) -> Any:
 
 
 def _groups(schema: Any) -> list[list[tuple[Any, Any]]]:
-    """The batches a schema's System One columns would form."""
+    """The batches a schema's decision columns would form."""
     batches: dict[Any, list[tuple[Any, Any]]] = {}
     for name, column in getattr(schema, "columns", {}).items():
         parser = getattr(column, "parser", None)
-        if not isinstance(parser, _SystemOneParser):
+        if not isinstance(parser, _DecisionParser):
             continue
         ctx = column.build_parse_context(name, schema)
         batches.setdefault(parser.batch_key(ctx), []).append((parser, ctx))
@@ -76,14 +76,14 @@ def questions(target: Any, provider: Any = None) -> dict[str, Question]:
     here, so what the model will be asked is reviewable in a test with no
     credentials::
 
-        system_one.questions(Triage)
+        decisions.questions(Triage)
         #> {'department': Choice(instructions='Which team should ...', ...)}
 
     Pass ``provider`` to also check the questions against what that model can
     be asked -- still without sending anything -- so a schema that a local
     model cannot take fails in a test rather than on its first row::
 
-        system_one.questions(Taxonomy, provider="ollaya:laya")
+        decisions.questions(Taxonomy, provider="ollaya:laya")
     """
     schema = _as_schema(target)
     checked = None if provider is None else _resolve(provider)
@@ -155,7 +155,7 @@ def plan(
 
     tokens = 0
     if data is not None:
-        from pandera.system_one.execution import estimate_tokens
+        from pandera.decisions.execution import estimate_tokens
 
         for group in asking:
             _, ctx = group[0]

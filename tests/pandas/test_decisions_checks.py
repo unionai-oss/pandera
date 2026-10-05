@@ -1,13 +1,13 @@
-"""Tests for ``system_one.Holds`` semantic checks."""
+"""Tests for ``decisions.Holds`` semantic checks."""
 
 import pandas as pd
 import pytest
 
+import pandera.decisions as decisions
 import pandera.pandas as pa
-import pandera.system_one as system_one
+from pandera.decisions import primitives as q
+from pandera.decisions.providers.base import ENABLED_ENV_VAR
 from pandera.errors import SchemaError, SchemaErrors
-from pandera.system_one import primitives as q
-from pandera.system_one.providers.base import ENABLED_ENV_VAR
 
 
 class _Verdict:
@@ -23,7 +23,7 @@ class _Verdict:
 
     @property
     def limits(self):
-        return system_one.ProviderLimits(max_concurrency=4)
+        return decisions.ProviderLimits(max_concurrency=4)
 
     def compile(self, questions):
         self.questions = dict(questions)
@@ -41,12 +41,12 @@ def test_column_check_judges_the_columns_values():
         {
             "description": pa.Column(
                 str,
-                checks=system_one.Holds("The text is coherent"),
+                checks=decisions.Holds("The text is coherent"),
             )
         }
     )
     provider = _Verdict(probability=1.0)
-    with system_one.provider(provider):
+    with decisions.provider(provider):
         schema.validate(pd.DataFrame({"description": ["a", "b"]}))
     assert provider.states == ["a", "b"]
 
@@ -56,13 +56,13 @@ def test_failing_check_reports_failure_cases():
         {
             "description": pa.Column(
                 str,
-                checks=system_one.Holds(
+                checks=decisions.Holds(
                     "The text is coherent", min_probability=0.9
                 ),
             )
         }
     )
-    with system_one.provider(_Verdict(probability=0.1)):
+    with decisions.provider(_Verdict(probability=0.1)):
         with pytest.raises(SchemaError) as excinfo:
             schema.validate(pd.DataFrame({"description": ["nonsense"]}))
     assert "nonsense" in str(excinfo.value)
@@ -74,13 +74,13 @@ def test_min_probability_is_the_threshold():
             {
                 "d": pa.Column(
                     str,
-                    checks=system_one.Holds("q", min_probability=threshold),
+                    checks=decisions.Holds("q", min_probability=threshold),
                 )
             }
         )
 
     frame = pd.DataFrame({"d": ["x"]})
-    with system_one.provider(_Verdict(probability=0.7)):
+    with decisions.provider(_Verdict(probability=0.7)):
         _schema(0.6).validate(frame)  # passes
         with pytest.raises((SchemaError, SchemaErrors)):
             _schema(0.8).validate(frame)
@@ -89,12 +89,12 @@ def test_min_probability_is_the_threshold():
 def test_dataframe_check_sends_the_context_columns():
     schema = pa.DataFrameSchema(
         {"name": pa.Column(str), "category": pa.Column(str)},
-        checks=system_one.Holds(
+        checks=decisions.Holds(
             "The name fits the category", context=["name", "category"]
         ),
     )
     provider = _Verdict()
-    with system_one.provider(provider):
+    with decisions.provider(provider):
         schema.validate(
             pd.DataFrame({"name": ["hammer"], "category": ["tools"]})
         )
@@ -103,18 +103,18 @@ def test_dataframe_check_sends_the_context_columns():
 
 def test_context_on_a_column_check_explains_the_fix():
     schema = pa.DataFrameSchema(
-        {"d": pa.Column(str, checks=system_one.Holds("q", context=["a"]))}
+        {"d": pa.Column(str, checks=decisions.Holds("q", context=["a"]))}
     )
-    with system_one.provider(_Verdict()):
+    with decisions.provider(_Verdict()):
         with pytest.raises(SchemaError, match="dataframe-level check"):
             schema.validate(pd.DataFrame({"d": ["x"], "a": ["y"]}))
 
 
 def test_dataframe_check_without_context_explains_the_fix():
     schema = pa.DataFrameSchema(
-        {"d": pa.Column(str)}, checks=system_one.Holds("q")
+        {"d": pa.Column(str)}, checks=decisions.Holds("q")
     )
-    with system_one.provider(_Verdict()):
+    with decisions.provider(_Verdict()):
         with pytest.raises(SchemaError, match="nothing specific to judge"):
             schema.validate(pd.DataFrame({"d": ["x"]}))
 
@@ -122,9 +122,9 @@ def test_dataframe_check_without_context_explains_the_fix():
 def test_unknown_context_column():
     schema = pa.DataFrameSchema(
         {"d": pa.Column(str)},
-        checks=system_one.Holds("q", context=["nope"]),
+        checks=decisions.Holds("q", context=["nope"]),
     )
-    with system_one.provider(_Verdict()):
+    with decisions.provider(_Verdict()):
         with pytest.raises(SchemaError, match="not in the dataframe"):
             schema.validate(pd.DataFrame({"d": ["x"]}))
 
@@ -133,12 +133,12 @@ def test_lazy_validation_collects_semantic_failures():
     schema = pa.DataFrameSchema(
         {
             "d": pa.Column(
-                str, checks=system_one.Holds("q", min_probability=0.9)
+                str, checks=decisions.Holds("q", min_probability=0.9)
             ),
             "n": pa.Column(int),
         }
     )
-    with system_one.provider(_Verdict(probability=0.0)):
+    with decisions.provider(_Verdict(probability=0.0)):
         with pytest.raises(SchemaErrors) as excinfo:
             schema.validate(
                 pd.DataFrame({"d": ["a"], "n": ["not an int"]}), lazy=True
@@ -152,12 +152,12 @@ def test_per_row_verdicts():
         {
             "d": pa.Column(
                 str,
-                checks=system_one.Holds("q", min_probability=0.5),
+                checks=decisions.Holds("q", min_probability=0.5),
             )
         }
     )
     provider = _Verdict(per_state={"good": 0.9, "bad": 0.1})
-    with system_one.provider(provider):
+    with decisions.provider(provider):
         with pytest.raises(SchemaError) as excinfo:
             schema.validate(pd.DataFrame({"d": ["good", "bad"]}))
     failure_cases = excinfo.value.failure_cases["failure_case"].tolist()
@@ -168,11 +168,7 @@ def test_check_is_skipped_when_disabled(monkeypatch):
     """A schema carrying semantic checks still has to run offline."""
     monkeypatch.setenv(ENABLED_ENV_VAR, "0")
     schema = pa.DataFrameSchema(
-        {
-            "d": pa.Column(
-                str, checks=system_one.Holds("q", min_probability=0.9)
-            )
-        }
+        {"d": pa.Column(str, checks=decisions.Holds("q", min_probability=0.9))}
     )
     # no provider configured, and a probability that would fail anyway
     with pytest.warns(UserWarning, match="disabled"):
@@ -181,9 +177,9 @@ def test_check_is_skipped_when_disabled(monkeypatch):
 
 def test_no_provider_raises():
     schema = pa.DataFrameSchema(
-        {"d": pa.Column(str, checks=system_one.Holds("q"))}
+        {"d": pa.Column(str, checks=decisions.Holds("q"))}
     )
-    assert system_one.get_provider() is None
+    assert decisions.get_provider() is None
     with pytest.raises(SchemaError, match="no provider is configured"):
         schema.validate(pd.DataFrame({"d": ["x"]}))
 
@@ -191,16 +187,16 @@ def test_no_provider_raises():
 def test_explicit_provider_overrides_the_configured_one():
     explicit = _Verdict(probability=1.0)
     schema = pa.DataFrameSchema(
-        {"d": pa.Column(str, checks=system_one.Holds("q", provider=explicit))}
+        {"d": pa.Column(str, checks=decisions.Holds("q", provider=explicit))}
     )
     # the ambient provider would fail the check; the explicit one passes it
-    with system_one.provider(_Verdict(probability=0.0)):
+    with decisions.provider(_Verdict(probability=0.0)):
         schema.validate(pd.DataFrame({"d": ["x"]}))
     assert explicit.states == ["x"]
 
 
 def test_the_instructions_become_the_check_description():
-    check = system_one.Holds("The text is coherent")
+    check = decisions.Holds("The text is coherent")
     assert check.description == "The text is coherent"
 
 
@@ -211,18 +207,18 @@ def test_model_dataframe_check_composition():
 
         @pa.dataframe_check
         def name_fits_category(cls, df):
-            return system_one.holds(
+            return decisions.holds(
                 "The name fits the category",
                 context=["name", "category"],
                 min_probability=0.5,
             )(df)
 
-    with system_one.provider(_Verdict(probability=0.9)):
+    with decisions.provider(_Verdict(probability=0.9)):
         Products.validate(
             pd.DataFrame({"name": ["hammer"], "category": ["tools"]})
         )
 
-    with system_one.provider(_Verdict(probability=0.1)):
+    with decisions.provider(_Verdict(probability=0.1)):
         with pytest.raises((SchemaError, SchemaErrors)):
             Products.validate(
                 pd.DataFrame({"name": ["hammer"], "category": ["produce"]})
@@ -232,14 +228,14 @@ def test_model_dataframe_check_composition():
 def test_a_provider_that_cannot_answer_noul_is_refused_before_any_request():
     """``Holds`` asks a noul, so it is checked like any other question."""
     schema = pa.DataFrameSchema(
-        {"description": pa.Column(str, checks=system_one.Holds("coherent"))}
+        {"description": pa.Column(str, checks=decisions.Holds("coherent"))}
     )
-    classifier_only = system_one.MockProvider(
-        capabilities=system_one.ProviderCapabilities(
+    classifier_only = decisions.MockProvider(
+        capabilities=decisions.ProviderCapabilities(
             kinds=frozenset({"choice"})
         )
     )
-    with system_one.provider(classifier_only):
+    with decisions.provider(classifier_only):
         # a check's exceptions are reported as check failures by pandera
         with pytest.raises(SchemaError, match="noul question"):
             schema.validate(pd.DataFrame({"description": ["a"]}))
