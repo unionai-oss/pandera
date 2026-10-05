@@ -42,15 +42,19 @@ from pandera.decisions.parsers import (
 )
 from pandera.decisions.primitives import (
     Decision,
+    ProviderCapabilities,
     ProviderLimits,
     Question,
 )
 from pandera.decisions.providers.base import (
     DecisionProvider,
     DecisionsConfigError,
+    ProviderCapabilityError,
+    capabilities_of,
     enabled,
     get_provider,
     provider,
+    register_provider,
     set_provider,
 )
 from pandera.decisions.providers.mock import (
@@ -69,6 +73,8 @@ __all__ = [
     "MockProvider",
     "Noul",
     "Plan",
+    "ProviderCapabilities",
+    "ProviderCapabilityError",
     "ProviderLimits",
     "Question",
     "RecordingProvider",
@@ -76,12 +82,14 @@ __all__ = [
     "SQLiteCache",
     "Score",
     "DecisionsConfigError",
+    "capabilities_of",
     "enabled",
     "get_provider",
     "holds",
     "plan",
     "provider",
     "questions",
+    "register_provider",
     "set_provider",
     "stats",
 ]
@@ -94,4 +102,8 @@ def __getattr__(name: str):
         from pandera.decisions.providers.typesafe import TypeSafeProvider
 
         return TypeSafeProvider
+    if name == "OllayaProvider":
+        from pandera.decisions.providers.ollaya import OllayaProvider
+
+        return OllayaProvider
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

@@ -121,6 +121,7 @@ def holds(
             else provider_base.require_provider([name or "semantic check"])
         )
         states = _states(obj, sources, instructions)
+        provider_base.verify_questions(question, resolved)
         prepared = resolved.compile(question)
 
         async def _decide(state: Any) -> Any:

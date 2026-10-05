@@ -223,3 +223,20 @@ def test_model_dataframe_check_composition():
             Products.validate(
                 pd.DataFrame({"name": ["hammer"], "category": ["produce"]})
             )
+
+
+def test_a_provider_that_cannot_answer_noul_is_refused_before_any_request():
+    """``Holds`` asks a noul, so it is checked like any other question."""
+    schema = pa.DataFrameSchema(
+        {"description": pa.Column(str, checks=decisions.Holds("coherent"))}
+    )
+    classifier_only = decisions.MockProvider(
+        capabilities=decisions.ProviderCapabilities(
+            kinds=frozenset({"choice"})
+        )
+    )
+    with decisions.provider(classifier_only):
+        # a check's exceptions are reported as check failures by pandera
+        with pytest.raises(SchemaError, match="noul question"):
+            schema.validate(pd.DataFrame({"description": ["a"]}))
+    assert classifier_only.calls == 0

@@ -17,6 +17,10 @@ from typing import Any
 from pandera.decisions.primitives import Decision, ProviderLimits
 
 
+class StateTooLongError(ValueError):
+    """A row's state is larger than the provider's model accepts."""
+
+
 class TokenBucket:
     """Paces requests against a rate limit.
 
@@ -47,7 +51,7 @@ class TokenBucket:
         # more. Without this a request larger than ``tokens_per_second`` would
         # wait for an allowance that can never refill past that cap, and this
         # loop would spin forever. Any hard upper bound on a *state* -- when a
-        # provider declares one -- is enforced by the callers
+        # provider declares one -- is enforced by the caller's
         # ``max_state_tokens`` check before this is reached, so an oversized
         # request only reaches here when no hard maximum was declared, in
         # which case it is paced rather than rejected.
@@ -116,10 +120,26 @@ async def gather_decisions(
         tokens_per_second=limits.tokens_per_second,
     )
 
-    async def one(state: Any) -> Mapping[str, Decision] | None:
+    async def one(index: int, state: Any) -> Mapping[str, Decision] | None:
         async with semaphore:
-            await bucket.acquire(estimate_tokens(state))
+            tokens = estimate_tokens(state)
             try:
+                # Named by row, before dispatch -- and before the rate limiter,
+                # which could otherwise block forever on a request the provider
+                # would reject outright -- rather than surfacing as a provider's
+                # HTTP error or, worse, as a silently truncated state.
+                # ``estimate_tokens`` undercounts if anything, so this errs
+                # toward letting a borderline row through.
+                if (
+                    limits.max_state_tokens is not None
+                    and tokens > limits.max_state_tokens
+                ):
+                    raise StateTooLongError(
+                        f"row {index}: the state is about {tokens} tokens, "
+                        f"over the {limits.max_state_tokens} this provider "
+                        "accepts. Shorten what the column reads from."
+                    )
+                await bucket.acquire(tokens)
                 return await decide(state)
             except Exception:
                 if on_error == "raise":
@@ -130,7 +150,11 @@ async def gather_decisions(
 
     # ``gather`` preserves the order of its arguments regardless of completion
     # order, which is what keeps answers aligned with rows.
-    return list(await asyncio.gather(*(one(state) for state in states)))
+    return list(
+        await asyncio.gather(
+            *(one(index, state) for index, state in enumerate(states))
+        )
+    )
 
 
 def run_sync(coro: Awaitable[Any]) -> Any:
