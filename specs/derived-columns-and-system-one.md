@@ -2,7 +2,7 @@
 
 > **Status:** Draft / RFC
 > **Author:** pandera maintainers
-> **Install:** `pip install 'pandera[typesafe-ai]'`
+> **Install:** `pip install 'pandera[decisions]'`
 > **Related:** [TypeSafe Jev](https://pydantic.dev/docs/ai/models/typesafe/)
 
 ---
@@ -22,7 +22,7 @@ class Tickets(pa.DataFrameModel):
     n_words: int = pa.ParsedField(source="body", parser=lambda s: s.str.split().str.len())
 ```
 
-**Layer 2 — System One parsing (`pandera[typesafe-ai]`).** `parser=` accepts a
+**Layer 2 — System One parsing (`pandera[decisions]`).** `parser=` accepts a
 plain callable *or* a parser object. The System One question types are parser
 objects, so asking a decision model is the same construct as any other
 derivation:
@@ -578,11 +578,11 @@ with decisions.provider(ReplayProvider(cassette)):   # scoped, for tests
     Triage.validate(df)
 ```
 
-plus `PANDERA_DECISIONS_PROVIDER` as the env-var form, and
+plus `PANDERA_SYSTEM_ONE_PROVIDER` as the env-var form, and
 `decisions.Choice(provider=...)` as a per-parser override.
 
 **There is no default provider.** Validating a System One schema with none
-configured raises `DecisionsConfigError` telling you how to set one. That is the
+configured raises `SystemOneConfigError` telling you how to set one. That is the
 safety property that matters here: `Triage.validate(df)` does issue paid
 requests — inherent to putting the question in the schema — so it must be
 impossible to reach that state without having deliberately configured a
@@ -623,7 +623,7 @@ class Products(pa.DataFrameModel):
 
 `Holds` is an ordinary `Check` with a vectorized predicate, so failure cases,
 `lazy=True`, `n_failure_cases`, and `raise_warning` work untouched. A
-`PANDERA_DECISIONS_ENABLED` guard lets schemas carrying semantic checks run
+`PANDERA_SYSTEM_ONE_ENABLED` guard lets schemas carrying semantic checks run
 offline, degrading to a skip with a warning.
 
 ### 4.8 Serialization
@@ -933,12 +933,12 @@ becoming a one-vendor dead end.
 
 ```toml
 [project.optional-dependencies]
-typesafe-ai = ["typesafe-sdk"]
+decisions = ["typesafe-sdk"]
 ```
 
 - Layer 1 is **core pandera** — no extra, no new dependency.
 - Layer 2 is `pandera.decisions`, installed with
-  `pip install 'pandera[typesafe-ai]'`; Jev-specific code lives in
+  `pip install 'pandera[decisions]'`; Jev-specific code lives in
   `pandera.decisions.providers.typesafe`.
 - Importing `pandera` without the extra is byte-for-byte unaffected.
 
