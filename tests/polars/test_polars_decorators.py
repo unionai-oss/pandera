@@ -102,13 +102,10 @@ def test_polars_dataframe_check_types_typevar_bound(data, invalid_data):
     class Base(pa.DataFrameModel):
         a: int
 
-    class Derived(Base):
-        b: str
-
     S = typing.TypeVar("S", bound=Base)
 
     @pa.check_types
-    def fn(x: pa_typing.DataFrame[S]) -> pa_typing.DataFrame[Base]:
+    def fn(x: pa_typing.DataFrame[S]) -> pa_typing.DataFrame[S]:
         return x
 
     fn(data)
