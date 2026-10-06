@@ -431,6 +431,7 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
                     ),
                     failure_cases=column,
                     check="column_in_schema",
+                    column_name=column,
                     reason_code=SchemaErrorReason.COLUMN_NOT_IN_SCHEMA,
                 )
             if schema.strict == "filter" and not is_schema_col:
