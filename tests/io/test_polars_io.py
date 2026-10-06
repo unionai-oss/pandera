@@ -118,6 +118,10 @@ def test_polars_dtype_deserialize_rejects_non_dtype_expressions():
         '__import__("os").system("id")',
         "Foo(1)",
         "List(Int64).attr",
+        "x**y",
+        "List(**{'x': 1})",
+        "Durat ion",
+        "f'{x}'",
     ]:
         with pytest.raises(ValueError):
             polars_io.deserialize_schema(
@@ -126,3 +130,12 @@ def test_polars_dtype_deserialize_rejects_non_dtype_expressions():
                     "columns": {"a": {"dtype": serialized}},
                 }
             )
+
+    # Negative literals inside parametrized reprs are legal arguments.
+    loaded = polars_io.deserialize_schema(
+        {
+            "schema_type": "polars_dataframe",
+            "columns": {"a": {"dtype": "Decimal(precision=10, scale=-2)"}},
+        }
+    )
+    assert str(loaded.columns["a"].dtype) == "Decimal(precision=10, scale=-2)"
