@@ -79,3 +79,50 @@ def test_polars_check_options_survive_yaml_roundtrip(
     assert check.error == expected_error
     with pytest.raises(SchemaError):
         loaded.validate(pl.DataFrame({"a": [-1]}))
+
+
+def test_polars_parametrized_dtype_yaml_roundtrip():
+    """Parametrized polars dtypes survive a yaml roundtrip, GH#2522."""
+    from pandera.io import polars_io
+
+    schema = pa.DataFrameSchema(
+        {
+            "enum": pa.Column(pl.Enum(["x", "y"])),
+            "list": pa.Column(pl.List(pl.Int64)),
+            "array": pa.Column(pl.Array(pl.Int64, 3)),
+            "datetime": pa.Column(pl.Datetime("us", "UTC")),
+            "struct": pa.Column(pl.Struct({"a": pl.Int64})),
+            "decimal": pa.Column(pl.Decimal(10, 2)),
+            "nested": pa.Column(pl.List(pl.List(pl.Int8))),
+        }
+    )
+    loaded = polars_io.from_yaml(polars_io.to_yaml(schema))
+    for name, column in loaded.columns.items():
+        assert str(column.dtype) == str(schema.columns[name].dtype)
+
+
+def test_polars_schema_level_dtype_yaml_roundtrip():
+    """A schema-level ``dtype`` serializes to a string, not a raw object."""
+    from pandera.io import polars_io
+
+    schema = pa.DataFrameSchema(dtype=pl.Int64)
+    loaded = polars_io.from_yaml(polars_io.to_yaml(schema))
+    assert str(loaded.dtype) == "Int64"
+
+
+def test_polars_dtype_deserialize_rejects_non_dtype_expressions():
+    """Dtype deserialization must not evaluate arbitrary expressions."""
+    from pandera.io import polars_io
+
+    for serialized in [
+        '__import__("os").system("id")',
+        "Foo(1)",
+        "List(Int64).attr",
+    ]:
+        with pytest.raises(ValueError):
+            polars_io.deserialize_schema(
+                {
+                    "schema_type": "polars_dataframe",
+                    "columns": {"a": {"dtype": serialized}},
+                }
+            )
