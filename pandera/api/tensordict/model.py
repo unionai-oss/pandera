@@ -5,7 +5,6 @@ from __future__ import annotations
 import inspect
 import sys
 import threading
-import types as types_module
 import typing
 from typing import Any, ClassVar, cast
 
@@ -75,9 +74,10 @@ def _get_tensor_dict_class_type_hints(
             )
         else:
             base_globals = globalns
-        ann = base.__dict__.get("__annotations__", {})
-        if isinstance(ann, types_module.GetSetDescriptorType):
-            ann = {}
+        # Python 3.14 evaluates annotations lazily (PEP 649) and no
+        # longer keeps ``__annotations__`` in the class ``__dict__``, so
+        # reading it there finds nothing and every field looks unannotated.
+        ann = inspect.get_annotations(base)
         base_locals = dict(vars(base)) if localns is None else localns
         if localns is None and globalns is None:
             base_globals, base_locals = base_locals, base_globals
