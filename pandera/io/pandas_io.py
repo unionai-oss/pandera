@@ -224,7 +224,9 @@ def serialize_schema(
         "columns": columns,
         "checks": checks,
         "index": index,
-        "dtype": dataframe_schema.dtype,
+        "dtype": str(dataframe_schema.dtype)
+        if dataframe_schema.dtype is not None
+        else None,
         "coerce": dataframe_schema.coerce,
         "strict": dataframe_schema.strict,
         "name": dataframe_schema.name,
