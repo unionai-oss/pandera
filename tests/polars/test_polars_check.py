@@ -459,3 +459,41 @@ def test_polars_lazy_failure_cases_empty_and_null_list():
     rendered = exc_info.value.failure_cases["failure_case"].to_list()
     assert "[]" in rendered
     assert any("null" in str(v) for v in rendered)
+
+
+@pytest.mark.xfail(
+    condition=CONFIG.use_narwhals_backend,
+    reason="The narwhals backend does not treat NaN as null in checks",
+    strict=True,
+)
+@pytest.mark.parametrize(
+    "check",
+    [
+        pa.Check.le(3.0),
+        pa.Check.lt(4.0),
+        pa.Check.in_range(1.0, 3.0),
+        pa.Check.isin([1.0, 2.0, 3.0]),
+        pa.Check(lambda x: x < 4.0, element_wise=True),
+    ],
+)
+def test_polars_check_ignore_na_ignores_nan(check):
+    """NaN is treated as null by nullable, so checks skip it like nulls."""
+    lf = pl.LazyFrame({"col": [1.0, float("nan"), 3.0, None]})
+    schema = pa.DataFrameSchema(
+        {"col": pa.Column(float, check, nullable=True)}
+    )
+    assert schema.validate(lf).collect().equals(lf.collect())
+
+
+def test_polars_check_ignore_na_false_fails_nan_rows():
+    """A NaN value still fails the check when ignore_na=False."""
+    lf = pl.LazyFrame({"col": [1.0, float("nan")]})
+    schema = pa.DataFrameSchema(
+        {
+            "col": pa.Column(
+                float, pa.Check.le(3.0, ignore_na=False), nullable=True
+            )
+        }
+    )
+    with pytest.raises(pa.errors.SchemaError):
+        schema.validate(lf)
