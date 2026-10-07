@@ -10,6 +10,7 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal, Union
 
+import numpy as np
 import pandas as pd
 
 import pandera.errors
@@ -44,6 +45,13 @@ def _serialize_check_stats(check_stats, dtype=None):
         # Handle enum types by converting them to a list of values
         if isinstance(stat, type) and issubclass(stat, enum.Enum):
             return [e.value for e in stat]
+
+        # numpy scalars and arrays, e.g. from ``df["a"].max()`` or
+        # ``df["a"].unique()``, are not yaml/json serializable
+        if isinstance(stat, (np.bool_, np.number)):
+            return stat.item()
+        if isinstance(stat, (np.ndarray, pd.api.extensions.ExtensionArray)):
+            stat = stat.tolist()
 
         if pandas_engine.Engine.dtype(dtypes.DateTime).check(
             dtype

@@ -2733,6 +2733,52 @@ def test_named_check_survives_serialization(serialize, deserialize):
     loaded.validate(pd.DataFrame({"a": [1]}))
 
 
+@pytest.mark.skipif(
+    SKIP_YAML_TESTS,
+    reason="pyyaml >= 5.1.0 required",
+)
+@pytest.mark.parametrize(
+    "serialize, deserialize",
+    [
+        [io.to_yaml, io.from_yaml],
+        [io.to_json, io.from_json],
+    ],
+)
+def test_numpy_check_statistics_serialization(serialize, deserialize):
+    """Check statistics taken from the data, i.e. numpy scalars and arrays,
+    are serialized as builtins."""
+    data = pd.DataFrame({"a": [1, 2, 3], "b": [0.5, 1.5, 2.5]})
+    schema = DataFrameSchema(
+        {
+            "a": pandera.Column(
+                int,
+                checks=[
+                    pandera.Check.le(data["a"].max()),
+                    pandera.Check.isin(data["a"].unique()),
+                ],
+            ),
+            "b": pandera.Column(
+                float,
+                checks=pandera.Check.in_range(
+                    data["b"].min(), data["b"].max()
+                ),
+            ),
+        }
+    )
+
+    loaded = deserialize(serialize(schema))
+    le_check, isin_check = loaded.columns["a"].checks
+    (in_range_check,) = loaded.columns["b"].checks
+    assert le_check.statistics["max_value"] == 3
+    assert isin_check.statistics["allowed_values"] == [1, 2, 3]
+    assert in_range_check.statistics["min_value"] == 0.5
+    assert in_range_check.statistics["max_value"] == 2.5
+
+    loaded.validate(data)
+    with pytest.raises(SchemaError):
+        loaded.validate(pd.DataFrame({"a": [4], "b": [1.0]}))
+
+
 def test_named_check_survives_to_script():
     """``to_script`` regenerates the renamed check instead of dropping it."""
     schema = DataFrameSchema(
