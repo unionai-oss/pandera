@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+import ast
 import enum
 import json
 from collections.abc import Mapping
 from pathlib import Path
 from typing import Any, Literal
+
+import polars as pl
 
 from pandera import dtypes
 from pandera.api.checks import Check
@@ -141,7 +144,11 @@ def serialize_schema(
         "columns": columns,
         "checks": checks,
         "index": None,
-        "dtype": dataframe_schema.dtype,
+        "dtype": (
+            str(dataframe_schema.dtype)
+            if dataframe_schema.dtype is not None
+            else None
+        ),
         "coerce": dataframe_schema.coerce,
         "strict": dataframe_schema.strict,
         "name": dataframe_schema.name,
@@ -201,17 +208,99 @@ def _deserialize_check_stats(check, serialized_check_stats, dtype=None):
     return check_instance
 
 
+def _parse_parametrized_dtype(serialized_dtype: str):
+    """Parse the repr of a parametrized polars DataType back into an
+    instance, e.g. ``"List(Int64)"`` or ``"Enum(categories=['x', 'y'])"``.
+
+    Only dtype constructors and Python literals are permitted; anything
+    else raises a ``ValueError`` instead of evaluating arbitrary
+    expressions.
+    """
+
+    def _dtype_class(name):
+        cls = getattr(pl, name, None)
+        if not (isinstance(cls, type) and issubclass(cls, pl.DataType)):
+            raise ValueError(
+                f"{name!r} is not a polars dtype in {serialized_dtype!r}"
+            )
+        return cls
+
+    def _convert(node):
+        if isinstance(node, ast.Call):
+            if not isinstance(node.func, ast.Name) or any(
+                keyword.arg is None for keyword in node.keywords
+            ):
+                raise ValueError(
+                    f"unsupported dtype expression {serialized_dtype!r}"
+                )
+            cls = _dtype_class(node.func.id)
+            return cls(
+                *[_convert(arg) for arg in node.args],
+                **{
+                    keyword.arg: _convert(keyword.value)
+                    for keyword in node.keywords
+                },
+            )
+        if isinstance(node, ast.Name):
+            return _dtype_class(node.id)
+        if isinstance(node, ast.Constant):
+            return node.value
+        if isinstance(node, ast.List):
+            return [_convert(element) for element in node.elts]
+        if isinstance(node, ast.Tuple):
+            return tuple(_convert(element) for element in node.elts)
+        if isinstance(node, ast.Dict):
+            return {
+                _convert(key): _convert(value)
+                for key, value in zip(node.keys, node.values)
+            }
+        if isinstance(node, ast.UnaryOp) and isinstance(
+            node.op, (ast.UAdd, ast.USub)
+        ):
+            operand = _convert(node.operand)
+            if not isinstance(operand, (int, float, complex)):
+                raise ValueError(
+                    f"unsupported dtype expression {serialized_dtype!r}"
+                )
+            return operand if isinstance(node.op, ast.UAdd) else -operand
+        raise ValueError(f"unsupported dtype expression {serialized_dtype!r}")
+
+    try:
+        tree = ast.parse(serialized_dtype, mode="eval")
+    except SyntaxError as exc:
+        raise ValueError(
+            f"cannot parse dtype expression {serialized_dtype!r}"
+        ) from exc
+    return _convert(tree.body)
+
+
+def _deserialize_dtype(serialized_dtype):
+    """Deserialize a dtype, supporting the string representation of
+    parametrized polars dtypes that the engine doesn't recognize as
+    aliases, e.g. ``"Enum(categories=['x', 'y'])"`` or
+    ``"List(Int64)"``. GH#2522
+    """
+    if serialized_dtype is None:
+        return None
+    if not isinstance(serialized_dtype, str):
+        return polars_engine.Engine.dtype(serialized_dtype)
+    for candidate in (serialized_dtype, serialized_dtype.lower()):
+        try:
+            return polars_engine.Engine.dtype(candidate)
+        except TypeError:
+            continue
+    return polars_engine.Engine.dtype(
+        _parse_parametrized_dtype(serialized_dtype)
+    )
+
+
 def _deserialize_component_stats(serialized_component_stats):
     serialized_component_stats = dict(serialized_component_stats)
     unflatten_component_checks_dict(serialized_component_stats)
 
     dtype = serialized_component_stats.get("dtype")
     if dtype:
-        s = str(dtype)
-        try:
-            dtype = polars_engine.Engine.dtype(s)
-        except TypeError:
-            dtype = polars_engine.Engine.dtype(s.lower())
+        dtype = _deserialize_dtype(dtype)
 
     description = serialized_component_stats.get("description")
     title = serialized_component_stats.get("title")
@@ -282,7 +371,7 @@ def deserialize_schema(serialized_schema):
         columns=columns,
         checks=checks,
         index=None,
-        dtype=serialized_schema.get("dtype", None),
+        dtype=_deserialize_dtype(serialized_schema.get("dtype")),
         coerce=serialized_schema.get("coerce", False),
         strict=serialized_schema.get("strict", False),
         name=serialized_schema.get("name", None),
