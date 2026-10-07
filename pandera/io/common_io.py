@@ -274,6 +274,7 @@ def _format_index(index_statistics, *, backend: str = "pandas"):
         dtype = properties.get("dtype")
         description = properties.get("description")
         title = properties.get("title")
+        name = properties["name"]
         index_code = INDEX_TEMPLATE.format(
             qual=qual,
             dtype=(None if dtype is None else _dtype_expr(dtype, backend)),
@@ -284,13 +285,13 @@ def _format_index(index_statistics, *, backend: str = "pandas"):
             ),
             nullable=properties["nullable"],
             coerce=properties["coerce"],
-            name=(
-                "None"
-                if properties["name"] is None
-                else f'"{properties["name"]}"'
+            name=repr(None if name is None else str(name)),
+            description=repr(
+                str(description)
+                if isinstance(description, str)
+                else description
             ),
-            description=(None if description is None else f'"{description}"'),
-            title=(None if title is None else f'"{title}"'),
+            title=repr(str(title) if isinstance(title, str) else title),
         )
         index.append(index_code.strip())
 
@@ -434,8 +435,12 @@ def to_script(
             coerce=properties["coerce"],
             required=properties["required"],
             regex=properties["regex"],
-            description=(None if description is None else f'"{description}"'),
-            title=(None if title is None else f'"{title}"'),
+            description=repr(
+                str(description)
+                if isinstance(description, str)
+                else description
+            ),
+            title=repr(str(title) if isinstance(title, str) else title),
         )
         columns[colname] = column_code.strip()
 
@@ -445,7 +450,7 @@ def to_script(
         else _format_index(statistics["index"], backend=backend)
     )
 
-    column_str = ", ".join(f"'{k}': {v}" for k, v in columns.items())
+    column_str = ", ".join(f"{str(k)!r}: {v}" for k, v in columns.items())
 
     script = SCRIPT_TEMPLATE.format(
         columns=column_str,
@@ -460,8 +465,16 @@ def to_script(
         report_duplicates=f'"{dataframe_schema.report_duplicates}"',
         unique_column_names=dataframe_schema.unique_column_names,
         add_missing_columns=dataframe_schema.add_missing_columns,
-        title=dataframe_schema.title,
-        description=dataframe_schema.description,
+        title=repr(
+            str(dataframe_schema.title)
+            if isinstance(dataframe_schema.title, str)
+            else dataframe_schema.title
+        ),
+        description=repr(
+            str(dataframe_schema.description)
+            if isinstance(dataframe_schema.description, str)
+            else dataframe_schema.description
+        ),
     ).strip()
 
     if backend != "pandas":
@@ -474,6 +487,7 @@ def to_script(
         script = script.replace(
             "schema = DataFrameSchema(",
             f"schema = {qual}DataFrameSchema(",
+            1,
         )
 
     if "Timedelta" in script:

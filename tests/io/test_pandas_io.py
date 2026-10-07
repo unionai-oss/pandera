@@ -1930,6 +1930,77 @@ def test_to_script_model_roundtrip():
     assert restored.strict is True
 
 
+@pytest.mark.parametrize("minimal", [True, False])
+def test_to_script_escapes_model_docstring(minimal):
+    """A model docstring is emitted as a string literal, GH#1380."""
+
+    class A(pandera.DataFrameModel):
+        """print('gotcha')"""
+
+    script = A.to_schema().to_script(minimal=minimal)
+    namespace: dict = {}
+    # pylint: disable=exec-used
+    exec(script, namespace)
+    assert namespace["schema"].description == "print('gotcha')"
+
+
+@pytest.mark.parametrize(
+    "minimal, text_type", [(True, str), (False, str), (False, np.str_)]
+)
+def test_to_script_escapes_metadata_strings(minimal, text_type):
+    """Quotes and newlines in schema text fields survive to_script."""
+    schema_to_write = pandera.DataFrameSchema(
+        columns={
+            text_type("a \"quoted\" 'column'"): pandera.Column(
+                pandera.Int,
+                description=text_type("say \"hi\"\nsecond 'line'"),
+                title=text_type("column 'title' \"x\""),
+            ),
+        },
+        index=pandera.Index(
+            pandera.Int,
+            name=text_type("index 'name' \"x\""),
+            description=text_type('index "description"'),
+            title=text_type("index 'title' \"x\""),
+        ),
+        name='schema "name"',
+        title=text_type("schema 'title'"),
+        description=text_type("print('gotcha')\nnew line"),
+    )
+
+    namespace: dict = {}
+    # pylint: disable=exec-used
+    exec(io.to_script(schema_to_write, minimal=minimal), namespace)
+    schema = namespace["schema"]
+
+    assert schema == schema_to_write
+
+
+@pytest.mark.parametrize("label", [1, np.int64(1), np.float64(1.5)])
+def test_to_script_preserves_label_text_conversion(label):
+    """Non-minimal scripts retain the existing label text conversion."""
+    schema = pandera.DataFrameSchema(
+        {label: pandera.Column(int)}, index=pandera.Index(int, name=label)
+    )
+    namespace: dict = {}
+    exec(io.to_script(schema, minimal=False), namespace)
+    restored = namespace["schema"]
+    assert list(restored.columns) == [str(label)]
+    assert restored.index.name == str(label)
+
+
+@pytest.mark.parametrize("backend", ["polars", "ibis", "pyspark"])
+def test_to_script_preserves_metadata_code_examples(backend):
+    """Backend qualification must preserve code examples in schema text."""
+    pa = pytest.importorskip(f"pandera.{backend}")
+    text = "schema = DataFrameSchema(...)"
+    schema = pa.DataFrameSchema(title=text, description=text)
+    namespace: dict = {}
+    exec(schema.to_script(minimal=False), namespace)
+    assert namespace["schema"].title == text
+    assert namespace["schema"].description == text
+
+
 def test_to_yaml_lambda_check():
     """Test writing DataFrameSchema to a yaml with lambda check."""
     schema = pandera.DataFrameSchema(
