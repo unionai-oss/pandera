@@ -208,6 +208,15 @@ def _polars_dtype_from_repr(text):
     """Rebuild a polars dtype from its repr, e.g. ``List(Int64)`` or
     ``Enum(categories=['a', 'b'])``. Only polars dtype names and literal
     arguments are accepted, so the text is never evaluated as code.
+
+    Contract: this parses polars' ``__str__`` output, which is undocumented
+    and must equal a call to the dtype's own constructor for the round trip
+    to work — ``str(pl.Array(pl.Int64, 3))`` is ``'Array(Int64, shape=(3,))'``,
+    which is exactly how ``Array`` is constructed. That equivalence is not
+    guaranteed across polars versions; ``Array`` gained its ``shape=`` keyword
+    this way. On a mismatch the caller degrades to the original ``TypeError``
+    by design, so a repr change can stop a dtype deserializing but can never
+    produce the wrong dtype.
     """
 
     def build(node):
