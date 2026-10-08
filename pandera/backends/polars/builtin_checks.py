@@ -196,7 +196,7 @@ def str_matches(
     """
     pattern = pattern.pattern if isinstance(pattern, re.Pattern) else pattern
     if not pattern.startswith("^"):
-        pattern = f"^{pattern}"
+        pattern = f"^(?:{pattern})"
     return data.lazyframe.select(
         pl.col(data.key).str.contains(pattern=pattern)
     )
