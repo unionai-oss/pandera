@@ -1,12 +1,14 @@
 """Unit tests for pydantic compatibility."""
 
 from typing import (
+    Annotated,
     Generic,
     Optional,
     TypeVar,
 )
 
 import pandas as pd
+import pyarrow
 import pytest
 
 import pandera.pandas as pa
@@ -101,6 +103,158 @@ def test_invalid_typed_dataframe():
     # This check prevents Linters from raising an error about not using the PydanticModel class
     with pytest.raises(UnboundLocalError):
         PydanticModel(pa_schema=InvalidSchema)
+
+
+def _json_schema_of(dtype) -> dict:
+    """Build a pydantic model around ``DataFrame[Schema]`` for one column dtype
+    and return the generated json schema of that column."""
+
+    class OneColumnSchema(pa.DataFrameModel):
+        col: Series[dtype]
+
+    class OneColumnModel(BaseModel):
+        df: DataFrame[OneColumnSchema]
+
+    return OneColumnModel.model_json_schema()["properties"]["df"]["items"][
+        "properties"
+    ]["col"]
+
+
+# pandas' ``build_table_schema`` reports any dtype it cannot express as a
+# json-schema type by its dtype string, and ``to_json_schema`` passes that
+# string through as the column's "items.type". None of these labels is a key of
+# the core-schema map in ``DataFrame.__get_pydantic_core_schema__``.
+UNMAPPED_COLUMN_TYPES = [
+    pytest.param(
+        Annotated[pd.ArrowDtype, pyarrow.binary()], id="arrow-binary"
+    ),
+    pytest.param(
+        Annotated[pd.ArrowDtype, pyarrow.binary(4)],
+        id="arrow-fixed-size-binary",
+    ),
+    pytest.param(
+        Annotated[pd.ArrowDtype, pyarrow.list_(pyarrow.int32())],
+        id="arrow-list",
+    ),
+    pytest.param(
+        Annotated[pd.ArrowDtype, pyarrow.struct([("a", pyarrow.int32())])],
+        id="arrow-struct",
+    ),
+    pytest.param(
+        Annotated[pd.ArrowDtype, pyarrow.date32()], id="arrow-date32"
+    ),
+    pytest.param(
+        Annotated[pd.ArrowDtype, pyarrow.date64()], id="arrow-date64"
+    ),
+    pytest.param(
+        Annotated[pd.ArrowDtype, pyarrow.time64("us")], id="arrow-time64"
+    ),
+    pytest.param(
+        Annotated[
+            pd.ArrowDtype,
+            pyarrow.dictionary(pyarrow.int32(), pyarrow.string()),
+        ],
+        id="arrow-dictionary",
+    ),
+    pytest.param(
+        Annotated[
+            pd.ArrowDtype, pyarrow.map_(pyarrow.string(), pyarrow.string())
+        ],
+        id="arrow-map",
+    ),
+    pytest.param("interval[int64]", id="pandas-interval"),
+    # the label embeds a temporal *field*, but the column is a struct
+    pytest.param(
+        Annotated[
+            pd.ArrowDtype, pyarrow.struct([("t", pyarrow.timestamp("ns"))])
+        ],
+        id="arrow-struct-of-timestamp",
+    ),
+]
+
+ARROW_TEMPORAL_FORMATS = [
+    pytest.param(
+        Annotated[pd.ArrowDtype, pyarrow.timestamp("ns")],
+        "date-time",
+        id="timestamp",
+    ),
+    pytest.param(
+        Annotated[pd.ArrowDtype, pyarrow.timestamp("us", "UTC")],
+        "date-time",
+        id="timestamp-tz",
+    ),
+    pytest.param(
+        Annotated[pd.ArrowDtype, pyarrow.duration("s")],
+        "duration",
+        id="duration",
+    ),
+]
+
+
+@pytest.mark.skipif(
+    not PYDANTIC_V2,
+    reason="json_schema_input_schema is only built for pydantic v2",
+)
+@pytest.mark.parametrize("dtype", UNMAPPED_COLUMN_TYPES)
+def test_typed_dataframe_with_dtype_outside_json_schema_types(dtype):
+    """Regression test for #2016.
+
+    Building a pydantic model around ``DataFrame[Schema]`` raised ``KeyError``
+    for every dtype here, because the core-schema lookup treated the column's
+    json-schema type as a closed set of labels. Such a column is now left
+    untyped instead of breaking the whole model.
+    """
+    assert "type" not in _json_schema_of(dtype)
+
+
+@pytest.mark.skipif(
+    not PYDANTIC_V2,
+    reason="json_schema_input_schema is only built for pydantic v2",
+)
+@pytest.mark.parametrize("dtype,expected_format", ARROW_TEMPORAL_FORMATS)
+def test_arrow_temporal_column_keeps_its_format(dtype, expected_format):
+    """Temporal dtypes keep the format their numpy counterpart gets."""
+    assert _json_schema_of(dtype)["format"] == expected_format
+
+
+@pytest.mark.skipif(
+    not PYDANTIC_V2,
+    reason="json_schema_input_schema is only built for pydantic v2",
+)
+def test_pyarrow_temporal_column_matches_its_numpy_counterpart():
+    """An arrow temporal column should render exactly like its numpy twin."""
+    assert _json_schema_of(
+        Annotated[pd.ArrowDtype, pyarrow.timestamp("ns")]
+    ) == _json_schema_of("datetime64[ns]")
+    assert _json_schema_of(
+        Annotated[pd.ArrowDtype, pyarrow.duration("s")]
+    ) == _json_schema_of("timedelta64[ns]")
+
+
+@pytest.mark.skipif(
+    not PYDANTIC_V2,
+    reason="json_schema_input_schema is only built for pydantic v2",
+)
+def test_typed_dataframe_with_arrow_dtype_still_validates():
+    """The fix must not weaken validation for an arrow-backed column."""
+
+    class ArrowSchema(pa.DataFrameModel):
+        ts: Series[Annotated[pd.ArrowDtype, pyarrow.timestamp("ns")]]
+
+    class ArrowModel(BaseModel):
+        df: DataFrame[ArrowSchema]
+
+    valid = pd.DataFrame(
+        {
+            "ts": pd.to_datetime(["2026-09-18"]).astype(
+                pd.ArrowDtype(pyarrow.timestamp("ns"))
+            )
+        }
+    )
+    assert isinstance(ArrowModel(df=valid), ArrowModel)
+
+    with pytest.raises(ValidationError):
+        ArrowModel(df=pd.DataFrame({"wrong_name": [1]}))
 
 
 def test_dataframemodel():

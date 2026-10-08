@@ -314,6 +314,15 @@ class DataFrameSchemaBackend(NarwhalsSchemaBackend):
                         original_exc=result.original_exc,
                     )
 
+        if sample_obj is check_lf:
+            # Propagate nested Column drop_invalid_rows to the container output
+            # (non-mutating). Skipped under head/tail subsampling because a
+            # dropped subsample cannot be mapped back onto the full frame
+            # (matching the pandas backend).
+            check_lf = self._apply_nested_drop_invalid_rows(
+                check_lf, components, lazy
+            )
+
         if error_handler.collected_errors:
             if getattr(schema, "drop_invalid_rows", False):
                 check_obj_parsed = _to_frame_kind_nw(check_lf, return_type)
@@ -418,6 +427,33 @@ class DataFrameSchemaBackend(NarwhalsSchemaBackend):
                     ]
                 )
         return check_results
+
+    def _apply_nested_drop_invalid_rows(
+        self, check_lf, components: list, lazy: bool
+    ):
+        """Propagate nested Column drop_invalid_rows to the container output.
+
+        Lazy frames are immutable, so unlike the pandas backend (which mutated
+        the shared frame in place, PR #2521) the filtered frame returned by a
+        ``drop_invalid_rows`` component's ``validate()`` is threaded
+        explicitly through a local binding. Non-drop component validation and
+        error collection still happen in ``run_schema_component_checks``; this
+        only re-runs the drop components to recover their filtered frame.
+        Schema-level errors are already collected there and re-raised by the
+        caller, so they are ignored here.
+        """
+        native_obj = _to_native(check_lf)
+        for schema_component in components:
+            if not getattr(schema_component, "drop_invalid_rows", False):
+                continue
+            try:
+                result = schema_component.validate(native_obj, lazy=lazy)
+            except (SchemaError, SchemaErrors):
+                continue
+            wrapped = nw.from_native(result, eager_or_interchange_only=False)
+            if isinstance(wrapped, (nw.DataFrame, nw.LazyFrame)):
+                native_obj = result
+        return _to_lazy_nw(native_obj)
 
     def run_native_parsers(self, check_obj, schema):
         """Run custom ``schema.parsers`` on the native pandas frame.

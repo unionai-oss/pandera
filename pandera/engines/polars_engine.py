@@ -595,7 +595,6 @@ class _ArrayKwargs(TypedDict):
     """typeddict for mypy."""
 
     shape: NotRequired[Union[int, tuple[int, ...]]]
-    width: NotRequired[Union[int, None]]
 
 
 @Engine.register_dtype(equivalents=[pl.Array])

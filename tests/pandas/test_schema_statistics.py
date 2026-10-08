@@ -199,6 +199,23 @@ def test_parse_check_statistics(check_stats, expectation) -> None:
     assert set(checks) == set(expectation)
 
 
+def test_parse_check_statistics_restores_tuple_group_keys() -> None:
+    """Test that group keys read back as lists are restored as tuples."""
+    checks = schema_statistics.parse_check_statistics(
+        {
+            "greater_than_or_equal_to": {
+                "min_value": 1,
+                "options": {
+                    "groupby": ["group_a", "group_b"],
+                    "groups": [["x", 1], ["y", 2]],
+                },
+            }
+        }
+    )
+    assert checks is not None
+    assert checks[0].groups == [("x", 1), ("y", 2)]
+
+
 def _test_statistics(statistics, expectations):
     if not isinstance(statistics, list):
         statistics = [statistics]

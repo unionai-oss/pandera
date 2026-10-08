@@ -3065,6 +3065,44 @@ def test_drop_invalid_for_column(col, obj, expected_obj):
         col.validate(obj, lazy=False)
 
 
+def test_drop_invalid_for_column_within_dataframe_schema():
+    """A column's own drop_invalid_rows must take effect when the column is
+    validated as part of a DataFrameSchema, even if the DataFrameSchema
+    itself does not set drop_invalid_rows."""
+    schema = DataFrameSchema(
+        {"numbers": Column(int, checks=Check.ge(3), drop_invalid_rows=True)}
+    )
+    df = pd.DataFrame({"numbers": [1, 2, 3, 4, 5, 6]})
+
+    actual_obj = schema.validate(df, lazy=True)
+    expected_obj = pd.DataFrame({"numbers": [3, 4, 5, 6]})
+    pd.testing.assert_frame_equal(
+        expected_obj, actual_obj.reset_index(drop=True)
+    )
+
+    with pytest.raises(errors.SchemaDefinitionError):
+        schema.validate(df, lazy=False)
+
+
+def test_drop_invalid_for_column_within_dataframe_schema_does_not_mutate():
+    """A nested drop_invalid_rows column must not mutate the caller's frame.
+
+    Regression guard: the earlier pandas fix (PR #2521) propagated nested
+    column drops by mutating the shared frame in place. The non-mutating
+    propagation must leave the input untouched while still dropping rows in
+    the validated output.
+    """
+    schema = DataFrameSchema(
+        {"numbers": Column(int, checks=Check.ge(3), drop_invalid_rows=True)}
+    )
+    df = pd.DataFrame({"numbers": [1, 2, 3, 4, 5, 6]})
+    original = df.copy()
+
+    actual_obj = schema.validate(df, lazy=True)
+    assert actual_obj["numbers"].tolist() == [3, 4, 5, 6]
+    pd.testing.assert_frame_equal(df, original)
+
+
 def test_drop_invalid_for_model_schema():
     """Test drop_invalid_rows works as expected on DataFrameModel.validate"""
 

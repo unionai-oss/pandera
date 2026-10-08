@@ -250,3 +250,25 @@ def test_data_synthesis_not_supported(schema):
         schema.example()
     with pytest.raises(NotImplementedError):
         schema.strategy()
+
+
+def test_nested_column_drop_invalid_rows():
+    """A nested Column with drop_invalid_rows drops its failing rows.
+
+    Regression test for issue #2529: the filtered frame returned by
+    Column.validate was discarded when the column was validated inside a
+    DataFrameSchema. The column must keep dropping its failing rows even when
+    the DataFrameSchema itself does not set drop_invalid_rows.
+    """
+    schema = pa.DataFrameSchema(
+        {
+            "numbers": pa.Column(int, pa.Check.ge(3), drop_invalid_rows=True),
+            "letters": pa.Column(str),
+        }
+    )
+    table = pyarrow.table(
+        {"numbers": [1, 2, 3, 4, 5, 6], "letters": ["a"] * 6}
+    )
+    validated = schema.validate(table, lazy=True)
+    assert validated.column("numbers").to_pylist() == [3, 4, 5, 6]
+    assert validated.column("letters").to_pylist() == ["a", "a", "a", "a"]

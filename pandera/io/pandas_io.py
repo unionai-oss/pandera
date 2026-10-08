@@ -26,6 +26,7 @@ from pandera.io._flat_checks import (
     unflatten_component_checks_dict,
 )
 from pandera.io._minimal import apply_minimal_dataframe_container
+from pandera.schema_statistics.common import deserialize_group_keys
 from pandera.schema_statistics.pandas import get_dataframe_schema_statistics
 
 if TYPE_CHECKING:
@@ -275,6 +276,9 @@ def _deserialize_check_stats(check, serialized_check_stats, dtype=None):
     if isinstance(serialized_check_stats, dict):
         check_stats = {}
         for arg, stat in serialized_check_stats.items():
+            if arg == "groups":
+                check_stats[arg] = deserialize_group_keys(stat)
+                continue
             check_stats[arg] = handle_stat_dtype(stat)
         check_instance = check(**check_stats)
     else:
@@ -284,8 +288,11 @@ def _deserialize_check_stats(check, serialized_check_stats, dtype=None):
     # Apply options if they exist
     if options:
         for option_name, option_value in options.items():
-            if option_name != "check_name":
-                setattr(check_instance, option_name, option_value)
+            if option_name == "check_name":
+                continue
+            if option_name == "groups":
+                option_value = deserialize_group_keys(option_value)
+            setattr(check_instance, option_name, option_value)
 
     return check_instance
 

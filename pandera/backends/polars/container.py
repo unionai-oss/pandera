@@ -157,6 +157,16 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
                     original_exc=result.original_exc,
                 )
 
+        # Propagate nested Column drop_invalid_rows to the container output
+        # (non-mutating). Skipped under head/tail/sample subsampling because a
+        # dropped subsample cannot be mapped back onto the full frame (matching
+        # the pandas backend).
+        if sample is check_obj_parsed:
+            check_lf = self._apply_nested_drop_invalid_rows(
+                check_lf, components, lazy
+            )
+            check_obj_parsed = _to_frame_kind(check_lf, return_type)
+
         if error_handler.collected_errors:
             if getattr(schema, "drop_invalid_rows", False):
                 check_obj_parsed = self.drop_invalid_rows(
@@ -246,6 +256,34 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
                 )
         assert all(check_passed)
         return check_results
+
+    def _apply_nested_drop_invalid_rows(
+        self,
+        check_lf: pl.LazyFrame,
+        components: list,
+        lazy: bool,
+    ) -> pl.LazyFrame:
+        """Propagate nested Column drop_invalid_rows to the container output.
+
+        Lazy frames are immutable, so unlike the pandas backend (which mutated
+        the shared frame in place, PR #2521) the filtered frame returned by a
+        ``drop_invalid_rows`` component's ``validate()`` is threaded explicitly
+        through a local binding. Non-drop component validation and error
+        collection still happen in ``run_schema_component_checks``; this only
+        re-runs the drop components to recover their filtered frame.
+        Schema-level errors are already collected there and re-raised by the
+        caller, so they are ignored here.
+        """
+        for schema_component in components:
+            if not getattr(schema_component, "drop_invalid_rows", False):
+                continue
+            try:
+                result = schema_component.validate(check_lf, lazy=lazy)
+            except (SchemaError, SchemaErrors):
+                continue
+            if isinstance(result, pl.LazyFrame):
+                check_lf = result
+        return check_lf
 
     def collect_column_info(self, check_obj: pl.LazyFrame, schema):
         """Collect column metadata for the dataframe."""

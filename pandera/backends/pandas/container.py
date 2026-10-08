@@ -153,6 +153,13 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
                     data=check_obj,
                 )
 
+        # Propagate nested Column drop_invalid_rows to the container output
+        # (non-mutating, see _apply_nested_drop_invalid_rows).
+        if any(getattr(c, "drop_invalid_rows", False) for c in components):
+            check_obj = self._apply_nested_drop_invalid_rows(
+                check_obj, components, lazy
+            )
+
         return check_obj
 
     def run_checks_and_handle_errors(
@@ -277,6 +284,33 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
                 )
         assert all(check_passed)
         return check_results
+
+    def _apply_nested_drop_invalid_rows(
+        self,
+        check_obj: pd.DataFrame,
+        components: list,
+        lazy: bool,
+    ) -> pd.DataFrame:
+        """Non-mutating propagation of nested Column drop_invalid_rows.
+
+        A ``drop_invalid_rows`` component returns a filtered frame *instead of*
+        raising. ``run_schema_component_checks`` discards that frame, so rebind
+        the container's local ``check_obj`` to it here. Unlike the earlier
+        pandas fix (PR #2521), the caller's frame is never mutated — the drop
+        is propagated through a plain frame assignment.
+        """
+        for schema_component in components:
+            if not getattr(schema_component, "drop_invalid_rows", False):
+                continue
+            try:
+                result = schema_component.validate(
+                    check_obj, lazy=lazy, inplace=True
+                )
+            except (SchemaError, SchemaErrors):
+                continue
+            if is_table(result):
+                check_obj = result
+        return check_obj
 
     @validate_scope(scope=ValidationScope.DATA)
     def run_checks(

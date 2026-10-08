@@ -223,9 +223,10 @@ html_theme = "furo"
 # documentation.
 
 announcement = """
-📢 New in Pandera 0.33.0: validate schemas from the command line with the
-<a href='./cli.html'>Pandera CLI</a>, and validate <a href='./pyarrow.html'>PyArrow</a>
-dataframes natively!
+📢 New in Pandera 0.34.0: validate PyTorch
+<a href='./pytorch_guide/index.html'>TensorDict</a>
+collections - TensorDict, Tensor and tensorclass - with the same schema and
+check patterns as the other dataframe backends!
 """
 
 html_logo = "_static/pandera-banner.png"
