@@ -42,6 +42,7 @@ dask=$(combine "${DASK:-}")
 modin=$(combine "${MODIN:-}")
 xarray=$(combine "${XARRAY:-}")
 pyarrow=$(combine "${PYARROW:-}")
+datafusion=$(combine "${DATAFUSION:-}")
 narwhals=$(combine "${NARWHALS:-}")
 hypotheses=$(combine "${HYPOTHESES:-}")
 io=$(combine "${IO:-}")
@@ -59,7 +60,8 @@ fi
 
 dataframe=false
 if is_true "$dask" || is_true "$polars" || is_true "$pyspark" || is_true "$modin" \
-    || is_true "$ibis" || is_true "$xarray" || is_true "$pyarrow"; then
+    || is_true "$ibis" || is_true "$xarray" || is_true "$pyarrow" \
+    || is_true "$datafusion"; then
     dataframe=true
 fi
 
@@ -101,6 +103,7 @@ fi
 is_true "$ibis" && dataframe_extras+=("ibis")
 is_true "$xarray" && dataframe_extras+=("xarray")
 is_true "$pyarrow" && dataframe_extras+=("pyarrow")
+is_true "$datafusion" && dataframe_extras+=("datafusion")
 
 narwhals_backend_extras=()
 if is_true "$narwhals"; then

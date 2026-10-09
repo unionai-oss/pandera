@@ -91,6 +91,7 @@ jobs:
           MODIN: ${{ steps.filter.outputs.modin }}
           XARRAY: ${{ steps.filter.outputs.xarray }}
           PYARROW: ${{ steps.filter.outputs.pyarrow }}
+          DATAFUSION: ${{ steps.filter.outputs.datafusion }}
           NARWHALS: ${{ steps.filter.outputs.narwhals }}
           HYPOTHESES: ${{ steps.filter.outputs.hypotheses }}
           IO: ${{ steps.filter.outputs.io }}
