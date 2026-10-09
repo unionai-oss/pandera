@@ -1,9 +1,12 @@
 # Derived Columns and System One Parsing — Integration Spec
 
-> **Status:** Draft / RFC
+> **Status:** Draft / RFC. Phases 0–3 are implemented in #2515–#2520; the
+> provider generalization of §7 is in #2526. See §9 for what is and is not built.
 > **Author:** pandera maintainers
 > **Install:** `pip install 'pandera[typesafe-ai]'`
-> **Related:** [TypeSafe Jev](https://pydantic.dev/docs/ai/models/typesafe/)
+> **Related:** [TypeSafe Jev](https://pydantic.dev/docs/ai/models/typesafe/),
+> [Ollaya](https://ollaya.dev) (open-weight decision models behind the same
+> wire format)
 
 ---
 
@@ -22,10 +25,12 @@ class Tickets(pa.DataFrameModel):
     n_words: int = pa.ParsedField(source="body", parser=lambda s: s.str.split().str.len())
 ```
 
-**Layer 2 — System One parsing (`pandera[typesafe-ai]`).** `parser=` accepts a
-plain callable *or* a parser object. The System One question types are parser
+**Layer 2 — decision-model parsing (`pandera[typesafe-ai]`).** `parser=` accepts
+a plain callable *or* a parser object. The System One question types are parser
 objects, so asking a decision model is the same construct as any other
-derivation:
+derivation. The question types are pandera's own provider-neutral vocabulary;
+Jev and the open-weight models Ollaya serves locally are two *providers* of it,
+and switching between them is a runtime setting, not a schema change (§7):
 
 ```python
 import enum
@@ -114,43 +119,85 @@ Pandera already draws this line, in `docs/source/parsers.md`:
 > constraints, whereas parsing transforms raw data into some desired set of
 > constraints.
 
-### 1.3 Why Jev fits the layer-2 slot
+### 1.3 Why decision models fit the layer-2 slot
 
-Jev is a **System One model**: it does not generate text. It answers typed
-questions and can only return values from the schema it was given. Three
+A **System One model** (or *decision model*) does not generate text. It answers
+typed questions and can only return values from the schema it was given. Three
 question types, which become the three parser objects:
 
 | Question | Returns | Shape |
 |---|---|---|
-| `Noul(instructions=...)` | calibrated probability | `float` in `[0, 1]` |
-| `Choice(instructions=..., criteria={opt: desc})` | one option | ≤ 255 options |
+| `Noul(instructions=...)` | calibrated probability of yes | `float` in `[0, 1]` |
+| `Choice(instructions=..., criteria={opt: desc})` | one option | 2–255 options |
 | `Score(instructions=..., criteria=[level, ...])` | position on a scale | 2–10 ordered levels |
 
-Vendor-reported: 70–500 ms latency, 1,200 req/min, 250k tokens/sec, $0.042/M
-input tokens with output free, a 0% structured-output error rate, and *"a tenth
-question costs tokens but almost no time"* — which is what makes per-column
-declarations affordable, since the compiler can batch them back together.
+This is a class of model with more than one implementation, and the interface is
+already shared. Verified against the vendors' own documentation on 2026-09-25:
 
-The 0% structured-output rate is the load-bearing fact for pandera. It **moves
-validation up a level**. There is no question of whether the model returned
-`"Billing "`, `"BILLING"`, or a two-paragraph apology; the dtype and the domain
-are guaranteed by construction. What remains uncertain is whether the
-*distribution* of decisions is sane:
+| | Jev (TypeSafe) | Open-weight models (Ollaya) |
+|---|---|---|
+| Runs | hosted API | on your hardware; Laya, Decider, Kev, NLI, Gliclass, Qwen3guard, Von |
+| Endpoint | `POST /v1/systemone` | `POST /v1/systemone` (alias `/v1/decisions`), plus a native `/api/decide` |
+| Client | `typesafe-sdk` | the *same* `typesafe-sdk`, with `TYPESAFE_BASE_URL` changed |
+| Question types | noul, choice, score | noul, choice, score |
+| Options / levels | ≤ 255 / ≤ 10 | ≤ 255 / ≤ 10 in the protocol; ~125 (`laya:en`) or ~250 (`laya:multilingual`) per model |
+| State limit | 32k per request, 64k combined | 64k tokens; `state_truncated` reported on the native API |
+| Cost | per token | no per-token cost |
+| Rate limits | published quotas | a local queue (`QUEUE_FULL`, retryable) |
+| Reports confidence | choice, score | choice, score |
+| Reports for noul | probability only | probability only |
+
+The wire format is the interchange format: a `state` plus named `questions` in,
+`answers` out. Answers per kind: `choice` → `{choice, confidence,
+probabilities}`; `score` → `{score, confidence, legend, probabilities}` where
+`score` is fractional; `noul` → `{noul}` and nothing else.
+
+What this means for the design:
+
+- **The vocabulary and the limits are shared; the model is not.** Two to 255
+  options and two to ten levels hold for every implementation, so they are
+  schema-build errors. But a small local model takes fewer options than a hosted
+  one, and which model answers is runtime configuration — so what a *particular*
+  model can be asked is a property of the provider (§7.2), checked as soon as the
+  provider is known and before any request.
+- **Same interface does not mean same quality.** Ollaya's own guidance is to
+  *"measure on your own data before switching production traffic."* That is a
+  strength of this design, not a caveat to it: the schema is provider-free, so
+  running it under two providers and comparing the distributions is a one-line
+  change, and the distribution checks below are exactly the tool for it.
+- **Not every answer carries a confidence.** A noul is a bare probability
+  everywhere. Anything that needs a confidence — abstention, a `Confidence`
+  column — has to be refused where the provider cannot supply one (§4.5), not
+  quietly skipped.
+
+The structured-output guarantee is the load-bearing fact for pandera, and it
+generalizes: an answer set that is closed by construction **moves validation up
+a level**. There is no question of whether the model returned `"Billing "`,
+`"BILLING"`, or a two-paragraph apology; the dtype and the domain are guaranteed.
+What remains uncertain is whether the *distribution* of decisions is sane:
 
 - Is 60% of today's batch routing to one department when the baseline is 4%?
 - Did mean confidence on `frustration` drop after the last model version bump?
 - Do 30% of rows now fall below the abstention threshold?
+- Do two candidate models agree on 90% of rows, or 60%?
 
 Those are `Check`s and `Hypothesis`es over a column — pandera's home turf, and
 with no per-object analogue in a per-record API.
+
+Vendor-reported, for Jev: 70–500 ms latency, 1,200 req/min, 250k tokens/sec,
+$0.042/M input tokens with output free, and *"a tenth question costs tokens but
+almost no time"* — which is what makes per-column declarations affordable, since
+the compiler can batch them back together. Ollaya reports 8–10 ms (Laya, five
+questions, RTX 4090), 155–190 ms (Decider), and 236–276 ms for the hosted API
+including network. None of these are ours; §12 covers verification.
 
 ### 1.4 Cost
 
 10,000 tickets, ~400 tokens of state each, 6 derived fields: ~4M input tokens ≈
 **$0.17** in one pass of ~10,000 requests.
 
-*(All figures in §1.3–§1.4 are vendor-reported. §12 covers verification before
-any of them appear in user-facing docs.)*
+*(Latency, price and throughput figures in §1.3–§1.4 are vendor-reported. §12
+covers verification before any of them appear in user-facing docs.)*
 
 ---
 
@@ -171,11 +218,25 @@ any of them appear in user-facing docs.)*
    more than writing per-schema.
 5. **The schema says what to ask; the runtime says who answers.** Providers are
    configured out of band (§4.6), so one schema runs against a recorded cassette
-   in CI and a live provider in production without edits.
-6. **Unsupported is a schema-build error.** A question that cannot be posed
-   raises `SchemaInitError` when the schema is built, before any request.
+   in CI, a hosted model in production and a local one on a laptop without
+   edits.
+6. **Unsupported is an error before any request.** A question that cannot be
+   posed fails with a message naming the column and the limit. Two tiers, because
+   the provider is runtime configuration: what the *vocabulary* forbids (fewer
+   than two options, more than ten levels) is a `SchemaInitError` when the
+   schema is built; what the *model* cannot take (more options than its budget,
+   a question kind it does not answer) is a `ProviderCapabilityError` as soon as
+   the provider is known — still before the first request.
 7. **Deterministic tests.** No test in pandera's suite may require an API key or
-   network access.
+   network access, and every test module must import on every supported Python
+   (3.10 has no `enum.StrEnum`).
+8. **A provider is a translator, not a special case.** The question and answer
+   types are pandera's; each provider normalizes into them and *declares* where
+   it differs (`capabilities`, `limits`). Nothing in the parsers may branch on a
+   vendor, and nothing may assume a provider behaves like the first one.
+9. **No silent no-ops.** An option the provider cannot honor — an abstention
+   floor on a model that reports no confidence — is refused, not ignored. A
+   safety knob that never fires is worse than an error.
 
 ---
 
@@ -478,7 +539,9 @@ schema, versioned, rather than in a prompt string somewhere else.
 
 ### 4.3 Type compatibility
 
-Each parser declares which dtypes it can fill, checked at schema build:
+Each parser declares which dtypes it can fill, checked at schema build. The
+option and level counts below are the *vocabulary's* bounds; a provider may be
+narrower (§7.2), which is checked when the provider is known:
 
 | Parser | Valid target dtype | Rejected |
 |---|---|---|
@@ -565,6 +628,22 @@ Three levels of strictness compose, all from existing features:
 3. `@pa.dataframe_check` — per batch: mean confidence, abstention rate,
    distribution drift.
 
+**Not every decision has a confidence.** A noul is a bare probability — no
+confidence, no distribution — in every implementation to date, so
+`Noul(abstain_below=...)` and `Confidence("is_urgent")` on a noul column are
+refused before any request (`ProviderCapabilityError`), naming the column and the
+way out: keep the column a `float` and check the probability, or threshold it with
+`Noul(threshold=)`. Whether a provider reports a confidence for a kind is part of
+its capabilities (§7.2), so a future model that does report one for noul enables
+it without a pandera change.
+
+An earlier implementation let `abstain_below` on a noul pass and simply never
+trigger — the floor the user asked for was a silent no-op (principle 9). Making
+that abstention *real* also exposed a second trap: `astype(bool)` turns a missing
+answer into `False`, recording a confident "no". Abstained answers stay missing;
+a `bool` column that can abstain is declared `pd.BooleanDtype`, and a plain `bool`
+schema reports the mismatch.
+
 ### 4.6 Providers are runtime, not schema
 
 A schema says what to ask. Who answers is configured out of band:
@@ -572,35 +651,47 @@ A schema says what to ask. Who answers is configured out of band:
 ```python
 import pandera.system_one as system_one
 
-system_one.set_provider("typesafe:jev-1.13.0")        # process-wide
+system_one.set_provider("typesafe:jev-1.13.0")        # hosted, process-wide
+system_one.set_provider("ollaya:decider:2b")          # local, no per-token cost
 
 with system_one.provider(ReplayProvider(cassette)):   # scoped, for tests
     Triage.validate(df)
 ```
 
 plus `PANDERA_SYSTEM_ONE_PROVIDER` as the env-var form, and
-`system_one.Choice(provider=...)` as a per-parser override.
+`system_one.Choice(provider=...)` as a per-parser override. Prefixes resolve
+through a registry — `typesafe:`, `ollaya:` and `mock:` ship, and
+`system_one.register_provider("acme", factory)` makes any other reachable from
+all three forms.
 
 **There is no default provider.** Validating a System One schema with none
 configured raises `SystemOneConfigError` telling you how to set one. That is the
-safety property that matters here: `Triage.validate(df)` does issue paid
-requests — inherent to putting the question in the schema — so it must be
-impossible to reach that state without having deliberately configured a
+safety property that matters here: `Triage.validate(df)` may issue paid or
+GPU-bound requests — inherent to putting the question in the schema — so it must
+be impossible to reach that state without having deliberately configured a
 provider.
 
-Supporting mitigations:
+Supporting mitigations, all callable with no provider or no credentials:
 
 ```python
-Triage.questions()
+system_one.questions(Triage)
 #> {'department': Choice(...), 'frustration': Score(...), 'is_urgent': Noul(...)}
 
-Triage.parse_plan(tickets_df)
-#> SystemOnePlan(rows=10_000, batches=1, requests=10_000,
-#>               est_input_tokens=4_812_000, est_cost_usd=0.2021)
+system_one.questions(Triage, provider="ollaya:laya")   # + capability check
+
+system_one.plan(Triage, tickets_df, provider="ollaya:decider:2b")
+#> Plan(rows=10_000, batches=1, requests=10_000, questions=3,
+#>      est_input_tokens=4_812_000, est_cost=$0.0000)
 ```
 
 `questions()` compiles and inspects without a provider at all, so a schema's
-questions are reviewable in a test with no credentials.
+questions are reviewable in a test with no credentials; given a provider it also
+checks them against that model's capabilities, so a schema a local model cannot
+take fails in CI rather than on row one. `plan()` prices input tokens only when
+the provider declares a price: unknown is `None`, not zero, and a local model
+declares `0.0`. A hosted provider is priced only when told
+(`capabilities=ProviderCapabilities(price_per_million_input_tokens=...)`) —
+pandera does not ship a vendor's prices, which are vendor-reported (§12).
 
 ### 4.7 Semantic checks
 
@@ -628,8 +719,8 @@ offline, degrading to a skip with a warning.
 
 ### 4.8 Serialization
 
-Unlike a lambda, a question set is declarative, so layer 2 schemas round-trip
-completely:
+*Not yet implemented — see §9.* Unlike a lambda, a question set is declarative,
+so layer 2 schemas round-trip completely:
 
 ```yaml
 columns:
@@ -693,19 +784,22 @@ one call per field.
 
 ### 5.2 Across rows
 
-Bounded async fan-out through an `asyncio.Semaphore(max_concurrency)` behind a
-token-bucket limiter sized to the provider's published limits, with exponential
-backoff honoring `retry-after`:
+Bounded async fan-out through an `asyncio.Semaphore(max_concurrency)` behind an
+optional token-bucket limiter. Both are sized from the provider's
+`ProviderLimits`, every field of which is optional: a hosted model publishes
+requests-per-minute and tokens-per-second; a local one has a queue, not a quota,
+and publishes neither.
 
 ```python
 async def _parse(states, compiled, provider, limits):
     sem = asyncio.Semaphore(limits.max_concurrency)
-    bucket = TokenBucket(rpm=limits.rpm, tps=limits.tps)
+    bucket = TokenBucket(rpm=limits.requests_per_minute,
+                         tps=limits.tokens_per_second)   # None = unlimited
 
     async def one(i, state):
         async with sem:
-            await bucket.acquire(estimate_tokens(state, compiled))
-            return i, await provider.decide(state, compiled)
+            await bucket.acquire(estimate_tokens(state))
+            return await provider.decide(state, compiled)
 
     return await gather_ordered(one(i, s) for i, s in enumerate(states))
 ```
@@ -715,9 +809,20 @@ with its input — non-negotiable, since answers are joined onto an existing fra
 Concurrency and cache settings are provider-level, configured alongside it
 (§4.6), since they are runtime concerns rather than schema ones.
 
-State size is checked against the 64k combined / 32k individual token limits
-before dispatch, raising with the offending row index rather than surfacing a
-provider HTTP error.
+**Retries belong to the provider.** An earlier draft had pandera back off with
+`retry-after`. But only the provider knows which of its failures are transient —
+TypeSafe's SDK ships a `RetryPolicy` and typed errors; Ollaya distinguishes
+`QUEUE_FULL` and `INFERENCE_FAILED` (retryable) from `INPUT_TOO_LONG` and
+`TOO_MANY_OPTIONS` (not) — so `TypeSafeProvider(retry=...)` hands the SDK's own
+policy through, and pandera only paces. A small fan-out is also the right default
+for a local model, whose queue saturates long before a hosted quota would.
+
+**State size is checked per row before dispatch**, against
+`limits.max_state_tokens`, raising with the offending row index rather than
+surfacing as a provider HTTP error or, worse, a silently truncated state. The
+estimate is deliberately an undercount, so a borderline row is let through.
+Ollaya's native API reports `state_truncated`; the TypeSafe-compatible endpoint
+the SDK uses does not surface it, which is an open question (§12.9).
 
 ### 5.3 Caching
 
@@ -738,6 +843,12 @@ out.attrs["pandera.system_one"]
 `jev-latest` can change answers between runs, so the resolved version is part of
 the key and an unpinned provider warns when a cache is configured.
 
+A *router* complicates "resolved": Ollaya's `laya` alias picks `laya:en` or
+`laya:multilingual` per request, and a local `ollaya pull` can replace weights
+under an unchanged name. The key uses the model the caller asked for, so pin a
+concrete name; the model that actually answered belongs in the stats. Where a
+provider can offer a weights digest, that is the right `model_version`.
+
 ### 5.4 Partitions
 
 Once parsers work on more than pandas (§6.4), the same schema runs
@@ -750,7 +861,9 @@ pulling state out of rows and putting typed arrays back into columns.
 ## 6. Gaps to close first
 
 Verified empirically against `main` (`62f55e2d`) with pandas and polars
-installed. Every one is a pandera bug or hole that stands on its own.
+installed. Every one is a pandera bug or hole that stands on its own. **Status:**
+6.2, 6.3, 6.5, 6.6 and 6.7 are fixed in #2515; 6.1 in #2516; 6.4(a) was already
+fixed on `main` by #2472. 6.4(b) and 6.8 remain.
 
 ### 6.1 Parsers have no declared source, so failures are opaque 🔴
 
@@ -906,28 +1019,81 @@ generated docs for ordinary categorical columns.
 
 ## 7. Provider protocol
 
+A provider translates pandera's question and answer types to and from one
+model's interface. It is about questions and answers, not HTTP: a hosted API, a
+local server, and an in-process classifier (an NLI or Gliclass pipeline) are all
+providers, and the async `decide` accommodates the last by running in a thread.
+
+### 7.1 The protocol
+
 ```python
 class DecisionProvider(Protocol):
     id: str
-    model_version: str          # resolved and pinned; part of the cache key
+    model_version: str          # concrete; part of the cache key
 
-    def compile(self, questions: dict[str, Question]) -> Any:
-        """Validate/translate the question set. Raises SchemaInitError."""
+    def compile(self, questions: Mapping[str, Question]) -> Any:
+        """Translate the question set. Raises SchemaInitError."""
 
-    async def decide(self, state: Any, compiled: Any) -> dict[str, Decision]:
+    async def decide(self, state: Any, compiled: Any) -> Mapping[str, Decision]:
         """One state -> typed answers."""
 
     @property
-    def limits(self) -> ProviderLimits: ...
+    def limits(self) -> ProviderLimits: ...           # throughput; all optional
+
+    # optional: a provider that declares nothing answers the shared vocabulary
+    @property
+    def capabilities(self) -> ProviderCapabilities: ...
 ```
 
-`Decision` is a dataclass: `value`, `confidence`, `probabilities`, `raw`.
-Shipped: `TypeSafeProvider` (wraps `typesafe_sdk.AsyncTypeSafeClient`),
-`RecordingProvider`/`ReplayProvider` (cassettes), `MockProvider` (seeded
-deterministic answers, for docs and CI). Three methods is what keeps this from
-becoming a one-vendor dead end.
+`Decision` carries `value`, `confidence`, `probabilities` and `raw`. `value` is
+the provider's answer *in the question's terms* — the option label for a
+`Choice`, the fractional position for a `Score`, the probability for a `Noul` —
+and the parser maps it onto the column's value domain. A provider is a
+normalizer, not an interpreter: per-kind quirks (a score's `legend`, integer- vs
+string-keyed probabilities) are flattened here and nowhere else.
 
----
+### 7.2 Capabilities
+
+Providers agree on the interface and differ in what a given model can be asked:
+
+```python
+@dataclass(frozen=True)
+class ProviderCapabilities:
+    kinds: frozenset[str] = {"choice", "score", "noul"}
+    max_options: int | None = 255
+    max_levels: int | None = 10
+    max_questions: int | None = None
+    reports_confidence: frozenset[str] = {"choice", "score"}
+    price_per_million_input_tokens: float | None = None
+```
+
+The defaults are the vocabulary's own bounds, so a provider declares only where
+it is *narrower*: Ollaya's `laya:en` takes ~125 options, a classifier-only model
+may not answer scores, a request may be capped at 256 questions. A question set
+is verified against the provider's capabilities as soon as the provider is
+known — before any request, in `questions(schema, provider=...)`, and by
+`Holds` — and the error names the column, the provider and the limit. Static
+declarations are a first cut; a server that can report its own limits would be
+better (§12.10), with the server's error codes as the backstop.
+
+### 7.3 What stays out of the schema
+
+Model-specific knobs — Ollaya's `keep_alive` and `extras`, TypeSafe's retry
+policy, timeouts, base URLs — live on the provider's constructor, never on a
+`Field`, a parser, or a serialized schema.
+
+### 7.4 Shipped and planned
+
+| Provider | Notes |
+|---|---|
+| `TypeSafeProvider` | wraps `typesafe_sdk.AsyncTypeSafeClient`; takes `base_url`, `retry`, client options; written to be subclassed |
+| `OllayaProvider` | a thin subclass: local defaults (`OLLAYA_HOST`, no rate limits, `max_state_tokens=65_536`), per-model capabilities, price `0.0` |
+| `RecordingProvider` / `ReplayProvider` | cassettes |
+| `MockProvider` | seeded deterministic answers; takes `capabilities=`/`limits=` to stand in for a narrower model |
+
+Three methods and two optional dataclasses is what keeps this from becoming a
+one-vendor dead end — and Ollaya is the evidence: a second implementation needed
+a subclass of the first provider and no change to a parser.
 
 ## 8. Packaging
 
@@ -938,22 +1104,25 @@ typesafe-ai = ["typesafe-sdk"]
 
 - Layer 1 is **core pandera** — no extra, no new dependency.
 - Layer 2 is `pandera.system_one`, installed with
-  `pip install 'pandera[typesafe-ai]'`; Jev-specific code lives in
-  `pandera.system_one.providers.typesafe`.
+  `pip install 'pandera[typesafe-ai]'`. Vendor-specific code lives under
+  `pandera.system_one.providers`; only `typesafe.py` imports the SDK, and
+  `ollaya.py` reuses it, so the one extra covers both. Ollaya additionally needs
+  a running server, which is not a Python dependency.
 - Importing `pandera` without the extra is byte-for-byte unaffected.
 
 ---
 
 ## 9. Phasing
 
-| Phase | Layer | Scope | Exit criteria |
-|---|---|---|---|
-| **0** | core | §6.2, §6.3, §6.4(a), §6.7; cross-backend enum conformance tests | `Enum` and `Literal` round-trip on pandas and polars; member docstrings readable; non-pandas parsers raise instead of no-op |
-| **1** | 1 | `Parser(source=, target=)`, dependency sort, `ParserSourceError`/`ParserTargetError`, `ParsedColumn`/`ParsedField`, `ColumnParser` protocol + batching, `Config.parser_source`, `@pa.parser(source=)` | Derived columns work end-to-end on pandas with declared provenance. **Ships with no AI code at all.** |
-| **2** | 2 | `Question`/`Decision`, `DecisionProvider`, `TypeSafeProvider`, `Choice`/`Score`/`Noul` + inference, provider configuration, async fan-out + limiter | The §0 example runs end-to-end; §4.2 inference and §4.3 compatibility fully covered by replay tests |
-| **3** | 2 | `Confidence`, `abstain_below`, cache, stats, `parse_plan()` | Confidence floors and distribution checks work; cache-hit path makes zero network calls |
-| **4** | both | §6.4(b), §6.8; polars parsers, `Holds`, YAML round-trip, CLI | Same model validates on pandas and polars with identical output |
-| **5** | both | dask/modin/pyspark partitioning, multi-label, `ParsedIndex` | 1M-row parse on dask with bounded memory and correct rate limiting |
+| Phase | Layer | Scope | Exit criteria | Status |
+|---|---|---|---|---|
+| **0** | core | §6.2, §6.3, §6.4(a), §6.7; cross-backend enum conformance tests | `Enum` and `Literal` round-trip on pandas and polars; member docstrings readable; non-pandas parsers raise instead of no-op | #2515 |
+| **1** | 1 | `Parser(source=, target=)`, dependency sort, `ParserSourceError`/`ParserTargetError`, `ParsedColumn`/`ParsedField`, `ColumnParser` protocol + batching, `Config.parser_source`, `@pa.parser(source=)` | Derived columns work end-to-end on pandas with declared provenance. **Ships with no AI code at all.** | #2516, #2517 |
+| **2** | 2 | `Question`/`Decision`, `DecisionProvider`, `TypeSafeProvider`, `Choice`/`Score`/`Noul` + inference, provider configuration, async fan-out + limiter | The §0 example runs end-to-end; §4.2 inference and §4.3 compatibility fully covered by replay tests | #2518 |
+| **2b** | 2 | Provider generalization: `ProviderCapabilities`, provider registry, `OllayaProvider`, state-size limit, capability-aware `Confidence`/abstention/`plan()` | A second, structurally different implementation runs a schema end to end through the real SDK with no parser changes | #2526 |
+| **3** | 2 | `Confidence`, `abstain_below`, cache, stats, `plan()` | Confidence floors and distribution checks work; cache-hit path makes zero network calls | #2519 |
+| **4** | both | §6.4(b), §6.8; polars parsers, `Holds`, YAML round-trip, CLI | Same model validates on pandas and polars with identical output | `Holds` in #2520; the rest open |
+| **5** | both | dask/modin/pyspark partitioning, multi-label, `ParsedIndex`, provider comparison and cascades (§12) | 1M-row parse on dask with bounded memory and correct rate limiting | open |
 
 Phases 0 and 1 are worth doing whether or not layer 2 is ever built.
 
@@ -977,6 +1146,15 @@ Hard constraint: **no test requires an API key or network access.**
   `system_one.provider(...)` context manager.
 - **Compatibility tests.** §4.3 as a parametrized matrix: every (parser, dtype)
   pair either compiles or raises `SchemaInitError` naming the column.
+- **Provider conformance.** A schema is driven end to end through the *real*
+  SDK, over a mock transport, against a response as a second implementation
+  actually serves it — including the fields the SDK does not model, and a noul
+  with no confidence. This is what catches Jev-shaped assumptions: it found the
+  silent no-op abstention on noul. The capability matrix (kinds, options,
+  levels, questions per request, confidence, state size) is parametrized over
+  providers narrower than the default.
+- **Every supported Python.** Tests must not use `enum.StrEnum` (3.11+) at module
+  level; `(str, enum.Enum)` is equivalent for what pandera cares about.
 - **Type-system regression tests** for §6.2–§6.8, written before the fixes.
 - **Concurrency tests** with a latency-injecting fake provider: ordering
   preserved, concurrency capped, token bucket throttles, `retry-after` honored,
@@ -1012,8 +1190,25 @@ calling; stats always attached to the result. Worth considering an opt-in
 confirmation above a configurable row threshold.
 
 **Vendor concentration.** Jev is one vendor's proprietary model in early access
-(opened 2026-09-15 — this is very new). Mitigation: the `DecisionProvider`
-protocol, no Jev import in core, and a layer 1 that is independently useful.
+(opened 2026-09-15 — this is very new). This risk has largely been retired by the
+ecosystem rather than by us: open-weight models (Laya, Decider, Kev and others)
+now answer the same questions behind the same wire format, and Ollaya serves
+them locally. Mitigation: the `DecisionProvider` protocol, no vendor import in
+core, and a layer 1 that is independently useful. What remains is *interface*
+concentration — the wire format is currently TypeSafe's — which §7 contains by
+normalizing into pandera's own types.
+
+**Same interface, different quality.** Models that agree on the wire do not
+agree on answers, and a schema that silently changes behavior when the provider
+string changes is a hazard. Mitigation: the schema is provider-free, so
+comparing two providers on the same data is cheap; the docs say to measure
+before switching, and a comparison helper is proposed below.
+
+**Capability drift.** New models arrive faster than a static capability table
+can track. The defaults are the vocabulary's bounds, `capabilities=` overrides
+them, and the server's own errors (`TOO_MANY_OPTIONS`, `INPUT_TOO_LONG`) are the
+backstop — but a wrong optimistic declaration fails on the first request rather
+than before it.
 
 **Vendor-reported numbers.** Every figure in §1.3–§1.4 is TypeSafe's. Before any
 of it reaches pandera's docs we publish our own benchmark on a public dataset
@@ -1041,6 +1236,29 @@ caching.
    sufficient? Removal would complete the derivation story but complicates the
    dependency graph.
 6. `ParsedIndex` for symmetry, or is deriving an index out of scope?
+7. **Naming.** "System One" is TypeSafe's coinage, and `typesafe-ai` names one
+   vendor, yet the category now has several implementations that call
+   themselves *decision models* (Ollaya serves `/v1/systemone` and aliases it
+   `/v1/decisions`; its native endpoint is `/api/decide`). Should
+   `pandera.system_one` become `pandera.decisions`, and `typesafe-ai` something
+   like `decision-models`? Recommended, and cheapest before anything is
+   released; it also removes the only vendor name from the public API.
+8. **Cascades.** Jev's own integrations hand low-confidence decisions to a
+   language model (`FallbackModel`). With interchangeable providers the natural
+   pandera form is `abstain_below` plus a `fallback=` provider for the abstained
+   rows: a small local model first, a hosted one for the rows it is unsure of.
+9. **Truncation.** Ollaya's native API reports `state_truncated`; the
+   SDK-compatible endpoint does not surface it. Should `Decision` carry a
+   `truncated` flag and stats count it, so a partially-read state is never a
+   silent answer?
+10. **Capability discovery.** Should providers query their server (`/api/show`,
+    `/v1/models`) for limits instead of shipping a table, and cache the result?
+11. **Batches larger than `max_questions`.** Today a request over the cap is
+    refused. Should the compiler split it, at the cost of `Confidence` needing to
+    stay in its target's chunk?
+12. **A comparison helper.** `system_one.compare(schema, df, providers=[...])`
+    returning per-column agreement and distribution shift, so "measure before
+    switching" is one call.
 
 **Resolved during review:**
 
@@ -1061,6 +1279,13 @@ caching.
   ordering (§4.3), which also demoted §6.5 from blocker to nice-to-have.
 - *Confidence column naming* — declared as an ordinary `ParsedField` (§4.5),
   replacing auto-injected `__confidence` suffixes.
+- *Where do a model's limits live?* On the **provider** (§7.2), not in the
+  parsers. An earlier implementation hard-coded Jev's numbers as module
+  constants, which would have been wrong for the first other model tried. The
+  vocabulary's bounds stay in the parsers; anything narrower is declared by the
+  provider and checked once it is known.
+- *Who retries?* The **provider** (§5.2). Pandera paces requests; it does not
+  guess which of a transport's errors are transient.
 
 ---
 
