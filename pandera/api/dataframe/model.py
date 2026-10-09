@@ -522,13 +522,24 @@ class DataFrameModel(Generic[TDataFrame, TSchema], BaseModel):
             root_model.Config
         )
 
+        # A model's Config can inherit options from user-defined base config
+        # classes, which ``vars(config)`` doesn't see. Walk each Config's MRO
+        # to pick those up, skipping configs that belong to a model in this
+        # hierarchy (merged at that model's own level) and pandera's base
+        # config classes, so their defaults don't override a parent model.
+        model_configs = {getattr(base, _CONFIG_KEY) for base in bases}
+        model_configs.update(inspect.getmro(root_model.Config))
+
         for model in models:
-            config = getattr(model, _CONFIG_KEY, {})
-            base_options, base_extras = cls._extract_config_options_and_extras(
-                config
-            )
-            options.update(base_options)
-            extras.update(base_extras)
+            config = getattr(model, _CONFIG_KEY)
+            for config_cls in reversed(inspect.getmro(config)):
+                if config_cls is not config and config_cls in model_configs:
+                    continue
+                base_options, base_extras = (
+                    cls._extract_config_options_and_extras(config_cls)
+                )
+                options.update(base_options)
+                extras.update(base_extras)
 
         return type("Config", (cls.Config,), options), extras
 
