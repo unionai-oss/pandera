@@ -1,5 +1,6 @@
 """Decorators for integrating pandera into existing data pipelines."""
 
+import copy
 import functools
 import inspect
 import sys
@@ -787,12 +788,21 @@ def check_types(
         if not isinstance(arg_value, tuple):
             return arg_value
 
-        # Each of the children should match their respective schema
-        for child_arg_value, child_annotation_model_tree in zip(
-            arg_value, tuple_child_nodes
-        ):
+        # Each of the children should match their respective schema. Keep
+        # the validated values so that coercion and parsing are applied.
+        checked = [
             _check_arg_value(child_arg_value, child_annotation_model_tree)
-        return arg_value
+            for child_arg_value, child_annotation_model_tree in zip(
+                arg_value, tuple_child_nodes
+            )
+        ]
+        checked.extend(arg_value[len(checked) :])
+        if all(new is old for new, old in zip(checked, arg_value)):
+            return arg_value
+        if hasattr(arg_value, "_make"):
+            # namedtuple
+            return arg_value._make(checked)
+        return type(arg_value)(checked)
 
     def _check_arg_value_against_list(
         arg_value: Any,
@@ -809,10 +819,14 @@ def check_types(
         if not isinstance(arg_value, list):
             return arg_value
 
-        # Check all children conform to the schema
-        for x in arg_value:
-            _check_arg_value(x, list_child_node)
-        return arg_value
+        # Check all children conform to the schema, keeping the validated
+        # values so that coercion and parsing are applied.
+        checked = [_check_arg_value(x, list_child_node) for x in arg_value]
+        if all(new is old for new, old in zip(checked, arg_value)):
+            return arg_value
+        new_list = copy.copy(arg_value)
+        new_list[:] = checked
+        return new_list
 
     def _check_arg_value_against_dict(
         arg_value: Any,
@@ -829,10 +843,17 @@ def check_types(
         if not isinstance(arg_value, dict):
             return arg_value
 
-        # Check all children conform to the schema
-        for _, x in arg_value.items():
-            _check_arg_value(x, dict_child_node)
-        return arg_value
+        # Check all children conform to the schema, keeping the validated
+        # values so that coercion and parsing are applied.
+        checked = {
+            key: _check_arg_value(x, dict_child_node)
+            for key, x in arg_value.items()
+        }
+        if all(checked[key] is x for key, x in arg_value.items()):
+            return arg_value
+        new_dict = copy.copy(arg_value)
+        new_dict.update(checked)
+        return new_dict
 
     def _check_arg_value(
         arg_value: Any,
