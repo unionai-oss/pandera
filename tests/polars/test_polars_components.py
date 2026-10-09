@@ -375,6 +375,11 @@ def test_float_set_default():
 
 def test_column_schema_on_lazyframe_coerce(): ...
 
+@pytest.mark.xfail(
+    condition=CONFIG.use_narwhals_backend,
+    reason='Coerce not implemented in Narwhals backend',
+    strict=True,
+)
 def test_coerce_string_to_numeric_whitespace():
     """Test that coercing a string to numeric correctly strips whitespace."""
     import polars as pl
