@@ -378,6 +378,7 @@ def test_column_schema_on_lazyframe_coerce(): ...
 def test_coerce_string_to_numeric_whitespace():
     """Test that coercing a string to numeric correctly strips whitespace."""
     import polars as pl
+
     import pandera.polars as pa
 
     schema = pa.DataFrameSchema({
