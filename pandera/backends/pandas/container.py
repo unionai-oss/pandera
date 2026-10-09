@@ -185,6 +185,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
             (self.check_column_names_are_unique, (check_obj, schema)),
             (self.check_column_presence, (check_obj, schema, column_info)),
             (self.check_column_values_are_unique, (sample, schema)),
+            (self.check_index_names_in_schema, (check_obj, schema)),
             (
                 self.run_schema_component_checks,
                 (sample, schema, components, lazy),
@@ -940,6 +941,42 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
             message=message,
             failure_cases=failure_cases,
         )
+
+    @validate_scope(scope=ValidationScope.SCHEMA)
+    def check_index_names_in_schema(
+        self,
+        check_obj: pd.DataFrame,
+        schema,
+    ) -> list[CoreCheckResult]:
+        """With ``strict_index=True``, check that every named index level is
+        declared in the schema's index.
+
+        Unnamed levels aren't checked, so a dataframe that has been filtered,
+        sorted or concatenated still passes.
+        """
+        if not getattr(schema, "strict_index", False):
+            return [CoreCheckResult(passed=True, check="index_in_schema")]
+
+        if schema.index is None:
+            declared: set = set()
+            declared_msg = "which does not declare an index"
+        else:
+            declared = set(schema.index.names)
+            declared_msg = f"with index {schema.index.names}"
+        return [
+            CoreCheckResult(
+                passed=False,
+                check="index_in_schema",
+                reason_code=SchemaErrorReason.INDEX_NOT_IN_SCHEMA,
+                message=(
+                    f"index level '{name}' not in {schema.__class__.__name__} "
+                    f"{declared_msg}"
+                ),
+                failure_cases=name,
+            )
+            for name in check_obj.index.names
+            if name is not None and name not in declared
+        ]
 
     @validate_scope(scope=ValidationScope.SCHEMA)
     def check_column_presence(

@@ -229,6 +229,59 @@ def test_dataframe_schema_strict_and_ordered_raises_both_errors() -> None:
     assert errors.SchemaErrorReason.COLUMN_NOT_IN_SCHEMA in reason_codes
 
 
+def test_dataframe_schema_strict_index() -> None:
+    """Regression test for #1493: with strict_index=True, named index levels
+    that the schema doesn't declare fail validation."""
+    schema = DataFrameSchema({"a": Column(int)}, strict_index=True)
+
+    # unnamed indexes are never checked, whatever their values
+    df = pd.DataFrame({"a": [3, 1, 2]})
+    for unnamed_index_df in [
+        df,
+        df.query("a > 1"),
+        df.iloc[1:],
+        df.sort_values("a"),
+        pd.concat([df, df]),
+    ]:
+        assert isinstance(schema.validate(unnamed_index_df), pd.DataFrame)
+
+    df_named_index = df.set_index(pd.Index(["x", "y", "z"], name="foo"))
+    with pytest.raises(
+        errors.SchemaError, match="index level 'foo' not in DataFrameSchema"
+    ):
+        schema.validate(df_named_index)
+
+    with pytest.raises(errors.SchemaErrors) as exc_info:
+        schema.validate(df_named_index, lazy=True)
+    assert [e.reason_code for e in exc_info.value.schema_errors] == [
+        SchemaErrorReason.INDEX_NOT_IN_SCHEMA
+    ]
+
+    # strict=True still only applies to columns
+    strict_columns = DataFrameSchema({"a": Column(int)}, strict=True)
+    assert isinstance(strict_columns.validate(df_named_index), pd.DataFrame)
+
+
+def test_dataframe_schema_strict_index_declared_levels() -> None:
+    """With strict_index=True, index levels declared in the schema's index
+    pass, and only named levels that it doesn't declare fail."""
+    schema = DataFrameSchema(
+        {"a": Column(int)},
+        index=MultiIndex([Index(str, name="foo"), Index(int, name="bar")]),
+        strict_index=True,
+    )
+
+    def make_df(names):
+        index = pd.MultiIndex.from_tuples([("x", 1, 1.0), ("y", 2, 2.0)])
+        return pd.DataFrame({"a": [1, 2]}, index=index.set_names(names))
+
+    assert isinstance(
+        schema.validate(make_df(["foo", "bar", None])), pd.DataFrame
+    )
+    with pytest.raises(errors.SchemaError, match="index level 'baz'"):
+        schema.validate(make_df(["foo", "bar", "baz"]))
+
+
 def test_dataframe_schema_strict_regex() -> None:
     """Test that strict dataframe schema checks for regex matches."""
     schema = DataFrameSchema(
