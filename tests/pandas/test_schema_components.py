@@ -329,6 +329,56 @@ def test_single_index_multi_index_mismatch() -> None:
         schema.validate(df_fail)
 
 
+def test_single_index_schema_validates_one_level_of_multiindex() -> None:
+    """Regression test for #1460: a single-level Index schema whose name
+    matches one level of an actual pandas MultiIndex should validate just
+    that level, rather than unconditionally raising a mismatch error."""
+    ind = pd.MultiIndex.from_tuples(
+        [("a", 1), ("c", 2), ("e", 3)],
+        names=("one", "two"),
+    )
+    df = pd.DataFrame(index=ind)
+
+    # name matches a level and values satisfy the schema's dtype
+    schema = DataFrameSchema(index=Index(str, name="one"))
+    validated = schema.validate(df)
+    assert isinstance(validated, pd.DataFrame)
+
+    # name matches a level, but values don't satisfy the schema's dtype
+    with pytest.raises(errors.SchemaError):
+        DataFrameSchema(index=Index(int, name="one")).validate(df)
+
+    # name doesn't match any level: falls back to the original mismatch error
+    with pytest.raises(errors.SchemaError, match="mismatch index"):
+        DataFrameSchema(index=Index(str, name="key")).validate(df)
+
+
+def test_single_index_schema_matches_first_of_duplicate_named_levels() -> None:
+    """Pandas allows a MultiIndex to have more than one level with the same
+    name. A single named Index schema validated against such a MultiIndex
+    (the delegation path exercised by
+    test_single_index_schema_validates_one_level_of_multiindex) matches the
+    first (lowest-position) level with that name, consistent with how
+    MultiIndexBackend._map_schema_to_levels and _map_ordered_levels already
+    resolve named levels elsewhere: both walk forward from position 0 and
+    stop at the first match."""
+    ind = pd.MultiIndex.from_tuples(
+        [(1, "x"), (2, "y")],
+        names=("a", "a"),
+    )
+    df = pd.DataFrame(index=ind)
+
+    # matches the dtype of the first "a" (level 0, int), not the second
+    # (level 1, str)
+    validated = DataFrameSchema(index=Index(int, name="a")).validate(df)
+    assert isinstance(validated, pd.DataFrame)
+
+    # the second "a" (level 1, str) is never considered: a schema that only
+    # matches it fails, even though a same-named level exists
+    with pytest.raises(errors.SchemaError):
+        DataFrameSchema(index=Index(str, name="a")).validate(df)
+
+
 def test_multi_index_schema_coerce() -> None:
     """Test that multi index can be type-coerced."""
     indexes = [
@@ -897,6 +947,50 @@ def test_multiindex_ordered(
             schema(pd.DataFrame(index=multiindex))
         with pytest.raises(errors.SchemaErrors):
             schema(pd.DataFrame(index=multiindex), lazy=True)
+        return
+    assert isinstance(schema(pd.DataFrame(index=multiindex)), pd.DataFrame)
+
+
+@pytest.mark.parametrize(
+    "multiindex, schema, error",
+    [
+        # Regression tests for #1460: checking a subset of an ordered
+        # MultiIndex's levels shouldn't raise just because levels the
+        # schema doesn't declare are skipped over along the way.
+        [
+            pd.MultiIndex.from_arrays([[1], [1], [1]], names=["a", "b", "c"]),
+            MultiIndex([Index(int, name="c")]),
+            False,
+        ],
+        [
+            pd.MultiIndex.from_arrays([[1], [1], [1]], names=["a", "b", "c"]),
+            MultiIndex([Index(int, name="b"), Index(int, name="c")]),
+            False,
+        ],
+        [
+            pd.MultiIndex.from_arrays([[1], [1], [1]], names=["a", "b", "c"]),
+            MultiIndex([Index(int, name="a"), Index(int, name="c")]),
+            False,
+        ],
+        # a genuine ordering violation (schema wants c before a, data has
+        # a before c) must still be caught
+        [
+            pd.MultiIndex.from_arrays([[1], [1], [1]], names=["a", "b", "c"]),
+            MultiIndex([Index(int, name="c"), Index(int, name="a")]),
+            True,
+        ],
+    ],
+)
+def test_multiindex_ordered_partial_selection(
+    multiindex: pd.MultiIndex, schema: MultiIndex, error: bool
+) -> None:
+    """Test that an ordered MultiIndex schema can validate a subset of a
+    dataframe's index levels, skipping undeclared levels without raising,
+    while still catching genuine ordering violations among the declared
+    levels."""
+    if error:
+        with pytest.raises(errors.SchemaError):
+            schema(pd.DataFrame(index=multiindex))
         return
     assert isinstance(schema(pd.DataFrame(index=multiindex)), pd.DataFrame)
 
