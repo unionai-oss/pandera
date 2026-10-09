@@ -170,13 +170,30 @@ class DataType(dtypes.DataType):
             ],
             PolarsDataType,
         ]
+        
+        lf = data_container.lazyframe
+
+        if hasattr(self.type, "is_numeric") and self.type.is_numeric():
+            if data_container.key == "*":
+                # For '*' apply to all string columns
+                schema = lf.collect_schema()
+                exprs = []
+                for k, v in schema.items():
+                    if v == pl.String:
+                        exprs.append(pl.col(k).str.strip_chars())
+                if exprs:
+                    lf = lf.with_columns(exprs)
+            elif data_container.key is not None:
+                schema = lf.collect_schema()
+                if schema.get(data_container.key) == pl.String:
+                    lf = lf.with_columns(pl.col(data_container.key).str.strip_chars())
 
         if data_container.key == "*":
             dtypes = self.type
         else:
             dtypes = {data_container.key: self.type}
 
-        return data_container.lazyframe.cast(dtypes, strict=True)
+        return lf.cast(dtypes, strict=True)
 
     def try_coerce(self, data_container: PolarsDataContainer) -> pl.LazyFrame:
         """Coerce data container to the data type,

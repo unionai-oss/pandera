@@ -374,3 +374,24 @@ def test_float_set_default():
 
 
 def test_column_schema_on_lazyframe_coerce(): ...
+
+def test_coerce_string_to_numeric_whitespace():
+    """Test that coercing a string to numeric correctly strips whitespace."""
+    import polars as pl
+    import pandera.polars as pa
+
+    schema = pa.DataFrameSchema({
+        "col_1": pa.Column(pl.Float64, coerce=True),
+        "col_2": pa.Column(pl.Int64, coerce=True)
+    })
+
+    lf = pl.LazyFrame({
+        "col_1": [" 1.0 ", "  2.5"],
+        "col_2": [" 3", "4 "]
+    })
+
+    validated_lf = schema.validate(lf)
+    
+    result = validated_lf.collect().to_dict(as_series=False)
+    assert result["col_1"] == [1.0, 2.5]
+    assert result["col_2"] == [3, 4]
