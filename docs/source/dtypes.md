@@ -163,6 +163,103 @@ For convenience, we specified both `pd.BooleanDtype` and
 what pandera schemas can recognize (see last for-loop above).
 :::
 
+(enum-literal-dtypes)=
+
+## Enums and literals
+
+Python's `enum.Enum` and `typing.Literal` both describe a closed set of values,
+so pandera maps them onto the backend's categorical type. Categories come from
+an enum's member **values** — not its members — because a value is what
+round-trips through storage and serialization, and what every backend can hold:
+
+```{code-cell} python
+import enum
+import pandas as pd
+import pandera.pandas as pa
+
+class Department(enum.Enum):
+    billing = "billing"
+    """Payment, invoices or subscription issues."""
+    technical = "technical"
+    """Bugs, outages or integration problems."""
+
+class Tickets(pa.DataFrameModel):
+    department: Department
+
+print(Tickets.to_schema().columns["department"].dtype.categories)
+```
+
+Coercion accepts a member, a member name, or a raw value, so all three of these
+land in the same column:
+
+```{code-cell} python
+schema = pa.DataFrameSchema({"d": pa.Column(Department, coerce=True)})
+schema.validate(pd.DataFrame({"d": ["billing", Department.technical]}))
+```
+
+`typing.Literal` works the same way, in both the bare and `Series[...]` forms:
+
+```{code-cell} python
+import typing
+
+class Routed(pa.DataFrameModel):
+    bare: typing.Literal["billing", "technical"]
+    wrapped: pa.typing.Series[typing.Literal["billing", "technical"]]
+
+print(Routed.to_schema().columns["bare"].dtype.categories)
+```
+
+A `Literal` must be homogeneous — `Literal["a", 1]` has no single data type and
+raises `TypeError` rather than silently picking one.
+
+### Ordering
+
+An `enum.IntEnum` produces an *ordered* categorical, since its members are
+comparable. That makes order-sensitive checks meaningful on the column:
+
+```{code-cell} python
+class Severity(enum.IntEnum):
+    info = 0
+    degraded = 1
+    outage = 2
+
+schema = pa.DataFrameSchema(
+    {"sev": pa.Column(Severity, coerce=True, checks=pa.Check.ge(1))}
+)
+schema.validate(pd.DataFrame({"sev": [1, 2]}))
+```
+
+A plain `Enum` is unordered. To order a non-integer enum, pass the dtype
+parameter explicitly with `pa.Field(dtype_kwargs={"ordered": True})`.
+
+### Member docstrings
+
+The string literal following a member assignment is retained by pandera even
+though Python discards it, which makes it usable as documentation for the
+category:
+
+```{code-cell} python
+from pandera.dtypes import member_descriptions
+
+print(member_descriptions(Department))
+```
+
+Members without a docstring map to `None`, and enums whose source is
+unavailable (a REPL, a frozen application, a dynamically created enum) return
+all-`None` rather than raising.
+
+### Backend differences
+
+Both backends derive the same option set from the same type, but the dtype they
+land on differs where a backend has no equivalent:
+
+| Python type | pandas | polars |
+|---|---|---|
+| `Enum`/`StrEnum` of strings | `CategoricalDtype` | `pl.Enum` |
+| `IntEnum` | ordered `CategoricalDtype` | `pl.Int64` (polars categoricals are string-only) |
+| `Literal[str, ...]` | `CategoricalDtype` | `pl.Enum` |
+| `Literal[int, ...]` | `CategoricalDtype` | `pl.Int64` |
+
 ## Parametrized data types
 
 Some data types can be parametrized. One common example is

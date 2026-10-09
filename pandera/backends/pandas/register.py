@@ -66,7 +66,12 @@ def register_pandas_backends(
     from pandera.api.geopandas.container import GeoDataFrameSchema
     from pandera.api.hypotheses import Hypothesis
     from pandera.api.pandas.array import SeriesSchema
-    from pandera.api.pandas.components import Column, Index, MultiIndex
+    from pandera.api.pandas.components import (
+        Column,
+        Index,
+        MultiIndex,
+        ParsedColumn,
+    )
     from pandera.api.pandas.container import DataFrameSchema
     from pandera.api.pandas.types import get_backend_types
     from pandera.api.parsers import Parser
@@ -92,12 +97,14 @@ def register_pandas_backends(
         GeoDataFrameSchema.register_backend(t, DataFrameSchemaBackend)
         _DataFrameSchemaDeprecated.register_backend(t, DataFrameSchemaBackend)
         Column.register_backend(t, ColumnBackend)
+        ParsedColumn.register_backend(t, ColumnBackend)
         MultiIndex.register_backend(t, MultiIndexBackend)
         Index.register_backend(t, IndexBackend)
 
     for t in backend_types.series_datatypes:
         SeriesSchema.register_backend(t, SeriesSchemaBackend)
         Column.register_backend(t, ColumnBackend)
+        ParsedColumn.register_backend(t, ColumnBackend)
         MultiIndex.register_backend(t, MultiIndexBackend)
         Index.register_backend(t, IndexBackend)
 

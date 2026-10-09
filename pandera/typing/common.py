@@ -368,7 +368,12 @@ class AnnotationInfo:
         self.literal = get_origin(self.arg) is typing.Literal
 
         if self.literal:
-            self.arg = get_args(self.arg)[0]
+            # Keep the whole ``Literal[...]`` as the dtype argument. Replacing
+            # it with its first value used to hand that value to the dtype
+            # engine, which either raised an opaque ``TypeError`` or — when the
+            # value happened to name a dtype, e.g. ``Literal["int64", ...]`` —
+            # silently typed the column and discarded the option set.
+            pass
         elif self.origin is None and self.metadata is None:
             if isinstance(raw_annotation, type) and issubclass(
                 raw_annotation, SeriesBase
