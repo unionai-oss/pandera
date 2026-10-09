@@ -1441,6 +1441,140 @@ def test_check_types_tuple_of_lists_args() -> None:
         )  # type: ignore [arg-type]
 
 
+def test_check_types_returned_tuple_is_validated() -> None:
+    """Test that dataframes returned inside a tuple are validated.
+
+    Regression test for
+    https://github.com/unionai-oss/pandera/issues/1794
+    """
+
+    class Schema(DataFrameModel):
+        foo: int
+
+    @check_types
+    def set_foo(
+        df: DataFrame[Schema],
+    ) -> tuple[DataFrame[Schema], DataFrame[Schema]]:
+        foo = df.assign(foo="foo")
+        return foo, foo  # type: ignore [return-value]
+
+    with pytest.raises(errors.SchemaError):
+        set_foo(pd.DataFrame({"foo": [1]}))  # type: ignore [arg-type]
+
+
+def test_check_types_coerce_collections() -> None:
+    """Test that check_types returns the validated (coerced) dataframes
+    held in tuple, list and dict annotations, for inputs and outputs.
+    """
+
+    def raw_in() -> pd.DataFrame:
+        return pd.DataFrame({"a": ["1"]}, index=["1"])
+
+    def raw_out() -> pd.DataFrame:
+        return pd.DataFrame({"b": ["1"]})
+
+    in_dtype = InSchema.to_schema().columns["a"].dtype
+    out_dtype = OutSchema.to_schema().columns["b"].dtype
+
+    @check_types
+    def tuple_in(
+        dfs: tuple[DataFrame[InSchema], int],
+    ) -> tuple[DataFrame[InSchema], int]:
+        assert Engine.dtype(dfs[0]["a"].dtype) == in_dtype
+        return dfs
+
+    @check_types
+    def tuple_out() -> tuple[DataFrame[OutSchema], int]:
+        return raw_out(), 1  # type: ignore [return-value]
+
+    @check_types
+    def list_in(dfs: list[DataFrame[InSchema]]) -> list[DataFrame[InSchema]]:
+        assert all(Engine.dtype(df["a"].dtype) == in_dtype for df in dfs)
+        return dfs
+
+    @check_types
+    def list_out() -> list[DataFrame[OutSchema]]:
+        return [raw_out(), raw_out()]  # type: ignore [list-item]
+
+    @check_types
+    def dict_in(
+        dfs: dict[str, DataFrame[InSchema]],
+    ) -> dict[str, DataFrame[InSchema]]:
+        assert Engine.dtype(dfs["x"]["a"].dtype) == in_dtype
+        return dfs
+
+    @check_types
+    def dict_out() -> dict[str, DataFrame[OutSchema]]:
+        return {"x": raw_out()}  # type: ignore [dict-item]
+
+    @check_types
+    def nested_out() -> list[tuple[DataFrame[OutSchema], int]]:
+        return [(raw_out(), 1)]  # type: ignore [list-item]
+
+    tuple_in_result = tuple_in((raw_in(), 1))  # type: ignore [arg-type]
+    assert isinstance(tuple_in_result, tuple)
+    assert tuple_in_result[1] == 1
+    assert Engine.dtype(tuple_in_result[0]["a"].dtype) == in_dtype
+
+    tuple_out_result = tuple_out()
+    assert isinstance(tuple_out_result, tuple)
+    assert tuple_out_result[1] == 1
+    assert Engine.dtype(tuple_out_result[0]["b"].dtype) == out_dtype
+
+    for df in list_in([raw_in(), raw_in()]):  # type: ignore [list-item]
+        assert Engine.dtype(df["a"].dtype) == in_dtype
+    for df in list_out():
+        assert Engine.dtype(df["b"].dtype) == out_dtype
+
+    dict_in_result = dict_in({"x": raw_in()})  # type: ignore [dict-item]
+    assert Engine.dtype(dict_in_result["x"]["a"].dtype) == in_dtype
+    dict_out_result = dict_out()
+    assert list(dict_out_result) == ["x"]
+    assert Engine.dtype(dict_out_result["x"]["b"].dtype) == out_dtype
+
+    nested_result = nested_out()
+    assert Engine.dtype(nested_result[0][0]["b"].dtype) == out_dtype
+
+
+def test_check_types_collections_preserve_container() -> None:
+    """Test that collections are rebuilt with their original type and
+    returned unchanged when nothing in them is validated.
+    """
+
+    class Pair(typing.NamedTuple):
+        df: pd.DataFrame
+        n: int
+
+    @check_types
+    def named_tuple_out() -> tuple[DataFrame[OutSchema], int]:
+        return Pair(pd.DataFrame({"b": ["1"]}), 1)  # type: ignore [return-value]
+
+    result = named_tuple_out()
+    assert isinstance(result, Pair)
+    assert result.n == 1
+    assert Engine.dtype(result.df["b"].dtype) == (
+        OutSchema.to_schema().columns["b"].dtype
+    )
+
+    @check_types
+    def tuple_out_extra_items() -> tuple[DataFrame[OutSchema], int]:
+        return pd.DataFrame({"b": ["1"]}), 1, "extra"  # type: ignore [return-value]
+
+    assert tuple_out_extra_items()[1:] == (1, "extra")  # type: ignore [misc]
+
+    @check_types
+    def passthrough(
+        values: list[int], pair: tuple[int, str], mapping: dict[str, int]
+    ) -> tuple[list[int], tuple[int, str], dict[str, int]]:
+        return values, pair, mapping
+
+    values, pair, mapping = [1, 2], (1, "a"), {"x": 1}
+    out_values, out_pair, out_mapping = passthrough(values, pair, mapping)
+    assert out_values is values
+    assert out_pair is pair
+    assert out_mapping is mapping
+
+
 def test_check_types_non_dataframes() -> None:
     """Test to skip check_types for non-dataframes"""
 
