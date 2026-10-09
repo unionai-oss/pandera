@@ -1440,3 +1440,29 @@ class TestUniqueValuesEqCheck(BaseClass):
             dtype,
             data["test_expression"],
         )
+
+    @pytest.mark.xfail(
+        condition=CONFIG.use_narwhals_backend,
+        reason="unique_values_eq check not registered for Narwhals backend (KeyError: narwhals.stable.v1.Expr)",
+    )
+    def test_unique_values_eq_check_ignores_nulls(self, backend):
+        """Nulls in a nullable column don't count as unique values."""
+        schema = backend.DataFrameSchema(
+            {
+                "code": backend.Column(
+                    dtypes.Int64,
+                    Check.unique_values_eq([31, 32]),
+                    nullable=True,
+                ),
+            }
+        )
+        schema.validate(
+            backend.make_frame(
+                [("foo", 31), ("bar", 32), ("baz", None)], dtypes.Int64
+            )
+        )
+
+        with pytest.raises((SchemaError, SchemaErrors)):
+            schema.validate(
+                backend.make_frame([("foo", 31), ("baz", None)], dtypes.Int64)
+            )
