@@ -1281,37 +1281,7 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
         new_index = (
             None
             if not level_temp or isinstance(new_schema.index, Index)
-            else new_schema.index.remove_columns(level_temp)
-        )
-        new_index = (
-            new_index
-            if new_index is None
-            else (
-                Index(
-                    dtype=new_index.columns[list(new_index.columns)[0]].dtype,
-                    checks=new_index.columns[
-                        list(new_index.columns)[0]
-                    ].checks,
-                    nullable=new_index.columns[
-                        list(new_index.columns)[0]
-                    ].nullable,
-                    unique=new_index.columns[
-                        list(new_index.columns)[0]
-                    ].unique,
-                    coerce=new_index.columns[
-                        list(new_index.columns)[0]
-                    ].coerce,
-                    name=new_index.columns[list(new_index.columns)[0]].name,
-                )
-                if (len(list(new_index.columns)) == 1)
-                and (new_index is not None)
-                else (
-                    None
-                    if (len(list(new_index.columns)) == 0)
-                    and (new_index is not None)
-                    else new_index
-                )
-            )
+            else _drop_multiindex_levels(new_schema.index, level_temp)
         )
 
         if not drop:
@@ -1338,6 +1308,40 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
         new_schema.index = new_index
 
         return new_schema
+
+
+def _drop_multiindex_levels(multiindex: Any, levels: list[str]) -> Any:
+    """Remove levels from a MultiIndex schema component.
+
+    Returns ``None`` if no levels remain, the remaining ``Index`` if only one
+    level remains, otherwise a ``MultiIndex`` of the remaining levels.
+    """
+    from pandera.api.pandas.components import MultiIndex
+
+    remaining = [
+        index for index in multiindex.indexes if index.name not in levels
+    ]
+    if not remaining:
+        return None
+    if len(remaining) == 1:
+        index = remaining[0]
+        index.coerce = index.coerce or multiindex._coerce
+        return index
+
+    remaining_names = {index.name for index in remaining}
+    unique = (
+        None
+        if multiindex.unique is None
+        else [name for name in multiindex.unique if name in remaining_names]
+    )
+    return MultiIndex(
+        remaining,
+        coerce=multiindex._coerce,
+        strict=multiindex.strict,
+        name=multiindex.name,
+        ordered=multiindex.ordered,
+        unique=unique or None,
+    )
 
 
 def _validate_columns(
