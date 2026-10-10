@@ -10,6 +10,7 @@ import decimal
 import enum
 import inspect
 import logging
+import re
 import sys
 import warnings
 from collections.abc import Callable, Iterable
@@ -99,6 +100,40 @@ def is_pyarrow_dtype(
         return False
 
     return isinstance(pd_dtype, pd.ArrowDtype)
+
+
+def _parse_pyarrow_list_dtype(
+    dtype: Any, *, nested: bool = False
+) -> pd.ArrowDtype | None:
+    """Parse pandas string representations of PyArrow list dtypes."""
+    if not PYARROW_INSTALLED or not isinstance(dtype, str):
+        return None
+
+    suffix = r"(?:\[pyarrow\])?" if nested else r"\[pyarrow\]"
+    match = re.fullmatch(
+        rf"(?:large_)?list<(?:item|element): "
+        rf"(?P<value_type>.+)>{suffix}",
+        dtype,
+    )
+    if match is None:
+        return None
+
+    value_type = match.group("value_type")
+    nested_dtype = _parse_pyarrow_list_dtype(value_type, nested=True)
+    if nested_dtype is not None:
+        value_type = nested_dtype.pyarrow_dtype
+    else:
+        try:
+            value_type = pyarrow.type_for_alias(value_type)
+        except ValueError:
+            return None
+
+    list_constructor = (
+        pyarrow.large_list
+        if dtype.startswith("large_list<")
+        else pyarrow.list_
+    )
+    return pd.ArrowDtype(list_constructor(value_type))
 
 
 def is_geopandas_dtype(
@@ -261,7 +296,11 @@ class Engine(
             else:
                 # let pandas transform any acceptable value
                 # into a numpy or pandas dtype.
-                np_or_pd_dtype = pd.api.types.pandas_dtype(data_type)
+                np_or_pd_dtype = _parse_pyarrow_list_dtype(data_type)
+                if np_or_pd_dtype is None:
+                    np_or_pd_dtype = pd.api.types.pandas_dtype(data_type)
+                elif is_pyarrow_dtype(np_or_pd_dtype):
+                    np_or_pd_dtype = np_or_pd_dtype.pyarrow_dtype
                 if isinstance(np_or_pd_dtype, np.dtype):
                     # cast alias to platform-agnostic dtype
                     # e.g.: np.intc -> np.int32
@@ -2068,7 +2107,9 @@ if PYARROW_INSTALLED:
     @Engine.register_dtype(
         equivalents=[
             pyarrow.list_,
+            pyarrow.large_list,
             pyarrow.ListType,
+            pyarrow.LargeListType,
             pyarrow.FixedSizeListType,
         ]
     )
@@ -2083,26 +2124,42 @@ if PYARROW_INSTALLED:
             pyarrow.string()
         )
         list_size: int | None = -1
+        list_type: str = "list"
 
         def __post_init__(self):
-            type_ = pd.ArrowDtype(
-                pyarrow.list_(self.value_type, self.list_size)
-            )
+            if self.list_type == "large_list":
+                type_ = pd.ArrowDtype(pyarrow.large_list(self.value_type))
+            else:
+                type_ = pd.ArrowDtype(
+                    pyarrow.list_(self.value_type, self.list_size)
+                )
             object.__setattr__(self, "type", type_)
 
         @classmethod
         def from_parametrized_dtype(
             cls,
-            pyarrow_dtype: Union[pyarrow.ListType, pyarrow.FixedSizeListType],
+            pyarrow_dtype: Union[
+                pyarrow.ListType,
+                pyarrow.LargeListType,
+                pyarrow.FixedSizeListType,
+            ],
         ):
             try:
-                _dtype = cls(
-                    value_type=pyarrow_dtype.value_type,  # type: ignore
-                    list_size=pyarrow_dtype.list_size,  # type: ignore
-                )
+                list_size = pyarrow_dtype.list_size
             except AttributeError:
-                _dtype = cls(value_type=pyarrow_dtype.value_type)  # type: ignore
-            return _dtype
+                list_size = -1
+
+            list_type = (
+                "large_list"
+                if isinstance(pyarrow_dtype, pyarrow.LargeListType)
+                else "list"
+            )
+
+            return cls(
+                value_type=pyarrow_dtype.value_type,
+                list_size=list_size,
+                list_type=list_type,
+            )
 
     @Engine.register_dtype(equivalents=[pyarrow.struct, pyarrow.StructType])
     @immutable(init=True)
