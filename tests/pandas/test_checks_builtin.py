@@ -756,9 +756,73 @@ class TestIsin:
         df["allowed"] = 2
         check_values(series_values, check, True, {})
 
+    @staticmethod
+    @pytest.mark.parametrize(
+        "values",
+        [
+            pytest.param(iter([1, 2, 3]), id="list_iterator"),
+            pytest.param((x for x in (1, 2, 3)), id="generator"),
+            pytest.param(map(lambda x: x, (1, 2, 3)), id="map"),
+            pytest.param({1: "a", 2: "b", 3: "c"}.keys(), id="dict_keys"),
+        ],
+    )
+    def test_one_shot_iterable_values(values):
+        """A one-shot iterable is read twice, so it must survive the first read."""
+        check = Check.isin(values)
+        assert list(check.statistics["allowed_values"]) == [1, 2, 3]
+        assert check.error == "isin([1, 2, 3])"
+        assert pickle.loads(pickle.dumps(check)).statistics == check.statistics
+
+    @staticmethod
+    def test_one_shot_iterable_still_validates():
+        """Materializing must not empty the set of allowed values."""
+        check = Check.isin(iter([1, 2, 3]))
+        assert check(pd.Series([1, 2])).check_passed
+        assert not check(pd.Series([4])).check_passed
+
+    @staticmethod
+    @pytest.mark.parametrize(
+        "values, expected_error",
+        [
+            pytest.param([1, 2, 3], "isin([1, 2, 3])", id="list"),
+            pytest.param((1, 2, 3), "isin((1, 2, 3))", id="tuple"),
+            pytest.param(range(3), "isin(range(0, 3))", id="range"),
+            pytest.param(
+                {"a": 1, "b": 2}, "isin({'a': 1, 'b': 2})", id="dict"
+            ),
+            pytest.param("abc", "isin(abc)", id="string_of_characters"),
+            pytest.param(
+                pd.Series([1, 2, 3]).to_numpy(),
+                "isin([1 2 3])",
+                id="ndarray",
+            ),
+        ],
+    )
+    def test_reusable_values_keep_their_rendering(values, expected_error):
+        """Inputs that can be re-read are untouched, error text included."""
+        check = Check.isin(values)
+        assert check.error == expected_error
+        assert pickle.loads(pickle.dumps(check)).error == expected_error
+
 
 class TestNotin:
     """Tests for Check.notin"""
+
+    @staticmethod
+    @pytest.mark.parametrize(
+        "values",
+        [
+            pytest.param(iter([1, 2]), id="list_iterator"),
+            pytest.param((x for x in (1, 2)), id="generator"),
+            pytest.param({1: 1, 2: 2}.values(), id="dict_values"),
+        ],
+    )
+    def test_one_shot_iterable_values(values):
+        """``notin`` reads its argument twice, like ``isin``."""
+        check = Check.notin(values)
+        assert list(check.statistics["forbidden_values"]) == [1, 2]
+        assert check.error == "notin([1, 2])"
+        assert pickle.loads(pickle.dumps(check)).error == "notin([1, 2])"
 
     @staticmethod
     def test_no_argument_check():
