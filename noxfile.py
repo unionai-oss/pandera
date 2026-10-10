@@ -22,6 +22,10 @@ nox.options.sessions = (
 PYTHON_VERSIONS = ["3.10", "3.11", "3.12", "3.13", "3.14", "3.15"]
 PANDAS_VERSIONS = ["2.3.3", "3.0.0"]
 PYDANTIC_VERSIONS = ["1.10.11", "2.12.3"]
+# pydantic reached Python 3.15 support in 2.14.0 (pydantic-core 2.50.0); the
+# older pinned cores (2.41.x / 2.46.x) cannot be built or installed on Python
+# 3.15, so only this version is usable there.
+PYDANTIC_315_VERSION = "2.14.0"
 POLARS_VERSIONS = ["1.20.0", "1.33.1", "1.42.1"]
 PACKAGE = "pandera"
 SOURCE_PATHS = PACKAGE, "tests", "noxfile.py"
@@ -145,9 +149,13 @@ def _testing_requirements(
             pandas = PANDAS_VERSIONS[0]  # Use 2.3.3 for Python 3.10
         else:
             pandas = PANDAS_VERSIONS[-1]  # Use 3.0.0 for Python >= 3.11
-    pydantic = pydantic or PYDANTIC_VERSIONS[-1]
+    # The pinned pydantic cores predate Python 3.15 and cannot be installed
+    # there, so Python 3.15 always uses the first 3.15-capable pydantic.
+    if session.python == "3.15":
+        pydantic = PYDANTIC_315_VERSION
+    else:
+        pydantic = pydantic or PYDANTIC_VERSIONS[-1]
     polars = polars or POLARS_VERSIONS[-1]
-
     _requirements = [
         *PYPROJECT["project"]["dependencies"],
         *PYPROJECT["project"]["optional-dependencies"]["cli"],
