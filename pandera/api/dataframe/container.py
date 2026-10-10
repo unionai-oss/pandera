@@ -439,6 +439,17 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
 
         return self.__dict__ == other.__dict__
 
+    def __hash__(self) -> int:
+        """Hash based on the schema's current ``repr``.
+
+        The hash reflects the schema's state at the time it is computed.
+        ``DataFrameSchema`` is mutable (``strict``, ``coerce``, ``columns``,
+        etc. all have setters), so mutating a schema after using it as a
+        dict key or a ``functools.cache`` argument is unsupported: the
+        schema will no longer be found under its original hash.
+        """
+        return hash(repr(self))
+
     if PYDANTIC_V2:
 
         @classmethod
