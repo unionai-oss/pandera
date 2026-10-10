@@ -40,7 +40,7 @@ else:
 
         __all__.append("infer_schema")
     except ImportError as e:
-        warnings.warn(f"Could not import infer_schema: {e}")
+        warnings.warn(f"Could not import infer_schema: {e}", stacklevel=2)
         infer_schema = None  # type: ignore[assignment]
 
 from pandera.errors import SchemaError, SchemaErrors

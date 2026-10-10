@@ -409,7 +409,7 @@ class NarwhalsSchemaBackend(BaseSchemaBackend):
                 message = f"Check '{check}' failed."
 
             if check.raise_warning:
-                warnings.warn(message, SchemaWarning)
+                warnings.warn(message, SchemaWarning, stacklevel=2)
                 return CoreCheckResult(
                     passed=True,
                     check=check,

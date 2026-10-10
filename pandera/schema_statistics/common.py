@@ -157,14 +157,16 @@ def parse_checks(checks) -> Union[list[dict[str, Any]], None]:
             warnings.warn(
                 "Only registered checks may be serialized to statistics. "
                 "Did you forget to register it with the extension API? "
-                f"Check `{check.name}` will be skipped."
+                f"Check `{check.name}` will be skipped.",
+                stacklevel=2,
             )
             continue
 
         if callable(check.groupby):
             warnings.warn(
                 "Checks with a callable `groupby` cannot be serialized to "
-                f"statistics. Check `{check.name}` will be skipped."
+                f"statistics. Check `{check.name}` will be skipped.",
+                stacklevel=2,
             )
             continue
 
@@ -176,7 +178,8 @@ def parse_checks(checks) -> Union[list[dict[str, Any]], None]:
                 "Checks with a `groupby` or `groups` value that has no "
                 f"serializable equivalent ({exc.args[0]!r}) cannot be "
                 f"serialized to statistics. Check `{check.name}` will be "
-                "skipped."
+                "skipped.",
+                stacklevel=2,
             )
             continue
 

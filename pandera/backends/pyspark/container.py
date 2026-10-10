@@ -57,7 +57,8 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
 
         if not get_config_context().validation_enabled:
             warnings.warn(
-                "Skipping the validation checks as validation is disabled"
+                "Skipping the validation checks as validation is disabled",
+                stacklevel=2,
             )
             return check_obj
         if not is_table(check_obj):
