@@ -1970,3 +1970,62 @@ def test_check_types_with_typevar_annotation():
     # a non-conforming frame is passed through instead of raising.
     bad_df = pd.DataFrame({"not_col1": [1, 2, 3]})
     pd.testing.assert_frame_equal(process(bad_df), bad_df)
+
+
+def test_check_input_positional_selector_forwards_head_and_lazy():
+    """``obj_getter`` decides which argument is validated, never how.
+
+    The str and None selectors forward ``(head, tail, sample, random_state,
+    lazy, inplace)`` to ``schema.validate``; the int selector built the tuple
+    and then called ``schema.validate(obj)`` without it.
+    """
+    schema = DataFrameSchema({"column1": Column(Int, Check.gt(0))})
+    df = pd.DataFrame({"column1": [1, 2, -1, -2]})
+
+    @check_input(schema, 0, head=1)
+    def by_index(data):
+        return data
+
+    @check_input(schema, "data", head=1)
+    def by_name(data):
+        return data
+
+    # head=1 keeps only the first row, which is valid, for both selectors.
+    by_index(df)
+    by_name(df)
+
+    @check_input(schema, 0, tail=1)
+    def by_index_tail(data):
+        return data
+
+    # The unchanged control: tail=1 keeps an invalid row, so both still raise.
+    with pytest.raises(errors.SchemaError):
+        by_index_tail(df)
+
+    @check_input(schema, 0, lazy=True)
+    def by_index_lazy(data):
+        return data
+
+    @check_input(schema, "data", lazy=True)
+    def by_name_lazy(data):
+        return data
+
+    with pytest.raises(errors.SchemaErrors):
+        by_name_lazy(df)
+    with pytest.raises(errors.SchemaErrors):
+        by_index_lazy(df)
+
+
+@pytest.mark.parametrize("obj_getter", [0, "data"])
+def test_check_input_positional_selector_applies_inplace(obj_getter):
+    """``inplace=True`` must reach the caller's frame for every selector."""
+    schema = DataFrameSchema({"column1": Column(String, coerce=True)})
+    df = pd.DataFrame({"column1": [1, 2]})
+
+    @check_input(schema, obj_getter, inplace=True)
+    def decorated(data):
+        return data
+
+    before = df["column1"].dtype
+    decorated(df)
+    assert df["column1"].dtype != before
