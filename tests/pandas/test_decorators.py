@@ -1970,3 +1970,69 @@ def test_check_types_with_typevar_annotation():
     # a non-conforming frame is passed through instead of raising.
     bad_df = pd.DataFrame({"not_col1": [1, 2, 3]})
     pd.testing.assert_frame_equal(process(bad_df), bad_df)
+
+
+def test_check_types_validates_against_typevar_bound():
+    """
+    ``DataFrame[S]`` with ``S`` bound to a ``DataFrameModel`` is validated
+    against the bound, so subclasses of the bound are accepted and frames
+    that violate the bound are rejected.
+    """
+
+    class Base(DataFrameModel):
+        col1: Series[int]
+
+    class Derived(Base):
+        col2: Series[str]
+
+    S = typing.TypeVar("S", bound=Base)
+
+    @check_types
+    def process(df: DataFrame[S]) -> DataFrame[Base]:
+        return df
+
+    process(pd.DataFrame({"col1": [1]}))
+    process(pd.DataFrame({"col1": [1], "col2": ["a"]}))
+    process(DataFrame[Derived]({"col1": [1], "col2": ["a"]}))
+
+    with pytest.raises(errors.SchemaError):
+        process(pd.DataFrame({"not_col1": [1]}))
+
+    with pytest.raises(errors.SchemaError):
+        process(pd.DataFrame({"col1": ["a"]}))
+
+
+def test_check_types_validates_typevar_bound_in_return():
+    """The bound of a ``TypeVar`` is also checked on the return value."""
+
+    class Base(DataFrameModel):
+        col1: Series[int]
+
+    S = typing.TypeVar("S", bound=Base)
+
+    @check_types
+    def process(df: pd.DataFrame) -> DataFrame[S]:
+        return df
+
+    process(pd.DataFrame({"col1": [1]}))
+    with pytest.raises(errors.SchemaError):
+        process(pd.DataFrame({"col1": ["a"]}))
+
+
+@pytest.mark.parametrize(
+    "type_var",
+    [
+        typing.TypeVar("Unbound"),
+        typing.TypeVar("Constrained", int, str),
+        typing.TypeVar("ForwardRef", bound="NotDefinedAnywhere"),
+    ],
+)
+def test_check_types_passes_through_typevar_without_model_bound(type_var):
+    """A ``TypeVar`` without a model bound has no schema to validate."""
+
+    @check_types
+    def process(df: DataFrame[type_var]) -> DataFrame[type_var]:
+        return df
+
+    bad_df = pd.DataFrame({"not_col1": [1]})
+    pd.testing.assert_frame_equal(process(bad_df), bad_df)
