@@ -83,12 +83,14 @@ def test_narwhals_check_dispatch_does_not_register_unrelated_backends(make_df):
     assert ibis_register.cache_info().currsize == 0
 
 
-@pytest.mark.xfail(
-    reason="register_default_check_backends has no datafusion branch, so a "
-    "check called before any schema validation finds no backend",
-    strict=True,
-)
 def test_check_called_directly_in_fresh_process():
+    """A check called directly on a datafusion frame registers its backend.
+
+    Regression test for the lazy check-registration dispatch
+    (``register_default_check_backends``): a raw ``datafusion.DataFrame``
+    check invoked before any schema validation must find its backend instead
+    of raising "Backend not found".
+    """
     proc = _run(
         "import pyarrow\n"
         "from datafusion import SessionContext\n"
