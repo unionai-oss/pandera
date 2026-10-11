@@ -658,6 +658,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
                         ),
                         failure_cases=column,
                         check="column_in_schema",
+                        column_name=column,
                         reason_code=SchemaErrorReason.COLUMN_NOT_IN_SCHEMA,
                     )
                 )
