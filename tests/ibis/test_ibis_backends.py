@@ -37,3 +37,8 @@ def test_ibis_sqlite_backend():
 
     with pytest.raises(pa.errors.SchemaErrors):
         TableSchema.validate(invalid_t, lazy=True)
+
+
+def test_public_api_names_resolve() -> None:
+    """Every name in ``__all__`` resolves (e.g. ``set_config``)."""
+    assert [name for name in pa.__all__ if not hasattr(pa, name)] == []

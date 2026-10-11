@@ -13,6 +13,7 @@ import platform
 import pandera.pandas as _pandas  # noqa: F401
 from pandera import engines, errors, external_config
 from pandera.api.geopandas import GeoDataFrameModel, GeoDataFrameSchema
+from pandera.config import set_config
 from pandera.pandas import (
     BOOL,
     INT8,

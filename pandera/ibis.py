@@ -12,6 +12,7 @@ from pandera.api.ibis.components import Column
 from pandera.api.ibis.container import DataFrameSchema
 from pandera.api.ibis.model import DataFrameModel
 from pandera.api.ibis.types import IbisData
+from pandera.config import set_config
 from pandera.decorators import check_input, check_io, check_output, check_types
 from pandera.schema_inference.ibis import infer_dataframe_schema, infer_schema
 from pandera.typing import ibis as typing

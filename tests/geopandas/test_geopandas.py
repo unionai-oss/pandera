@@ -456,3 +456,8 @@ def test_geopandas_module_exports():
     assert issubclass(pgeo.GeoDataFrameModel, pa.DataFrameModel)
     assert pgeo.Column is pa.Column
     assert pgeo.errors is pa.errors
+
+
+def test_public_api_names_resolve() -> None:
+    """Every name in ``__all__`` resolves (e.g. ``set_config``)."""
+    assert [name for name in pg.__all__ if not hasattr(pg, name)] == []

@@ -45,6 +45,7 @@ from pandera.api.pandas.components import Column, Index, MultiIndex
 from pandera.api.pandas.container import DataFrameSchema
 from pandera.api.pandas.model import DataFrameModel
 from pandera.api.parsers import Parser
+from pandera.config import set_config
 from pandera.decorators import check_input, check_io, check_output, check_types
 from pandera.dtypes import (
     Bool,
