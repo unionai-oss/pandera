@@ -51,6 +51,31 @@ except pa.errors.SchemaErrors as exc:
     print(exc)
 ```
 
+## Failure cases point at the failing elements
+
+When a value check fails, the reported error carries the exact tensor
+indices that violated the check, so you can locate the offending elements
+without searching the tensor by hand:
+
+```{code-cell} python
+td_fail = TensorDict(
+    {"values": torch.tensor([1.0, -2.0, 3.0, -4.0, 5.0])},
+    batch_size=[5],
+)
+
+try:
+    schema.validate(td_fail)
+except pa.errors.SchemaError as exc:
+    print(exc)
+    # The failure cases include the violating indices and values
+    print("indices:", exc.failure_cases["index"])
+    print("values:", exc.failure_cases["failure_case"])
+```
+
+For N-D tensors the indices are coordinate tuples; for batch-level checks
+(reduced over trailing dims, e.g. a one-hot row check) the reported index
+is the batch index of the failing row.
+
 ## Available checks
 
 Standard pandera checks work with tensor data:
