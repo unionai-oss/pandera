@@ -101,13 +101,14 @@ def test_column_regex_without_match(make_df, fails):
     )
 
 
-@pytest.mark.xfail(
-    reason="the narwhals column backend raises a bare KeyError when the "
-    "column is absent from the frame",
-    raises=KeyError,
-    strict=True,
-)
 def test_column_missing_from_dataframe(make_df, fails):
+    """A required column absent from the frame raises ``COLUMN_NOT_IN_DATAFRAME``.
+
+    Regression test: the narwhals column backend used to leak a bare ``KeyError``
+    from dtype/schema introspection when the column was missing. It now raises a
+    proper ``SchemaError`` for required columns, matching the pandas/pyarrow
+    contract.
+    """
     fails(
         pa.Column(int, name="a"),
         make_df({"b": [1]}),

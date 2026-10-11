@@ -120,13 +120,15 @@ def test_unique_column_names_is_accepted(make_df):
     assert schema.validate(make_df({"a": [1]})) is not None
 
 
-@pytest.mark.xfail(
-    reason="the narwhals backend calls ``.copy()`` on the pyarrow table it "
-    "builds for missing columns",
-    raises=AttributeError,
-    strict=True,
-)
 def test_add_missing_columns(make_df):
+    """``add_missing_columns`` inserts schema columns with a default.
+
+    Regression test: the narwhals backend used to materialize missing columns
+    through a pandas-only path (``.copy()`` + item assignment) that breaks for
+    non-pandas frames. Narwhals-native dtypes (``narwhals_engine.Int64``)
+    already cast faithfully via ``nw.cast``, so they now stay on the native
+    path.
+    """
     schema = pa.DataFrameSchema(
         {"a": pa.Column(int), "b": pa.Column(int, default=7)},
         add_missing_columns=True,
@@ -319,12 +321,15 @@ def test_lazy_reports_nulls_and_duplicates(
     assert isinstance(error.failure_cases, pyarrow.Table)
 
 
-@pytest.mark.xfail(
-    reason="scalar failure cases are built with polars whenever it is "
-    "installed, so the type depends on the environment",
-    strict=True,
-)
 def test_schema_level_failure_cases_are_a_pyarrow_table(make_df, fails):
+    """Scalar failure cases on DataFusion validate as a pyarrow table.
+
+    Regression test: the narwhals plugin reports ``Implementation.UNKNOWN``, so
+    schema-level scalar failure cases (missing column, wrong dtype) used to be
+    built with polars whenever it was installed, making the resulting type
+    environment-dependent. They now resolve to a ``pyarrow.Table`` consistent
+    with the backend.
+    """
     pytest.importorskip("polars")
     schema = pa.DataFrameSchema({"a": pa.Column(str), "b": pa.Column(int)})
     error = fails(
@@ -432,15 +437,17 @@ def test_schema_only_validation_does_not_execute_the_plan(
     assert executions == []
 
 
-@pytest.mark.xfail(
-    reason="the missing-column error message previews the first rows, which "
-    "executes the plan",
-    strict=True,
-)
 @pytest.mark.usefixtures("default_depth")
 def test_missing_column_error_does_not_execute_the_plan(
     make_df, schema, fails, executions
 ):
+    """A missing-column error must not execute the lazy plugin plan.
+
+    Regression test: the missing-column error message used to preview the
+    first rows via ``_materialize(head())``, which executed the plan on lazy
+    plugin-served backends (e.g. narwhals-datafusion). The preview is now
+    skipped for plugin-lazy frames, keeping validation lazy.
+    """
     fails(
         schema,
         make_df({"int_col": [1, 2, 3]}),

@@ -16,6 +16,7 @@ from pandera.api.base.error_handler import get_error_category
 from pandera.api.narwhals.error_handler import ErrorHandler
 from pandera.api.narwhals.utils import (
     _is_pandas_like,
+    _is_plugin_lazy,
     _materialize,
     _to_native,
     _unwrap_failure_cases,
@@ -726,13 +727,23 @@ class DataFrameSchemaBackend(NarwhalsSchemaBackend):
     def _prefers_narwhals_cast(pandera_dtype) -> bool:
         """True if a dtype round-trips faithfully through ``nw.cast``.
 
-        Plain numpy dtypes (int, float, str, bool) are cast Narwhals-native.
-        pandas extension dtypes (nullable ``Int64``, ``Categorical``, tz-aware
-        datetimes, ``string``) are handled by the pandas dtype engine instead.
+        Plain numpy dtypes (int, float, str, bool) and narwhals-native dtypes
+        (e.g. ``narwhals_engine.Int64`` from DataFusion/pyarrow schemas) are
+        cast Narwhals-native. pandas extension dtypes (nullable ``Int64``,
+        ``Categorical``, tz-aware datetimes, ``string``) are handled by the
+        pandas dtype engine instead — those have no faithful ``nw.cast``
+        representation and are materialized through pandas.
         """
-        from pandera.engines import numpy_engine
+        from pandera.engines import narwhals_engine, numpy_engine
 
-        return isinstance(pandera_dtype, numpy_engine.DataType)
+        if isinstance(pandera_dtype, numpy_engine.DataType):
+            return True
+        # Narwhals-native dtypes are already the backend's own dtype system
+        # and cast faithfully; they must not fall through to the pandas-only
+        # materialization path (which breaks for non-pandas frames).
+        if isinstance(pandera_dtype, narwhals_engine.DataType):
+            return _narwhals_target_dtype(pandera_dtype) is not None
+        return False
 
     def _collect_coerce_targets(self, schema, frame_cols):
         """Resolve ``(column_name, pandera_dtype)`` pairs to coerce."""
@@ -1122,7 +1133,16 @@ class DataFrameSchemaBackend(NarwhalsSchemaBackend):
                         reason_code=SchemaErrorReason.COLUMN_NOT_IN_DATAFRAME,
                         message=(
                             f"column '{colname}' not in dataframe"
-                            f"\n{nw.to_native(_materialize(check_obj.head()))}"
+                            + (
+                                # Previewing the first rows materializes the
+                                # frame, executing a lazy/plugin plan. Skip the
+                                # preview for plugin-served backends (e.g.
+                                # narwhals-datafusion) so the validation stays
+                                # lazy and the plan is not executed.
+                                f"\n{nw.to_native(_materialize(check_obj.head()))}"
+                                if not _is_plugin_lazy(check_obj)
+                                else ""
+                            )
                         ),
                         failure_cases=colname,
                     )

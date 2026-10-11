@@ -112,12 +112,14 @@ def test_ignore_na_skips_nulls(make_df):
     assert schema.validate(make_df({"a": [1, None]})) is not None
 
 
-@pytest.mark.xfail(
-    reason="the narwhals backend ignores null check outputs even when "
-    "ignore_na=False",
-    strict=True,
-)
 def test_ignore_na_false_fails_on_nulls(make_df, fails):
+    """``ignore_na=False`` should treat null inputs as check failures.
+
+    Regression test: the narwhals backend used to leave null check outputs as
+    null (which ``all()``/``filter(~...)`` discard, making the rows pass). With
+    ``ignore_na=False`` nulls are now filled with False so they fail, matching
+    the native polars and pandas backends.
+    """
     schema = pa.DataFrameSchema(
         {"a": pa.Column(int, pa.Check.gt(0, ignore_na=False), nullable=True)}
     )

@@ -634,6 +634,15 @@ class NarwhalsCheckBackend(BaseCheckBackend):
             if include_input_null:
                 na_pass = na_pass | nw.col(_INPUT_NULL_KEY)
             check_col = check_col.with_columns(na_pass.alias(CHECK_OUTPUT_KEY))
+        else:
+            # A null check output is not a pass: ``all()`` and
+            # ``filter(~...)`` both discard nulls, which would make
+            # ``ignore_na=False`` inert. Fill nulls with False so rows whose
+            # check could not be evaluated (e.g. null inputs) count as
+            # failures, mirroring the native polars backend.
+            check_col = check_col.with_columns(
+                nw.col(CHECK_OUTPUT_KEY).fill_null(False)
+            )
         passed = check_col.select(nw.col(CHECK_OUTPUT_KEY).all())
         return CheckResult(
             check_output=expr,  # Store ONLY the expr — failure_cases deferred
@@ -662,6 +671,13 @@ class NarwhalsCheckBackend(BaseCheckBackend):
                 na_pass = na_pass | nw.col(check_obj.key).is_null()
             check_output = check_output.with_columns(
                 na_pass.alias(CHECK_OUTPUT_KEY)
+            )
+        else:
+            # A null check output is not a pass; ``filter(~...)`` below
+            # discards nulls, so fill them with False to surface null-input
+            # rows as failures when ``ignore_na=False``.
+            check_output = check_output.with_columns(
+                nw.col(CHECK_OUTPUT_KEY).fill_null(False)
             )
         passed = check_output.select(nw.col(CHECK_OUTPUT_KEY).all())
         failure_cases = check_output.filter(~nw.col(CHECK_OUTPUT_KEY))

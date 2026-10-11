@@ -148,11 +148,15 @@ def test_list_inner_type_is_enforced(make_df, fails):
     )
 
 
-@pytest.mark.xfail(
-    reason="the narwhals engine compares datetimes without their time unit",
-    strict=True,
-)
 def test_timestamp_unit_is_enforced(make_df, fails):
+    """Narwhals-served datetime columns enforce their time unit (us vs ns).
+
+    Regression test: the narwhals engine resolved a parametrized narwhals dtype
+    (e.g. ``nw.Datetime("ns")``) through the ``get_equivalent`` fast-path, which
+    collapsed it onto the un-parametrized datetime and ignored the unit. It now
+    dispatches parametrized instances through ``from_parametrized_dtype`` so the
+    unit is compared, matching native polars.
+    """
     schema = pa.DataFrameSchema({"a": pa.Column(pyarrow.timestamp("us"))})
     fails(
         schema,
