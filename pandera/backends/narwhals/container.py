@@ -512,7 +512,7 @@ class DataFrameSchemaBackend(NarwhalsSchemaBackend):
             return None
 
         failed = columns[columns.duplicated()]
-        if not failed.any():
+        if failed.empty:
             return None
 
         return SchemaError(

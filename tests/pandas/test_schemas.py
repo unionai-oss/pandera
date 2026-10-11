@@ -445,6 +445,70 @@ def test_duplicate_columns_dataframe():
     assert not schema.unique_column_names
 
 
+@pytest.mark.parametrize(
+    "col_labels",
+    [
+        [0, 0, 1],
+        ["", "", "b"],
+        [False, False, True],
+        pd.MultiIndex.from_tuples([("a", 1), ("a", 1), ("b", 2)]),
+    ],
+)
+def test_duplicate_columns_falsy_and_multiindex_labels(col_labels):
+    """Duplicates are detected regardless of label truthiness."""
+    frame = pd.DataFrame(data=[[1, 2, 3]], columns=col_labels)
+    schema = DataFrameSchema(unique_column_names=True)
+
+    with pytest.raises(
+        errors.SchemaError,
+        match="dataframe contains multiple columns with label",
+    ):
+        schema.validate(frame)
+
+
+@pytest.mark.parametrize(
+    "col_labels,duplicated",
+    [
+        ([0, 0, 1], 0),
+        (["", "", "b"], ""),
+        ([False, False, True], False),
+        (
+            pd.MultiIndex.from_tuples([("a", 1), ("a", 1), ("b", 2)]),
+            ("a", 1),
+        ),
+    ],
+)
+def test_duplicate_columns_lazy_failure_cases(col_labels, duplicated):
+    """Lazy validation collects the duplicated labels instead of raising."""
+    frame = pd.DataFrame(data=[[1, 2, 3]], columns=col_labels)
+    schema = DataFrameSchema(unique_column_names=True)
+
+    with pytest.raises(errors.SchemaErrors) as exc_info:
+        schema.validate(frame, lazy=True)
+
+    failure_cases = exc_info.value.failure_cases
+    assert len(failure_cases) == 1
+    assert failure_cases["check"].iloc[0] == "dataframe_column_labels_unique"
+    assert list(failure_cases["failure_case"].iloc[0]) == [duplicated]
+
+
+@pytest.mark.parametrize("lazy", [False, True])
+@pytest.mark.parametrize(
+    "col_labels",
+    [
+        [0, 1, 2],
+        ["", "a", "b"],
+        pd.MultiIndex.from_tuples([("a", 1), ("a", 2), ("b", 1)]),
+    ],
+)
+def test_unique_falsy_and_multiindex_labels_validate(col_labels, lazy):
+    """Falsy and MultiIndex labels validate when they are not duplicated."""
+    frame = pd.DataFrame(data=[[1, 2, 3]], columns=col_labels)
+    schema = DataFrameSchema(unique_column_names=True)
+
+    assert len(schema.validate(frame, lazy=lazy).columns) == 3
+
+
 def test_add_missing_columns_order():
     """Test that missing columns are added in the correct order."""
     col_labels = ["a", "b", "c"]
