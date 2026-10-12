@@ -373,3 +373,126 @@ faster for schemas that mix multiple built-in checks per column:
 - xarray strategies now respect `checks` arguments (they used to be
   silently ignored); the same constraint aggregation machinery powers
   `data_array_strategy` and `dataset_strategy`.
+
+## Pluggable Data-Synthesis Backends (Realistic Data)
+
+*new in 0.24.0*
+
+The default synthesis path is pure-`hypothesis`: it produces values that are
+*valid* under the schema, but which rarely *look like real data*. A
+`str_matches` email column yields `"faH3k0x@qMzgLv.xi"` rather than
+`"jane.doe@example.com"`.
+
+Pandera now supports **pluggable, opt-in synthesis backends**. A thin
+`SynthesisBackend` interface sits in front of the value-generating leaf, so a
+realistic generator can supply a *better-informed base value* while the merged
+`FieldConstraints` are still enforced downstream. The default (no backend) path
+is **byte-for-byte unchanged**.
+
+- `synthesis_backend` selects a backend: `schema.example(synthesis_backend="faker")`.
+- `semantic=` tags a column/index/field with its *meaning* so a backend knows
+  it is a name rather than a zip code (a bare `str` dtype alone is ambiguous).
+- `PANDERA_SYNTHESIS_BACKEND` selects a default backend globally.
+
+### Built-in Faker backend
+
+The first production backend ships on
+[Faker](https://faker.readthedocs.io/), installed via the optional extra
+`pandera[strategy-faker]`:
+
+```python
+import pandera.pandas as pa
+
+EMAIL_RE = r"^[^@\s]+@[^@\s]+\.[^@\s]+$"
+
+class CustomerSchema(pa.DataFrameModel):
+    name:    str = pa.Field(semantic="name",   str_length={"min_value": 2, "max_value": 80})
+    email:   str = pa.Field(semantic="email",  str_matches=EMAIL_RE)
+    phone:   str = pa.Field(semantic="phone",  str_length={"min_value": 7, "max_value": 20})
+    country: str = pa.Field(semantic="country", isin=["US", "CA", "GB", "MX"])
+    age:     int = pa.Field(ge=18, le=99)
+
+# Opt-in; the default remains pure-hypothesis.
+df = CustomerSchema.example(size=100, synthesis_backend="faker", seed=42)
+```
+
+`name`/`email`/`phone`/`country` now hold realistic values that still pass
+their constraints; `age` has no Faker semantic and falls back to hypothesis
+(unchanged). Dropping `synthesis_backend="faker"` reproduces today's behaviour.
+
+### `semantic=` reference
+
+`semantic` is **pure metadata** — it has no validation semantics and never
+affects `validate()`. It may be attached to `Column`, `Index`, or `Field`.
+
+| `semantic`   | Faker provider   |
+|--------------|------------------|
+| `name`       | `f.name()`       |
+| `first_name` | `f.first_name()` |
+| `last_name`  | `f.last_name()`  |
+| `email`      | `f.email()`      |
+| `phone`      | `f.phone_number()` |
+| `address`    | `f.address()`    |
+| `city`       | `f.city()`       |
+| `state`      | `f.state()`      |
+| `postal_code`| `f.postcode()`   |
+| `country`    | `f.country()`    |
+| `company`    | `f.company()`    |
+| `job`        | `f.job()`        |
+| `boolean`    | `f.boolean()`    |
+| `uuid`       | `f.uuid4()`      |
+| `currency`   | `f.pricetag()`   |
+| `date` / `datetime` | `f.date_object()` / `f.date_time()` |
+
+If a `semantic` is untranslatable or infeasible for the schema's constraints,
+generation silently falls back to hypothesis. An invalid `semantic` string
+raises `ValueError` at schema-definition time.
+
+### Reproducibility
+
+`example(..., seed=n)` (and `strategy(..., seed=n).example()`) reproduce
+byte-identical output for a given `(schema, seed, backend)`. When `seed` is
+provided, value generation routes through a deterministic engine-agnostic
+sampler.
+
+### Per-backend notes
+
+The engine-agnostic value core brings first-class `strategy()` / `example()`
+to every backend with the same opt-in contract and native return types:
+
+| Backend    | `strategy()` / `example()` return |
+|------------|-----------------------------------|
+| pandas     | `pandas.DataFrame`                |
+| polars     | `polars.DataFrame`                |
+| ibis       | `ibis.Table`                      |
+| pyspark    | `pyspark.sql.DataFrame`           |
+| geopandas  | `GeoDataFrame` (pandas-backed)    |
+
+PySpark uses driver materialization (`spark.createDataFrame`), so results are
+byte-reproducible from a seed.
+
+### Third-party backends
+
+Register a backend either programmatically:
+
+```python
+from pandera.api.synthesis import register_synthesis_backend, FieldGenerator
+
+class MyGenerator(FieldGenerator):
+    def generate(self, pandera_dtype, constraints, *, semantic=None, seed=None):
+        ...  # return a SearchStrategy, a candidate sequence, or None
+
+register_synthesis_backend("my_synth", MyBackend(...))
+```
+
+or declaratively via a packaging entry point (no import required by users):
+
+```toml
+[project.entry-points."pandera.synthesis_backends"]
+my_synth = "my_pandera_synth:backend"
+```
+
+Select it with `schema.example(..., synthesis_backend="my_synth")` or
+`PANDERA_SYNTHESIS_BACKEND=my_synth`. Contributors should pre-check feasibility
+against `FieldConstraints`, return `None` rather than produce invalid values,
+and honour `seed` for reproducibility.
