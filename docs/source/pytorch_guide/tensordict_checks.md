@@ -59,8 +59,8 @@ without searching the tensor by hand:
 
 ```{code-cell} python
 td_fail = TensorDict(
-    {"values": torch.tensor([1.0, -2.0, 3.0, -4.0, 5.0])},
-    batch_size=[5],
+    {"values": torch.tensor([1.0, -2.0, 3.0, -4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0])},
+    batch_size=[10],
 )
 
 try:
