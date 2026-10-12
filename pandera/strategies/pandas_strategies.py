@@ -807,40 +807,6 @@ def _coerce_base(base):
     return st.just(base)
 
 
-def _constraint_checker(constraints: FieldConstraints):
-    """A predicate enforcing the merged ``FieldConstraints``.
-
-    Used as a redundancy layer when a realistic backend supplies a base value:
-    realistic providers only *approximately* honour the schema, and this
-    guarantees the drawn value still passes ``validate()``.
-    """
-    import re as _re
-
-    def check(value: Any) -> bool:
-        if constraints.eq is not UNSET and value != constraints.eq:
-            return False
-        if constraints.isin is not None and value not in constraints.isin:
-            return False
-        if constraints.notin and value in constraints.notin:
-            return False
-        if constraints.regex_fullmatch:
-            sval = str(value)
-            if not all(
-                _re.fullmatch(p, sval) for p in constraints.regex_fullmatch
-            ):
-                return False
-        if constraints.regex_search:
-            sval = str(value)
-            if not all(_re.search(p, sval) for p in constraints.regex_search):
-                return False
-        for _name, predicate in constraints.residual_filters:
-            if not predicate(value):
-                return False
-        return True
-
-    return check
-
-
 def compile_field_strategy(
     pandera_dtype: DataType,
     constraints: FieldConstraints,
@@ -899,7 +865,9 @@ def compile_field_strategy(
             base = None
         realistic = _coerce_base(base)
         if realistic is not None:
-            return realistic.filter(_constraint_checker(constraints))
+            from pandera.strategies._values import _make_checker
+
+            return realistic.filter(_make_checker(constraints))
 
     # 1. Equality short-circuits everything.
     if constraints.eq is not UNSET:

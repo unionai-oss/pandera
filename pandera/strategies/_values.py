@@ -19,6 +19,7 @@ Determinism contract: ``seed=n`` reproduces identical output for a given
 
 from __future__ import annotations
 
+import operator
 import random
 from collections.abc import Iterator
 from typing import Any
@@ -277,6 +278,31 @@ def _make_checker(constraints: FieldConstraints):
 
     def check(value: Any) -> bool:
         if constraints.eq is not _UNS and value != constraints.eq:
+            return False
+        # numeric / orderable bounds
+        if constraints.min_value is not _UNS:
+            cmp = operator.gt if constraints.exclude_min else operator.ge
+            if not cmp(value, constraints.min_value):
+                return False
+        if constraints.max_value is not _UNS:
+            cmp = operator.lt if constraints.exclude_max else operator.le
+            if not cmp(value, constraints.max_value):
+                return False
+        # string length
+        if (
+            constraints.str_exact_len is not None
+            and len(str(value)) != constraints.str_exact_len
+        ):
+            return False
+        if (
+            constraints.str_min_len is not None
+            and len(str(value)) < constraints.str_min_len
+        ):
+            return False
+        if (
+            constraints.str_max_len is not None
+            and len(str(value)) > constraints.str_max_len
+        ):
             return False
         if constraints.isin is not None and value not in constraints.isin:
             return False
