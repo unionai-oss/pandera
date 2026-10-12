@@ -142,20 +142,12 @@ def _draw(
     pandera_dtype: Any, constraints: FieldConstraints, rng: random.Random
 ):
     """Draw a single candidate value for ``pandera_dtype`` from ``rng``."""
-    from pandera.strategies.pandas_strategies import (
-        to_numpy_dtype as _to_np,
-    )
-
     if constraints.eq is not _UNS:
         return constraints.eq
     if constraints.isin is not None:
         return rng.choice(sorted(constraints.isin))
 
-    try:
-        np_dtype = _to_np(pandera_dtype)
-    except Exception:
-        np_dtype = None
-
+    np_dtype = _numpy_dtype(pandera_dtype)
     if np_dtype is None or np_dtype.kind in {"U", "S", "O"}:
         return _random_string(constraints, rng)
 
@@ -193,6 +185,26 @@ def np_iinfo(np_dtype):
     import numpy as np
 
     return np.iinfo(np_dtype)
+
+
+def _numpy_dtype(pandera_dtype: Any):
+    """Return a numpy dtype for ``pandera_dtype``, or ``None`` if unsupported.
+
+    Accepts an already-``np.dtype``, a pandera engine dtype (via its ``.type``
+    or string form) so the engine-agnostic sampler can serve every backend.
+    """
+    import numpy as np
+
+    if hasattr(pandera_dtype, "kind"):  # already an np.dtype
+        return pandera_dtype
+    dt = getattr(pandera_dtype, "type", pandera_dtype)
+    try:
+        return np.dtype(dt)
+    except TypeError:
+        try:
+            return np.dtype(str(pandera_dtype))
+        except TypeError:
+            return None
 
 
 def _random_string(constraints: FieldConstraints, rng) -> str:
