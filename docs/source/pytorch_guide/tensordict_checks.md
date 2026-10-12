@@ -58,13 +58,22 @@ indices that violated the check, so you can locate the offending elements
 without searching the tensor by hand:
 
 ```{code-cell} python
+failure_schema = pa.TensorDictSchema(
+    keys={
+        "values": pa.Tensor(
+            dtype=torch.float32,
+            checks=[Check.greater_than(0.0)],
+        ),
+    },
+)
+
 td_fail = TensorDict(
     {"values": torch.tensor([1.0, -2.0, 3.0, -4.0, 5.0])},
     batch_size=[5],
 )
 
 try:
-    schema.validate(td_fail)
+    failure_schema.validate(td_fail)
 except pa.errors.SchemaError as exc:
     print(exc)
     # The failure cases include the violating indices and values
