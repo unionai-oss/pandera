@@ -1390,6 +1390,84 @@ def aggregate_field_constraints(
     return constraint_acc, legacy_strategies
 
 
+def _legacy_check_constraints(check) -> FieldConstraints | None:
+    """Translate a legacy built-in check's statistics into constraints.
+
+    Built-in checks currently ship constraint-*strategies* (via
+    ``STRATEGY_DISPATCHER``) rather than constraint adapters, so they don't
+    flow into :func:`aggregate_field_constraints`. This helper reconstructs a
+    ``FieldConstraints`` from the most common built-ins' statistics so the
+    deterministic sampler path (:func:`deterministic_column_sampler` and the
+    engine-agnostic backends) honours bounds/membership without hypothesis.
+
+    Returns ``None`` for an unrecognised check (ignored).
+    """
+    name = getattr(check, "name", None)
+    stats = getattr(check, "statistics", None) or {}
+    if name == "greater_than":
+        return FieldConstraints(min_value=stats["min_value"], exclude_min=True)
+    if name == "greater_than_or_equal_to":
+        return FieldConstraints(min_value=stats["min_value"])
+    if name == "less_than":
+        return FieldConstraints(max_value=stats["max_value"], exclude_max=True)
+    if name == "less_than_or_equal_to":
+        return FieldConstraints(max_value=stats["max_value"])
+    if name == "in_range":
+        return FieldConstraints(
+            min_value=stats.get("min_value"),
+            max_value=stats.get("max_value"),
+            exclude_min=not stats.get("include_min", True),
+            exclude_max=not stats.get("include_max", True),
+        )
+    if name == "isin":
+        return FieldConstraints(isin=frozenset(stats["allowed_values"]))
+    if name == "notin":
+        return FieldConstraints(notin=frozenset(stats["forbidden_values"]))
+    if name == "equal_to":
+        return FieldConstraints(eq=stats["value"])
+    if name == "not_equal_to":
+        return FieldConstraints(notin=frozenset({stats["value"]}))
+    if name == "str_length":
+        exact = stats.get("exact_value")
+        return FieldConstraints(
+            str_exact_len=exact,
+            str_min_len=stats.get("min_value"),
+            str_max_len=stats.get("max_value"),
+        )
+    if name == "str_matches":
+        return FieldConstraints(regex_fullmatch=(stats["pattern"],))
+    if name == "str_contains":
+        return FieldConstraints(regex_search=(stats["pattern"],))
+    if name == "str_startswith":
+        return FieldConstraints(regex_search=(rf"\A(?:{stats['string']})",))
+    if name == "str_endswith":
+        return FieldConstraints(regex_search=(rf"(?:{stats['string']})\Z",))
+    return None
+
+
+def _aggregate_constraints_for_sampler(
+    check_list: Sequence,
+) -> FieldConstraints:
+    """Aggregate constraints for the deterministic sampler path.
+
+    Merges both constraint-adapter checks *and* the statistics of legacy
+    built-in checks (via :func:`_legacy_check_constraints`), so bounds etc. are
+    honoured without hypothesis. Does **not** modify
+    :func:`aggregate_field_constraints` / :func:`field_element_strategy`, which
+    keep today's hypothesis-driven behavior byte-for-byte.
+    """
+    constraint_acc, _ = aggregate_field_constraints(list(check_list))
+    for check in check_list:
+        legacy = _legacy_check_constraints(check)
+        if legacy is None:
+            continue
+        try:
+            constraint_acc = constraint_acc.merge(legacy)
+        except ConstraintConflictError as exc:
+            _raise_unsatisfiable(check_list, exc)
+    return constraint_acc
+
+
 def deterministic_column_sampler(
     pandera_dtype: DataType,
     checks: Sequence | None = None,
@@ -1410,7 +1488,7 @@ def deterministic_column_sampler(
     """
     from pandera.strategies._values import compile_constraints_to_sampler
 
-    constraint_acc, _ = aggregate_field_constraints(list(checks or []))
+    constraint_acc = _aggregate_constraints_for_sampler(list(checks or []))
     return compile_constraints_to_sampler(
         pandera_dtype,
         constraint_acc,
