@@ -33,7 +33,7 @@ import pandas as pd
 import pandera.pandas as pa
 import pandera.decisions as decisions
 
-class Department(enum.StrEnum):
+class Department(str, enum.Enum):
     billing = "billing"
     """Payment, invoices or subscription issues."""
     technical = "technical"
