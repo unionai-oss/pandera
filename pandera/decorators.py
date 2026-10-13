@@ -40,6 +40,31 @@ OutputGetter = Union[str, int, Callable]
 F = TypeVar("F", bound=Callable)
 
 
+def _resolve_type_var_bound(schema_model: Any) -> Any:
+    """Replace a ``TypeVar`` by its bound if the bound is a model.
+
+    ``DataFrame[S]`` with ``S`` bound to a ``DataFrameModel`` accepts any
+    frame that satisfies the bound, so the bound is the schema to validate
+    against.
+
+    :param schema_model: the model argument of a ``DataFrame[...]``
+        annotation. This is usually a model class or a ``TypeVar``.
+    :returns: the bound of ``schema_model`` if it is a ``TypeVar`` bound to
+        a user-defined model. Otherwise ``schema_model`` unchanged. This
+        includes bounds that are pandera base classes, for example
+        ``bound=DataFrameModel``, because they declare no schema.
+    """
+    if isinstance(schema_model, TypeVar):
+        bound = schema_model.__bound__
+        if (
+            isinstance(bound, type)
+            and issubclass(bound, BaseModel)
+            and not bound.__module__.startswith("pandera.")
+        ):
+            return bound
+    return schema_model
+
+
 def _unwrap_fn(fn: Callable) -> Callable:
     if hasattr(fn, "__wrapped__"):
         return _unwrap_fn(fn.__wrapped__)
@@ -675,7 +700,10 @@ def check_types(
             if annotation_info.is_generic_model:
                 return _AnnotationInfoWithModelTree(
                     annotation_info=annotation_info,
-                    schema_model=cast(BaseModel, annotation_info.arg),
+                    schema_model=cast(
+                        BaseModel,
+                        _resolve_type_var_bound(annotation_info.arg),
+                    ),
                 )
             elif annotation_info.args and len(annotation_info.args) > 0:
                 return _AnnotationInfoWithModelTree(
@@ -715,10 +743,10 @@ def check_types(
         ):
             return arg_value
 
-        # An unresolved type variable (e.g. ``DataFrame[T]`` where ``T`` is a
-        # ``TypeVar``) does not point to a concrete ``DataFrameModel``, so there
-        # is no schema to validate against. Pass the value through unchanged
-        # instead of raising an ``AttributeError``.
+        # A type variable without a ``DataFrameModel`` bound (unbound,
+        # constrained, or with a forward-reference bound) has no schema to
+        # validate against. Pass the value through unchanged instead of
+        # raising an ``AttributeError``.
         if isinstance(schema_model, TypeVar):
             return arg_value
 

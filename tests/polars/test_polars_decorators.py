@@ -1,5 +1,7 @@
 """Unit tests for using schemas with polars and function decorators."""
 
+import typing
+
 import polars as pl
 import pytest
 
@@ -92,3 +94,21 @@ def test_polars_dataframe_check_types(data, invalid_data):
 
     with pytest.raises(pa.errors.SchemaError):
         fn_check_io_invalid(data)
+
+
+def test_polars_dataframe_check_types_typevar_bound(data, invalid_data):
+    """``DataFrame[S]`` is validated against the bound of ``S``."""
+
+    class Base(pa.DataFrameModel):
+        a: int
+
+    S = typing.TypeVar("S", bound=Base)
+
+    @pa.check_types
+    def fn(x: pa_typing.DataFrame[S]) -> pa_typing.DataFrame[S]:
+        return x
+
+    fn(data)
+    fn(data.with_columns(b=pl.lit("x")))
+    with pytest.raises(pa.errors.SchemaError):
+        fn(invalid_data)
