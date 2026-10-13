@@ -28,9 +28,11 @@ pip install 'pandera[narwhals,pandas]'   # pandas
 Then enable it using **either** of the following options.
 
 :::{note}
-{ref}`PyArrow <pyarrow>` is the exception: it has no native backend and is
-served exclusively by Narwhals, so `pip install 'pandera[pyarrow]'` is enough
-and neither of the options below is required.
+{ref}`PyArrow <pyarrow>` and {ref}`DataFusion <datafusion>` are the
+exceptions: they have no native backend and are served exclusively by
+Narwhals, so `pip install 'pandera[pyarrow]'` or
+`pip install 'pandera[datafusion]'` is enough and neither of the options below
+is required.
 :::
 
 ### Environment variable (process start)

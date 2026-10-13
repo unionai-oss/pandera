@@ -111,6 +111,7 @@ pyarrow = [
     "pyarrow >= 13",
     "narwhals >= 1.26.0",
 ]
+datafusion = ["narwhals-datafusion >= 0.1.5"]
 torch = [
     "torch",
     "tensordict",
@@ -140,6 +141,7 @@ all = [
     "numpy >= 1.24.4",
     "narwhals >= 1.26.0",
     "pyarrow >= 13",
+    "narwhals-datafusion >= 0.1.5",
     "torch",
     "tensordict",
 ]

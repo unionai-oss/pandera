@@ -12,6 +12,7 @@ from pandera.api.narwhals.utils import (
     _EAGER_PANDAS_LIKE_IMPLEMENTATIONS,
     _is_lazy,
     _is_pandas_like,
+    _is_plugin_lazy,
     _is_sql_lazy,
     _materialize,
 )
@@ -320,12 +321,16 @@ class NarwhalsSchemaBackend(BaseSchemaBackend):
         if head is None and tail is None:
             return check_obj
 
-        # Guard: SQL-lazy backends don't support tail without full ordering
-        if tail is not None and _is_sql_lazy(check_obj):
+        # Guard: SQL-lazy backends don't support tail without full ordering.
+        # Plugin-served query engines (narwhals-datafusion) do not expose
+        # ``tail`` at all, so they take the same path.
+        if tail is not None and (
+            _is_sql_lazy(check_obj) or _is_plugin_lazy(check_obj)
+        ):
             raise NotImplementedError(
-                "tail= is not supported on SQL-lazy backends (Ibis, DuckDB, PySpark) "
-                "because SQL has no native TAIL without forced full ordering. "
-                "Use head= instead."
+                "tail= is not supported on SQL-lazy backends (Ibis, DuckDB, "
+                "PySpark, DataFusion) because SQL has no native TAIL without "
+                "forced full ordering. Use head= instead."
             )
 
         obj_subsample = []
@@ -338,6 +343,10 @@ class NarwhalsSchemaBackend(BaseSchemaBackend):
                 check_obj.tail(tail)
             )  # lazy — polars-only (guarded above)
 
+        if _is_plugin_lazy(check_obj):
+            # Only ``head`` reaches here; ``unique()`` would change which
+            # rows DataFusion samples.
+            return obj_subsample[0]
         return nw.concat(obj_subsample).unique()
 
     def run_check(self, check_obj, schema, check, check_index, *args):
