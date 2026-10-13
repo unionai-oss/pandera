@@ -98,6 +98,9 @@ dependencies:
       # ibis extra
       - ibis-framework >= 9.0.0
 
+      # decisions extra
+      - typesafe-sdk
+
       # docs
       - furo
       - sphinxcontrib-typer >= 0.8.0
