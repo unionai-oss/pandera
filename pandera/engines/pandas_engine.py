@@ -28,7 +28,7 @@ import typeguard
 from pandas.core.dtypes.dtypes import BaseMaskedDtype
 from pydantic import BaseModel, ValidationError, create_model
 
-from pandera import dtypes, errors
+from pandera import _enum_literal, dtypes, errors
 from pandera.dtypes import immutable
 from pandera.engines import PYDANTIC_V2, engine, numpy_engine, utils
 from pandera.engines.type_aliases import (
@@ -234,10 +234,22 @@ class Engine(
         try:
             return engine.Engine.dtype(cls, data_type)
         except TypeError:
-            if inspect.isclass(data_type) and issubclass(data_type, enum.Enum):
-                # treat an Enum class as a categorical type whose categories
-                # are the enum members.
-                return Category(categories=data_type)
+            if _enum_literal.is_enum_type(data_type):
+                # An Enum class is a categorical type over its member
+                # *values*, ordered when the members are comparable.
+                return Category(
+                    categories=_enum_literal.enum_categories(data_type),
+                    ordered=_enum_literal.enum_ordered(data_type),
+                    enum_type=data_type,
+                )
+            if _enum_literal.is_literal_type(data_type):
+                # A Literal is a categorical type over its arguments. Never
+                # fall through to the dtype engine with a literal value: one
+                # that happens to name a dtype ("int64") would silently type
+                # the column and discard the option set.
+                return Category(
+                    categories=_enum_literal.literal_categories(data_type)
+                )
             if is_geopandas_dtype(data_type):
                 # register geopandas datatypes
                 import pandera.engines.geopandas_engine
@@ -653,7 +665,10 @@ class Category(DataType, dtypes.Category):
     type: pd.CategoricalDtype = dataclasses.field(default=None, init=False)  # type: ignore[assignment]  # noqa
 
     def __init__(
-        self, categories: Iterable[Any] | None = None, ordered: bool = False
+        self,
+        categories: Iterable[Any] | None = None,
+        ordered: bool = False,
+        enum_type: "builtins.type[enum.Enum] | None" = None,
     ) -> None:
         dtypes.Category.__init__(self, categories, ordered)
         object.__setattr__(
@@ -661,11 +676,29 @@ class Category(DataType, dtypes.Category):
             "type",
             pd.CategoricalDtype(self.categories, self.ordered),  # type: ignore
         )
+        # Stored outside the dataclass fields on purpose: two Category dtypes
+        # with the same categories and ordering must stay equal whether or not
+        # one of them remembers the enum it came from, or dtype checks would
+        # fail against data whose own dtype carries no enum.
+        object.__setattr__(self, "enum_type", enum_type)
+
+    def _normalize(self, data_container: PandasObject) -> PandasObject:
+        """Map enum members onto their values before coercing."""
+        enum_type = getattr(self, "enum_type", None)
+        if enum_type is None:
+            return data_container
+        return data_container.map(  # type: ignore[union-attr]
+            lambda value: (
+                value.value if isinstance(value, enum_type) else value
+            ),
+            na_action="ignore",
+        )
 
     def coerce(self, data_container: PandasObject) -> PandasObject:
         """Pure coerce without catching exceptions."""
-        coerced = data_container.astype(self.type)
-        if (coerced.isna() & data_container.notna()).any(axis=None):  # type: ignore[arg-type]
+        normalized = self._normalize(data_container)
+        coerced = normalized.astype(self.type)
+        if (coerced.isna() & normalized.notna()).any(axis=None):  # type: ignore[arg-type]
             raise TypeError(
                 f"Data container cannot be coerced to type {self.type}"
             )
@@ -673,6 +706,9 @@ class Category(DataType, dtypes.Category):
 
     def coerce_value(self, value: Any) -> Any:
         """Coerce an value to a particular type."""
+        enum_type = getattr(self, "enum_type", None)
+        if enum_type is not None:
+            value = _enum_literal.normalize_enum_value(enum_type, value)
         if value not in self.categories:  # type: ignore
             raise TypeError(
                 f"value {value} cannot be coerced to type {self.type}"

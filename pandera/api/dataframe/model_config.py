@@ -22,6 +22,9 @@ class BaseConfig(BaseModelConfig):
     title: str | None = None  #: human-readable label for schema
     description: str | None = None  #: arbitrary textual description
     coerce: bool = False  #: coerce types of all schema components
+
+    #: default ``source`` for ``ParsedField`` columns that do not set one
+    parser_source: Union[str, list[str], None] = None
     drop_invalid_rows: bool = False  #: drop invalid rows on validation
 
     #: make sure certain column combinations are unique

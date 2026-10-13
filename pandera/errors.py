@@ -68,6 +68,25 @@ class ParserError(ReducedPickleExceptionBase):
         self.parser_output = parser_output
 
 
+class ParserSourceError(ParserError):
+    """Raised when a parser's declared source columns are unavailable.
+
+    Without a declared source, a parser that reads a column which is not there
+    fails with a bare ``KeyError`` carrying no schema context and no indication
+    of which parser failed.
+    """
+
+    def __init__(self, message, failure_cases=None, parser_output=None):
+        super().__init__(message, failure_cases, parser_output)
+
+
+class ParserTargetError(ParserError):
+    """Raised when a parser does not produce the columns it declared."""
+
+    def __init__(self, message, failure_cases=None, parser_output=None):
+        super().__init__(message, failure_cases, parser_output)
+
+
 class SchemaInitError(Exception):
     """Raised when schema initialization fails."""
 
