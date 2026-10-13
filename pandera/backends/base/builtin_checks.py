@@ -98,6 +98,16 @@ def str_length(
 
 
 @Check.register_builtin_check_fn
+def is_sorted(data: Any, ascending: bool = True, strict: bool = False) -> Any:
+    raise NotImplementedError
+
+
+@Check.register_builtin_check_fn
+def max_gap(data: Any, gap: Any) -> Any:
+    raise NotImplementedError
+
+
+@Check.register_builtin_check_fn
 def unique_values_eq(data: Any, values: Iterable) -> Any:
     raise NotImplementedError
 
