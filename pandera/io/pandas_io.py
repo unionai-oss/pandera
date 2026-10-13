@@ -242,7 +242,6 @@ def serialize_schema(
         "columns": columns,
         "checks": checks,
         "index": index,
-        "dtype": str(dataframe_schema.dtype)
         if dataframe_schema.dtype is not None
         else None,
         **({} if multiindex is None else {"multiindex": multiindex}),
