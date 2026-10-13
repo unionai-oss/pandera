@@ -2,10 +2,15 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Optional, Union
+from typing import Any, Union
 
 from pandera.api.base.types import CheckList
 from pandera.engines import tensordict_engine
+
+#: A tensor key in a :class:`~pandera.api.tensordict.container.TensorDictSchema`.
+#: May be a plain key (e.g. ``"observation"``) or a nested tuple key (e.g.
+#: ``("next", "observation")``) matching TorchRL's nested TensorDict layout.
+TensorDictKey = Union[str, tuple[str, ...]]
 
 
 class Tensor:
@@ -22,7 +27,7 @@ class Tensor:
         checks: CheckList | None = None,
         nullable: bool = False,
         coerce: bool = False,
-        name: str | None = None,
+        name: TensorDictKey | None = None,
         required: bool = True,
     ) -> None:
         """Create tensor validator.
@@ -37,7 +42,7 @@ class Tensor:
         :param nullable: Whether the key can be missing from the TensorDict.
         :param coerce: Whether to coerce dtype during validation.
         :param name: Tensor key name in TensorDict. If ``None``, uses the key
-            from the schema definition.
+            from the schema definition. May be a nested tuple key.
         :param required: Whether the tensor is required (always ``True`` for
             now, as missing keys are handled separately).
         """
