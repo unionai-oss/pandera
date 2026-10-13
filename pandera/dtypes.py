@@ -438,7 +438,7 @@ class Decimal(_Number):
             raise ValueError(
                 f"Decimal precision {precision} must be positive."
             )
-        if scale is not None and scale > precision:
+        if scale is not None and not 0 <= scale <= precision:
             raise ValueError(
                 f"Decimal scale {scale} must be between 0 and {precision}."
             )

@@ -26,6 +26,7 @@ from pandera.io._flat_checks import (
     unflatten_component_checks_dict,
 )
 from pandera.io._minimal import apply_minimal_dataframe_container
+from pandera.schema_statistics.common import deserialize_group_keys
 from pandera.schema_statistics.pandas import get_dataframe_schema_statistics
 
 if TYPE_CHECKING:
@@ -143,6 +144,22 @@ def _serialize_component_stats(component_stats):
     }
 
 
+_MULTIINDEX_OPTION_KEYS = ("coerce", "strict", "name", "ordered", "unique")
+
+
+def _serialize_multiindex_options(index):
+    """Serialize the options of a ``MultiIndex`` schema component.
+
+    The per-level ``Index`` components are serialized separately under the
+    ``index`` key; this captures the options that belong to the
+    ``MultiIndex`` itself. Returns ``None`` for a single ``Index`` or when
+    the schema has no index.
+    """
+    if index is None or not hasattr(index, "indexes"):
+        return None
+    return {key: getattr(index, key) for key in _MULTIINDEX_OPTION_KEYS}
+
+
 def _serialize_column_name(col_name):
     """Serialize column names that are not valid JSON object keys."""
     if isinstance(col_name, tuple):
@@ -216,6 +233,8 @@ def serialize_schema(
     if statistics["checks"] is not None:
         checks = _serialize_dataframe_stats(statistics["checks"])
 
+    multiindex = _serialize_multiindex_options(dataframe_schema.index)
+
     out = {
         "schema_type": "dataframe",
         "version": __version__,
@@ -226,6 +245,8 @@ def serialize_schema(
         "dtype": str(dataframe_schema.dtype)
         if dataframe_schema.dtype is not None
         else None,
+        **({} if multiindex is None else {"multiindex": multiindex}),
+        "dtype": dataframe_schema.dtype,
         "coerce": dataframe_schema.coerce,
         "strict": dataframe_schema.strict,
         "name": dataframe_schema.name,
@@ -277,6 +298,9 @@ def _deserialize_check_stats(check, serialized_check_stats, dtype=None):
     if isinstance(serialized_check_stats, dict):
         check_stats = {}
         for arg, stat in serialized_check_stats.items():
+            if arg == "groups":
+                check_stats[arg] = deserialize_group_keys(stat)
+                continue
             check_stats[arg] = handle_stat_dtype(stat)
         check_instance = check(**check_stats)
     else:
@@ -286,8 +310,11 @@ def _deserialize_check_stats(check, serialized_check_stats, dtype=None):
     # Apply options if they exist
     if options:
         for option_name, option_value in options.items():
-            if option_name != "check_name":
-                setattr(check_instance, option_name, option_value)
+            if option_name == "check_name":
+                continue
+            if option_name == "groups":
+                option_value = deserialize_group_keys(option_value)
+            setattr(check_instance, option_name, option_value)
 
     return check_instance
 
@@ -420,7 +447,8 @@ def deserialize_schema(serialized_schema):
         index = Index(**index[0])
     else:
         index = MultiIndex(
-            indexes=[Index(**index_properties) for index_properties in index]
+            indexes=[Index(**index_properties) for index_properties in index],
+            **(serialized_schema.get("multiindex") or {}),
         )
 
     metadata = None

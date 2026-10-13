@@ -193,3 +193,43 @@ def test_failure_cases_is_native():
         assert isinstance(fc, pl.DataFrame), (
             f"failure_cases should be native pl.DataFrame, got {type(fc)}"
         )
+
+
+# ---------------------------------------------------------------------------
+# Nested Column drop_invalid_rows (issue #2529)
+# ---------------------------------------------------------------------------
+
+
+def test_nested_column_drop_invalid_rows(monkeypatch, request):
+    """A nested Column with drop_invalid_rows drops its failing rows.
+
+    Regression test for issue #2529: the filtered frame returned by
+    Column.validate was discarded when the column was validated inside a
+    DataFrameSchema, so invalid rows survived in the validated output. The
+    column must keep dropping its failing rows even when the DataFrameSchema
+    itself does not set drop_invalid_rows.
+    """
+    from pandera.backends.polars.register import register_polars_backends
+    from pandera.config import CONFIG
+
+    monkeypatch.setattr(CONFIG, "use_narwhals_backend", True)
+    request.addfinalizer(register_polars_backends.cache_clear)
+    register_polars_backends.cache_clear()
+    register_polars_backends(use_narwhals_backend=True)
+
+    schema = DataFrameSchema(
+        columns={
+            "numbers": Column(
+                pl.Int64,
+                checks=[Check.greater_than_or_equal_to(3)],
+                drop_invalid_rows=True,
+            ),
+            "letters": Column(pl.String),
+        }
+    )
+    out = schema.validate(
+        pl.DataFrame({"numbers": [1, 2, 3, 4, 5, 6], "letters": ["a"] * 6}),
+        lazy=True,
+    )
+    assert out["numbers"].to_list() == [3, 4, 5, 6]
+    assert out["letters"].to_list() == ["a", "a", "a", "a"]

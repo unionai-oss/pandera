@@ -3,9 +3,7 @@
 from __future__ import annotations
 
 import inspect
-import sys
 import threading
-import types as types_module
 import typing
 from typing import Any, ClassVar, cast
 
@@ -56,42 +54,32 @@ def _get_tensor_dict_class_type_hints(
     ``torch.dtype`` instances; :func:`typing.get_type_hints` rejects those
     because they are not :class:`type` objects. TensorDict field annotations
     intentionally use dtypes, so string annotations are resolved with
-    :func:`eval` like :func:`inspect.get_annotations` (same security model as
-    normal forward references).
+    :func:`inspect.get_annotations` (the same lazy-evaluation / forward
+    reference handling that the dataframe API relies on, and the only way
+    annotations are materialized on Python 3.14+ where PEP 649 stores them
+    behind ``__annotate_func__`` instead of ``__annotations__``).
     """
-    # typing.get_type_hints uses these; they are not in typeshed (private API).
-    _eval_type = cast(Any, getattr(typing, "_eval_type"))
-    _strip_annotations = cast(Any, getattr(typing, "_strip_annotations"))
-
     if getattr(cls, "__no_type_check__", None):
         return {}
     hints: dict[str, Any] = {}
     for base in reversed(cls.__mro__):
-        if globalns is None:
-            base_globals = getattr(
-                sys.modules.get(base.__module__, None),
-                "__dict__",
-                {},
+        try:
+            ann = inspect.get_annotations(base, eval_str=True)
+        except (NameError, TypeError, AttributeError):
+            try:
+                ann = inspect.get_annotations(base)
+            except (NameError, TypeError, AttributeError):
+                ann = {}
+        hints.update(ann)
+    if not include_extras:
+        try:
+            _strip_annotations = cast(
+                Any, getattr(typing, "_strip_annotations")
             )
-        else:
-            base_globals = globalns
-        ann = base.__dict__.get("__annotations__", {})
-        if isinstance(ann, types_module.GetSetDescriptorType):
-            ann = {}
-        base_locals = dict(vars(base)) if localns is None else localns
-        if localns is None and globalns is None:
-            base_globals, base_locals = base_locals, base_globals
-        for name, value in ann.items():
-            if value is None:
-                value = type(None)
-            if isinstance(value, str):
-                value = eval(value, base_globals, base_locals)
-            else:
-                value = _eval_type(value, base_globals, base_locals)
-            hints[name] = value
-    if include_extras:
-        return hints
-    return {k: _strip_annotations(t) for k, t in hints.items()}
+            return {k: _strip_annotations(t) for k, t in hints.items()}
+        except Exception:
+            return hints
+    return hints
 
 
 class _FieldsDescriptor:
@@ -561,9 +549,14 @@ class TensorDictModel(BaseModel):
         cfg = cls.__config__
         fields = cls.__fields__
 
-        columns: dict[str, Any] = {}
+        columns: dict[Any, Any] = {}
 
         for fname, (ann, fi) in fields.items():
+            # Resolve the TensorDict key: the field ``alias`` (which may be a
+            # nested tuple such as ``("next", "observation")``) if provided,
+            # otherwise the field attribute name.
+            key = getattr(fi, "alias", None) or fname
+
             # Get dtype from annotation
             dtype = ann.arg
 
@@ -588,7 +581,7 @@ class TensorDictModel(BaseModel):
             tensor_kwargs: dict[str, Any] = {
                 "dtype": dtype,
                 "shape": shape,
-                "name": fname,
+                "name": key,
                 "nullable": getattr(fi, "nullable", False),
                 "coerce": getattr(fi, "coerce", False),
                 "required": getattr(fi, "required", True),
@@ -597,7 +590,7 @@ class TensorDictModel(BaseModel):
             if hasattr(fi, "checks") and fi.checks:
                 tensor_kwargs["checks"] = fi.checks
 
-            columns[fname] = Tensor(**tensor_kwargs)
+            columns[key] = Tensor(**tensor_kwargs)
 
         # Get schema-level options from Config
         batch_size: tuple[int | None, ...] | None = (
