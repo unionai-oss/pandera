@@ -1,6 +1,7 @@
 """Unit tests for polars check class."""
 
 import datetime as dt
+import re
 
 import polars as pl
 import pytest
@@ -459,3 +460,45 @@ def test_polars_lazy_failure_cases_empty_and_null_list():
     rendered = exc_info.value.failure_cases["failure_case"].to_list()
     assert "[]" in rendered
     assert any("null" in str(v) for v in rendered)
+
+
+@pytest.mark.parametrize(
+    "check, pass_values, fail_values",
+    [
+        (
+            pa.Check.str_matches(re.compile("abc", re.IGNORECASE)),
+            ["ABC", "abcd"],
+            ["xabc"],
+        ),
+        (
+            pa.Check.str_contains(re.compile("abc", re.IGNORECASE)),
+            ["xABC", "abc"],
+            ["xyz"],
+        ),
+        (
+            pa.Check.str_contains(re.compile("^b", re.MULTILINE)),
+            ["a\nb"],
+            ["ab"],
+        ),
+        (
+            pa.Check.str_matches(re.compile("a.b", re.DOTALL)),
+            ["a\nb", "axb"],
+            ["ab"],
+        ),
+        (
+            pa.Check.str_matches(re.compile("a b  # letters", re.VERBOSE)),
+            ["ab"],
+            ["a b"],
+        ),
+    ],
+)
+def test_polars_regex_checks_keep_compiled_pattern_flags(
+    check, pass_values, fail_values
+):
+    """Flags on a compiled pattern apply, as they do in the pandas backend."""
+    schema = pa.DataFrameSchema({"col": pa.Column(str, check)})
+
+    schema.validate(pl.LazyFrame({"col": pass_values})).collect()
+
+    with pytest.raises(pa.errors.SchemaError):
+        schema.validate(pl.LazyFrame({"col": fail_values})).collect()
