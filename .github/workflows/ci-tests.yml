@@ -109,7 +109,7 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
+        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14", "3.15"]
         polars-version: ["1.20.0", "1.33.1","1.42.1"]
     defaults:
       run:
@@ -122,6 +122,7 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
+          allow-prereleases: true
       - uses: actions/cache@v4
         with:
           path: ~/.cache/pip  # ubuntu location
@@ -210,7 +211,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
+        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14", "3.15"]
         pydantic-version: ["2.12.3"]
     steps:
       - uses: actions/checkout@v4
@@ -218,6 +219,7 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
+          allow-prereleases: true
       - uses: actions/cache@v4
         with:
           path: |
@@ -267,12 +269,14 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
+        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14", "3.15"]
         pandas-version: ["2.3.3", "3.0.0"]
         pydantic-version: ["1.10.11", "2.12.3"]
         exclude:
           - pydantic-version: "1.10.11"
             python-version: "3.14"
+          - pydantic-version: "1.10.11"
+            python-version: "3.15"
           - pandas-version: "3.0.0"
             python-version: "3.10"
     steps:
@@ -281,6 +285,7 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
+          allow-prereleases: true
       - uses: actions/cache@v4
         with:
           path: |
@@ -329,7 +334,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
+        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14", "3.15"]
         pandas-version: ["2.3.3", "3.0.0"]
         pydantic-version: ["2.12.3"]
         # Only the extras whose areas were changed in this PR/push (see
@@ -339,9 +344,11 @@ jobs:
         exclude:
         - extra: mypy
           os: windows-latest
-        # remove this when pyogrio is supported on Python 3.14
+        # remove this when pyogrio is supported on Python 3.14+
         - extra: geopandas
           python-version: "3.14"
+        - extra: geopandas
+          python-version: "3.15"
         - pandas-version: "3.0.0"
           python-version: "3.10"
     steps:
@@ -350,6 +357,7 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
+          allow-prereleases: true
       - uses: actions/cache@v4
         with:
           path: |
@@ -405,7 +413,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
+        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14", "3.15"]
         pandas-version: ["2.3.3"]
         # Only the extras whose areas were changed in this PR/push (see
         # .github/filters.yaml, scripts/ci/derive_test_flags.sh); the job is skipped when the list
@@ -428,6 +436,9 @@ jobs:
           python-version: "3.14"
           polars-version: "1.42.1"
         - extra: polars
+          python-version: "3.15"
+          polars-version: "1.42.1"
+        - extra: polars
           pydantic-version: "2.12.3"
         exclude:
         - extra: modin-ray
@@ -441,14 +452,20 @@ jobs:
           python-version: "3.13"
         - extra: pyspark
           python-version: "3.14"
+        - extra: pyspark
+          python-version: "3.15"
         - extra: modin-dask
           python-version: "3.13"
         - extra: modin-dask
           python-version: "3.14"
+        - extra: modin-dask
+          python-version: "3.15"
         - extra: modin-ray
           python-version: "3.13"
         - extra: modin-ray
           python-version: "3.14"
+        - extra: modin-ray
+          python-version: "3.15"
 
     steps:
       - uses: actions/checkout@v4
@@ -462,6 +479,7 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
+          allow-prereleases: true
 
       - uses: actions/cache@v4
         with:
@@ -521,7 +539,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
+        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14", "3.15"]
         # Only the extras whose areas were changed in this PR/push (see
         # .github/filters.yaml, scripts/ci/derive_test_flags.sh); the job is skipped when the list
         # is empty via the `if` above.
@@ -533,6 +551,8 @@ jobs:
           python-version: "3.13"
         - extra: pyspark
           python-version: "3.14"
+        - extra: pyspark
+          python-version: "3.15"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -544,6 +564,7 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
+          allow-prereleases: true
       - uses: actions/cache@v4
         with:
           path: |
@@ -593,13 +614,14 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
-        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
+        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14", "3.15"]
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
+          allow-prereleases: true
       - uses: actions/cache@v4
         with:
           path: |
@@ -659,6 +681,7 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
+          allow-prereleases: true
       - uses: actions/cache@v4
         with:
           path: ~/.cache/pip  # ubuntu location
