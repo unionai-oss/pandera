@@ -396,6 +396,13 @@ class NarwhalsSchemaBackend(BaseSchemaBackend):
                         check_col = check_col.with_columns(
                             na_pass.alias(CHECK_OUTPUT_KEY)
                         )
+                    else:
+                        # ``ignore_na=False``: a null check output must be
+                        # surfaced as a failure case (``filter(~null)`` would
+                        # silently drop it).
+                        check_col = check_col.with_columns(
+                            nw.col(CHECK_OUTPUT_KEY).fill_null(False)
+                        )
                     fc = check_col.filter(~nw.col(CHECK_OUTPUT_KEY))
                     if check_result.checked_object is not None:
                         key = check_result.checked_object.key
@@ -469,6 +476,11 @@ class NarwhalsSchemaBackend(BaseSchemaBackend):
         # back to the schema class: pandas-API schemas are only routed to
         # this backend for pandas frames.
         data_implementation = None
+        errors_are_datafusion = any(
+            type(err.schema).__module__.startswith("pandera.api.datafusion")
+            for err in schema_errors
+            if err.schema is not None
+        )
         for err in schema_errors:
             data = getattr(err, "data", None)
             if data is not None:
@@ -526,17 +538,27 @@ class NarwhalsSchemaBackend(BaseSchemaBackend):
                             fc, err, check_identifier
                         )
                     )
-            elif errors_implementation == nw.Implementation.PYARROW or (
-                pl is None
-                and _pa is not None
-                # pandas-like runs keep _build_scalar_failure_case, which
-                # already builds a pandas frame when polars is absent.
-                # ``errors_implementation`` is None for an all-scalar batch,
-                # so the validated frame's implementation is the only usable
-                # signal here; without it a pandas + pyarrow (no polars)
-                # install would report failure_cases as a pyarrow.Table.
-                and data_implementation
-                not in _EAGER_PANDAS_LIKE_IMPLEMENTATIONS
+            elif (
+                errors_implementation == nw.Implementation.PYARROW
+                or (
+                    pl is None
+                    and _pa is not None
+                    # pandas-like runs keep _build_scalar_failure_case, which
+                    # already builds a pandas frame when polars is absent.
+                    # ``errors_implementation`` is None for an all-scalar batch,
+                    # so the validated frame's implementation is the only usable
+                    # signal here; without it a pandas + pyarrow (no polars)
+                    # install would report failure_cases as a pyarrow.Table.
+                    and data_implementation
+                    not in _EAGER_PANDAS_LIKE_IMPLEMENTATIONS
+                )
+                or (
+                    # DataFusion schemas are pyarrow end-to-end but the plugin's
+                    # frames report ``Implementation.UNKNOWN``, so they are not
+                    # detected as PYARROW above. Keep their scalar failure cases
+                    # on the pyarrow backend so the batch stays on one backend.
+                    errors_are_datafusion
+                )
             ):
                 failure_case_collection.append(
                     self._build_pyarrow_scalar_failure_case(
