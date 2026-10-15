@@ -138,6 +138,7 @@ def _serialize_component_stats(component_stats):
                 "required",
                 "regex",
                 "default",
+                "report_duplicates",
                 "drop_invalid_rows",
             ]
             if key in component_stats
@@ -376,6 +377,7 @@ def _deserialize_component_stats(serialized_component_stats):
                 "required",
                 "regex",
                 "default",
+                "report_duplicates",
                 "drop_invalid_rows",
             ]
             if key in serialized_component_stats
