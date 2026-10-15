@@ -427,10 +427,33 @@ class Decimal(DataType, dtypes.Decimal):
             data_container = PolarsData(data_container)
 
         key = data_container.key or "*"
-        return data_container.lazyframe.cast({key: pl.Float64}).cast(
-            {key: pl.Decimal(scale=self.scale, precision=self.precision)},
-            strict=True,
+        lf = data_container.lazyframe
+        target = pl.Decimal(scale=self.scale, precision=self.precision)
+        schema = lf.select(pl.col(key)).collect_schema()
+        return lf.with_columns(
+            self._cast_expr(pl.col(name), dtype, target)
+            for name, dtype in schema.items()
         )
+
+    @staticmethod
+    def _cast_expr(
+        col: pl.Expr, dtype: PolarsDataType, target: pl.Decimal
+    ) -> pl.Expr:
+        """Cast an expression to a decimal.
+
+        Integers, decimals and strings are cast directly so that no digits
+        are lost to a float round trip.
+        """
+        if dtype.is_integer() or isinstance(dtype, pl.Decimal):
+            return col.cast(target, strict=True)
+
+        via_float = col.cast(pl.Float64, strict=True).cast(target, strict=True)
+        if dtype == pl.String:
+            # Parse the string directly so that no digits are lost, and fall
+            # back to the float path for values the direct parse rejects
+            # (e.g. scientific notation on older polars versions).
+            return pl.coalesce(col.cast(target, strict=False), via_float)
+        return via_float
 
     def check(
         self,
