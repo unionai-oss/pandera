@@ -220,6 +220,19 @@ def test_coerce_cast(from_dtype, to_dtype, strategy, data):
 
 
 @pytest.mark.parametrize(
+    "to_dtype", [pe.Int64(), pe.Float64(), pe.Decimal(precision=3, scale=1)]
+)
+def test_numeric_coerce_strips_string_whitespace(to_dtype):
+    """Numeric coercion accepts whitespace around string values."""
+    data = pl.LazyFrame({"value": [" 1 "]})
+
+    coerced = to_dtype.try_coerce(PolarsData(data)).collect()
+
+    assert coerced["value"].item() == 1
+    assert coerced.schema["value"] == to_dtype.type
+
+
+@pytest.mark.parametrize(
     "pandera_dtype, data_container",
     [
         (
