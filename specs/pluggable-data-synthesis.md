@@ -1,8 +1,8 @@
 # Pluggable Data Synthesis Backends (Realistic Data Generation) Spec
 
 > **Status:** Draft
-> **Scope:** `pandera/api/synthesis/` (new), `pandera/strategies/base_strategies.py`
-> (additive), `pandera/strategies/_values.py` (new), `pandera/strategies/faker_strategies.py`
+> **Scope:** `pandera/api/synthesis/__init__.py` (new shim), `pandera/strategies/base_strategies.py`
+> (additive), `pandera/strategies/{protocol,registry,semantic}.py` (new), `pandera/strategies/_values.py` (new), `pandera/strategies/faker_strategies.py`
 > (new), `pandera/strategies/{polars,pyspark,ibis,datafusion}_strategies.py` (new),
 > `pandera/strategies/pandas_strategies.py` (additive), `pandera/api/{pandas,polars,
 > pyspark,ibis,datafusion}/` (additive), `pandera/config.py` (additive),
@@ -213,27 +213,33 @@ so a backend need only implement the methods relevant to the synthesis mode it
 supports.
 
 ```
+pandera/strategies/
+├── protocol.py              # NEW: SynthesisBackend, FieldGenerator protocols
+├── registry.py              # NEW: backend registry + entry-point loader
+├── semantic.py              # NEW: SemanticType enum
+└── ... (existing modules: constraints, base_strategies, pandas_strategies, ...)
+
 pandera/api/synthesis/
-├── __init__.py              # public re-exports: register_synthesis_backend,
-│                            # get_synthesis_backend, SynthesisBackend,
-│                            # FieldGenerator, SemanticType
-├── protocol.py              # SynthesisBackend, FieldGenerator protocols
-├── registry.py              # backend registry + entry-point loader
-└── semantic.py              # SemanticType enum (+ helper mapping functions)
+└── __init__.py              # NEW: thin public re-export shim
+                             # (register_synthesis_backend, get_synthesis_backend,
+                             #  SynthesisBackend, FieldGenerator, SemanticType)
 ```
 
-> **Naming note.** This lives in `pandera/api/synthesis/` to sit beside the
-> other pluggable API surfaces (`pandera/api/extensions.py`), but depends only
-> on `pandera/strategies/` primitives (`FieldConstraints`, `SearchStrategy`),
-> so the direction of dependency is API → strategies, matching the existing
-> layout.
+> **Naming note.** The *implementation* lives in `pandera/strategies/` so that
+> it depends only on other strategy primitives (`FieldConstraints`,
+> `SearchStrategy`) and never imports the public API layer. `pandera/api/synthesis/`
+> is a small re-export shim (kept beside the other pluggable API surfaces such
+> as `pandera/api/extensions.py`) so the documented user-facing import paths
+> stay stable. This preserves the direction of dependency **API → strategies**
+> with no import cycle: `strategies/registry.py` may freely import
+> `strategies/constraints.py`, while nothing in `strategies/` imports `api/`.
 
 ```python
-# pandera/api/synthesis/protocol.py
+# pandera/strategies/protocol.py
 
 from __future__ import annotations
 
-from collections.abc import Callable, Iterator
+from collections.abc import Callable, Sequence
 from typing import Protocol, runtime_checkable
 
 from pandera.strategies.constraints import FieldConstraints
@@ -247,9 +253,9 @@ class FieldGenerator(Protocol):
     A ``FieldGenerator`` is the Mode A building block: given a pandera dtype,
     the schema ``FieldConstraints`` (so it can decide feasibility without a
     trial-and-error loop) and an optional explicit ``semantic`` tag, it produces
-    either a hypothesis ``SearchStrategy`` yielding realistic values, a
-    concrete value or iterable of values, or ``None`` to signal "no opinion —
-    use the default hypothesis path".
+    either a hypothesis ``SearchStrategy`` yielding realistic values, a *bounded*
+    sequence of candidate values, or ``None`` to signal "no opinion — use the
+    default hypothesis path".
     """
 
     def generate(
@@ -259,9 +265,14 @@ class FieldGenerator(Protocol):
         *,
         semantic: SemanticType | None = None,
         seed: int | None = None,          # per-backend reproducibility
-    ) -> SearchStrategy | object | Iterator[object] | None:
-        """Return a realistic generator, a single value, an iterable of
-        candidate values, or ``None`` (default path)."""
+    ) -> SearchStrategy | Sequence[object] | None:
+        """Return either a realistic ``SearchStrategy``, a *bounded* sequence
+        of candidate values (e.g. an ``isin`` domain), or ``None`` to signal
+        "no opinion — use the default hypothesis path".
+
+        A single concrete value is never returned: wrapping one in ``st.just``
+        would make every cell in the field identical and destroy realism.
+        """
         ...
 ```
 
@@ -306,12 +317,11 @@ forcing inheritance.
 ### 5.2 Registry and third-party contribution (entry points)
 
 ```python
-# pandera/api/synthesis/registry.py
+# pandera/strategies/registry.py
 
 from __future__ import annotations
 
 import warnings
-from collections.abc import Callable
 
 _SYNTHESIS_BACKENDS: dict[str, SynthesisBackend] = {}
 
@@ -406,22 +416,26 @@ def strategy(
     size: int | None = None,
     n_regex_columns: int = 1,
     synthesis_backend: str | None = None,   # NEW
+    seed: int | None = None,                # NEW
 ):
     import pandera.strategies.pandas_strategies as st
     if synthesis_backend is None:
-        synthesis_backend = get_config().synthesis_backend   # None by default
+        # This module already imports get_config_context; reuse it here.
+        synthesis_backend = get_config_context().synthesis_backend  # None default
     return st.dataframe_strategy(
         self.dtype, columns=self.columns, checks=self.checks,
         unique=self.unique, index=self.index, size=size,
         n_regex_columns=n_regex_columns,
         synthesis_backend=synthesis_backend,   # forwarded; None == default
+        seed=seed,
     )
 ```
 
 `pandas_strategies.dataframe_strategy` / `column_strategy` / `field_element_strategy`
-thread this value down to the leaf; when it is `None` the code path is
+thread these values down to the leaf; when both are unset the code path is
 **textually the same as today** (a single early branch), so there is no
-behavioral change.
+behavioral change. How `seed` is honored (hypothesis default path and the
+realistic backend) is specified in §5.8.
 
 ### 5.4 Semantic typing (the opt-in interface that unlocks realism)
 
@@ -432,7 +446,7 @@ from column names (name-based inference is fragile, localised, and
 unpredictable, and would break determinism guarantees):
 
 ```python
-# pandera/api/synthesis/semantic.py
+# pandera/strategies/semantic.py
 
 from enum import Enum
 
@@ -503,8 +517,9 @@ compile_field_strategy(pandera_dtype, constraints, *, semantic=None, synthesis_b
     |   base = backend_field.generate(pandera_dtype, constraints,
     |                                semantic=semantic, seed=seed)
     |   if base is not None:
-    |       strategy = coerce_to_search_strategy(base)   # builds/st.just/sampled_from
-    |       ^--- hypothesis SearchStrategy accepted as-is; built object wrapped in st.just
+    |       strategy = coerce_to_search_strategy(base)   # strategy or sampled_from
+    |       ^--- a hypothesis SearchStrategy is used as-is; a bounded candidate
+    |            sequence is wrapped in st.sampled_from (never st.just — see below)
     |   else:
     |       strategy = default pure-hypothesis base (unchanged)
     |
@@ -534,9 +549,11 @@ def compile_field_strategy(
         except Exception:
             base = None
         if base is not None:
-            strategy = _coerce_base(base)   # st.builds / st.just / sampled_from
+            strategy = _coerce_base(base)   # SearchStrategy or bounded candidates
     if strategy is None:
-        strategy = _default_base_strategy(pandera_dtype, constraints)  # unchanged
+        # unchanged: the existing base-value logic inside compile_field_strategy,
+        # which delegates dtype bridging to pandas_dtype_strategy(...)
+        strategy = _existing_base_strategy(pandera_dtype, constraints)
 
     # ... existing constraint application on top of `strategy` (unchanged) ...
 ```
@@ -553,16 +570,37 @@ A `FieldGenerator` must therefore be written to *pre-check feasibility against
 `CONSTRAINT_DISPATCHER` philosophy in `specs/optimized-strategies.md` (merge
 first, generate once).
 
-`_coerce_base` handles the three legal returns:
+**Uniqueness interaction.** When a column/field declares `unique=True`,
+`dataframe_strategy` already routes draws through hypothesis's uniqueness and
+shrinking machinery, which can reject duplicates produced by a realistic
+provider (two identical "John Smith" names, repeated emails). A backend SHOULD
+prefer widening its candidate pool for `unique` fields (e.g. emit a larger
+bounded candidate set so collisions are rare) and MAY decline (return `None`) if
+it cannot reasonably honor uniqueness, in which case the default path draws
+with `unique` guarantees as it does today. This keeps `unique` semantics intact
+ever when a realistic backend is active.
+
+`_coerce_base` normalizes the two legal returns. A bare atomic value is
+intentionally rejected: `st.just(value)` would make every cell identical and
+would defeat the purpose of realistic generation (see §5.1). A single value is
+only reachable through a degenerate singleton constraint like `eq`, which the
+Faker backend expresses as a one-element candidate set. Empty candidate sets
+decline to the default path rather than erroring:
 
 ```python
 def _coerce_base(base) -> SearchStrategy | None:
+    """Normalize a FieldGenerator result into a SearchStrategy.
+
+    Accepts a SearchStrategy as-is, or a *bounded* sequence of candidates
+    (e.g. an ``isin`` domain) wrapped in ``st.sampled_from``.
+    """
     import hypothesis.strategies as st
     if isinstance(base, st.SearchStrategy):
         return base
-    if isinstance(base, Iterator):
-        return st.sampled_from(list(base))
-    return st.just(base)          # a single concrete realistic value
+    candidates = list(base)
+    if not candidates:
+        return None                 # empty → decline to the default path
+    return st.sampled_from(candidates)
 ```
 
 ### 5.6 Built-in Faker backend (the implemented top candidate)
@@ -584,9 +622,9 @@ strategy-faker = [
 ```python
 # pandera/strategies/faker_strategies.py
 
-from pandera.api.synthesis import register_synthesis_backend
-from pandera.api.synthesis.protocol import FieldGenerator
-from pandera.api.synthesis.semantic import SemanticType
+from pandera.strategies.registry import register_synthesis_backend
+from pandera.strategies.protocol import FieldGenerator
+from pandera.strategies.semantic import SemanticType
 
 _SEMANTIC_TO_FAKER = {
     SemanticType.NAME:        lambda f: f.name(),
@@ -625,11 +663,12 @@ class _FakerFieldGenerator(FieldGenerator):
         return _builds(self._factory, semantic, provider, constraints)
 ```
 
-Where `_builds` wraps the provider in a hypothesis `st.builds(...)`/`st.just(...)`
-and, where the constraint set narrows it cheaply, a single `st.sampled_from(...)`
-of pre-computed realistic candidates (e.g. `isin` sets) so that no
-trial-and-error filtering occurs — again mirroring the merged-constraints
-philosophy.
+Where `_builds` wraps the provider in a generative hypothesis `st.builds(...)`
+strategy (calling the Faker provider lazily per draw) and, where the constraint
+set narrows it cheaply, a single `st.sampled_from(...)` of pre-computed
+realistic candidates (e.g. `isin` sets) so that no trial-and-error filtering
+occurs — again mirroring the merged-constraints philosophy. A bare atomic value
+is never emitted (see §5.5).
 
 The `_feasible` pre-check is the key correctness guard: it rejects any
 `FieldConstraints` combination the provider manifestly cannot satisfy (e.g.
@@ -655,18 +694,35 @@ A future SDV backend would:
 3. Be selected via the same `synthesis_backend="sdv"` mechanism and entry-point
    machinery, shipped by a *separate* extra `pandera[strategy-sdv]`.
 
+Note: `synthesize` should receive a backend-agnostic schema *descriptor* rather
+than a pandas-specific schema object, so a Mode B backend can serve polars /
+ibis / other tables too (§6.1).
+
 Backwards compatibility for the entry-point story is identical, which is why
 §5.2/§5.3 generalize over both tiers now rather than being Faker-specific.
 
 ### 5.8 Determinism and reproducibility
 
-- `Schema.example(..., seed=n)` seeds the hypothesis global and forwards `seed`
-  to the backend (`field_generator.generate(..., seed=n)`), so a given
-  `(schema, seed, backend)` always reproduces identical output.
+`seed` is a **new, additive** parameter on `strategy()`/`example()` (default
+`None`; neither method accepts a seed today). When set, it is honored in both
+paths:
+
+- **Default (pure-hypothesis) path:** `example(seed=n)` draws via a seeded
+  source — `SearchStrategy.example(random=random.Random(seed))` — and
+  `strategy(seed=n)` establishes a reproducible hypothesis draw (via the global
+  `hypothesis.seed(n)` guard), so a call with the same `seed` reproduces
+  identical output. With `seed=None`, nothing is set and behavior is exactly
+  today's.
+- **Realistic backend path:** the same `seed` is forwarded to
+  `field_generator().generate(..., seed=seed)` so the backend's RNG reproduces;
+  the realistic base still flows through hypothesis, keeping both layers driven
+  from the single `seed`.
+
+Additional guarantees:
 - Faker instances are seeded via `Faker.seed_instance(...)` scoped per semantic
   to keep cross-column independence.
-- The default (no backend) path remains seeded exactly as today, so existing
-  `example(seed=n)` outputs are unchanged.
+- Whenever a realistic backend *declines* a field, that field is drawn by the
+  default path using the same `seed`, so a mixed schema remains reproducible.
 
 ---
 
@@ -720,6 +776,9 @@ logic but emits native scalar values lazily instead of a `SearchStrategy`:
 pandera/strategies/
 ├── base_strategies.py        # unchanged: dispatchers, decorators
 ├── constraints.py            # unchanged: FieldConstraints
+├── protocol.py               # NEW: SynthesisBackend, FieldGenerator protocols
+├── registry.py               # NEW: register/get_synthesis_backend + entry points
+├── semantic.py               # NEW: SemanticType enum
 ├── _values.py                # NEW: engine-agnostic scalar value core
 │                             #   compile_constraints_to_sampler(dtype, constraints,
 │                             #     *, semantic=None, synthesis_backend=None, seed)
@@ -734,10 +793,11 @@ pandera/strategies/
 
 ```python
 # pandera/strategies/_values.py (schematic)
+import random
 from collections.abc import Iterator
 from pandera.strategies.constraints import FieldConstraints
-from pandera.api.synthesis.semantic import SemanticType
-from pandera.api.synthesis.protocol import get_synthesis_backend
+from pandera.strategies.semantic import SemanticType
+from pandera.strategies.registry import get_synthesis_backend
 
 def compile_constraints_to_sampler(
     pandera_dtype,
@@ -808,7 +868,8 @@ Each phase keeps the identical `strategy(size=, n_regex_columns=, synthesis_back
 |---|---|---|
 | `Schema.example(..., synthesis_backend="faker", seed=None)` | param (additive) | opt-in |
 | `Schema.strategy(..., synthesis_backend="faker", seed=None)` | param (additive) | opt-in |
-| `DataFrameModel.example(..., synthesis_backend=...)` | param (additive) | mirrors `strategy` |
+| `DataFrameModel.example(..., synthesis_backend=...)` | param (additive) | mirrors `strategy`; lives in `pandera/api/dataframe/model.py` |
+| `seed` on `strategy()` / `example()` | param (new) | reproducible draws; mechanism in §5.8 |
 | `pa.Column(..., semantic=...)` / `pa.Index(..., semantic=...)` / `Field(...)` | param (additive) | metadata only |
 | `pandera.api.synthesis.register_synthesis_backend(name, backend)` | function (new) | programmatic |
 | `pandera.api.synthesis.get_synthesis_backend(name)` | function (new) | resolver |
@@ -886,7 +947,7 @@ today's behavior exactly.
 |---|---|---|---|
 | `example()`/`strategy()` signatures | fixed | identical (new kwargs default to None) | + opt-in kwargs |
 | Output values (no backend) | hypothesis | **unchanged, byte identical** | n/a (different path) |
-| `schema.example(seed=n)` | reproducible | unchanged | reproducible per backend |
+| `schema.example(seed=n)` | n/a — no `seed` param today | reproducible via new additive `seed` (§5.8) | reproducible per backend |
 | `pa.Check(strategy=...)` | works | works | works |
 | `STRATEGY_DISPATCHER` / `CONSTRAINT_DISPATCHER` | as-is | read-only, unchanged | unchanged |
 | extensions `register_check_method` | works | works | works |
@@ -914,12 +975,18 @@ existing call site and test is unaffected.
 Existing error paths (missing hypothesis, `Unsatisfiable`/`ConstraintConflictError`
 → schema-definition error) are unchanged in the default path.
 
+For the missing-dependency `ImportError`, note that `strategy_import_error`
+exists today in both `pandera/import_utils.py` and
+`pandera/strategies/pandas_strategies.py`; this work should route all backend
+missing-dependency messages through a shared guard so the
+Faker-not-installed message cannot drift across modules.
+
 ---
 
 ## 12. Implementation plan
 
-1. **Primitives** — add `pandera/api/synthesis/{protocol,registry,semantic}.py`
-   and `pandera/strategies/semantic.py` (or fold into `api/synthesis/semantic.py`).
+1. **Primitives** — add `pandera/strategies/{protocol,registry,semantic}.py`
+   (implementation) plus the `pandera/api/synthesis/__init__.py` re-export shim.
    Registry + entry-point loader + `SynthesisBackendNotFoundError`.
 2. **Plumbing** — thread `synthesis_backend`/`seed` through
    `dataframe_strategy` → `column_strategy` → `field_element_strategy` →
@@ -961,7 +1028,10 @@ Existing error paths (missing hypothesis, `Unsatisfiable`/`ConstraintConflictErr
     fixed seed;
   - infeasible `FieldConstraints` → base declines → output still validates;
   - `isin` yields only members; `str_matches`, length, `ge/le` all hold;
-  - reproducibility: `example(seed=s)` twice → identical frames.
+  - `unique=True` columns still yield distinct values (or correctly decline to
+    the default path) with a realistic backend active;
+  - reproducibility: `example(seed=s)` twice → identical frames (and the
+    pure-hypothesis default path reproduces too once `seed` is added, §5.8).
 - **Backward-compat regression**: `example(seed=s)` and `strategy(size=n)`
   with `synthesis_backend=None` produce the same bytes as before the change on
   a fixture schema (golden test).
@@ -976,12 +1046,12 @@ A third party adds a realistic or statistical backend without touching pandera:
 
 ```python
 # my_pandera_synth.py
-from pandera.api.synthesis import register_synthesis_backend
-from pandera.api.synthesis.protocol import SynthesisBackend, FieldGenerator
+from pandera.strategies.registry import register_synthesis_backend
+from pandera.strategies.protocol import SynthesisBackend, FieldGenerator
 
 class MyGenerator(FieldGenerator):
     def generate(self, pandera_dtype, constraints, *, semantic=None, seed=None):
-        ...   # return SearchStrategy / value / iterable / None
+        ...   # return a SearchStrategy or a bounded Sequence of candidates, or None
 
 backend = MyBackend(...)      # a SynthesisBackend with .name and .field_generator()
 
@@ -1032,6 +1102,18 @@ reproducibility.
    pandas, polars, pyspark, ibis, and datafusion. Each new backend is then just
    thin container-assembly glue plus a dtype bridge, and realistic
    `FieldGenerator`s are reused unchanged across all of them.
+8. **No import cycle** — implementations live in `pandera/strategies/`, and
+   `pandera/api/synthesis/` is a thin re-export shim. Strategies never import
+   the API layer, so the API → strategies dependency holds and the public
+   import surface stays stable.
+9. **`seed` is a new additive parameter with an explicit mechanism** — default
+   (pure-hypothesis) path via `SearchStrategy.example(random=Random(seed))` /
+   `hypothesis.seed(n)`; realistic backends via `generate(..., seed=...)`.
+   `seed=None` preserves today's behavior exactly.
+10. **`FieldGenerator` never returns a bare atomic value** — only a
+   `SearchStrategy` or a *bounded* candidate `Sequence`; this prevents
+   `st.just`-style diversity collapse. `unique=True` is honored by widening
+   candidate pools or declining to the default path.
 
 ---
 

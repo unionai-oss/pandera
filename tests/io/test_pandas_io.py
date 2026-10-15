@@ -1143,6 +1143,64 @@ def test_inferred_schema_io():
     SKIP_YAML_TESTS,
     reason="pyyaml >= 5.1.0 required",
 )
+def test_yaml_roundtrip_preserves_column_default():
+    """A column ``default`` must survive a YAML round trip.
+
+    With ``add_missing_columns`` the default is what fills an absent column, so
+    losing it turns a frame that validated into one that raises ``SchemaErrors``
+    after the round trip. The polars and ibis serializers already carry it.
+    """
+    schema = pandera.DataFrameSchema(
+        {"a": pandera.Column(int, default=1), "b": pandera.Column(str)},
+        add_missing_columns=True,
+    )
+
+    restored = pandera.DataFrameSchema.from_yaml(schema.to_yaml())
+
+    assert restored.columns["a"].default == 1
+    assert restored == schema
+
+
+@pytest.mark.skipif(
+    SKIP_YAML_TESTS,
+    reason="pyyaml >= 5.1.0 required",
+)
+def test_yaml_roundtrip_keeps_add_missing_columns_working():
+    """The user-visible consequence: the same frame validates before and after."""
+    schema = pandera.DataFrameSchema(
+        {"a": pandera.Column(int, default=1), "b": pandera.Column(str)},
+        add_missing_columns=True,
+    )
+    missing = pd.DataFrame({"b": ["x"]})
+    schema.validate(missing)
+
+    restored = pandera.DataFrameSchema.from_yaml(schema.to_yaml())
+    restored.validate(missing, lazy=True)
+
+
+@pytest.mark.skipif(
+    SKIP_YAML_TESTS,
+    reason="pyyaml >= 5.1.0 required",
+)
+def test_yaml_roundtrip_without_default_is_unchanged():
+    """Guard: a schema whose columns have no default must serialize as before."""
+    schema = pandera.DataFrameSchema(
+        {"a": pandera.Column(int), "b": pandera.Column(str)},
+        add_missing_columns=True,
+    )
+    serialized = yaml.safe_load(str(schema.to_yaml(minimal=False)))
+
+    restored = pandera.DataFrameSchema.from_yaml(schema.to_yaml())
+
+    assert "default" not in serialized["columns"]["a"]
+    assert restored.columns["a"].default is None
+    assert restored == schema
+
+
+@pytest.mark.skipif(
+    SKIP_YAML_TESTS,
+    reason="pyyaml >= 5.1.0 required",
+)
 def test_to_yaml():
     """Test that to_yaml writes to yaml string."""
     schema = _create_schema()
@@ -2065,6 +2123,103 @@ def test_to_yaml_retains_ordered_keyword(is_ordered, test_data, expected):
     else:
         validation_df = schema.validate(pd.DataFrame(data=test_data))
         assert validation_df.equals(expected)
+
+
+_MULTIINDEX_OPTIONS = {
+    "coerce": True,
+    "strict": True,
+    "name": "multi",
+    "ordered": False,
+    "unique": ["int_index0", "int_index1"],
+}
+
+
+def _create_multiindex_options_schema(**options):
+    return pandera.DataFrameSchema(
+        columns={"a": pandera.Column(pandera.Int)},
+        index=pandera.MultiIndex(
+            [
+                pandera.Index(pandera.Int, name="int_index0"),
+                pandera.Index(pandera.Int, name="int_index1"),
+            ],
+            **options,
+        ),
+    )
+
+
+def _roundtrip(schema, fmt, minimal):
+    if fmt == "yaml":
+        return pandera.DataFrameSchema.from_yaml(
+            schema.to_yaml(minimal=minimal)
+        )
+    if fmt == "json":
+        return pandera.DataFrameSchema.from_json(
+            schema.to_json(minimal=minimal)
+        )
+    local_dict = {}
+    # pylint: disable=exec-used
+    exec(schema.to_script(minimal=minimal), globals(), local_dict)
+    return local_dict["schema"]
+
+
+@pytest.mark.parametrize("fmt", ["yaml", "json", "script"])
+@pytest.mark.parametrize("minimal", [True, False])
+def test_io_roundtrip_preserves_multiindex_options(fmt, minimal):
+    """MultiIndex coerce/strict/name/ordered/unique survive a round trip."""
+    schema = _create_multiindex_options_schema(**_MULTIINDEX_OPTIONS)
+    restored = _roundtrip(schema, fmt, minimal)
+    for key, value in _MULTIINDEX_OPTIONS.items():
+        assert getattr(restored.index, key) == value, key
+    assert restored == schema
+
+
+@pytest.mark.parametrize("fmt", ["yaml", "json", "script"])
+def test_io_roundtrip_multiindex_strict_still_enforced(fmt):
+    """A strict MultiIndex still rejects extra index levels after reload."""
+    schema = _create_multiindex_options_schema(strict=True)
+    restored = _roundtrip(schema, fmt, minimal=True)
+    df = pd.DataFrame(
+        {"a": [1]},
+        index=pd.MultiIndex.from_tuples(
+            [(1, 2, 3)], names=["int_index0", "int_index1", "extra"]
+        ),
+    )
+    with pytest.raises(pandera_base.errors.SchemaErrors):
+        schema.validate(df, lazy=True)
+    with pytest.raises(pandera_base.errors.SchemaErrors):
+        restored.validate(df, lazy=True)
+
+
+@pytest.mark.parametrize("fmt", ["yaml", "json", "script"])
+def test_io_roundtrip_multiindex_unordered_still_accepted(fmt):
+    """An ordered=False MultiIndex still accepts swapped levels after reload."""
+    schema = _create_multiindex_options_schema(ordered=False)
+    restored = _roundtrip(schema, fmt, minimal=True)
+    df = pd.DataFrame(
+        {"a": [1]},
+        index=pd.MultiIndex.from_tuples(
+            [(2, 1)], names=["int_index1", "int_index0"]
+        ),
+    )
+    schema.validate(df)
+    restored.validate(df)
+
+
+@pytest.mark.skipif(SKIP_YAML_TESTS, reason="pyyaml >= 5.1.0 required")
+def test_multiindex_options_omitted_when_default():
+    """Default MultiIndex options are only written in non-minimal mode, and a
+    single Index never gets a ``multiindex`` key."""
+    schema = _create_schema("multi")
+    assert "multiindex" not in yaml.safe_load(schema.to_yaml(minimal=True))
+    assert yaml.safe_load(schema.to_yaml(minimal=False))["multiindex"] == {
+        "coerce": False,
+        "strict": False,
+        "name": None,
+        "ordered": True,
+        "unique": None,
+    }
+    single = _create_schema("single")
+    assert "multiindex" not in yaml.safe_load(single.to_yaml(minimal=False))
 
 
 def test_serialize_deserialize_custom_datetime_checks():
