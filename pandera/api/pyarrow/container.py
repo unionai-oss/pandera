@@ -21,14 +21,16 @@ class DataFrameSchema(_DataFrameSchema[pa.Table]):
         if self.unique_column_names:
             warnings.warn(
                 "unique_column_names=True will have no effect on validation "
-                "since pyarrow Tables do not support duplicate column names."
+                "since pyarrow Tables do not support duplicate column names.",
+                stacklevel=2,
             )
 
         if self.report_duplicates != "all":
             warnings.warn(
                 "Setting report_duplicates to 'exclude_first' or "
                 "'exclude_last' will have no effect on validation. With the "
-                "pyarrow backend, all duplicate values will be reported."
+                "pyarrow backend, all duplicate values will be reported.",
+                stacklevel=2,
             )
 
     @staticmethod
