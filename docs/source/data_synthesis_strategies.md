@@ -465,6 +465,7 @@ to every backend with the same opt-in contract and native return types:
 | pandas     | `pandas.DataFrame`                |
 | polars     | `polars.DataFrame`                |
 | ibis       | `ibis.Table`                      |
+| datafusion | `datafusion.DataFrame`             |
 | pyspark    | `pyspark.sql.DataFrame`           |
 | geopandas  | `GeoDataFrame` (pandas-backed)    |
 
