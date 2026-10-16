@@ -2337,6 +2337,70 @@ def test_reset_index_level(
     assert set(test_schema.columns.keys()) == columns
 
 
+@pytest.mark.parametrize("drop", [True, False])
+def test_reset_index_level_three_levels(drop: bool) -> None:
+    """Test that resetting a level keeps the other levels of a MultiIndex."""
+    schema = DataFrameSchema(
+        {"col1": Column(int)},
+        index=MultiIndex(
+            [
+                Index(int, name="ind0"),
+                Index(str, name="ind1"),
+                Index(float, name="ind2"),
+            ],
+            unique=["ind0", "ind1"],
+        ),
+    )
+    test_schema = schema.reset_index(level=["ind0"], drop=drop)
+
+    assert isinstance(test_schema.index, MultiIndex)
+    assert test_schema.index.names == ["ind1", "ind2"]
+    assert list(test_schema.index.columns) == ["ind1", "ind2"]
+    assert test_schema.index.unique == ["ind1"]
+    assert set(test_schema.columns) == ({"col1"} if drop else {"col1", "ind0"})
+
+    df = pd.DataFrame(
+        {"col1": [1, 2], **({} if drop else {"ind0": [0, 1]})},
+        index=pd.MultiIndex.from_arrays(
+            [["a", "b"], [1.0, 2.0]], names=["ind1", "ind2"]
+        ),
+    )
+    test_schema.validate(df)
+
+
+def test_reset_index_level_keeps_remaining_index_properties() -> None:
+    """Test that the remaining Index keeps the properties it was defined with."""
+    schema = DataFrameSchema(
+        {"col1": Column(int)},
+        index=MultiIndex(
+            [
+                Index(int, name="ind0", coerce=True, title="first"),
+                Index(str, name="ind1"),
+            ]
+        ),
+    )
+    test_schema = schema.reset_index(level=["ind1"], drop=True)
+
+    assert isinstance(test_schema.index, Index)
+    assert test_schema.index.name == "ind0"
+    assert test_schema.index.coerce
+    assert test_schema.index.title == "first"
+
+
+def test_reset_index_level_keeps_multiindex_coerce() -> None:
+    """Test that MultiIndex coercion carries over to the remaining Index."""
+    schema = DataFrameSchema(
+        {"col1": Column(int)},
+        index=MultiIndex(
+            [Index(int, name="ind0"), Index(str, name="ind1")], coerce=True
+        ),
+    )
+    test_schema = schema.reset_index(level=["ind1"], drop=True)
+
+    assert isinstance(test_schema.index, Index)
+    assert test_schema.index.coerce
+
+
 def test_invalid_keys(schema_simple: DataFrameSchema) -> None:
     """Test that re/set_index raises expected exceptions."""
     with pytest.raises(errors.SchemaInitError):
