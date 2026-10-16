@@ -14,6 +14,7 @@ from pandera.backends.pyspark.register import register_pyspark_backends
 from pandera.config import get_config_context
 from pandera.dtypes import DataType
 from pandera.engines import pyspark_engine
+from pandera.import_utils import strategy_import_error
 from pandera.utils import docstring_substitution
 
 from .types import (
@@ -155,6 +156,62 @@ class DataFrameSchema(_DataFrameSchema[PySparkDataFrameTypes]):
             return {k: v for k, v in obj.__dict__.items() if k}
 
         return _compare_dict(self) == _compare_dict(other)
+
+    ############################
+    # Schema Strategy Methods #
+    ############################
+
+    @strategy_import_error
+    def strategy(
+        self,
+        *,
+        size: int | None = None,
+        n_regex_columns: int = 1,
+        synthesis_backend: str | None = None,
+        seed: int | None = None,
+    ):
+        """Create a data-synthesis strategy for generating a PySpark DataFrame.
+
+        :param size: number of elements to generate.
+        :param n_regex_columns: number of regex columns to generate.
+        :param synthesis_backend: optional data-synthesis backend name (e.g.
+            ``"faker"``); ``None`` uses the default path.
+        :param seed: deterministic seed.
+        :returns: an object whose ``.example()`` returns a PySpark DataFrame.
+        """
+        import pandera.strategies.pyspark_strategies as st
+
+        if synthesis_backend is None:
+            synthesis_backend = get_config_context().synthesis_backend
+
+        return st.dataframe_strategy(
+            self,
+            size=size,
+            n_regex_columns=n_regex_columns,
+            synthesis_backend=synthesis_backend,
+            seed=seed,
+        )
+
+    def example(
+        self,
+        size: int | None = None,
+        n_regex_columns: int = 1,
+        synthesis_backend: str | None = None,
+        seed: int | None = None,
+    ):
+        """Generate an example of a particular size as a PySpark DataFrame.
+
+        :param size: number of elements in the generated DataFrame.
+        :param synthesis_backend: optional data-synthesis backend name.
+        :param seed: deterministic seed.
+        :returns: a PySpark DataFrame.
+        """
+        return self.strategy(
+            size=size,
+            n_regex_columns=n_regex_columns,
+            synthesis_backend=synthesis_backend,
+            seed=seed,
+        ).example()
 
     #####################
     # Schema IO Methods #
