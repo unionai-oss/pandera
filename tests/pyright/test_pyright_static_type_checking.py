@@ -92,7 +92,7 @@ def _information_messages(
 
 
 @pytest.mark.parametrize(
-    "module,expected_error_count,expected_rules,expected_type_messages",
+    "module,expected_error_count,expected_rules,expected_type_messages,excluded_type_messages",
     [
         (
             "schema_retention.py",
@@ -104,6 +104,7 @@ def _information_messages(
                 'Type of "result_constructor" is "DataFrame[InputSchema]"',
                 'Type of "result_generic" is "DataFrame[InputSchema]"',
             ],
+            [],
         ),
         (
             "check_types_output.py",
@@ -114,14 +115,20 @@ def _information_messages(
                 'Type of "validated" is "DataFrame[InputSchema]"',
                 'Type of "typed_df" is "DataFrame[InputSchema]"',
             ],
+            [],
         ),
         (
             "column_access.py",
             0,
             [],
+            [],
             [
-                'Type of "df["year"]" is "Unknown"',
-                'Type of "df.year" is "Unknown"',
+                # Column-level inference is a mypy-plugin feature; Pyright should
+                # NOT report a schema-aware Series[*] type for df["year"]/df.year.
+                # (The exact fallback -- "Unknown" vs "Series[Any]" -- varies by
+                # Pyright version, so only assert the absence of the inferred type.)
+                'Type of "df["year"]" is "Series[int]"',
+                'Type of "df.year" is "Series[int]"',
             ],
         ),
     ],
@@ -131,6 +138,7 @@ def test_pyright_static_typing_modules(
     expected_error_count: int,
     expected_rules: list[str],
     expected_type_messages: list[str],
+    excluded_type_messages: list[str],
 ) -> None:
     """Pyright diagnostics for static typing test modules."""
     module_path = modules_dir / module
@@ -148,6 +156,13 @@ def test_pyright_static_typing_modules(
         assert any(expected_message in message for message in information), (
             f"Expected pyright information diagnostic containing "
             f"{expected_message!r}, got: {information}"
+        )
+    for excluded_message in excluded_type_messages:
+        assert not any(
+            excluded_message in message for message in information
+        ), (
+            f"Did not expect pyright information diagnostic containing "
+            f"{excluded_message!r}, got: {information}"
         )
 
 

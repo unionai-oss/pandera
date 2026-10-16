@@ -198,6 +198,11 @@ class PanderaPlugin(Plugin):
 
         field_type = _get_model_field_type(schema_type, column_name)
         if field_type is None:
+            # Unknown column key. Keep ``Any`` here: ``[]`` access is dict-like
+            # and pandas-stubs' default ``__getitem__`` return type (a base
+            # ``pandas.Series``) would not be assignable to a pandera
+            # ``Series[Schema]`` annotation, so degrading to ``Any`` is the
+            # permissive (and backward compatible) choice.
             return AnyType(TypeOfAny.implementation_artifact)
 
         return _to_series_type(field_type, series_fullname, api)
@@ -238,7 +243,9 @@ class PanderaPlugin(Plugin):
 
         field_type = _get_model_field_type(schema_type, column_name)
         if field_type is None:
-            return AnyType(TypeOfAny.implementation_artifact)
+            # not a declared column: keep pandas-stubs's inferred attribute
+            # type (e.g. ``df.T``, ``df.shape``) rather than degrading to Any.
+            return ctx.default_attr_type
 
         ret_type = _to_series_type(field_type, series_fullname, ctx.api)
         return ret_type if ret_type is not None else ctx.default_attr_type
@@ -487,9 +494,24 @@ def _get_model_field_type(
 def _to_series_type(
     field_type: Type, series_fullname: str, api
 ) -> Type | None:
-    """Map a model field annotation to a pandera Series generic type."""
+    """Map a model field annotation onto the dataframe backend's Series type.
+
+    ``store_field_types`` keeps annotations as written, wrapping bare dtypes
+    (e.g. ``label: str``) in the :class:`~pandera.typing.pandas.Series`
+    generic. When the indexed dataframe's backend differs from pandas (e.g. a
+    polars ``DataFrame[Schema]``), re-stamp the generic so the resolved column
+    type reports that backend's ``Series`` rather than the pandas one.
+    """
     field_type = get_proper_type(field_type)
-    if isinstance(field_type, Instance):
-        if field_type.type.fullname in FIELD_GENERICS_FULLNAMES:
-            return field_type
+    if not isinstance(field_type, Instance):
+        return field_type
+    if field_type.type.fullname == series_fullname:
+        # already the dataframe's own Series/Index generic
+        return field_type
+    if field_type.type.fullname in FIELD_GENERICS_FULLNAMES:
+        # a generic of a different backend, or a bare dtype normalised to the
+        # pandas Series -> rebuild against this dataframe's Series type.
+        series_node = api.lookup_fully_qualified(series_fullname)
+        if series_node is not None and isinstance(series_node.node, TypeInfo):
+            return Instance(series_node.node, field_type.args)
     return field_type

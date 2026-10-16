@@ -85,7 +85,14 @@ class DataFrameModel(_DataFrameModel[pd.DataFrame, DataFrameSchema]):
     Config: type[BaseConfig] = BaseConfig
 
     def __new__(cls, *args, **kwargs) -> DataFrame[Self]:  # type: ignore[misc]
-        """Validate and return a typed :class:`~pandera.typing.pandas.DataFrame`."""
+        """Validate and return a typed :class:`~pandera.typing.pandas.DataFrame`.
+
+        Narrow the generic :class:`~pandera.api.dataframe.model.DataFrameModel`
+        ``__new__`` (which already validates-on-construction for every backend)
+        so that static analyzers report ``DataFrame[Schema]`` for pandas
+        construction like ``Schema(df)``. GeoDataFrameModel inherits this
+        pandas-backed typing; polars keeps the backend-agnostic base signature.
+        """
         return cls.validate(*args, **kwargs)
 
     @classmethod
