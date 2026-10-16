@@ -9,7 +9,9 @@ import ibis
 
 from pandera.api.dataframe.container import DataFrameSchema as _DataFrameSchema
 from pandera.backends.ibis.register import register_ibis_backends
+from pandera.config import get_config_context
 from pandera.engines import ibis_engine
+from pandera.import_utils import strategy_import_error
 
 if sys.version_info < (3, 11):
     from typing_extensions import Self
@@ -122,6 +124,62 @@ class DataFrameSchema(_DataFrameSchema[ibis.Table]):
     def dtype(self, value) -> None:
         """Set the dtype property."""
         self._dtype = ibis_engine.Engine.dtype(value) if value else None
+
+    #####################
+    # Schema Strategy Methods #
+    #####################
+
+    @strategy_import_error
+    def strategy(
+        self,
+        *,
+        size: int | None = None,
+        n_regex_columns: int = 1,
+        synthesis_backend: str | None = None,
+        seed: int | None = None,
+    ):
+        """Create a data-synthesis strategy for generating an ``ibis.Table``.
+
+        :param size: number of elements to generate.
+        :param n_regex_columns: number of regex columns to generate.
+        :param synthesis_backend: optional data-synthesis backend name (e.g.
+            ``"faker"``); ``None`` uses the default path.
+        :param seed: deterministic seed.
+        :returns: an object whose ``.example()`` returns an ``ibis.Table``.
+        """
+        import pandera.strategies.ibis_strategies as st
+
+        if synthesis_backend is None:
+            synthesis_backend = get_config_context().synthesis_backend
+
+        return st.table_strategy(
+            self,
+            size=size,
+            n_regex_columns=n_regex_columns,
+            synthesis_backend=synthesis_backend,
+            seed=seed,
+        )
+
+    def example(
+        self,
+        size: int | None = None,
+        n_regex_columns: int = 1,
+        synthesis_backend: str | None = None,
+        seed: int | None = None,
+    ):
+        """Generate an example of a particular size as an ``ibis.Table``.
+
+        :param size: number of elements in the generated table.
+        :param synthesis_backend: optional data-synthesis backend name.
+        :param seed: deterministic seed.
+        :returns: an ``ibis.Table``.
+        """
+        return self.strategy(
+            size=size,
+            n_regex_columns=n_regex_columns,
+            synthesis_backend=synthesis_backend,
+            seed=seed,
+        ).example()
 
     #####################
     # Schema IO Methods #
