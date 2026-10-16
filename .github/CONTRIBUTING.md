@@ -168,7 +168,7 @@ ideas for documentation improvements, you can create a new issue [here](https://
 
 This project uses Sphinx for auto-documentation and RST syntax for docstrings.
 Once you have the code downloaded and you find something that is in need of some
-TLD, take a look at the [Sphinx](https://www.sphinx-doc.org/en/1.0/rest.html)
+TLD, take a look at the [Sphinx](https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html)
 documentation or well-documented
 [examples](https://pandera.readthedocs.io/en/stable/_modules/pandera/schemas.html#DataFrameSchema)
 within the codebase for guidance on contributing.
