@@ -4,10 +4,8 @@ Native ``strategy()`` / ``example()`` support for the Ibis backend, built on the
 engine-agnostic value core in :mod:`pandera.strategies._values`. Realistic
 (Mode A) ``FieldGenerator``s are reused unchanged; this module bridges the Ibis
 dtype to a numpy-compatible form and assembles an ``ibis.Table`` via
-``ibis.memtable``.
-
-Note: datafusion is not synthesised yet because the datafusion API module has
-not landed on ``main``; it will follow the same pattern.
+``ibis.memtable``. DataFusion uses the same engine-agnostic core via
+:mod:`pandera.strategies.datafusion_strategies`.
 
 See ``specs/pluggable-data-synthesis.md`` §6.
 """
