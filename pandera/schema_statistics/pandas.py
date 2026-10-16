@@ -114,6 +114,11 @@ def get_dataframe_schema_statistics(dataframe_schema):
                     if column.default is not None
                     else {}
                 ),
+                **(
+                    {"report_duplicates": column.report_duplicates}
+                    if column.report_duplicates != "all"
+                    else {}
+                ),
                 "drop_invalid_rows": column.drop_invalid_rows,
             }
             for col_name, column in dataframe_schema.columns.items()
@@ -139,6 +144,16 @@ def _get_series_base_schema_statistics(series_schema_base):
         "unique": series_schema_base.unique,
         "title": series_schema_base.title,
         "description": series_schema_base.description,
+        **(
+            {"default": series_schema_base.default}
+            if series_schema_base.default is not None
+            else {}
+        ),
+        **(
+            {"report_duplicates": series_schema_base.report_duplicates}
+            if series_schema_base.report_duplicates != "all"
+            else {}
+        ),
         "drop_invalid_rows": series_schema_base.drop_invalid_rows,
     }
 

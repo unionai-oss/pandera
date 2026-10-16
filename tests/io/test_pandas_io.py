@@ -1201,6 +1201,138 @@ def test_yaml_roundtrip_without_default_is_unchanged():
     SKIP_YAML_TESTS,
     reason="pyyaml >= 5.1.0 required",
 )
+def test_yaml_roundtrip_preserves_column_report_duplicates():
+    """A column ``report_duplicates`` must survive a YAML round trip.
+
+    It selects which of a run of duplicates is reported, so losing it silently
+    widens the reported failure cases. The polars and ibis serializers already
+    carry it, and this backend already carries the ``DataFrameSchema``-level
+    setting -- only the per-column one was dropped.
+    """
+    schema = pandera.DataFrameSchema(
+        {
+            "a": pandera.Column(
+                int, unique=True, report_duplicates="exclude_first"
+            )
+        }
+    )
+
+    restored = pandera.DataFrameSchema.from_yaml(schema.to_yaml())
+
+    assert restored.columns["a"].report_duplicates == "exclude_first"
+    assert restored == schema
+
+
+@pytest.mark.skipif(
+    SKIP_YAML_TESTS,
+    reason="pyyaml >= 5.1.0 required",
+)
+def test_yaml_roundtrip_keeps_reported_duplicates_narrow():
+    """The user-visible consequence: the same frame reports the same duplicates."""
+    schema = pandera.DataFrameSchema(
+        {
+            "a": pandera.Column(
+                int, unique=True, report_duplicates="exclude_first"
+            )
+        }
+    )
+    df = pd.DataFrame({"a": [1, 1, 2]})
+
+    restored = pandera.DataFrameSchema.from_yaml(schema.to_yaml())
+
+    with pytest.raises(pandera.errors.SchemaErrors) as before:
+        schema.validate(df, lazy=True)
+    with pytest.raises(pandera.errors.SchemaErrors) as after:
+        restored.validate(df, lazy=True)
+
+    assert before.value.failure_cases["index"].tolist() == [1]
+    assert (
+        after.value.failure_cases["index"].tolist()
+        == before.value.failure_cases["index"].tolist()
+    )
+
+
+@pytest.mark.skipif(
+    SKIP_YAML_TESTS,
+    reason="pyyaml >= 5.1.0 required",
+)
+def test_yaml_roundtrip_without_report_duplicates_is_unchanged():
+    """Guard: a column left at the ``"all"`` default must serialize as before."""
+    schema = pandera.DataFrameSchema(
+        {"a": pandera.Column(int, unique=True), "b": pandera.Column(str)}
+    )
+    serialized = yaml.safe_load(str(schema.to_yaml(minimal=False)))
+
+    restored = pandera.DataFrameSchema.from_yaml(schema.to_yaml())
+
+    assert "report_duplicates" not in serialized["columns"]["a"]
+    assert restored.columns["a"].report_duplicates == "all"
+    assert restored == schema
+
+
+@pytest.mark.skipif(
+    SKIP_YAML_TESTS,
+    reason="pyyaml >= 5.1.0 required",
+)
+def test_yaml_roundtrip_preserves_index_report_duplicates():
+    """``Index`` shares the component serializer, so it is covered too."""
+    schema = pandera.DataFrameSchema(
+        {"a": pandera.Column(int)},
+        index=pandera.Index(
+            int, unique=True, report_duplicates="exclude_last"
+        ),
+    )
+
+    restored = pandera.DataFrameSchema.from_yaml(schema.to_yaml())
+
+    assert restored.index.report_duplicates == "exclude_last"
+    assert restored == schema
+
+
+@pytest.mark.skipif(
+    SKIP_YAML_TESTS,
+    reason="pyyaml >= 5.1.0 required",
+)
+def test_yaml_roundtrip_preserves_index_default():
+    """``Index`` lost ``default`` as well.
+
+    #2528 carried a column ``default`` through the round trip by adding it to
+    the column statistics collector; ``Index`` and ``SeriesSchema`` collect
+    through ``_get_series_base_schema_statistics``, which was not changed, so
+    the same attribute was still dropped for an index.
+    """
+    schema = pandera.DataFrameSchema(
+        {"a": pandera.Column(int)}, index=pandera.Index(int, default=7)
+    )
+
+    restored = pandera.DataFrameSchema.from_yaml(schema.to_yaml())
+
+    assert restored.index.default == 7
+    assert restored == schema
+
+
+@pytest.mark.skipif(
+    SKIP_YAML_TESTS,
+    reason="pyyaml >= 5.1.0 required",
+)
+def test_yaml_roundtrip_without_index_extras_is_unchanged():
+    """Guard: an index left at the defaults must serialize as before."""
+    schema = pandera.DataFrameSchema(
+        {"a": pandera.Column(int)}, index=pandera.Index(int)
+    )
+    serialized = yaml.safe_load(str(schema.to_yaml(minimal=False)))
+
+    restored = pandera.DataFrameSchema.from_yaml(schema.to_yaml())
+
+    assert "default" not in serialized["index"][0]
+    assert "report_duplicates" not in serialized["index"][0]
+    assert restored == schema
+
+
+@pytest.mark.skipif(
+    SKIP_YAML_TESTS,
+    reason="pyyaml >= 5.1.0 required",
+)
 def test_to_yaml():
     """Test that to_yaml writes to yaml string."""
     schema = _create_schema()
