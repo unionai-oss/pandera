@@ -198,9 +198,7 @@ class DataFrameSchema(_DataFrameSchema[pd.DataFrame]):
         # ``MultiIndex`` (a ``DataFrameSchema`` subclass) reuses this method to
         # validate the index of a ``SeriesSchema``.
         if not is_table_or_field(check_obj):
-            raise TypeError(
-                f"expected pd.DataFrame, got {type(check_obj)}"
-            )
+            raise TypeError(f"expected pd.DataFrame, got {type(check_obj)}")
 
         # NOTE: Move this into its own schema-backend variant. This is where
         # the benefits of separating the schema spec from the backend
@@ -288,14 +286,28 @@ class DataFrameSchema(_DataFrameSchema[pd.DataFrame]):
     ###########################
 
     @strategy_import_error
-    def strategy(self, *, size: int | None = None, n_regex_columns: int = 1):
+    def strategy(
+        self,
+        *,
+        size: int | None = None,
+        n_regex_columns: int = 1,
+        synthesis_backend: str | None = None,
+        seed: int | None = None,
+    ):
         """Create a ``hypothesis`` strategy for generating a DataFrame.
 
         :param size: number of elements to generate
         :param n_regex_columns: number of regex columns to generate.
+        :param synthesis_backend: optional data-synthesis backend name (e.g.
+            ``"faker"``); ``None`` uses :attr:`config.synthesis_backend`
+            (itself ``None`` by default → pure-hypothesis behavior).
+        :param seed: deterministic seed for realistic backends.
         :returns: a strategy that generates pandas DataFrame objects.
         """
         import pandera.strategies.pandas_strategies as st
+
+        if synthesis_backend is None:
+            synthesis_backend = get_config_context().synthesis_backend
 
         self.register_default_backends(pd.DataFrame)
 
@@ -307,14 +319,23 @@ class DataFrameSchema(_DataFrameSchema[pd.DataFrame]):
             index=self.index,
             size=size,
             n_regex_columns=n_regex_columns,
+            synthesis_backend=synthesis_backend,
+            seed=seed,
         )
 
     def example(
-        self, size: int | None = None, n_regex_columns: int = 1
+        self,
+        size: int | None = None,
+        n_regex_columns: int = 1,
+        synthesis_backend: str | None = None,
+        seed: int | None = None,
     ) -> pd.DataFrame:
         """Generate an example of a particular size.
 
         :param size: number of elements in the generated DataFrame.
+        :param synthesis_backend: optional data-synthesis backend name;
+            ``None`` uses the default (pure-hypothesis) path.
+        :param seed: deterministic seed for realistic backends.
         :returns: pandas DataFrame object.
         """
 
@@ -326,7 +347,10 @@ class DataFrameSchema(_DataFrameSchema[pd.DataFrame]):
                 category=hypothesis.errors.NonInteractiveExampleWarning,
             )
             return self.strategy(
-                size=size, n_regex_columns=n_regex_columns
+                size=size,
+                n_regex_columns=n_regex_columns,
+                synthesis_backend=synthesis_backend,
+                seed=seed,
             ).example()
 
     #####################
