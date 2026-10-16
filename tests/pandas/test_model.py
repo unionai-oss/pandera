@@ -2357,6 +2357,50 @@ def test_repeated_generic() -> None:
         )
 
 
+def test_generic_subclass_with_type_var_arguments() -> None:
+    """Parameterizing a model with type variables keeps subclasses generic.
+
+    Regression test for https://github.com/unionai-oss/pandera/issues/1764
+    """
+
+    class Schema(
+        dataframe_model.DataFrameModel[
+            dataframe_model.TDataFrame, dataframe_model.TSchema
+        ]
+    ): ...
+
+    assert Schema.__parameters__ == (  # type: ignore[attr-defined]
+        dataframe_model.TDataFrame,
+        dataframe_model.TSchema,
+    )
+    parameterized = Schema[pd.DataFrame, pa.DataFrameSchema]
+    assert issubclass(parameterized, Schema)
+
+
+def test_partially_parameterized_generic_without_generic_base() -> None:
+    """Type variables left in the arguments are the subclass's parameters."""
+    T1 = TypeVar("T1", int, float, str)
+    T2 = TypeVar("T2", int, float, str)
+    T3 = TypeVar("T3", int, float, str)
+
+    class GenericYZModel(pa.DataFrameModel, Generic[T1, T2]):
+        y: Series[T1]
+        z: Series[T2]
+
+    class IntYGenericZModel(GenericYZModel[int, T3]): ...
+
+    assert IntYGenericZModel.__parameters__ == (T3,)  # type: ignore[attr-defined]
+
+    IntYFloatZModel = IntYGenericZModel[float]
+    IntYFloatZModel.validate(
+        pd.DataFrame({"y": [4, 5, 6], "z": [1.0, 2.0, 3.0]})
+    )
+    with pytest.raises(SchemaError):
+        IntYFloatZModel.validate(
+            pd.DataFrame({"y": [4.0, 5.0, 6.0], "z": [1, 2, 3]})
+        )
+
+
 def test_pandas_fields_metadata():
     """
     Test schema and metadata on field

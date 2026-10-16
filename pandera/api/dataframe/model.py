@@ -334,9 +334,26 @@ class DataFrameModel(Generic[TDataFrame, TSchema], BaseModel):
             raise ValueError(
                 f"Expected {len(__parameters__)} generic arguments but found {len(item)}"
             )
-        if (cls, item) in GENERIC_SCHEMA_CACHE:
-            return typing.cast(type[Self], GENERIC_SCHEMA_CACHE[(cls, item)])
+        if (cls, item) not in GENERIC_SCHEMA_CACHE:
+            GENERIC_SCHEMA_CACHE[(cls, item)] = cls._parameterize(item)
+        parameterized_cls = GENERIC_SCHEMA_CACHE[(cls, item)]
 
+        # If type variables are left in ``item`` (e.g. ``Model[int, T]``),
+        # return a generic alias so that subclasses of it stay generic.
+        type_vars = parameterized_cls.__parameters__  # type: ignore
+        if type_vars:
+            generic_alias = super(  # type: ignore[misc]
+                DataFrameModel, parameterized_cls
+            ).__class_getitem__(type_vars)
+            return typing.cast(type[Self], generic_alias)
+        return typing.cast(type[Self], parameterized_cls)
+
+    @classmethod
+    def _parameterize(
+        cls: type[Self], item: tuple[type[Any], ...]
+    ) -> type[Self]:
+        """Create a subclass with the generic arguments substituted in."""
+        __parameters__: tuple[TypeVar, ...] = cls.__parameters__  # type: ignore
         param_dict: dict[TypeVar, type[Any]] = dict(zip(__parameters__, item))
         extra: dict[str, Any] = {"__annotations__": {}}
         for field, (annot_info, field_info) in cls._collect_fields().items():
@@ -357,7 +374,11 @@ class DataFrameModel(Generic[TDataFrame, TSchema], BaseModel):
             f"{cls.__name__}[{', '.join(p.__name__ for p in item)}]"
         )
         parameterized_cls = type(parameterized_name, (cls,), extra)
-        GENERIC_SCHEMA_CACHE[(cls, item)] = parameterized_cls
+        # keep any type variables passed as arguments as the parameters of
+        # the new class, since typing.Generic resets them to ()
+        parameterized_cls.__parameters__ = tuple(  # type: ignore
+            dict.fromkeys(arg for arg in item if isinstance(arg, TypeVar))
+        )
         return parameterized_cls
 
     @classmethod
