@@ -676,6 +676,37 @@ df = pd.DataFrame(
 schema.validate(df)
 ```
 
+### Validating a Subset of MultiIndex Levels
+
+A named {class}`~pandera.api.pandas.components.Index`, or a
+{class}`~pandera.api.pandas.components.MultiIndex` that names fewer levels than the
+DataFrame's index has, validates only the levels it names. Levels the schema doesn't
+mention are left completely unchecked, regardless of their values:
+
+```{code-cell} python
+import pandas as pd
+import pandera.pandas as pa
+
+# only names index1, says nothing about index0
+schema = pa.DataFrameSchema(
+    columns={"column1": pa.Column(int)},
+    index=pa.Index(int, name="index1"),
+)
+
+df = pd.DataFrame(
+    data={"column1": [1, 2, 3]},
+    index=pd.MultiIndex.from_arrays(
+        [["foo", "bar", "foo"], [0, 1, 2]],
+        names=["index0", "index1"]
+    )
+)
+
+schema.validate(df)
+```
+
+If the DataFrame's index has more than one level with the same name, the first
+one (in level order) is the one validated.
+
 ## Get Pandas Data Types
 
 Pandas provides a `dtype` parameter for casting a dataframe to a specific dtype
