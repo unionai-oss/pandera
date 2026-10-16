@@ -16,7 +16,9 @@ from polars.testing.parametric import dataframes
 
 import pandera.backends.polars.utils as polars_utils
 import pandera.errors
+import pandera.polars as pa
 from pandera.api.polars.types import PolarsData
+from pandera.config import CONFIG
 from pandera.constants import CHECK_OUTPUT_KEY
 from pandera.engines import polars_engine as pe
 from pandera.engines.polars_engine import (
@@ -243,6 +245,95 @@ def test_coerce_cast_special(pandera_dtype, data_container):
         df = coerced.collect()
         for dtype in df.dtypes:
             assert dtype == pl.Decimal
+
+
+@pytest.mark.parametrize(
+    "data, from_dtype, to_dtype, expected",
+    [
+        (
+            ["16809.76", "0.29", None],
+            pl.String,
+            pe.Decimal(precision=11, scale=2),
+            [Decimal("16809.76"), Decimal("0.29"), None],
+        ),
+        (
+            ["12345678901234567.89"],
+            pl.String,
+            pe.Decimal(precision=38, scale=2),
+            [Decimal("12345678901234567.89")],
+        ),
+        (
+            ["1e3", "-2.5"],
+            pl.String,
+            pe.Decimal(precision=11, scale=2),
+            [Decimal("1000.00"), Decimal("-2.50")],
+        ),
+        (
+            [123456789012345678, None],
+            pl.Int64,
+            pe.Decimal(precision=38, scale=0),
+            [Decimal("123456789012345678"), None],
+        ),
+        (
+            [Decimal("12345678901234567.8912")],
+            pl.Decimal(precision=38, scale=4),
+            pe.Decimal(precision=38, scale=2),
+            [Decimal("12345678901234567.89")],
+        ),
+        (
+            [1.5, 100.25],
+            pl.Float64,
+            pe.Decimal(precision=11, scale=2),
+            [Decimal("1.50"), Decimal("100.25")],
+        ),
+        (
+            [True, False],
+            pl.Boolean,
+            pe.Decimal(precision=11, scale=2),
+            [Decimal("1.00"), Decimal("0.00")],
+        ),
+    ],
+)
+def test_coerce_decimal_keeps_precision(data, from_dtype, to_dtype, expected):
+    """Test that coercing to a decimal keeps every digit of the input."""
+    container = pl.LazyFrame({"0": data}, schema={"0": from_dtype})
+    coerced = to_dtype.coerce(data_container=container).collect()
+    assert coerced.schema["0"] == to_dtype.type
+    assert coerced["0"].to_list() == expected
+
+
+def test_try_coerce_decimal_invalid_string():
+    """Test that strings that are not numbers still fail decimal coercion."""
+    container = pl.LazyFrame({"0": ["1.5", "abc"]})
+    with pytest.raises(pandera.errors.ParserError) as exc_info:
+        pe.Decimal(precision=11, scale=2).try_coerce(container)
+    assert exc_info.value.failure_cases["0"].to_list() == ["abc"]
+
+
+@pytest.mark.xfail(
+    condition=CONFIG.use_narwhals_backend,
+    reason="The narwhals backend does not apply coerce=True.",
+    strict=True,
+)
+def test_coerce_decimal_keeps_precision_in_schema():
+    """Test that schema-level coercion to a decimal keeps every digit."""
+    schema = pa.DataFrameSchema(
+        {
+            "a": pa.Column(pl.Decimal(11, 2)),
+            "b": pa.Column(pl.Decimal(38, 0)),
+        },
+        coerce=True,
+    )
+    df = pl.DataFrame(
+        {"a": ["16809.76", "0.29"], "b": [123456789012345678, 1]},
+        schema={"a": pl.String, "b": pl.Int64},
+    )
+    validated = schema.validate(df)
+    assert validated["a"].to_list() == [Decimal("16809.76"), Decimal("0.29")]
+    assert validated["b"].to_list() == [
+        Decimal("123456789012345678"),
+        Decimal("1"),
+    ]
 
 
 @pytest.mark.parametrize(
