@@ -342,11 +342,11 @@ def _register_numpy_numbers(
 
     builtin_type = getattr(builtins, builtin_name, None)  # uint doesn't exist
 
-    # default to int64 regardless of OS
-    default_pd_dtype = {
-        "int": np.dtype("int64"),
-        "uint": np.dtype("uint64"),
-    }.get(builtin_name, pd.Series([1], dtype=builtin_name).dtype)
+    # use the OS-specific type for integers: int32 on Windows, int64 on other
+    # systems, so pandas `int`/`uint` maps to the same dtype pandas/numpy
+    # infer for default integers on the platform.
+    # See https://github.com/unionai-oss/pandera/issues/726
+    default_int_dtype = pd.Series([1], dtype=builtin_name).dtype
 
     for bit_width in sizes:
         # e.g.: numpy.int64
@@ -359,9 +359,9 @@ def _register_numpy_numbers(
             getattr(dtypes, f"{pandera_name}{bit_width}")(),
         }
 
-        if np_dtype == default_pd_dtype:
+        if np_dtype == default_int_dtype:
             equivalents |= {
-                default_pd_dtype,
+                default_int_dtype,
                 builtin_name,
                 getattr(dtypes, pandera_name),
                 getattr(dtypes, pandera_name)(),
