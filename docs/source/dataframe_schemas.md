@@ -391,6 +391,10 @@ except pa.errors.SchemaErrors as exc:
         print(err)
 ```
 
+`strict` only applies to columns: it doesn't check the dataframe's index. To
+reject named index levels that the schema doesn't declare, see
+{ref}`strict-index`.
+
 Alternatively, if your DataFrame contains columns that are not in the schema,
 and you would like these to be dropped on validation,
 you can specify `strict='filter'`.
@@ -614,6 +618,40 @@ try:
 except pa.errors.SchemaError as exc:
     print(exc)
 ```
+
+(strict-index)=
+
+### Handling Index Levels not in the Schema
+
+By default, the dataframe's index is only validated against the `index` you
+declare in the schema. With `strict_index=True`, every *named* level of the
+index must also be declared in the schema's `index`, so a named index the
+schema doesn't know about fails validation:
+
+```{code-cell} python
+import pandas as pd
+import pandera.pandas as pa
+
+
+schema = pa.DataFrameSchema({"a": pa.Column(int)}, strict_index=True)
+
+df = pd.DataFrame({"a": [1, 2, 3]}, index=pd.Index(["x", "y", "z"], name="key"))
+
+try:
+    schema.validate(df)
+except pa.errors.SchemaError as exc:
+    print(exc)
+```
+
+Unnamed index levels are never checked, so a dataframe that has been filtered,
+sorted or concatenated still passes:
+
+```{code-cell} python
+schema.validate(pd.DataFrame({"a": [1, 2, 3]}).query("a > 1"))
+```
+
+With a {class}`~pandera.api.pandas.model.DataFrameModel`, set `strict_index = True`
+in the model's `Config`. `strict_index` is currently only available for pandas.
 
 (multiindex-validation)=
 
