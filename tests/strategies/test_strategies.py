@@ -579,6 +579,95 @@ def test_dataframe_unique(size, data) -> None:
     schema(df_sample)
 
 
+@pytest.mark.parametrize("size", [3, 4, 5, 10])
+@hypothesis.given(st.data())
+def test_dataframe_joint_unique(size, data) -> None:
+    """Test jointly unique columns whose domains exceed the column domain.
+
+    Regression test for https://github.com/unionai-oss/pandera/issues/1402:
+    the "Extract" column can only take 3 values, but generating more than
+    3 rows is valid since only the combination of unique columns must be
+    unique.
+    """
+    schema = pa.DataFrameSchema(
+        {
+            "Name": pa.Column(
+                str,
+                [
+                    pa.Check.str_matches("[A-Za-z0-9_]+$"),
+                    pa.Check.str_length(min_value=1, max_value=25),
+                ],
+            ),
+            "Year": pa.Column(
+                int,
+                pa.Check.in_range(min_value=1947, max_value=3000),
+            ),
+            "Extract": pa.Column(str, pa.Check.isin(["A", "B", "C"])),
+            "Start": pa.Column(int, pa.Check.in_range(1, 1000)),
+            "Length": pa.Column(int, pa.Check.in_range(0, 50)),
+        },
+        unique=["Name", "Year", "Extract"],
+    )
+    df_sample = data.draw(schema.strategy(size=size))
+    schema(df_sample)
+    assert not df_sample.duplicated(subset=["Name", "Year", "Extract"]).any()
+
+
+@pytest.mark.parametrize("domain_size,size", [(2, 4), (2, 5), (5, 25)])
+def test_dataframe_joint_unique_finite_domain(domain_size, size) -> None:
+    """Test feasible joint uniqueness, including the full finite domain."""
+    schema = pa.DataFrameSchema(
+        {
+            "col1": pa.Column(
+                str,
+                pa.Check.isin([str(value) for value in range(domain_size)]),
+            ),
+            "col2": pa.Column(int, pa.Check.isin(range(5))),
+        },
+        unique=["col1", "col2"],
+    )
+    try:
+        df_sample = schema.example(size=size)
+    except hypothesis.errors.Unsatisfiable as exc:
+        raise AssertionError(
+            "Joint uniqueness rejected a feasible finite domain."
+        ) from exc
+    assert len(df_sample) == size
+    schema(df_sample)
+    assert not df_sample.duplicated(subset=["col1", "col2"]).any()
+
+
+@pytest.mark.parametrize("regex", [False, True])
+@hypothesis.given(st.data())
+def test_dataframe_joint_unique_groups(regex, data) -> None:
+    """Test multiple joint uniqueness constraints on one dataframe."""
+    schema = pa.DataFrameSchema(
+        {
+            "col1": pa.Column(str, pa.Check.isin(["A", "B"])),
+            "col2": pa.Column(int, pa.Check.isin([0, 1])),
+            "col[3]" if regex else "col3": pa.Column(int, regex=regex),
+        },
+        unique=[["col1", "col2"], ["col3"]],
+    )
+    df_sample = data.draw(schema.strategy(size=4))
+    schema(df_sample)
+    assert not df_sample.duplicated(subset=["col1", "col2"]).any()
+    assert not df_sample["col3"].duplicated().any()
+
+
+def test_dataframe_joint_unique_unsatisfiable() -> None:
+    """Test joint uniqueness is unsatisfiable when the domain is too small."""
+    schema = pa.DataFrameSchema(
+        {
+            "col1": pa.Column(str, pa.Check.isin(["A", "B"])),
+            "col2": pa.Column(int, pa.Check.isin([0, 1])),
+        },
+        unique=["col1", "col2"],
+    )
+    with pytest.raises(hypothesis.errors.Unsatisfiable):
+        schema.example(size=5)
+
+
 @pytest.mark.parametrize(
     "regex",
     [

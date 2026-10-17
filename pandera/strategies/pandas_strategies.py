@@ -1588,6 +1588,13 @@ def dataframe_strategy(
     columns = {} if columns is None else columns
     checks = [] if checks is None else checks
 
+    # Normalize joint uniqueness groups as in dataframe validation.
+    unique_groups = (
+        [unique]
+        if unique and all(isinstance(name, str) for name in unique)
+        else unique
+    ) or []
+
     def undefined_check_strategy(strategy, check, column=None):
         """Strategy for checks with undefined strategies."""
 
@@ -1717,19 +1724,15 @@ def dataframe_strategy(
             else:
                 undefined_strat_df_checks.append(check)
 
+        # Single-column groups can use independent uniqueness.
+        independently_unique = {
+            group[0] for group in unique_groups if len(group) == 1
+        }
+
         # expand column set to generate column names for columns where
         # regex=True.
         expanded_columns = {}
         for col_name, column in columns.items():
-            if unique and col_name in unique:
-                # if the column is in the set of columns specified in `unique`,
-                # make the column strategy independently unique. This is
-                # technically stricter than it should be, since the list of
-                # columns in `unique` are required to be jointly unique, but
-                # this is a simple solution that produces synthetic data that
-                # fulfills the uniqueness constraints of the dataframe.
-                column = deepcopy(column)
-                column.unique = True
             if not column.regex:
                 expanded_columns[col_name] = column
             else:
@@ -1745,6 +1748,23 @@ def dataframe_strategy(
                     expanded_columns[regex_col] = deepcopy(column).set_name(
                         regex_col
                     )
+
+        for col_name in independently_unique:
+            if col_name in expanded_columns:
+                column = deepcopy(expanded_columns[col_name])
+                column.unique = True
+                expanded_columns[col_name] = column
+
+        # Ignore absent columns, as in dataframe validation.
+        jointly_unique_groups = [
+            subset
+            for group in unique_groups
+            if len(group) > 1
+            for subset in [
+                [name for name in group if name in expanded_columns]
+            ]
+            if subset
+        ]
 
         # collect all non-element-wise column checks with undefined strategies
         # Constraint adapters fully describe the element distribution, so
@@ -1782,16 +1802,42 @@ def dataframe_strategy(
                 }
             )
 
-        strategy = pdst.data_frames(
-            columns=[
-                column.strategy_component()
-                for column in expanded_columns.values()
-            ],
-            rows=row_strategy,
-            index=pdst.range_indexes(
-                min_size=0 if size is None else size, max_size=size
-            ),
+        column_components = [
+            column.strategy_component() for column in expanded_columns.values()
+        ]
+        index_strategy = pdst.range_indexes(
+            min_size=0 if size is None else size, max_size=size
         )
+        if jointly_unique_groups:
+            frame_index = draw(index_strategy)
+            unique_subsets = jointly_unique_groups + [
+                [column.name] for column in column_components if column.unique
+            ]
+            strategy = st.lists(
+                row_strategy
+                if row_strategy is not None
+                else st.fixed_dictionaries(
+                    {
+                        column.name: column.elements
+                        for column in column_components
+                    }
+                ),
+                min_size=len(frame_index),
+                max_size=len(frame_index),
+                unique_by=tuple(
+                    operator.itemgetter(*subset) for subset in unique_subsets
+                ),
+            ).map(
+                partial(
+                    pd.DataFrame, columns=expanded_columns, index=frame_index
+                )
+            )
+        else:
+            strategy = pdst.data_frames(
+                columns=column_components,
+                rows=row_strategy,
+                index=index_strategy,
+            )
 
         # this is a hack to convert np.str_ data values into native python str.
         string_columns = []
@@ -1815,6 +1861,13 @@ def dataframe_strategy(
 
         if size is not None and size > 0 and any(nullable_columns.values()):
             strategy = null_dataframe_masks(strategy, nullable_columns)
+
+        for unique_subset in jointly_unique_groups:
+            strategy = strategy.filter(
+                lambda df, subset=unique_subset: (
+                    not df.duplicated(subset=subset).any()
+                )
+            )
 
         if index is not None:
             strategy = set_pandas_index(strategy, index)
