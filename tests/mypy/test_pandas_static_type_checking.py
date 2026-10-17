@@ -203,6 +203,9 @@ PANDERA_MODEL_COLUMN_ATTRS_ERRORS = [
             PANDERA_MODEL_COLUMN_ATTRS_ERRORS,
         ],
         ["pandera_model_column_attrs.py", "plugin_mypy_silent.ini", []],
+        # NOTE: must stay on a follow_imports=silent config — plugin_mypy.ini's
+        # follow_imports=skip hides the #2018 descriptor bug entirely
+        ["pandera_non_model_series.py", "no_plugin.ini", []],
     ],
 )
 def test_pandas_stubs_false_positives(
@@ -300,6 +303,7 @@ def test_pandas_stubs_false_positives(
         "pandera_types",
         "pandas_series",
         "pandera_model_column_attrs",
+        "pandera_non_model_series",
     ],
 )
 def test_pandas_modules_importable(module):
