@@ -21,6 +21,9 @@ else:
         hypothesis.HealthCheck.data_too_large,
         hypothesis.HealthCheck.too_slow,
         hypothesis.HealthCheck.filter_too_much,
+        # newer hypothesis releases flag strategies whose smallest example is
+        # large, such as a whole dataframe drawn from a schema
+        hypothesis.HealthCheck.large_base_example,
     ]
 
     settings.register_profile(
