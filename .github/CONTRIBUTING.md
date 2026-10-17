@@ -78,8 +78,14 @@ add it to the `dependencies` and `[project.optional-dependencies]` section.
 This project uses [prek](https://prek.j178.dev/) to ensure that code
 standard checks pass locally before pushing to the remote project repo. Follow
 the [installation instructions](https://prek.j178.dev/installation/), then
-set up hooks with `prek install`. After, `black`, `pylint` and `mypy`
-checks should be run with every commit.
+set up hooks with `prek install`. After that, the configured checks,
+including Ruff linting and formatting, Mypy, and other hooks, will run
+with every commit.
+
+For VS Code users, the repository recommends the Ruff extension and
+configures it as the default Python formatter. Enable Format on Save
+in your editor if you want Python files formatted automatically when
+saving.
 
 Make sure everything is working correctly by running
 
