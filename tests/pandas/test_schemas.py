@@ -351,6 +351,36 @@ def test_dataframe_coerce_regex() -> None:
         schema_required(no_match_df)
 
 
+def test_coerce_category_dtype_failure() -> None:
+    """Test that failing to coerce a Categorical raises a pandera error.
+
+    Regression test for
+    https://github.com/unionai-oss/pandera/issues/1073: mapping the
+    coercible check over a categorical series produced a Categorical
+    result, leaking a TypeError instead of reporting failure cases.
+    """
+    categorical = pd.Categorical([0, 1])
+    dtype = Category([1, 2])
+
+    with pytest.raises(errors.SchemaError) as exc_info:
+        SeriesSchema(dtype, coerce=True).validate(pd.Series(categorical))
+
+    err = exc_info.value
+    assert err.reason_code == SchemaErrorReason.DATATYPE_COERCION
+    assert err.failure_cases["failure_case"].tolist() == [0]
+
+    schema = DataFrameSchema({"category": Column(dtype, coerce=True)})
+    df = pd.DataFrame({"category": categorical})
+
+    for lazy in [False, True]:
+        with pytest.raises(errors.SchemaErrors) as exc_info:
+            schema.validate(df, lazy=lazy)
+
+        failure_cases = exc_info.value.failure_cases["failure_case"]
+        assert not failure_cases.empty
+        assert (failure_cases == 0).all()
+
+
 def test_dataframe_reuse_column() -> None:
     """Test reusing columns in a dataframe schema."""
     unnamed = Column()
