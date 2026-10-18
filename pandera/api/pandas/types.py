@@ -97,6 +97,10 @@ def get_backend_types(check_cls_fqn: str) -> BackendTypes:
         multiindex_datatypes.append(mpd.MultiIndex)
 
     def register_pyspark_backend():
+        from pandera._patch_numpy2 import _patch_numpy2
+
+        _patch_numpy2()
+
         import pyspark.pandas as ps
 
         from pandera.accessors import pyspark_accessor
