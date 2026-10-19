@@ -3032,3 +3032,57 @@ def test_named_check_survives_to_script():
     script = io.to_script(schema)
     assert "Check.greater_than" in script
     assert 'name="positive"' in script
+
+
+@pytest.mark.skipif(
+    SKIP_YAML_TESTS,
+    reason="pyyaml >= 5.1.0 required",
+)
+@pytest.mark.parametrize(
+    "serialize, deserialize",
+    [
+        [io.to_yaml, io.from_yaml],
+        [io.to_json, io.from_json],
+    ],
+)
+def test_unique_values_eq_survives_serialization(serialize, deserialize):
+    """``unique_values_eq`` stores a frozenset statistic, which is written
+    out as a sorted list and read back as the same check."""
+    schema = DataFrameSchema(
+        {
+            "a": pandera.Column(
+                int, checks=[pandera.Check.unique_values_eq([3, 1, 2])]
+            )
+        }
+    )
+    loaded = deserialize(serialize(schema))
+    assert loaded == schema
+    (check,) = loaded.columns["a"].checks
+    assert check.statistics == {"values": frozenset({1, 2, 3})}
+
+    loaded.validate(pd.DataFrame({"a": [1, 2, 3]}))
+    with pytest.raises(SchemaError):
+        loaded.validate(pd.DataFrame({"a": [1, 2]}))
+
+
+@pytest.mark.parametrize(
+    "serialize, deserialize",
+    [
+        [io.to_yaml, io.from_yaml],
+        [io.to_json, io.from_json],
+    ],
+)
+def test_unsortable_set_statistic_survives_serialization(
+    serialize, deserialize
+):
+    """A set statistic whose values can't be sorted is written out as is."""
+    schema = DataFrameSchema(
+        {
+            "a": pandera.Column(
+                object, checks=[pandera.Check.unique_values_eq([1, "x"])]
+            )
+        }
+    )
+    loaded = deserialize(serialize(schema))
+    (check,) = loaded.columns["a"].checks
+    assert check.statistics == {"values": frozenset({1, "x"})}

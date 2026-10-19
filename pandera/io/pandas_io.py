@@ -45,6 +45,15 @@ def _serialize_check_stats(check_stats, dtype=None):
         if isinstance(stat, type) and issubclass(stat, enum.Enum):
             return [e.value for e in stat]
 
+        # sets (e.g. the ``unique_values_eq`` statistic) are not json/yaml
+        # serializable, so store them as a list, sorted when possible to
+        # keep the output deterministic.
+        if isinstance(stat, (set, frozenset)):
+            try:
+                return sorted(stat)
+            except TypeError:
+                return list(stat)
+
         if pandas_engine.Engine.dtype(dtypes.DateTime).check(
             dtype
         ) and hasattr(stat, "strftime"):
