@@ -369,6 +369,11 @@ def test_generic_decimal_with_rounding_not_supported():
         pe.Engine.dtype(dtypes.Decimal(11, 2, rounding="ROUND_DOWN"))
 
 
+@pytest.mark.xfail(
+    condition=CONFIG.use_narwhals_backend,
+    reason="Narwhals engine has no Decimal type, so Decimal columns fail the dtype check",
+    strict=True,
+)
 def test_generic_decimal_schema_validation():
     """Test that a schema accepts a parametrized generic Decimal."""
     schema = pa.DataFrameSchema({"a": pa.Column(dtypes.Decimal(11, 2))})
