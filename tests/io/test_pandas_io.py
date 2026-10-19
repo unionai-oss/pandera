@@ -3063,3 +3063,26 @@ def test_unique_values_eq_survives_serialization(serialize, deserialize):
     loaded.validate(pd.DataFrame({"a": [1, 2, 3]}))
     with pytest.raises(SchemaError):
         loaded.validate(pd.DataFrame({"a": [1, 2]}))
+
+
+@pytest.mark.parametrize(
+    "serialize, deserialize",
+    [
+        [io.to_yaml, io.from_yaml],
+        [io.to_json, io.from_json],
+    ],
+)
+def test_unsortable_set_statistic_survives_serialization(
+    serialize, deserialize
+):
+    """A set statistic whose values can't be sorted is written out as is."""
+    schema = DataFrameSchema(
+        {
+            "a": pandera.Column(
+                object, checks=[pandera.Check.unique_values_eq([1, "x"])]
+            )
+        }
+    )
+    loaded = deserialize(serialize(schema))
+    (check,) = loaded.columns["a"].checks
+    assert check.statistics == {"values": frozenset({1, "x"})}
