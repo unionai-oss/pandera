@@ -302,6 +302,39 @@ def test_coerce_decimal_keeps_precision(data, from_dtype, to_dtype, expected):
     assert coerced["0"].to_list() == expected
 
 
+@pytest.mark.parametrize(
+    "df",
+    [
+        pl.DataFrame({"amount": ["1.00"]}),
+        pl.DataFrame({"amount": [1.0]}),
+        pl.DataFrame({"amount": [1.0]}).cast(pl.Decimal(10, 1)),
+    ],
+)
+def test_decimal_column_mismatch_is_schema_error(df):
+    """Wrong dtypes fail validation instead of raising AssertionError.
+
+    ``Decimal.check`` used to assert that the other dtype was a decimal.
+    String and Float64 columns escaped that assert (#2594).
+    """
+    schema = pa.DataFrameSchema({"amount": pa.Column(pl.Decimal(11, 2))})
+    with pytest.raises(pandera.errors.SchemaErrors) as exc_info:
+        schema.validate(df, lazy=True)
+    assert exc_info.value.failure_cases["check"].to_list() == [
+        "dtype('Decimal(precision=11, scale=2)')"
+    ]
+
+
+def test_decimal_column_matching_dtype_validates():
+    """A decimal column with the declared precision and scale passes."""
+    schema = pa.DataFrameSchema({"amount": pa.Column(pl.Decimal(11, 2))})
+    df = pl.DataFrame(
+        {"amount": [Decimal("1.00")]},
+        schema={"amount": pl.Decimal(11, 2)},
+    )
+    validated = schema.validate(df, lazy=True)
+    assert validated["amount"].to_list() == [Decimal("1.00")]
+
+
 def test_try_coerce_decimal_invalid_string():
     """Test that strings that are not numbers still fail decimal coercion."""
     container = pl.LazyFrame({"0": ["1.5", "abc"]})
