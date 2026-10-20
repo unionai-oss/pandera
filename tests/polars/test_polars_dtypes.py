@@ -324,6 +324,14 @@ def test_decimal_column_mismatch_is_schema_error(df):
     ]
 
 
+@pytest.mark.xfail(
+    condition=CONFIG.use_narwhals_backend,
+    reason=(
+        "Narwhals has no Decimal dtype, so a matching decimal is reported "
+        "as the wrong type."
+    ),
+    strict=True,
+)
 def test_decimal_column_matching_dtype_validates():
     """A decimal column with the declared precision and scale passes."""
     schema = pa.DataFrameSchema({"amount": pa.Column(pl.Decimal(11, 2))})
