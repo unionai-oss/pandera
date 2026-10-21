@@ -17,6 +17,7 @@ from polars.testing.parametric import dataframes
 import pandera.backends.polars.utils as polars_utils
 import pandera.errors
 import pandera.polars as pa
+from pandera import dtypes
 from pandera.api.polars.types import PolarsData
 from pandera.config import CONFIG
 from pandera.constants import CHECK_OUTPUT_KEY
@@ -341,6 +342,49 @@ def test_decimal_column_matching_dtype_validates():
     )
     validated = schema.validate(df, lazy=True)
     assert validated["amount"].to_list() == [Decimal("1.00")]
+
+
+@pytest.mark.parametrize(
+    "dtype, expected",
+    [
+        (dtypes.Decimal(), pe.Decimal()),
+        (dtypes.Decimal(11, 2), pe.Decimal(precision=11, scale=2)),
+    ],
+)
+def test_generic_decimal_to_polars_engine(dtype, expected):
+    """Test that a parametrized generic Decimal resolves to the polars
+    engine Decimal with the same precision and scale."""
+    polars_dtype = pe.Engine.dtype(dtype)
+    assert isinstance(polars_dtype, pe.Decimal)
+    assert polars_dtype == expected
+    assert polars_dtype.type == pl.Decimal(
+        precision=expected.precision, scale=expected.scale
+    )
+
+
+def test_generic_decimal_with_rounding_not_supported():
+    """Test that a rounding mode, which polars doesn't support, is not
+    silently dropped."""
+    with pytest.raises(TypeError):
+        pe.Engine.dtype(dtypes.Decimal(11, 2, rounding="ROUND_DOWN"))
+
+
+@pytest.mark.xfail(
+    condition=CONFIG.use_narwhals_backend,
+    reason="Narwhals engine has no Decimal type, so Decimal columns fail the dtype check",
+    strict=True,
+)
+def test_generic_decimal_schema_validation():
+    """Test that a schema accepts a parametrized generic Decimal."""
+    schema = pa.DataFrameSchema({"a": pa.Column(dtypes.Decimal(11, 2))})
+    df = pl.DataFrame(
+        {"a": [Decimal("16809.76"), Decimal("0.29")]},
+        schema={"a": pl.Decimal(11, 2)},
+    )
+    assert_frame_equal(schema.validate(df), df)
+
+    with pytest.raises(pandera.errors.SchemaError):
+        schema.validate(df.cast({"a": pl.Decimal(11, 3)}))
 
 
 def test_try_coerce_decimal_invalid_string():
