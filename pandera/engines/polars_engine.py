@@ -462,10 +462,12 @@ class Decimal(DataType, dtypes.Decimal):
     ) -> Union[bool, Iterable[bool]]:
         try:
             pandera_dtype = Engine.dtype(pandera_dtype)
-            assert isinstance(pandera_dtype, Decimal), (
-                "The return is expected to be of Decimal class"
-            )
         except TypeError:  # pragma: no cover
+            return False
+        # A String or Float64 column is a real dtype, not a conversion
+        # failure. Returning False reports a schema error (#2594). An
+        # assert here raises AssertionError, including under lazy=True.
+        if not isinstance(pandera_dtype, Decimal):
             return False
 
         try:
