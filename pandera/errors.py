@@ -76,6 +76,16 @@ class SchemaDefinitionError(Exception):
     """Raised when schema definition is invalid on object validation."""
 
 
+class SynthesisBackendNotFoundError(Exception):
+    """Raised when a requested data-synthesis backend is unknown.
+
+    Raised at ``strategy()`` / ``example()`` time when the ``synthesis_backend``
+    name is neither a registered backend nor resolvable to an installed
+    ``pandera.synthesis_backends`` entry point. The message hints at how to
+    register or install the backend.
+    """
+
+
 class SchemaError(ReducedPickleExceptionBase):
     """Raised when object does not pass schema validation constraints."""
 
