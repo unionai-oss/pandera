@@ -100,14 +100,55 @@ class DataFrameSchema(_DataFrameSchema[datafusion.DataFrame]):
         """Set the dtype property."""
         self._dtype = resolve_dtype(value)
 
-    def strategy(self, *, size: int | None = None, n_regex_columns: int = 1):
-        """Data synthesis is not supported for DataFusion schemas."""
-        raise NotImplementedError(
-            "Data synthesis is not supported with DataFusion schemas."
+    def strategy(
+        self,
+        *,
+        size: int | None = None,
+        n_regex_columns: int = 1,
+        synthesis_backend: str | None = None,
+        seed: int | None = None,
+    ):
+        """Create a data-synthesis strategy for generating a DataFusion
+        DataFrame.
+
+        :param size: number of rows to generate.
+        :param n_regex_columns: number of regex columns to generate.
+        :param synthesis_backend: optional data-synthesis backend name (e.g.
+            ``"faker"``); ``None`` uses the default (pure-hypothesis) path.
+        :param seed: deterministic seed.
+        :returns: an object whose ``.example()`` returns a native
+            ``datafusion.DataFrame``.
+        """
+        import pandera.strategies.datafusion_strategies as st
+
+        if synthesis_backend is None:
+            synthesis_backend = get_config_context().synthesis_backend
+
+        return st.dataframe_strategy(
+            self,
+            size=size,
+            n_regex_columns=n_regex_columns,
+            synthesis_backend=synthesis_backend,
+            seed=seed,
         )
 
-    def example(self, size: int | None = None, n_regex_columns: int = 1):
-        """Data synthesis is not supported for DataFusion schemas."""
-        raise NotImplementedError(
-            "Data synthesis is not supported with DataFusion schemas."
-        )
+    def example(
+        self,
+        size: int | None = None,
+        n_regex_columns: int = 1,
+        synthesis_backend: str | None = None,
+        seed: int | None = None,
+    ):
+        """Generate an example DataFusion DataFrame of a particular size.
+
+        :param size: number of rows in the generated DataFrame.
+        :param synthesis_backend: optional data-synthesis backend name.
+        :param seed: deterministic seed.
+        :returns: a native ``datafusion.DataFrame``.
+        """
+        return self.strategy(
+            size=size,
+            n_regex_columns=n_regex_columns,
+            synthesis_backend=synthesis_backend,
+            seed=seed,
+        ).example()

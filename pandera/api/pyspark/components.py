@@ -5,6 +5,7 @@ from typing import Any, Optional, Union
 
 from pandera.api.base.types import CheckList, ParserList
 from pandera.api.dataframe.components import ComponentSchema
+from pandera.api.synthesis.semantic import SemanticType
 from pandera.backends.pyspark.register import register_pyspark_backends
 from pandera.dtypes import DataType
 from pandera.engines import pyspark_engine
@@ -32,6 +33,7 @@ class Column(ComponentSchema[PySparkDataFrameTypes]):
         title: str | None = None,
         description: str | None = None,
         metadata: dict | None = None,
+        semantic: "SemanticType | str | None" = None,
     ) -> None:
         """Create column validator object.
 
@@ -84,6 +86,7 @@ class Column(ComponentSchema[PySparkDataFrameTypes]):
             nullable=nullable,
             coerce=coerce,
             name=name,
+            semantic=semantic,
             title=title,
             description=description,
             metadata=metadata,
