@@ -29,6 +29,8 @@ from typing import (
 import numpy as np
 import pandas as pd
 
+from pandera.api.synthesis import get_synthesis_backend
+from pandera.api.synthesis.semantic import SemanticType
 from pandera.dtypes import (
     DataType,
     is_category,
@@ -135,10 +137,18 @@ def set_pandas_index(
     draw,
     df_or_series_strat: SearchStrategy,
     index: IndexComponent,
+    synthesis_backend: str | None = None,
+    seed: int | None = None,
 ):
     """Sets Index or MultiIndex object to pandas Series or DataFrame."""
     df_or_series = draw(df_or_series_strat)
-    df_or_series.index = draw(index.strategy(size=df_or_series.shape[0]))
+    df_or_series.index = draw(
+        index.strategy(
+            size=df_or_series.shape[0],
+            synthesis_backend=synthesis_backend,
+            seed=seed,
+        )
+    )
     return df_or_series
 
 
@@ -776,8 +786,68 @@ def _compile_string_strategy(
     return strat
 
 
+def _coerce_base(base):
+    """Coerce a ``FieldGenerator.generate`` return value into a strategy.
+
+    Accepts a ``hypothesis`` ``SearchStrategy`` (used as-is), a bounded
+    sequence of candidate values (wrapped in ``sampled_from``), or a single
+    value (wrapped in ``just``). ``None``/``False`` signal "no opinion" and
+    yield the default path.
+    """
+    if base is None or base is False:
+        return None
+    if isinstance(base, st.SearchStrategy):
+        return base
+    if isinstance(base, (tuple, list, set, frozenset)):
+        return st.sampled_from(sorted(base))
+    from collections.abc import Iterator as _Iterator
+
+    if isinstance(base, _Iterator):
+        return st.sampled_from(list(base))
+    return st.just(base)
+
+
+def _constraint_checker(constraints: FieldConstraints):
+    """A predicate enforcing the merged ``FieldConstraints``.
+
+    Used as a redundancy layer when a realistic backend supplies a base value:
+    realistic providers only *approximately* honour the schema, and this
+    guarantees the drawn value still passes ``validate()``.
+    """
+    import re as _re
+
+    def check(value: Any) -> bool:
+        if constraints.eq is not UNSET and value != constraints.eq:
+            return False
+        if constraints.isin is not None and value not in constraints.isin:
+            return False
+        if constraints.notin and value in constraints.notin:
+            return False
+        if constraints.regex_fullmatch:
+            sval = str(value)
+            if not all(
+                _re.fullmatch(p, sval) for p in constraints.regex_fullmatch
+            ):
+                return False
+        if constraints.regex_search:
+            sval = str(value)
+            if not all(_re.search(p, sval) for p in constraints.regex_search):
+                return False
+        for _name, predicate in constraints.residual_filters:
+            if not predicate(value):
+                return False
+        return True
+
+    return check
+
+
 def compile_field_strategy(
-    pandera_dtype: DataType, constraints: FieldConstraints
+    pandera_dtype: DataType,
+    constraints: FieldConstraints,
+    *,
+    semantic: SemanticType | None = None,
+    synthesis_backend: str | None = None,
+    seed: int | None = None,
 ) -> SearchStrategy:
     """Compile a merged ``FieldConstraints`` into a single hypothesis strategy.
 
@@ -787,9 +857,19 @@ def compile_field_strategy(
     aggregated constraints into the appropriate kwargs and parent
     strategy.
 
+    Optional ``synthesis_backend`` / ``semantic`` / ``seed`` enable realistic
+    Mode A base-value enrichment (see ``specs/pluggable-data-synthesis.md``
+    §5.5): the opted-in backend supplies a better-informed *base* and the
+    merged constraints are still enforced downstream, preserving the schema
+    validity guarantee. ``None`` backend keeps the byte-for-byte default path.
+
     :param pandera_dtype: the field's dtype.
     :param constraints: merged ``FieldConstraints`` produced by
         bucketing every check on the field.
+    :param semantic: optional explicit semantic tag for realistic generation.
+    :param synthesis_backend: optional backend name; ``None`` is the default
+        pure-hypothesis path.
+    :param seed: deterministic seed forwarded to the backend.
     :returns: a ``hypothesis`` strategy with at most one trailing
         ``.filter`` per residual predicate (built-in checks contribute
         zero residuals).
@@ -798,6 +878,28 @@ def compile_field_strategy(
         bounds + ``notin``).
     """
     constraints = constraints.apply_post_merge_hooks()
+
+    # Realistic base-value enrichment (§5.5). An opted-in backend supplies a
+    # better-informed base value; the merged constraints are still compiled on
+    # top by this function, so the validity guarantee is unchanged. When no
+    # backend is selected this block is skipped entirely and the code below is
+    # byte-for-byte today's behaviour.
+    backend = (
+        get_synthesis_backend(synthesis_backend) if HAS_HYPOTHESIS else None
+    )
+    if backend is not None:
+        try:
+            base = backend.field_generator().generate(
+                pandera_dtype,
+                constraints,
+                semantic=semantic,
+                seed=seed,
+            )
+        except Exception:
+            base = None
+        realistic = _coerce_base(base)
+        if realistic is not None:
+            return realistic.filter(_constraint_checker(constraints))
 
     # 1. Equality short-circuits everything.
     if constraints.eq is not UNSET:
@@ -1224,41 +1326,22 @@ def _timestamp_to_datetime64_strategy(
     return st.builds(lambda x: np.datetime64(x.value, "ns"), strategy)
 
 
-def field_element_strategy(
-    pandera_dtype: Union[numpy_engine.DataType, pandas_engine.DataType],
-    strategy: SearchStrategy | None = None,
-    *,
-    checks: Sequence | None = None,
-) -> SearchStrategy:
-    """Strategy to generate elements of a column or index.
+def aggregate_field_constraints(
+    check_list: Sequence,
+) -> tuple[FieldConstraints, list[tuple[Any, Callable]]]:
+    """Aggregate ``checks`` into a single merged ``FieldConstraints``.
 
-    Buckets ``checks`` into:
+    Returns ``(constraint_acc, legacy_strategies)`` where
+    ``constraint_acc`` merges every constraint-providing check (plus any
+    element-wise residual predicates) and ``legacy_strategies`` collects
+    the checks with a legacy ``check.strategy`` callable that must be
+    chained on top of the compiled base strategy.
 
-    1. constraint-providing checks (built-in or via ``Check.constraint``
-       / ``register_check_method(constraint=...)``): aggregated into a
-       single ``FieldConstraints`` and compiled to one hypothesis
-       strategy via :func:`compile_field_strategy`. No ``.filter``
-       chaining.
-    2. legacy ``check.strategy`` callables: applied as a chained
-       strategy on top of the merged base, preserving today's
-       behaviour for users who haven't migrated.
-    3. element-wise checks with no strategy / constraint: lowered to a
-       single residual filter (warn the user that this is slow).
-
-    :param pandera_dtype: :class:`pandera.dtypes.DataType` instance.
-    :param strategy: an optional hypothesis strategy. Reserved; passing
-        a non-``None`` value raises :class:`BaseStrategyOnlyError`.
-    :param checks: sequence of :class:`~pandera.api.checks.Check` s to
-        constrain the values of the data in the column/index.
-    :returns: ``hypothesis`` strategy.
+    Mirrors the bucketing performed by :func:`field_element_strategy` and
+    :func:`dataframe_strategy`'s ``make_row_strategy``, extracted so the
+    deterministic sampler path (:func:`deterministic_column_sampler`)
+    resolves the same merged constraints without a hypothesis strategy.
     """
-    if strategy is not None:
-        raise BaseStrategyOnlyError(
-            "The series strategy is a base strategy. You cannot specify the "
-            "strategy argument to chain it to a parent strategy."
-        )
-    check_list = list(checks or [])
-
     constraint_acc = FieldConstraints()
     legacy_strategies: list[tuple[Any, Callable]] = []
     residuals: list[tuple[str, Callable]] = []
@@ -1304,11 +1387,172 @@ def field_element_strategy(
             ),
         )
 
+    return constraint_acc, legacy_strategies
+
+
+def _legacy_check_constraints(check) -> FieldConstraints | None:
+    """Translate a legacy built-in check's statistics into constraints.
+
+    Built-in checks currently ship constraint-*strategies* (via
+    ``STRATEGY_DISPATCHER``) rather than constraint adapters, so they don't
+    flow into :func:`aggregate_field_constraints`. This helper reconstructs a
+    ``FieldConstraints`` from the most common built-ins' statistics so the
+    deterministic sampler path (:func:`deterministic_column_sampler` and the
+    engine-agnostic backends) honours bounds/membership without hypothesis.
+
+    Returns ``None`` for an unrecognised check (ignored).
+    """
+    name = getattr(check, "name", None)
+    stats = getattr(check, "statistics", None) or {}
+    if name == "greater_than":
+        return FieldConstraints(min_value=stats["min_value"], exclude_min=True)
+    if name == "greater_than_or_equal_to":
+        return FieldConstraints(min_value=stats["min_value"])
+    if name == "less_than":
+        return FieldConstraints(max_value=stats["max_value"], exclude_max=True)
+    if name == "less_than_or_equal_to":
+        return FieldConstraints(max_value=stats["max_value"])
+    if name == "in_range":
+        return FieldConstraints(
+            min_value=stats.get("min_value"),
+            max_value=stats.get("max_value"),
+            exclude_min=not stats.get("include_min", True),
+            exclude_max=not stats.get("include_max", True),
+        )
+    if name == "isin":
+        return FieldConstraints(isin=frozenset(stats["allowed_values"]))
+    if name == "notin":
+        return FieldConstraints(notin=frozenset(stats["forbidden_values"]))
+    if name == "equal_to":
+        return FieldConstraints(eq=stats["value"])
+    if name == "not_equal_to":
+        return FieldConstraints(notin=frozenset({stats["value"]}))
+    if name == "str_length":
+        exact = stats.get("exact_value")
+        return FieldConstraints(
+            str_exact_len=exact,
+            str_min_len=stats.get("min_value"),
+            str_max_len=stats.get("max_value"),
+        )
+    if name == "str_matches":
+        return FieldConstraints(regex_fullmatch=(stats["pattern"],))
+    if name == "str_contains":
+        return FieldConstraints(regex_search=(stats["pattern"],))
+    if name == "str_startswith":
+        return FieldConstraints(regex_search=(rf"\A(?:{stats['string']})",))
+    if name == "str_endswith":
+        return FieldConstraints(regex_search=(rf"(?:{stats['string']})\Z",))
+    return None
+
+
+def _aggregate_constraints_for_sampler(
+    check_list: Sequence,
+) -> FieldConstraints:
+    """Aggregate constraints for the deterministic sampler path.
+
+    Merges both constraint-adapter checks *and* the statistics of legacy
+    built-in checks (via :func:`_legacy_check_constraints`), so bounds etc. are
+    honoured without hypothesis. Does **not** modify
+    :func:`aggregate_field_constraints` / :func:`field_element_strategy`, which
+    keep today's hypothesis-driven behavior byte-for-byte.
+    """
+    constraint_acc, _ = aggregate_field_constraints(list(check_list))
+    for check in check_list:
+        legacy = _legacy_check_constraints(check)
+        if legacy is None:
+            continue
+        try:
+            constraint_acc = constraint_acc.merge(legacy)
+        except ConstraintConflictError as exc:
+            _raise_unsatisfiable(check_list, exc)
+    return constraint_acc
+
+
+def deterministic_column_sampler(
+    pandera_dtype: DataType,
+    checks: Sequence | None = None,
+    *,
+    semantic: SemanticType | None = None,
+    synthesis_backend: str | None = None,
+    seed: int | None = None,
+):
+    """Return a deterministic, engine-agnostic sampler for a single field.
+
+    Aggregates ``checks`` into merged ``FieldConstraints`` (same bucketing as
+    :func:`field_element_strategy`) and returns an iterator of native scalar
+    values that satisfy them, produced by
+    :func:`pandera.strategies._values.compile_constraints_to_sampler`. This
+    is the reproducible path used by ``strategy(seed=...)`` / ``example(seed=...)``
+    where a single seeded ``random.Random`` guarantees byte-identical output
+    across calls.
+    """
+    from pandera.strategies._values import compile_constraints_to_sampler
+
+    constraint_acc = _aggregate_constraints_for_sampler(list(checks or []))
+    return compile_constraints_to_sampler(
+        pandera_dtype,
+        constraint_acc,
+        semantic=semantic,
+        synthesis_backend=synthesis_backend,
+        seed=seed,
+    )
+
+
+def field_element_strategy(
+    pandera_dtype: Union[numpy_engine.DataType, pandas_engine.DataType],
+    strategy: SearchStrategy | None = None,
+    *,
+    checks: Sequence | None = None,
+    semantic: SemanticType | None = None,
+    synthesis_backend: str | None = None,
+    seed: int | None = None,
+) -> SearchStrategy:
+    """Strategy to generate elements of a column or index.
+
+    Buckets ``checks`` into:
+
+    1. constraint-providing checks (built-in or via ``Check.constraint``
+       / ``register_check_method(constraint=...)``): aggregated into a
+       single ``FieldConstraints`` and compiled to one hypothesis
+       strategy via :func:`compile_field_strategy`. No ``.filter``
+       chaining.
+    2. legacy ``check.strategy`` callables: applied as a chained
+       strategy on top of the merged base, preserving today's
+       behaviour for users who haven't migrated.
+    3. element-wise checks with no strategy / constraint: lowered to a
+       single residual filter (warn the user that this is slow).
+
+    :param pandera_dtype: :class:`pandera.dtypes.DataType` instance.
+    :param strategy: an optional hypothesis strategy. Reserved; passing
+        a non-``None`` value raises :class:`BaseStrategyOnlyError`.
+    :param checks: sequence of :class:`~pandera.api.checks.Check` s to
+        constrain the values of the data in the column/index.
+    :param semantic: optional explicit semantic tag for realistic generation.
+    :param synthesis_backend: optional backend name; ``None`` is the default
+        pure-hypothesis path.
+    :param seed: deterministic seed forwarded to the backend.
+    :returns: ``hypothesis`` strategy.
+    """
+    if strategy is not None:
+        raise BaseStrategyOnlyError(
+            "The series strategy is a base strategy. You cannot specify the "
+            "strategy argument to chain it to a parent strategy."
+        )
+    check_list = list(checks or [])
+
+    constraint_acc, legacy_strategies = aggregate_field_constraints(check_list)
+
     has_aggregated = not constraint_acc.is_empty()
 
     if has_aggregated:
         try:
-            elements = compile_field_strategy(pandera_dtype, constraint_acc)
+            elements = compile_field_strategy(
+                pandera_dtype,
+                constraint_acc,
+                semantic=semantic,
+                synthesis_backend=synthesis_backend,
+                seed=seed,
+            )
         except ConstraintConflictError as exc:
             _raise_unsatisfiable(check_list, exc)
     else:
@@ -1406,6 +1650,9 @@ def series_strategy(
     unique: bool = False,
     name: str | None = None,
     size: int | None = None,
+    semantic: SemanticType | None = None,
+    synthesis_backend: str | None = None,
+    seed: int | None = None,
 ) -> SearchStrategy:
     """Strategy to generate a pandas Series.
 
@@ -1418,9 +1665,19 @@ def series_strategy(
     :param unique: whether or not generated Series contains unique values.
     :param name: name of the Series.
     :param size: number of elements in the Series.
+    :param semantic: optional explicit semantic tag for realistic generation.
+    :param synthesis_backend: optional backend name.
+    :param seed: deterministic seed.
     :returns: ``hypothesis`` strategy.
     """
-    elements = field_element_strategy(pandera_dtype, strategy, checks=checks)
+    elements = field_element_strategy(
+        pandera_dtype,
+        strategy,
+        checks=checks,
+        semantic=semantic,
+        synthesis_backend=synthesis_backend,
+        seed=seed,
+    )
 
     dtype = (
         None
@@ -1479,6 +1736,9 @@ def column_strategy(
     checks: Sequence | None = None,
     unique: bool = False,
     name: str | None = None,
+    semantic: SemanticType | None = None,
+    synthesis_backend: str | None = None,
+    seed: int | None = None,
 ):
     """Create a data object describing a column in a DataFrame.
 
@@ -1492,7 +1752,14 @@ def column_strategy(
     :returns: a `column <https://hypothesis.readthedocs.io/en/latest/numpy.html#hypothesis.extra.pandas.column>`_ object.
     """
     verify_dtype(pandera_dtype, schema_type="column", name=name)
-    elements = field_element_strategy(pandera_dtype, strategy, checks=checks)
+    elements = field_element_strategy(
+        pandera_dtype,
+        strategy,
+        checks=checks,
+        semantic=semantic,
+        synthesis_backend=synthesis_backend,
+        seed=seed,
+    )
     return pdst.column(
         name=name,
         elements=elements,
@@ -1510,6 +1777,9 @@ def index_strategy(
     unique: bool = False,
     name: str | None = None,
     size: int | None = None,
+    semantic: SemanticType | None = None,
+    synthesis_backend: str | None = None,
+    seed: int | None = None,
 ):
     """Strategy to generate a pandas Index.
 
@@ -1525,7 +1795,14 @@ def index_strategy(
     :returns: ``hypothesis`` strategy.
     """
     verify_dtype(pandera_dtype, schema_type="index", name=name)
-    elements = field_element_strategy(pandera_dtype, strategy, checks=checks)
+    elements = field_element_strategy(
+        pandera_dtype,
+        strategy,
+        checks=checks,
+        semantic=semantic,
+        synthesis_backend=synthesis_backend,
+        seed=seed,
+    )
 
     strategy = pdst.indexes(
         elements=elements,
@@ -1547,6 +1824,53 @@ def index_strategy(
     return strategy
 
 
+def _seeded_dataframe_strategy(
+    *,
+    columns: dict,
+    checks: Sequence,
+    size: int | None,
+    synthesis_backend: str | None,
+    seed: int,
+):
+    """Build a reproducible DataFrame from the deterministic sampler.
+
+    Used when ``seed`` is provided so ``strategy(seed=...)`` / ``example(seed=...)``
+    returns byte-identical output across calls. Each column is drawn from
+    :func:`deterministic_column_sampler` with a per-column seed derived from the
+    overall seed, then assembled into a native pandas DataFrame wrapped in a
+    single ``st.just``. Supports ordinary columns (non-regex) and the default
+    RangeIndex; dataframe-level ``checks`` reuse the row strategy when they have
+    constraint adapters.
+    """
+    import hypothesis.strategies as st
+
+    col_dtypes: dict[Union[int, str], Any] = {}
+    series: dict[str, Any] = {}
+    for name, col in columns.items():
+        sampler = deterministic_column_sampler(
+            col.dtype,
+            col.checks,
+            semantic=getattr(col, "semantic", None),
+            synthesis_backend=synthesis_backend,
+            seed=(seed + hash(name)) & 0xFFFFFFFF,
+        )
+        n = size if size is not None else 5
+        values = [next(sampler) for _ in range(n)]
+        np_dtype = to_numpy_dtype(col.dtype)
+        series[name] = pd.Series(values, dtype=np_dtype)
+        col_dtypes[name] = str(col.dtype)
+
+    df = pd.DataFrame(series)
+    df = convert_dtypes(df, col_dtypes)
+
+    # String columns to native str (like the composite path).
+    for name, col_dtype in col_dtypes.items():
+        if col_dtype in {"object", "str"} or col_dtype.startswith("string"):
+            df[name] = df[name].map(_str_no_surrogates)
+
+    return st.just(df)
+
+
 def dataframe_strategy(
     pandera_dtype: DataType | None = None,
     strategy: SearchStrategy | None = None,
@@ -1557,6 +1881,8 @@ def dataframe_strategy(
     index: IndexComponent | None = None,
     size: int | None = None,
     n_regex_columns: int = 1,
+    synthesis_backend: str | None = None,
+    seed: int | None = None,
 ):
     """Strategy to generate a pandas DataFrame.
 
@@ -1583,6 +1909,17 @@ def dataframe_strategy(
         raise BaseStrategyOnlyError(
             "The dataframe strategy is a base strategy. You cannot specify "
             "the strategy argument to chain it to a parent strategy."
+        )
+
+    if seed is not None:
+        # Reproducible seeded path: build the frame deterministically via the
+        # engine-agnostic sampler instead of hypothesis's non-seeded composite.
+        return _seeded_dataframe_strategy(
+            columns=columns or {},
+            checks=checks or [],
+            size=size,
+            synthesis_backend=synthesis_backend,
+            seed=seed,
         )
 
     columns = {} if columns is None else columns
@@ -1672,7 +2009,13 @@ def dataframe_strategy(
 
         if has_aggregated:
             try:
-                strategy = compile_field_strategy(col.dtype, constraint_acc)
+                strategy = compile_field_strategy(
+                    col.dtype,
+                    constraint_acc,
+                    semantic=getattr(col, "semantic", None),
+                    synthesis_backend=synthesis_backend,
+                    seed=seed,
+                )
             except ConstraintConflictError as exc:
                 _raise_unsatisfiable(checks, exc)
         else:
@@ -1784,7 +2127,9 @@ def dataframe_strategy(
 
         strategy = pdst.data_frames(
             columns=[
-                column.strategy_component()
+                column.strategy_component(
+                    synthesis_backend=synthesis_backend, seed=seed
+                )
                 for column in expanded_columns.values()
             ],
             rows=row_strategy,
@@ -1817,7 +2162,9 @@ def dataframe_strategy(
             strategy = null_dataframe_masks(strategy, nullable_columns)
 
         if index is not None:
-            strategy = set_pandas_index(strategy, index)
+            strategy = set_pandas_index(
+                strategy, index, synthesis_backend, seed
+            )
 
         for check in undefined_strat_df_checks:
             strategy = undefined_check_strategy(strategy, check)
@@ -1839,6 +2186,8 @@ def multiindex_strategy(
     *,
     indexes: list | None = None,
     size: int | None = None,
+    synthesis_backend: str | None = None,
+    seed: int | None = None,
 ):
     """Strategy to generate a pandas MultiIndex object.
 
@@ -1866,7 +2215,12 @@ def multiindex_strategy(
         for i, index in enumerate(indexes)
     }
     strategy = pdst.data_frames(
-        [index.strategy_component() for index in indexes],
+        [
+            index.strategy_component(
+                synthesis_backend=synthesis_backend, seed=seed
+            )
+            for index in indexes
+        ],
         index=pdst.range_indexes(
             min_size=0 if size is None else size, max_size=size
         ),
