@@ -151,6 +151,22 @@ def test_strict_filter(t_basic, t_schema_basic):
     assert filtered_data.execute().equals(t_basic.execute())
 
 
+def test_strict_error_reports_column_name():
+    """Strict-mode errors should report the offending column, not the schema.
+
+    Regression test for https://github.com/unionai-oss/pandera/issues/1669
+    """
+    schema = DataFrameSchema(
+        {"a": Column(dt.int64)}, name="MySchemaName", strict=True
+    )
+    with pytest.raises(pa.errors.SchemaErrors) as exc:
+        schema.validate(ibis.memtable({"a": [1], "extra": [2]}), lazy=True)
+
+    (error,) = exc.value.message["SCHEMA"]["COLUMN_NOT_IN_SCHEMA"]
+    assert error["schema"] == "MySchemaName"
+    assert error["column"] == "extra"
+
+
 def test_required_columns():
     """Test required columns."""
     schema = DataFrameSchema(
