@@ -59,6 +59,28 @@ def convert_py_dtype_to_polars_dtype(dtype):
     return parse_py_type_into_dtype(dtype)
 
 
+def _strip_numeric_strings(
+    lf: pl.LazyFrame, key: str, type_: Any
+) -> pl.LazyFrame:
+    """Strip surrounding whitespace from string columns cast to numbers.
+
+    pandas (and Python's ``int``/``float``) ignore leading and trailing
+    whitespace when parsing numeric strings, while polars' ``cast`` rejects
+    it. Stripping first keeps ``coerce=True`` consistent across backends.
+    Only string columns are touched, and only when the target is numeric.
+    """
+    is_numeric = getattr(type_, "is_numeric", None)
+    if is_numeric is None or not is_numeric():
+        return lf
+
+    schema = lf.collect_schema()
+    names = list(schema.names()) if key == "*" else [key]
+    string_cols = [name for name in names if schema.get(name) == pl.String]
+    if not string_cols:
+        return lf
+    return lf.with_columns(pl.col(string_cols).str.strip_chars())
+
+
 def polars_object_coercible(
     data_container: PolarsData, type_: PolarsDataType
 ) -> pl.LazyFrame:
@@ -68,9 +90,11 @@ def polars_object_coercible(
     # do a strict cast for list types since is_not_null() cannot correctly
     # evaluate null values in lists.
     strict = isinstance(type_, pl.List)
-    coercible = data_container.lazyframe.cast(
-        {key: type_}, strict=strict
-    ).select(pl.col(key).is_not_null())
+    coercible = (
+        _strip_numeric_strings(data_container.lazyframe, key, type_)
+        .cast({key: type_}, strict=strict)
+        .select(pl.col(key).is_not_null())
+    )
     # reduce to a single boolean column
     return coercible.select(pl.all_horizontal(key).alias(CHECK_OUTPUT_KEY))
 
@@ -176,7 +200,10 @@ class DataType(dtypes.DataType):
         else:
             dtypes = {data_container.key: self.type}
 
-        return data_container.lazyframe.cast(dtypes, strict=True)
+        lf = _strip_numeric_strings(
+            data_container.lazyframe, data_container.key or "*", self.type
+        )
+        return lf.cast(dtypes, strict=True)
 
     def try_coerce(self, data_container: PolarsDataContainer) -> pl.LazyFrame:
         """Coerce data container to the data type,
@@ -427,7 +454,7 @@ class Decimal(DataType, dtypes.Decimal):
             data_container = PolarsData(data_container)
 
         key = data_container.key or "*"
-        lf = data_container.lazyframe
+        lf = _strip_numeric_strings(data_container.lazyframe, key, self.type)
         target = pl.Decimal(scale=self.scale, precision=self.precision)
         schema = lf.select(pl.col(key)).collect_schema()
         return lf.with_columns(
