@@ -570,7 +570,8 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
                 schema_cols_dict[col_name] = None
 
         concat_ordered_cols = []
-        for col_name in check_obj.columns:
+        # Adjacent columns sharing a label are kept together
+        for col_name, same_label_cols in itertools.groupby(check_obj.columns):
             pop_cols = []
             for next_col_name in iter(schema_cols_dict):
                 if (
@@ -587,8 +588,8 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
                         schema_cols_dict.pop(pop_col)
                     break
 
-            # Add current column
-            concat_ordered_cols.append(col_name)
+            # Add current column(s)
+            concat_ordered_cols.extend(same_label_cols)
 
             # Pop current column if it exists in schema
             schema_cols_dict.pop(col_name, None)
@@ -611,8 +612,23 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
         # Append missing columns
         concat_obj = pd.concat([check_obj, missing_obj], axis=1)
 
-        # Set column order
-        concat_obj = concat_obj[concat_ordered_cols]
+        # Set column order by position, since selecting by label would
+        # repeat columns whose label appears more than once
+        n_cols = check_obj.shape[1]
+        missing_col_positions = {
+            col_name: n_cols + i
+            for i, col_name in enumerate(missing_obj.columns)
+        }
+        existing_col_positions = iter(range(n_cols))
+        concat_obj = concat_obj.iloc[
+            :,
+            [
+                missing_col_positions[col_name]
+                if col_name in missing_col_positions
+                else next(existing_col_positions)
+                for col_name in concat_ordered_cols
+            ],
+        ]
 
         return concat_obj
 
