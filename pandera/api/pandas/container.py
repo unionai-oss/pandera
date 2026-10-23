@@ -146,7 +146,10 @@ class DataFrameSchema(_DataFrameSchema[pd.DataFrame]):
             checks and raises a ``SchemaErrors``. Otherwise, raise
             ``SchemaError`` as soon as one occurs.
         :param inplace: if True, applies coercion to the object of validation,
-            otherwise creates a copy of the data.
+            otherwise creates a copy of the data. Passing ``inplace=True``
+            together with ``strict="filter"`` is deprecated and raises a
+            ``FutureWarning``, since column filtering does not mutate the
+            input object in place; use the returned ``DataFrame`` instead.
         :returns: validated ``DataFrame``
 
         :raises SchemaError: when ``DataFrame`` violates built-in or custom
@@ -198,9 +201,7 @@ class DataFrameSchema(_DataFrameSchema[pd.DataFrame]):
         # ``MultiIndex`` (a ``DataFrameSchema`` subclass) reuses this method to
         # validate the index of a ``SeriesSchema``.
         if not is_table_or_field(check_obj):
-            raise TypeError(
-                f"expected pd.DataFrame, got {type(check_obj)}"
-            )
+            raise TypeError(f"expected pd.DataFrame, got {type(check_obj)}")
 
         # NOTE: Move this into its own schema-backend variant. This is where
         # the benefits of separating the schema spec from the backend

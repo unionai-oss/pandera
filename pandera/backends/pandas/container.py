@@ -65,6 +65,17 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
         if not is_table(check_obj):
             raise TypeError(f"expected pd.DataFrame, got {type(check_obj)}")
 
+        if getattr(schema, "strict", None) == "filter" and inplace:
+            warnings.warn(
+                "Using ``strict='filter'`` together with ``validate(..., "
+                "inplace=True)`` is deprecated and will no longer be "
+                "supported in a future version. Column filtering no longer "
+                "mutates the input DataFrame in place; use the filtered "
+                "DataFrame returned by ``validate`` instead.",
+                FutureWarning,
+                stacklevel=2,
+            )
+
         if getattr(schema, "drop_invalid_rows", False) and not lazy:
             raise SchemaDefinitionError(
                 "When drop_invalid_rows is True, lazy must be set to True."
@@ -700,12 +711,10 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
             )
 
         if schema.strict == "filter":
-            if type(check_obj).__module__.startswith("pyspark.pandas"):
-                # NOTE: remove this when we have a separate backend for pyspark
-                # pandas.
-                check_obj = check_obj.drop(labels=filter_out_columns, axis=1)
-            else:
-                check_obj.drop(labels=filter_out_columns, inplace=True, axis=1)
+            # NOTE: use a non-inplace drop. pandas deprecated the ``inplace``
+            # parameter of ``DataFrame.drop`` (removed in pandas >= 3.0), which
+            # previously triggered a DeprecationWarning. See #2599.
+            check_obj = check_obj.drop(labels=filter_out_columns, axis=1)
 
         return check_obj
 
