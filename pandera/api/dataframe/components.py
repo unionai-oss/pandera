@@ -8,6 +8,7 @@ from pandera.api.base.types import CheckList, ParserList
 from pandera.api.checks import Check
 from pandera.api.hypotheses import Hypothesis
 from pandera.api.parsers import Parser
+from pandera.api.synthesis.semantic import SemanticType, coerce_semantic
 from pandera.dtypes import UniqueSettings
 from pandera.engines import PYDANTIC_V2
 
@@ -38,6 +39,7 @@ class ComponentSchema(Generic[TDataObject], BaseSchema):
         default: Any | None = None,
         metadata: dict | None = None,
         drop_invalid_rows: bool = False,
+        semantic: "SemanticType | str | None" = None,
     ) -> None:
         """Initialize array schema.
 
@@ -91,6 +93,7 @@ class ComponentSchema(Generic[TDataObject], BaseSchema):
         self.parsers = parsers
         self.checks = checks
         self.nullable = nullable
+        self.semantic = coerce_semantic(semantic)
         self.unique = unique
         self.report_duplicates = report_duplicates
         self.title = title

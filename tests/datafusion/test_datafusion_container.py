@@ -523,10 +523,19 @@ def test_schema_level_coerce_is_silently_ignored(make_df, fails, recwarn):
     assert not recwarn.list
 
 
-def test_data_synthesis_not_supported(schema):
-    for method in (schema.example, schema.strategy):
-        with pytest.raises(NotImplementedError, match="DataFusion"):
-            method()
+def test_data_synthesis_supported(schema):
+    # Data synthesis for DataFusion schemas is supported via the shared
+    # engine-agnostic value core; ``strategy()`` returns a builder whose
+    # ``.example()`` assembles a native ``datafusion.DataFrame``.
+    strategy = schema.strategy(size=5)
+    df = strategy.example()
+    assert isinstance(df, datafusion.DataFrame)
+    assert df.to_arrow_table().num_rows == 5
+    assert schema.validate(df).to_arrow_table().num_rows == 5
+
+    example = schema.example(size=5)
+    assert isinstance(example, datafusion.DataFrame)
+    assert example.to_arrow_table().num_rows == 5
 
 
 # Schema transformations
