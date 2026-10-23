@@ -61,7 +61,14 @@ class PanderaConfig:
         return warning_name in self.silenced_warnings
 
 
-_TRUTHY = {"true", "True", "1"}
+# Compared case-insensitively: environment variables are commonly upper-cased,
+# and `PANDERA_VALIDATION_ENABLED=TRUE` must not read as "disabled".
+_TRUTHY = {"true", "1"}
+
+
+def _is_truthy(value: str) -> bool:
+    """Whether an environment variable value means "on"."""
+    return value.strip().lower() in _TRUTHY
 
 
 def _coerce_validation_depth(
@@ -88,27 +95,27 @@ def _silenced_warnings_from_env() -> list[str]:
     return [
         name
         for name in all_warning_names
-        if os.environ.get(name, "false") in _TRUTHY
+        if _is_truthy(os.environ.get(name, "false"))
     ]
 
 
 def _config_from_env_vars():
-    validation_enabled = (
-        os.environ.get("PANDERA_VALIDATION_ENABLED", "True") in _TRUTHY
+    validation_enabled = _is_truthy(
+        os.environ.get("PANDERA_VALIDATION_ENABLED", "True")
     )
 
     validation_depth = _coerce_validation_depth(
         os.environ.get("PANDERA_VALIDATION_DEPTH", None)
     )
 
-    cache_dataframe = (
-        os.environ.get("PANDERA_CACHE_DATAFRAME", "False") in _TRUTHY
+    cache_dataframe = _is_truthy(
+        os.environ.get("PANDERA_CACHE_DATAFRAME", "False")
     )
-    keep_cached_dataframe = (
-        os.environ.get("PANDERA_KEEP_CACHED_DATAFRAME", "False") in _TRUTHY
+    keep_cached_dataframe = _is_truthy(
+        os.environ.get("PANDERA_KEEP_CACHED_DATAFRAME", "False")
     )
-    use_narwhals_backend = (
-        os.environ.get("PANDERA_USE_NARWHALS_BACKEND", "False") in _TRUTHY
+    use_narwhals_backend = _is_truthy(
+        os.environ.get("PANDERA_USE_NARWHALS_BACKEND", "False")
     )
 
     return PanderaConfig(
