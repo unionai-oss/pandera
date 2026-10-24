@@ -498,14 +498,29 @@ class DataFrameModel(Generic[TDataFrame, TSchema], BaseModel):
         config: Any,
     ) -> tuple[dict[str, Any], dict[str, Any]]:
         config_options, extras = {}, {}
+        known_options = cls._config_option_names()
         for name, value in vars(config).items():
-            if name in _CONFIG_OPTIONS:
+            if name in known_options:
                 config_options[name] = value
             elif _is_field(name):
                 extras[name] = value
             # drop private/reserved keywords
 
         return config_options, extras
+
+    @classmethod
+    def _config_option_names(cls) -> set[str]:
+        """Names of the config options, including options that only a
+        backend's own config class defines (e.g. pandas ``strict_index``)."""
+        options = set(_CONFIG_OPTIONS)
+        for model in inspect.getmro(cls):
+            config = vars(model).get(_CONFIG_KEY)
+            if inspect.isclass(config) and issubclass(config, BaseConfig):
+                for config_cls in inspect.getmro(config):
+                    options.update(
+                        name for name in vars(config_cls) if _is_field(name)
+                    )
+        return options
 
     @classmethod
     def _collect_config_and_extras(

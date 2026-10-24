@@ -102,6 +102,7 @@ class DataFrameModel(_DataFrameModel[pd.DataFrame, DataFrameSchema]):
             index=index,
             checks=cls.__root_checks__,
             parsers=cls.__root_parsers__,
+            strict_index=getattr(cls.__config__, "strict_index", False),
             **kwargs,
         )
 
