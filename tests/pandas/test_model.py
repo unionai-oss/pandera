@@ -2611,6 +2611,57 @@ def test_empty() -> None:
     assert Schema.validate(df).empty  # type: ignore [attr-defined]
 
 
+def test_to_json_schema_with_python_generic_columns() -> None:
+    """Test to serialize a DataFrameModel with python-generic columns.
+
+    Regression test for #2059: the empty frame backing the serialization was
+    built from each column's resolved dtype, and ``PythonList.type`` and
+    friends are the builtin classes, so pandas raised
+    ``TypeError: dtype '<class 'list'>' not understood``. ``empty()`` just
+    above tests the dtype object itself, which is why those same annotations
+    work there.
+
+    ``"string"`` is what ``build_table_schema`` reports for an object-dtype
+    column, i.e. what these columns serialize to after the fix; the assertion is
+    spelled out per column on purpose so a different label cannot pass.
+    """
+
+    class Schema(pa.DataFrameModel):
+        a: Series[list]
+        b: Series[tuple]
+        c: Series[dict]
+        d: Series[dict[str, int]]
+        e: Series[list[int]]
+
+    properties = Schema.to_json_schema()["properties"]
+    columns = {
+        name: field for name, field in properties.items() if name != "index"
+    }
+
+    assert columns == {
+        name: {"type": "array", "items": {"type": "string"}}
+        for name in ("a", "b", "c", "d", "e")
+    }
+
+
+def test_typed_dataframe_empty_python_generic_columns() -> None:
+    """Test an empty typed DataFrame with python-generic columns.
+
+    The same assumption shows up in ``DataFrame._before_schema_validate``: an
+    empty frame reports ``float64`` for every column, so each column is coerced
+    to its schema dtype -- and pandas rejects ``dict`` or ``list`` as a dtype.
+    """
+
+    class Schema(pa.DataFrameModel):
+        a: Series[dict]
+        b: Series[list]
+
+    df = DataFrame[Schema](pd.DataFrame({"a": [], "b": []}))
+
+    assert df.empty
+    assert [str(dtype) for dtype in df.dtypes] == ["object", "object"]
+
+
 def test_empty_with_multi_index() -> None:
     """Test to generate an empty DataFrameModel with a named multi index"""
 
