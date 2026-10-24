@@ -22,7 +22,8 @@ class DataFrameSchema(_DataFrameSchema[datafusion.DataFrame]):
             warnings.warn(
                 "Setting report_duplicates to 'exclude_first' or "
                 "'exclude_last' will have no effect on validation. With the "
-                "DataFusion backend, all duplicate values will be reported."
+                "DataFusion backend, all duplicate values will be reported.",
+                stacklevel=2,
             )
 
     @staticmethod
