@@ -633,6 +633,23 @@ def test_check_types_unchanged() -> None:
     pd.testing.assert_frame_equal(transform(df, 2), df)  # type: ignore
 
 
+def test_check_types_preserves_dataframe_input_with_to_format() -> None:
+    """``to_format`` applies to explicit validation, not function inputs."""
+
+    class SchemaWithToFormat(DataFrameModel):
+        value: Series[int]
+
+        class Config:  # pylint: disable=too-few-public-methods
+            to_format = "dict"
+            to_format_kwargs = {"orient": "records"}
+
+    @check_types
+    def mean_value(df: DataFrame[SchemaWithToFormat]) -> float:
+        return df.value.mean()
+
+    assert mean_value(pd.DataFrame({"value": [1, 2, 3]})) == 2.0
+
+
 # required to be globals:
 # see https://pydantic-docs.helpmanual.io/usage/postponed_annotations/
 class InSchema(DataFrameModel):
