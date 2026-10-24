@@ -489,6 +489,14 @@ cli_guide
 ```
 
 ```{toctree}
+:caption: Tutorials
+:hidden: true
+:maxdepth: 2
+
+financial_reconciliation
+```
+
+```{toctree}
 :caption: Advanced
 :hidden: true
 :maxdepth: 6
