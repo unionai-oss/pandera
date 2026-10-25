@@ -653,9 +653,10 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
         # series is relatively slow due to copying the index for
         # each one. Coerce dtypes afterwards instead.
         for c in missing_obj.columns:
-            missing_obj[c] = missing_cols_schema[c].dtype.try_coerce(
-                missing_obj[c]
-            )
+            if missing_cols_schema[c].dtype is not None:
+                missing_obj[c] = missing_cols_schema[c].dtype.try_coerce(
+                    missing_obj[c]
+                )
 
         return missing_obj
 
