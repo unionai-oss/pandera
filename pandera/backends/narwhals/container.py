@@ -1172,7 +1172,7 @@ class DataFrameSchemaBackend(NarwhalsSchemaBackend):
 
         temp_unique: list[list] = (
             [schema.unique]
-            if all(isinstance(x, str) for x in schema.unique)
+            if not any(isinstance(x, list) for x in schema.unique)
             else schema.unique
         )
         frame_column_names = check_obj.collect_schema().names()

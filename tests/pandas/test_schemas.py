@@ -2612,6 +2612,21 @@ def test_schema_level_unique_missing_columns():
         )
 
 
+def test_schema_level_unique_non_string_column_labels():
+    """Integer column labels are valid pandas column names and must work with unique."""
+    test_schema = DataFrameSchema(
+        columns={0: Column(int), 1: Column(int)},
+        unique=[0, 1],
+    )
+
+    df_unique = pd.DataFrame({0: [1, 2, 1], 1: [1, 5, 6]})
+    assert isinstance(test_schema.validate(df_unique), pd.DataFrame)
+
+    df_duplicated = pd.DataFrame({0: [1, 1, 1], 1: [2, 2, 3]})
+    with pytest.raises(errors.SchemaErrors):
+        test_schema.validate(df_duplicated, lazy=True)
+
+
 def test_column_set_unique():
     """
     Test that unique Column attribute can be set via property setter and
