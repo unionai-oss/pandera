@@ -78,8 +78,14 @@ add it to the `dependencies` and `[project.optional-dependencies]` section.
 This project uses [prek](https://prek.j178.dev/) to ensure that code
 standard checks pass locally before pushing to the remote project repo. Follow
 the [installation instructions](https://prek.j178.dev/installation/), then
-set up hooks with `prek install`. After, `black`, `pylint` and `mypy`
-checks should be run with every commit.
+set up hooks with `prek install`. After that, the configured checks,
+including Ruff linting and formatting, Mypy, and other hooks, will run
+with every commit.
+
+For VS Code users, the repository recommends the Ruff extension and
+configures it as the default Python formatter. Enable Format on Save
+in your editor if you want Python files formatted automatically when
+saving.
 
 Make sure everything is working correctly by running
 
@@ -170,7 +176,7 @@ This project uses Sphinx for auto-documentation and RST syntax for docstrings.
 Once you have the code downloaded and you find something that is in need of some
 TLD, take a look at the [Sphinx](https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html)
 documentation or well-documented
-[examples](https://pandera.readthedocs.io/en/stable/_modules/pandera/schemas.html#DataFrameSchema)
+[examples](https://pandera.readthedocs.io/en/stable/dataframe_schemas.html)
 within the codebase for guidance on contributing.
 
 You can build the html documentation by running `nox -s docs`. The built
