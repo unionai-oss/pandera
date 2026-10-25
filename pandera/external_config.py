@@ -18,6 +18,10 @@ def _set_pyspark_environment_variables():
         if os.getenv("PYARROW_IGNORE_TIMEZONE") is None:
             os.environ["PYARROW_IGNORE_TIMEZONE"] = "1"
 
+        from pandera._patch_numpy2 import _patch_numpy2
+
+        _patch_numpy2()
+
         import pyspark.pandas
     except (ImportError, ModuleNotFoundError):
         pass

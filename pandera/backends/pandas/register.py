@@ -53,10 +53,6 @@ def register_pandas_backends(
         through the Narwhals backend.
     """
 
-    from pandera._patch_numpy2 import _patch_numpy2
-
-    _patch_numpy2()
-
     # NOTE: This registers the deprecated DataFrameSchema class. Remove this
     # once the deprecated class is removed.
     from pandera._pandas_deprecated import (
