@@ -652,6 +652,69 @@ def test_add_missing_columns_dtype():
     pd.testing.assert_frame_equal(ref_df, test_df)
 
 
+@pytest.mark.parametrize(
+    "default, nullable",
+    [
+        (None, True),
+        (np.nan, True),
+        (pd.NA, True),
+        (pd.NaT, True),
+        (7, False),
+        ("missing", False),
+        (False, False),
+    ],
+)
+@pytest.mark.parametrize("size", [0, 2])
+@pytest.mark.parametrize("coerce", [False, True])
+@pytest.mark.parametrize("lazy", [False, True])
+def test_add_missing_columns_without_dtype(
+    default: Any, nullable: bool, size: int, coerce: bool, lazy: bool
+) -> None:
+    """Missing untyped columns retain pandas' inferred default dtype."""
+    index = pd.Index([4] * size, name="row")
+    frame = pd.DataFrame({"present": range(size)}, index=index)
+    schema = DataFrameSchema(
+        {
+            "untyped": Column(default=default, nullable=nullable),
+            "present": Column(int),
+            "typed": Column("Int8", default=pd.NA, nullable=True),
+            "null": Column(nullable=True),
+            "optional": Column(required=False, default=1),
+        },
+        add_missing_columns=True,
+        coerce=coerce,
+    )
+    expected = pd.DataFrame(
+        {
+            "untyped": default,
+            "present": range(size),
+            "typed": pd.NA,
+            "null": None,
+        },
+        index=index,
+    ).astype({"typed": "Int8"})
+
+    validated = schema.validate(frame, lazy=lazy)
+
+    pd.testing.assert_frame_equal(validated, expected)
+    assert frame.columns.tolist() == ["present"]
+
+
+@pytest.mark.parametrize("lazy", [False, True])
+def test_add_missing_untyped_column_with_schema_dtype(lazy: bool) -> None:
+    """Schema-level coercion still applies to an added untyped column."""
+    schema = DataFrameSchema(
+        {"missing": Column(default="7")},
+        dtype="int64",
+        coerce=True,
+        add_missing_columns=True,
+    )
+
+    validated = schema.validate(pd.DataFrame(index=[0]), lazy=lazy)
+
+    pd.testing.assert_frame_equal(validated, pd.DataFrame({"missing": [7]}))
+
+
 def test_add_missing_columns_reports_all_in_lazy_validation():
     """Lazy validation should report every missing non-nullable column without
     a default value, not only the first one.
