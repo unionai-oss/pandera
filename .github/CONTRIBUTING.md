@@ -176,7 +176,7 @@ This project uses Sphinx for auto-documentation and RST syntax for docstrings.
 Once you have the code downloaded and you find something that is in need of some
 TLD, take a look at the [Sphinx](https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html)
 documentation or well-documented
-[examples](https://pandera.readthedocs.io/en/stable/_modules/pandera/schemas.html#DataFrameSchema)
+[examples](https://pandera.readthedocs.io/en/stable/dataframe_schemas.html)
 within the codebase for guidance on contributing.
 
 You can build the html documentation by running `nox -s docs`. The built
