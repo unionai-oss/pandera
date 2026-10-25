@@ -588,6 +588,37 @@ def test_add_missing_columns_order():
     )
 
 
+@pytest.mark.parametrize(
+    "columns, expected_columns",
+    [
+        (["a", "x", "x"], ["a", "m", "x", "x"]),
+        (["a", "a"], ["a", "a", "m"]),
+        (["a", "x", "b", "x"], ["a", "m", "x", "b", "x"]),
+    ],
+)
+def test_add_missing_columns_duplicate_column_names(columns, expected_columns):
+    """Test that adding missing columns doesn't repeat duplicate columns.
+
+    https://github.com/unionai-oss/pandera/issues/1370
+    """
+    schema = DataFrameSchema(
+        columns={
+            "a": Column(int),
+            "m": Column(int, default=0),
+            "b": Column(int, required=False),
+        },
+        add_missing_columns=True,
+    )
+    df = pd.DataFrame([list(range(len(columns)))], columns=columns)
+
+    validated = schema.validate(df)
+
+    assert validated.columns.tolist() == expected_columns
+    expected = df.copy()
+    expected.insert(expected_columns.index("m"), "m", 0)
+    pd.testing.assert_frame_equal(validated, expected)
+
+
 def test_add_missing_columns_dtype():
     """Test that missing columns are added with the correct dtype."""
     ref_df = pd.DataFrame(
