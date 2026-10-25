@@ -201,8 +201,15 @@ class PandasSchemaBackend(BaseSchemaBackend):
                 # if the failure cases are a string, it means the error is
                 # a schema-level error.
                 continue
-            # failure_cases may be a DataFrame (with "index" column) or a Series (use .index)
-            if isinstance(err.failure_cases, pd.Series):
+            # Reporting can truncate or omit failure cases from the full mask.
+            if isinstance(
+                err.failure_cases, (pd.Series, pd.DataFrame)
+            ) and isinstance(err.check_output, (pd.Series, pd.DataFrame)):
+                check_output = err.check_output
+                if isinstance(check_output, pd.DataFrame):
+                    check_output = check_output.all(axis="columns")
+                index_values = check_output.index[~check_output.astype(bool)]
+            elif isinstance(err.failure_cases, pd.Series):
                 # Series: use .index to get failing row indices
                 index_values = err.failure_cases.index
             elif isinstance(check_obj.index, pd.MultiIndex):
