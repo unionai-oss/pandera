@@ -17,6 +17,7 @@ from pandera.api.base.model_components import (
     to_parserlist,
 )
 from pandera.api.checks import Check
+from pandera.api.synthesis.semantic import SemanticType
 from pandera.errors import SchemaInitError
 
 AnyCallable = Callable[..., Any]
@@ -74,6 +75,7 @@ class FieldInfo(BaseFieldInfo):
             regex=self.regex,
             required=required,
             name=name,
+            semantic=self.semantic,
             checks=checks,
             parsers=parsers,
             title=self.title,
@@ -99,6 +101,7 @@ class FieldInfo(BaseFieldInfo):
             unique=self.unique,
             coerce=self.coerce,
             name=name,
+            semantic=self.semantic,
             checks=checks,
             parsers=parsers,
             title=self.title,
@@ -122,6 +125,7 @@ class FieldInfo(BaseFieldInfo):
             "description": self.description,
             "metadata": self.metadata,
             "on_missing": self.on_missing,
+            "semantic": self.semantic,
         }
 
 
@@ -170,6 +174,7 @@ def Field(
     default: Any | None = None,
     metadata: dict[str, Any] | None = None,
     on_missing: str | None = None,
+    semantic: "SemanticType | str | None" = None,
     **kwargs: Any,
 ) -> Any:
     """Column or index field specification of a DataFrameModel.
@@ -236,6 +241,10 @@ def Field(
         ``"warn"`` a :class:`~pandera.errors.SchemaWarning` is emitted. This
         overrides the schema-wide ``on_missing_columns`` config option. Only
         supported by the pandas backend for now.
+    :param semantic: optional semantic tag (e.g. ``"email"``, ``"name"``)
+        driving realistic data synthesis with a ``synthesis_backend``. Pure
+        metadata: it has no validation semantics and does not affect
+        ``validate()``.
     :param kwargs: Specify custom checks that have been registered with the
         :class:`~pandera.extensions.register_check_method` decorator.
     """
@@ -285,6 +294,7 @@ def Field(
         dtype_kwargs=dtype_kwargs,
         metadata=metadata,
         on_missing=on_missing,
+        semantic=semantic,
     )
 
 

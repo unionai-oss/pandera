@@ -97,34 +97,57 @@ class DataFrameSchema(_DataFrameSchema[PolarsCheckObjects]):
         """Set the dtype property."""
         self._dtype = polars_engine.Engine.dtype(value) if value else None
 
-    def strategy(self, *, size: int | None = None, n_regex_columns: int = 1):
-        """Create a ``hypothesis`` strategy for generating a DataFrame.
+    def strategy(
+        self,
+        *,
+        size: int | None = None,
+        n_regex_columns: int = 1,
+        synthesis_backend: str | None = None,
+        seed: int | None = None,
+    ):
+        """Create a data-synthesis strategy for generating a Polars DataFrame.
 
-        :param size: number of elements to generate
+        :param size: number of elements to generate.
         :param n_regex_columns: number of regex columns to generate.
-        :returns: a strategy that generates pandas DataFrame objects.
-
-        .. warning::
-
-           This method is not implemented in the polars backend.
+        :param synthesis_backend: optional data-synthesis backend name (e.g.
+            ``"faker"``); ``None`` uses the default (pure-hypothesis) path.
+        :param seed: deterministic seed.
+        :returns: an object whose ``.example()`` returns a native
+            ``pl.DataFrame``.
         """
-        raise NotImplementedError(
-            "Data synthesis is not supported in with polars schemas."
+        import pandera.strategies.polars_strategies as st
+
+        if synthesis_backend is None:
+            synthesis_backend = get_config_context().synthesis_backend
+
+        return st.dataframe_strategy(
+            self.columns,
+            size=size,
+            n_regex_columns=n_regex_columns,
+            synthesis_backend=synthesis_backend,
+            seed=seed,
         )
 
-    def example(self, size: int | None = None, n_regex_columns: int = 1):
+    def example(
+        self,
+        size: int | None = None,
+        n_regex_columns: int = 1,
+        synthesis_backend: str | None = None,
+        seed: int | None = None,
+    ):
         """Generate an example of a particular size.
 
         :param size: number of elements in the generated DataFrame.
-        :returns: pandas DataFrame object.
-
-        .. warning::
-
-           This method is not implemented in polars backend.
+        :param synthesis_backend: optional data-synthesis backend name.
+        :param seed: deterministic seed.
+        :returns: a native ``pl.DataFrame``.
         """
-        raise NotImplementedError(
-            "Data synthesis is not supported in with polars schemas."
-        )
+        return self.strategy(
+            size=size,
+            n_regex_columns=n_regex_columns,
+            synthesis_backend=synthesis_backend,
+            seed=seed,
+        ).example()
 
     #####################
     # Schema IO Methods #
