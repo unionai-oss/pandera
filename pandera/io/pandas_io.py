@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import datetime
 import enum
 import json
 import re
@@ -36,6 +37,22 @@ _MISSING_FRICTIONLESS_IMPORT_ERROR_MESSAGE = (
     "Please install 'frictionless' to use this feature."
 )
 
+_DATETIME_STAT_PATTERN = re.compile(
+    r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}"
+    r"(?:\.\d{1,9})?(?:[+-]\d{2}:\d{2})?"
+)
+_DATETIME_COMPARISON_CHECKS = frozenset(
+    {
+        "equal_to",
+        "not_equal_to",
+        "greater_than",
+        "greater_than_or_equal_to",
+        "less_than",
+        "less_than_or_equal_to",
+        "in_range",
+    }
+)
+
 
 def _serialize_check_stats(check_stats, dtype=None):
     """Serialize check statistics into json/yaml-compatible format."""
@@ -53,6 +70,15 @@ def _serialize_check_stats(check_stats, dtype=None):
                 return sorted(stat)
             except TypeError:
                 return list(stat)
+
+        # Custom checks may have string statistics resembling timestamps, so
+        # preserve their legacy encoding and decoding behavior.
+        if (
+            check_options.get("check_name") in _DATETIME_COMPARISON_CHECKS
+            and isinstance(dtype, pandas_engine.DateTime)
+            and isinstance(stat, datetime.datetime)
+        ):
+            return stat.isoformat(sep=" ")
 
         if pandas_engine.Engine.dtype(dtypes.DateTime).check(
             dtype
@@ -281,6 +307,13 @@ def _deserialize_check_stats(check, serialized_check_stats, dtype=None):
 
     def handle_stat_dtype(stat):
         try:
+            if (
+                options.get("check_name") in _DATETIME_COMPARISON_CHECKS
+                and isinstance(dtype, pandas_engine.DateTime)
+                and isinstance(stat, str)
+                and _DATETIME_STAT_PATTERN.fullmatch(stat)
+            ):
+                return pd.to_datetime(stat, format="ISO8601")
             if pandas_engine.Engine.dtype(dtypes.DateTime).check(dtype):
                 return pd.to_datetime(stat, format=DATETIME_FORMAT)
             elif pandas_engine.Engine.dtype(dtypes.Timedelta).check(dtype):
