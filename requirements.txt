@@ -12,6 +12,7 @@ pyarrow >= 13
 pyarrow-hotfix
 pydantic
 scipy
+faker >= 25
 pandas-stubs
 scipy-stubs
 pyspark[connect] >= 3.2.0
