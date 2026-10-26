@@ -43,6 +43,36 @@ def test_polars_full_serdes_includes_version():
     )
 
 
+@pytest.mark.parametrize("fmt", ["yaml", "json"])
+def test_polars_roundtrip_preserves_metadata(fmt):
+    """Column and schema ``metadata`` survive serialization. GH#1301"""
+    schema = pa.DataFrameSchema(
+        {"col": pa.Column(int, metadata={"key": "value"})},
+        metadata={"owner": "data-team"},
+    )
+    from pandera.io import polars_io
+
+    if fmt == "yaml":
+        restored = polars_io.from_yaml(polars_io.to_yaml(schema))
+    else:
+        restored = polars_io.from_json(polars_io.to_json(schema))
+
+    assert restored.columns["col"].metadata == {"key": "value"}
+    assert restored.metadata == {"owner": "data-team"}
+    assert restored == schema
+
+
+def test_polars_serialize_without_metadata_is_unchanged():
+    """Guard: schemas without metadata serialize as before."""
+    schema = pa.DataFrameSchema({"col": pa.Column(int)})
+    from pandera.io import polars_io
+
+    payload = polars_io.serialize_schema(schema, minimal=False)
+
+    assert "metadata" not in payload
+    assert "metadata" not in payload["columns"]["col"]
+
+
 def test_polars_rejects_pandas_schema_type():
     from pandera.io import polars_io
 

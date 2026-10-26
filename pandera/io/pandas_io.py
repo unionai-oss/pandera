@@ -149,6 +149,7 @@ def _serialize_component_stats(component_stats):
                 "default",
                 "report_duplicates",
                 "drop_invalid_rows",
+                "metadata",
             ]
             if key in component_stats
             and (key != "default" or component_stats[key] is not None)
@@ -266,6 +267,11 @@ def serialize_schema(
         "add_missing_columns": dataframe_schema.add_missing_columns,
         "title": dataframe_schema.title,
         "description": dataframe_schema.description,
+        **(
+            {}
+            if dataframe_schema.metadata is None
+            else {"metadata": dataframe_schema.metadata}
+        ),
         "drop_invalid_rows": dataframe_schema.drop_invalid_rows,
     }
     if lib != "pandas":
@@ -388,6 +394,7 @@ def _deserialize_component_stats(serialized_component_stats):
                 "default",
                 "report_duplicates",
                 "drop_invalid_rows",
+                "metadata",
             ]
             if key in serialized_component_stats
         },
