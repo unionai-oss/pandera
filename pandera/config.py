@@ -54,6 +54,11 @@ class PanderaConfig:
     cache_dataframe: bool = False
     keep_cached_dataframe: bool = False
     use_narwhals_backend: bool = False
+    # Optional default data-synthesis backend name (e.g. "faker"). When set,
+    # any ``strategy()`` / ``example()`` call without an explicit
+    # ``synthesis_backend=`` uses it. ``None`` keeps the default pure-
+    # ``hypothesis`` behavior.
+    synthesis_backend: str | None = None
     silenced_warnings: list[str] = field(default_factory=list)
 
     def is_warning_silenced(self, warning_name: str) -> bool:
@@ -110,6 +115,7 @@ def _config_from_env_vars():
     use_narwhals_backend = (
         os.environ.get("PANDERA_USE_NARWHALS_BACKEND", "False") in _TRUTHY
     )
+    synthesis_backend = os.environ.get("PANDERA_SYNTHESIS_BACKEND", None)
 
     return PanderaConfig(
         validation_enabled=validation_enabled,
@@ -117,6 +123,7 @@ def _config_from_env_vars():
         cache_dataframe=cache_dataframe,
         keep_cached_dataframe=keep_cached_dataframe,
         use_narwhals_backend=use_narwhals_backend,
+        synthesis_backend=synthesis_backend,
         silenced_warnings=_silenced_warnings_from_env(),
     )
 
@@ -166,6 +173,7 @@ def set_config(
     cache_dataframe: bool | None = None,
     keep_cached_dataframe: bool | None = None,
     use_narwhals_backend: bool | None = None,
+    synthesis_backend: str | None = None,
     silenced_warnings: list[str] | None = None,
 ) -> None:
     """Set global configuration options.
@@ -177,6 +185,8 @@ def set_config(
         cache_dataframe: Whether to cache dataframes during validation (default: None)
         keep_cached_dataframe: Whether to keep cached dataframes after validation (default: None)
         use_narwhals_backend: Enable Narwhals-powered backend for compatible backends (default: None)
+        synthesis_backend: Default data-synthesis backend name, or None for the
+            pure-``hypothesis`` default (default: None)
         silenced_warnings: List of warning names to silence (default: None)
 
     Note:
@@ -198,6 +208,8 @@ def set_config(
         CONFIG.keep_cached_dataframe = keep_cached_dataframe
     if use_narwhals_backend is not None:
         CONFIG.use_narwhals_backend = use_narwhals_backend
+    if synthesis_backend is not None:
+        CONFIG.synthesis_backend = synthesis_backend
     if silenced_warnings is not None:
         CONFIG.silenced_warnings = silenced_warnings
 
@@ -221,6 +233,7 @@ def config_context(
     cache_dataframe: bool | None = None,
     keep_cached_dataframe: bool | None = None,
     use_narwhals_backend: bool | None = None,
+    synthesis_backend: str | None = None,
     silenced_warnings: list[str] | None = None,
 ):
     """Temporarily set pandera config options to custom settings."""
@@ -239,6 +252,8 @@ def config_context(
         context_config.keep_cached_dataframe = keep_cached_dataframe
     if use_narwhals_backend is not None:
         context_config.use_narwhals_backend = use_narwhals_backend
+    if synthesis_backend is not None:
+        context_config.synthesis_backend = synthesis_backend
     if silenced_warnings is not None:
         context_config.silenced_warnings = silenced_warnings.copy()
 

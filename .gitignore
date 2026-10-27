@@ -5,7 +5,9 @@ tmp
 pandera/_version.py
 uv.lock
 *.db
-.vscode
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
 dask-worker-space
 spark-warehouse
 docs/source/_contents

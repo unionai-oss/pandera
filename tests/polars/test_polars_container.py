@@ -508,6 +508,35 @@ def test_drop_invalid_rows_nullable(
     assert validated_data.collect().equals(expected_valid_data.collect())
 
 
+def test_drop_invalid_rows_nested_column():
+    """A nested Column with drop_invalid_rows must drop the rows it fails on.
+
+    Regression test for https://github.com/unionai-oss/pandera/issues/2529:
+    the filtered frame returned by Column.validate was discarded when the
+    column was validated inside a DataFrameSchema. The column must keep
+    dropping its failing rows even when the DataFrameSchema itself does not
+    set drop_invalid_rows, and the drop must propagate to the full output
+    row (all columns), not just the validated column.
+    """
+    schema = DataFrameSchema(
+        {
+            "numbers": Column(pl.Int64, C.ge(3), drop_invalid_rows=True),
+            "letters": Column(pl.String),
+        }
+    )
+    data = pl.DataFrame(
+        {"numbers": [1, 2, 3, 4, 5, 6], "letters": ["a"] * 6}
+    ).lazy()
+    validated = data.pipe(schema.validate, lazy=True).collect()
+    assert validated["numbers"].to_list() == [3, 4, 5, 6]
+    assert validated["letters"].to_list() == ["a", "a", "a", "a"]
+
+    # matching the pandas backend tolerance: the column flag is rejected when
+    # validation is not lazy
+    with pytest.raises(pa.errors.SchemaDefinitionError):
+        data.pipe(schema.validate, lazy=False)
+
+
 def test_set_defaults(ldf_basic, ldf_schema_basic):
     ldf_schema_basic.columns["int_col"].default = 1
     ldf_schema_basic.columns["string_col"].default = "a"
@@ -1096,3 +1125,17 @@ def test_dataframe_level_check():
     except pa.errors.SchemaErrors as exc:
         # expect all rows to fail
         assert exc.failure_cases.shape[0] == 3
+
+
+def test_dataframe_schema_inplace_warns():
+    """``inplace=True`` cannot mutate a polars frame, and the container says so.
+
+    ``Column.validate`` already had this assertion; the container-level branch in
+    ``PolarsSchemaBackend._validate`` is a separate warning site.
+    """
+    schema = pa.DataFrameSchema({"column": pa.Column(int)})
+    with pytest.warns(
+        UserWarning,
+        match="setting inplace=True will have no effect",
+    ):
+        schema.validate(pl.DataFrame({"column": [1, 2, 3]}), inplace=True)

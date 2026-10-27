@@ -223,10 +223,9 @@ html_theme = "furo"
 # documentation.
 
 announcement = """
-📢 New in Pandera 0.34.0: validate PyTorch
-<a href='./pytorch_guide/index.html'>TensorDict</a>
-collections - TensorDict, Tensor and tensorclass - with the same schema and
-check patterns as the other dataframe backends!
+📢 New in Pandera 0.35.0: validate pandas, Polars, Ibis, PyArrow and now
+<a href='./datafusion.html'>DataFusion</a> dataframes with the same schema
+and check patterns - Arrow-native query plans validated directly!
 """
 
 html_logo = "_static/pandera-banner.png"

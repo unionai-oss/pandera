@@ -65,6 +65,17 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
         if not is_table(check_obj):
             raise TypeError(f"expected pd.DataFrame, got {type(check_obj)}")
 
+        if getattr(schema, "strict", None) == "filter" and inplace:
+            warnings.warn(
+                "Using ``strict='filter'`` together with ``validate(..., "
+                "inplace=True)`` is deprecated and will no longer be "
+                "supported in a future version. Column filtering no longer "
+                "mutates the input DataFrame in place; use the filtered "
+                "DataFrame returned by ``validate`` instead.",
+                FutureWarning,
+                stacklevel=2,
+            )
+
         if getattr(schema, "drop_invalid_rows", False) and not lazy:
             raise SchemaDefinitionError(
                 "When drop_invalid_rows is True, lazy must be set to True."
@@ -152,6 +163,13 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
                     schema_errors=error_handler.schema_errors,
                     data=check_obj,
                 )
+
+        # Propagate nested Column drop_invalid_rows to the container output
+        # (non-mutating, see _apply_nested_drop_invalid_rows).
+        if any(getattr(c, "drop_invalid_rows", False) for c in components):
+            check_obj = self._apply_nested_drop_invalid_rows(
+                check_obj, components, lazy
+            )
 
         return check_obj
 
@@ -254,15 +272,6 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
                 )
 
                 check_passed.append(is_table(result))
-                if getattr(
-                    schema_component, "drop_invalid_rows", False
-                ) and is_table(result):
-                    # The component already dropped its own invalid rows into
-                    # `result` instead of raising. Mutate check_obj in place
-                    # so the caller, which shares this same object, sees it.
-                    dropped = check_obj.index.difference(result.index)
-                    if len(dropped):
-                        check_obj.drop(index=dropped, inplace=True)
             except SchemaError as err:
                 check_results.append(
                     CoreCheckResult(
@@ -286,6 +295,33 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
                 )
         assert all(check_passed)
         return check_results
+
+    def _apply_nested_drop_invalid_rows(
+        self,
+        check_obj: pd.DataFrame,
+        components: list,
+        lazy: bool,
+    ) -> pd.DataFrame:
+        """Non-mutating propagation of nested Column drop_invalid_rows.
+
+        A ``drop_invalid_rows`` component returns a filtered frame *instead of*
+        raising. ``run_schema_component_checks`` discards that frame, so rebind
+        the container's local ``check_obj`` to it here. Unlike the earlier
+        pandas fix (PR #2521), the caller's frame is never mutated — the drop
+        is propagated through a plain frame assignment.
+        """
+        for schema_component in components:
+            if not getattr(schema_component, "drop_invalid_rows", False):
+                continue
+            try:
+                result = schema_component.validate(
+                    check_obj, lazy=lazy, inplace=True
+                )
+            except (SchemaError, SchemaErrors):
+                continue
+            if is_table(result):
+                check_obj = result
+        return check_obj
 
     @validate_scope(scope=ValidationScope.DATA)
     def run_checks(
@@ -534,7 +570,8 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
                 schema_cols_dict[col_name] = None
 
         concat_ordered_cols = []
-        for col_name in check_obj.columns:
+        # Adjacent columns sharing a label are kept together
+        for col_name, same_label_cols in itertools.groupby(check_obj.columns):
             pop_cols = []
             for next_col_name in iter(schema_cols_dict):
                 if (
@@ -551,8 +588,8 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
                         schema_cols_dict.pop(pop_col)
                     break
 
-            # Add current column
-            concat_ordered_cols.append(col_name)
+            # Add current column(s)
+            concat_ordered_cols.extend(same_label_cols)
 
             # Pop current column if it exists in schema
             schema_cols_dict.pop(col_name, None)
@@ -575,8 +612,23 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
         # Append missing columns
         concat_obj = pd.concat([check_obj, missing_obj], axis=1)
 
-        # Set column order
-        concat_obj = concat_obj[concat_ordered_cols]
+        # Set column order by position, since selecting by label would
+        # repeat columns whose label appears more than once
+        n_cols = check_obj.shape[1]
+        missing_col_positions = {
+            col_name: n_cols + i
+            for i, col_name in enumerate(missing_obj.columns)
+        }
+        existing_col_positions = iter(range(n_cols))
+        concat_obj = concat_obj.iloc[
+            :,
+            [
+                missing_col_positions[col_name]
+                if col_name in missing_col_positions
+                else next(existing_col_positions)
+                for col_name in concat_ordered_cols
+            ],
+        ]
 
         return concat_obj
 
@@ -601,9 +653,10 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
         # series is relatively slow due to copying the index for
         # each one. Coerce dtypes afterwards instead.
         for c in missing_obj.columns:
-            missing_obj[c] = missing_cols_schema[c].dtype.try_coerce(
-                missing_obj[c]
-            )
+            if missing_cols_schema[c].dtype is not None:
+                missing_obj[c] = missing_cols_schema[c].dtype.try_coerce(
+                    missing_obj[c]
+                )
 
         return missing_obj
 
@@ -675,12 +728,10 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
             )
 
         if schema.strict == "filter":
-            if type(check_obj).__module__.startswith("pyspark.pandas"):
-                # NOTE: remove this when we have a separate backend for pyspark
-                # pandas.
-                check_obj = check_obj.drop(labels=filter_out_columns, axis=1)
-            else:
-                check_obj.drop(labels=filter_out_columns, inplace=True, axis=1)
+            # NOTE: use a non-inplace drop. pandas deprecated the ``inplace``
+            # parameter of ``DataFrame.drop`` (removed in pandas >= 3.0), which
+            # previously triggered a DeprecationWarning. See #2599.
+            check_obj = check_obj.drop(labels=filter_out_columns, axis=1)
 
         return check_obj
 
@@ -957,7 +1008,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
         keep_setting = convert_uniquesettings(schema.report_duplicates)
         temp_unique: list[list] = (
             [schema.unique]
-            if all(isinstance(x, str) for x in schema.unique)
+            if not any(isinstance(x, list) for x in schema.unique)
             else schema.unique
         )
         for lst in temp_unique:

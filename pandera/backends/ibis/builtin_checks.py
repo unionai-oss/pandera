@@ -379,10 +379,12 @@ def unique_values_eq(data: IbisData, values: Iterable) -> bool:
     resolved = frozenset(
         v.execute() if isinstance(v, ir.Expr) else v for v in values
     )
+    # Nulls are not values, so they don't count towards the unique values.
     return (
         set(
             data.table.select(data.key)
-            .distinct()[data.key]
+            .distinct()
+            .filter(_[data.key].notnull())[data.key]
             .to_pyarrow()
             .to_pylist()
         )

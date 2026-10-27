@@ -79,6 +79,28 @@ def test_dataset_model_optional_var():
     DS.validate(ds)
 
 
+def test_dataset_model_optional_coordinate():
+    class DS(pa.DatasetModel):
+        a: np.float64 = pa.Field(dims=("x",))
+        x: Coordinate[np.float64] = pa.Field(required=False)
+
+    ds = xr.Dataset({"a": (("x",), np.ones(2, dtype=np.float64))})
+
+    assert DS.to_schema().coords["x"].required is False
+    DS.validate(ds)
+
+
+def test_data_array_model_optional_coordinate():
+    class DA(pa.DataArrayModel):
+        data: np.float64 = pa.Field(dims=("x",))
+        x: Coordinate[np.float64] = pa.Field(required=False)
+
+    data_array = xr.DataArray(np.ones(2, dtype=np.float64), dims=("x",))
+
+    assert DA.to_schema().coords["x"].required is False
+    DA.validate(data_array)
+
+
 def test_data_array_model_requires_data_field():
     class Bad(pa.DataArrayModel):
         x: Coordinate[np.float64]
