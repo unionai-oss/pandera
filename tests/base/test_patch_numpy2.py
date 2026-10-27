@@ -59,7 +59,77 @@ def test_get_pyspark_version_when_not_installed(monkeypatch):
         raise patch_module.metadata.PackageNotFoundError("pyspark")
 
     monkeypatch.setattr(patch_module.metadata, "version", _raise)
+    monkeypatch.setattr(patch_module.util, "find_spec", lambda _name: None)
     assert patch_module._get_pyspark_version() is None
+
+
+@pytest.mark.parametrize(
+    "version_source, expected",
+    [
+        ('__version__: str = "3.5.0"\n', "3.5.0"),
+        ("__version__ = '3.3.2'\n", "3.3.2"),
+        ("# no version here\n", None),
+    ],
+)
+def test_get_pyspark_version_without_package_metadata(
+    monkeypatch, tmp_path, version_source, expected
+):
+    """pyspark on PYTHONPATH without metadata is read from version.py.
+
+    See https://github.com/unionai-oss/pandera/issues/2616
+    """
+    package_dir = tmp_path / "pyspark"
+    package_dir.mkdir()
+    (package_dir / "__init__.py").write_text("raise ImportError('imported')\n")
+    (package_dir / "version.py").write_text(version_source)
+
+    def _raise(_name):
+        raise patch_module.metadata.PackageNotFoundError("pyspark")
+
+    monkeypatch.setattr(patch_module.metadata, "version", _raise)
+    monkeypatch.syspath_prepend(str(tmp_path))
+    monkeypatch.delitem(sys.modules, "pyspark", raising=False)
+    assert patch_module._get_pyspark_version() == expected
+
+
+@requires_numpy2
+def test_patch_numpy2_for_pyspark_3_without_metadata(tmp_path):
+    """numpy is patched when pyspark < 4 has no package metadata.
+
+    Simulates the Databricks / $SPARK_HOME setup from
+    https://github.com/unionai-oss/pandera/issues/2616 with a stub pyspark
+    that needs the removed numpy aliases at import time.
+    """
+    package_dir = tmp_path / "pyspark"
+    package_dir.mkdir()
+    (package_dir / "__init__.py").write_text("import numpy as np\nnp.NaN\n")
+    (package_dir / "version.py").write_text('__version__: str = "3.5.0"\n')
+    result = _run_python(
+        f"""
+        import importlib.util
+        import os
+        import sys
+        from importlib import metadata
+
+        sys.path.insert(0, {str(tmp_path)!r})
+
+        def _raise(_name):
+            raise metadata.PackageNotFoundError(_name)
+
+        metadata.version = _raise
+
+        pandera_dir = os.path.dirname(importlib.util.find_spec("pandera").origin)
+        spec = importlib.util.spec_from_file_location(
+            "_patch_numpy2", os.path.join(pandera_dir, "_patch_numpy2.py")
+        )
+        m = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(m)
+
+        m._patch_numpy2()
+        import pyspark  # fails with AttributeError on np.NaN if unpatched
+        """
+    )
+    assert result.returncode == 0, result.stderr
 
 
 @requires_numpy2

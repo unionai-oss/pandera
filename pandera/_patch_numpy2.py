@@ -10,7 +10,8 @@ modified numpy namespace. See https://github.com/unionai-oss/pandera/issues/2134
 
 import re
 from functools import lru_cache
-from importlib import metadata
+from importlib import metadata, util
+from pathlib import Path
 
 
 def _get_pyspark_version() -> str | None:
@@ -18,7 +19,22 @@ def _get_pyspark_version() -> str | None:
     try:
         return metadata.version("pyspark")
     except metadata.PackageNotFoundError:
+        pass
+
+    # pyspark can be importable without package metadata, e.g. on Databricks
+    # or from $SPARK_HOME/python on PYTHONPATH. See
+    # https://github.com/unionai-oss/pandera/issues/2616
+    spec = util.find_spec("pyspark")
+    if spec is None or spec.origin is None:
         return None
+    try:
+        source = (Path(spec.origin).parent / "version.py").read_text()
+    except OSError:
+        return None
+    match = re.search(
+        r"__version__\s*(?::\s*str\s*)?=\s*[\"']([^\"']+)", source
+    )
+    return match.group(1) if match else None
 
 
 def _pyspark_needs_numpy2_patch() -> bool:
