@@ -35,10 +35,23 @@ Pandera offers a `environment.yml` to set up a conda-based environment and
 ### Environment Setup
 
 This project recommends using [uv](https://docs.astral.sh/uv) to manage the
-development environment.
+development environment. If you don't have `uv` yet, install it with the
+standalone installer (see the
+[uv installation guide](https://docs.astral.sh/uv/getting-started/installation/)
+for other options, such as `pipx install uv`):
 
 ```bash
-pip install uv
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+Avoid `pip install uv` into your system Python: on Debian, Ubuntu and other
+distributions that mark it as externally managed
+([PEP 668](https://peps.python.org/pep-0668/)), it fails with
+`error: externally-managed-environment`.
+
+Then create the environment:
+
+```bash
 uv venv
 uv sync --all-extras
 source .venv/bin/activate
