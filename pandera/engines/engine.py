@@ -198,7 +198,7 @@ class Engine(ABCMeta):
         """Register a Pandera :class:`~pandera.dtypes.DataType` with the engine,
         as class decorator.
 
-        :param pandera_dtype: The DataType to register.
+        :param pandera_dtype_cls: The DataType to register.
         :param equivalents: Equivalent scalar data type classes or
             non-parametrized data type instances.
 
