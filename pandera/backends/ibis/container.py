@@ -417,7 +417,7 @@ class DataFrameSchemaBackend(IbisSchemaBackend):
         keep_setting = convert_uniquesettings(schema.report_duplicates)
         temp_unique: list[list] = (
             [schema.unique]
-            if all(isinstance(x, str) for x in schema.unique)
+            if not any(isinstance(x, list) for x in schema.unique)
             else schema.unique
         )
         for lst in temp_unique:

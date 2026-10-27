@@ -1,6 +1,7 @@
 """Validation backend for polars DataFrameSchema."""
 
 import copy
+import re
 import traceback
 import warnings
 from collections.abc import Callable
@@ -32,6 +33,11 @@ def _to_lazy(df: PolarsFrame) -> pl.LazyFrame:
         return df
 
 
+def get_lazyframe_column_names(df: PolarsFrame) -> list[str]:
+    """Return the column names of a polars DataFrame or LazyFrame."""
+    return df.collect_schema().names()
+
+
 def _to_frame_kind(lf: pl.LazyFrame, kind: type[PolarsFrame]) -> PolarsFrame:
     if issubclass(kind, pl.DataFrame):
         return lf.collect()
@@ -56,7 +62,10 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
         check_lf = _to_lazy(check_obj)  # parsers only accept lazyframe
 
         if inplace:
-            warnings.warn("setting inplace=True will have no effect.")
+            warnings.warn(
+                "setting inplace=True will have no effect.",
+                stacklevel=2,
+            )
 
         error_handler = ErrorHandler(lazy)
 
@@ -154,6 +163,16 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
                     original_exc=result.original_exc,
                 )
 
+        # Propagate nested Column drop_invalid_rows to the container output
+        # (non-mutating). Skipped under head/tail/sample subsampling because a
+        # dropped subsample cannot be mapped back onto the full frame (matching
+        # the pandas backend).
+        if sample is check_obj_parsed:
+            check_lf = self._apply_nested_drop_invalid_rows(
+                check_lf, components, lazy
+            )
+            check_obj_parsed = _to_frame_kind(check_lf, return_type)
+
         if error_handler.collected_errors:
             if getattr(schema, "drop_invalid_rows", False):
                 check_obj_parsed = self.drop_invalid_rows(
@@ -244,6 +263,34 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
         assert all(check_passed)
         return check_results
 
+    def _apply_nested_drop_invalid_rows(
+        self,
+        check_lf: pl.LazyFrame,
+        components: list,
+        lazy: bool,
+    ) -> pl.LazyFrame:
+        """Propagate nested Column drop_invalid_rows to the container output.
+
+        Lazy frames are immutable, so unlike the pandas backend (which mutated
+        the shared frame in place, PR #2521) the filtered frame returned by a
+        ``drop_invalid_rows`` component's ``validate()`` is threaded explicitly
+        through a local binding. Non-drop component validation and error
+        collection still happen in ``run_schema_component_checks``; this only
+        re-runs the drop components to recover their filtered frame.
+        Schema-level errors are already collected there and re-raised by the
+        caller, so they are ignored here.
+        """
+        for schema_component in components:
+            if not getattr(schema_component, "drop_invalid_rows", False):
+                continue
+            try:
+                result = schema_component.validate(check_lf, lazy=lazy)
+            except (SchemaError, SchemaErrors):
+                continue
+            if isinstance(result, pl.LazyFrame):
+                check_lf = result
+        return check_lf
+
     def collect_column_info(self, check_obj: pl.LazyFrame, schema):
         """Collect column metadata for the dataframe."""
         column_names: list[Any] = []
@@ -313,6 +360,13 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
                 columns[col_name] = Column(schema.dtype, name=str(col_name))
 
         schema_components = []
+        # Names of explicit (non-regex) columns in this schema. A regex
+        # ``alias=...`` field must not also govern these columns (issue #2343).
+        explicit_column_names = {
+            name
+            for name, c in columns.items()
+            if not getattr(c, "regex", False)
+        }
         for col_name, col in columns.items():
             if (
                 col.required  # type: ignore
@@ -330,6 +384,51 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
                 # disable coercion at the schema component level since the
                 # dataframe-level schema already coerced it.
                 col.coerce = False  # type: ignore
+                # If this component is a regex selector that would also match
+                # any explicit (non-regex) column, expand it into one
+                # non-regex component per non-explicit match so explicit
+                # columns are left to their own schema (issue #2343).
+                if getattr(col, "regex", False) and explicit_column_names:
+                    all_matched_names = [
+                        name
+                        for name in get_lazyframe_column_names(check_obj)
+                        if re.fullmatch(col.name or "", name)
+                    ]
+                    matched_names = [
+                        name
+                        for name in all_matched_names
+                        if name not in explicit_column_names
+                    ]
+                    if matched_names:
+                        col.regex = False
+                        col.name = matched_names[0]
+                        for extra_name in matched_names[1:]:
+                            extra = copy.deepcopy(col)
+                            extra.name = extra_name
+                            schema_components.append(extra)
+                    elif all_matched_names:
+                        # All regex matches were explicit columns, so there is
+                        # nothing left for this component to govern. Mirror
+                        # the required/optional no-match semantics of the
+                        # component path.
+                        if col.required:
+                            raise SchemaError(
+                                schema=col,
+                                data=check_obj,
+                                message=(
+                                    f"Column regex name='{col.name}' did not "
+                                    "match any non-explicit columns in the "
+                                    "dataframe."
+                                ),
+                                failure_cases=get_lazyframe_column_names(
+                                    check_obj
+                                ),
+                                check=f"no_regex_column_match('{col.name}')",
+                                reason_code=(
+                                    SchemaErrorReason.INVALID_COLUMN_NAME
+                                ),
+                            )
+                        continue
                 schema_components.append(col)
 
         return schema_components
@@ -531,6 +630,14 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
 
         lf_columns = obj.collect_schema().names()
 
+        # Names of explicit (non-regex) columns in this schema. A regex
+        # ``alias=...`` field must not coerce these columns (issue #2343).
+        explicit_column_names = {
+            name
+            for name, c in schema.columns.items()
+            if not getattr(c, "regex", False)
+        }
+
         try:
             if schema.dtype is not None:
                 obj = getattr(schema.dtype, coerce_fn)(obj)
@@ -548,11 +655,13 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
                             # a coercion failure reports the concrete column
                             # name instead of the regex pattern (issue #2363,
                             # mirroring the check path fixed in #2221).
-                            matched_columns = (
-                                obj.select(pl.col(col_schema.selector))
-                                .collect_schema()
-                                .names()
-                            )
+                            matched_columns = [
+                                name
+                                for name in get_lazyframe_column_names(
+                                    obj.select(pl.col(col_schema.selector))
+                                )
+                                if name not in explicit_column_names
+                            ]
                             for matched_column in matched_columns:
                                 obj = getattr(col_schema.dtype, coerce_fn)(
                                     PolarsData(obj, matched_column)
@@ -679,7 +788,7 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
 
         temp_unique: list[list] = (
             [schema.unique]
-            if all(isinstance(x, str) for x in schema.unique)
+            if not any(isinstance(x, list) for x in schema.unique)
             else schema.unique
         )
         check_output = None

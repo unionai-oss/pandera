@@ -48,7 +48,10 @@ class ColumnBackend(IbisSchemaBackend):
         error_handler = ErrorHandler(lazy)
 
         if inplace:
-            warnings.warn("setting inplace=True will have no effect.")
+            warnings.warn(
+                "setting inplace=True will have no effect.",
+                stacklevel=2,
+            )
 
         if schema.name is None:
             raise SchemaDefinitionError(

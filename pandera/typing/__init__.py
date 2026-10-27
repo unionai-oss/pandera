@@ -47,6 +47,13 @@ try:
 except ImportError:
     pass
 
+try:
+    from pandera.typing.tensordict import TensorDict
+
+    _TENSORDICT_TYPING = True
+except ImportError:
+    _TENSORDICT_TYPING = False
+
 
 @lru_cache
 def get_dataframe_types():
@@ -129,3 +136,6 @@ __all__ = [
     "get_index_types",
     "get_series_types",
 ]
+
+if _TENSORDICT_TYPING:
+    __all__.append("TensorDict")

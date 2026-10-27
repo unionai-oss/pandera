@@ -61,7 +61,8 @@ class DataType(dtypes.DataType):
             f"'{dtype_cls}' support is not guaranteed.\n"
             + "Usage Tip: Consider writing a custom "
             + "pandera.dtypes.DataType or opening an issue at "
-            + "https://github.com/pandera-dev/pandera"
+            + "https://github.com/pandera-dev/pandera",
+            stacklevel=2,
         )
 
     def __post_init__(self):

@@ -13,6 +13,7 @@ from pandera.api.narwhals.error_handler import ErrorHandler
 from pandera.api.narwhals.utils import (
     _EAGER_PANDAS_LIKE_IMPLEMENTATIONS,
     _is_pandas_like,
+    _is_plugin_lazy,
     _materialize,
     _to_native,
     _unwrap_failure_cases,
@@ -57,7 +58,10 @@ class ColumnBackend(NarwhalsSchemaBackend):
         :returns: validated frame (same type as input)
         """
         if inplace:
-            warnings.warn("setting inplace=True will have no effect.")
+            warnings.warn(
+                "setting inplace=True will have no effect.",
+                stacklevel=2,
+            )
 
         if schema.name is None:
             raise SchemaDefinitionError(
@@ -114,6 +118,28 @@ class ColumnBackend(NarwhalsSchemaBackend):
                     random_state=random_state,
                 )
         else:
+            if schema.required and schema.selector not in (
+                check_lf.collect_schema().names()
+            ):
+                raise SchemaError(
+                    schema=schema,
+                    data=_to_native(check_lf),
+                    message=(
+                        f"column '{schema.selector}' not in dataframe"
+                        + (
+                            # Previewing the first rows materializes the
+                            # frame, executing a lazy/plugin plan. Skip the
+                            # preview for plugin-served backends (e.g.
+                            # narwhals-datafusion) so the validation stays lazy.
+                            f"\n{nw.to_native(_materialize(check_lf.head()))}"
+                            if not _is_plugin_lazy(check_lf)
+                            else ""
+                        )
+                    ),
+                    failure_cases=schema.selector,
+                    check=f"column_in_dataframe('{schema.selector}')",
+                    reason_code=SchemaErrorReason.COLUMN_NOT_IN_DATAFRAME,
+                )
             error_handler = self.run_checks_and_handle_errors(
                 error_handler,
                 schema,

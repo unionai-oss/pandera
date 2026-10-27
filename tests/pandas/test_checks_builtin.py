@@ -429,6 +429,26 @@ class TestStrLengthArguments:
         """The guard must not catch any form that was already accepted."""
         assert Check.str_length(*args, **kwargs) is not None
 
+
+    @staticmethod
+    @pytest.mark.parametrize(
+        "args, kwargs",
+        [
+            ((3,), {"min_value": 5}),
+            ((1, 4), {"max_value": 10}),
+            ((), {"exact_value": 3, "max_value": 2}),
+            ((), {"exact_value": 3, "min_value": 1}),
+        ],
+    )
+    def test_conflicting_length_arguments_are_rejected(args, kwargs):
+        """Lengths given twice must not be silently dropped.
+
+        Previously positional arguments overwrote the keywords, and
+        exact_value made min_value/max_value disappear, so the check that
+        ran was not the one the user wrote.
+        """
+        with pytest.raises(ValueError):
+            Check.str_length(*args, **kwargs)
     @staticmethod
     def test_matches_the_in_range_message():
         """The same mistake reports the same way in both checks."""

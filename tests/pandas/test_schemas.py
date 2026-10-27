@@ -203,6 +203,45 @@ def test_dataframe_schema_strict() -> None:
         schema.validate(df.loc[:, ["a", "c"]])
 
 
+def test_strict_filter_no_inplace_drop_deprecation_warning():
+    """Regression test for #2599.
+
+    ``strict="filter"`` must not trigger a ``DeprecationWarning`` from the
+    deprecated ``inplace`` parameter of ``pandas.DataFrame.drop`` (deprecated
+    in pandas 3). The non-inplace drop also guarantees the input frame is not
+    mutated unless validation is explicitly ``inplace``.
+    """
+    schema = DataFrameSchema(
+        {"keep": Column(int), "other": Column(int)},
+        strict="filter",
+    )
+    df = pd.DataFrame({"keep": [1, 2], "other": [3, 4], "drop": [5, 6]})
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", DeprecationWarning)
+        result = schema.validate(df)
+
+    assert list(result.columns) == ["keep", "other"]
+    # the input frame is not mutated when validating not-inplace
+    assert list(df.columns) == ["keep", "other", "drop"]
+
+
+def test_strict_filter_inplace_deprecation_warning():
+    """Using ``strict="filter"`` with ``validate(..., inplace=True)`` is
+    deprecated: column filtering no longer mutates the input DataFrame in
+    place because the deprecated pandas ``inplace`` drop was removed (#2599).
+    """
+    schema = DataFrameSchema({"keep": Column(int)}, strict="filter")
+    df = pd.DataFrame({"keep": [1, 2], "drop": [3, 4]})
+
+    with pytest.warns(FutureWarning, match="inplace=True"):
+        result = schema.validate(df, inplace=True)
+
+    assert list(result.columns) == ["keep"]
+    # column filtering no longer mutates the input frame in place
+    assert list(df.columns) == ["keep", "drop"]
+
+
 def test_dataframe_schema_strict_and_ordered_raises_both_errors() -> None:
     """Regression test for #2213: strict=True and ordered=True raise both
     COLUMN_NOT_ORDERED and COLUMN_NOT_IN_SCHEMA when dataframe has both."""
@@ -549,6 +588,37 @@ def test_add_missing_columns_order():
     )
 
 
+@pytest.mark.parametrize(
+    "columns, expected_columns",
+    [
+        (["a", "x", "x"], ["a", "m", "x", "x"]),
+        (["a", "a"], ["a", "a", "m"]),
+        (["a", "x", "b", "x"], ["a", "m", "x", "b", "x"]),
+    ],
+)
+def test_add_missing_columns_duplicate_column_names(columns, expected_columns):
+    """Test that adding missing columns doesn't repeat duplicate columns.
+
+    https://github.com/unionai-oss/pandera/issues/1370
+    """
+    schema = DataFrameSchema(
+        columns={
+            "a": Column(int),
+            "m": Column(int, default=0),
+            "b": Column(int, required=False),
+        },
+        add_missing_columns=True,
+    )
+    df = pd.DataFrame([list(range(len(columns)))], columns=columns)
+
+    validated = schema.validate(df)
+
+    assert validated.columns.tolist() == expected_columns
+    expected = df.copy()
+    expected.insert(expected_columns.index("m"), "m", 0)
+    pd.testing.assert_frame_equal(validated, expected)
+
+
 def test_add_missing_columns_dtype():
     """Test that missing columns are added with the correct dtype."""
     ref_df = pd.DataFrame(
@@ -580,6 +650,69 @@ def test_add_missing_columns_dtype():
     )
     test_df = schema.validate(pd.DataFrame(data={"a": [2, 5]}))
     pd.testing.assert_frame_equal(ref_df, test_df)
+
+
+@pytest.mark.parametrize(
+    "default, nullable",
+    [
+        (None, True),
+        (np.nan, True),
+        (pd.NA, True),
+        (pd.NaT, True),
+        (7, False),
+        ("missing", False),
+        (False, False),
+    ],
+)
+@pytest.mark.parametrize("size", [0, 2])
+@pytest.mark.parametrize("coerce", [False, True])
+@pytest.mark.parametrize("lazy", [False, True])
+def test_add_missing_columns_without_dtype(
+    default: Any, nullable: bool, size: int, coerce: bool, lazy: bool
+) -> None:
+    """Missing untyped columns retain pandas' inferred default dtype."""
+    index = pd.Index([4] * size, name="row")
+    frame = pd.DataFrame({"present": range(size)}, index=index)
+    schema = DataFrameSchema(
+        {
+            "untyped": Column(default=default, nullable=nullable),
+            "present": Column(int),
+            "typed": Column("Int8", default=pd.NA, nullable=True),
+            "null": Column(nullable=True),
+            "optional": Column(required=False, default=1),
+        },
+        add_missing_columns=True,
+        coerce=coerce,
+    )
+    expected = pd.DataFrame(
+        {
+            "untyped": default,
+            "present": range(size),
+            "typed": pd.NA,
+            "null": None,
+        },
+        index=index,
+    ).astype({"typed": "Int8"})
+
+    validated = schema.validate(frame, lazy=lazy)
+
+    pd.testing.assert_frame_equal(validated, expected)
+    assert frame.columns.tolist() == ["present"]
+
+
+@pytest.mark.parametrize("lazy", [False, True])
+def test_add_missing_untyped_column_with_schema_dtype(lazy: bool) -> None:
+    """Schema-level coercion still applies to an added untyped column."""
+    schema = DataFrameSchema(
+        {"missing": Column(default="7")},
+        dtype="int64",
+        coerce=True,
+        add_missing_columns=True,
+    )
+
+    validated = schema.validate(pd.DataFrame(index=[0]), lazy=lazy)
+
+    pd.testing.assert_frame_equal(validated, pd.DataFrame({"missing": [7]}))
 
 
 def test_add_missing_columns_reports_all_in_lazy_validation():
@@ -2542,6 +2675,21 @@ def test_schema_level_unique_missing_columns():
         )
 
 
+def test_schema_level_unique_non_string_column_labels():
+    """Integer column labels are valid pandas column names and must work with unique."""
+    test_schema = DataFrameSchema(
+        columns={0: Column(int), 1: Column(int)},
+        unique=[0, 1],
+    )
+
+    df_unique = pd.DataFrame({0: [1, 2, 1], 1: [1, 5, 6]})
+    assert isinstance(test_schema.validate(df_unique), pd.DataFrame)
+
+    df_duplicated = pd.DataFrame({0: [1, 1, 1], 1: [2, 2, 3]})
+    with pytest.raises(errors.SchemaErrors):
+        test_schema.validate(df_duplicated, lazy=True)
+
+
 def test_column_set_unique():
     """
     Test that unique Column attribute can be set via property setter and
@@ -3082,6 +3230,25 @@ def test_drop_invalid_for_column_within_dataframe_schema():
 
     with pytest.raises(errors.SchemaDefinitionError):
         schema.validate(df, lazy=False)
+
+
+def test_drop_invalid_for_column_within_dataframe_schema_does_not_mutate():
+    """A nested drop_invalid_rows column must not mutate the caller's frame.
+
+    Regression guard: the earlier pandas fix (PR #2521) propagated nested
+    column drops by mutating the shared frame in place. The non-mutating
+    propagation must leave the input untouched while still dropping rows in
+    the validated output.
+    """
+    schema = DataFrameSchema(
+        {"numbers": Column(int, checks=Check.ge(3), drop_invalid_rows=True)}
+    )
+    df = pd.DataFrame({"numbers": [1, 2, 3, 4, 5, 6]})
+    original = df.copy()
+
+    actual_obj = schema.validate(df, lazy=True)
+    assert actual_obj["numbers"].tolist() == [3, 4, 5, 6]
+    pd.testing.assert_frame_equal(df, original)
 
 
 def test_drop_invalid_for_model_schema():

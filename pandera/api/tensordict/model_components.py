@@ -3,13 +3,24 @@
 from collections.abc import Iterable
 from typing import Any, Union
 
-from pandera.api.base.model_components import to_checklist
+from pandera.api.base.model_components import CheckArg, to_checklist
 from pandera.api.checks import Check
 from pandera.api.dataframe.model_components import FieldInfo, _check_dispatch
 from pandera.errors import SchemaInitError
 
 CHECK_KEY = "__check_config__"
 TENSOR_CHECK_KEY = "__tensor_check_config__"
+
+
+def _torch_op(name: str) -> Any:
+    """Return a torch comparison op, raising a clear error if torch is missing."""
+    try:
+        import torch
+    except ImportError:  # pragma: no cover
+        raise ImportError(
+            "no_nan/no_inf field options require `torch` to be installed"
+        ) from None
+    return getattr(torch, name)
 
 
 class TensorDictFieldInfo(FieldInfo):
@@ -76,6 +87,7 @@ def Field(
     *,
     dtype: Any = None,
     shape: tuple[int | None, ...] | None = None,
+    checks: CheckArg | None = None,
     eq: Any | None = None,
     ne: Any | None = None,
     gt: Any | None = None,
@@ -111,14 +123,21 @@ def Field(
     required: bool = True,
     **kwargs: Any,
 ) -> Any:
-    """Field specification for TensorDict models."""
+    """Field specification for TensorDict models.
+
+    In addition to the intrinsic check arguments (``ge``, ``le``, ``isin``,
+    ...) and registered custom checks (passed as ``**kwargs``), the ``checks``
+    argument accepts explicit :class:`~pandera.api.checks.Check` objects (or a
+    list of them), enabling one-off checks such as a valid one-hot row or an
+    ignore-index label without falling back to the object API.
+    """
     check_kwargs = {
         "ignore_na": ignore_na,
         "raise_warning": raise_warning,
         "n_failure_cases": n_failure_cases,
     }
     args = locals()
-    checks = []
+    dispatched_checks = []
 
     check_dispatch = _check_dispatch()
     for key in kwargs:
@@ -139,7 +158,28 @@ def Field(
             check_ = check_constructor(*arg_value, **check_kwargs)
         else:
             check_ = check_constructor(arg_value, **check_kwargs)
-        checks.append(check_)
+        dispatched_checks.append(check_)
+
+    # `no_nan`/`no_inf` are element-wise flags rather than registered check
+    # methods, so build them explicitly.
+    if no_nan:
+        dispatched_checks.append(
+            Check(
+                lambda t: ~_torch_op("isnan")(t),
+                name="no_nan",
+                element_wise=True,
+            )
+        )
+    if no_inf:
+        dispatched_checks.append(
+            Check(
+                lambda t: ~_torch_op("isinf")(t),
+                name="no_inf",
+                element_wise=True,
+            )
+        )
+
+    checks = dispatched_checks + to_checklist(args.get("checks"))
 
     return TensorDictFieldInfo(
         checks=checks or None,
