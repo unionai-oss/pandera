@@ -462,6 +462,11 @@ def test_polars_lazy_failure_cases_empty_and_null_list():
     assert any("null" in str(v) for v in rendered)
 
 
+@pytest.mark.xfail(
+    condition=CONFIG.use_narwhals_backend,
+    reason="Issue #2598 applies to native Polars backend",
+    strict=True,
+)
 @pytest.mark.parametrize(
     "check",
     [
@@ -483,6 +488,11 @@ def test_polars_check_ignore_na_skips_nan(check):
     schema.validate(pl.LazyFrame(data))
 
 
+@pytest.mark.xfail(
+    condition=CONFIG.use_narwhals_backend,
+    reason="Issue #2598 applies to native Polars backend",
+    strict=True,
+)
 @pytest.mark.parametrize(
     "check",
     [
@@ -499,6 +509,11 @@ def test_polars_check_ignore_na_false_fails_nan(check):
         schema.validate(pl.DataFrame(data))
 
 
+@pytest.mark.xfail(
+    condition=CONFIG.use_narwhals_backend,
+    reason="Issue #2598 applies to native Polars backend",
+    strict=True,
+)
 def test_polars_check_nan_real_failure_cases():
     """True violations in float columns are captured without false NaN reports (#2598)."""
     data = {"x": [1.0, float("nan"), 15.0]}
