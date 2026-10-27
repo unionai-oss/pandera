@@ -103,6 +103,7 @@ class PysparkSchemaBackend(BaseSchemaBackend):
                 warnings.warn(
                     message=message,
                     category=SchemaWarning,
+                    stacklevel=2,
                 )
                 return CoreCheckResult(
                     passed=True,

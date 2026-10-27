@@ -244,7 +244,9 @@ def check_input(
             if isinstance(obj_getter, int):
                 try:
                     arg_idx = obj_getter + 1 if is_method else obj_getter
-                    args[arg_idx] = schema.validate(args[arg_idx])
+                    args[arg_idx] = schema.validate(
+                        args[arg_idx], *validate_args
+                    )
                 except IndexError as exc:
                     raise IndexError(
                         f"error in check_input decorator of function '{wrapped.__name__}': the "

@@ -112,7 +112,8 @@ class DataFrameSchema(_DataFrameSchema[ibis.Table]):
         if self.unique_column_names:
             warnings.warn(
                 "unique_column_names=True will have no effect on validation "
-                "since Ibis tables do not support duplicate column names."
+                "since Ibis tables do not support duplicate column names.",
+                stacklevel=2,
             )
 
         if self.add_missing_columns:

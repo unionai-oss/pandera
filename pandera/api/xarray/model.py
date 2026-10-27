@@ -529,6 +529,7 @@ class DataArrayModel(_XarrayModelBase):
             cparsers = list(fi.parses) + cls.__parsers__.get(fname, [])
             coords[fname] = Coordinate(
                 dtype=cdtype,
+                required=fi.required,
                 checks=cchecks,
                 parsers=cparsers,
                 nullable=fi.nullable,
@@ -611,6 +612,7 @@ class DatasetModel(_XarrayModelBase):
                 cparsers = list(fi.parses) + cls.__parsers__.get(fname, [])
                 coords[fname] = Coordinate(
                     dtype=cdtype,
+                    required=fi.required,
                     checks=cchecks,
                     parsers=cparsers,
                     nullable=fi.nullable,

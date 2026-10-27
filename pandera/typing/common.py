@@ -266,9 +266,25 @@ class AnnotationInfo:
             return False
 
     @property
+    def is_generic_tensordict(self) -> bool:
+        """True if the annotation is a TensorDict model container."""
+        try:
+            from pandera.typing.tensordict import TensorDictAnnotationBase
+
+            if self.origin is None:
+                return False
+            return issubclass(self.origin, TensorDictAnnotationBase)
+        except (TypeError, ImportError):
+            return False
+
+    @property
     def is_generic_model(self) -> bool:
         """True if the annotation wraps a pandera model class."""
-        return self.is_generic_df or self.is_generic_xarray
+        return (
+            self.is_generic_df
+            or self.is_generic_xarray
+            or self.is_generic_tensordict
+        )
 
     def _parse_annotation(self, raw_annotation: Any) -> None:
         """Parse key information from annotation.

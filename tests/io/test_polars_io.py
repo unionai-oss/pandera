@@ -120,3 +120,39 @@ def test_polars_from_yaml_rejects_non_dtype_text(text):
     )
     with pytest.raises(TypeError, match="cannot parse input"):
         pa.DataFrameSchema.from_yaml(yaml_text)
+
+
+@pytest.mark.parametrize("fmt", ["yaml", "json"])
+def test_polars_unique_values_eq_survives_serialization(fmt):
+    """The frozenset statistic of ``unique_values_eq`` round-trips."""
+    from pandera.io import polars_io
+
+    schema = pa.DataFrameSchema(
+        {"a": pa.Column(int, checks=[pa.Check.unique_values_eq([3, 1, 2])])}
+    )
+    serialize = getattr(polars_io, f"to_{fmt}")
+    deserialize = getattr(polars_io, f"from_{fmt}")
+    loaded = deserialize(serialize(schema, minimal=False))
+
+    assert loaded == schema
+    (check,) = loaded.columns["a"].checks
+    assert check.statistics == {"values": frozenset({1, 2, 3})}
+    loaded.validate(pl.DataFrame({"a": [1, 2, 3]}))
+    with pytest.raises(SchemaError):
+        loaded.validate(pl.DataFrame({"a": [1, 2]}))
+
+
+@pytest.mark.parametrize("fmt", ["yaml", "json"])
+def test_polars_unsortable_set_statistic_survives_serialization(fmt):
+    """A set statistic whose values can't be sorted is written out as is."""
+    from pandera.io import polars_io
+
+    schema = pa.DataFrameSchema(
+        {"a": pa.Column(str, checks=[pa.Check.unique_values_eq([1, "x"])])}
+    )
+    serialize = getattr(polars_io, f"to_{fmt}")
+    deserialize = getattr(polars_io, f"from_{fmt}")
+    loaded = deserialize(serialize(schema, minimal=False))
+
+    (check,) = loaded.columns["a"].checks
+    assert check.statistics == {"values": frozenset({1, "x"})}

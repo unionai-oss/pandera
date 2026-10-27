@@ -654,6 +654,34 @@ def test_get_dataframe_schema_statistics():
     assert statistics == expectation
 
 
+def test_get_dataframe_schema_statistics_preserves_column_default():
+    schema = pa.DataFrameSchema(columns={"a": pa.Column(int, default=1)})
+
+    statistics = schema_statistics.get_dataframe_schema_statistics(schema)
+
+    assert statistics["columns"]["a"]["default"] == 1
+
+
+def test_get_dataframe_schema_statistics_preserves_report_duplicates():
+    schema = pa.DataFrameSchema(
+        columns={
+            "a": pa.Column(int, unique=True, report_duplicates="exclude_first")
+        }
+    )
+
+    statistics = schema_statistics.get_dataframe_schema_statistics(schema)
+
+    assert statistics["columns"]["a"]["report_duplicates"] == "exclude_first"
+
+
+def test_get_dataframe_schema_statistics_omits_default_report_duplicates():
+    schema = pa.DataFrameSchema(columns={"a": pa.Column(int, unique=True)})
+
+    statistics = schema_statistics.get_dataframe_schema_statistics(schema)
+
+    assert "report_duplicates" not in statistics["columns"]["a"]
+
+
 def test_get_series_schema_statistics():
     """Test that series schema statistics logic is correct."""
     schema = pa.SeriesSchema(
