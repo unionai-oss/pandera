@@ -460,3 +460,54 @@ def test_polars_lazy_failure_cases_empty_and_null_list():
     rendered = exc_info.value.failure_cases["failure_case"].to_list()
     assert "[]" in rendered
     assert any("null" in str(v) for v in rendered)
+
+
+@pytest.mark.parametrize(
+    "check",
+    [
+        pa.Check.lt(10),
+        pa.Check.le(10),
+        pa.Check.in_range(0, 10),
+        pa.Check.isin([1.0, 5.0]),
+        pa.Check.unique_values_eq([1.0, 5.0]),
+        pa.Check.gt(0),
+        pa.Check.ge(0),
+    ],
+)
+def test_polars_check_ignore_na_skips_nan(check):
+    """NaN values in float columns are skipped when ignore_na=True (#2598)."""
+    data = {"x": [1.0, float("nan"), 5.0]}
+    schema = pa.DataFrameSchema({"x": pa.Column(float, check, nullable=True)})
+
+    schema.validate(pl.DataFrame(data))
+    schema.validate(pl.LazyFrame(data))
+
+
+@pytest.mark.parametrize(
+    "check",
+    [
+        pa.Check.lt(10, ignore_na=False),
+        pa.Check.gt(0, ignore_na=False),
+    ],
+)
+def test_polars_check_ignore_na_false_fails_nan(check):
+    """NaN values in float columns fail when ignore_na=False (#2598)."""
+    data = {"x": [1.0, float("nan"), 5.0]}
+    schema = pa.DataFrameSchema({"x": pa.Column(float, check, nullable=True)})
+
+    with pytest.raises(pa.errors.SchemaError):
+        schema.validate(pl.DataFrame(data))
+
+
+def test_polars_check_nan_real_failure_cases():
+    """True violations in float columns are captured without false NaN reports (#2598)."""
+    data = {"x": [1.0, float("nan"), 15.0]}
+    schema = pa.DataFrameSchema(
+        {"x": pa.Column(float, pa.Check.lt(10), nullable=True)}
+    )
+
+    with pytest.raises(pa.errors.SchemaErrors) as exc_info:
+        schema.validate(pl.DataFrame(data), lazy=True)
+
+    failure_cases = exc_info.value.failure_cases["failure_case"].to_list()
+    assert failure_cases == ["15.0"]
