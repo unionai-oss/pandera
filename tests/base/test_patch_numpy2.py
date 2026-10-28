@@ -59,6 +59,46 @@ def test_get_pyspark_version_when_not_installed(monkeypatch):
         raise patch_module.metadata.PackageNotFoundError("pyspark")
 
     monkeypatch.setattr(patch_module.metadata, "version", _raise)
+    # pyspark is not only missing its metadata but isn't importable at all.
+    monkeypatch.setattr(patch_module.util, "find_spec", lambda _name: None)
+    assert patch_module._get_pyspark_version() is None
+
+
+def test_get_pyspark_version_without_package_metadata(monkeypatch):
+    """pyspark on PYTHONPATH without *-info metadata is still detected."""
+
+    def _raise(_name):
+        raise patch_module.metadata.PackageNotFoundError("pyspark")
+
+    monkeypatch.setattr(patch_module.metadata, "version", _raise)
+
+    class _FakePySpark:
+        __version__ = "3.5.0"
+
+    monkeypatch.setattr(
+        patch_module.util,
+        "find_spec",
+        lambda _name: object(),  # non-None: pyspark looks importable
+    )
+    monkeypatch.setattr(
+        patch_module, "import_module", lambda _name: _FakePySpark()
+    )
+    assert patch_module._get_pyspark_version() == "3.5.0"
+
+
+def test_get_pyspark_version_import_failure_is_graceful(monkeypatch):
+    """If pyspark looks importable but its import fails, return ``None``."""
+
+    def _raise(_name):
+        raise patch_module.metadata.PackageNotFoundError("pyspark")
+
+    monkeypatch.setattr(patch_module.metadata, "version", _raise)
+    monkeypatch.setattr(patch_module.util, "find_spec", lambda _name: object())
+
+    def _import_module(_name):
+        raise ImportError("optional dependency like py4j is missing")
+
+    monkeypatch.setattr(patch_module, "import_module", _import_module)
     assert patch_module._get_pyspark_version() is None
 
 
