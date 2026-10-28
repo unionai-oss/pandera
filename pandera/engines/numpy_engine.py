@@ -27,6 +27,15 @@ def _check_integer_overflow(original: Any, coerced: Any) -> None:
     gives ``255``). Only integer-to-integer casts are checked: float-to-integer
     truncation is an intentional, documented cast.
     """
+    from pandera.api.pandas.types import is_table
+
+    if is_table(original):
+        for position in range(len(original.columns)):
+            _check_integer_overflow(
+                original.iloc[:, position], coerced.iloc[:, position]
+            )
+        return
+
     original_kind = getattr(getattr(original, "dtype", None), "kind", None)
     coerced_kind = getattr(getattr(coerced, "dtype", None), "kind", None)
     if original_kind not in ("i", "u") or coerced_kind not in ("i", "u"):
