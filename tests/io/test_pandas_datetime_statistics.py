@@ -85,6 +85,38 @@ def test_datetime_check_statistics_roundtrip(
 
 
 @pytest.mark.parametrize("format", ["json", "yaml"])
+@pytest.mark.parametrize("minimal", [False, True])
+@pytest.mark.parametrize("hour", [5, 6])
+def test_datetime_bounds_preserve_instants_across_dst(format, minimal, hour):
+    """ISO bounds preserve the instant and offset, not the named zone."""
+    if format == "yaml":
+        pytest.importorskip("yaml")
+    threshold = pd.Timestamp(
+        f"2026-11-01 {hour:02}:30:00.500000001", tz="UTC"
+    ).tz_convert("America/New_York")
+    dtype = pandas_engine.DateTime(tz="America/New_York")
+    schema = pa.DataFrameSchema(
+        {"ts": pa.Column(dtype, pa.Check.ge(threshold))}
+    )
+
+    serialized = getattr(schema, f"to_{format}")(minimal=minimal)
+    loaded = getattr(pa.DataFrameSchema, f"from_{format}")(serialized)
+    loaded_bound = loaded.columns["ts"].checks[0].statistics["min_value"]
+
+    assert loaded_bound.value == threshold.value
+    assert loaded_bound.utcoffset() == threshold.utcoffset()
+    for offset in [-1, 0, 1]:
+        value = threshold + pd.Timedelta(offset, unit="ns")
+        frame = pd.DataFrame({"ts": pd.Series([value], dtype=dtype.type)})
+        for validator in [schema, loaded]:
+            if offset < 0:
+                with pytest.raises(pa.errors.SchemaError):
+                    validator.validate(frame)
+            else:
+                validator.validate(frame)
+
+
+@pytest.mark.parametrize("format", ["json", "yaml"])
 def test_legacy_whole_second_datetime_check_statistics(format):
     """Existing whole-second schema snapshots remain readable."""
     snapshot = {

@@ -37,10 +37,6 @@ _MISSING_FRICTIONLESS_IMPORT_ERROR_MESSAGE = (
     "Please install 'frictionless' to use this feature."
 )
 
-_DATETIME_STAT_PATTERN = re.compile(
-    r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}"
-    r"(?:\.\d{1,9})?(?:[+-]\d{2}:\d{2})?"
-)
 _DATETIME_COMPARISON_CHECKS = frozenset(
     {
         "equal_to",
@@ -311,9 +307,11 @@ def _deserialize_check_stats(check, serialized_check_stats, dtype=None):
                 options.get("check_name") in _DATETIME_COMPARISON_CHECKS
                 and isinstance(dtype, pandas_engine.DateTime)
                 and isinstance(stat, str)
-                and _DATETIME_STAT_PATTERN.fullmatch(stat)
             ):
-                return pd.to_datetime(stat, format="ISO8601")
+                try:
+                    return pd.to_datetime(stat, format="ISO8601")
+                except (TypeError, ValueError):
+                    pass
             if pandas_engine.Engine.dtype(dtypes.DateTime).check(dtype):
                 return pd.to_datetime(stat, format=DATETIME_FORMAT)
             elif pandas_engine.Engine.dtype(dtypes.Timedelta).check(dtype):
