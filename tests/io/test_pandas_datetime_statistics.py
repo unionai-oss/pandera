@@ -152,6 +152,36 @@ def test_legacy_whole_second_datetime_check_statistics(format):
 
 @pytest.mark.parametrize("format", ["json", "yaml"])
 @pytest.mark.parametrize("minimal", [False, True])
+@pytest.mark.parametrize("timezone", [None, "UTC"])
+def test_datetime_comparison_keeps_unparseable_statistics(
+    format, minimal, timezone
+):
+    """Loading a schema retains non-ISO bounds for later inspection."""
+    if format == "yaml":
+        pytest.importorskip("yaml")
+    label = "not-a-timestamp"
+    dtype = pandas_engine.DateTime(tz=timezone)
+    schema = pa.DataFrameSchema({"ts": pa.Column(dtype, pa.Check.ge(label))})
+
+    serialized = getattr(schema, f"to_{format}")(minimal=minimal)
+    loaded = getattr(pa.DataFrameSchema, f"from_{format}")(serialized)
+
+    assert loaded.columns["ts"].checks[0].statistics == {"min_value": label}
+    frame = pd.DataFrame(
+        {
+            "ts": pd.Series(
+                [pd.Timestamp("2026-01-01", tz=timezone)], dtype=dtype.type
+            )
+        }
+    )
+    for validator in [schema, loaded]:
+        with pytest.raises(pa.errors.SchemaError) as exc_info:
+            validator.validate(frame)
+        assert exc_info.value.reason_code == SchemaErrorReason.CHECK_ERROR
+
+
+@pytest.mark.parametrize("format", ["json", "yaml"])
+@pytest.mark.parametrize("minimal", [False, True])
 @pytest.mark.parametrize(
     "label",
     [
