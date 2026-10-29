@@ -19,7 +19,7 @@ upload-pypi:
 
 .PHONY: install-uv
 install-uv:
-	pip install uv
+	command -v uv >/dev/null 2>&1 || pip install uv
 
 setup: install-uv
 	uv sync --all-extras
