@@ -408,9 +408,14 @@ def test_annotation_info_metadata_and_literal_annotations() -> None:
     annotated_literal = AnnotationInfo(Annotated[Literal["value"], "metadata"])
     assert annotated_literal.arg == "value"
 
+    # ``arg`` keeps the whole ``Literal[...]`` so the dtype engine can map it
+    # to a categorical. It used to collapse to the first literal value, which
+    # was then handed to the engine as if it were a dtype -- raising for most
+    # values and silently mistyping the column for dtype-shaped ones such as
+    # ``Literal["int64", "float64"]``.
     literal = AnnotationInfo(Series[Literal["value"]])
     assert literal.literal
-    assert literal.arg == "value"
+    assert literal.arg == Literal["value"]
 
 
 class SchemaRedundantField(pa.DataFrameModel):
