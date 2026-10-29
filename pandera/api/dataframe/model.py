@@ -99,16 +99,46 @@ def _extract_field_info(annotation: Any) -> FieldInfo | None:
 
 
 def get_dtype_kwargs(annotation: AnnotationInfo) -> dict[str, Any]:
+    """Bind ``Annotated`` metadata to the dtype's constructor parameters.
+
+    Parameters with a default may be omitted from the annotation.
+    """
     dtype_params = _dtype_metadata(annotation)
     if not dtype_params:
         return {}
 
+    dtype_name = annotation.arg.__name__  # type: ignore
     sig = inspect.signature(annotation.arg)  # type: ignore
-    dtype_arg_names = list(sig.parameters.keys())
-    if len(dtype_params) != len(dtype_arg_names):
+    params = [
+        p
+        for p in sig.parameters.values()
+        if p.kind
+        not in (
+            inspect.Parameter.VAR_POSITIONAL,
+            inspect.Parameter.VAR_KEYWORD,
+        )
+    ]
+    dtype_arg_names = [p.name for p in params]
+
+    if len(dtype_params) > len(dtype_arg_names):
         raise TypeError(
-            f"Annotation '{annotation.arg.__name__}' requires "  # type: ignore
-            + f"all positional arguments {dtype_arg_names}."
+            f"Annotation '{dtype_name}' received {len(dtype_params)} "
+            f"arguments but {dtype_name} only accepts {len(dtype_arg_names)}: "
+            f"{dtype_arg_names}."
+        )
+
+    missing = [
+        p.name
+        for p in params[len(dtype_params) :]
+        if p.default is inspect.Parameter.empty
+    ]
+    if missing:
+        required = [
+            p.name for p in params if p.default is inspect.Parameter.empty
+        ]
+        raise TypeError(
+            f"Annotation '{dtype_name}' requires "
+            f"all positional arguments {required}. Missing: {missing}."
         )
     return dict(zip(dtype_arg_names, dtype_params))
 

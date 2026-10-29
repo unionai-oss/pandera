@@ -385,15 +385,40 @@ class SchemaInvalidAnnotatedDtype(pa.DataFrameModel):
 
 def test_invalid_annotated_dtype():
     """
-    Test incorrect number of parameters for parametrized pandas extension
-    dtypes.
+    Test invalid parameters for parametrized pandas extension dtypes.
     """
+    # "utc" gets bound to `unit`, pandas rejects it
+    with pytest.raises(
+        TypeError, match="Cannot construct a 'DatetimeTZDtype'"
+    ):
+        SchemaInvalidAnnotatedDtype.to_schema()
+
+
+class SchemaAnnotatedDtypeOptionalParam(pa.DataFrameModel):
+    col: Series[Annotated[pd.CategoricalDtype, ["b", "a"]]]
+
+
+def test_annotated_dtype_optional_param():
+    """Test that dtype parameters with defaults can be omitted."""
+    _test_annotated_dtype(
+        SchemaAnnotatedDtypeOptionalParam,
+        pd.CategoricalDtype,
+        {"categories": ["b", "a"]},
+    )
+
+
+class SchemaAnnotatedDtypeTooManyParams(pa.DataFrameModel):
+    col: Series[Annotated[pd.PeriodDtype, "D", "extra"]]
+
+
+def test_annotated_dtype_too_many_params():
+    """Test too many parameters for parametrized pandas extension dtypes."""
     err_msg = re.escape(
-        "Annotation 'DatetimeTZDtype' requires all "
-        r"positional arguments ['unit', 'tz']."
+        "Annotation 'PeriodDtype' received 2 arguments but PeriodDtype only "
+        "accepts 1: ['freq']."
     )
     with pytest.raises(TypeError, match=err_msg):
-        SchemaInvalidAnnotatedDtype.to_schema()
+        SchemaAnnotatedDtypeTooManyParams.to_schema()
 
 
 def test_annotation_info_metadata_and_literal_annotations() -> None:
