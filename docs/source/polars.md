@@ -51,12 +51,15 @@ for details on lazy registration and runtime re-registration.
 
 Then you can use pandera schemas to validate polars dataframes. In the example
 below we'll use the {ref}`class-based API <dataframe-models>` to define a
-{py:class}`~pandera.api.polars.model.DataFrameModel`, which we then use to
-validate a {py:class}`polars.LazyFrame` object.
+{py:class}`~pandera.api.polars.model.DataFrameModel` and validate a
+{py:class}`polars.LazyFrame`. The return type is ``LazyFrame[Schema]``, which
+preserves the schema for static type checkers. The result is still lazy, so
+call ``collect()`` to execute the query.
 
 ```{code-cell} python
 import pandera.polars as pa
 import polars as pl
+from pandera.typing.polars import LazyFrame
 
 
 class Schema(pa.DataFrameModel):
@@ -79,7 +82,8 @@ lf = pl.LazyFrame(
         'price': [8, 12, 10, 16, 20, 18],
     }
 )
-Schema.validate(lf).collect()
+validated_lf: LazyFrame[Schema] = Schema.validate(lf)
+validated_lf.collect()
 ```
 
 You can also use the {py:func}`~pandera.decorators.check_types` decorator to
