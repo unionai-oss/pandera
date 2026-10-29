@@ -8,6 +8,7 @@ import pandas as pd
 import pytest
 
 import pandera.pandas as pa
+from pandera.api.dataframe.model import get_dtype_kwargs
 from pandera.api.pandas.model import _get_nullable_coercion_dtype
 from pandera.dtypes import DataType
 from pandera.typing import AnnotationInfo, DataFrame, Index, Series
@@ -419,6 +420,26 @@ def test_annotated_dtype_too_many_params():
     )
     with pytest.raises(TypeError, match=err_msg):
         SchemaAnnotatedDtypeTooManyParams.to_schema()
+
+
+def test_annotated_dtype_missing_required_param():
+    """Test that parameters without a default can't be omitted."""
+
+    class _Dtype:
+        def __init__(self, a, b, c=None): ...
+
+    annotation = AnnotationInfo(Annotated[_Dtype, 1])
+    err_msg = re.escape(
+        "Annotation '_Dtype' requires all positional arguments ['a', 'b']. "
+        "Missing: ['b']."
+    )
+    with pytest.raises(TypeError, match=err_msg):
+        get_dtype_kwargs(annotation)
+
+    assert get_dtype_kwargs(AnnotationInfo(Annotated[_Dtype, 1, 2])) == {
+        "a": 1,
+        "b": 2,
+    }
 
 
 def test_annotation_info_metadata_and_literal_annotations() -> None:
