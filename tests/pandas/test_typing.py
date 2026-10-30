@@ -8,6 +8,7 @@ import pandas as pd
 import pytest
 
 import pandera.pandas as pa
+from pandera.api.dataframe.model import get_dtype_kwargs
 from pandera.api.pandas.model import _get_nullable_coercion_dtype
 from pandera.dtypes import DataType
 from pandera.typing import AnnotationInfo, DataFrame, Index, Series
@@ -385,15 +386,60 @@ class SchemaInvalidAnnotatedDtype(pa.DataFrameModel):
 
 def test_invalid_annotated_dtype():
     """
-    Test incorrect number of parameters for parametrized pandas extension
-    dtypes.
+    Test invalid parameters for parametrized pandas extension dtypes.
     """
+    # "utc" gets bound to `unit`, pandas rejects it
+    with pytest.raises(
+        TypeError, match="Cannot construct a 'DatetimeTZDtype'"
+    ):
+        SchemaInvalidAnnotatedDtype.to_schema()
+
+
+class SchemaAnnotatedDtypeOptionalParam(pa.DataFrameModel):
+    col: Series[Annotated[pd.CategoricalDtype, ["b", "a"]]]
+
+
+def test_annotated_dtype_optional_param():
+    """Test that dtype parameters with defaults can be omitted."""
+    _test_annotated_dtype(
+        SchemaAnnotatedDtypeOptionalParam,
+        pd.CategoricalDtype,
+        {"categories": ["b", "a"]},
+    )
+
+
+class SchemaAnnotatedDtypeTooManyParams(pa.DataFrameModel):
+    col: Series[Annotated[pd.PeriodDtype, "D", "extra"]]
+
+
+def test_annotated_dtype_too_many_params():
+    """Test too many parameters for parametrized pandas extension dtypes."""
     err_msg = re.escape(
-        "Annotation 'DatetimeTZDtype' requires all "
-        r"positional arguments ['unit', 'tz']."
+        "Annotation 'PeriodDtype' received 2 arguments but PeriodDtype only "
+        "accepts 1: ['freq']."
     )
     with pytest.raises(TypeError, match=err_msg):
-        SchemaInvalidAnnotatedDtype.to_schema()
+        SchemaAnnotatedDtypeTooManyParams.to_schema()
+
+
+def test_annotated_dtype_missing_required_param():
+    """Test that parameters without a default can't be omitted."""
+
+    class _Dtype:
+        def __init__(self, a, b, c=None): ...
+
+    annotation = AnnotationInfo(Annotated[_Dtype, 1])
+    err_msg = re.escape(
+        "Annotation '_Dtype' requires all positional arguments ['a', 'b']. "
+        "Missing: ['b']."
+    )
+    with pytest.raises(TypeError, match=err_msg):
+        get_dtype_kwargs(annotation)
+
+    assert get_dtype_kwargs(AnnotationInfo(Annotated[_Dtype, 1, 2])) == {
+        "a": 1,
+        "b": 2,
+    }
 
 
 def test_annotation_info_metadata_and_literal_annotations() -> None:
