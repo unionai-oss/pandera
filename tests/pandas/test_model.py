@@ -1352,6 +1352,25 @@ def test_multiindex_strict_false_allows_extra_levels() -> None:
     assert isinstance(result, pd.DataFrame)
 
 
+def test_config_strict_index() -> None:
+    """Test that Config.strict_index rejects undeclared named index levels."""
+
+    class Schema(pa.DataFrameModel):
+        value: Series[int]
+
+        class Config:
+            strict_index = True
+
+    assert Schema.to_schema().strict_index is True
+    assert isinstance(
+        Schema.validate(pd.DataFrame({"value": [1]})), pd.DataFrame
+    )
+    with pytest.raises(pa.errors.SchemaError, match="index level 'foo'"):
+        Schema.validate(
+            pd.DataFrame({"value": [1]}, index=pd.Index(["x"], name="foo"))
+        )
+
+
 def test_multiindex_unique_validation_passes() -> None:
     """Test that multiindex_unique validation passes with unique index combinations."""
 
