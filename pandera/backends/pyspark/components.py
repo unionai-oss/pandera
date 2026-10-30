@@ -77,7 +77,8 @@ class ColumnBackend(ColumnSchemaBackend):
         """Get matching column names based on regex column name pattern.
 
         :param schema: schema specification to use
-        :param columns: columns to regex pattern match
+        :param check_obj: dataframe whose column names are matched against
+            the regex pattern
         :returns: matching columns
         """
         columns = check_obj.columns
