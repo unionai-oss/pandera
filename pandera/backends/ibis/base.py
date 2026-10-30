@@ -49,6 +49,10 @@ class IbisSchemaBackend(BaseSchemaBackend):
         check_result: CheckResult = check(check_obj, *args)
 
         passed = check_result.check_passed.execute()
+        # ibis `.all()` over zero rows returns None (SQL three-valued logic):
+        # an empty table vacuously satisfies every check, matching the pandas
+        # backend's behavior on empty frames.
+        passed = passed is not False
         failure_cases = None
         message = None
 
