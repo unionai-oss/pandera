@@ -158,6 +158,9 @@ class ColumnBackend(IbisSchemaBackend):
             isna |= check_obj.isnan()
 
         passed = (~isna).all().to_pyarrow().as_py()
+        # ibis `.all()` over zero rows returns None: an empty column vacuously
+        # satisfies the non-nullable constraint.
+        passed = passed is not False
         check_output = isna.name(CHECK_OUTPUT_KEY)
         failure_cases = check_obj.as_table().filter(check_output)
         return CoreCheckResult(
