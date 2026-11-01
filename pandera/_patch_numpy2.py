@@ -10,15 +10,34 @@ modified numpy namespace. See https://github.com/unionai-oss/pandera/issues/2134
 
 import re
 from functools import lru_cache
-from importlib import metadata
+from importlib import import_module, metadata, util
 
 
 def _get_pyspark_version() -> str | None:
-    """Return the installed pyspark version string without importing pyspark."""
+    """Return the installed pyspark version string without importing pyspark.
+
+    Package metadata is preferred since reading it is side-effect free. Some
+    setups provide pyspark on ``PYTHONPATH`` without installing it as a pip
+    package (e.g. ``$SPARK_HOME/python`` or Databricks runtimes), so no
+    ``*-info`` metadata exists. Fall back to importing the top-level
+    ``pyspark`` package to read ``__version__`` from ``pyspark/version.py``.
+    """
     try:
         return metadata.version("pyspark")
     except metadata.PackageNotFoundError:
+        pass
+
+    if util.find_spec("pyspark") is None:
         return None
+
+    try:
+        pyspark = import_module("pyspark")
+    except (ImportError, ModuleNotFoundError):
+        # pyspark is importable (find_spec succeeded) but its top-level import
+        # failed, e.g. an optional dependency like py4j is missing. Treat it as
+        # not installed rather than crashing pandera's own import.
+        return None
+    return getattr(pyspark, "__version__", None)
 
 
 def _pyspark_needs_numpy2_patch() -> bool:
