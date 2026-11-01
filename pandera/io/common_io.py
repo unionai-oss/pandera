@@ -245,7 +245,8 @@ def _format_checks(checks_list, *, qual: str = ""):
     for check_kwargs in checks_list:
         if check_kwargs is None:
             warnings.warn(
-                "Check cannot be serialized. This check will be ignored"
+                "Check cannot be serialized. This check will be ignored",
+                stacklevel=2,
             )
             continue
 
@@ -257,7 +258,8 @@ def _format_checks(checks_list, *, qual: str = ""):
 
         if "check_name" not in options:
             warnings.warn(
-                "Check cannot be serialized. This check will be ignored"
+                "Check cannot be serialized. This check will be ignored",
+                stacklevel=2,
             )
             continue
 
@@ -488,7 +490,7 @@ def to_script(
 
     script = SCRIPT_TEMPLATE.format(
         columns=column_str,
-        checks=statistics["checks"],
+        checks=_format_checks(statistics["checks"], qual=qual),
         index=index,
         dtype=dataframe_schema.dtype,
         coerce=dataframe_schema.coerce,

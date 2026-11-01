@@ -145,7 +145,8 @@ class DataType(dtypes.DataType):
             f"'{dtype_cls}' support is not guaranteed.\n"
             + "Usage Tip: Consider writing a custom "
             + "pandera.dtypes.DataType or opening an issue at "
-            + "https://github.com/pandera-dev/pandera"
+            + "https://github.com/pandera-dev/pandera",
+            stacklevel=2,
         )
 
     def __post_init__(self):
@@ -462,10 +463,12 @@ class Decimal(DataType, dtypes.Decimal):
     ) -> Union[bool, Iterable[bool]]:
         try:
             pandera_dtype = Engine.dtype(pandera_dtype)
-            assert isinstance(pandera_dtype, Decimal), (
-                "The return is expected to be of Decimal class"
-            )
         except TypeError:  # pragma: no cover
+            return False
+        # A String or Float64 column is a real dtype, not a conversion
+        # failure. Returning False reports a schema error (#2594). An
+        # assert here raises AssertionError, including under lazy=True.
+        if not isinstance(pandera_dtype, Decimal):
             return False
 
         try:
@@ -1167,6 +1170,7 @@ class PydanticModel(DataType):
                 "coerce. The PydanticModel will perform no type "
                 "checking on the empty dataframe.",
                 UserWarning,
+                stacklevel=2,
             )
             column_names = self._get_column_names()
             self._check_column_names(lf, column_names)

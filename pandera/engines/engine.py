@@ -62,6 +62,31 @@ def _is_namedtuple(x: type) -> bool:
     )
 
 
+def _init_params(
+    dtype_cls: type[DataType], data_type: DataType
+) -> dict[str, Any]:
+    """Get the parameters of ``data_type`` to forward to ``dtype_cls``.
+
+    Private attributes are derived from the parameters (e.g. ``_exp`` and
+    ``_ctx`` of :class:`~pandera.dtypes.Decimal`), so they are not
+    forwarded. A parameter that ``dtype_cls`` does not accept is dropped
+    only if it still holds its default value, e.g. the ``rounding`` of a
+    :class:`~pandera.dtypes.Decimal` for engines without a rounding mode.
+    """
+    target_params = inspect.signature(dtype_cls).parameters
+    source_params = inspect.signature(type(data_type)).parameters
+    params = {}
+    for name, value in vars(data_type).items():
+        if name.startswith("_"):
+            continue
+        if name not in target_params and name in source_params:
+            default = source_params[name].default
+            if default is not inspect.Parameter.empty and value == default:
+                continue
+        params[name] = value
+    return params
+
+
 @dataclass
 class _DtypeRegistry:
     dispatch: Dispatch
@@ -282,7 +307,9 @@ class Engine(ABCMeta):
             # the parameters into the recognized data type class.
             equivalent_data_type = registry.get_equivalent(type(data_type))
             if equivalent_data_type is not None:
-                return type(equivalent_data_type)(**data_type.__dict__)
+                return type(equivalent_data_type)(
+                    **_init_params(type(equivalent_data_type), data_type)
+                )
 
         try:
             return registry.dispatch(data_type)

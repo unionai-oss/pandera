@@ -22,10 +22,6 @@ if parse(np.__version__) < _min_numpy_version:
         f"{np.__version__}. Please upgrade numpy to the minimum supported version."
     )
 
-from pandera._patch_numpy2 import _patch_numpy2
-
-_patch_numpy2()
-
 import pandera.backends.base.builtin_checks
 import pandera.backends.base.builtin_hypotheses
 import pandera.backends.pandas

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import datetime
 import enum
 import json
 import re
@@ -36,6 +37,18 @@ _MISSING_FRICTIONLESS_IMPORT_ERROR_MESSAGE = (
     "Please install 'frictionless' to use this feature."
 )
 
+_DATETIME_COMPARISON_CHECKS = frozenset(
+    {
+        "equal_to",
+        "not_equal_to",
+        "greater_than",
+        "greater_than_or_equal_to",
+        "less_than",
+        "less_than_or_equal_to",
+        "in_range",
+    }
+)
+
 
 def _serialize_check_stats(check_stats, dtype=None):
     """Serialize check statistics into json/yaml-compatible format."""
@@ -44,6 +57,24 @@ def _serialize_check_stats(check_stats, dtype=None):
         # Handle enum types by converting them to a list of values
         if isinstance(stat, type) and issubclass(stat, enum.Enum):
             return [e.value for e in stat]
+
+        # sets (e.g. the ``unique_values_eq`` statistic) are not json/yaml
+        # serializable, so store them as a list, sorted when possible to
+        # keep the output deterministic.
+        if isinstance(stat, (set, frozenset)):
+            try:
+                return sorted(stat)
+            except TypeError:
+                return list(stat)
+
+        # Custom checks may have string statistics resembling timestamps, so
+        # preserve their legacy encoding and decoding behavior.
+        if (
+            check_options.get("check_name") in _DATETIME_COMPARISON_CHECKS
+            and isinstance(dtype, pandas_engine.DateTime)
+            and isinstance(stat, datetime.datetime)
+        ):
+            return stat.isoformat(sep=" ")
 
         if pandas_engine.Engine.dtype(dtypes.DateTime).check(
             dtype
@@ -272,6 +303,15 @@ def _deserialize_check_stats(check, serialized_check_stats, dtype=None):
 
     def handle_stat_dtype(stat):
         try:
+            if (
+                options.get("check_name") in _DATETIME_COMPARISON_CHECKS
+                and isinstance(dtype, pandas_engine.DateTime)
+                and isinstance(stat, str)
+            ):
+                try:
+                    return pd.to_datetime(stat, format="ISO8601")
+                except (TypeError, ValueError):
+                    pass
             if pandas_engine.Engine.dtype(dtypes.DateTime).check(dtype):
                 return pd.to_datetime(stat, format=DATETIME_FORMAT)
             elif pandas_engine.Engine.dtype(dtypes.Timedelta).check(dtype):

@@ -23,7 +23,9 @@ global:
   - requirements-*.txt
   - environment.yml
   - .coveragerc
-  - .github/**
+  - .github/workflows/**
+  - .github/actions/**
+  - .github/filters.yaml
   - scripts/**
 
 docs:

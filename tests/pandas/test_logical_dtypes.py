@@ -196,6 +196,44 @@ def test_invalid_decimal_params(precision: int, scale: int):
 
 
 @pytest.mark.parametrize(
+    "dtype, expected",
+    [
+        (pa.Decimal(), pandas_engine.Decimal()),
+        (pa.Decimal(28, 2), pandas_engine.Decimal(28, 2)),
+        (
+            pa.Decimal(10, 4, rounding="ROUND_DOWN"),
+            pandas_engine.Decimal(10, 4, rounding="ROUND_DOWN"),
+        ),
+    ],
+)
+def test_generic_decimal_to_pandas_engine(dtype, expected):
+    """Test that a parametrized generic Decimal resolves to the pandas
+    engine Decimal with the same parameters."""
+    pandas_dtype = pandas_engine.Engine.dtype(dtype)
+    assert isinstance(pandas_dtype, pandas_engine.Decimal)
+    assert pandas_dtype == expected
+    assert pandas_dtype.rounding == expected.rounding
+
+
+def test_generic_decimal_schema_validation():
+    """Test that schemas and models accept parametrized generic Decimals."""
+    data = pd.DataFrame({"x": [Decimal("1.21"), Decimal("3.4")]})
+    schema = pa.DataFrameSchema({"x": pa.Column(pa.Decimal(28, 2))})
+    assert schema.validate(data).equals(data)
+
+    class Model(pa.DataFrameModel):
+        x: pa.typing.Series[pa.typing.Decimal] = pa.Field(
+            dtype_kwargs={"precision": 28, "scale": 2}
+        )
+
+    assert Model.validate(data).equals(data)
+
+    invalid = pd.DataFrame({"x": [Decimal("1.21"), Decimal("3.456")]})
+    with pytest.raises(pa.errors.SchemaError, match="Decimal\\(28, 2\\)"):
+        schema.validate(invalid)
+
+
+@pytest.mark.parametrize(
     "value",
     [
         pd.Series([Decimal("1")]),
