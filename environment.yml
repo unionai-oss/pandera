@@ -20,6 +20,9 @@ dependencies:
   # hypotheses extra
   - scipy
 
+  # strategy-faker extra
+  - faker >= 25
+
   # mypy extra
   - pandas-stubs
   - scipy-stubs
