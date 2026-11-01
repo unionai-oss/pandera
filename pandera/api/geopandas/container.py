@@ -93,16 +93,32 @@ class GeoDataFrameSchema(DataFrameSchema):
         return to_geodataframe(result)
 
     @strategy_import_error
-    def strategy(self, *, size: int | None = None, n_regex_columns: int = 1):
+    def strategy(
+        self,
+        *,
+        size: int | None = None,
+        n_regex_columns: int = 1,
+        synthesis_backend: str | None = None,
+        seed: int | None = None,
+    ):
         """Like :meth:`DataFrameSchema.strategy`, but generated frames are
         ``GeoDataFrame`` instances when applicable.
         """
         require_geopandas()
-        strat = super().strategy(size=size, n_regex_columns=n_regex_columns)
+        strat = super().strategy(
+            size=size,
+            n_regex_columns=n_regex_columns,
+            synthesis_backend=synthesis_backend,
+            seed=seed,
+        )
         return strat.map(to_geodataframe)
 
     def example(
-        self, size: int | None = None, n_regex_columns: int = 1
+        self,
+        size: int | None = None,
+        n_regex_columns: int = 1,
+        synthesis_backend: str | None = None,
+        seed: int | None = None,
     ) -> pd.DataFrame:
         """Like :meth:`DataFrameSchema.example`, but returns a ``GeoDataFrame``
         when applicable.
@@ -115,7 +131,10 @@ class GeoDataFrameSchema(DataFrameSchema):
                 category=hypothesis.errors.NonInteractiveExampleWarning,
             )
             return self.strategy(
-                size=size, n_regex_columns=n_regex_columns
+                size=size,
+                n_regex_columns=n_regex_columns,
+                synthesis_backend=synthesis_backend,
+                seed=seed,
             ).example()
 
     #####################

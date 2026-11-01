@@ -41,6 +41,9 @@ dependencies = [
 [project.scripts]
 pandera = "pandera.cli:main"
 
+[project.entry-points."pandera.synthesis_backends"]
+faker = "pandera.strategies.faker_strategies:faker_backend"
+
 [project.urls]
 Documentation = "https://pandera.readthedocs.io"
 "Issue Tracker" = "https://github.com/pandera-dev/pandera/issues"
@@ -58,6 +61,9 @@ pandas = [
 ]
 strategies = [
     "hypothesis >= 6.92.7",
+]
+strategy-faker = [
+    "faker >= 25",
 ]
 hypotheses = [
     "scipy",
@@ -122,6 +128,7 @@ all = [
     "hypothesis >= 6.92.7",
     "scipy",
     "scipy-stubs; python_version>='3.10'",
+    "faker >= 25",
     "pyyaml >= 5.1",
     "black",
     "frictionless <= 4.40.8",
