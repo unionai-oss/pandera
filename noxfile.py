@@ -154,6 +154,14 @@ def _testing_requirements(
     ]
     if extra is not None:
         _requirements += PYPROJECT["project"]["optional-dependencies"][extra]
+    # the strategies extra ships a built-in Faker synthesis backend; its tests
+    # exercise it, so the strategies env must install the opt-in strategy-faker
+    # dependency (kept separate in pyproject so end-user installs stay light).
+    if extra == "strategies":
+        _requirements += PYPROJECT["project"]["optional-dependencies"].get(
+            "strategy-faker", []
+        )
+
     # narwhals backend tests run with polars+ibis co-installed (TEST-03).
     if extra == "narwhals":
         _requirements += PYPROJECT["project"]["optional-dependencies"].get(
