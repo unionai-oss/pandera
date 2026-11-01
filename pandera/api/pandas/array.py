@@ -71,7 +71,14 @@ class ArraySchema(ComponentSchema[TDataObject]):
     ###########################
 
     @strategy_import_error
-    def strategy(self, *, size=None):
+    def strategy(
+        self,
+        *,
+        size=None,
+        n_regex_columns: int = 1,  # pylint: disable=unused-argument
+        synthesis_backend: str | None = None,
+        seed: int | None = None,
+    ):
         """Create a ``hypothesis`` strategy for generating a Series.
 
         :param size: number of elements to generate
@@ -82,12 +89,15 @@ class ArraySchema(ComponentSchema[TDataObject]):
         self.register_default_backends(pd.DataFrame)
 
         return st.series_strategy(
-            self.dtype,
+            self.dtype,  # type: ignore[arg-type]
             checks=self.checks,
             nullable=self.nullable,
             unique=self.unique,
             name=self.name,
             size=size,
+            semantic=self.semantic,
+            synthesis_backend=synthesis_backend,
+            seed=seed,
         )
 
     def example(self, size=None, n_regex_columns: int = 1) -> TDataObject:
