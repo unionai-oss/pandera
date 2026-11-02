@@ -201,8 +201,6 @@ class DataFrameModel(_DataFrameModel[pl.LazyFrame, DataFrameSchema]):
     def to_json_schema(cls):
         """Serialize schema metadata into json-schema format.
 
-        :param dataframe_schema: schema to write to json-schema format.
-
         .. note::
 
             This function is currently does not fully specify a pandera schema,

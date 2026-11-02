@@ -269,7 +269,7 @@ def load(path):
     """Load TensorDict from disk and validate with schema."""
     import torch
 
-    data = torch.load(path, weights_only=False)
+    data = torch.load(path, weights_only=True)
 
     if isinstance(data, dict) and "tensordict" in data:
         td = data["tensordict"]

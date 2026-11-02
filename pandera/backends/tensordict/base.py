@@ -209,24 +209,43 @@ class TensorDictSchemaBackend(BaseSchemaBackend):
                 )
 
     def _check_keys(self, check_obj, schema, error_handler, lazy):
-        """Validate required keys exist."""
+        """Validate required keys exist.
+
+        Keys may be plain strings (e.g. ``"observation"``) or nested tuples
+        (e.g. ``("next", "observation")``) matching TorchRL's nested
+        TensorDict layout. Nested membership is resolved through
+        ``keys(include_nested=True)``.
+        """
+        try:
+            from tensordict import TensorDictBase
+        except ImportError:
+            TensorDictBase = None
+
+        is_td_base = TensorDictBase is not None and isinstance(
+            check_obj, TensorDictBase
+        )
+
         for key in schema.keys:
-            # Check if key exists - use different methods for TensorDict vs tensorclass
-            is_key_present = False
-
             try:
-                from tensordict import TensorDictBase
-
-                if isinstance(check_obj, TensorDictBase):
-                    is_key_present = key in check_obj.keys()
+                if is_td_base:
+                    # ``key in check_obj.keys()`` raises for tuple keys, so
+                    # use the nested-aware key set when available.
+                    if isinstance(key, tuple):
+                        is_key_present = key in check_obj.keys(
+                            include_nested=True
+                        )
+                    else:
+                        is_key_present = key in check_obj.keys()
                 else:
-                    # For tensorclass, use keys() method or attribute access
+                    # For tensorclass, use keys() method or attribute access.
                     if hasattr(check_obj, "keys"):
                         is_key_present = key in check_obj.keys()
                     elif hasattr(check_obj, key):
                         is_key_present = True
-            except ImportError:
-                pass
+                    else:
+                        is_key_present = False
+            except Exception:
+                is_key_present = False
 
             if not is_key_present:
                 error_msg = f"Missing key '{key}' in TensorDict"
@@ -234,7 +253,9 @@ class TensorDictSchemaBackend(BaseSchemaBackend):
                     schema=schema,
                     data=check_obj,
                     message=error_msg,
+                    failure_cases={"failure_case": [key]},
                     reason_code=SchemaErrorReason.COLUMN_NOT_IN_DATAFRAME,
+                    column_name=key,
                 )
                 error_handler.collect_error(
                     get_error_category(error.reason_code),
@@ -330,7 +351,9 @@ class TensorDictSchemaBackend(BaseSchemaBackend):
 
     def _run_value_checks(self, check_obj, schema, error_handler, lazy):
         """Run value checks on tensor values."""
-        from pandera.api.base.checks import CheckResult
+        from pandera.backends.tensordict.checks import (
+            TensorDictCheckBackend,
+        )
 
         for key, tensor_schema in schema.keys.items():
             try:
@@ -341,18 +364,10 @@ class TensorDictSchemaBackend(BaseSchemaBackend):
             if not tensor_schema.checks:
                 continue
 
-            # For value checks, we need to pass the tensor data
-            tensor_data = {key: tensor}
-
             for check_index, check in enumerate(tensor_schema.checks):
+                # Use TensorDictCheckBackend directly.
+                check_backend = TensorDictCheckBackend(check)
                 try:
-                    # Use TensorDictCheckBackend directly
-                    from pandera.backends.tensordict.checks import (
-                        TensorDictCheckBackend,
-                    )
-
-                    check_backend = TensorDictCheckBackend(check)
-
                     # Apply check to the tensor (not dict)
                     check_result = check_backend.apply(tensor)
 
@@ -361,31 +376,72 @@ class TensorDictSchemaBackend(BaseSchemaBackend):
                         tensor, check_result
                     )
                 except Exception as exc:
+                    # A raised check function surfaces as a failure; normalize
+                    # the ``CoreCheckResult`` (``passed``) to the ``CheckResult``
+                    # contract (``check_passed``) consumed below, and carry the
+                    # exception message for reporting.
                     check_result = CoreCheckResult(
                         passed=False,
                         check=check,
                         check_index=check_index,
+                        check_output=None,
                         reason_code=SchemaErrorReason.CHECK_ERROR,
                         message=str(exc),
                     )
 
-                if not check_result.check_passed:
-                    error_msg = (
-                        f"Check '{check}' failed for key '{key}': check failed"
+                check_passed = getattr(check_result, "check_passed", None)
+                if check_passed is None:
+                    check_passed = bool(getattr(check_result, "passed", False))
+                if check_passed:
+                    continue
+
+                failure_cases = getattr(check_result, "failure_cases", None)
+                check_error = getattr(check, "error", None)
+                check_description = (
+                    check_error() if callable(check_error) else check_error
+                )
+                if not check_description:
+                    check_description = str(check)
+
+                # If the check function raised, surface its exception message.
+                exc_message = getattr(check_result, "message", None)
+                if exc_message:
+                    check_description = f"{check_description}: {exc_message}"
+
+                try:
+                    failure_detail = check_backend.failure_cases_message(
+                        failure_cases
                     )
-                    error = SchemaError(
-                        schema=schema,
-                        data=check_obj,
-                        message=error_msg,
-                        check=check,
-                        check_index=check_index,
-                        reason_code=SchemaErrorReason.CHECK_ERROR,
+                except Exception:
+                    failure_detail = "check failed"
+
+                # Compose the message so it points at the failing elements.
+                # e.g. "... greater_than(0.0): failure cases at index [1, 3]"
+                if failure_detail != "check failed":
+                    check_description = (
+                        f"{check_description}: {failure_detail}"
                     )
-                    error_handler.collect_error(
-                        get_error_category(error.reason_code),
-                        error.reason_code,
-                        error,
-                    )
+
+                error_msg = (
+                    f"column '{key}' failed element-wise validator number "
+                    f"{check_index}: {check_description}"
+                )
+                error = SchemaError(
+                    schema=schema,
+                    data=check_obj,
+                    message=error_msg,
+                    failure_cases=failure_cases,
+                    check=check,
+                    check_index=check_index,
+                    check_output=getattr(check_result, "check_output", None),
+                    reason_code=SchemaErrorReason.CHECK_ERROR,
+                    column_name=key,
+                )
+                error_handler.collect_error(
+                    get_error_category(error.reason_code),
+                    error.reason_code,
+                    error,
+                )
 
     def run_check(self, check_obj, schema, check, check_index, *args):
         """Run a single check on the check object."""

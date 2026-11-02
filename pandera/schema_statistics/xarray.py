@@ -218,6 +218,7 @@ def parse_check_statistics(
         if check_fn is None:
             warnings.warn(
                 f"Check `{check_name}` not found, skipping.",
+                stacklevel=2,
             )
             continue
         try:

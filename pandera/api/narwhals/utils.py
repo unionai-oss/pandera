@@ -97,6 +97,20 @@ def _is_lazy(frame) -> bool:
     return False
 
 
+def _is_plugin_lazy(frame) -> bool:
+    """True if frame is a ``nw.LazyFrame`` whose implementation is ``UNKNOWN``.
+
+    Narwhals plugins (e.g. ``narwhals-datafusion``) cannot add a member to
+    ``nw.Implementation``, so their frames report ``UNKNOWN`` and are missed
+    by ``_is_sql_lazy``. pandera assumes such a frame is a lazy query plan
+    without ``tail`` support, which holds for ``narwhals-datafusion``.
+    """
+    return (
+        isinstance(frame, nw.LazyFrame)
+        and frame.implementation is nw.Implementation.UNKNOWN
+    )
+
+
 def _unwrap_failure_cases(fc):
     """Unwrap a Narwhals failure-cases frame to its native backend representation.
 

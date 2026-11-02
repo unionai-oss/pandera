@@ -120,6 +120,14 @@ def register_default_check_backends(check_obj_cls: type) -> None:
         register_pyarrow_backends()
         return
 
+    if module.startswith("datafusion."):
+        from pandera.backends.datafusion.register import (
+            register_datafusion_backends,
+        )
+
+        register_datafusion_backends()
+        return
+
     if module.startswith("ibis."):
         from pandera.backends.ibis.register import register_ibis_backends
         from pandera.config import CONFIG

@@ -93,13 +93,14 @@ def test_polars_column_check(
     )
 
 
-@pytest.mark.xfail(
-    condition=CONFIG.use_narwhals_backend,
-    reason="The narwhals backend ignores null check outputs on polars frames even when ignore_na=False",
-    strict=True,
-)
 def test_polars_check_ignore_na_false_fails_null_rows():
-    """A null value fails the check when ignore_na=False."""
+    """A null value fails the check when ignore_na=False.
+
+    Regression test: the narwhals backend used to discard null check outputs
+    (``all()``/``filter(~...)`` both drop nulls), which made ``ignore_na=False``
+    inert. Null outputs are now filled with False so the null row is reported
+    as a failure, matching the native polars backend.
+    """
     lf = pl.LazyFrame({"col": pl.Series([None, 1, 2], dtype=int)})
     schema = pa.DataFrameSchema(
         {"col": pa.Column(int, pa.Check.ge(0, ignore_na=False), nullable=True)}

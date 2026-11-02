@@ -91,6 +91,7 @@ jobs:
           MODIN: ${{ steps.filter.outputs.modin }}
           XARRAY: ${{ steps.filter.outputs.xarray }}
           PYARROW: ${{ steps.filter.outputs.pyarrow }}
+          DATAFUSION: ${{ steps.filter.outputs.datafusion }}
           NARWHALS: ${{ steps.filter.outputs.narwhals }}
           HYPOTHESES: ${{ steps.filter.outputs.hypotheses }}
           IO: ${{ steps.filter.outputs.io }}
@@ -410,24 +411,19 @@ jobs:
         # .github/filters.yaml, scripts/ci/derive_test_flags.sh); the job is skipped when the list
         # is empty via the `if` above.
         extra: ${{ fromJSON(needs.changes.outputs.dataframe_extras) }}
-        include:
-        - extra: polars
-          python-version: "3.10"
-          polars-version: "1.20.0"
-        - extra: polars
-          python-version: "3.11"
-          polars-version: "1.20.0"
-        - extra: polars
-          python-version: "3.12"
-          polars-version: "1.33.1"
-        - extra: polars
-          python-version: "3.13"
-          polars-version: "1.33.1"
-        - extra: polars
-          python-version: "3.14"
-          polars-version: "1.42.1"
-        - extra: polars
-          pydantic-version: "2.12.3"
+        # Only augment selected Polars jobs. Otherwise these include entries
+        # become standalone jobs without an operating system.
+        include: >-
+          ${{ contains(fromJSON(needs.changes.outputs.dataframe_extras), 'polars')
+              && fromJSON('[
+                {"extra":"polars","python-version":"3.10","polars-version":"1.20.0"},
+                {"extra":"polars","python-version":"3.11","polars-version":"1.20.0"},
+                {"extra":"polars","python-version":"3.12","polars-version":"1.33.1"},
+                {"extra":"polars","python-version":"3.13","polars-version":"1.33.1"},
+                {"extra":"polars","python-version":"3.14","polars-version":"1.42.1"},
+                {"extra":"polars","pydantic-version":"2.12.3"}
+              ]')
+              || fromJSON('[]') }}
         exclude:
         - extra: modin-ray
           os: windows-latest

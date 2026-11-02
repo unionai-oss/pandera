@@ -1,6 +1,7 @@
 """Narwhals engine and data types."""
 
 import dataclasses
+import inspect
 import sys
 from typing import Any, Optional, Union
 
@@ -106,7 +107,20 @@ class Engine(metaclass=engine.Engine, base_pandera_dtypes=DataType):
         (e.g. ``polars_engine.Int64``), the method falls back to the shared
         abstract pandera base class (e.g. ``dtypes.Int64``) so cross-engine
         dtype comparisons work without importing the foreign engine.
+
+        Parametrized narwhals native instances (e.g. ``nw.Datetime("us")``)
+        are dispatched through their ``from_parametrized_dtype`` handler so
+        their parameters (time_unit, time_zone) are preserved; the base
+        ``get_equivalent`` fast-path would otherwise collapse them onto the
+        un-parametrized dtype (a ``nw.Datetime`` instance compares equal to
+        the ``nw.Datetime`` class, so the equivalents lookup shadows the
+        parametrized form).
         """
+        if not inspect.isclass(data_type):
+            try:
+                return engine.Engine._registry[cls].dispatch(data_type)
+            except (KeyError, ValueError, TypeError):
+                pass
         try:
             return engine.Engine.dtype(cls, data_type)
         except TypeError:

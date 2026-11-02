@@ -35,10 +35,23 @@ Pandera offers a `environment.yml` to set up a conda-based environment and
 ### Environment Setup
 
 This project recommends using [uv](https://docs.astral.sh/uv) to manage the
-development environment.
+development environment. If you don't have `uv` yet, install it with the
+standalone installer (see the
+[uv installation guide](https://docs.astral.sh/uv/getting-started/installation/)
+for other options, such as `pipx install uv`):
 
 ```bash
-pip install uv
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+Avoid `pip install uv` into your system Python: on Debian, Ubuntu and other
+distributions that mark it as externally managed
+([PEP 668](https://peps.python.org/pep-0668/)), it fails with
+`error: externally-managed-environment`.
+
+Then create the environment:
+
+```bash
 uv venv
 uv sync --all-extras
 source .venv/bin/activate
@@ -78,8 +91,14 @@ add it to the `dependencies` and `[project.optional-dependencies]` section.
 This project uses [prek](https://prek.j178.dev/) to ensure that code
 standard checks pass locally before pushing to the remote project repo. Follow
 the [installation instructions](https://prek.j178.dev/installation/), then
-set up hooks with `prek install`. After, `black`, `pylint` and `mypy`
-checks should be run with every commit.
+set up hooks with `prek install`. After that, the configured checks,
+including Ruff linting and formatting, Mypy, and other hooks, will run
+with every commit.
+
+For VS Code users, the repository recommends the Ruff extension and
+configures it as the default Python formatter. Enable Format on Save
+in your editor if you want Python files formatted automatically when
+saving.
 
 Make sure everything is working correctly by running
 
@@ -168,9 +187,9 @@ ideas for documentation improvements, you can create a new issue [here](https://
 
 This project uses Sphinx for auto-documentation and RST syntax for docstrings.
 Once you have the code downloaded and you find something that is in need of some
-TLD, take a look at the [Sphinx](https://www.sphinx-doc.org/en/1.0/rest.html)
+TLD, take a look at the [Sphinx](https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html)
 documentation or well-documented
-[examples](https://pandera.readthedocs.io/en/stable/_modules/pandera/schemas.html#DataFrameSchema)
+[examples](https://pandera.readthedocs.io/en/stable/dataframe_schemas.html)
 within the codebase for guidance on contributing.
 
 You can build the html documentation by running `nox -s docs`. The built

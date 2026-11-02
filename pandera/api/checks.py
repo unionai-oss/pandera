@@ -706,6 +706,13 @@ class Check(BaseCheck):
         :param exact_value: Exact length of strings. (default: no exact value)
         :param kwargs: key-word arguments passed into the `Check` initializer.
         """
+        if args and not (
+            min_value is None and max_value is None and exact_value is None
+        ):
+            raise ValueError(
+                "str_length() got length arguments both positionally and as "
+                "keywords; pass them one way only"
+            )
         if len(args) == 1:
             # Single positional arg means exact length
             exact_value = args[0]
@@ -719,6 +726,12 @@ class Check(BaseCheck):
                 f"(min_value, max_value), got {len(args)}"
             )
 
+        if exact_value is not None and not (
+            min_value is None and max_value is None
+        ):
+            raise ValueError(
+                "exact_value cannot be combined with min_value or max_value"
+            )
         if exact_value is not None:
             return cls.from_builtin_check_name(
                 "str_length",

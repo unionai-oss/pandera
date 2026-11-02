@@ -31,6 +31,39 @@ schema = pa.TensorDictSchema(
 - `keys`: A dictionary mapping key names to {class}`~pandera.api.tensordict.components.Tensor` objects
 - `batch_size`: Required batch dimension sizes. Use `None` for flexible dimensions.
 
+## Nested (tuple) keys
+
+TensorDicts can nest (TorchRL uses keys like `("next", "observation")`).
+Schema keys may be plain strings or nested tuples:
+
+```{code-cell} python
+nested_schema = pa.TensorDictSchema(
+    keys={
+        ("next", "observation"): pa.Tensor(
+            dtype=torch.float32, shape=(None, 10)
+        ),
+        ("next", "reward"): pa.Tensor(dtype=torch.float32, shape=(None,)),
+        "action": pa.Tensor(dtype=torch.int64, shape=(None,)),
+    },
+    batch_size=(4,),
+)
+
+nested_td = TensorDict(
+    {
+        "action": torch.randint(0, 4, (4,)),
+        "next": TensorDict(
+            {
+                "observation": torch.randn(4, 10),
+                "reward": torch.randn(4),
+            },
+            batch_size=[4],
+        ),
+    },
+    batch_size=[4],
+)
+nested_schema.validate(nested_td)
+```
+
 ## Validate a TensorDict
 
 ```{code-cell} python

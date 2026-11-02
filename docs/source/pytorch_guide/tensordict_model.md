@@ -147,6 +147,102 @@ class ExtendedRL(BaseRL):
 schema = ExtendedRL.to_schema()
 ```
 
+## Custom checks in model fields
+
+Model fields accept one-off :class:`~pandera.api.checks.Check` objects
+through the `checks` argument, so a schema with a custom check (a valid
+one-hot row, an ignore-index label, ...) no longer has to fall back to the
+object API.
+
+```{code-cell} python
+from pandera import Check
+
+def is_one_hot(t):
+    return (t.sum(dim=-1) == 1.0) & ((t == 0) | (t == 1)).all(dim=-1)
+
+class Policy(pa.TensorDictModel):
+    probs: torch.float32 = pa.Field(
+        shape=(None, 3),
+        checks=Check(is_one_hot, name="one_hot", element_wise=False),
+    )
+
+    class Config:
+        batch_size = (3,)
+
+valid = TensorDict(
+    {"probs": torch.tensor([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]])},
+    batch_size=[3],
+)
+Policy.validate(valid)
+```
+
+Intrinsic checks (like `ge`, `le`, `isin`) can be combined with explicit
+`Check` objects on the same field.
+
+## Nested (tuple) keys in models
+
+TensorDicts can nest, and TorchRL uses that for keys like
+`("next", "observation")`. A model field maps to a nested key with
+`pa.Field(alias=...)`:
+
+```{code-cell} python
+class NestedRL(pa.TensorDictModel):
+    next_observation: torch.float32 = pa.Field(
+        shape=(None, 10),
+        alias=("next", "observation"),
+    )
+    next_reward: torch.float32 = pa.Field(
+        shape=(None,),
+        alias=("next", "reward"),
+    )
+
+    class Config:
+        batch_size = (4,)
+
+nested = TensorDict(
+    {
+        "next": TensorDict(
+            {
+                "observation": torch.randn(4, 10),
+                "reward": torch.randn(4),
+            },
+            batch_size=[4],
+        ),
+    },
+    batch_size=[4],
+)
+NestedRL.validate(nested)
+```
+
+## `@check_types` integration
+
+The {func}`~pandera.decorators.check_types` decorator validates function
+arguments and return values annotated with `TensorDict[Model]`:
+
+```{code-cell} python
+from pandera import check_types
+from pandera.typing.tensordict import TensorDict as TDT
+
+@check_types
+def rl_step(td: TDT[RL]) -> TDT[RL]:
+    return td
+
+# Invalid input (wrong dtype) is caught at the function boundary
+bad = TensorDict(
+    {
+        "observation": torch.randn(32, 10).to(torch.float64),
+        "action": torch.randint(0, 4, (32,)),
+        "reward": torch.randn(32),
+    },
+    batch_size=[32],
+)
+
+try:
+    rl_step(bad)
+except pa.errors.SchemaError as exc:
+    print(f"check_types rejected input: {exc.reason_code}")
+```
+
 ## See also
 
 - {ref}`pytorch-tensordict-schema` — dictionary-based schema

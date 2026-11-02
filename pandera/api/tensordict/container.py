@@ -6,7 +6,7 @@ import inspect
 from typing import Any
 
 from pandera.api.base.schema import BaseSchema
-from pandera.api.tensordict.components import Tensor
+from pandera.api.tensordict.components import Tensor, TensorDictKey
 from pandera.backends.base import BaseSchemaBackend
 
 
@@ -18,11 +18,14 @@ class TensorDictSchema(BaseSchema):
 
     The schema accepts a ``keys`` parameter (instead of ``columns``) which is
     more semantically appropriate for TensorDict's dictionary-like structure.
+
+    Keys may be plain strings or nested tuples, e.g. ``("next",
+    "observation")``, matching TorchRL's nested TensorDict layout.
     """
 
     def __init__(
         self,
-        keys: dict[str, Tensor] | None = None,
+        keys: dict[TensorDictKey, Tensor] | None = None,
         batch_size: tuple[int | None, ...] | None = None,
         dtype: Any = None,
         checks=None,
@@ -35,8 +38,9 @@ class TensorDictSchema(BaseSchema):
         """Create TensorDict schema.
 
         :param keys: Dictionary mapping key names to :class:`Tensor` components.
-            If a list of strings is provided, creates default Tensor components
-            for each key.
+            Keys may be strings or nested tuples, e.g.
+            ``("next", "observation")``. If a list of strings is provided,
+            creates default Tensor components for each key.
         :param batch_size: Expected batch dimensions. Use ``None`` for flexible
             dimensions. For example, ``(32,)`` requires exactly 32 samples,
             while ``(None,)`` allows any batch size.
@@ -63,7 +67,7 @@ class TensorDictSchema(BaseSchema):
             metadata=metadata,
         )
 
-        self.keys: dict[str, Tensor] = keys
+        self.keys: dict[TensorDictKey, Tensor] = keys
         self.batch_size = batch_size
 
     @staticmethod

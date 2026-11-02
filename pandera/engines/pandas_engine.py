@@ -65,6 +65,7 @@ except ImportError:
         "Using typeguard < 3. Generic types like List[TYPE], Dict[TYPE, TYPE] "
         "will only validate the first element in the collection.",
         UserWarning,
+        stacklevel=2,
     )
     type_types_kwargs = {}
     TYPEGUARD_COLLECTION_STRATEGY_AVAILABLE = False
@@ -135,7 +136,8 @@ class DataType(dtypes.DataType):
             f"'{dtype_cls}' support is not guaranteed.\n"
             + "Usage Tip: Consider writing a custom "
             + "pandera.dtypes.DataType or opening an issue at "
-            + "https://github.com/pandera-dev/pandera"
+            + "https://github.com/pandera-dev/pandera",
+            stacklevel=2,
         )
 
     def __post_init__(self):
@@ -1488,6 +1490,7 @@ class PydanticModel(DataType):
                 "The PydanticModel will perform no type checking on the empty "
                 "dataframe.",
                 UserWarning,
+                stacklevel=2,
             )
 
             self._check_column_names(data_container, self.column_names)
