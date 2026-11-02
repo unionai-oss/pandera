@@ -223,9 +223,10 @@ html_theme = "furo"
 # documentation.
 
 announcement = """
-📢 New in Pandera 0.35.0: validate pandas, Polars, Ibis, PyArrow and now
-<a href='./datafusion.html'>DataFusion</a> dataframes with the same schema
-and check patterns - Arrow-native query plans validated directly!
+📢 New in Pandera 0.35.0: validate
+<a href='./datafusion.html'>DataFusion</a>
+dataframes with the same schema and check patterns as the other dataframe
+backends!
 """
 
 html_logo = "_static/pandera-banner.png"
