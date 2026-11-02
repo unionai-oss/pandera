@@ -966,7 +966,12 @@ class Enum(DataType):
 
     type = pl.Enum
 
-    categories: pl.Series
+    # ``pl.Series`` has no truth value and is unhashable, so the categories
+    # must stay out of the dataclass ``__eq__``/``__hash__``. ``type`` already
+    # carries them: ``pl.Enum`` compares categories element-wise.
+    categories: Union[pl.Series, Iterable[str], None] = dataclasses.field(
+        default=None, compare=False
+    )
 
     def __init__(
         self,
@@ -993,10 +998,9 @@ class Enum(DataType):
         except TypeError:
             return False
 
-        return (
-            self.type == pandera_dtype.type
-            and (self.type.categories == pandera_dtype.categories).all()  # type: ignore
-        )
+        # ``pl.Enum.__eq__`` compares the categories, and an Enum without
+        # categories (``pl.Enum`` itself) matches any Enum.
+        return self.type == pandera_dtype.type
 
 
 @Engine.register_dtype(

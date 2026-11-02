@@ -538,6 +538,91 @@ def test_check_equivalent_custom(first_dtype, second_dtype, equivalent):
 
 
 @pytest.mark.parametrize(
+    "first_dtype, second_dtype, equal",
+    [
+        (pl.Enum(["a", "b"]), pl.Enum(["a", "b"]), True),
+        (pl.Enum(["a", "b"]), pl.Enum(["b", "a"]), False),
+        (pl.Enum(["a", "b"]), pl.Enum(["a", "b", "c"]), False),
+        (pl.Enum(["a", "b"]), pl.Categorical, False),
+        (pl.Enum(["a", "b"]), pl.String, False),
+        (pl.Enum, pl.Enum, True),
+    ],
+)
+def test_enum_equality_and_hash(first_dtype, second_dtype, equal):
+    """Enum dtypes compare and hash through their polars type.
+
+    The ``categories`` attribute is a ``pl.Series``, which has no truth
+    value and is unhashable, so comparing or hashing two Enum dtypes used
+    to raise ``TypeError``.
+    """
+    first = pe.Engine.dtype(first_dtype)
+    second = pe.Engine.dtype(second_dtype)
+
+    assert (first == second) is equal
+    assert (first != second) is not equal
+    assert isinstance(hash(first), int)
+    if equal:
+        assert hash(first) == hash(second)
+        assert len({first, second}) == 1
+
+
+def test_enum_from_iterable_equals_parametrized_dtype():
+    """``Enum(categories)`` equals the dtype built from ``pl.Enum``."""
+    from_iterable = pe.Enum(["a", "b"])
+    from_polars = pe.Engine.dtype(pl.Enum(["a", "b"]))
+
+    assert from_iterable == from_polars
+    assert hash(from_iterable) == hash(from_polars)
+
+
+@pytest.mark.parametrize(
+    "first_dtype, second_dtype, equivalent",
+    [
+        (pl.Enum(["a", "b"]), pl.Enum(["a", "b"]), True),
+        (pl.Enum(["a", "b"]), pl.Enum(["a", "b", "c"]), False),
+        (pl.Enum(["a", "b"]), pl.Enum(["b", "a"]), False),
+        (pl.Enum(["a", "b"]), pl.Categorical, False),
+        # an Enum without categories accepts any Enum, like List/Struct
+        (pl.Enum, pl.Enum(["a", "b"]), True),
+        (pl.Enum(["a", "b"]), pl.Enum, True),
+        (pl.Enum, pl.String, False),
+    ],
+)
+def test_enum_check(first_dtype, second_dtype, equivalent):
+    """``check()`` handles Enum dtypes with and without categories."""
+    first = pe.Engine.dtype(first_dtype)
+    second = pe.Engine.dtype(second_dtype)
+    assert first.check(second) is equivalent
+
+
+@pytest.mark.parametrize(
+    "dtype, other_dtype",
+    [
+        (pl.Enum(["a", "b"]), pl.Enum(["x"])),
+        (pl.Enum(["a", "b"]), pl.String),
+        (pl.Enum, pl.String),
+    ],
+)
+def test_schema_equality_with_enum_column(dtype, other_dtype):
+    """Schemas with Enum columns can be compared."""
+    schema = pa.DataFrameSchema({"col": pa.Column(dtype)})
+
+    assert schema == pa.DataFrameSchema({"col": pa.Column(dtype)})
+    assert schema != pa.DataFrameSchema({"col": pa.Column(other_dtype)})
+
+
+def test_enum_column_without_categories_validates():
+    """``Column(pl.Enum)`` validates a column with any Enum categories."""
+    schema = pa.DataFrameSchema({"col": pa.Column(pl.Enum)})
+    data = pl.DataFrame({"col": pl.Series(["a"], dtype=pl.Enum(["a", "b"]))})
+
+    assert_frame_equal(schema.validate(data), data)
+    assert_frame_equal(schema.validate(data.lazy()).collect(), data)
+    with pytest.raises(pandera.errors.SchemaError):
+        schema.validate(pl.DataFrame({"col": ["a"]}))
+
+
+@pytest.mark.parametrize(
     "to_dtype, container, result",
     [
         (
