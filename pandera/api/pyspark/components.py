@@ -174,7 +174,6 @@ class Column(ComponentSchema[PySparkDataFrameTypes]):
             ``SchemaError`` as soon as one occurs.
         :param inplace: if True, applies coercion to the object of validation,
             otherwise creates a copy of the data.
-        :param error_handler: pyspark error handler object to provide the error in a dictionary format.
         :returns: validated DataFrame.
         """
         return self.get_backend(check_obj).validate(
@@ -191,7 +190,8 @@ class Column(ComponentSchema[PySparkDataFrameTypes]):
     def get_regex_columns(self, check_obj: Any) -> Iterable:
         """Get matching column names based on regex column name pattern.
 
-        :param columns: columns to regex pattern match
+        :param check_obj: dataframe whose column names are matched against
+            the regex pattern
         :returns: matching columns
         """
         return self.get_backend(

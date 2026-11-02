@@ -180,7 +180,8 @@ class Column(ArraySchema[pd.DataFrame]):
     def get_regex_columns(self, check_obj) -> Iterable:
         """Get matching column names based on regex column name pattern.
 
-        :param columns: columns to regex pattern match
+        :param check_obj: dataframe whose column names are matched against
+            the regex pattern
         :returns: matching columns
         """
 
