@@ -611,6 +611,14 @@ def test_schema_equality_with_enum_column(dtype, other_dtype):
     assert schema != pa.DataFrameSchema({"col": pa.Column(other_dtype)})
 
 
+@pytest.mark.xfail(
+    condition=CONFIG.use_narwhals_backend,
+    reason=(
+        "The narwhals backend does not validate pl.Enum columns; a native "
+        "pl.Enum column fails the same way on main."
+    ),
+    strict=True,
+)
 def test_enum_column_without_categories_validates():
     """``Column(pl.Enum)`` validates a column with any Enum categories."""
     schema = pa.DataFrameSchema({"col": pa.Column(pl.Enum)})
