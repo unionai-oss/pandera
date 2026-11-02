@@ -204,7 +204,7 @@ def _serialize_column_name(col_name):
 def _deserialize_column_name(col_name):
     """Deserialize column names from json-compatible representation."""
     if isinstance(col_name, list):
-        return tuple(col_name)
+        return tuple(_deserialize_column_name(item) for item in col_name)
     return col_name
 
 

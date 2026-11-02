@@ -1654,6 +1654,29 @@ def test_io_json_with_multiindex_column_labels():
     pd.testing.assert_frame_equal(restored.validate(validated), validated)
 
 
+@pytest.mark.parametrize("fmt", ["json", "yaml"])
+@pytest.mark.parametrize("minimal", [True, False])
+@pytest.mark.parametrize(
+    "name",
+    [
+        ("group", "value"),
+        (("group", "sensor"), "value"),
+        ("group", ("sensor", "value")),
+        ((("group", "sensor"), "value"), "reading"),
+    ],
+)
+def test_io_roundtrip_preserves_nested_tuple_column_labels(fmt, minimal, name):
+    schema = pandera.DataFrameSchema({name: pandera.Column(int)})
+    dataframe = pd.DataFrame({name: [1, 2]})
+    schema.validate(dataframe)
+
+    serialized = getattr(schema, f"to_{fmt}")(minimal=minimal)
+    restored = getattr(pandera.DataFrameSchema, f"from_{fmt}")(serialized)
+
+    assert restored == schema
+    pd.testing.assert_frame_equal(restored.validate(dataframe), dataframe)
+
+
 def test_check_custom_error_json_serialization_roundtrip():
     """Test that custom check errors are serialized and deserialized via JSON."""
     import json
