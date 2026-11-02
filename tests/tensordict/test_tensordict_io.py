@@ -12,6 +12,24 @@ from tensordict import TensorDict, tensorclass
 
 import pandera.tensordict as pa
 
+# Sentinel used by the secure-load regression test. A malicious pickle that
+# executes code during deserialization (e.g. ``os.system``) would append here;
+# ``torch.load(..., weights_only=True)`` must reject the file without running it.
+_SAFE_LOAD_EXECUTED: list = []
+
+
+def _unsafe_pickle_reducer():
+    """Callable invoked by a malicious pickle under ``weights_only=False``."""
+    _SAFE_LOAD_EXECUTED.append(True)
+    return "unsafe payload"
+
+
+class _UnsafePicklePayload:
+    """A pickle payload that runs arbitrary code when unpickled insecurely."""
+
+    def __reduce__(self):
+        return (_unsafe_pickle_reducer, ())
+
 
 @pytest.fixture
 def sample_schema():
@@ -202,3 +220,40 @@ class TestSaveLoadPlainDict:
         loaded = load(path)
         assert isinstance(loaded, TensorDict)
         assert loaded.batch_size == torch.Size([8])
+
+
+class TestSecureLoad:
+    """Security: ``load()`` must not execute embedded pickle payloads.
+
+    Covers GHSA-vpwq-239f-3cf7 — ``torch.load(..., weights_only=False)``
+    deserializes untrusted PyTorch model files with pickle, enabling arbitrary
+    code execution (RCE). ``load()`` must reject such files without running them.
+    """
+
+    def test_load_rejects_unsafe_pickle_without_executing(self, tmp_path):
+        from pandera.tensordict import load
+
+        td = TensorDict({"obs": torch.randn(2, 2)}, batch_size=[2])
+        path = tmp_path / "malicious.pt"
+        torch.save(
+            {
+                "tensordict": td,
+                "schema": {
+                    "schema_type": "tensordict",
+                    "keys": {},
+                    "batch_size": [2],
+                },
+                # An embedded pickle payload that would run arbitrary code if
+                # deserialized with ``weights_only=False``.
+                "evil": _UnsafePicklePayload(),
+            },
+            path,
+        )
+
+        # ``weights_only=False`` (the pre-fix behavior) would invoke the
+        # reducer and append to the sentinel: arbitrary code execution.
+        assert _SAFE_LOAD_EXECUTED == []
+        with pytest.raises(Exception):
+            load(path)
+        # The file must be rejected WITHOUT executing the embedded payload.
+        assert _SAFE_LOAD_EXECUTED == []

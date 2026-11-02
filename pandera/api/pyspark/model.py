@@ -1,7 +1,6 @@
 """Class-based API for PySpark models."""
 
 import copy
-import inspect
 import re
 import typing
 from collections.abc import Callable, Iterable, Mapping
@@ -23,6 +22,7 @@ from pandera.api.dataframe.model import (
 )
 from pandera.api.dataframe.model import (
     _dtype_metadata,
+    get_dtype_kwargs,
 )
 from pandera.api.dataframe.model_components import Field, FieldInfo
 from pandera.errors import SchemaInitError
@@ -269,7 +269,7 @@ class DataFrameModel(_DataFrameModel[PySparkFrame, DataFrameSchema]):
                 # ``Annotated[str, pa.Field(...)]``) without any dtype
                 # parameters. In that case, use the annotated type as-is.
                 if _dtype_metadata(annotation):
-                    dtype_kwargs = _get_dtype_kwargs(annotation)
+                    dtype_kwargs = get_dtype_kwargs(annotation)
                     dtype = annotation.arg(**dtype_kwargs)  # type: ignore
                 else:
                     dtype = annotation.arg
@@ -307,19 +307,3 @@ class DataFrameModel(_DataFrameModel[PySparkFrame, DataFrameSchema]):
                 )
 
         return columns
-
-
-def _get_dtype_kwargs(annotation: AnnotationInfo) -> dict[str, Any]:
-    """Extract dtype keyword arguments from a Pandera annotation."""
-    dtype_params = _dtype_metadata(annotation)
-    if not dtype_params:
-        return {}
-
-    sig = inspect.signature(annotation.arg)  # type: ignore
-    dtype_arg_names = list(sig.parameters.keys())
-    if len(dtype_params) != len(dtype_arg_names):
-        raise TypeError(
-            f"Annotation '{annotation.arg.__name__}' requires "  # type: ignore
-            + f"all positional arguments {dtype_arg_names}."
-        )
-    return dict(zip(dtype_arg_names, dtype_params))

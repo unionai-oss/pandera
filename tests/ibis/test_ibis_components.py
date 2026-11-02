@@ -353,3 +353,33 @@ def test_missing_with_extra_columns():
         "b": [1.0, 1.0, 1.0],
         "c": [4, 5, 6],
     }
+
+
+def test_empty_table_vacuously_satisfies_checks():
+    """Zero rows cannot violate any column check (issue #2628).
+
+    ibis `.all()` over zero rows returns None under SQL three-valued logic;
+    the backends must treat that as vacuous truth, as the pandas backend
+    does for empty frames.
+    """
+
+    class IsinSchema(pa.DataFrameModel):
+        x: int = pa.Field(nullable=True, isin=[0, 1])
+
+    class NonNullableSchema(pa.DataFrameModel):
+        x: int
+
+    empty = ibis.memtable([], schema=ibis.schema({"x": "int64"}))
+    assert IsinSchema.validate(empty) is not None
+    assert NonNullableSchema.validate(empty) is not None
+
+
+def test_empty_table_violations_on_nonempty_still_raise():
+    """The vacuous-truth fix must not silence real violations."""
+
+    class IsinSchema(pa.DataFrameModel):
+        x: int = pa.Field(isin=[0, 1])
+
+    bad = ibis.memtable({"x": [0, 5]})
+    with pytest.raises(SchemaError):
+        IsinSchema.validate(bad)
