@@ -246,7 +246,11 @@ def serialize_schema(
         "checks": checks,
         "index": index,
         **({} if multiindex is None else {"multiindex": multiindex}),
-        "dtype": dataframe_schema.dtype,
+        "dtype": (
+            str(dataframe_schema.dtype)
+            if dataframe_schema.dtype is not None
+            else None
+        ),
         "coerce": dataframe_schema.coerce,
         "strict": dataframe_schema.strict,
         "name": dataframe_schema.name,
@@ -472,7 +476,11 @@ def deserialize_schema(serialized_schema):
         columns=columns,
         checks=checks,
         index=index,
-        dtype=serialized_schema.get("dtype", None),
+        dtype=(
+            _deserialize_dtype(serialized_schema["dtype"])
+            if serialized_schema.get("dtype")
+            else None
+        ),
         coerce=serialized_schema.get("coerce", False),
         strict=serialized_schema.get("strict", False),
         name=serialized_schema.get("name", None),

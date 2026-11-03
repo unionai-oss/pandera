@@ -3032,3 +3032,11 @@ def test_named_check_survives_to_script():
     script = io.to_script(schema)
     assert "Check.greater_than" in script
     assert 'name="positive"' in script
+
+
+@pytest.mark.parametrize("dtype", [int, float, "int64"])
+def test_schema_level_dtype_round_trip(dtype):
+    """Schema-level dtype survives a to_yaml/to_json round trip."""
+    schema = DataFrameSchema({"a": pandera.Column(int)}, dtype=dtype)
+    assert io.from_yaml(schema.to_yaml()) == schema
+    assert io.from_json(schema.to_json()) == schema
