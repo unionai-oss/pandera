@@ -2611,6 +2611,29 @@ def test_empty() -> None:
     assert Schema.validate(df).empty  # type: ignore [attr-defined]
 
 
+def test_empty_without_column_dtype() -> None:
+    """Empty frames support typed and unconstrained columns together."""
+
+    class AnySchema(pa.DataFrameModel):
+        untyped: Series[Any]
+        typed: Series[int]
+
+    class BareSchema(pa.DataFrameModel):
+        untyped: Series
+        typed: Series[int]
+
+    for schema in (AnySchema, BareSchema):
+        assert schema.to_schema().columns["untyped"].dtype is None
+        frame = schema.empty()
+        assert isinstance(frame, pd.DataFrame)
+        assert frame.shape == (0, 2)
+        assert list(frame.columns) == ["untyped", "typed"]
+        assert pd.api.types.is_integer_dtype(frame["typed"].dtype)
+        validated = schema.validate(frame)
+        assert isinstance(validated, pd.DataFrame)
+        assert validated.equals(frame)
+
+
 def test_empty_with_multi_index() -> None:
     """Test to generate an empty DataFrameModel with a named multi index"""
 
