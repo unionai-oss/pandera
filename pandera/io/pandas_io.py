@@ -485,7 +485,9 @@ def deserialize_schema(serialized_schema):
 
     if index is None:
         pass
-    elif len(index) == 1:
+    elif len(index) == 1 and not isinstance(
+        serialized_schema.get("multiindex"), dict
+    ):
         index = Index(**index[0])
     else:
         index = MultiIndex(
