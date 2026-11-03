@@ -8,8 +8,6 @@ the :ref:`parsers guide <parsers>` for how to use these objects, and the
 :ref:`decision parsing guide <decisions>` for deriving columns by asking a
 decision model.
 
-.. currentmodule:: pandera
-
 Parser
 ------
 
