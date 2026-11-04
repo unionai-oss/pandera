@@ -1,5 +1,6 @@
 """Pandera array backends."""
 
+import copy
 from typing import Optional, cast
 
 import pandas as pd
@@ -30,6 +31,26 @@ from pandera.validation_depth import validate_scope, validation_type
 
 class ArraySchemaBackend(PandasSchemaBackend):
     """Backend for pandas arrays."""
+
+    @staticmethod
+    def _fillna_default(series, default_value):
+        """Treat a list default as one cell value, not a vector of rows."""
+        if isinstance(default_value, list):
+            if isinstance(series, pd.DataFrame):
+                return series.apply(
+                    lambda column: ArraySchemaBackend._fillna_default(
+                        column, default_value
+                    )
+                )
+            missing = series.isna()
+            if not missing.any():
+                return series
+            result = series.astype(object)
+            for position, is_missing in enumerate(missing):
+                if is_missing:
+                    result.iat[position] = copy.deepcopy(default_value)
+            return result
+        return series.fillna(default_value)
 
     @staticmethod
     def _is_default_type_compatible(default_value, schema_dtype):
@@ -71,6 +92,7 @@ class ArraySchemaBackend(PandasSchemaBackend):
         """
         if (
             schema_dtype is None
+            or isinstance(default_value, list)
             or not (
                 pd.api.types.is_object_dtype(series.dtype)
                 or pd.api.types.is_string_dtype(series.dtype)
@@ -527,15 +549,15 @@ class ArraySchemaBackend(PandasSchemaBackend):
         if is_field(check_obj) and not isinstance(
             check_obj.dtype, pd.SparseDtype
         ):
-            check_obj = check_obj.fillna(schema.default)
+            check_obj = self._fillna_default(check_obj, schema.default)
             check_obj = self._try_convert_dtype_after_fillna(
                 check_obj, schema.dtype, schema.default
             )
         elif not is_field(check_obj) and not isinstance(
             check_obj[schema.name].dtype, pd.SparseDtype
         ):
-            check_obj[schema.name] = check_obj[schema.name].fillna(
-                schema.default
+            check_obj[schema.name] = self._fillna_default(
+                check_obj[schema.name], schema.default
             )
             check_obj[schema.name] = self._try_convert_dtype_after_fillna(
                 check_obj[schema.name], schema.dtype, schema.default
