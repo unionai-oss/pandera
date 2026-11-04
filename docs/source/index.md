@@ -110,6 +110,10 @@ settings. With `pandera`, you can:
 1. {ref}`Integrate <integrations>` with a rich ecosystem of python tools like
    [pydantic](https://pydantic-docs.helpmanual.io/),
    [fastapi](https://fastapi.tiangolo.com/) and [mypy](http://mypy-lang.org/).
+1. {ref}`Derive <derived-columns>` column values from other columns with
+   `ParsedField`/`ParsedColumn`, including asking a
+   {ref}`decision model <decisions>` to parse unstructured text into typed,
+   validated columns — see the {ref}`tutorial <decision-parsing-tutorial>`.
 
 (installation)=
 
@@ -372,6 +376,8 @@ are available for the {ref}`supported dataframe libraries <dataframe-libraries>`
 | {ref}`Hypothesis testing <hypothesis>`                                    | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
 | {ref}`Built-in <dtype-validation>` and {ref}`custom <dtypes>` `DataType`s | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | {ref}`Preprocessing with Parsers <parsers>`                               | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| {ref}`Derived columns (ParsedField/ParsedColumn) <derived-columns>`       | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| {ref}`Decision parsing & semantic checks <decisions>`                     | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
 | {ref}`Data synthesis strategies <data-synthesis-strategies>`              | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
 | {ref}`Validation decorators <decorators>`                                 | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | {ref}`Lazy validation <lazy-validation>`                                  | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
@@ -494,6 +500,7 @@ cli_guide
 :maxdepth: 2
 
 financial_reconciliation
+decision_parsing_tutorial
 ```
 
 ```{toctree}
