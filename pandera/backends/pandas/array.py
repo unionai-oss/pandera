@@ -49,6 +49,39 @@ class ArraySchemaBackend(PandasSchemaBackend):
             for position, is_missing in enumerate(missing):
                 if is_missing:
                     result.iat[position] = copy.deepcopy(default_value)
+            if (
+                isinstance(series.dtype, pd.ArrowDtype)
+                and series.dtype.type is list
+            ):
+                import pyarrow as arrow
+
+                try:
+                    default_array = arrow.array([default_value])
+                    inferred = default_array.type.value_type
+                    expected = series.dtype.pyarrow_dtype.value_type
+                    compatible = (
+                        inferred == expected
+                        or arrow.types.is_null(inferred)
+                        or arrow.types.is_integer(inferred)
+                        and (
+                            arrow.types.is_integer(expected)
+                            or arrow.types.is_floating(expected)
+                        )
+                        or arrow.types.is_floating(inferred)
+                        and arrow.types.is_floating(expected)
+                    )
+                    if compatible:
+                        default_array.cast(
+                            series.dtype.pyarrow_dtype, safe=True
+                        )
+                        return result.astype(series.dtype)
+                except (
+                    arrow.ArrowException,
+                    TypeError,
+                    ValueError,
+                    OverflowError,
+                ):
+                    pass
             return result
         return series.fillna(default_value)
 

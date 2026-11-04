@@ -151,3 +151,58 @@ def test_list_defaults_with_duplicate_column_names(default):
     assert result.iloc[:, 1].tolist() == [default, [3.0]]
     assert data.iloc[0, 0] is None
     assert data.iloc[0, 1] is None
+
+
+@pytest.mark.parametrize("entrypoint", ["series", "column", "dataframe"])
+@pytest.mark.parametrize("value_type", ["float64", "int64"])
+@pytest.mark.parametrize("default", [[], [1, 2]])
+def test_list_default_retains_arrow_list_dtype(
+    entrypoint, value_type, default
+):
+    arrow = pytest.importorskip("pyarrow")
+    dtype = pd.ArrowDtype(arrow.list_(getattr(arrow, value_type)()))
+    original = pd.Series([None, [3]], name="items", dtype=dtype)
+    before = original.copy(deep=True)
+    if entrypoint == "series":
+        result = pa.SeriesSchema(dtype, default=default).validate(original)
+    elif entrypoint == "column":
+        result = pa.Column(dtype, name="items", default=default).validate(
+            original.to_frame()
+        )["items"]
+    else:
+        result = pa.DataFrameSchema(
+            {"items": pa.Column(dtype, default=default)}
+        ).validate(original.to_frame())["items"]
+
+    expected = pd.Series([default, [3]], name="items", dtype=dtype)
+    pd.testing.assert_series_equal(result, expected)
+    pd.testing.assert_series_equal(original, before)
+
+
+@pytest.mark.parametrize("entrypoint", ["series", "column", "dataframe"])
+@pytest.mark.parametrize(
+    "default", [["not an integer"], ["1"], [True], [1.2], [2**63]]
+)
+def test_arrow_list_default_rejects_incompatible_values(entrypoint, default):
+    arrow = pytest.importorskip("pyarrow")
+    dtype = pd.ArrowDtype(arrow.list_(arrow.int64()))
+    original = pd.Series([None, [3]], name="items", dtype=dtype)
+    with pytest.raises(pa.errors.SchemaError):
+        if entrypoint == "series":
+            pa.SeriesSchema(dtype, default=default).validate(original)
+        elif entrypoint == "column":
+            pa.Column(dtype, name="items", default=default).validate(
+                original.to_frame()
+            )
+        else:
+            pa.DataFrameSchema(
+                {"items": pa.Column(dtype, default=default)}
+            ).validate(original.to_frame())
+
+
+def test_arrow_list_default_rejects_integer_precision_loss():
+    arrow = pytest.importorskip("pyarrow")
+    dtype = pd.ArrowDtype(arrow.list_(arrow.float64()))
+    original = pd.Series([None, [3.0]], name="items", dtype=dtype)
+    with pytest.raises(pa.errors.SchemaError):
+        pa.SeriesSchema(dtype, default=[2**53 + 1]).validate(original)
