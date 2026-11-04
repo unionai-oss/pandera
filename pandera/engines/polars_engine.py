@@ -1015,6 +1015,37 @@ class Category(DataType, dtypes.Category):
     def __init__(self, categories: Iterable[Any] | None = None):
         dtypes.Category.__init__(self, categories, ordered=False)
 
+    def check(
+        self,
+        pandera_dtype: dtypes.DataType,
+        data_container: PolarsDataContainer | None = None,
+    ) -> Union[bool, Iterable[bool]]:
+        if data_container is not None:
+            try:
+                actual_dtype = Engine.dtype(pandera_dtype)
+            except TypeError:
+                return False
+            if isinstance(actual_dtype, String):
+                if isinstance(data_container, pl.LazyFrame):
+                    data_container = PolarsData(data_container)
+                if data_container.key is None:
+                    return False
+                selected = data_container.lazyframe.select(
+                    pl.col(data_container.key)
+                )
+                if len(selected.collect_schema()) != 1:
+                    return False
+                return (
+                    self.__belongs_to_categories(
+                        data_container.lazyframe,
+                        key=data_container.key or "*",
+                    )
+                    .select(pl.col("belongs").all())
+                    .collect()
+                    .item()
+                )
+        return super().check(pandera_dtype, data_container)
+
     def coerce(self, data_container: PolarsDataContainer) -> pl.LazyFrame:
         """Coerce data container to the data type."""
         if isinstance(data_container, pl.LazyFrame):
