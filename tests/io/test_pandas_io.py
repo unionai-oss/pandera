@@ -1654,6 +1654,29 @@ def test_io_json_with_multiindex_column_labels():
     pd.testing.assert_frame_equal(restored.validate(validated), validated)
 
 
+@pytest.mark.parametrize("fmt", ["json", "yaml"])
+@pytest.mark.parametrize("minimal", [True, False])
+@pytest.mark.parametrize(
+    "name",
+    [
+        ("group", "value"),
+        (("group", "sensor"), "value"),
+        ("group", ("sensor", "value")),
+        ((("group", "sensor"), "value"), "reading"),
+    ],
+)
+def test_io_roundtrip_preserves_nested_tuple_column_labels(fmt, minimal, name):
+    schema = pandera.DataFrameSchema({name: pandera.Column(int)})
+    dataframe = pd.DataFrame({name: [1, 2]})
+    schema.validate(dataframe)
+
+    serialized = getattr(schema, f"to_{fmt}")(minimal=minimal)
+    restored = getattr(pandera.DataFrameSchema, f"from_{fmt}")(serialized)
+
+    assert restored == schema
+    pd.testing.assert_frame_equal(restored.validate(dataframe), dataframe)
+
+
 def test_check_custom_error_json_serialization_roundtrip():
     """Test that custom check errors are serialized and deserialized via JSON."""
     import json
@@ -2325,6 +2348,65 @@ def test_io_roundtrip_preserves_multiindex_options(fmt, minimal):
     for key, value in _MULTIINDEX_OPTIONS.items():
         assert getattr(restored.index, key) == value, key
     assert restored == schema
+
+
+@pytest.mark.parametrize(
+    "fmt",
+    [
+        "json",
+        "script",
+        pytest.param(
+            "yaml",
+            marks=pytest.mark.skipif(
+                SKIP_YAML_TESTS, reason="pyyaml >= 5.1.0 required"
+            ),
+        ),
+    ],
+)
+@pytest.mark.parametrize("minimal", [True, False])
+@pytest.mark.parametrize(
+    "options",
+    [
+        {},
+        {"strict": True},
+        {
+            "coerce": True,
+            "name": "row_index",
+            "ordered": False,
+            "unique": ["id"],
+        },
+    ],
+)
+def test_io_roundtrip_preserves_single_level_multiindex(fmt, minimal, options):
+    """A one-level MultiIndex remains distinct from an ordinary Index."""
+    schema = pandera.DataFrameSchema(
+        {"a": pandera.Column(int)},
+        index=pandera.MultiIndex([pandera.Index(int, name="id")], **options),
+    )
+    frame = pd.DataFrame(
+        {"a": [1, 2]},
+        index=pd.MultiIndex.from_arrays([[3, 4]], names=["id"]),
+    )
+    schema.validate(frame)
+
+    restored = _roundtrip(schema, fmt, minimal)
+
+    assert isinstance(restored.index, pandera.MultiIndex)
+    assert restored == schema
+    pd.testing.assert_frame_equal(restored.validate(frame), frame)
+
+
+def test_io_legacy_single_index_without_multiindex_options():
+    """A one-element legacy index list still represents an ordinary Index."""
+    restored = io.deserialize_schema(
+        {
+            "columns": {"a": {"dtype": "int64"}},
+            "index": [{"dtype": "int64", "name": "id"}],
+        }
+    )
+    assert isinstance(restored.index, pandera.Index)
+    frame = pd.DataFrame({"a": [1]}, index=pd.Index([3], name="id"))
+    pd.testing.assert_frame_equal(restored.validate(frame), frame)
 
 
 @pytest.mark.parametrize("fmt", ["yaml", "json", "script"])

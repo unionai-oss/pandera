@@ -99,16 +99,46 @@ def _extract_field_info(annotation: Any) -> FieldInfo | None:
 
 
 def get_dtype_kwargs(annotation: AnnotationInfo) -> dict[str, Any]:
+    """Bind ``Annotated`` metadata to the dtype's constructor parameters.
+
+    Parameters with a default may be omitted from the annotation.
+    """
     dtype_params = _dtype_metadata(annotation)
     if not dtype_params:
         return {}
 
+    dtype_name = annotation.arg.__name__  # type: ignore
     sig = inspect.signature(annotation.arg)  # type: ignore
-    dtype_arg_names = list(sig.parameters.keys())
-    if len(dtype_params) != len(dtype_arg_names):
+    params = [
+        p
+        for p in sig.parameters.values()
+        if p.kind
+        not in (
+            inspect.Parameter.VAR_POSITIONAL,
+            inspect.Parameter.VAR_KEYWORD,
+        )
+    ]
+    dtype_arg_names = [p.name for p in params]
+
+    if len(dtype_params) > len(dtype_arg_names):
         raise TypeError(
-            f"Annotation '{annotation.arg.__name__}' requires "  # type: ignore
-            + f"all positional arguments {dtype_arg_names}."
+            f"Annotation '{dtype_name}' received {len(dtype_params)} "
+            f"arguments but {dtype_name} only accepts {len(dtype_arg_names)}: "
+            f"{dtype_arg_names}."
+        )
+
+    missing = [
+        p.name
+        for p in params[len(dtype_params) :]
+        if p.default is inspect.Parameter.empty
+    ]
+    if missing:
+        required = [
+            p.name for p in params if p.default is inspect.Parameter.empty
+        ]
+        raise TypeError(
+            f"Annotation '{dtype_name}' requires "
+            f"all positional arguments {required}. Missing: {missing}."
         )
     return dict(zip(dtype_arg_names, dtype_params))
 
@@ -183,6 +213,7 @@ class _SchemaDescriptor:
                 kwargs = {
                     "dtype": cls.__config__.dtype,
                     "coerce": cls.__config__.coerce,
+                    "parser_source": cls.__config__.parser_source,
                     "strict": cls.__config__.strict,
                     "name": cls.__config__.name,
                     "ordered": cls.__config__.ordered,
@@ -243,7 +274,18 @@ class _RootParsers(_ClassDescriptor):
     def __get__(self, obj, cls) -> list[Check]:
         if self.cache.get(cls) is None:
             df_parser_infos = cls._collect_parser_infos(DATAFRAME_PARSER_KEY)
-            self.cache[cls] = cls._extract_df_parsers(df_parser_infos)
+            field_parser_infos = typing.cast(
+                list[FieldParserInfo], cls._collect_parser_infos(PARSER_KEY)
+            )
+            self.cache[cls] = [
+                *cls._extract_df_parsers(df_parser_infos),
+                # ``@parser("target", source="src")`` derives a column, so it
+                # belongs to the schema rather than to the column it fills --
+                # a column-level parser cannot create its own column.
+                *cls._extract_derivation_parsers(
+                    field_parser_infos, field_names=list(cls.__fields__.keys())
+                ),
+            ]
 
         return self.cache[cls]
 
@@ -627,6 +669,9 @@ class DataFrameModel(Generic[TDataFrame, TSchema], BaseModel):
         """Collect field annotations from bases in mro reverse order."""
         parsers: dict[str, list[Parser]] = {}
         for parser_info in parser_infos:
+            if "source" in parser_info.parser_kwargs:
+                # handled as a schema-level derivation parser
+                continue
             parser_info_fields = {
                 field.name if isinstance(field, FieldInfo) else field
                 for field in parser_info.fields
@@ -646,6 +691,28 @@ class DataFrameModel(Generic[TDataFrame, TSchema], BaseModel):
                 if field not in parsers:
                     parsers[field] = []
                 parsers[field].append(parser_)
+        return parsers
+
+    @classmethod
+    def _extract_derivation_parsers(
+        cls, parser_infos: list[FieldParserInfo], field_names: list[str]
+    ) -> list[Parser]:
+        """Build schema-level parsers from ``@parser(..., source=...)``."""
+        parsers: list[Parser] = []
+        for parser_info in parser_infos:
+            if "source" not in parser_info.parser_kwargs:
+                continue
+            targets = sorted(
+                field.name if isinstance(field, FieldInfo) else field
+                for field in parser_info.fields
+            )
+            missing = [f for f in targets if f not in field_names]
+            if missing:
+                raise SchemaInitError(
+                    f"Parser is assigned to non-existing field(s) {missing}."
+                )
+            parser_info.parser_kwargs.setdefault("target", targets)
+            parsers.append(parser_info.to_parser(cls))
         return parsers
 
     @classmethod

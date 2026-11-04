@@ -72,17 +72,17 @@ MULTIINDEX_TEMPLATE = """
 """
 
 
-def _multiindex_options(index, *, minimal: bool) -> dict:
+def _multiindex_options(index, *, minimal: bool) -> dict | None:
     """Options of a ``MultiIndex`` component to emit in a script.
 
-    Returns an empty dict for a single ``Index`` or no index. In minimal
+    Returns ``None`` for an ordinary ``Index`` or no index. In minimal
     mode, options equal to the ``MultiIndex`` constructor defaults are left
     out.
     """
     from pandera.io._minimal import MULTIINDEX_DEFAULTS
 
     if index is None or not hasattr(index, "indexes"):
-        return {}
+        return None
     options = {key: getattr(index, key) for key in MULTIINDEX_DEFAULTS}
     if minimal:
         options = {
@@ -319,7 +319,7 @@ def _format_index(
         )
         index.append(index_code.strip())
 
-    if len(index) == 1:
+    if len(index) == 1 and multiindex_options is None:
         return index[0]
 
     options = "".join(

@@ -125,8 +125,18 @@ section[id^=pandera-]:not([id=pandera-data-types]) h1  {
 }
 
 /* dataframe table style */
-div.cell_output thead {
+div.cell_output table.dataframe {
+  border-color: var(--color-table-border);
+}
+
+div.cell_output thead,
+div.cell_output thead th {
   color: var(--color-foreground-primary);
+  /* furo only themes ``table.docutils`` headers, so ``table.dataframe`` cells
+     render with a light background that doesn't flip in dark mode. Pin the
+     header to a theme variable so it stays readable in both themes. */
+  background-color: var(--color-table-header-background);
+  border-color: var(--color-table-border);
 }
 
 div.cell_output tbody tr {
