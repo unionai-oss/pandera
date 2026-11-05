@@ -476,6 +476,12 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
             if k in column_info.absent_column_names
         }
 
+        # Added columns skip the component dtype check, so cast them here.
+        dtypes = {
+            k: schema.dtype if v.dtype is None else v.dtype
+            for k, v in missing_cols_schema.items()
+        }
+
         # Append missing columns. Defaults are wrapped in ``pl.lit`` so that a
         # string default is a literal value, not a reference to a column.
         check_obj = check_obj.with_columns(
@@ -487,7 +493,7 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
                 )
                 for k, v in missing_cols_schema.items()
             }
-        ).cast({k: v.dtype.type for k, v in missing_cols_schema.items()})
+        ).cast({k: d.type for k, d in dtypes.items() if d is not None})
 
         # Set column order: schema columns first, then the columns not in the
         # schema. Optional (``required=False``) columns that are absent are
@@ -717,6 +723,9 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
             for s in schema.columns.values()
             if hasattr(s, "default") and s.default is not None
         ]:
+            if col_schema.dtype is None and schema.dtype is not None:
+                col_schema = copy.deepcopy(col_schema)
+                col_schema.dtype = schema.dtype
             backend = col_schema.get_backend(check_obj)
             check_obj = backend.set_default(check_obj, col_schema)
 
