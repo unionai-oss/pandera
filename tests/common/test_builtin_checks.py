@@ -1091,6 +1091,22 @@ class TestStringType(BaseClass):
 
     @pytest.mark.parametrize(
         "check_value",
+        ["Ba|Bi", re.compile("Ba|Bi")],
+    )
+    def test_str_matches_check_anchors_every_alternative(
+        self, backend, check_value
+    ):
+        """Every alternative must match at the start, as with ``re.match``."""
+        self._run_string_check(
+            backend,
+            Check.str_matches,
+            pass_data=[("Bal", "Bat"), ("Bal", "Bin")],
+            fail_data=[("Bal", "Bat"), ("Bal", "fooBin")],
+            check_value=check_value,
+        )
+
+    @pytest.mark.parametrize(
+        "check_value",
         ["Ba", r"Ba+", re.compile("Ba"), re.compile(r"Ba+")],
     )
     def test_str_contains_check(self, backend, check_value):
