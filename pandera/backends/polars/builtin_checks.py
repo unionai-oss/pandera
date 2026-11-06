@@ -298,6 +298,8 @@ def unique_values_eq(data: PolarsData, values: Iterable) -> bool:
     """
 
     # Use to_list(): polars < 1.21.0 can't call `unique` on Decimal columns.
-    # Nulls are not values, so they don't count towards the unique values.
+    # Nulls and NaNs are not values, so they don't count towards the unique values.
     column = data.lazyframe.collect().get_column(data.key).drop_nulls()
+    if column.dtype in {pl.Float32, pl.Float64}:
+        column = column.drop_nans()
     return set(column.to_list()) == values
