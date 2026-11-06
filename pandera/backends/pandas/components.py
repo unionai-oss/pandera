@@ -115,9 +115,9 @@ class ColumnBackend(ArraySchemaBackend):
         )
 
         for column_name in column_keys_to_check:
-            if pd.notna(schema.default):
-                check_obj[column_name] = check_obj[column_name].fillna(
-                    schema.default
+            if isinstance(schema.default, list) or pd.notna(schema.default):
+                check_obj[column_name] = self._fillna_default(
+                    check_obj[column_name], schema.default
                 )
                 # In pandas >= 3.0, fillna doesn't automatically coerce the dtype
                 # when filling an all-null column. Try to convert to the schema's
