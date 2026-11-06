@@ -293,6 +293,7 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
 
     def collect_column_info(self, check_obj: pl.LazyFrame, schema):
         """Collect column metadata for the dataframe."""
+        frame_column_names = check_obj.collect_schema().names()
         column_names: list[Any] = []
         absent_column_names: list[Any] = []
         regex_match_patterns: list[Any] = []
@@ -300,7 +301,7 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
         for col_name, col_schema in schema.columns.items():
             if (
                 not col_schema.regex
-                and col_name not in check_obj.collect_schema().names()
+                and col_name not in frame_column_names
                 and col_schema.required
             ):
                 absent_column_names.append(col_name)
@@ -315,11 +316,11 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
                     regex_match_patterns.append(col_schema.selector)
                 except SchemaError:
                     pass
-            elif col_name in check_obj.collect_schema().names():
+            elif col_name in frame_column_names:
                 column_names.append(col_name)
 
         # drop adjacent duplicated column names
-        destuttered_column_names = [*check_obj.collect_schema().names()]
+        destuttered_column_names = [*frame_column_names]
 
         return ColumnInfo(
             sorted_column_names=dict.fromkeys(column_names),
