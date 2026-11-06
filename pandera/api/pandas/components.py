@@ -11,6 +11,7 @@ from pandera.api.base.types import CheckList, ParserList
 from pandera.api.pandas.array import ArraySchema
 from pandera.api.pandas.container import DataFrameSchema
 from pandera.api.pandas.types import PandasDtypeInputTypes
+from pandera.api.synthesis.semantic import SemanticType
 from pandera.api.parsers import ParseContext, Parser
 from pandera.constants import ON_MISSING_ACTIONS
 from pandera.dtypes import UniqueSettings
@@ -39,6 +40,7 @@ class Column(ArraySchema[pd.DataFrame]):
         metadata: dict | None = None,
         drop_invalid_rows: bool = False,
         on_missing: str | None = None,
+        semantic: "SemanticType | str | None" = None,
     ) -> None:
         """Create column validator object.
 
@@ -102,6 +104,7 @@ class Column(ArraySchema[pd.DataFrame]):
             report_duplicates=report_duplicates,
             coerce=coerce,
             name=name,
+            semantic=semantic,
             title=title,
             description=description,
             default=default,
@@ -160,6 +163,7 @@ class Column(ArraySchema[pd.DataFrame]):
             "unique": self.unique,
             "report_duplicates": self.report_duplicates,
             "coerce": self.coerce,
+            "semantic": self.semantic,
             "required": self.required,
             "name": self.name,
             "regex": self.regex,
@@ -218,15 +222,20 @@ class Column(ArraySchema[pd.DataFrame]):
         return super().strategy(size=size).map(lambda x: x.to_frame())
 
     @strategy_import_error
-    def strategy_component(self):
+    def strategy_component(
+        self, *, synthesis_backend: str | None = None, seed: int | None = None
+    ):
         """Generate column data object for use by DataFrame strategy."""
         import pandera.strategies.pandas_strategies as st
 
         return st.column_strategy(
-            self.dtype,
+            self.dtype,  # type: ignore[arg-type]
             checks=self.checks,
             unique=self.unique,
             name=self.name,
+            semantic=self.semantic,
+            synthesis_backend=synthesis_backend,
+            seed=seed,
         )
 
     def example(
@@ -282,6 +291,8 @@ class Index(ArraySchema[pd.Index]):
         *,
         size: int | None = None,
         n_regex_columns: int = 1,  # pylint: disable=unused-argument
+        synthesis_backend: str | None = None,
+        seed: int | None = None,
     ):
         """Create a ``hypothesis`` strategy for generating an Index.
 
@@ -297,18 +308,26 @@ class Index(ArraySchema[pd.Index]):
             unique=self.unique,
             name=self.name,
             size=size,
+            semantic=self.semantic,
+            synthesis_backend=synthesis_backend,
+            seed=seed,
         )
 
     @strategy_import_error
-    def strategy_component(self):
+    def strategy_component(
+        self, *, synthesis_backend: str | None = None, seed: int | None = None
+    ):
         """Generate column data object for use by MultiIndex strategy."""
         import pandera.strategies.pandas_strategies as st
 
         return st.column_strategy(
-            self.dtype,
+            self.dtype,  # type: ignore[arg-type]
             checks=self.checks,
             unique=self.unique,
             name=self.name,
+            semantic=self.semantic,
+            synthesis_backend=synthesis_backend,
+            seed=seed,
         )
 
     def example(
@@ -485,15 +504,26 @@ class MultiIndex(DataFrameSchema):
     # NOTE: remove these ignore statements as part of
     # https://github.com/pandera-dev/pandera/issues/403
 
-    def strategy(self, *, size=None):  # type: ignore
+    def strategy(self, *, size=None, synthesis_backend=None, seed=None):  # type: ignore
         import pandera.strategies.pandas_strategies as st
 
-        return st.multiindex_strategy(indexes=self.indexes, size=size)
+        return st.multiindex_strategy(
+            indexes=self.indexes,
+            size=size,
+            synthesis_backend=synthesis_backend,
+            seed=seed,
+        )
 
     # NOTE: remove these ignore statements as part of
     # https://github.com/pandera-dev/pandera/issues/403
 
-    def example(self, size=None) -> pd.MultiIndex:  # type: ignore
+    def example(
+        self,
+        size=None,
+        n_regex_columns: int = 1,  # pylint: disable=unused-argument
+        synthesis_backend=None,
+        seed=None,
+    ) -> pd.MultiIndex:  # type: ignore
         import hypothesis
 
         with warnings.catch_warnings():
@@ -501,7 +531,11 @@ class MultiIndex(DataFrameSchema):
                 "ignore",
                 category=hypothesis.errors.NonInteractiveExampleWarning,
             )
-            return self.strategy(size=size).example()
+            return self.strategy(
+                size=size,
+                synthesis_backend=synthesis_backend,
+                seed=seed,
+            ).example()
 
 
 class ParsedColumn(Column):
