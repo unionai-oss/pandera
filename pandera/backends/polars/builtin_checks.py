@@ -8,6 +8,7 @@ import polars as pl
 
 from pandera.api.extensions import register_builtin_check
 from pandera.api.polars.types import PolarsData
+from pandera.backends.utils import regex_inline_flags
 
 T = TypeVar("T")
 
@@ -194,11 +195,12 @@ def str_matches(
         to access the dataframe is "dataframe", and the key the to access the column name is "key".
     :param pattern: Regular expression pattern to use for matching.
     """
+    flags = regex_inline_flags(pattern)
     pattern = pattern.pattern if isinstance(pattern, re.Pattern) else pattern
     if not pattern.startswith("^"):
         pattern = f"^{pattern}"
     return data.lazyframe.select(
-        pl.col(data.key).str.contains(pattern=pattern)
+        pl.col(data.key).str.contains(pattern=flags + pattern)
     )
 
 
@@ -216,9 +218,10 @@ def str_contains(
     :param pattern: Regular expression pattern to use for searching.
     """
 
+    flags = regex_inline_flags(pattern)
     pattern = pattern.pattern if isinstance(pattern, re.Pattern) else pattern
     return data.lazyframe.select(
-        pl.col(data.key).str.contains(pattern=pattern, literal=False)
+        pl.col(data.key).str.contains(pattern=flags + pattern, literal=False)
     )
 
 
