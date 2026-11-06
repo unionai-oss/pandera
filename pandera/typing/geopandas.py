@@ -16,7 +16,7 @@ from typing import (  # type: ignore[attr-defined]
 import pandas as pd
 
 from pandera.engines import PYDANTIC_V2
-from pandera.errors import SchemaError, SchemaInitError
+from pandera.errors import SchemaError, SchemaErrors, SchemaInitError
 from pandera.typing.common import DataFrameBase, DataFrameModel, SeriesBase
 from pandera.typing.formats import Formats
 
@@ -265,7 +265,9 @@ if GEOPANDAS_INSTALLED:
 
             try:
                 valid_data = schema.validate(data)
-            except SchemaError as exc:
+            except (SchemaError, SchemaErrors) as exc:
+                # SchemaErrors is a sibling of SchemaError, not a subclass,
+                # and pydantic only converts ValueError/AssertionError.
                 raise ValueError(str(exc)) from exc
 
             return cls.to_format(valid_data, schema_model.__config__)
