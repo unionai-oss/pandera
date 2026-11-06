@@ -223,11 +223,9 @@ html_theme = "furo"
 # documentation.
 
 announcement = """
-📢 New in Pandera: derive columns with
+📢 New in Pandera 0.36.0: derive columns with
 <a href='./parsers.html#derived-columns'>ParsedField</a>/<a href='./parsers.html#derived-columns'>ParsedColumn</a>,
-<a href='./decisions.html'>parse unstructured data</a> with the decisions API,
-and validate <a href='./datafusion.html'>DataFusion</a> dataframes — all with
-the same schema and check patterns as the other dataframe backends!
+<a href='./decisions.html'>parse unstructured data</a> with the decisions API.
 """
 
 html_logo = "_static/pandera-banner.png"
