@@ -142,3 +142,26 @@ def test_pandera_validation_enabled_from_env_vars():
     del os.environ["PANDERA_VALIDATION_ENABLED"]
     config = _config_from_env_vars()
     assert config.validation_enabled
+
+
+@pytest.mark.parametrize("value", ["TRUE", "true", "True", "tRuE"])
+def test_pandera_validation_enabled_is_case_insensitive(value):
+    """Environment variables are commonly upper-cased, e.g. in CI and Docker.
+
+    Before this was case-insensitive, `PANDERA_VALIDATION_ENABLED=TRUE` silently
+    disabled validation, which is the opposite of what the user asked for.
+    """
+    os.environ["PANDERA_VALIDATION_ENABLED"] = value
+    try:
+        assert _config_from_env_vars().validation_enabled
+    finally:
+        del os.environ["PANDERA_VALIDATION_ENABLED"]
+
+
+@pytest.mark.parametrize("value", ["FALSE", "false", "False", "0", "no", ""])
+def test_pandera_validation_disabled_for_non_truthy_values(value):
+    os.environ["PANDERA_VALIDATION_ENABLED"] = value
+    try:
+        assert not _config_from_env_vars().validation_enabled
+    finally:
+        del os.environ["PANDERA_VALIDATION_ENABLED"]
