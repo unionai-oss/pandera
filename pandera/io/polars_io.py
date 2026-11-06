@@ -117,6 +117,7 @@ def _serialize_component_stats(component_stats):
                 "default",
                 "report_duplicates",
                 "drop_invalid_rows",
+                "metadata",
             ]
             if key in component_stats
         },
@@ -164,6 +165,11 @@ def serialize_schema(
         "add_missing_columns": dataframe_schema.add_missing_columns,
         "title": dataframe_schema.title,
         "description": dataframe_schema.description,
+        **(
+            {}
+            if dataframe_schema.metadata is None
+            else {"metadata": dataframe_schema.metadata}
+        ),
     }
     if minimal:
         apply_minimal_dataframe_container(out, dataframe_schema)
@@ -314,6 +320,7 @@ def _deserialize_component_stats(serialized_component_stats):
                 "default",
                 "report_duplicates",
                 "drop_invalid_rows",
+                "metadata",
             ]
             if key in serialized_component_stats
         },
@@ -370,6 +377,7 @@ def deserialize_schema(serialized_schema):
         ),
         title=serialized_schema.get("title", None),
         description=serialized_schema.get("description", None),
+        metadata=serialized_schema.get("metadata", None),
     )
 
 

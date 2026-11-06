@@ -1333,6 +1333,89 @@ def test_yaml_roundtrip_without_index_extras_is_unchanged():
     SKIP_YAML_TESTS,
     reason="pyyaml >= 5.1.0 required",
 )
+@pytest.mark.parametrize("fmt", ["yaml", "json"])
+def test_io_roundtrip_preserves_metadata(fmt):
+    """Column, index and schema ``metadata`` survive serialization. GH#1301"""
+    schema = pandera.DataFrameSchema(
+        {"col": pandera.Column(int, metadata={"key": "value"})},
+        index=pandera.Index(int, name="idx", metadata={"unit": "row"}),
+        metadata={"owner": "data-team"},
+    )
+
+    if fmt == "yaml":
+        restored = pandera.DataFrameSchema.from_yaml(schema.to_yaml())
+    else:
+        restored = pandera.DataFrameSchema.from_json(schema.to_json())
+
+    assert restored.columns["col"].metadata == {"key": "value"}
+    assert restored.index.metadata == {"unit": "row"}
+    assert restored.metadata == {"owner": "data-team"}
+    assert restored == schema
+
+
+@pytest.mark.skipif(
+    SKIP_YAML_TESTS,
+    reason="pyyaml >= 5.1.0 required",
+)
+def test_io_roundtrip_preserves_multiindex_metadata():
+    """Each ``MultiIndex`` level keeps its own ``metadata``."""
+    schema = pandera.DataFrameSchema(
+        {"col": pandera.Column(int)},
+        index=pandera.MultiIndex(
+            [
+                pandera.Index(int, name="a", metadata={"level": 0}),
+                pandera.Index(str, name="b", metadata={"level": 1}),
+            ]
+        ),
+    )
+
+    restored = pandera.DataFrameSchema.from_yaml(schema.to_yaml())
+
+    assert [index.metadata for index in restored.index.indexes] == [
+        {"level": 0},
+        {"level": 1},
+    ]
+    assert restored == schema
+
+
+@pytest.mark.skipif(
+    SKIP_YAML_TESTS,
+    reason="pyyaml >= 5.1.0 required",
+)
+def test_io_roundtrip_preserves_dataframe_model_field_metadata():
+    """``Field`` metadata of a model survives serialization."""
+
+    class Model(pandera.DataFrameModel):
+        col: pat.Series[int] = pandera.Field(metadata={"key": "value"})
+
+    schema = Model.to_schema()
+    restored = pandera.DataFrameSchema.from_yaml(Model.to_yaml())
+
+    assert restored.columns["col"].metadata == {"key": "value"}
+    assert restored == schema
+
+
+@pytest.mark.skipif(
+    SKIP_YAML_TESTS,
+    reason="pyyaml >= 5.1.0 required",
+)
+def test_io_without_metadata_is_unchanged():
+    """Guard: schemas without metadata serialize as before."""
+    schema = pandera.DataFrameSchema(
+        {"col": pandera.Column(int)}, index=pandera.Index(int)
+    )
+    serialized = yaml.safe_load(str(schema.to_yaml(minimal=False)))
+
+    assert "metadata" not in serialized
+    assert "metadata" not in serialized["columns"]["col"]
+    assert "metadata" not in serialized["index"][0]
+    assert pandera.DataFrameSchema.from_yaml(schema.to_yaml()) == schema
+
+
+@pytest.mark.skipif(
+    SKIP_YAML_TESTS,
+    reason="pyyaml >= 5.1.0 required",
+)
 def test_to_yaml():
     """Test that to_yaml writes to yaml string."""
     schema = _create_schema()
