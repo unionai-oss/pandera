@@ -166,6 +166,16 @@ def test_dataframe_schema_equality() -> None:
     assert schema != schema.update_column("a", checks=Check.eq(1))
 
 
+def test_dataframe_schema_hashable() -> None:
+    """DataFrameSchema should be hashable, and equal schemas should hash
+    the same so it can be used as a dict key or in a set."""
+    schema = DataFrameSchema({"a": Column(int)})
+    assert isinstance(hash(schema), int)
+    assert hash(schema) == hash(copy.copy(schema))
+    assert hash(schema) != hash(schema.update_column("a", dtype=float))
+    assert {schema, copy.copy(schema)} == {schema}
+
+
 def test_dataframe_schema_strict() -> None:
     """
     Checks if strict=True whether a schema error is raised because 'a' is
