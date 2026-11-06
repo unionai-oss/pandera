@@ -12,6 +12,10 @@ from pandera.errors import SchemaError
 # produce multi-KB error strings.
 _MAX_CATEGORIES_IN_MESSAGE = 10
 
+# Same idea as above but for the failure-cases listed in vectorized error
+# messages — without this, large DataFrames can produce multi-MB strings.
+_MAX_FAILURE_CASES_IN_MESSAGE = 10
+
 
 def describe_dtype_mismatch(expected_dtype, actual_dtype) -> tuple[str, str]:
     """Describe an expected/actual dtype pair for a dtype-mismatch message.
@@ -105,10 +109,18 @@ def format_vectorized_error_message(
         "pyspark.pandas"
     ):
         failure_cases = reshaped_failure_cases.failure_case.to_numpy()
-        failure_cases_string = ", ".join(failure_cases.astype(str))
+        cases_list = failure_cases.astype(str).tolist()
     else:
         failure_cases = reshaped_failure_cases.failure_case
-        failure_cases_string = ", ".join(failure_cases.apply(str))
+        cases_list = failure_cases.apply(str).tolist()
+
+    if len(cases_list) > _MAX_FAILURE_CASES_IN_MESSAGE:
+        failure_cases_string = (
+            ", ".join(cases_list[:_MAX_FAILURE_CASES_IN_MESSAGE])
+            + f", ... and {len(cases_list) - _MAX_FAILURE_CASES_IN_MESSAGE} more"
+        )
+    else:
+        failure_cases_string = ", ".join(cases_list)
 
     return (
         f"{parent_schema.__class__.__name__} '{parent_schema.name}' failed "
