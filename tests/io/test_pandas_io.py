@@ -1677,6 +1677,32 @@ def test_io_roundtrip_preserves_nested_tuple_column_labels(fmt, minimal, name):
     pd.testing.assert_frame_equal(restored.validate(dataframe), dataframe)
 
 
+@pytest.mark.parametrize("fmt", ["json", "yaml"])
+@pytest.mark.parametrize("multiindex", [False, True])
+def test_io_roundtrip_preserves_tuple_index_names(fmt, multiindex):
+    name = ("group", "value")
+    if multiindex:
+        index = pandera.MultiIndex(
+            [pandera.Index(int, name=name), pandera.Index(int, name="other")]
+        )
+        data_index = pd.MultiIndex.from_tuples(
+            [(1, 1), (2, 2)], names=[name, "other"]
+        )
+    else:
+        index = pandera.Index(int, name=name)
+        data_index = pd.Index([1, 2], name=name)
+    schema = pandera.DataFrameSchema({"a": pandera.Column(int)}, index=index)
+    dataframe = pd.DataFrame({"a": [1, 2]}, index=data_index)
+    schema.validate(dataframe)
+
+    restored = getattr(pandera.DataFrameSchema, f"from_{fmt}")(
+        getattr(schema, f"to_{fmt}")()
+    )
+
+    assert restored == schema
+    pd.testing.assert_frame_equal(restored.validate(dataframe), dataframe)
+
+
 def test_check_custom_error_json_serialization_roundtrip():
     """Test that custom check errors are serialized and deserialized via JSON."""
     import json
