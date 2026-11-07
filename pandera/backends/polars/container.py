@@ -488,7 +488,18 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
                 )
                 for k, v in missing_cols_schema.items()
             }
-        ).cast({k: v.dtype.type for k, v in missing_cols_schema.items()})
+        )
+
+        # Only cast columns that specify an explicit dtype: a dtype-less
+        # column keeps the dtype inferred from its default value, mirroring
+        # the pandas backend fix in #2609.
+        cast_dtypes = {
+            k: v.dtype.type
+            for k, v in missing_cols_schema.items()
+            if v.dtype is not None
+        }
+        if cast_dtypes:
+            check_obj = check_obj.cast(cast_dtypes)
 
         # Set column order: schema columns first, then the columns not in the
         # schema. Optional (``required=False``) columns that are absent are
