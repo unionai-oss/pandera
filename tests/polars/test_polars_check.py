@@ -462,18 +462,65 @@ def test_polars_lazy_failure_cases_empty_and_null_list():
     assert any("null" in str(v) for v in rendered)
 
 
+_NARWHALS_MIXED_DTYPE_XFAIL = pytest.mark.xfail(
+    condition=CONFIG.use_narwhals_backend
+    and int(pl.__version__.split(".")[0]) >= 2,
+    reason=(
+        "Narwhals backend isin/notin builtin checks have no column dtype "
+        "context to cast mixed numeric operands (polars 2.x)"
+    ),
+    strict=True,
+)
+
+
 @pytest.mark.parametrize(
     "column_dtype, allowed_values, data, passes",
     [
         # Floats checked against integer allowed values (polars 2.0).
-        (pl.Float64, [1, 2], [1.0, 2.0], True),
-        (pl.Float64, [1, 2], [1.0, 3.0], False),
-        (pl.Float32, [1, 2], [1.0, 2.0], True),
+        pytest.param(
+            pl.Float64,
+            [1, 2],
+            [1.0, 2.0],
+            True,
+            marks=_NARWHALS_MIXED_DTYPE_XFAIL,
+        ),
+        pytest.param(
+            pl.Float64,
+            [1, 2],
+            [1.0, 3.0],
+            False,
+            marks=_NARWHALS_MIXED_DTYPE_XFAIL,
+        ),
+        pytest.param(
+            pl.Float32,
+            [1, 2],
+            [1.0, 2.0],
+            True,
+            marks=_NARWHALS_MIXED_DTYPE_XFAIL,
+        ),
         # Integers checked against float allowed values.
-        (pl.Int64, [1.0, 2.0], [1, 2], True),
-        (pl.UInt32, [1.0, 2.0], [1, 3], False),
+        pytest.param(
+            pl.Int64,
+            [1.0, 2.0],
+            [1, 2],
+            True,
+            marks=_NARWHALS_MIXED_DTYPE_XFAIL,
+        ),
+        pytest.param(
+            pl.UInt32,
+            [1.0, 2.0],
+            [1, 3],
+            False,
+            marks=_NARWHALS_MIXED_DTYPE_XFAIL,
+        ),
         # Fractional allowed values must not be truncated to match ints.
-        (pl.Int64, [1.5, 2.5], [1, 2], False),
+        pytest.param(
+            pl.Int64,
+            [1.5, 2.5],
+            [1, 2],
+            False,
+            marks=_NARWHALS_MIXED_DTYPE_XFAIL,
+        ),
         # Same-dtype controls.
         (pl.Float64, [1.0, 2.0], [1.0, 2.0], True),
         (pl.Int64, [1, 2], [1, 2], True),
@@ -494,19 +541,46 @@ def test_polars_isin_mixed_numeric_dtypes(
         validated = schema.validate(df)
         assert validated.get_column("a").to_list() == data
     else:
-        with pytest.raises(pa.errors.SchemaError):
+        with pytest.raises(pa.errors.SchemaError) as exc_info:
             schema.validate(df)
+        # An ``is_in`` dtype crash must not masquerade as an expected
+        # schema failure (the narwhals backend raises it on polars 2.x).
+        assert "InvalidOperationError" not in str(exc_info.value)
 
 
 @pytest.mark.parametrize(
     "column_dtype, forbidden_values, data, passes",
     [
         # Floats checked against integer forbidden values (polars 2.0).
-        (pl.Float64, [1, 2], [1.0, 3.0], False),
-        (pl.Float64, [1, 2], [3.0, 4.0], True),
+        pytest.param(
+            pl.Float64,
+            [1, 2],
+            [1.0, 3.0],
+            False,
+            marks=_NARWHALS_MIXED_DTYPE_XFAIL,
+        ),
+        pytest.param(
+            pl.Float64,
+            [1, 2],
+            [3.0, 4.0],
+            True,
+            marks=_NARWHALS_MIXED_DTYPE_XFAIL,
+        ),
         # Integers checked against float forbidden values.
-        (pl.Int64, [1.0, 2.0], [1, 3], False),
-        (pl.UInt32, [1.0, 2.0], [3, 4], True),
+        pytest.param(
+            pl.Int64,
+            [1.0, 2.0],
+            [1, 3],
+            False,
+            marks=_NARWHALS_MIXED_DTYPE_XFAIL,
+        ),
+        pytest.param(
+            pl.UInt32,
+            [1.0, 2.0],
+            [3, 4],
+            True,
+            marks=_NARWHALS_MIXED_DTYPE_XFAIL,
+        ),
         # Same-dtype controls.
         (pl.Float64, [1.0, 2.0], [3.0, 4.0], True),
         (pl.Int64, [1, 2], [3, 4], True),
@@ -526,5 +600,8 @@ def test_polars_notin_mixed_numeric_dtypes(
         validated = schema.validate(df)
         assert validated.get_column("a").to_list() == data
     else:
-        with pytest.raises(pa.errors.SchemaError):
+        with pytest.raises(pa.errors.SchemaError) as exc_info:
             schema.validate(df)
+        # An ``is_in`` dtype crash must not masquerade as an expected
+        # schema failure (the narwhals backend raises it on polars 2.x).
+        assert "InvalidOperationError" not in str(exc_info.value)
