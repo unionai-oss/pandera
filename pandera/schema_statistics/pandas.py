@@ -226,9 +226,10 @@ def _get_array_check_statistics(
     if x.isna().all():
         return None
     if dtypes.is_datetime(data_type):
+        non_null = x.dropna()
         check_stats = {
-            "greater_than_or_equal_to": x.min(),
-            "less_than_or_equal_to": x.max(),
+            "greater_than_or_equal_to": non_null.min(),
+            "less_than_or_equal_to": non_null.max(),
         }
     elif dtypes.is_numeric(data_type) and not dtypes.is_bool(data_type):
         check_stats = {
