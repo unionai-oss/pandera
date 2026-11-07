@@ -223,10 +223,9 @@ html_theme = "furo"
 # documentation.
 
 announcement = """
-📢 New in Pandera 0.35.0: validate
-<a href='./datafusion.html'>DataFusion</a>
-dataframes with the same schema and check patterns as the other dataframe
-backends!
+📢 New in Pandera 0.36.0: derive columns with
+<a href='./parsers.html#derived-columns'>ParsedField</a>/<a href='./parsers.html#derived-columns'>ParsedColumn</a>,
+<a href='./decisions.html'>parse unstructured data</a> with the decisions API.
 """
 
 html_logo = "_static/pandera-banner.png"

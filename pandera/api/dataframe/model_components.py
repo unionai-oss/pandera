@@ -125,6 +125,41 @@ class FieldInfo(BaseFieldInfo):
         }
 
 
+class ParsedFieldInfo(FieldInfo):
+    """A :class:`FieldInfo` that also declares how its column is derived."""
+
+    __slots__ = ("parser", "source", "on_error")
+
+    # annotations only: ``__slots__`` provides the storage
+    parser: Any
+    source: Any
+    on_error: str
+
+    def column_properties(
+        self,
+        dtype: Any,
+        checks: CheckArg | None = None,
+        parsers: ParserArg | None = None,
+        nullable: bool = False,
+        required: bool = True,
+        name: str | None = None,
+    ) -> dict[str, Any]:
+        properties = super().column_properties(
+            dtype,
+            checks=checks,
+            parsers=parsers,
+            nullable=nullable,
+            required=required,
+            name=name,
+        )
+        properties.update(
+            parser=self.parser,
+            source=self.source,
+            on_error=self.on_error,
+        )
+        return properties
+
+
 def Field(
     *,
     eq: Any | None = None,
@@ -286,6 +321,53 @@ def Field(
         metadata=metadata,
         on_missing=on_missing,
     )
+
+
+def ParsedField(
+    *,
+    parser: Any,
+    source: Union[str, Iterable[str], None] = None,
+    on_error: str = "raise",
+    **field_kwargs: Any,
+) -> Any:
+    """Declare a column derived from other columns of the same dataframe.
+
+    ``ParsedField`` is :func:`Field` plus the provenance of the column's
+    values, so a model states where a column comes from instead of leaving it
+    to a schema-level ``parsers`` list:
+
+    .. code-block:: python
+
+        class Tickets(pa.DataFrameModel):
+            body: str
+            n_words: int = pa.ParsedField(
+                source="body",
+                parser=lambda s: s.str.split().str.len(),
+                ge=1,
+            )
+
+    :param parser: a callable producing the column's values, or an object
+        implementing the :class:`~pandera.api.parsers.ColumnParser` protocol.
+        A callable receives the source column as a ``Series`` when a single
+        source is declared, and the selected source columns as a
+        ``DataFrame`` otherwise.
+    :param source: the column(s) this column is derived from. Defaults to the
+        model's ``Config.parser_source``.
+    :param on_error: what to do when the parser fails.
+    :param field_kwargs: everything :func:`Field` accepts.
+    """
+    base = Field(**field_kwargs)
+    # Copy the FieldInfo's state rather than re-listing its arguments, so
+    # ParsedField keeps accepting everything Field does as Field evolves.
+    info = ParsedFieldInfo.__new__(ParsedFieldInfo)
+    for klass in type(base).__mro__:
+        for slot in getattr(klass, "__slots__", ()):
+            if hasattr(base, slot):
+                object.__setattr__(info, slot, getattr(base, slot))
+    object.__setattr__(info, "parser", parser)
+    object.__setattr__(info, "source", source)
+    object.__setattr__(info, "on_error", on_error)
+    return info
 
 
 def _check_dispatch():

@@ -105,6 +105,9 @@ dependencies:
       # datafusion extra
       - narwhals-datafusion >= 0.1.5
 
+      # decisions extra
+      - typesafe-sdk
+
       # docs
       - furo
       - sphinxcontrib-typer >= 0.8.0

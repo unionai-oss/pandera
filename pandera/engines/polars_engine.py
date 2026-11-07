@@ -25,7 +25,7 @@ from polars.datatypes._parse import parse_py_type_into_dtype
 from pydantic import BaseModel, ValidationError
 from typing_extensions import NotRequired, deprecated
 
-from pandera import dtypes, errors
+from pandera import _enum_literal, dtypes, errors
 from pandera.api.polars.types import PolarsData
 from pandera.backends.polars.utils import horizontal_concat, polars_version
 from pandera.constants import CHECK_OUTPUT_KEY
@@ -240,6 +240,10 @@ class Engine(metaclass=engine.Engine, base_pandera_dtypes=DataType):
         if nested_schema is not None:
             return PanderaSchema(nested_schema)
 
+        categorical = cls._as_categorical(data_type)
+        if categorical is not None:
+            return categorical
+
         try:
             return engine.Engine.dtype(cls, data_type)
         except TypeError:
@@ -255,6 +259,35 @@ class Engine(metaclass=engine.Engine, base_pandera_dtypes=DataType):
                 return engine.Engine.dtype(cls, pl_dtype)
             except TypeError:
                 return DataType(data_type)
+
+    @classmethod
+    def _as_categorical(cls, data_type: Any) -> dtypes.DataType | None:
+        """Map an ``Enum`` class or ``Literal`` alias onto a polars dtype.
+
+        Categories come from member *values* (or literal arguments), matching
+        every other backend. Polars categoricals are string-only, so a
+        non-string option set falls back to the polars dtype of the values
+        themselves — an ``IntEnum`` becomes ``Int64`` rather than failing.
+        """
+        if _enum_literal.is_enum_type(data_type):
+            categories = _enum_literal.enum_categories(data_type)
+        elif _enum_literal.is_literal_type(data_type):
+            categories = _enum_literal.literal_categories(data_type)
+        else:
+            return None
+
+        if categories and all(
+            isinstance(category, str) for category in categories
+        ):
+            return Enum(categories=list(categories))
+
+        # Let polars infer the width from the values themselves rather than
+        # from their Python type, so e.g. an IntEnum lands on the same dtype a
+        # column of its values would.
+        return engine.Engine.dtype(
+            cls,
+            pl.Series(list(categories)).dtype,  # type: ignore[arg-type]
+        )
 
     @staticmethod
     def _as_nested_schema(data_type: Any):
@@ -933,7 +966,12 @@ class Enum(DataType):
 
     type = pl.Enum
 
-    categories: pl.Series
+    # ``pl.Series`` has no truth value and is unhashable, so the categories
+    # must stay out of the dataclass ``__eq__``/``__hash__``. ``type`` already
+    # carries them: ``pl.Enum`` compares categories element-wise.
+    categories: Union[pl.Series, Iterable[str], None] = dataclasses.field(
+        default=None, compare=False
+    )
 
     def __init__(
         self,
@@ -960,10 +998,9 @@ class Enum(DataType):
         except TypeError:
             return False
 
-        return (
-            self.type == pandera_dtype.type
-            and (self.type.categories == pandera_dtype.categories).all()  # type: ignore
-        )
+        # ``pl.Enum.__eq__`` compares the categories, and an Enum without
+        # categories (``pl.Enum`` itself) matches any Enum.
+        return self.type == pandera_dtype.type
 
 
 @Engine.register_dtype(
