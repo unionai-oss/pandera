@@ -715,8 +715,6 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
 
         frame_column_names = check_obj.collect_schema().names()
         for col_name, col_schema in schema.columns.items():
-            if not hasattr(col_schema, "default"):
-                continue
             if col_schema.default is None:
                 continue
             # Defaults only fill nulls in columns that are present. An absent
