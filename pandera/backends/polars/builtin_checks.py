@@ -158,6 +158,7 @@ def _is_in_expr(data: PolarsData, values: Collection) -> pl.Expr:
     if column_dtype is None or not column_dtype.is_numeric():
         return col.is_in(values)
 
+    allowed_values: Any
     if isinstance(values, pl.Series):
         values_series = values
         allowed_values = values
