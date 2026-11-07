@@ -1,13 +1,12 @@
-# Derived Columns and System One Parsing — Integration Spec
+# Derived Columns and Decision-Model Parsing — Integration Spec
 
 > **Status:** Draft / RFC. Phases 0–3 are implemented in #2515–#2520; the
 > provider generalization of §7 is in #2526. See §9 for what is and is not built.
 > **Author:** pandera maintainers
-> **Install:** `pip install 'pandera[typesafe-ai]'`
-> **Related:** [TypeSafe Jev](https://pydantic.dev/docs/ai/models/typesafe/),
-> [Ollaya](https://ollaya.dev) (open-weight decision models behind the same
+> **Install:** `pip install 'pandera[decisions]'`
+> **Related:** [TypeSafe Jev](https://pydantic.dev/docs/ai/models/typesafe/)
+> > [Ollaya](https://ollaya.dev) (open-weight decision models behind the same
 > wire format)
-
 ---
 
 ## 0. TL;DR
@@ -25,8 +24,8 @@ class Tickets(pa.DataFrameModel):
     n_words: int = pa.ParsedField(source="body", parser=lambda s: s.str.split().str.len())
 ```
 
-**Layer 2 — decision-model parsing (`pandera[typesafe-ai]`).** `parser=` accepts
-a plain callable *or* a parser object. The System One question types are parser
+**Layer 2 — decision-model parsing (`pandera[decisions]`).** `parser=` accepts a
+plain callable *or* a parser object. The decision question types are parser
 objects, so asking a decision model is the same construct as any other
 derivation. The question types are pandera's own provider-neutral vocabulary;
 Jev and the open-weight models Ollaya serves locally are two *providers* of it,
@@ -35,7 +34,7 @@ and switching between them is a runtime setting, not a schema change (§7):
 ```python
 import enum
 import pandera.pandas as pa
-import pandera.system_one as system_one
+import pandera.decisions as decisions
 
 class Department(enum.StrEnum):
     billing = "billing"
@@ -57,15 +56,15 @@ class Triage(pa.DataFrameModel):
     ticket_body: str
     department: Department = pa.ParsedField(
         description="Which team should handle this ticket",
-        parser=system_one.Choice(),
+        parser=decisions.Choice(),
     )
     frustration: Frustration = pa.ParsedField(
         description="How frustrated the customer appears",
-        parser=system_one.Score(),
+        parser=decisions.Score(),
     )
     is_urgent: bool = pa.ParsedField(
         description="The message conveys time-sensitivity",
-        parser=system_one.Noul(),
+        parser=decisions.Noul(),
     )
 
     class Config:
@@ -121,7 +120,7 @@ Pandera already draws this line, in `docs/source/parsers.md`:
 
 ### 1.3 Why decision models fit the layer-2 slot
 
-A **System One model** (or *decision model*) does not generate text. It answers
+A **decision model** does not generate text. It answers
 typed questions and can only return values from the schema it was given. Three
 question types, which become the three parser objects:
 
@@ -206,7 +205,7 @@ covers verification before any of them appear in user-facing docs.)*
 1. **Two layers, and the lower one ships alone.** Derived columns are a pandera
    feature with its own users. If layer 2 is never built, layer 1 still pays for
    itself.
-2. **One derivation mechanism.** A System One column is declared exactly like a
+2. **One derivation mechanism.** A decision-model column is declared exactly like a
    `lambda`-derived column. There is no second path, no separate step to
    remember, and no "AI mode" for a schema.
 3. **Plain Python carries the types.** `Enum`, `IntEnum`, `Literal`, and `bool`
@@ -329,7 +328,7 @@ order. `source` defaults to `Config.parser_source` when the field omits it,
 which is what lets every field in the §0 example stay a one-liner.
 
 Adding a *construct* whose entire purpose is derivation is the point here. An
-earlier draft of this spec added `system_one_source=` as an *argument* to
+earlier draft of this spec added `decisions_source=` as an *argument* to
 `Column`, which put provider concerns in a namespace shared with every ordinary
 column option; §12 records the reversal.
 
@@ -393,7 +392,7 @@ class ParseContext:
 `bind` is called once at schema-build time and returns the function the parser
 will run. Two consequences that matter:
 
-- **A parser sees its own column's declared type.** `system_one.Choice()` can
+- **A parser sees its own column's declared type.** `decisions.Choice()` can
   read `Department` off the context and derive its options from it. No parser
   needs to be told what it is producing.
 - **A parser can refuse early.** `bind` raising `SchemaInitError` surfaces at
@@ -453,23 +452,23 @@ independently worth doing.
 
 ---
 
-## 4. Layer 2: System One parsers
+## 4. Layer 2: decision parsers
 
 ### 4.1 Three parser objects
 
 ```python
-import pandera.system_one as system_one
+import pandera.decisions as decisions
 
-system_one.Choice(instructions=None, criteria=None, *, provider=None, **opts)
-system_one.Score(instructions=None, criteria=None, *, provider=None, **opts)
-system_one.Noul(instructions=None, *, threshold=0.5, provider=None, **opts)
+decisions.Choice(instructions=None, criteria=None, *, provider=None, **opts)
+decisions.Score(instructions=None, criteria=None, *, provider=None, **opts)
+decisions.Noul(instructions=None, *, threshold=0.5, provider=None, **opts)
 ```
 
 Each implements `ColumnParser`. Everything is explicit if you want it to be:
 
 ```python
 department: Department = pa.ParsedField(
-    parser=system_one.Choice(
+    parser=decisions.Choice(
         instructions="Which team should handle this ticket",
         criteria={
             "billing": "Payment, invoices or subscription issues",
@@ -512,7 +511,7 @@ class Frustration(enum.IntEnum):
 
 frustration: Frustration = pa.ParsedField(
     description="How frustrated the customer appears",
-    parser=system_one.Score(),
+    parser=decisions.Score(),
 )
 ```
 
@@ -574,7 +573,7 @@ class Config:
 ```python
 reply_is_on_policy: bool = pa.ParsedField(
     description="The reply follows the stated refund policy",
-    parser=system_one.Noul(),
+    parser=decisions.Noul(),
     source=["ticket_body", "agent_reply"],  # per-field override
 )
 ```
@@ -596,11 +595,11 @@ class Triage(pa.DataFrameModel):
     ticket_body: str
     department: Department = pa.ParsedField(
         description="Which team should handle this ticket",
-        parser=system_one.Choice(abstain_below=0.55),
+        parser=decisions.Choice(abstain_below=0.55),
         nullable=True,
     )
     department_confidence: float = pa.ParsedField(
-        parser=system_one.Confidence("department"),
+        parser=decisions.Confidence("department"),
         ge=0.70,
     )
 
@@ -649,23 +648,19 @@ schema reports the mismatch.
 A schema says what to ask. Who answers is configured out of band:
 
 ```python
-import pandera.system_one as system_one
+import pandera.decisions as decisions
 
-system_one.set_provider("typesafe:jev-1.13.0")        # hosted, process-wide
-system_one.set_provider("ollaya:decider:2b")          # local, no per-token cost
+decisions.set_provider("typesafe:jev-1.13.0")        # process-wide
 
-with system_one.provider(ReplayProvider(cassette)):   # scoped, for tests
+with decisions.provider(ReplayProvider(cassette)):   # scoped, for tests
     Triage.validate(df)
 ```
 
-plus `PANDERA_SYSTEM_ONE_PROVIDER` as the env-var form, and
-`system_one.Choice(provider=...)` as a per-parser override. Prefixes resolve
-through a registry — `typesafe:`, `ollaya:` and `mock:` ship, and
-`system_one.register_provider("acme", factory)` makes any other reachable from
-all three forms.
+plus `PANDERA_DECISIONS_PROVIDER` as the env-var form, and
+`decisions.Choice(provider=...)` as a per-parser override.
 
-**There is no default provider.** Validating a System One schema with none
-configured raises `SystemOneConfigError` telling you how to set one. That is the
+**There is no default provider.** Validating a decision-model schema with none
+configured raises `DecisionsConfigError` telling you how to set one. That is the
 safety property that matters here: `Triage.validate(df)` may issue paid or
 GPU-bound requests — inherent to putting the question in the schema — so it must
 be impossible to reach that state without having deliberately configured a
@@ -674,12 +669,12 @@ provider.
 Supporting mitigations, all callable with no provider or no credentials:
 
 ```python
-system_one.questions(Triage)
+decisions.questions(Triage)
 #> {'department': Choice(...), 'frustration': Score(...), 'is_urgent': Noul(...)}
 
-system_one.questions(Triage, provider="ollaya:laya")   # + capability check
+decisions.questions(Triage, provider="ollaya:laya")   # + capability check
 
-system_one.plan(Triage, tickets_df, provider="ollaya:decider:2b")
+decisions.plan(Triage, tickets_df, provider="ollaya:decider:2b")
 #> Plan(rows=10_000, batches=1, requests=10_000, questions=3,
 #>      est_input_tokens=4_812_000, est_cost=$0.0000)
 ```
@@ -703,7 +698,7 @@ class Products(pa.DataFrameModel):
     name: str
     category: Category
     description: str = pa.Field(
-        checks=system_one.Holds(
+        checks=decisions.Holds(
             "The description is a coherent description of a product "
             "belonging to the stated category",
             context=["name", "category"],
@@ -714,7 +709,7 @@ class Products(pa.DataFrameModel):
 
 `Holds` is an ordinary `Check` with a vectorized predicate, so failure cases,
 `lazy=True`, `n_failure_cases`, and `raise_warning` work untouched. A
-`PANDERA_SYSTEM_ONE_ENABLED` guard lets schemas carrying semantic checks run
+`PANDERA_DECISIONS_ENABLED` guard lets schemas carrying semantic checks run
 offline, degrading to a skip with a warning.
 
 ### 4.8 Serialization
@@ -729,7 +724,7 @@ columns:
     description: Which team should handle this ticket
     nullable: true
     parser:
-      type: system_one.choice
+      type: decisions.choice
       source: [ticket_body]
       criteria:
         billing: Payment, invoices or subscription issues
@@ -738,7 +733,7 @@ columns:
   department_confidence:
     dtype: float64
     parser:
-      type: system_one.confidence
+      type: decisions.confidence
       of: department
     checks:
       greater_than_or_equal_to: 0.70
@@ -767,11 +762,11 @@ class Conversation(pa.DataFrameModel):
     customer_msg: str
     agent_reply: str
 
-    intent: Intent = pa.ParsedField(parser=system_one.Choice(), source="customer_msg")   # ┐
-    is_urgent: bool = pa.ParsedField(parser=system_one.Noul(), source="customer_msg")    # ┘ batch A
+    intent: Intent = pa.ParsedField(parser=decisions.Choice(), source="customer_msg")   # ┐
+    is_urgent: bool = pa.ParsedField(parser=decisions.Noul(), source="customer_msg")    # ┘ batch A
 
     reply_is_on_policy: bool = pa.ParsedField(                                           # ┐ batch B
-        parser=system_one.Noul(), source=["customer_msg", "agent_reply"],                # ┘
+        parser=decisions.Noul(), source=["customer_msg", "agent_reply"],                # ┘
     )
 ```
 
@@ -834,7 +829,7 @@ Built-ins: in-memory dict, SQLite, parquet directory. Stats land on the
 validated frame:
 
 ```python
-out.attrs["pandera.system_one"]
+out.attrs["pandera.decisions"]
 #> {'rows': 10_000, 'batches': 1, 'cached': 9_412, 'called': 588,
 #>  'model_version': 'jev-1.13.0', 'input_tokens': 241_305,
 #>  'est_cost_usd': 0.0101, 'wall_seconds': 4.3}
@@ -1099,15 +1094,13 @@ a subclass of the first provider and no change to a parser.
 
 ```toml
 [project.optional-dependencies]
-typesafe-ai = ["typesafe-sdk"]
+decisions = ["typesafe-sdk"]
 ```
 
 - Layer 1 is **core pandera** — no extra, no new dependency.
-- Layer 2 is `pandera.system_one`, installed with
-  `pip install 'pandera[typesafe-ai]'`. Vendor-specific code lives under
-  `pandera.system_one.providers`; only `typesafe.py` imports the SDK, and
-  `ollaya.py` reuses it, so the one extra covers both. Ollaya additionally needs
-  a running server, which is not a Python dependency.
+- Layer 2 is `pandera.decisions`, installed with
+  `pip install 'pandera[decisions]'`; Jev-specific code lives in
+  `pandera.decisions.providers.typesafe`.
 - Importing `pandera` without the extra is byte-for-byte unaffected.
 
 ---
@@ -1143,7 +1136,7 @@ Hard constraint: **no test requires an API key or network access.**
   the true count.
 - **Cassettes.** `RecordingProvider` captures real responses once behind
   `PANDERA_RECORD_CASSETTES=1`; `ReplayProvider` serves them in CI via the
-  `system_one.provider(...)` context manager.
+  `decisions.provider(...)` context manager.
 - **Compatibility tests.** §4.3 as a parametrized matrix: every (parser, dtype)
   pair either compiles or raises `SchemaInitError` naming the column.
 - **Provider conformance.** A schema is driven end to end through the *real*
@@ -1170,12 +1163,12 @@ Hard constraint: **no test requires an API key or network access.**
 - `docs/source/parsers.md` — extend with derived columns as a first-class
   concept; update the "pandas only" note as §6.4 lands.
 - `docs/source/derived_columns.md` — layer 1 user guide.
-- `docs/source/system_one.md` — layer 2 user guide: the §0 example, the
+- `docs/source/decisions.md` — layer 2 user guide: the §0 example, the
   inference rules, writing good criteria, confidence, providers, caching, cost.
 - `docs/source/dtypes.md` — document enum/`Literal`/ordered-category behavior
   once §6 is fixed. Currently undocumented, which is why the gaps went unnoticed.
 - `docs/source/integrations.md` — add a **TypeSafe AI (Jev)** row.
-- `docs/source/reference/system_one.rst` — API reference.
+- `docs/source/reference/decisions.rst` — API reference.
 - A notebook doing end-to-end ticket triage, runnable with `MockProvider`.
 
 ---
@@ -1224,7 +1217,7 @@ caching.
    one-liner per field, but it is a schema-wide default for something that is
    conceptually per column. The alternative is repeating `source=` on every
    field, which is explicit but noisy.
-2. Should `system_one.Ask()` exist — a parser that picks `Choice`/`Score`/`Noul`
+2. Should `decisions.Ask()` exist — a parser that picks `Choice`/`Score`/`Noul`
    from the dtype? It would shorten the common case, at the cost of
    reintroducing the silent inference §4.3 deliberately removed.
 3. Enum columns holding values vs. members (§6.3) — values recommended; either
@@ -1236,13 +1229,12 @@ caching.
    sufficient? Removal would complete the derivation story but complicates the
    dependency graph.
 6. `ParsedIndex` for symmetry, or is deriving an index out of scope?
-7. **Naming.** "System One" is TypeSafe's coinage, and `typesafe-ai` names one
-   vendor, yet the category now has several implementations that call
+7. **Naming (resolved).** "System One" is TypeSafe's coinage, and `typesafe-ai`
+   named one vendor, yet the category has several implementations that call
    themselves *decision models* (Ollaya serves `/v1/systemone` and aliases it
-   `/v1/decisions`; its native endpoint is `/api/decide`). Should
-   `pandera.system_one` become `pandera.decisions`, and `typesafe-ai` something
-   like `decision-models`? Recommended, and cheapest before anything is
-   released; it also removes the only vendor name from the public API.
+   `/v1/decisions`; its native endpoint is `/api/decide`). This work renames
+   the package to `pandera.decisions` and the extra to `decisions`, removing
+   the only vendor name from the public API.
 8. **Cascades.** Jev's own integrations hand low-confidence decisions to a
    language model (`FallbackModel`). With interchangeable providers the natural
    pandera form is `abstain_below` plus a `fallback=` provider for the abstained
@@ -1256,15 +1248,15 @@ caching.
 11. **Batches larger than `max_questions`.** Today a request over the cap is
     refused. Should the compiler split it, at the cost of `Confidence` needing to
     stay in its target's chunk?
-12. **A comparison helper.** `system_one.compare(schema, df, providers=[...])`
+12. **A comparison helper.** `decisions.compare(schema, df, providers=[...])`
     returning per-column agreement and distribution shift, so "measure before
     switching" is one call.
 
 **Resolved during review:**
 
-- *How is a System One column declared?* Through **`ParsedField`/`ParsedColumn`
+- *How is a decision-model column declared?* Through **`ParsedField`/`ParsedColumn`
   with a parser object** (§0), not a separate step. Earlier drafts proposed a
-  standalone `SystemOneParser(output=Model, source=...)` mirroring Pydantic AI's
+  standalone `DecisionParser(output=Model, source=...)` mirroring Pydantic AI's
   `Agent`. That was a faithful port of someone else's API rather than a pandera
   design: it split column declarations across two places, and it made the
   question set a property of a side object rather than of the column it fills.
@@ -1272,7 +1264,7 @@ caching.
   shape — and batching (§5.1) recovers the per-request economics that made the
   bundled form attractive.
 - *Where do AI arguments live on `Field`/`Column`/`Config`?* **Nowhere.** An
-  earlier draft added `system_one_source=` and `system_one_provider=` to the
+  earlier draft added `decisions_source=` and `decisions_provider=` to the
   core constructs. `ParsedField(parser=...)` gives derivation its own construct,
   and providers moved to runtime configuration entirely.
 - *`Choice` vs `Score`* — named explicitly rather than inferred from category
@@ -1298,7 +1290,7 @@ computable. That is the whole design:
 ```python
 department: Department = pa.ParsedField(
     description="Which team should handle this ticket",
-    parser=system_one.Choice(),
+    parser=decisions.Choice(),
 )
 ```
 

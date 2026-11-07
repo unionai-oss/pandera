@@ -879,6 +879,28 @@ def test_is_uint(uint_dtype: Any, expected: bool):
 
 
 @pytest.mark.parametrize(
+    "schema_dtype, data_dtype",
+    [
+        ("int8", "uint8"),
+        ("uint8", "int8"),
+        ("int64", "uint64"),
+        ("uint64", "int64"),
+    ],
+)
+def test_integer_dtype_check_compares_signedness(schema_dtype, data_dtype):
+    """Integers of equal width but different signedness are different dtypes.
+
+    Without coercion the data must not validate: an unsigned schema would let
+    negative values through, a signed one values above its maximum.
+    """
+    schema = pa.SeriesSchema(schema_dtype)
+    data = pd.Series([0, 1], dtype=data_dtype)
+    with pytest.raises(pa.errors.SchemaError, match="expected series"):
+        schema.validate(data)
+    assert schema.validate(data.astype(schema_dtype)) is not None
+
+
+@pytest.mark.parametrize(
     "float_dtype, expected",
     [
         (dtype, True)

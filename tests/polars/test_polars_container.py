@@ -1162,3 +1162,29 @@ def test_dataframe_schema_inplace_warns():
         match="setting inplace=True will have no effect",
     ):
         schema.validate(pl.DataFrame({"column": [1, 2, 3]}), inplace=True)
+
+
+def test_collect_column_info_reads_frame_schema_once():
+    """collect_column_info must not resolve the frame schema once per column."""
+    from unittest import mock
+
+    from pandera.backends.polars.container import DataFrameSchemaBackend
+
+    n_columns = 200
+    schema = DataFrameSchema(
+        {f"col_{i}": Column(pl.Int64) for i in range(n_columns)}
+        | {"missing": Column(pl.Int64)}
+    )
+    lf = pl.LazyFrame({f"col_{i}": [i] for i in range(n_columns)})
+
+    original = pl.LazyFrame.collect_schema
+    with mock.patch.object(
+        pl.LazyFrame, "collect_schema", autospec=True, side_effect=original
+    ) as collect_schema:
+        info = DataFrameSchemaBackend().collect_column_info(lf, schema)
+
+    assert collect_schema.call_count == 1
+    assert info.absent_column_names == ["missing"]
+    assert list(info.sorted_column_names) == [
+        f"col_{i}" for i in range(n_columns)
+    ]

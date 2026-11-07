@@ -17,6 +17,13 @@ from typing import (
 
 from typing_extensions import overload
 
+from pandera._enum_literal import (
+    enum_categories,
+    enum_ordered,
+    literal_categories,
+    member_descriptions,
+)
+
 
 class DataType(ABC):
     """Base class of all Pandera data types."""

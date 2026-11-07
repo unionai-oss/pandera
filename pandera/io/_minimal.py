@@ -138,7 +138,8 @@ def apply_minimal_dataframe_container(
         for key, default in MULTIINDEX_DEFAULTS.items():
             if key in multiindex and multiindex[key] == default:
                 multiindex.pop(key)
-        if not multiindex:
+        # One level alone cannot distinguish a MultiIndex from an Index.
+        if not multiindex and len(out.get("index") or []) != 1:
             out.pop("multiindex", None)
 
     lib = out.get("dataframe_library")
