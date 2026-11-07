@@ -318,12 +318,12 @@ class DataFrameModel(_DataFrameModel[pd.DataFrame, DataFrameSchema]):
 
         data = {}
         for col_name, col_schema in schema.columns.items():
-            dtype = (
-                col_schema.dtype.type
-                if not isinstance(col_schema.dtype, PythonGenericType)
-                else "object"
-            )
             if col_schema.dtype is not None:
+                dtype = (
+                    col_schema.dtype.type
+                    if not isinstance(col_schema.dtype, PythonGenericType)
+                    else "object"
+                )
                 data[col_name] = pd.array([], dtype=dtype)
             else:
                 data[col_name] = pd.array([])
