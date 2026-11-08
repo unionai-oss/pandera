@@ -1310,3 +1310,61 @@ def test_coerce_empty_integer_column_is_not_an_overflow():
     )
     assert validated.empty
     assert validated["a"].dtype == "int8"
+
+
+@pytest.mark.parametrize(
+    "values",
+    [
+        ["True", "False", "False"],
+        ["false"],
+        ["0", "1"],
+        ["no"],
+        [True, "False"],
+    ],
+)
+@pytest.mark.parametrize("schema_level", [False, True])
+def test_coerce_strings_to_bool_is_reported(values, schema_level):
+    """Coercing strings to the numpy ``bool`` dtype is a coercion failure.
+
+    numpy casts every non-empty string to True, so ``astype(bool)``
+    "succeeds" while turning "False", "0" and "no" into True.
+    """
+    schema = (
+        pa.DataFrameSchema(dtype=bool, coerce=True)
+        if schema_level
+        else pa.DataFrameSchema({"a": pa.Column(bool, coerce=True)})
+    )
+    with pytest.raises(pa.errors.SchemaErrors) as exc_info:
+        schema.validate(pd.DataFrame({"a": values}), lazy=True)
+    failure_cases = exc_info.value.failure_cases
+    coercion_failures = failure_cases[
+        failure_cases["check"] == "coerce_dtype('bool')"
+    ]["failure_case"].tolist()
+    strings = [value for value in values if isinstance(value, str)]
+    # schema-level failure cases are reported per row, as dicts
+    assert len(coercion_failures) == len(strings)
+    if not schema_level:
+        assert coercion_failures == strings
+
+
+@pytest.mark.parametrize(
+    "values",
+    [
+        [True, False],
+        [1, 0],
+        [1.0, 0.0],
+        pd.Series([True, False], dtype=object),
+    ],
+)
+@pytest.mark.parametrize("schema_level", [False, True])
+def test_coerce_valid_bool_conversions_still_work(values, schema_level):
+    """Booleans, numbers and object columns holding booleans still coerce."""
+    schema = (
+        pa.DataFrameSchema(dtype=bool, coerce=True)
+        if schema_level
+        else pa.DataFrameSchema({"a": pa.Column(bool, coerce=True)})
+    )
+    assert schema.validate(pd.DataFrame({"a": values}))["a"].tolist() == [
+        True,
+        False,
+    ]
