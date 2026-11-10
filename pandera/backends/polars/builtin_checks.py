@@ -140,6 +140,46 @@ def in_range(
     return data.lazyframe.select(compare_min.and_(compare_max))
 
 
+def _is_in_expr(data: PolarsData, values: Collection) -> pl.Expr:
+    """Build an ``is_in`` expression for a column and a set of values.
+
+    Polars 2.0 no longer implicitly casts integers to floats when
+    evaluating ``is_in`` and raises ``InvalidOperationError`` for
+    ``Float`` columns compared against ``Int`` values (and vice versa).
+    Cast both operands to ``Float64`` in that case, which is the coercion
+    polars < 2.0 applied, so that e.g. a ``Float64`` column can still be
+    validated against ``[1, 2]``.
+    """
+    col = pl.col(data.key)
+    if isinstance(values, (str, pl.Expr)):
+        return col.is_in(values)
+
+    column_dtype = data.lazyframe.collect_schema().get(data.key)
+    if column_dtype is None or not column_dtype.is_numeric():
+        return col.is_in(values)
+
+    allowed_values: Any
+    if isinstance(values, pl.Series):
+        values_series = values
+        allowed_values = values
+    else:
+        allowed_values = list(values)
+        try:
+            values_series = pl.Series(allowed_values)
+        except TypeError:  # pragma: no cover - unsupported collection
+            return col.is_in(allowed_values)
+
+    values_dtype = values_series.dtype
+    if (
+        values_dtype.is_numeric()
+        and column_dtype.is_float() != values_dtype.is_float()
+    ):
+        return col.cast(pl.Float64).is_in(
+            values_series.cast(pl.Float64).to_list()
+        )
+    return col.is_in(allowed_values)
+
+
 @register_builtin_check(
     error="isin({allowed_values})",
 )
@@ -157,7 +197,7 @@ def isin(data: PolarsData, allowed_values: Collection) -> pl.LazyFrame:
         to access the dataframe is "dataframe", and the key the to access the column name is "key".
     :param allowed_values: The set of allowed values. May be any iterable.
     """
-    return data.lazyframe.select(pl.col(data.key).is_in(allowed_values))
+    return data.lazyframe.select(_is_in_expr(data, allowed_values))
 
 
 @register_builtin_check(
@@ -176,9 +216,7 @@ def notin(data: PolarsData, forbidden_values: Collection) -> pl.LazyFrame:
     :param forbidden_values: The set of values which should not occur. May
         be any iterable.
     """
-    return data.lazyframe.select(
-        pl.col(data.key).is_in(forbidden_values).not_()
-    )
+    return data.lazyframe.select(_is_in_expr(data, forbidden_values).not_())
 
 
 @register_builtin_check(
