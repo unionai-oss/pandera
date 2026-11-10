@@ -12,3 +12,6 @@ class BaseConfig(_BaseConfig):
     #: datatype of the dataframe. This overrides the data types specified in
     #: any of the fields.
     dtype: PandasDtypeInputTypes | None = None
+
+    #: only allow named index levels that are declared in the schema's index
+    strict_index: bool = False

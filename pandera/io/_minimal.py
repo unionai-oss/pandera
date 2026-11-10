@@ -20,6 +20,7 @@ DF_SCHEMA_DEFAULTS: dict[str, Any] = {
     "title": None,
     "description": None,
     "drop_invalid_rows": False,
+    "strict_index": False,
 }
 
 # Column / shared component (pandas Column; polars/ibis/pyspark overlap)

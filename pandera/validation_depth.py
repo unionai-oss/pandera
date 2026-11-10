@@ -30,6 +30,7 @@ VALIDATION_DEPTH_ERROR_CODE_MAP = {
     SchemaErrorReason.INVALID_COLUMN_NAME: ValidationScope.SCHEMA,
     SchemaErrorReason.MISMATCH_INDEX: ValidationScope.SCHEMA,
     SchemaErrorReason.PARSER_ERROR: ValidationScope.DATA,
+    SchemaErrorReason.INDEX_NOT_IN_SCHEMA: ValidationScope.SCHEMA,
 }
 
 
