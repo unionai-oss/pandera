@@ -308,6 +308,17 @@ def test_set_default(data, dtype, default):
     assert validated_data.select(pl.col("column").eq(default).any()).item()
 
 
+def test_set_default_without_dtype():
+    """A column with a default but no explicit dtype can set defaults."""
+    data = pl.LazyFrame({"column": pl.Series([1, None], dtype=pl.Int64)})
+    column_schema = pa.Column(name="column", default=2)
+    backend = ColumnBackend()
+
+    validated_data = backend.set_default(data, column_schema).collect()
+
+    assert validated_data["column"].to_list() == [1, 2]
+
+
 @pytest.mark.xfail(
     condition=CONFIG.use_narwhals_backend,
     reason="set_default not implemented in Narwhals backend",

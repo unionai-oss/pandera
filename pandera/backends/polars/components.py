@@ -433,6 +433,10 @@ class ColumnBackend(PolarsSchemaBackend):
 
         if isinstance(schema.default, pl.Expr):
             default_value = schema.default
+        elif schema.dtype is None:
+            # A dtype-less column keeps the dtype inferred from the default,
+            # mirroring the pandas backend fix in #2609.
+            default_value = pl.lit(schema.default)
         else:
             default_value = pl.lit(schema.default, dtype=schema.dtype.type)
         expr = pl.col(schema.selector)
