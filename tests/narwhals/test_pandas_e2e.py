@@ -637,6 +637,40 @@ def test_unique_column_names():
     )
 
 
+@pytest.mark.parametrize(
+    "col_labels",
+    [
+        [0, 0],
+        ["", ""],
+        [False, False],
+        pd.MultiIndex.from_tuples([("a", 1), ("a", 1)]),
+    ],
+)
+def test_unique_column_names_falsy_and_multiindex_labels(col_labels):
+    """Duplicates are detected regardless of label truthiness."""
+    schema = pa.DataFrameSchema(unique_column_names=True)
+    dup = pd.DataFrame([[1, 2], [3, 4]], columns=col_labels)
+
+    with pytest.raises(SchemaError, match="multiple columns with label"):
+        schema.validate(dup)
+
+
+@pytest.mark.parametrize(
+    "col_labels",
+    [
+        [0, 1],
+        ["", "a"],
+        pd.MultiIndex.from_tuples([("a", 1), ("a", 2)]),
+    ],
+)
+def test_unique_falsy_and_multiindex_labels_validate(col_labels):
+    """Falsy and MultiIndex labels validate when they are not duplicated."""
+    schema = pa.DataFrameSchema(unique_column_names=True)
+    frame = pd.DataFrame([[1, 2], [3, 4]], columns=col_labels)
+
+    assert len(schema.validate(frame).columns) == 2
+
+
 def test_groupby_check():
     """Column check groups (groupby=) run Narwhals-native via apply_groupby."""
     schema = pa.DataFrameSchema(
