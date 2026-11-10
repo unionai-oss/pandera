@@ -125,26 +125,35 @@ section[id^=pandera-]:not([id=pandera-data-types]) h1  {
 }
 
 /* dataframe table style */
+/* pandas emits its own scoped <style> block (e.g. ``.dataframe thead th``) that
+   can pin light header/zebra backgrounds which don't flip in dark mode. Scope
+   to ``table.dataframe`` and use ``!important`` so the furo theme always wins
+   over pandas' injected inline styles, in both light and dark themes. */
 div.cell_output table.dataframe {
   border-color: var(--color-table-border);
 }
 
-div.cell_output thead,
-div.cell_output thead th {
+div.cell_output table.dataframe thead,
+div.cell_output table.dataframe thead tr th {
   color: var(--color-foreground-primary);
-  /* furo only themes ``table.docutils`` headers, so ``table.dataframe`` cells
-     render with a light background that doesn't flip in dark mode. Pin the
-     header to a theme variable so it stays readable in both themes. */
-  background-color: var(--color-table-header-background);
-  border-color: var(--color-table-border);
+  background-color: var(--color-table-header-background) !important;
+  border-color: var(--color-table-border) !important;
 }
 
-div.cell_output tbody tr {
+div.cell_output table.dataframe tbody tr {
   color: var(--color-content-foreground);
+  /* pin the base row background so pandas' own scoped zebra styling can't
+     inject a light even-row background in dark mode (see thead note above). */
+  background-color: var(--color-background-primary) !important;
 }
 
-div.cell_output tbody tr:nth-child(odd) {
-  background: var(--color-background-secondary);
+div.cell_output table.dataframe tbody tr:nth-child(odd) {
+  background-color: var(--color-background-secondary) !important;
+}
+
+div.cell_output table.dataframe tbody td,
+div.cell_output table.dataframe tbody th {
+  border-color: var(--color-table-border) !important;
 }
 
 
