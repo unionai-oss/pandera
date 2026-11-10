@@ -554,6 +554,51 @@ def test_set_defaults(ldf_basic, ldf_schema_basic):
     assert validated_data.equals(expected_data.collect())
 
 
+def test_set_defaults_with_absent_optional_column(ldf_basic):
+    """Absent optional columns with a default are skipped, not selected."""
+    schema = DataFrameSchema(
+        {
+            "string_col": Column(pl.Utf8),
+            "int_col": Column(pl.Int64, default=1, required=False),
+        }
+    )
+    modified_data = ldf_basic.drop("int_col")
+
+    validated_data = modified_data.pipe(schema.validate).collect()
+    assert validated_data.equals(modified_data.collect())
+
+
+def test_set_defaults_with_absent_required_column(ldf_basic):
+    """A required column keeps reporting a validation error if absent."""
+    schema = DataFrameSchema(
+        {
+            "string_col": Column(pl.Utf8),
+            "int_col": Column(pl.Int64, default=1),
+        }
+    )
+    modified_data = ldf_basic.drop("int_col")
+
+    with pytest.raises(pa.errors.SchemaError, match="int_col"):
+        modified_data.pipe(schema.validate).collect()
+
+
+def test_set_defaults_with_absent_optional_column_add_missing_columns(
+    ldf_basic,
+):
+    """Absent optional columns are not added by add_missing_columns."""
+    schema = DataFrameSchema(
+        {
+            "string_col": Column(pl.Utf8),
+            "int_col": Column(pl.Int64, default=1, required=False),
+        },
+        add_missing_columns=True,
+    )
+    modified_data = ldf_basic.drop("int_col")
+
+    validated_data = modified_data.pipe(schema.validate).collect()
+    assert validated_data.columns == ["string_col"]
+
+
 def _failure_value(column: str, dtype: PolarsDataType | None = None):
     if column.startswith("string"):
         return pl.lit("9", dtype=dtype or pl.Utf8)
