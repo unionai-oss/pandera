@@ -1625,6 +1625,91 @@ def test_io_roundtrip_decimal_dtype():
     assert schema.from_json(schema.to_json()) == schema
 
 
+@pytest.mark.skipif(
+    SKIP_YAML_TESTS,
+    reason="pyyaml >= 5.1.0 required",
+)
+@pytest.mark.parametrize("fmt", ["yaml", "json", "script"])
+@pytest.mark.parametrize("minimal", [True, False])
+def test_io_roundtrip_category_dtype(fmt, minimal):
+    """Category dtypes keep their categories and ordering when serialized."""
+    schema = pandera.DataFrameSchema(
+        columns={
+            "ordered": pandera.Column(
+                pandera.Category(["low", "high"], ordered=True)
+            ),
+            "numeric": pandera.Column(pd.CategoricalDtype([1.5, 2.0])),
+            "any": pandera.Column("category"),
+        },
+        index=pandera.Index(pd.CategoricalDtype(["x", "y"])),
+    )
+
+    restored = _roundtrip(schema, fmt, minimal)
+
+    assert restored.columns["ordered"].dtype == pandas_engine.Category(
+        ["low", "high"], ordered=True
+    )
+    assert restored.columns["numeric"].dtype == pandas_engine.Category(
+        [1.5, 2.0]
+    )
+    assert restored.columns["any"].dtype == pandas_engine.Category()
+    assert restored.index.dtype == pandas_engine.Category(["x", "y"])
+    assert restored == schema
+
+    valid = pd.DataFrame(
+        {
+            "ordered": pd.Categorical(
+                ["low"], categories=["low", "high"], ordered=True
+            ),
+            "numeric": pd.Categorical([2.0], categories=[1.5, 2.0]),
+            "any": pd.Categorical(["anything"]),
+        },
+        index=pd.CategoricalIndex(["x"], categories=["x", "y"]),
+    )
+    pd.testing.assert_frame_equal(restored.validate(valid), valid)
+    with pytest.raises(SchemaError, match="categories"):
+        restored.validate(valid.assign(ordered=pd.Categorical(["low"])))
+
+
+@pytest.mark.skipif(
+    SKIP_YAML_TESTS,
+    reason="pyyaml >= 5.1.0 required",
+)
+def test_io_category_dtype_serialized_form():
+    """Categories are written as literals; others keep the plain alias."""
+    schema = pandera.DataFrameSchema(
+        {
+            "str": pandera.Column(pandera.Category(["a", "b"])),
+            "ordered": pandera.Column(pandera.Category([1, 2], ordered=True)),
+            "plain": pandera.Column("category"),
+            "timestamps": pandera.Column(
+                pd.CategoricalDtype(pd.to_datetime(["2020-01-01"]))
+            ),
+        }
+    )
+    columns = yaml.safe_load(schema.to_yaml())["columns"]
+    assert {name: col["dtype"] for name, col in columns.items()} == {
+        "str": "Category(categories=['a', 'b'])",
+        "ordered": "Category(categories=[1, 2], ordered=True)",
+        "plain": "category",
+        "timestamps": "category",
+    }
+
+
+@pytest.mark.parametrize(
+    "serialized",
+    [
+        "Category(bogus=1)",
+        "Category(['a'])",
+        "Category(categories=__import__('os'))",
+    ],
+)
+def test_io_deserialize_invalid_category_dtype(serialized):
+    """Malformed Category strings are rejected, never evaluated."""
+    with pytest.raises(TypeError, match="not understood"):
+        io._deserialize_dtype(serialized)
+
+
 def test_io_json_with_multiindex_column_labels():
     """Test JSON serialization for schemas with tuple column labels."""
     import json
