@@ -7,7 +7,6 @@ from typing import Any
 import pytest
 
 pa: Any = pytest.importorskip("pandera.ibis")
-
 from pandera.api.synthesis.registry import _reset_registry_for_tests
 from pandera.strategies.faker_strategies import faker_backend
 

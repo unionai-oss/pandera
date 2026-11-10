@@ -13,6 +13,7 @@ backend.
 
 from __future__ import annotations
 
+import zlib
 from typing import Any
 
 import numpy as np
@@ -96,7 +97,9 @@ def dataframe_strategy(
         pdf = {}
         for name, col in schema.columns.items():
             col_seed = (
-                None if seed is None else (seed + hash(name)) & 0xFFFFFFFF
+                None
+                if seed is None
+                else (seed + zlib.crc32(name.encode("utf-8"))) & 0xFFFFFFFF
             )
             pdf[name] = _column_values(
                 spark_dtype_to_numpy(spark_dtypes[name]),
