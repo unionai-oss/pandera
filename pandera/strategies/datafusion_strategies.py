@@ -12,6 +12,7 @@ See ``specs/pluggable-data-synthesis.md`` §6.
 
 from __future__ import annotations
 
+import zlib
 from typing import Any
 
 from pandera.api.synthesis.semantic import SemanticType
@@ -113,7 +114,9 @@ def dataframe_strategy(
                     "supported."
                 )
             col_seed = (
-                None if seed is None else (seed + hash(name)) & 0xFFFFFFFF
+                None
+                if seed is None
+                else (seed + zlib.crc32(name.encode("utf-8"))) & 0xFFFFFFFF
             )
             series[name] = _column_values(
                 datafusion_to_numpy_dtype(col.dtype),
