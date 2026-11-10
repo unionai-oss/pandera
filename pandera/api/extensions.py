@@ -313,7 +313,7 @@ def register_check_method(
             }[check_type]
 
             if any(arg in check_kwargs for arg in no_effect_args):
-                warnings.warn(msg.format(no_effect_args))
+                warnings.warn(msg.format(no_effect_args), stacklevel=2)
                 for arg in no_effect_args:
                     check_kwargs.pop(arg, None)
 

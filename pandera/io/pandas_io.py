@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import datetime
 import enum
 import json
 import re
@@ -26,6 +27,7 @@ from pandera.io._flat_checks import (
     unflatten_component_checks_dict,
 )
 from pandera.io._minimal import apply_minimal_dataframe_container
+from pandera.schema_statistics.common import deserialize_group_keys
 from pandera.schema_statistics.pandas import get_dataframe_schema_statistics
 
 if TYPE_CHECKING:
@@ -33,6 +35,18 @@ if TYPE_CHECKING:
 _MISSING_FRICTIONLESS_IMPORT_ERROR_MESSAGE = (
     "Frictionless schema parsing requires 'frictionless' to be installed. "
     "Please install 'frictionless' to use this feature."
+)
+
+_DATETIME_COMPARISON_CHECKS = frozenset(
+    {
+        "equal_to",
+        "not_equal_to",
+        "greater_than",
+        "greater_than_or_equal_to",
+        "less_than",
+        "less_than_or_equal_to",
+        "in_range",
+    }
 )
 
 
@@ -43,6 +57,24 @@ def _serialize_check_stats(check_stats, dtype=None):
         # Handle enum types by converting them to a list of values
         if isinstance(stat, type) and issubclass(stat, enum.Enum):
             return [e.value for e in stat]
+
+        # sets (e.g. the ``unique_values_eq`` statistic) are not json/yaml
+        # serializable, so store them as a list, sorted when possible to
+        # keep the output deterministic.
+        if isinstance(stat, (set, frozenset)):
+            try:
+                return sorted(stat)
+            except TypeError:
+                return list(stat)
+
+        # Custom checks may have string statistics resembling timestamps, so
+        # preserve their legacy encoding and decoding behavior.
+        if (
+            check_options.get("check_name") in _DATETIME_COMPARISON_CHECKS
+            and isinstance(dtype, pandas_engine.DateTime)
+            and isinstance(stat, datetime.datetime)
+        ):
+            return stat.isoformat(sep=" ")
 
         if pandas_engine.Engine.dtype(dtypes.DateTime).check(
             dtype
@@ -136,11 +168,30 @@ def _serialize_component_stats(component_stats):
                 "coerce",
                 "required",
                 "regex",
+                "default",
+                "report_duplicates",
                 "drop_invalid_rows",
             ]
             if key in component_stats
+            and (key != "default" or component_stats[key] is not None)
         },
     }
+
+
+_MULTIINDEX_OPTION_KEYS = ("coerce", "strict", "name", "ordered", "unique")
+
+
+def _serialize_multiindex_options(index):
+    """Serialize the options of a ``MultiIndex`` schema component.
+
+    The per-level ``Index`` components are serialized separately under the
+    ``index`` key; this captures the options that belong to the
+    ``MultiIndex`` itself. Returns ``None`` for a single ``Index`` or when
+    the schema has no index.
+    """
+    if index is None or not hasattr(index, "indexes"):
+        return None
+    return {key: getattr(index, key) for key in _MULTIINDEX_OPTION_KEYS}
 
 
 def _serialize_column_name(col_name):
@@ -153,7 +204,7 @@ def _serialize_column_name(col_name):
 def _deserialize_column_name(col_name):
     """Deserialize column names from json-compatible representation."""
     if isinstance(col_name, list):
-        return tuple(col_name)
+        return tuple(_deserialize_column_name(item) for item in col_name)
     return col_name
 
 
@@ -216,6 +267,8 @@ def serialize_schema(
     if statistics["checks"] is not None:
         checks = _serialize_dataframe_stats(statistics["checks"])
 
+    multiindex = _serialize_multiindex_options(dataframe_schema.index)
+
     out = {
         "schema_type": "dataframe",
         "version": __version__,
@@ -223,6 +276,7 @@ def serialize_schema(
         "columns": columns,
         "checks": checks,
         "index": index,
+        **({} if multiindex is None else {"multiindex": multiindex}),
         "dtype": dataframe_schema.dtype,
         "coerce": dataframe_schema.coerce,
         "strict": dataframe_schema.strict,
@@ -249,6 +303,15 @@ def _deserialize_check_stats(check, serialized_check_stats, dtype=None):
 
     def handle_stat_dtype(stat):
         try:
+            if (
+                options.get("check_name") in _DATETIME_COMPARISON_CHECKS
+                and isinstance(dtype, pandas_engine.DateTime)
+                and isinstance(stat, str)
+            ):
+                try:
+                    return pd.to_datetime(stat, format="ISO8601")
+                except (TypeError, ValueError):
+                    pass
             if pandas_engine.Engine.dtype(dtypes.DateTime).check(dtype):
                 return pd.to_datetime(stat, format=DATETIME_FORMAT)
             elif pandas_engine.Engine.dtype(dtypes.Timedelta).check(dtype):
@@ -275,6 +338,9 @@ def _deserialize_check_stats(check, serialized_check_stats, dtype=None):
     if isinstance(serialized_check_stats, dict):
         check_stats = {}
         for arg, stat in serialized_check_stats.items():
+            if arg == "groups":
+                check_stats[arg] = deserialize_group_keys(stat)
+                continue
             check_stats[arg] = handle_stat_dtype(stat)
         check_instance = check(**check_stats)
     else:
@@ -284,8 +350,11 @@ def _deserialize_check_stats(check, serialized_check_stats, dtype=None):
     # Apply options if they exist
     if options:
         for option_name, option_value in options.items():
-            if option_name != "check_name":
-                setattr(check_instance, option_name, option_value)
+            if option_name == "check_name":
+                continue
+            if option_name == "groups":
+                option_value = deserialize_group_keys(option_value)
+            setattr(check_instance, option_name, option_value)
 
     return check_instance
 
@@ -347,6 +416,8 @@ def _deserialize_component_stats(serialized_component_stats):
                 "coerce",
                 "required",
                 "regex",
+                "default",
+                "report_duplicates",
                 "drop_invalid_rows",
             ]
             if key in serialized_component_stats
@@ -414,11 +485,14 @@ def deserialize_schema(serialized_schema):
 
     if index is None:
         pass
-    elif len(index) == 1:
+    elif len(index) == 1 and not isinstance(
+        serialized_schema.get("multiindex"), dict
+    ):
         index = Index(**index[0])
     else:
         index = MultiIndex(
-            indexes=[Index(**index_properties) for index_properties in index]
+            indexes=[Index(**index_properties) for index_properties in index],
+            **(serialized_schema.get("multiindex") or {}),
         )
 
     metadata = None

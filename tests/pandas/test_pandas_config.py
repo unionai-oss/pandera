@@ -49,6 +49,7 @@ class TestPandasDataFrameConfig:
             "validation_enabled": False,
             "validation_depth": ValidationDepth.SCHEMA_AND_DATA,
             "use_narwhals_backend": False,
+            "synthesis_backend": None,
             "silenced_warnings": [],
         }
 
@@ -71,6 +72,7 @@ class TestPandasSeriesConfig:
             "validation_enabled": False,
             "validation_depth": ValidationDepth.SCHEMA_AND_DATA,
             "use_narwhals_backend": False,
+            "synthesis_backend": None,
             "silenced_warnings": [],
         }
         pandera_schema = SeriesSchema(

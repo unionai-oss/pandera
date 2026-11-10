@@ -2662,6 +2662,32 @@ def test_typed_dataframe_empty_python_generic_columns() -> None:
     assert [str(dtype) for dtype in df.dtypes] == ["object", "object"]
 
 
+def test_empty_with_dtype_unconstrained_column() -> None:
+    """Test to generate an empty DataFrameModel with unconstrained columns.
+
+    Regression test for #2637: ``Series[Any]`` and bare ``Series``
+    annotations produce columns whose ``dtype`` is ``None``.
+    """
+
+    class AnySeriesSchema(pa.DataFrameModel):
+        value: Series[Any]
+        count: Series[int]
+
+    class BareSeriesSchema(pa.DataFrameModel):
+        value: Series
+        count: Series[int]
+
+    for model in (AnySeriesSchema, BareSeriesSchema):
+        schema = model.to_schema()
+        assert schema.columns["value"].dtype is None
+
+        df = model.empty()
+        assert df.empty
+        assert list(df.columns) == ["value", "count"]
+        assert pd.api.types.is_integer_dtype(df["count"])
+        assert model.validate(df).empty  # type: ignore [attr-defined]
+
+
 def test_empty_with_multi_index() -> None:
     """Test to generate an empty DataFrameModel with a named multi index"""
 

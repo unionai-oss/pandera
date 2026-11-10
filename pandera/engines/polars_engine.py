@@ -25,7 +25,7 @@ from polars.datatypes._parse import parse_py_type_into_dtype
 from pydantic import BaseModel, ValidationError
 from typing_extensions import NotRequired, deprecated
 
-from pandera import dtypes, errors
+from pandera import _enum_literal, dtypes, errors
 from pandera.api.polars.types import PolarsData
 from pandera.backends.polars.utils import horizontal_concat, polars_version
 from pandera.constants import CHECK_OUTPUT_KEY
@@ -145,7 +145,8 @@ class DataType(dtypes.DataType):
             f"'{dtype_cls}' support is not guaranteed.\n"
             + "Usage Tip: Consider writing a custom "
             + "pandera.dtypes.DataType or opening an issue at "
-            + "https://github.com/pandera-dev/pandera"
+            + "https://github.com/pandera-dev/pandera",
+            stacklevel=2,
         )
 
     def __post_init__(self):
@@ -239,6 +240,10 @@ class Engine(metaclass=engine.Engine, base_pandera_dtypes=DataType):
         if nested_schema is not None:
             return PanderaSchema(nested_schema)
 
+        categorical = cls._as_categorical(data_type)
+        if categorical is not None:
+            return categorical
+
         try:
             return engine.Engine.dtype(cls, data_type)
         except TypeError:
@@ -254,6 +259,35 @@ class Engine(metaclass=engine.Engine, base_pandera_dtypes=DataType):
                 return engine.Engine.dtype(cls, pl_dtype)
             except TypeError:
                 return DataType(data_type)
+
+    @classmethod
+    def _as_categorical(cls, data_type: Any) -> dtypes.DataType | None:
+        """Map an ``Enum`` class or ``Literal`` alias onto a polars dtype.
+
+        Categories come from member *values* (or literal arguments), matching
+        every other backend. Polars categoricals are string-only, so a
+        non-string option set falls back to the polars dtype of the values
+        themselves — an ``IntEnum`` becomes ``Int64`` rather than failing.
+        """
+        if _enum_literal.is_enum_type(data_type):
+            categories = _enum_literal.enum_categories(data_type)
+        elif _enum_literal.is_literal_type(data_type):
+            categories = _enum_literal.literal_categories(data_type)
+        else:
+            return None
+
+        if categories and all(
+            isinstance(category, str) for category in categories
+        ):
+            return Enum(categories=list(categories))
+
+        # Let polars infer the width from the values themselves rather than
+        # from their Python type, so e.g. an IntEnum lands on the same dtype a
+        # column of its values would.
+        return engine.Engine.dtype(
+            cls,
+            pl.Series(list(categories)).dtype,  # type: ignore[arg-type]
+        )
 
     @staticmethod
     def _as_nested_schema(data_type: Any):
@@ -427,10 +461,33 @@ class Decimal(DataType, dtypes.Decimal):
             data_container = PolarsData(data_container)
 
         key = data_container.key or "*"
-        return data_container.lazyframe.cast({key: pl.Float64}).cast(
-            {key: pl.Decimal(scale=self.scale, precision=self.precision)},
-            strict=True,
+        lf = data_container.lazyframe
+        target = pl.Decimal(scale=self.scale, precision=self.precision)
+        schema = lf.select(pl.col(key)).collect_schema()
+        return lf.with_columns(
+            self._cast_expr(pl.col(name), dtype, target)
+            for name, dtype in schema.items()
         )
+
+    @staticmethod
+    def _cast_expr(
+        col: pl.Expr, dtype: PolarsDataType, target: pl.Decimal
+    ) -> pl.Expr:
+        """Cast an expression to a decimal.
+
+        Integers, decimals and strings are cast directly so that no digits
+        are lost to a float round trip.
+        """
+        if dtype.is_integer() or isinstance(dtype, pl.Decimal):
+            return col.cast(target, strict=True)
+
+        via_float = col.cast(pl.Float64, strict=True).cast(target, strict=True)
+        if dtype == pl.String:
+            # Parse the string directly so that no digits are lost, and fall
+            # back to the float path for values the direct parse rejects
+            # (e.g. scientific notation on older polars versions).
+            return pl.coalesce(col.cast(target, strict=False), via_float)
+        return via_float
 
     def check(
         self,
@@ -439,10 +496,12 @@ class Decimal(DataType, dtypes.Decimal):
     ) -> Union[bool, Iterable[bool]]:
         try:
             pandera_dtype = Engine.dtype(pandera_dtype)
-            assert isinstance(pandera_dtype, Decimal), (
-                "The return is expected to be of Decimal class"
-            )
         except TypeError:  # pragma: no cover
+            return False
+        # A String or Float64 column is a real dtype, not a conversion
+        # failure. Returning False reports a schema error (#2594). An
+        # assert here raises AssertionError, including under lazy=True.
+        if not isinstance(pandera_dtype, Decimal):
             return False
 
         try:
@@ -594,7 +653,6 @@ class _ArrayKwargs(TypedDict):
     """typeddict for mypy."""
 
     shape: NotRequired[Union[int, tuple[int, ...]]]
-    width: NotRequired[Union[int, None]]
 
 
 @Engine.register_dtype(equivalents=[pl.Array])
@@ -908,7 +966,12 @@ class Enum(DataType):
 
     type = pl.Enum
 
-    categories: pl.Series
+    # ``pl.Series`` has no truth value and is unhashable, so the categories
+    # must stay out of the dataclass ``__eq__``/``__hash__``. ``type`` already
+    # carries them: ``pl.Enum`` compares categories element-wise.
+    categories: Union[pl.Series, Iterable[str], None] = dataclasses.field(
+        default=None, compare=False
+    )
 
     def __init__(
         self,
@@ -935,10 +998,9 @@ class Enum(DataType):
         except TypeError:
             return False
 
-        return (
-            self.type == pandera_dtype.type
-            and (self.type.categories == pandera_dtype.categories).all()  # type: ignore
-        )
+        # ``pl.Enum.__eq__`` compares the categories, and an Enum without
+        # categories (``pl.Enum`` itself) matches any Enum.
+        return self.type == pandera_dtype.type
 
 
 @Engine.register_dtype(
@@ -1145,6 +1207,7 @@ class PydanticModel(DataType):
                 "coerce. The PydanticModel will perform no type "
                 "checking on the empty dataframe.",
                 UserWarning,
+                stacklevel=2,
             )
             column_names = self._get_column_names()
             self._check_column_names(lf, column_names)

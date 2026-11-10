@@ -59,6 +59,7 @@ class TestPanderaConfig:
             "cache_dataframe": False,
             "keep_cached_dataframe": False,
             "use_narwhals_backend": CONFIG.use_narwhals_backend,
+            "synthesis_backend": CONFIG.synthesis_backend,
             "silenced_warnings": [],
         }
 
@@ -83,6 +84,7 @@ class TestPanderaConfig:
             "cache_dataframe": False,
             "keep_cached_dataframe": False,
             "use_narwhals_backend": CONFIG.use_narwhals_backend,
+            "synthesis_backend": CONFIG.synthesis_backend,
             "silenced_warnings": [],
         }
         input_df = spark_df(spark, self.sample_data, sample_spark_schema)
@@ -159,6 +161,7 @@ class TestPanderaConfig:
             "cache_dataframe": False,
             "keep_cached_dataframe": False,
             "use_narwhals_backend": CONFIG.use_narwhals_backend,
+            "synthesis_backend": CONFIG.synthesis_backend,
             "silenced_warnings": [],
         }
 
@@ -238,6 +241,7 @@ class TestPanderaConfig:
             "cache_dataframe": False,
             "keep_cached_dataframe": False,
             "use_narwhals_backend": CONFIG.use_narwhals_backend,
+            "synthesis_backend": CONFIG.synthesis_backend,
             "silenced_warnings": [],
         }
 
@@ -341,6 +345,7 @@ class TestPanderaConfig:
             "cache_dataframe": cache_dataframe,
             "keep_cached_dataframe": keep_cached_dataframe,
             "use_narwhals_backend": CONFIG.use_narwhals_backend,
+            "synthesis_backend": CONFIG.synthesis_backend,
             "silenced_warnings": [],
         }
         with config_context(

@@ -23,7 +23,9 @@ global:
   - requirements-*.txt
   - environment.yml
   - .coveragerc
-  - .github/**
+  - .github/workflows/**
+  - .github/actions/**
+  - .github/filters.yaml
   - scripts/**
 
 docs:
@@ -120,6 +122,13 @@ pyarrow:
   - pandera/typing/pyarrow.py
   - tests/pyarrow/**
 
+datafusion:
+  - pandera/api/datafusion/**
+  - pandera/backends/datafusion/**
+  - pandera/datafusion.py
+  - pandera/typing/datafusion.py
+  - tests/datafusion/**
+
 narwhals:
   - pandera/api/narwhals/**
   - pandera/backends/narwhals/**
@@ -175,6 +184,7 @@ common:
   - "!pandera/api/geopandas/**"
   - "!pandera/api/xarray/**"
   - "!pandera/api/pyarrow/**"
+  - "!pandera/api/datafusion/**"
   - "!pandera/api/narwhals/**"
   - "!pandera/api/hypotheses.py"
   - "!pandera/backends/pandas/**"
@@ -183,6 +193,7 @@ common:
   - "!pandera/backends/ibis/**"
   - "!pandera/backends/xarray/**"
   - "!pandera/backends/pyarrow/**"
+  - "!pandera/backends/datafusion/**"
   - "!pandera/backends/narwhals/**"
   - "!pandera/engines/pandas_engine.py"
   - "!pandera/engines/numpy_engine.py"
@@ -203,6 +214,7 @@ common:
   - "!pandera/geopandas.py"
   - "!pandera/xarray.py"
   - "!pandera/pyarrow.py"
+  - "!pandera/datafusion.py"
   - "!pandera/io/**"
   - "!pandera/typing/**"
   - "!pandera/schema_statistics/**"
@@ -219,6 +231,7 @@ common:
   - "!tests/modin/**"
   - "!tests/xarray/**"
   - "!tests/pyarrow/**"
+  - "!tests/datafusion/**"
   - "!tests/narwhals/**"
   - "!tests/hypotheses/**"
   - "!tests/io/**"

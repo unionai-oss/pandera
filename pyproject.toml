@@ -73,6 +73,7 @@ mypy = [
     "scipy-stubs; python_version>='3.10'",
 ]
 fastapi = ["fastapi"]
+decisions = ["typesafe-sdk"]
 geopandas = [
     "geopandas",
     "shapely",
@@ -111,6 +112,11 @@ pyarrow = [
     "pyarrow >= 13",
     "narwhals >= 1.26.0",
 ]
+datafusion = ["narwhals-datafusion >= 0.1.5"]
+torch = [
+    "torch",
+    "tensordict",
+]
 all = [
     "typer >= 0.12.3",
     "rich",
@@ -136,6 +142,9 @@ all = [
     "numpy >= 1.24.4",
     "narwhals >= 1.26.0",
     "pyarrow >= 13",
+    "narwhals-datafusion >= 0.1.5",
+    "torch",
+    "tensordict",
 ]
 
 [dependency-groups]
@@ -172,6 +181,7 @@ testing = [
 docs = [
     "setuptools",
     "typer >= 0.12.3",
+    "duckdb",
     "pyarrow-hotfix",
     "sphinx<9",
     "sphinx-design",
@@ -181,14 +191,18 @@ docs = [
     "myst-nb",
     "furo",
     "sphinxcontrib-typer >= 0.8.0",
+    "cairosvg",
     "sphinx-docsearch",
     "grpcio",
     "ray",
+    "torch",
+    "tensordict",
     "types-click",
     "types-pytz",
     "types-pyyaml",
     "types-requests",
     "types-setuptools",
+    "xdoctest",
 ]
 
 [tool.setuptools]
@@ -222,6 +236,9 @@ target-version = "py310"
 select = [
     "I",
     "UP",
+]
+extend-select = [
+    "B028",
 ]
 ignore = [
     "UP007",

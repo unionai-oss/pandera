@@ -33,6 +33,10 @@ entry points) is documented on the dedicated {ref}`CLI <cli>` page.
      - Module of functions for generating data from schemas.
    * - :ref:`Narwhals Backend <api-narwhals>`
      - Opt-in Narwhals-powered backend unifying the Polars, Ibis, and PySpark SQL validation paths.
+   * - :ref:`Parsers & Derived Columns <api-parsers>`
+     - ``Parser``, ``ParsedField``/``ParsedColumn`` and declaring derived columns
+   * - :ref:`Decision Parsing <api-decisions>`
+     - Parse unstructured data by asking a decision model, plus semantic checks
    * - :ref:`Extensions <api-extensions>`
      - Utility functions for extending pandera functionality
    * - :ref:`Errors <api-errors>`
@@ -47,6 +51,8 @@ entry points) is documented on the dedicated {ref}`CLI <cli>` page.
 
    * - :ref:`Xarray <api-xarray>`
      - Schemas for labelled N-dimensional :mod:`xarray` arrays, datasets, and datatrees
+   * - :ref:`PyTorch <api-pytorch>`
+     - Schemas for :mod:`tensordict` TensorDict and tensorclass objects
 ```
 
 ## Configuration
@@ -73,7 +79,6 @@ entry points) is documented on the dedicated {ref}`CLI <cli>` page.
      - Reset context configuration to the global default
 ```
 
-
 ```{toctree}
 :hidden: true
 
@@ -86,7 +91,10 @@ schema_inference
 io
 strategies
 narwhals
+parsers
+decisions
 extensions
 errors
 xarray
+pytorch
 ```

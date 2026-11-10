@@ -101,3 +101,44 @@ class TestIbisDataFrameModelIO:
         schema = MyModel.from_json(json_str)
         assert isinstance(schema, pa.DataFrameSchema)
         assert "a" in schema.columns
+
+
+class TestIbisNamedCheckSerialization:
+    """A built-in check renamed with ``name=`` must survive ibis serdes.
+
+    ``pandera.schema_statistics.ibis`` uses the shared ``parse_checks``, so a
+    renamed built-in check was dropped from the payload and the reloaded
+    schema validated nothing.
+    """
+
+    @staticmethod
+    def _schema(**check_kwargs):
+        return pa.DataFrameSchema(
+            {"a": pa.Column(int, checks=[pa.Check.gt(0, **check_kwargs)])}
+        )
+
+    @pytest.mark.parametrize("fmt", ["yaml", "json"])
+    def test_named_check_survives_roundtrip(self, fmt):
+        from pandera.io import ibis_io
+
+        schema = self._schema(name="positive")
+        dump, load = (
+            (ibis_io.to_yaml, ibis_io.from_yaml)
+            if fmt == "yaml"
+            else (ibis_io.to_json, ibis_io.from_json)
+        )
+        payload = dump(schema)
+        assert "greater_than" in payload
+        checks = load(payload).columns["a"].checks
+        assert len(checks) == 1
+        assert checks[0].name == "positive"
+
+    def test_custom_error_survives_roundtrip(self):
+        from pandera.io import ibis_io
+
+        schema = self._schema(error="boom")
+        payload = ibis_io.to_yaml(schema)
+        assert "boom" in payload
+        assert ibis_io.from_yaml(payload).columns["a"].checks[0].error == (
+            "boom"
+        )

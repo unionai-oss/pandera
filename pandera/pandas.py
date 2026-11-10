@@ -22,10 +22,6 @@ if parse(np.__version__) < _min_numpy_version:
         f"{np.__version__}. Please upgrade numpy to the minimum supported version."
     )
 
-from pandera._patch_numpy2 import _patch_numpy2
-
-_patch_numpy2()
-
 import pandera.backends.base.builtin_checks
 import pandera.backends.base.builtin_hypotheses
 import pandera.backends.pandas
@@ -34,6 +30,7 @@ from pandera.api import extensions
 from pandera.api.checks import Check
 from pandera.api.dataframe.model_components import (
     Field,
+    ParsedField,
     check,
     dataframe_check,
     dataframe_parser,
@@ -41,7 +38,12 @@ from pandera.api.dataframe.model_components import (
 )
 from pandera.api.hypotheses import Hypothesis
 from pandera.api.pandas.array import SeriesSchema
-from pandera.api.pandas.components import Column, Index, MultiIndex
+from pandera.api.pandas.components import (
+    Column,
+    Index,
+    MultiIndex,
+    ParsedColumn,
+)
 from pandera.api.pandas.container import DataFrameSchema
 from pandera.api.pandas.model import DataFrameModel
 from pandera.api.parsers import Parser
@@ -150,12 +152,14 @@ __all__ = [
     "DataFrameModel",
     # model_components
     "Field",
+    "ParsedField",
     "check",
     "dataframe_check",
     "parser",
     "dataframe_parser",
     # schema_components
     "Column",
+    "ParsedColumn",
     "Index",
     "MultiIndex",
     # schema_inference

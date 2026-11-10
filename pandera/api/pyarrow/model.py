@@ -54,70 +54,7 @@ class DataFrameModel(_DataFrameModel[pa.Table, DataFrameSchema]):
         fields: dict[str, tuple[AnnotationInfo, FieldInfo]],
         checks: dict[str, list[Check]],
     ) -> dict[str, Column]:
-        columns: dict[str, Column] = {}
-        for field_name, (annotation, field) in fields.items():
-            field_checks = checks.get(field_name, [])
-            field_name = field.name
-            check_name = getattr(field, "check_name", None)
-
-            try:
-                engine_dtype = resolve_dtype(annotation.raw_annotation)
-                if inspect.isclass(annotation.raw_annotation) and issubclass(
-                    annotation.raw_annotation, narwhals_engine.DataType
-                ):
-                    # use the raw annotation as the dtype if it's a native
-                    # pandera narwhals datatype
-                    dtype = annotation.raw_annotation
-                else:
-                    dtype = engine_dtype.type
-            except (TypeError, ValueError) as exc:
-                if annotation.metadata:
-                    if field.dtype_kwargs:
-                        raise TypeError(
-                            "Cannot specify redundant 'dtype_kwargs' "
-                            + f"for {annotation.raw_annotation}."
-                            + "\n Usage Tip: Drop 'typing.Annotated'."
-                        ) from exc
-                    # ``Annotated`` may carry only a FieldInfo (e.g.
-                    # ``Annotated[float, pa.Field(...)]``) without any
-                    # dtype parameters. In that case, use the annotated
-                    # type as-is.
-                    if _dtype_metadata(annotation):
-                        dtype_kwargs = get_dtype_kwargs(annotation)
-                        dtype = annotation.arg(**dtype_kwargs)  # type: ignore
-                    else:
-                        dtype = annotation.arg  # type: ignore
-                elif annotation.default_dtype:
-                    dtype = annotation.default_dtype
-                else:
-                    dtype = annotation.arg  # type: ignore
-
-            if annotation.origin is None or dtype:
-                if check_name is False:
-                    raise SchemaInitError(
-                        f"'check_name' is not supported for {field_name}."
-                    )
-
-                column_kwargs = (
-                    field.column_properties(
-                        dtype,
-                        nullable=annotation.nullable,
-                        required=not annotation.is_optional_field,
-                        checks=field_checks,
-                        name=field_name,
-                    )
-                    if field
-                    else {}
-                )
-                columns[field_name] = Column(**column_kwargs)
-
-            else:
-                raise SchemaInitError(
-                    f"Invalid annotation '{field_name}: "
-                    f"{annotation.raw_annotation}'."
-                )
-
-        return columns
+        return build_arrow_columns(fields, checks, column_cls=Column)
 
     @classmethod
     @docstring_substitution(validate_doc=BaseSchema.validate.__doc__)
@@ -148,6 +85,85 @@ class DataFrameModel(_DataFrameModel[pa.Table, DataFrameSchema]):
             ]
         )
         return cast(Table[Self], arrow_schema.empty_table())
+
+
+def build_arrow_columns(
+    fields: dict[str, tuple[AnnotationInfo, FieldInfo]],
+    checks: dict[str, list[Check]],
+    *,
+    column_cls: type,
+) -> dict:
+    """Build column components from model fields with Arrow dtype semantics.
+
+    Shared by the pyarrow ``DataFrameModel`` and the models of backends whose
+    dtypes are pyarrow end-to-end (e.g. DataFusion), so the annotation
+    resolution rules live in one place. ``column_cls`` is the backend's
+    ``Column`` class.
+    """
+    columns: dict = {}
+    for field_name, (annotation, field) in fields.items():
+        field_checks = checks.get(field_name, [])
+        field_name = field.name
+        check_name = getattr(field, "check_name", None)
+
+        try:
+            engine_dtype = resolve_dtype(annotation.raw_annotation)
+            if inspect.isclass(annotation.raw_annotation) and issubclass(
+                annotation.raw_annotation, narwhals_engine.DataType
+            ):
+                # use the raw annotation as the dtype if it's a native
+                # pandera narwhals datatype
+                dtype = annotation.raw_annotation
+            else:
+                dtype = engine_dtype.type
+        except (TypeError, ValueError) as exc:
+            if annotation.metadata:
+                if field.dtype_kwargs:
+                    raise TypeError(
+                        "Cannot specify redundant 'dtype_kwargs' "
+                        + f"for {annotation.raw_annotation}."
+                        + "\n Usage Tip: Drop 'typing.Annotated'."
+                    ) from exc
+                # ``Annotated`` may carry only a FieldInfo (e.g.
+                # ``Annotated[float, pa.Field(...)]``) without any
+                # dtype parameters. In that case, use the annotated
+                # type as-is.
+                if _dtype_metadata(annotation):
+                    dtype_kwargs = get_dtype_kwargs(annotation)
+                    dtype = annotation.arg(**dtype_kwargs)  # type: ignore
+                else:
+                    dtype = annotation.arg  # type: ignore
+            elif annotation.default_dtype:
+                dtype = annotation.default_dtype
+            else:
+                dtype = annotation.arg  # type: ignore
+
+        if annotation.origin is None or dtype:
+            if check_name is False:
+                raise SchemaInitError(
+                    f"'check_name' is not supported for {field_name}."
+                )
+
+            column_kwargs = (
+                field.column_properties(
+                    dtype,
+                    nullable=annotation.nullable,
+                    required=not annotation.is_optional_field,
+                    checks=field_checks,
+                    name=field_name,
+                )
+                if field
+                else {}
+            )
+            columns[field_name] = column_cls(**column_kwargs)
+
+        else:
+            raise SchemaInitError(
+                f"Invalid annotation '{field_name}: "
+                f"{annotation.raw_annotation}'."
+            )
+
+    return columns
 
 
 def _narwhals_dtype_to_pyarrow(dtype) -> pa.DataType:

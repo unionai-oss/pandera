@@ -7,4 +7,5 @@ Examples:
 - ``import pandera.io.pyspark_sql_io`` — PySpark SQL API schemas
 - ``import pandera.io.ibis_io`` — Ibis API schemas
 - ``import pandera.io.xarray_io`` — xarray API schemas
+- ``import pandera.io.tensordict_io`` — TensorDict API schemas
 """

@@ -53,7 +53,7 @@ class ReducedPickleExceptionBase(Exception):
 
     def __setstate__(self, state):
         """Show warning during unpickling."""
-        warnings.warn(self._unpickle_warning())
+        warnings.warn(self._unpickle_warning(), stacklevel=2)
         return super().__setstate__(state)
 
 
@@ -68,12 +68,41 @@ class ParserError(ReducedPickleExceptionBase):
         self.parser_output = parser_output
 
 
+class ParserSourceError(ParserError):
+    """Raised when a parser's declared source columns are unavailable.
+
+    Without a declared source, a parser that reads a column which is not there
+    fails with a bare ``KeyError`` carrying no schema context and no indication
+    of which parser failed.
+    """
+
+    def __init__(self, message, failure_cases=None, parser_output=None):
+        super().__init__(message, failure_cases, parser_output)
+
+
+class ParserTargetError(ParserError):
+    """Raised when a parser does not produce the columns it declared."""
+
+    def __init__(self, message, failure_cases=None, parser_output=None):
+        super().__init__(message, failure_cases, parser_output)
+
+
 class SchemaInitError(Exception):
     """Raised when schema initialization fails."""
 
 
 class SchemaDefinitionError(Exception):
     """Raised when schema definition is invalid on object validation."""
+
+
+class SynthesisBackendNotFoundError(Exception):
+    """Raised when a requested data-synthesis backend is unknown.
+
+    Raised at ``strategy()`` / ``example()`` time when the ``synthesis_backend``
+    name is neither a registered backend nor resolvable to an installed
+    ``pandera.synthesis_backends`` entry point. The message hints at how to
+    register or install the backend.
+    """
 
 
 class SchemaError(ReducedPickleExceptionBase):

@@ -118,6 +118,41 @@ print(Schema.validate(df))
 # 2        3      1.3       c
 ```
 
+## Parse and validate unstructured data
+
+Pandera can derive a column from the rest of the dataframe, so a schema both
+parses and validates your data. Declare the derivation on the column itself
+with [`ParsedField`](https://pandera.readthedocs.io/en/stable/reference/generated/pandera.api.dataframe.model_components.ParsedField.html)
+/ [`ParsedColumn`](https://pandera.readthedocs.io/en/stable/reference/generated/pandera.api.pandas.components.ParsedColumn.html),
+and the [`decisions` API](https://pandera.readthedocs.io/en/stable/decisions.html)
+to fill typed columns from unstructured text by asking a decision model:
+
+```python
+import pandera.decisions as decisions
+
+class Tickets(pa.DataFrameModel):
+    body: str
+    n_words: int = pa.ParsedField(
+        parser=lambda s: s.str.split().str.len(),
+        source="body",
+    )
+    department: Department = pa.ParsedField(
+        description="Which team should handle this ticket",
+        parser=decisions.Choice(),
+    )
+
+    class Config:
+        parser_source = "body"
+
+# configure a provider (MockProvider is deterministic and free; swap in a
+# real model like TypeSafe Jev or an Ollaya model as a runtime setting)
+with decisions.provider(decisions.MockProvider(seed=7)):
+    Tickets.validate(df)
+```
+
+See the [decision parsing tutorial](https://pandera.readthedocs.io/en/stable/decision_parsing_tutorial.html)
+to get started.
+
 
 > [!WARNING]
 > Pandera `v0.24.0` introduces the `pandera.pandas` module, which is now the

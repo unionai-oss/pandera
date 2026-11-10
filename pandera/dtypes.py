@@ -17,6 +17,13 @@ from typing import (
 
 from typing_extensions import overload
 
+from pandera._enum_literal import (
+    enum_categories,
+    enum_ordered,
+    literal_categories,
+    member_descriptions,
+)
+
 
 class DataType(ABC):
     """Base class of all Pandera data types."""
@@ -438,7 +445,7 @@ class Decimal(_Number):
             raise ValueError(
                 f"Decimal precision {precision} must be positive."
             )
-        if scale is not None and scale > precision:
+        if scale is not None and not 0 <= scale <= precision:
             raise ValueError(
                 f"Decimal scale {scale} must be between 0 and {precision}."
             )

@@ -14,8 +14,16 @@ from pandera.api.dataframe.model import (
     _dtype_metadata,
     get_dtype_kwargs,
 )
-from pandera.api.dataframe.model_components import FieldInfo
-from pandera.api.pandas.components import Column, Index, MultiIndex
+from pandera.api.dataframe.model_components import (
+    FieldInfo,
+    ParsedFieldInfo,
+)
+from pandera.api.pandas.components import (
+    Column,
+    Index,
+    MultiIndex,
+    ParsedColumn,
+)
 from pandera.api.pandas.container import DataFrameSchema
 from pandera.api.pandas.model_config import BaseConfig
 from pandera.api.parsers import Parser
@@ -196,7 +204,12 @@ class DataFrameModel(_DataFrameModel[pd.DataFrame, DataFrameSchema]):
                     if field
                     else {}
                 )
-                columns[field_name] = Column(**column_kwargs)
+                column_cls = (
+                    ParsedColumn
+                    if isinstance(field, ParsedFieldInfo)
+                    else Column
+                )
+                columns[field_name] = column_cls(**column_kwargs)
 
             elif (
                 annotation.origin in get_index_types()
@@ -257,8 +270,6 @@ class DataFrameModel(_DataFrameModel[pd.DataFrame, DataFrameSchema]):
     def to_json_schema(cls):
         """Serialize schema metadata into json-schema format.
 
-        :param dataframe_schema: schema to write to json-schema format.
-
         .. note::
 
             This function is currently does not fully specify a pandera schema,
@@ -303,12 +314,12 @@ class DataFrameModel(_DataFrameModel[pd.DataFrame, DataFrameSchema]):
 
         data = {}
         for col_name, col_schema in schema.columns.items():
-            dtype = (
-                col_schema.dtype.type
-                if not isinstance(col_schema.dtype, PythonGenericType)
-                else "object"
-            )
             if col_schema.dtype is not None:
+                dtype = (
+                    col_schema.dtype.type
+                    if not isinstance(col_schema.dtype, PythonGenericType)
+                    else "object"
+                )
                 data[col_name] = pd.array([], dtype=dtype)
             else:
                 data[col_name] = pd.array([])

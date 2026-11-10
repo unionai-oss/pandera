@@ -19,7 +19,7 @@ pl = pytest.importorskip("polars")
 from pandera.api.checks import Check
 from pandera.api.polars.components import Column
 from pandera.api.polars.container import DataFrameSchema
-from pandera.errors import SchemaError, SchemaErrors
+from pandera.errors import SchemaError, SchemaErrors, SchemaWarning
 
 # ---------------------------------------------------------------------------
 # CONTAINER-01: NarwhalsSchemaBackend.failure_cases_metadata / drop_invalid_rows
@@ -193,3 +193,85 @@ def test_failure_cases_is_native():
         assert isinstance(fc, pl.DataFrame), (
             f"failure_cases should be native pl.DataFrame, got {type(fc)}"
         )
+
+
+def test_container_inplace_warns():
+    """The narwhals container warns that ``inplace=True`` is a no-op, like the native one."""
+    schema = DataFrameSchema(columns={"a": Column(pl.Int64)})
+    with pytest.warns(
+        UserWarning,
+        match="setting inplace=True will have no effect",
+    ):
+        schema.validate(pl.DataFrame({"a": [1, 2, 3]}), inplace=True)
+
+
+def test_check_raise_warning_warns_and_passes():
+    """``raise_warning=True`` turns a failing check into a warning on the
+    narwhals backend too.
+
+    ``NarwhalsSchemaBackend.run_check`` carries its own copy of that branch.
+    No test outside ``tests/pandas/`` passes ``raise_warning=True``, and
+    Codecov reported the ``warnings.warn`` in it as uncovered, so the narwhals
+    copy was pinned only by accident of sharing a contract with pandas.
+
+    A builtin check is used deliberately: an element-wise lambda is not
+    evaluable against ``PolarsData`` on the narwhals path and fails with
+    ``TypeError: '>' not supported between instances of 'PolarsData' and
+    'int'``, which would make this test assert the wrong thing.
+    """
+    schema = DataFrameSchema(
+        columns={"a": Column(pl.Int64, checks=Check.gt(0, raise_warning=True))}
+    )
+    data = pl.DataFrame({"a": [-1, 2]})
+
+    with pytest.warns(SchemaWarning, match="failed"):
+        result = schema.validate(data)
+
+    assert result.equals(data)
+
+    # without the flag the same schema fails rather than warning
+    strict = DataFrameSchema(
+        columns={"a": Column(pl.Int64, checks=Check.gt(0))}
+    )
+    with pytest.raises(SchemaError):
+        strict.validate(data)
+
+
+# ---------------------------------------------------------------------------
+# Nested Column drop_invalid_rows (issue #2529)
+# ---------------------------------------------------------------------------
+
+
+def test_nested_column_drop_invalid_rows(monkeypatch, request):
+    """A nested Column with drop_invalid_rows drops its failing rows.
+
+    Regression test for issue #2529: the filtered frame returned by
+    Column.validate was discarded when the column was validated inside a
+    DataFrameSchema, so invalid rows survived in the validated output. The
+    column must keep dropping its failing rows even when the DataFrameSchema
+    itself does not set drop_invalid_rows.
+    """
+    from pandera.backends.polars.register import register_polars_backends
+    from pandera.config import CONFIG
+
+    monkeypatch.setattr(CONFIG, "use_narwhals_backend", True)
+    request.addfinalizer(register_polars_backends.cache_clear)
+    register_polars_backends.cache_clear()
+    register_polars_backends(use_narwhals_backend=True)
+
+    schema = DataFrameSchema(
+        columns={
+            "numbers": Column(
+                pl.Int64,
+                checks=[Check.greater_than_or_equal_to(3)],
+                drop_invalid_rows=True,
+            ),
+            "letters": Column(pl.String),
+        }
+    )
+    out = schema.validate(
+        pl.DataFrame({"numbers": [1, 2, 3, 4, 5, 6], "letters": ["a"] * 6}),
+        lazy=True,
+    )
+    assert out["numbers"].to_list() == [3, 4, 5, 6]
+    assert out["letters"].to_list() == ["a", "a", "a", "a"]

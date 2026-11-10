@@ -33,6 +33,7 @@ import polars as pl
 import pytest
 
 import pandera.polars as pa_pl
+from pandera.api.polars.types import PolarsData
 from pandera.backends.narwhals.checks import NarwhalsCheckBackend
 from pandera.config import ValidationDepth, config_context
 from pandera.errors import SchemaError, SchemaErrors
@@ -274,6 +275,18 @@ class TestCustomChecksPolars:
     def _all_positive(frame: pl.LazyFrame, key: str) -> bool:
         return bool(frame.select((pl.col(key) > 0).all()).collect().item())
 
+    @staticmethod
+    def _max_below_10(data: PolarsData) -> pl.LazyFrame:
+        return data.lazyframe.select(pl.col(data.key).max().lt(10))
+
+    @staticmethod
+    def _all_positive_lazyframe(data: PolarsData) -> pl.LazyFrame:
+        return data.lazyframe.select(pl.col(data.key).gt(0).all())
+
+    @staticmethod
+    def _positive_row_mask(data: PolarsData) -> pl.LazyFrame:
+        return data.lazyframe.select(pl.col(data.key).gt(0))
+
     def test_custom_bool_check_passes(self, polars_df):
         schema = pa_pl.DataFrameSchema(
             {"x": pa_pl.Column(int, pa_pl.Check(self._all_positive))}
@@ -293,6 +306,35 @@ class TestCustomChecksPolars:
         # Bool checks produce no per-row failure cases — failure_cases is the
         # scalar False, not a DataFrame.
         assert exc_info.value.failure_cases is False
+
+    def test_custom_aggregate_lazyframe_passes(self):
+        schema = pa_pl.DataFrameSchema(
+            {"a": pa_pl.Column(int, pa_pl.Check(self._max_below_10))}
+        )
+        result = schema.validate(pl.DataFrame({"a": [1, 5, 9]}))
+        assert isinstance(result, pl.DataFrame)
+
+    def test_custom_aggregate_lazyframe_fails(self):
+        schema = pa_pl.DataFrameSchema(
+            {"a": pa_pl.Column(int, pa_pl.Check(self._max_below_10))}
+        )
+        with pytest.raises(SchemaError):
+            schema.validate(pl.DataFrame({"a": [1, 5, 11]}))
+
+    def test_custom_scalar_lazyframe_passes(self):
+        schema = pa_pl.DataFrameSchema(
+            {"a": pa_pl.Column(int, pa_pl.Check(self._all_positive_lazyframe))}
+        )
+        result = schema.validate(pl.DataFrame({"a": [1, 5, 9]}))
+        assert isinstance(result, pl.DataFrame)
+
+    def test_custom_row_level_lazyframe_is_unchanged(self):
+        schema = pa_pl.DataFrameSchema(
+            {"a": pa_pl.Column(int, pa_pl.Check(self._positive_row_mask))}
+        )
+        with pytest.raises(SchemaError) as exc_info:
+            schema.validate(pl.DataFrame({"a": [1, -5, 9]}))
+        assert exc_info.value.failure_cases["a"].to_list() == [-5]
 
     def test_custom_bool_check_receives_lazyframe_and_key(self):
         """Check fn always receives pl.LazyFrame + column name, regardless of input type."""

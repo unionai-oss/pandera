@@ -247,7 +247,7 @@ class SeriesSchema(ArraySchema[pd.Series]):
                 check_obj = check_obj.copy()
 
             check_obj = check_obj.map_partitions(
-                super().validate,
+                self.validate,
                 head=head,
                 tail=tail,
                 sample=sample,
@@ -270,7 +270,7 @@ class SeriesSchema(ArraySchema[pd.Series]):
         )
         if self.index is not None:
             validated_obj = self.index.validate(
-                check_obj,
+                validated_obj,
                 head=head,
                 tail=tail,
                 sample=sample,

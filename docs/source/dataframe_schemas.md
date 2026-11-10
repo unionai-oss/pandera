@@ -402,9 +402,16 @@ import pandera.pandas as pa
 
 df = pd.DataFrame({"column1": ["drop", "me"],"column2": ["keep", "me"]})
 schema = pa.DataFrameSchema({"column2": pa.Column(str)}, strict='filter')
-
-schema.validate(df)
+result = schema.validate(df)
+result
 ```
+
+Column filtering is performed without the deprecated pandas ``inplace``
+parameter of ``pandas.DataFrame.drop``: filtering never mutates the input
+``DataFrame``, and the filtered data is returned by ``validate``. Calling
+``schema.validate(df, inplace=True)`` with ``strict='filter'`` is deprecated
+and will raise a ``FutureWarning``; callers should use the returned
+``DataFrame`` instead of relying on the input being modified in place.
 
 (ordered)=
 

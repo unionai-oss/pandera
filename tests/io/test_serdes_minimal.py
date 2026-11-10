@@ -10,6 +10,11 @@ import yaml
 
 import pandera.pandas as pa
 from pandera.io import pandas_io
+from pandera.io._flat_checks import flat_value_to_list_entry
+from pandera.schema_statistics.common import (
+    deserialize_group_keys,
+    serialize_group_keys,
+)
 
 
 class TestPandasSerdesMinimal:
@@ -112,6 +117,47 @@ class TestPandasSerdesMinimal:
         assert "checks" not in col
         assert col["greater_than_or_equal_to"] == 1
         assert col["less_than_or_equal_to"] == 10
+
+    def test_flat_reader_classifies_groupby_as_check_option(self) -> None:
+        """``groupby``/``groups`` are options, as the ``checks:`` list has them."""
+        entry = flat_value_to_list_entry(
+            "greater_than",
+            {"min_value": 0, "groupby": ["grp"], "groups": ["x"]},
+        )
+        assert entry == {
+            "min_value": 0,
+            "options": {
+                "check_name": "greater_than",
+                "groupby": ["grp"],
+                "groups": ["x"],
+            },
+        }
+
+    def test_group_key_helpers_pass_through_a_single_key(self) -> None:
+        """A ``groups`` value that is not a sequence is handled as one key."""
+        assert serialize_group_keys(1) == 1
+        assert deserialize_group_keys(1) == 1
+
+    def test_group_keys_as_statistics_yaml_restores_tuples(self) -> None:
+        """A hand-written schema may carry ``groups`` next to the statistics."""
+        schema_yaml = """
+schema_type: dataframe
+columns:
+  values:
+    dtype: int64
+    checks:
+    - min_value: 1
+      groupby: [grp_a, grp_b]
+      groups: [[x, 1], [y, 2]]
+      options:
+        check_name: greater_than_or_equal_to
+  grp_a:
+    dtype: str
+  grp_b:
+    dtype: int64
+"""
+        check = pandas_io.from_yaml(schema_yaml).columns["values"].checks[0]
+        assert check.groups == [("x", 1), ("y", 2)]
 
     def test_legacy_checks_list_yaml_still_loads(self) -> None:
         """YAML using the previous ``checks:`` list shape still deserializes."""

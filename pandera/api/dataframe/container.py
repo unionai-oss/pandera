@@ -48,6 +48,7 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
         columns: dict[Any, Any] | None = None,
         checks: CheckList | None = None,
         parsers: ParserList | None = None,
+        parser_source: Union[str, list[str], None] = None,
         index=None,
         dtype: Any | None = None,
         coerce: bool = False,
@@ -157,6 +158,8 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
             parsers = []
         if isinstance(parsers, Parser):
             parsers = [parsers]
+
+        self.parser_source = parser_source
 
         self._dtype: DataType | None = None
 
@@ -275,6 +278,7 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
                 f"{regex_columns}. Use the `get_dtypes` to get the datatypes "
                 "for these columns.",
                 UserWarning,
+                stacklevel=2,
             )
         return {n: c.dtype for n, c in self.columns.items() if not c.regex}
 

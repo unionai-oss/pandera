@@ -221,6 +221,22 @@ class Check(BaseCheck):
         self.strategy = strategy
         self.constraint = constraint
 
+    @property
+    def registry_name(self) -> str | None:
+        """Name this check can be looked up under in the ``Check`` registry.
+
+        ``name`` may have been replaced by a user-supplied ``name=``, which hides
+        the check from every registry lookup. The check function keeps the
+        dispatcher name, so fall back to it -- the same rule
+        :meth:`Check.__call__` applies for the backend reload (see #2042).
+        """
+        if self in Check:
+            return self.name
+        check_fn_name = getattr(self._check_fn, "__name__", None)
+        if check_fn_name is not None and hasattr(Check, check_fn_name):
+            return check_fn_name
+        return None
+
     def __call__(
         self,
         check_obj: Any,
@@ -690,6 +706,13 @@ class Check(BaseCheck):
         :param exact_value: Exact length of strings. (default: no exact value)
         :param kwargs: key-word arguments passed into the `Check` initializer.
         """
+        if args and not (
+            min_value is None and max_value is None and exact_value is None
+        ):
+            raise ValueError(
+                "str_length() got length arguments both positionally and as "
+                "keywords; pass them one way only"
+            )
         if len(args) == 1:
             # Single positional arg means exact length
             exact_value = args[0]
@@ -703,6 +726,12 @@ class Check(BaseCheck):
                 f"(min_value, max_value), got {len(args)}"
             )
 
+        if exact_value is not None and not (
+            min_value is None and max_value is None
+        ):
+            raise ValueError(
+                "exact_value cannot be combined with min_value or max_value"
+            )
         if exact_value is not None:
             return cls.from_builtin_check_name(
                 "str_length",

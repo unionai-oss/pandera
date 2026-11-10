@@ -1288,7 +1288,8 @@ def field_element_strategy(
                 "Element-wise check doesn't have a defined strategy."
                 "Falling back to filtering drawn values based on the "
                 "check definition. This can considerably slow down "
-                "data-generation."
+                "data-generation.",
+                stacklevel=2,
             )
             residuals.append((check.name, check._check_fn))
         # NOTE: vectorized checks with undefined strategies should be
@@ -1451,7 +1452,8 @@ def series_strategy(
         warnings.warn(
             "Vectorized check doesn't have a defined strategy. "
             "Falling back to filtering drawn values based on the check "
-            "definition. This can considerably slow down data-generation."
+            "definition. This can considerably slow down data-generation.",
+            stacklevel=2,
         )
 
         def _check_fn(series):
@@ -1613,7 +1615,8 @@ def dataframe_strategy(
         warnings.warn(
             f"{warning_type} check doesn't have a defined strategy. "
             "Falling back to filtering drawn values based on the check "
-            "definition. This can considerably slow down data-generation."
+            "definition. This can considerably slow down data-generation.",
+            stacklevel=2,
         )
 
         return strategy.filter(check_fn)

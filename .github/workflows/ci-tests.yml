@@ -66,6 +66,15 @@ jobs:
         uses: dorny/paths-filter@v4
         with:
           filters: .github/filters.yaml
+          # The `common` filter (in .github/filters.yaml) is a mix of positive
+          # (pandera/**, tests/**) and negated (!pandera/api/pandas/**, ...)
+          # patterns. Under dorny's default `some` quantifier, a negated pattern
+          # is treated as an inverted matcher, so it returns true for any file
+          # *not* in an excluded directory -- which makes `common` match almost
+          # every changed file (doc-only PRs included) and run the whole test
+          # matrix. `some-with-excludes` is the correct semantics: a file matches
+          # only if it hits an include pattern and none of the negations.
+          predicate-quantifier: some-with-excludes
 
       - name: Derive job flags
         id: flags
@@ -82,6 +91,7 @@ jobs:
           MODIN: ${{ steps.filter.outputs.modin }}
           XARRAY: ${{ steps.filter.outputs.xarray }}
           PYARROW: ${{ steps.filter.outputs.pyarrow }}
+          DATAFUSION: ${{ steps.filter.outputs.datafusion }}
           NARWHALS: ${{ steps.filter.outputs.narwhals }}
           HYPOTHESES: ${{ steps.filter.outputs.hypotheses }}
           IO: ${{ steps.filter.outputs.io }}
@@ -401,24 +411,19 @@ jobs:
         # .github/filters.yaml, scripts/ci/derive_test_flags.sh); the job is skipped when the list
         # is empty via the `if` above.
         extra: ${{ fromJSON(needs.changes.outputs.dataframe_extras) }}
-        include:
-        - extra: polars
-          python-version: "3.10"
-          polars-version: "1.20.0"
-        - extra: polars
-          python-version: "3.11"
-          polars-version: "1.20.0"
-        - extra: polars
-          python-version: "3.12"
-          polars-version: "1.33.1"
-        - extra: polars
-          python-version: "3.13"
-          polars-version: "1.33.1"
-        - extra: polars
-          python-version: "3.14"
-          polars-version: "1.42.1"
-        - extra: polars
-          pydantic-version: "2.12.3"
+        # Only augment selected Polars jobs. Otherwise these include entries
+        # become standalone jobs without an operating system.
+        include: >-
+          ${{ contains(fromJSON(needs.changes.outputs.dataframe_extras), 'polars')
+              && fromJSON('[
+                {"extra":"polars","python-version":"3.10","polars-version":"1.20.0"},
+                {"extra":"polars","python-version":"3.11","polars-version":"1.20.0"},
+                {"extra":"polars","python-version":"3.12","polars-version":"1.33.1"},
+                {"extra":"polars","python-version":"3.13","polars-version":"1.33.1"},
+                {"extra":"polars","python-version":"3.14","polars-version":"1.42.1"},
+                {"extra":"polars","pydantic-version":"2.12.3"}
+              ]')
+              || fromJSON('[]') }}
         exclude:
         - extra: modin-ray
           os: windows-latest

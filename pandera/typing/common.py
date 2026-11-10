@@ -266,9 +266,25 @@ class AnnotationInfo:
             return False
 
     @property
+    def is_generic_tensordict(self) -> bool:
+        """True if the annotation is a TensorDict model container."""
+        try:
+            from pandera.typing.tensordict import TensorDictAnnotationBase
+
+            if self.origin is None:
+                return False
+            return issubclass(self.origin, TensorDictAnnotationBase)
+        except (TypeError, ImportError):
+            return False
+
+    @property
     def is_generic_model(self) -> bool:
         """True if the annotation wraps a pandera model class."""
-        return self.is_generic_df or self.is_generic_xarray
+        return (
+            self.is_generic_df
+            or self.is_generic_xarray
+            or self.is_generic_tensordict
+        )
 
     def _parse_annotation(self, raw_annotation: Any) -> None:
         """Parse key information from annotation.
@@ -368,7 +384,12 @@ class AnnotationInfo:
         self.literal = get_origin(self.arg) is typing.Literal
 
         if self.literal:
-            self.arg = get_args(self.arg)[0]
+            # Keep the whole ``Literal[...]`` as the dtype argument. Replacing
+            # it with its first value used to hand that value to the dtype
+            # engine, which either raised an opaque ``TypeError`` or — when the
+            # value happened to name a dtype, e.g. ``Literal["int64", ...]`` —
+            # silently typed the column and discarded the option set.
+            pass
         elif self.origin is None and self.metadata is None:
             if isinstance(raw_annotation, type) and issubclass(
                 raw_annotation, SeriesBase

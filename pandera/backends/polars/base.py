@@ -109,6 +109,7 @@ class PolarsSchemaBackend(BaseSchemaBackend):
                 warnings.warn(
                     message,
                     SchemaWarning,
+                    stacklevel=2,
                 )
                 return CoreCheckResult(
                     passed=True,

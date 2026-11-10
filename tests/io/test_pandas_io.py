@@ -6,6 +6,7 @@ from io import StringIO
 from pathlib import Path
 from unittest import mock
 
+import numpy as np
 import pandas as pd
 import pytest
 from packaging import version
@@ -17,6 +18,7 @@ import pandera.typing as pat
 from pandera.api.pandas.container import DataFrameSchema
 from pandera.engines import pandas_engine
 from pandera.engines.utils import pandas_version
+from pandera.errors import SchemaError
 from pandera.io import pandas_io as io
 
 HAS_IO = True
@@ -1141,6 +1143,196 @@ def test_inferred_schema_io():
     SKIP_YAML_TESTS,
     reason="pyyaml >= 5.1.0 required",
 )
+def test_yaml_roundtrip_preserves_column_default():
+    """A column ``default`` must survive a YAML round trip.
+
+    With ``add_missing_columns`` the default is what fills an absent column, so
+    losing it turns a frame that validated into one that raises ``SchemaErrors``
+    after the round trip. The polars and ibis serializers already carry it.
+    """
+    schema = pandera.DataFrameSchema(
+        {"a": pandera.Column(int, default=1), "b": pandera.Column(str)},
+        add_missing_columns=True,
+    )
+
+    restored = pandera.DataFrameSchema.from_yaml(schema.to_yaml())
+
+    assert restored.columns["a"].default == 1
+    assert restored == schema
+
+
+@pytest.mark.skipif(
+    SKIP_YAML_TESTS,
+    reason="pyyaml >= 5.1.0 required",
+)
+def test_yaml_roundtrip_keeps_add_missing_columns_working():
+    """The user-visible consequence: the same frame validates before and after."""
+    schema = pandera.DataFrameSchema(
+        {"a": pandera.Column(int, default=1), "b": pandera.Column(str)},
+        add_missing_columns=True,
+    )
+    missing = pd.DataFrame({"b": ["x"]})
+    schema.validate(missing)
+
+    restored = pandera.DataFrameSchema.from_yaml(schema.to_yaml())
+    restored.validate(missing, lazy=True)
+
+
+@pytest.mark.skipif(
+    SKIP_YAML_TESTS,
+    reason="pyyaml >= 5.1.0 required",
+)
+def test_yaml_roundtrip_without_default_is_unchanged():
+    """Guard: a schema whose columns have no default must serialize as before."""
+    schema = pandera.DataFrameSchema(
+        {"a": pandera.Column(int), "b": pandera.Column(str)},
+        add_missing_columns=True,
+    )
+    serialized = yaml.safe_load(str(schema.to_yaml(minimal=False)))
+
+    restored = pandera.DataFrameSchema.from_yaml(schema.to_yaml())
+
+    assert "default" not in serialized["columns"]["a"]
+    assert restored.columns["a"].default is None
+    assert restored == schema
+
+
+@pytest.mark.skipif(
+    SKIP_YAML_TESTS,
+    reason="pyyaml >= 5.1.0 required",
+)
+def test_yaml_roundtrip_preserves_column_report_duplicates():
+    """A column ``report_duplicates`` must survive a YAML round trip.
+
+    It selects which of a run of duplicates is reported, so losing it silently
+    widens the reported failure cases. The polars and ibis serializers already
+    carry it, and this backend already carries the ``DataFrameSchema``-level
+    setting -- only the per-column one was dropped.
+    """
+    schema = pandera.DataFrameSchema(
+        {
+            "a": pandera.Column(
+                int, unique=True, report_duplicates="exclude_first"
+            )
+        }
+    )
+
+    restored = pandera.DataFrameSchema.from_yaml(schema.to_yaml())
+
+    assert restored.columns["a"].report_duplicates == "exclude_first"
+    assert restored == schema
+
+
+@pytest.mark.skipif(
+    SKIP_YAML_TESTS,
+    reason="pyyaml >= 5.1.0 required",
+)
+def test_yaml_roundtrip_keeps_reported_duplicates_narrow():
+    """The user-visible consequence: the same frame reports the same duplicates."""
+    schema = pandera.DataFrameSchema(
+        {
+            "a": pandera.Column(
+                int, unique=True, report_duplicates="exclude_first"
+            )
+        }
+    )
+    df = pd.DataFrame({"a": [1, 1, 2]})
+
+    restored = pandera.DataFrameSchema.from_yaml(schema.to_yaml())
+
+    with pytest.raises(pandera.errors.SchemaErrors) as before:
+        schema.validate(df, lazy=True)
+    with pytest.raises(pandera.errors.SchemaErrors) as after:
+        restored.validate(df, lazy=True)
+
+    assert before.value.failure_cases["index"].tolist() == [1]
+    assert (
+        after.value.failure_cases["index"].tolist()
+        == before.value.failure_cases["index"].tolist()
+    )
+
+
+@pytest.mark.skipif(
+    SKIP_YAML_TESTS,
+    reason="pyyaml >= 5.1.0 required",
+)
+def test_yaml_roundtrip_without_report_duplicates_is_unchanged():
+    """Guard: a column left at the ``"all"`` default must serialize as before."""
+    schema = pandera.DataFrameSchema(
+        {"a": pandera.Column(int, unique=True), "b": pandera.Column(str)}
+    )
+    serialized = yaml.safe_load(str(schema.to_yaml(minimal=False)))
+
+    restored = pandera.DataFrameSchema.from_yaml(schema.to_yaml())
+
+    assert "report_duplicates" not in serialized["columns"]["a"]
+    assert restored.columns["a"].report_duplicates == "all"
+    assert restored == schema
+
+
+@pytest.mark.skipif(
+    SKIP_YAML_TESTS,
+    reason="pyyaml >= 5.1.0 required",
+)
+def test_yaml_roundtrip_preserves_index_report_duplicates():
+    """``Index`` shares the component serializer, so it is covered too."""
+    schema = pandera.DataFrameSchema(
+        {"a": pandera.Column(int)},
+        index=pandera.Index(
+            int, unique=True, report_duplicates="exclude_last"
+        ),
+    )
+
+    restored = pandera.DataFrameSchema.from_yaml(schema.to_yaml())
+
+    assert restored.index.report_duplicates == "exclude_last"
+    assert restored == schema
+
+
+@pytest.mark.skipif(
+    SKIP_YAML_TESTS,
+    reason="pyyaml >= 5.1.0 required",
+)
+def test_yaml_roundtrip_preserves_index_default():
+    """``Index`` lost ``default`` as well.
+
+    #2528 carried a column ``default`` through the round trip by adding it to
+    the column statistics collector; ``Index`` and ``SeriesSchema`` collect
+    through ``_get_series_base_schema_statistics``, which was not changed, so
+    the same attribute was still dropped for an index.
+    """
+    schema = pandera.DataFrameSchema(
+        {"a": pandera.Column(int)}, index=pandera.Index(int, default=7)
+    )
+
+    restored = pandera.DataFrameSchema.from_yaml(schema.to_yaml())
+
+    assert restored.index.default == 7
+    assert restored == schema
+
+
+@pytest.mark.skipif(
+    SKIP_YAML_TESTS,
+    reason="pyyaml >= 5.1.0 required",
+)
+def test_yaml_roundtrip_without_index_extras_is_unchanged():
+    """Guard: an index left at the defaults must serialize as before."""
+    schema = pandera.DataFrameSchema(
+        {"a": pandera.Column(int)}, index=pandera.Index(int)
+    )
+    serialized = yaml.safe_load(str(schema.to_yaml(minimal=False)))
+
+    restored = pandera.DataFrameSchema.from_yaml(schema.to_yaml())
+
+    assert "default" not in serialized["index"][0]
+    assert "report_duplicates" not in serialized["index"][0]
+    assert restored == schema
+
+
+@pytest.mark.skipif(
+    SKIP_YAML_TESTS,
+    reason="pyyaml >= 5.1.0 required",
+)
 def test_to_yaml():
     """Test that to_yaml writes to yaml string."""
     schema = _create_schema()
@@ -1462,6 +1654,29 @@ def test_io_json_with_multiindex_column_labels():
     pd.testing.assert_frame_equal(restored.validate(validated), validated)
 
 
+@pytest.mark.parametrize("fmt", ["json", "yaml"])
+@pytest.mark.parametrize("minimal", [True, False])
+@pytest.mark.parametrize(
+    "name",
+    [
+        ("group", "value"),
+        (("group", "sensor"), "value"),
+        ("group", ("sensor", "value")),
+        ((("group", "sensor"), "value"), "reading"),
+    ],
+)
+def test_io_roundtrip_preserves_nested_tuple_column_labels(fmt, minimal, name):
+    schema = pandera.DataFrameSchema({name: pandera.Column(int)})
+    dataframe = pd.DataFrame({name: [1, 2]})
+    schema.validate(dataframe)
+
+    serialized = getattr(schema, f"to_{fmt}")(minimal=minimal)
+    restored = getattr(pandera.DataFrameSchema, f"from_{fmt}")(serialized)
+
+    assert restored == schema
+    pd.testing.assert_frame_equal(restored.validate(dataframe), dataframe)
+
+
 def test_check_custom_error_json_serialization_roundtrip():
     """Test that custom check errors are serialized and deserialized via JSON."""
     import json
@@ -1540,6 +1755,318 @@ def test_check_custom_error_yaml_serialization_roundtrip():
     assert restored_checks[0].error == "column must be greater than 10"
 
 
+def _register_groupby_mean_gt():
+    @pa_ext.register_check_method(
+        statistics=["group_a", "group_b"], check_type="groupby"
+    )
+    def groupby_mean_gt(dict_groups, *, group_a, group_b):
+        return dict_groups[group_a].mean() > dict_groups[group_b].mean()
+
+
+@pytest.mark.skipif(
+    SKIP_YAML_TESTS,
+    reason="pyyaml >= 5.1.0 required",
+)
+@pytest.mark.parametrize("fmt", ["yaml", "json"])
+@mock.patch("pandera.Check.REGISTERED_CUSTOM_CHECKS", new_callable=dict)
+def test_groupby_check_serialization_roundtrip(_, fmt):
+    """Test that groupby and groups survive a serialization roundtrip."""
+    _register_groupby_mean_gt()
+    schema = pandera.DataFrameSchema(
+        {
+            "values": pandera.Column(
+                int,
+                pandera.Check.groupby_mean_gt(
+                    group_a="x",
+                    group_b="y",
+                    groupby="groups",
+                    groups=["x", "y"],
+                ),
+            ),
+            "groups": pandera.Column(str),
+        }
+    )
+
+    if fmt == "yaml":
+        restored = io.from_yaml(io.to_yaml(schema))
+    else:
+        restored = io.from_json(io.to_json(schema))
+
+    check = restored.columns["values"].checks[0]
+    assert check.groupby == ["groups"]
+    assert check.groups == ["x", "y"]
+
+    data = pd.DataFrame({"values": [20, 10, 1, 15], "groups": list("xxyz")})
+    restored.validate(data)
+    with pytest.raises(pandera.errors.SchemaError):
+        restored.validate(data.assign(values=[1, 2, 20, 15]))
+
+
+@mock.patch("pandera.Check.REGISTERED_CUSTOM_CHECKS", new_callable=dict)
+def test_groupby_callable_check_serialization_warns(_):
+    """Test that a check with a callable groupby is skipped with a warning."""
+    _register_groupby_mean_gt()
+    schema = pandera.DataFrameSchema(
+        {
+            "values": pandera.Column(
+                int,
+                pandera.Check.groupby_mean_gt(
+                    group_a="x",
+                    group_b="y",
+                    groupby=lambda df: df.groupby("groups"),
+                ),
+            ),
+            "groups": pandera.Column(str),
+        }
+    )
+
+    with pytest.warns(UserWarning, match="callable `groupby`"):
+        restored = io.from_yaml(io.to_yaml(schema))
+
+    assert not restored.columns["values"].checks
+
+
+def _register_groupby_n_groups():
+    @pa_ext.register_check_method(
+        statistics=["n_groups"], check_type="groupby"
+    )
+    def groupby_n_groups(dict_groups, *, n_groups):
+        return len(dict_groups) == n_groups
+
+
+# (group column values, group keys selected by the check, python type they
+# serialize to). Every case selects fewer groups than the column has, so a
+# lost `groups` shows up as a failing check rather than a passing one.
+_NUMPY_GROUP_KEY_CASES = {
+    "int64": ([1, 2, 3], np.array([1, 2], dtype="int64"), int),
+    "float64": ([1.5, 2.5, 3.5], np.array([1.5, 2.5], dtype="float64"), float),
+    "bool": ([True, False], np.array([True]), bool),
+    "str": (["x", "y", "z"], np.array(["x", "y"]), str),
+}
+
+
+@pytest.mark.skipif(
+    SKIP_YAML_TESTS,
+    reason="pyyaml >= 5.1.0 required",
+)
+@pytest.mark.parametrize("fmt", ["yaml", "json"])
+@pytest.mark.parametrize("case", list(_NUMPY_GROUP_KEY_CASES))
+@mock.patch("pandera.Check.REGISTERED_CUSTOM_CHECKS", new_callable=dict)
+def test_groupby_check_numpy_group_keys_roundtrip(_, case, fmt):
+    """Test that numpy group keys serialize as the equivalent builtins."""
+    _register_groupby_n_groups()
+    column_values, group_keys, expected_type = _NUMPY_GROUP_KEY_CASES[case]
+    groups = list(group_keys)
+    schema = pandera.DataFrameSchema(
+        {
+            "values": pandera.Column(
+                int,
+                pandera.Check.groupby_n_groups(
+                    n_groups=len(groups), groupby="grp", groups=groups
+                ),
+            ),
+            "grp": pandera.Column(),
+        }
+    )
+
+    if fmt == "yaml":
+        restored = io.from_yaml(io.to_yaml(schema))
+    else:
+        restored = io.from_json(io.to_json(schema))
+
+    check = restored.columns["values"].checks[0]
+    assert check.groupby == ["grp"]
+    assert check.groups == [expected_type(key) for key in groups]
+    assert [type(key) for key in check.groups] == [expected_type] * len(groups)
+
+    data = pd.DataFrame(
+        {"values": range(len(column_values)), "grp": column_values}
+    )
+    restored.validate(data)
+
+
+@pytest.mark.skipif(
+    SKIP_YAML_TESTS,
+    reason="pyyaml >= 5.1.0 required",
+)
+@pytest.mark.parametrize("fmt", ["yaml", "json"])
+@mock.patch("pandera.Check.REGISTERED_CUSTOM_CHECKS", new_callable=dict)
+def test_groupby_check_tuple_group_keys_roundtrip(_, fmt):
+    """Test that tuple group keys survive as tuples, which stay hashable."""
+    _register_groupby_n_groups()
+    schema = pandera.DataFrameSchema(
+        {
+            "values": pandera.Column(
+                int,
+                pandera.Check.groupby_n_groups(
+                    n_groups=2,
+                    groupby=["grp_a", "grp_b"],
+                    groups=[("x", 1), ("y", 2)],
+                ),
+            ),
+            "grp_a": pandera.Column(str),
+            "grp_b": pandera.Column(int),
+        }
+    )
+
+    if fmt == "yaml":
+        restored = io.from_yaml(io.to_yaml(schema))
+    else:
+        restored = io.from_json(io.to_json(schema))
+
+    check = restored.columns["values"].checks[0]
+    assert check.groups == [("x", 1), ("y", 2)]
+
+    data = pd.DataFrame(
+        {
+            "values": [1, 2, 3],
+            "grp_a": ["x", "y", "z"],
+            "grp_b": [1, 2, 3],
+        }
+    )
+    restored.validate(data)
+
+
+@pytest.mark.skipif(
+    SKIP_YAML_TESTS,
+    reason="pyyaml >= 5.1.0 required",
+)
+@pytest.mark.parametrize("fmt", ["yaml", "json"])
+@mock.patch("pandera.Check.REGISTERED_CUSTOM_CHECKS", new_callable=dict)
+def test_groupby_check_unserializable_group_keys_warns(_, fmt):
+    """Test that group keys with no serializable equivalent are skipped."""
+    _register_groupby_n_groups()
+    schema = pandera.DataFrameSchema(
+        {
+            "values": pandera.Column(
+                int,
+                pandera.Check.groupby_n_groups(
+                    n_groups=1,
+                    groupby="grp",
+                    groups=list(pd.to_datetime(["2020-01-01"])),
+                ),
+            ),
+            "grp": pandera.Column("datetime64[ns]"),
+        }
+    )
+
+    with pytest.warns(UserWarning, match="no serializable equivalent"):
+        serialized = (
+            io.to_yaml(schema) if fmt == "yaml" else io.to_json(schema)
+        )
+
+    restored = (
+        io.from_yaml(serialized) if fmt == "yaml" else io.from_json(serialized)
+    )
+    assert not restored.columns["values"].checks
+
+
+@pytest.mark.parametrize(
+    "groupby,groups",
+    [
+        # a tuple column name would serialize as a list, which is not the
+        # column name that was passed in
+        ([("grp_a", "grp_b")], ["x"]),
+        # an array is not a scalar, so `.item()` cannot convert it
+        (["grp"], [np.array([1, 2])]),
+    ],
+    ids=["tuple-column-name", "array-group-key"],
+)
+@mock.patch("pandera.Check.REGISTERED_CUSTOM_CHECKS", new_callable=dict)
+def test_groupby_check_unserializable_values_are_skipped(_, groupby, groups):
+    """Test that no groupby value is written as something it was not."""
+    _register_groupby_n_groups()
+    schema = pandera.DataFrameSchema(
+        {
+            "values": pandera.Column(
+                int,
+                pandera.Check.groupby_n_groups(
+                    n_groups=1, groupby=groupby, groups=groups
+                ),
+            ),
+            **{name: pandera.Column() for name in groupby},
+        }
+    )
+
+    with pytest.warns(UserWarning, match="no serializable equivalent"):
+        serialized = io.to_json(schema)
+
+    assert not io.from_json(serialized).columns["values"].checks
+
+
+@pytest.mark.skipif(
+    SKIP_YAML_TESTS,
+    reason="pyyaml >= 5.1.0 required",
+)
+@pytest.mark.parametrize("fmt", ["yaml", "json"])
+@mock.patch("pandera.Check.REGISTERED_CUSTOM_CHECKS", new_callable=dict)
+def test_groupby_check_list_shape_roundtrip(_, fmt):
+    """Test that the ``checks:`` list shape also keeps groupby and groups."""
+    _register_groupby_n_groups()
+    schema = pandera.DataFrameSchema(
+        {
+            "values": pandera.Column(
+                int,
+                [
+                    pandera.Check.groupby_n_groups(
+                        n_groups=1, groupby="grp", groups=["x"]
+                    ),
+                    pandera.Check.groupby_n_groups(
+                        n_groups=2, groupby="grp", groups=["x", "y"]
+                    ),
+                ],
+            ),
+            "grp": pandera.Column(str),
+        }
+    )
+    # two checks of the same name cannot be flattened, so this exercises the
+    # `checks:` list shape and its `options` branch.
+    assert "checks" in io.serialize_schema(schema)["columns"]["values"]
+
+    if fmt == "yaml":
+        restored = io.from_yaml(io.to_yaml(schema))
+    else:
+        restored = io.from_json(io.to_json(schema))
+
+    checks = restored.columns["values"].checks
+    assert [check.groupby for check in checks] == [["grp"], ["grp"]]
+    assert [check.groups for check in checks] == [["x"], ["x", "y"]]
+
+    data = pd.DataFrame({"values": [1, 2, 3], "grp": ["x", "y", "z"]})
+    restored.validate(data)
+
+
+@mock.patch("pandera.Check.REGISTERED_CUSTOM_CHECKS", new_callable=dict)
+def test_groupby_check_to_script_keeps_tuple_group_keys(_):
+    """Test that a generated script keeps group keys hashable."""
+    _register_groupby_n_groups()
+    schema = pandera.DataFrameSchema(
+        {
+            "values": pandera.Column(
+                int,
+                pandera.Check.groupby_n_groups(
+                    n_groups=2,
+                    groupby=["grp_a", "grp_b"],
+                    groups=[("x", 1), ("y", 2)],
+                ),
+            ),
+            "grp_a": pandera.Column(str),
+            "grp_b": pandera.Column(int),
+        }
+    )
+
+    namespace: dict = {}
+    exec(io.to_script(schema), namespace)  # pylint: disable=exec-used
+    restored = namespace["schema"]
+
+    assert restored.columns["values"].checks[0].groups == [("x", 1), ("y", 2)]
+    restored.validate(
+        pd.DataFrame(
+            {"values": [1, 2, 3], "grp_a": ["x", "y", "z"], "grp_b": [1, 2, 3]}
+        )
+    )
+
+
 @pytest.mark.skipif(
     platform.system() == "Windows",
     reason="skipping due to issues with opening file names for temp files.",
@@ -1568,6 +2095,28 @@ def test_to_script(index):
         exec(f.read(), globals(), local_dict)
         schema = local_dict["schema"]
         assert schema == schema_to_write
+
+
+@pytest.mark.skipif(
+    platform.system() == "Windows",
+    reason="skipping due to issues with opening file names for temp files.",
+)
+def test_to_script_dataframe_level_checks():
+    """Test that dataframe-level checks survive a to_script round trip."""
+    schema_to_write = pandera.DataFrameSchema(
+        {"a": pandera.Column(int)},
+        checks=[pandera.Check.gt(0)],
+    )
+
+    local_dict = {}
+    # pylint: disable=exec-used
+    exec(schema_to_write.to_script(minimal=False), globals(), local_dict)
+    schema = local_dict["schema"]
+
+    assert schema == schema_to_write
+    schema.validate(pd.DataFrame({"a": [1, 2]}))
+    with pytest.raises(pandera.errors.SchemaError):
+        schema.validate(pd.DataFrame({"a": [-1]}))
 
 
 def test_to_script_lambda_check():
@@ -1751,6 +2300,162 @@ def test_to_yaml_retains_ordered_keyword(is_ordered, test_data, expected):
     else:
         validation_df = schema.validate(pd.DataFrame(data=test_data))
         assert validation_df.equals(expected)
+
+
+_MULTIINDEX_OPTIONS = {
+    "coerce": True,
+    "strict": True,
+    "name": "multi",
+    "ordered": False,
+    "unique": ["int_index0", "int_index1"],
+}
+
+
+def _create_multiindex_options_schema(**options):
+    return pandera.DataFrameSchema(
+        columns={"a": pandera.Column(pandera.Int)},
+        index=pandera.MultiIndex(
+            [
+                pandera.Index(pandera.Int, name="int_index0"),
+                pandera.Index(pandera.Int, name="int_index1"),
+            ],
+            **options,
+        ),
+    )
+
+
+def _roundtrip(schema, fmt, minimal):
+    if fmt == "yaml":
+        return pandera.DataFrameSchema.from_yaml(
+            schema.to_yaml(minimal=minimal)
+        )
+    if fmt == "json":
+        return pandera.DataFrameSchema.from_json(
+            schema.to_json(minimal=minimal)
+        )
+    local_dict = {}
+    # pylint: disable=exec-used
+    exec(schema.to_script(minimal=minimal), globals(), local_dict)
+    return local_dict["schema"]
+
+
+@pytest.mark.parametrize("fmt", ["yaml", "json", "script"])
+@pytest.mark.parametrize("minimal", [True, False])
+def test_io_roundtrip_preserves_multiindex_options(fmt, minimal):
+    """MultiIndex coerce/strict/name/ordered/unique survive a round trip."""
+    schema = _create_multiindex_options_schema(**_MULTIINDEX_OPTIONS)
+    restored = _roundtrip(schema, fmt, minimal)
+    for key, value in _MULTIINDEX_OPTIONS.items():
+        assert getattr(restored.index, key) == value, key
+    assert restored == schema
+
+
+@pytest.mark.parametrize(
+    "fmt",
+    [
+        "json",
+        "script",
+        pytest.param(
+            "yaml",
+            marks=pytest.mark.skipif(
+                SKIP_YAML_TESTS, reason="pyyaml >= 5.1.0 required"
+            ),
+        ),
+    ],
+)
+@pytest.mark.parametrize("minimal", [True, False])
+@pytest.mark.parametrize(
+    "options",
+    [
+        {},
+        {"strict": True},
+        {
+            "coerce": True,
+            "name": "row_index",
+            "ordered": False,
+            "unique": ["id"],
+        },
+    ],
+)
+def test_io_roundtrip_preserves_single_level_multiindex(fmt, minimal, options):
+    """A one-level MultiIndex remains distinct from an ordinary Index."""
+    schema = pandera.DataFrameSchema(
+        {"a": pandera.Column(int)},
+        index=pandera.MultiIndex([pandera.Index(int, name="id")], **options),
+    )
+    frame = pd.DataFrame(
+        {"a": [1, 2]},
+        index=pd.MultiIndex.from_arrays([[3, 4]], names=["id"]),
+    )
+    schema.validate(frame)
+
+    restored = _roundtrip(schema, fmt, minimal)
+
+    assert isinstance(restored.index, pandera.MultiIndex)
+    assert restored == schema
+    pd.testing.assert_frame_equal(restored.validate(frame), frame)
+
+
+def test_io_legacy_single_index_without_multiindex_options():
+    """A one-element legacy index list still represents an ordinary Index."""
+    restored = io.deserialize_schema(
+        {
+            "columns": {"a": {"dtype": "int64"}},
+            "index": [{"dtype": "int64", "name": "id"}],
+        }
+    )
+    assert isinstance(restored.index, pandera.Index)
+    frame = pd.DataFrame({"a": [1]}, index=pd.Index([3], name="id"))
+    pd.testing.assert_frame_equal(restored.validate(frame), frame)
+
+
+@pytest.mark.parametrize("fmt", ["yaml", "json", "script"])
+def test_io_roundtrip_multiindex_strict_still_enforced(fmt):
+    """A strict MultiIndex still rejects extra index levels after reload."""
+    schema = _create_multiindex_options_schema(strict=True)
+    restored = _roundtrip(schema, fmt, minimal=True)
+    df = pd.DataFrame(
+        {"a": [1]},
+        index=pd.MultiIndex.from_tuples(
+            [(1, 2, 3)], names=["int_index0", "int_index1", "extra"]
+        ),
+    )
+    with pytest.raises(pandera_base.errors.SchemaErrors):
+        schema.validate(df, lazy=True)
+    with pytest.raises(pandera_base.errors.SchemaErrors):
+        restored.validate(df, lazy=True)
+
+
+@pytest.mark.parametrize("fmt", ["yaml", "json", "script"])
+def test_io_roundtrip_multiindex_unordered_still_accepted(fmt):
+    """An ordered=False MultiIndex still accepts swapped levels after reload."""
+    schema = _create_multiindex_options_schema(ordered=False)
+    restored = _roundtrip(schema, fmt, minimal=True)
+    df = pd.DataFrame(
+        {"a": [1]},
+        index=pd.MultiIndex.from_tuples(
+            [(2, 1)], names=["int_index1", "int_index0"]
+        ),
+    )
+    schema.validate(df)
+    restored.validate(df)
+
+
+@pytest.mark.skipif(SKIP_YAML_TESTS, reason="pyyaml >= 5.1.0 required")
+def test_multiindex_options_omitted_when_default():
+    """Default MultiIndex options are only written in non-minimal mode, and a
+    single Index never gets a ``multiindex`` key."""
+    schema = _create_schema("multi")
+    assert "multiindex" not in yaml.safe_load(schema.to_yaml(minimal=True))
+    assert yaml.safe_load(schema.to_yaml(minimal=False))["multiindex"] == {
+        "coerce": False,
+        "strict": False,
+        "name": None,
+        "ordered": True,
+        "unique": None,
+    }
+    single = _create_schema("single")
+    assert "multiindex" not in yaml.safe_load(single.to_yaml(minimal=False))
 
 
 def test_serialize_deserialize_custom_datetime_checks():
@@ -2384,3 +3089,104 @@ class TestDataFrameModelIO:
         schema = MyModel.from_yaml(yaml_str)
         df = pd.DataFrame({"a": [1, 2, 3]})
         schema.validate(df)
+
+
+@pytest.mark.skipif(
+    SKIP_YAML_TESTS,
+    reason="pyyaml >= 5.1.0 required",
+)
+@pytest.mark.parametrize(
+    "serialize, deserialize",
+    [
+        [io.to_yaml, io.from_yaml],
+        [io.to_json, io.from_json],
+    ],
+)
+def test_named_check_survives_serialization(serialize, deserialize):
+    """A check renamed with ``name=`` keeps its constraint on reload."""
+    schema = DataFrameSchema(
+        {
+            "a": pandera.Column(
+                int, checks=[pandera.Check.gt(0, name="positive")]
+            )
+        }
+    )
+    payload = serialize(schema, minimal=False)
+    assert "greater_than" in payload
+
+    loaded = deserialize(payload)
+    assert loaded == schema
+    (check,) = loaded.columns["a"].checks
+    assert check.name == "positive"
+
+    with pytest.raises(SchemaError):
+        loaded.validate(pd.DataFrame({"a": [-1]}))
+    loaded.validate(pd.DataFrame({"a": [1]}))
+
+
+def test_named_check_survives_to_script():
+    """``to_script`` regenerates the renamed check instead of dropping it."""
+    schema = DataFrameSchema(
+        {
+            "a": pandera.Column(
+                int, checks=[pandera.Check.gt(0, name="positive")]
+            )
+        }
+    )
+    script = io.to_script(schema)
+    assert "Check.greater_than" in script
+    assert 'name="positive"' in script
+
+
+@pytest.mark.skipif(
+    SKIP_YAML_TESTS,
+    reason="pyyaml >= 5.1.0 required",
+)
+@pytest.mark.parametrize(
+    "serialize, deserialize",
+    [
+        [io.to_yaml, io.from_yaml],
+        [io.to_json, io.from_json],
+    ],
+)
+def test_unique_values_eq_survives_serialization(serialize, deserialize):
+    """``unique_values_eq`` stores a frozenset statistic, which is written
+    out as a sorted list and read back as the same check."""
+    schema = DataFrameSchema(
+        {
+            "a": pandera.Column(
+                int, checks=[pandera.Check.unique_values_eq([3, 1, 2])]
+            )
+        }
+    )
+    loaded = deserialize(serialize(schema))
+    assert loaded == schema
+    (check,) = loaded.columns["a"].checks
+    assert check.statistics == {"values": frozenset({1, 2, 3})}
+
+    loaded.validate(pd.DataFrame({"a": [1, 2, 3]}))
+    with pytest.raises(SchemaError):
+        loaded.validate(pd.DataFrame({"a": [1, 2]}))
+
+
+@pytest.mark.parametrize(
+    "serialize, deserialize",
+    [
+        [io.to_yaml, io.from_yaml],
+        [io.to_json, io.from_json],
+    ],
+)
+def test_unsortable_set_statistic_survives_serialization(
+    serialize, deserialize
+):
+    """A set statistic whose values can't be sorted is written out as is."""
+    schema = DataFrameSchema(
+        {
+            "a": pandera.Column(
+                object, checks=[pandera.Check.unique_values_eq([1, "x"])]
+            )
+        }
+    )
+    loaded = deserialize(serialize(schema))
+    (check,) = loaded.columns["a"].checks
+    assert check.statistics == {"values": frozenset({1, "x"})}
