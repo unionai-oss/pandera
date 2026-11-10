@@ -30,6 +30,11 @@ def test_errors_exported_in_pandas_public_api() -> None:
     assert pa.errors is errors
 
 
+def test_public_api_names_resolve() -> None:
+    """Every name in ``__all__`` resolves (e.g. ``set_config``)."""
+    assert [name for name in pa.__all__ if not hasattr(pa, name)] == []
+
+
 @pytest.mark.parametrize(
     "data_type",
     [
