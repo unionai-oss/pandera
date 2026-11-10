@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 import re
+from typing import Any
 
 import pytest
 
-import pandera.polars as pa
+pa: Any = pytest.importorskip("pandera.polars")
 from pandera.api.synthesis.registry import _reset_registry_for_tests
 from pandera.strategies.faker_strategies import faker_backend
 
