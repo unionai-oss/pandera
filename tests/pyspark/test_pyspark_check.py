@@ -1545,6 +1545,24 @@ class TestStringType(BaseClass):
         )
 
     @validate_scope(scope=ValidationScope.DATA)
+    def test_str_matches_check_anchors_every_alternative(
+        self, spark_session, request
+    ) -> None:
+        """Test every alternative must match at the start of the string"""
+        spark = request.getfixturevalue(spark_session)
+        check_func = pa.Check.str_matches
+        check_value = r"Ba|Bi"
+
+        pass_data = [("Bal", "Bat"), ("Bal", "Bin")]
+        fail_data = [
+            ("Bal", "Bat"),
+            ("Bal", "fooBin"),
+        ]  # "fooBin" only contains "Bi" after the start
+        BaseClass.check_function(
+            spark, check_func, pass_data, fail_data, StringType(), check_value
+        )
+
+    @validate_scope(scope=ValidationScope.DATA)
     def test_str_matches_check_with_caret(
         self, spark_session, request
     ) -> None:
