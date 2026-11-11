@@ -470,7 +470,10 @@ def deserialize_schema(serialized_schema):
 
     if index is not None:
         index = [
-            _deserialize_component_stats(index_component)
+            {
+                **_deserialize_component_stats(index_component),
+                "name": _deserialize_column_name(index_component.get("name")),
+            }
             for index_component in index
         ]
 
