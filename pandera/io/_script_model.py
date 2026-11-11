@@ -277,5 +277,11 @@ def to_dataframe_model_script(
         "import pandas as pd" not in _BACKEND_IMPORTS[backend]
     ):
         preamble += "import pandas as pd\n"
+    # check statistics are rendered with repr(), so pandas scalars appear as
+    # bare ``Timestamp(...)`` / ``Timedelta(...)`` calls in Field arguments.
+    if re.search(r"(?<![\w.])Timestamp\(", body):
+        preamble += "from pandas import Timestamp\n"
+    if re.search(r"(?<![\w.])Timedelta\(", body):
+        preamble += "from pandas import Timedelta\n"
 
     return f"{preamble}{_BACKEND_IMPORTS[backend]}\n\n{body}"

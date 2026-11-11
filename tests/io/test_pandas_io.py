@@ -2165,6 +2165,28 @@ def test_to_script_model_roundtrip():
     assert restored.strict is True
 
 
+def test_to_script_model_timestamp_timedelta_checks():
+    """Model scripts import the pandas scalars used in check statistics."""
+    df = pd.DataFrame(
+        {
+            "placed_at": pd.to_datetime(
+                ["2024-01-01 10:00", "2024-01-03 09:15"]
+            ),
+            "wait": pd.to_timedelta(["1h", "30min"]),
+        }
+    )
+    schema = pandera.infer_schema(df).update_column(
+        "wait", checks=[pandera.Check.le(pd.Timedelta("2h"))]
+    )
+    script = io.to_script(schema, script_type="model")
+    ns: dict = {"__builtins__": __builtins__}
+    exec(script, ns)
+    model_cls = ns["GeneratedModel"]
+    model_cls.validate(df)
+    with pytest.raises(pandera.errors.SchemaError):
+        model_cls.validate(df.assign(wait=pd.to_timedelta(["1h", "3h"])))
+
+
 def test_to_yaml_lambda_check():
     """Test writing DataFrameSchema to a yaml with lambda check."""
     schema = pandera.DataFrameSchema(
