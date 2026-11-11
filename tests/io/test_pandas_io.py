@@ -3138,6 +3138,121 @@ def test_named_check_survives_to_script():
     assert 'name="positive"' in script
 
 
+def test_to_script_renders_non_finite_float_values():
+    """An infinite bound is written as an expression the script can run."""
+    schema = DataFrameSchema(
+        {
+            "ratio": pandera.Column(
+                float,
+                checks=[pandera.Check.in_range(0.0, float("inf"))],
+                nullable=True,
+                default=float("nan"),
+            )
+        }
+    )
+    script = io.to_script(schema)
+    assert 'max_value=float("inf")' in script
+    assert 'default=float("nan")' in script
+
+    namespace: dict = {}
+    exec(script, namespace)  # pylint: disable=exec-used
+    restored = namespace["schema"]
+
+    (check,) = restored.columns["ratio"].checks
+    assert check.statistics["max_value"] == float("inf")
+    restored.validate(pd.DataFrame({"ratio": [0.0, np.inf, np.nan]}))
+    with pytest.raises(SchemaError):
+        restored.validate(pd.DataFrame({"ratio": [-1.0]}))
+
+
+def test_to_script_model_renders_non_finite_float_values():
+    """The model script carries the bound as a runnable expression too."""
+    schema = DataFrameSchema(
+        {"ratio": pandera.Column(float, checks=[pandera.Check.le(np.inf)])}
+    )
+    script = io.to_script(schema, script_type="model")
+    assert 'le=float("inf")' in script
+
+    namespace: dict = {"__builtins__": __builtins__}
+    exec(script, namespace)  # pylint: disable=exec-used
+    restored = namespace["GeneratedModel"].to_schema()
+
+    (check,) = restored.columns["ratio"].checks
+    assert check.statistics["max_value"] == float("inf")
+
+
+@pytest.mark.parametrize(
+    "check",
+    [
+        pandera.Check.in_range(0.0, np.inf),
+        pandera.Check.in_range(0.0, np.inf, include_max=False),
+        pandera.Check.isin([1.0, np.inf]),
+        pandera.Check.isin((1.0, np.inf)),
+        pandera.Check.isin({1.0, np.inf}),
+        pandera.Check.isin(frozenset({1.0, np.inf})),
+        pandera.Check.unique_values_eq([1.0, np.inf]),
+        pandera.Check.eq(np.inf),
+        pandera.Check.ge(-np.inf),
+    ],
+    ids=[
+        "in_range",
+        "in_range-exclusive",
+        "isin-list",
+        "isin-tuple",
+        "isin-set",
+        "isin-frozenset",
+        "unique_values_eq",
+        "equal_to",
+        "greater_than_or_equal_to",
+    ],
+)
+def test_to_script_model_renders_an_infinity_inside_a_statistic(check):
+    """An infinity reaches the script through collections and mappings too.
+
+    ``in_range`` with an excluded bound is written as a mapping rather than a
+    pair, and ``isin`` keeps whichever collection the caller passed, so the
+    rendering has to recurse rather than only handle a bare float.
+    """
+    schema = DataFrameSchema({"ratio": pandera.Column(float, checks=[check])})
+    script = io.to_script(schema, script_type="model")
+
+    namespace: dict = {"__builtins__": __builtins__}
+    exec(script, namespace)  # pylint: disable=exec-used
+    restored = namespace["GeneratedModel"].to_schema()
+
+    (restored_check,) = restored.columns["ratio"].checks
+    assert restored_check.statistics == check.statistics
+
+
+def test_to_script_renders_an_infinity_inside_a_collection():
+    """The schema script carries a collection's infinite member as well."""
+    check = pandera.Check.isin([1.0, np.inf])
+    schema = DataFrameSchema({"ratio": pandera.Column(float, checks=[check])})
+    script = io.to_script(schema)
+    assert 'float("inf")' in script
+
+    namespace: dict = {}
+    exec(script, namespace)  # pylint: disable=exec-used
+    restored = namespace["schema"]
+
+    (restored_check,) = restored.columns["ratio"].checks
+    assert restored_check.statistics == check.statistics
+    restored.validate(pd.DataFrame({"ratio": [1.0, np.inf]}))
+    with pytest.raises(SchemaError):
+        restored.validate(pd.DataFrame({"ratio": [2.0]}))
+
+
+def test_to_script_of_schema_inferred_from_infinities():
+    """A schema inferred from a column holding an infinity gets an ``inf``
+    upper bound, and the emitted script still imports."""
+    data = pd.DataFrame({"ratio": [2.0, np.inf, np.nan]})
+    schema = pandera.infer_schema(data)
+
+    namespace: dict = {}
+    exec(schema.to_script(), namespace)  # pylint: disable=exec-used
+    namespace["schema"].validate(data)
+
+
 @pytest.mark.skipif(
     SKIP_YAML_TESTS,
     reason="pyyaml >= 5.1.0 required",

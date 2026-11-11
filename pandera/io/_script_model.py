@@ -9,6 +9,7 @@ from typing import Any, Literal
 
 from pandera.api.checks import Check
 from pandera.io._minimal import COLUMN_DEFAULTS, DF_SCHEMA_DEFAULTS
+from pandera.io._script_repr import script_repr
 
 BackendId = Literal["pandas", "polars", "ibis", "pyspark"]
 
@@ -89,8 +90,8 @@ def _in_range_field_value(stats: dict[str, Any]) -> str:
         imn = stats.get("include_min", True)
         imx = stats.get("include_max", True)
         if imn is True and imx is True:
-            return f"({mv!r}, {xv!r})"
-    return repr(stats)
+            return f"({script_repr(mv)}, {script_repr(xv)})"
+    return script_repr(stats)
 
 
 def _str_length_field_value(stats: dict[str, Any]) -> str:
@@ -125,12 +126,12 @@ def _field_kwarg_for_check(check: Check) -> tuple[str, str] | None:
     if check.name == "str_length":
         return fname, _str_length_field_value(st)
     if check.name == "between":
-        return fname, repr(st)
+        return fname, script_repr(st)
     if check.name in ("isin", "notin"):
         vals = st.get("allowed_values")
         if vals is None:
             vals = st.get("values")
-        return fname, repr(vals)
+        return fname, script_repr(vals)
     if check.name in (
         "str_contains",
         "str_endswith",
@@ -139,15 +140,15 @@ def _field_kwarg_for_check(check: Check) -> tuple[str, str] | None:
     ):
         return fname, repr(st.get("pattern"))
     if check.name in ("equal_to", "not_equal_to"):
-        return fname, repr(st.get("value"))
+        return fname, script_repr(st.get("value"))
     if check.name in ("greater_than", "greater_than_or_equal_to"):
-        return fname, repr(st.get("min_value"))
+        return fname, script_repr(st.get("min_value"))
     if check.name in ("less_than", "less_than_or_equal_to"):
-        return fname, repr(st.get("max_value"))
+        return fname, script_repr(st.get("max_value"))
     if check.name == "unique_values_eq":
-        return fname, repr(st.get("values"))
+        return fname, script_repr(st.get("values"))
 
-    return fname, repr(st)
+    return fname, script_repr(st)
 
 
 def _format_field_from_column(
