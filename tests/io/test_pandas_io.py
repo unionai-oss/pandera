@@ -3124,6 +3124,22 @@ def test_named_check_survives_serialization(serialize, deserialize):
     loaded.validate(pd.DataFrame({"a": [1]}))
 
 
+def test_to_script_does_not_change_the_schema():
+    """Emitting a script is a read: the schema still compares equal to an
+    identical one afterwards."""
+
+    def make():
+        return DataFrameSchema(
+            {"a": pandera.Column(float, pandera.Check.ge(1.0))}
+        )
+
+    schema, reference = make(), make()
+    io.to_script(schema)
+
+    assert schema == reference
+    assert schema.columns["a"].checks[0].statistics == {"min_value": 1.0}
+
+
 def test_named_check_survives_to_script():
     """``to_script`` regenerates the renamed check instead of dropping it."""
     schema = DataFrameSchema(
