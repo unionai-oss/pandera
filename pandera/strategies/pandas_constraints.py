@@ -18,6 +18,7 @@ adapters.
 
 from __future__ import annotations
 
+import re
 from collections.abc import Iterable
 from typing import Any
 
@@ -91,11 +92,11 @@ def str_contains_constraint(*, pattern: str) -> FieldConstraints:
 
 
 def str_startswith_constraint(*, string: str) -> FieldConstraints:
-    return FieldConstraints(regex_fullmatch=(rf"\A(?:{string}).*\Z",))
+    return FieldConstraints(regex_fullmatch=(rf"\A(?:{re.escape(string)}).*\Z",))
 
 
 def str_endswith_constraint(*, string: str) -> FieldConstraints:
-    return FieldConstraints(regex_fullmatch=(rf"\A.*(?:{string})\Z",))
+    return FieldConstraints(regex_fullmatch=(rf"\A.*(?:{re.escape(string)})\Z",))
 
 
 def str_length_constraint(
