@@ -14,6 +14,7 @@ is only imported on demand when the ``"faker"`` backend is requested.
 
 from __future__ import annotations
 
+import zlib
 from typing import Any, cast
 
 from pandera.api.synthesis import register_synthesis_backend
@@ -91,7 +92,10 @@ class _FakerFieldGenerator(FieldGenerator):
             return None
 
         if seed is not None:
-            self._factory.seed_instance((seed + hash(semantic)) & 0xFFFFFFFF)
+            self._factory.seed_instance(
+                (seed + zlib.crc32(semantic.value.encode("utf-8")))
+                & 0xFFFFFFFF
+            )
 
         provider_name = _SEMANTIC_TO_FAKER[semantic]
         provider = getattr(self._factory, provider_name)

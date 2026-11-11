@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import operator
 import random
+import zlib
 from collections.abc import Iterator
 from typing import Any
 
@@ -76,12 +77,34 @@ def compile_constraints_to_sampler(
     return _default_sampler(pandera_dtype, constraints, checker, rng)
 
 
-def _mix_seed(seed: int | None, semantic) -> int | None:
+def _stable_seed(seed: int | None, *parts) -> int | None:
+    """Mix ``seed`` with ``parts`` into a process-stable integer seed.
+
+    Uses ``zlib.crc32`` (a stable digest) instead of Python's salted ``hash``,
+    which is randomized per-process (``PYTHONHASHSEED``) and would otherwise
+    break the cross-process reproducibility contract of ``seed=``.
+    """
     if seed is None:
         return None
-    if semantic is None:
-        return seed
-    return (seed + hash(semantic)) & 0xFFFFFFFF
+    acc = seed
+    for part in parts:
+        if part is None:
+            continue
+        if isinstance(part, bool):
+            acc += int(part)
+        elif isinstance(part, int):
+            acc += part
+        elif isinstance(part, str):
+            acc += zlib.crc32(part.encode("utf-8"))
+        else:
+            acc += zlib.crc32(str(part).encode("utf-8"))
+    return acc & 0xFFFFFFFF
+
+
+def _mix_seed(seed: int | None, semantic) -> int | None:
+    """Mix ``seed`` with an optional semantic into a stable integer seed."""
+    value = getattr(semantic, "value", semantic)
+    return _stable_seed(seed, value)
 
 
 def _draw_from_base(base, checker, rng: random.Random) -> Iterator:
@@ -214,8 +237,13 @@ def _random_string(constraints: FieldConstraints, rng) -> str:
         # Generate a regex-matching string via hypothesis to avoid an endless
         # rejection loop from naive random sampling. Best-effort determinism.
         try:
+            import hypothesis
             import hypothesis.strategies as _hst
 
+            # Seed hypothesis so regex generation is reproducible from ``rng``
+            # (itself seeded from the sampler seed), keeping the deterministic
+            # ``seed=`` contract on the regex path too.
+            hypothesis.seed(rng.randrange(0, 2**31))
             pattern = (
                 constraints.regex_fullmatch[0] or constraints.regex_search[0]
             )

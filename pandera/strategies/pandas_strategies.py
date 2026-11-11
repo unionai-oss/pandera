@@ -14,6 +14,7 @@ import inspect
 import operator
 import re
 import warnings
+import zlib
 from collections import defaultdict
 from collections.abc import Callable, Sequence
 from copy import deepcopy
@@ -1822,7 +1823,7 @@ def _seeded_dataframe_strategy(
             col.checks,
             semantic=getattr(col, "semantic", None),
             synthesis_backend=synthesis_backend,
-            seed=(seed + hash(name)) & 0xFFFFFFFF,
+            seed=(seed + zlib.crc32(name.encode("utf-8"))) & 0xFFFFFFFF,
         )
         n = size if size is not None else 5
         values = [next(sampler) for _ in range(n)]

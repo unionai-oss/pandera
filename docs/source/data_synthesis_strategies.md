@@ -376,7 +376,7 @@ faster for schemas that mix multiple built-in checks per column:
 
 ## Pluggable Data-Synthesis Backends (Realistic Data)
 
-*new in 0.24.0*
+*new in 0.36.0*
 
 The default synthesis path is pure-`hypothesis`: it produces values that are
 *valid* under the schema, but which rarely *look like real data*. A
@@ -483,7 +483,15 @@ class MyGenerator(FieldGenerator):
     def generate(self, pandera_dtype, constraints, *, semantic=None, seed=None):
         ...  # return a SearchStrategy, a candidate sequence, or None
 
-register_synthesis_backend("my_synth", MyBackend(...))
+
+class MyBackend:
+    name = "my_synth"
+
+    def field_generator(self):
+        return MyGenerator()
+
+
+register_synthesis_backend("my_synth", MyBackend())
 ```
 
 or declaratively via a packaging entry point (no import required by users):
