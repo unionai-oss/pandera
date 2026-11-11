@@ -3124,6 +3124,65 @@ def test_named_check_survives_serialization(serialize, deserialize):
     loaded.validate(pd.DataFrame({"a": [1]}))
 
 
+@pytest.mark.parametrize(
+    "dtype,check,accepted,rejected",
+    [
+        (float, pandera.Check.eq(1.0), [1.0], [2.0]),
+        (float, pandera.Check.ne(1.0), [2.0], [1.0]),
+        (float, pandera.Check.gt(1.0), [2.0], [0.0]),
+        (float, pandera.Check.ge(1.0), [1.0], [0.0]),
+        (float, pandera.Check.lt(1.0), [0.0], [2.0]),
+        (float, pandera.Check.le(1.0), [1.0], [2.0]),
+        (float, pandera.Check.in_range(0.0, 1.0), [0.5], [2.0]),
+        (float, pandera.Check.isin([1.0, 2.0]), [1.0], [3.0]),
+        (float, pandera.Check.notin([1.0, 2.0]), [3.0], [1.0]),
+        (float, pandera.Check.unique_values_eq([1.0]), [1.0], [2.0]),
+        (str, pandera.Check.str_contains("ab"), ["xaby"], ["xyz"]),
+        (str, pandera.Check.str_endswith("ab"), ["xab"], ["abx"]),
+        (str, pandera.Check.str_startswith("ab"), ["abx"], ["xab"]),
+        (str, pandera.Check.str_matches("^ab$"), ["ab"], ["abc"]),
+        (str, pandera.Check.str_length(2, 3), ["ab"], ["abcd"]),
+    ],
+    ids=[
+        "equal_to",
+        "not_equal_to",
+        "greater_than",
+        "greater_than_or_equal_to",
+        "less_than",
+        "less_than_or_equal_to",
+        "in_range",
+        "isin",
+        "notin",
+        "unique_values_eq",
+        "str_contains",
+        "str_endswith",
+        "str_startswith",
+        "str_matches",
+        "str_length",
+    ],
+)
+def test_to_script_model_keeps_each_field_check(
+    dtype, check, accepted, rejected
+):
+    """Every check with a Field keyword still constrains the generated model.
+
+    A check whose value is read from the wrong statistic is written as
+    ``None``, which Field treats as no constraint at all, so the model script
+    silently accepts data the schema it came from rejects.
+    """
+    schema = DataFrameSchema({"col": pandera.Column(dtype, checks=[check])})
+    script = io.to_script(schema, script_type="model")
+
+    namespace: dict = {"__builtins__": __builtins__}
+    exec(script, namespace)  # pylint: disable=exec-used
+    restored = namespace["GeneratedModel"].to_schema()
+
+    assert len(restored.columns["col"].checks) == 1
+    restored.validate(pd.DataFrame({"col": accepted}))
+    with pytest.raises(SchemaError):
+        restored.validate(pd.DataFrame({"col": rejected}))
+
+
 def test_named_check_survives_to_script():
     """``to_script`` regenerates the renamed check instead of dropping it."""
     schema = DataFrameSchema(
