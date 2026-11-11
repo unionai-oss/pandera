@@ -183,8 +183,10 @@ def parse_checks(checks) -> Union[list[dict[str, Any]], None]:
             )
             continue
 
-        # Get base statistics
-        base_stats = {} if check.statistics is None else check.statistics
+        # Get base statistics. Copy them: the options below are part of the
+        # serialized payload, not of the check, and writing them onto
+        # ``check.statistics`` would change the schema being read.
+        base_stats = {} if check.statistics is None else dict(check.statistics)
 
         # Collect check options
         check_options = {
