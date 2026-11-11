@@ -507,3 +507,49 @@ def test_dataframemodel_with_pydantic_model_coerce_numbers_to_str():
         "age": [25, 30, 22],
         "city": ["New York", "London", "Paris"],
     }
+
+
+def test_pydantic_model_with_schema_errors():
+    """Collected schema errors must surface as a ``ValidationError``.
+
+    ``SchemaErrors`` is a sibling of ``SchemaError``, not a subclass, and the
+    pydantic hook converted only the latter. So a model that collects more than
+    one schema-level problem -- an unexpected column under ``strict``, a value
+    ``coerce`` cannot parse, columns out of order under ``ordered`` -- let the
+    pandera error escape ``model_validate`` instead of reporting it through
+    pydantic.
+    """
+
+    class StrictSchema(pa.DataFrameModel):
+        a: Series[int]
+
+        class Config:
+            strict = True
+
+    class CoerceSchema(pa.DataFrameModel):
+        a: Series[int]
+
+        class Config:
+            coerce = True
+
+    class OrderedSchema(pa.DataFrameModel):
+        a: Series[int]
+        b: Series[int]
+
+        class Config:
+            ordered = True
+
+    cases = [
+        (StrictSchema, {"a": [1], "unexpected": [2]}, "COLUMN_NOT_IN_SCHEMA"),
+        (CoerceSchema, {"a": ["not-a-number"]}, "DATATYPE_COERCION"),
+        (OrderedSchema, {"b": [1], "a": [1]}, "COLUMN_NOT_ORDERED"),
+    ]
+
+    for schema_cls, data, expected_reason in cases:
+
+        class Holder(BaseModel):
+            df: DataFrame[schema_cls]
+
+        # the pandera reason must survive inside the pydantic message
+        with pytest.raises(ValidationError, match=expected_reason):
+            Holder(df=data)
