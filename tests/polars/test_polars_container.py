@@ -247,6 +247,22 @@ def test_strict_filter(ldf_basic, ldf_schema_basic):
     filtered_data.collect().equals(ldf_basic.collect())
 
 
+def test_strict_error_reports_column_name():
+    """Strict-mode errors should report the offending column, not the schema.
+
+    Regression test for https://github.com/unionai-oss/pandera/issues/1669
+    """
+    schema = DataFrameSchema(
+        {"a": Column(pl.Int64)}, name="MySchemaName", strict=True
+    )
+    with pytest.raises(pa.errors.SchemaErrors) as exc:
+        schema.validate(pl.DataFrame({"a": [1], "extra": [2]}), lazy=True)
+
+    (error,) = exc.value.message["SCHEMA"]["COLUMN_NOT_IN_SCHEMA"]
+    assert error["schema"] == "MySchemaName"
+    assert error["column"] == "extra"
+
+
 @pytest.mark.xfail(
     condition=CONFIG.use_narwhals_backend,
     reason="add_missing_columns parser not implemented in Narwhals backend",
