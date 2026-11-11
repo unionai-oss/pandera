@@ -167,9 +167,17 @@ class SeriesBase(Generic[GenericDtype]):
 
     default_dtype: type | None = None
 
+    @overload
+    def __get__(self, instance: None, owner: type[Any]) -> str: ...
+
+    @overload
     def __get__(
-        self, instance: object, owner: type
-    ) -> str:  # pragma: no cover
+        self, instance: object, owner: type[Any]
+    ) -> "SeriesBase[GenericDtype]": ...
+
+    def __get__(
+        self, instance: object | None, owner: type[Any]
+    ) -> "str | SeriesBase[GenericDtype]":  # pragma: no cover
         raise AttributeError("Series should resolve to Field-s")
 
 
@@ -181,9 +189,17 @@ class IndexBase(Generic[GenericDtype]):
 
     default_dtype: type | None = None
 
+    @overload
+    def __get__(self, instance: None, owner: type[Any]) -> str: ...
+
+    @overload
     def __get__(
-        self, instance: object, owner: type
-    ) -> str:  # pragma: no cover
+        self, instance: object, owner: type[Any]
+    ) -> "IndexBase[GenericDtype]": ...
+
+    def __get__(
+        self, instance: object | None, owner: type[Any]
+    ) -> "str | IndexBase[GenericDtype]":  # pragma: no cover
         raise AttributeError("Indexes should resolve to pa.Index-s")
 
 
