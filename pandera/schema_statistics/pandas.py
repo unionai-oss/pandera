@@ -121,6 +121,11 @@ def get_dataframe_schema_statistics(dataframe_schema):
                     else {}
                 ),
                 "drop_invalid_rows": column.drop_invalid_rows,
+                **(
+                    {"metadata": column.metadata}
+                    if column.metadata is not None
+                    else {}
+                ),
             }
             for col_name, column in dataframe_schema.columns.items()
         },
@@ -156,6 +161,11 @@ def _get_series_base_schema_statistics(series_schema_base):
             else {}
         ),
         "drop_invalid_rows": series_schema_base.drop_invalid_rows,
+        **(
+            {"metadata": series_schema_base.metadata}
+            if series_schema_base.metadata is not None
+            else {}
+        ),
     }
 
 
