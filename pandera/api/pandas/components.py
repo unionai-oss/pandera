@@ -167,6 +167,7 @@ class Column(ArraySchema[pd.DataFrame]):
             "description": self.description,
             "default": self.default,
             "metadata": self.metadata,
+            "drop_invalid_rows": self.drop_invalid_rows,
             "on_missing": self.on_missing,
         }
 
