@@ -27,7 +27,13 @@ from pandera.errors import (
     SchemaError,
     SchemaErrors,
 )
-from pandera.pandas import Category, Check, Column, DataFrameSchema
+from pandera.pandas import (
+    Category,
+    Check,
+    Column,
+    DataFrameSchema,
+    SeriesSchema,
+)
 
 
 class MyError(ReducedPickleExceptionBase):
@@ -336,6 +342,31 @@ def test_unhashable_types_rendered_on_failing_checks_with_lazy_validation():
 
 
 @pytest.mark.parametrize(
+    "as_dataframe", [False, True], ids=["series", "column"]
+)
+def test_failed_check_reports_row_labels(as_dataframe):
+    """Repeated failing values can be located by their original row labels."""
+    amounts = pd.Series(
+        [1.0, -5.0, -5.0], index=["r01", "r02", "r04"], name="amount"
+    )
+    check = Check.gt(0)
+    if as_dataframe:
+        schema = DataFrameSchema({"amount": Column(float, check)})
+        data = amounts.to_frame()
+    else:
+        schema = SeriesSchema(float, check, name="amount")
+        data = amounts
+
+    with pytest.raises(SchemaError) as exc:
+        schema.validate(data)
+
+    assert "failure cases: -5.0 (index='r02'), -5.0 (index='r04')" in str(
+        exc.value
+    )
+    assert exc.value.failure_cases["index"].tolist() == ["r02", "r04"]
+
+
+@pytest.mark.parametrize(
     "validation_depth, expected_error",
     [
         (
@@ -373,7 +404,7 @@ def test_unhashable_types_rendered_on_failing_checks_with_lazy_validation():
                             "schema": None,
                             "column": "id",
                             "check": "less_than(10)",
-                            "error": "Column 'id' failed element-wise validator number 0: less_than(10) failure cases: 30.0",
+                            "error": "Column 'id' failed element-wise validator number 0: less_than(10) failure cases: 30.0 (index=2)",
                         }
                     ]
                 },
@@ -419,7 +450,7 @@ def test_unhashable_types_rendered_on_failing_checks_with_lazy_validation():
                             "schema": None,
                             "column": "id",
                             "check": "less_than(10)",
-                            "error": "Column 'id' failed element-wise validator number 0: less_than(10) failure cases: 30.0",
+                            "error": "Column 'id' failed element-wise validator number 0: less_than(10) failure cases: 30.0 (index=2)",
                         }
                     ]
                 }
