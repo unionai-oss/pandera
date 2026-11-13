@@ -16,8 +16,12 @@ from pandera.api.dataframe.model import (
     _dtype_metadata,
     get_dtype_kwargs,
 )
-from pandera.api.dataframe.model_components import FieldInfo
-from pandera.api.polars.components import Column
+from pandera.api.dataframe.model_components import (
+    FieldInfo,
+    ParsedFieldInfo,
+)
+from pandera.api.parsers import Parser
+from pandera.api.polars.components import Column, ParsedColumn
 from pandera.api.polars.container import DataFrameSchema
 from pandera.api.polars.model_config import BaseConfig
 from pandera.api.polars.types import PolarsFrame
@@ -38,16 +42,12 @@ class DataFrameModel(_DataFrameModel[pl.LazyFrame, DataFrameSchema]):
 
     @classmethod
     def build_schema_(cls, **kwargs) -> DataFrameSchema:
-        # User-defined parsers are not supported by the polars backend yet
-        # (see issue #2472): fail loudly instead of silently dropping them.
-        if cls.__parsers__ or cls.__root_parsers__:
-            raise SchemaInitError(
-                "user-defined parsers are not supported by the polars "
-                "backend (see issue #2472)"
-            )
         return DataFrameSchema(
-            cls._build_columns(cls.__fields__, cls.__checks__),
+            cls._build_columns(
+                cls.__fields__, cls.__checks__, cls.__parsers__
+            ),
             checks=cls.__root_checks__,
+            parsers=cls.__root_parsers__,
             **kwargs,
         )
 
@@ -56,10 +56,12 @@ class DataFrameModel(_DataFrameModel[pl.LazyFrame, DataFrameSchema]):
         cls,
         fields: dict[str, tuple[AnnotationInfo, FieldInfo]],
         checks: dict[str, list[Check]],
+        parsers: dict[str, list[Parser]],
     ) -> dict[str, Column]:
         columns: dict[str, Column] = {}
         for field_name, (annotation, field) in fields.items():
             field_checks = checks.get(field_name, [])
+            field_parsers = parsers.get(field_name, [])
             field_name = field.name
             check_name = getattr(field, "check_name", None)
 
@@ -136,12 +138,18 @@ class DataFrameModel(_DataFrameModel[pl.LazyFrame, DataFrameSchema]):
                         nullable=annotation.nullable,
                         required=not annotation.is_optional_field,
                         checks=field_checks,
+                        parsers=field_parsers,
                         name=field_name,
                     )
                     if field
                     else {}
                 )
-                columns[field_name] = Column(**column_kwargs)
+                column_cls = (
+                    ParsedColumn
+                    if isinstance(field, ParsedFieldInfo)
+                    else Column
+                )
+                columns[field_name] = column_cls(**column_kwargs)
 
             else:
                 raise SchemaInitError(
