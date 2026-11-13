@@ -33,7 +33,7 @@ def register_polars_backends(
 
         import pandera.backends.narwhals.builtin_checks  # noqa: F401
         from pandera.api.checks import Check
-        from pandera.api.polars.components import Column
+        from pandera.api.polars.components import Column, ParsedColumn
         from pandera.api.polars.container import DataFrameSchema
         from pandera.backends.narwhals.checks import NarwhalsCheckBackend
         from pandera.backends.narwhals.components import ColumnBackend
@@ -46,17 +46,21 @@ def register_polars_backends(
             pl.DataFrame, DataFrameSchemaBackend, force=True
         )
         Column.register_backend(pl.LazyFrame, ColumnBackend, force=True)
+        ParsedColumn.register_backend(pl.LazyFrame, ColumnBackend, force=True)
+        ParsedColumn.register_backend(pl.DataFrame, ColumnBackend, force=True)
         Check.register_backend(pl.LazyFrame, NarwhalsCheckBackend, force=True)
         Check.register_backend(nw.LazyFrame, NarwhalsCheckBackend, force=True)
         Check.register_backend(nw.DataFrame, NarwhalsCheckBackend, force=True)
     else:
         import pandera.backends.polars.builtin_checks  # noqa: F401, I001
         from pandera.api.checks import Check
-        from pandera.api.polars.components import Column
+        from pandera.api.polars.components import Column, ParsedColumn
         from pandera.api.polars.container import DataFrameSchema
+        from pandera.api.parsers import Parser
         from pandera.backends.polars.checks import PolarsCheckBackend
         from pandera.backends.polars.components import ColumnBackend  # type: ignore[assignment]
         from pandera.backends.polars.container import DataFrameSchemaBackend  # type: ignore[assignment]
+        from pandera.backends.polars.parsers import PolarsParserBackend
 
         DataFrameSchema.register_backend(
             pl.LazyFrame, DataFrameSchemaBackend, force=True
@@ -65,4 +69,8 @@ def register_polars_backends(
             pl.DataFrame, DataFrameSchemaBackend, force=True
         )
         Column.register_backend(pl.LazyFrame, ColumnBackend, force=True)
+        ParsedColumn.register_backend(pl.LazyFrame, ColumnBackend, force=True)
+        ParsedColumn.register_backend(pl.DataFrame, ColumnBackend, force=True)
+        Parser.register_backend(pl.DataFrame, PolarsParserBackend)
+        Parser.register_backend(pl.Series, PolarsParserBackend)
         Check.register_backend(pl.LazyFrame, PolarsCheckBackend, force=True)

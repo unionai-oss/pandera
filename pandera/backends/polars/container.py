@@ -10,6 +10,7 @@ from typing import Any, Optional
 import polars as pl
 
 from pandera.api.base.error_handler import ErrorHandler, get_error_category
+from pandera.api.parsers import compile_column_parsers
 from pandera.api.polars.container import DataFrameSchema
 from pandera.api.polars.types import PolarsData, PolarsFrame
 from pandera.backends.base import ColumnInfo, CoreCheckResult
@@ -59,7 +60,7 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
         inplace: bool = False,
     ) -> PolarsFrame:
         return_type = type(check_obj)
-        check_lf = _to_lazy(check_obj)  # parsers only accept lazyframe
+        check_lf = _to_lazy(check_obj)
 
         if inplace:
             warnings.warn(
@@ -69,23 +70,17 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
 
         error_handler = ErrorHandler(lazy)
 
+        # Run user-defined parsers (schema-level ``parsers`` and
+        # ``ParsedColumn``/``ParsedField`` derivations) before column
+        # presence is checked, so derived columns satisfy the schema. Parsers
+        # operate on the materialized frame: they are inherently eager.
+        check_lf = self.run_parsers(check_lf, schema)
+
         column_info = self.collect_column_info(check_lf, schema)
 
         if getattr(schema, "drop_invalid_rows", False) and not lazy:
             raise SchemaDefinitionError(
                 "When drop_invalid_rows is True, lazy must be set to True."
-            )
-
-        # User-defined parsers are not supported by the polars backend yet:
-        # neither the model builder nor this backend wires them up. Fail
-        # loudly instead of validating un-transformed data (#2472).
-        declared_parsers = list(getattr(schema, "parsers", None) or [])
-        for component in (getattr(schema, "columns", {}) or {}).values():
-            declared_parsers.extend(getattr(component, "parsers", None) or [])
-        if declared_parsers:
-            raise NotImplementedError(
-                "user-defined parsers are not supported by the polars "
-                "backend (see issue #2472)"
             )
 
         core_parsers: list[tuple[Callable[..., Any], tuple[Any, ...]]] = [
@@ -437,6 +432,49 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
     ###########
     # Parsers #
     ###########
+
+    def run_parsers(
+        self, check_lf: pl.LazyFrame, schema: DataFrameSchema
+    ) -> pl.LazyFrame:
+        """Run user-defined parsers on the frame.
+
+        Two kinds of parser are collected: derivation parsers -- schema-level
+        ``parsers`` plus ``ParsedColumn``/``ParsedField`` derivations -- and a
+        column's own field-level ``parsers`` (from ``Column(parsers=...)`` or
+        a ``@parser`` decorator). Parsers are inherently eager -- a derived
+        column's values are computed from the concrete source columns, and a
+        decision parser asks a model per row -- so the frame is materialized
+        for the parse step and then re-lazified so the rest of validation runs
+        as usual.
+        """
+        compiled = compile_column_parsers(schema)
+        field_parsers = [
+            (name, parser)
+            for name, column in (getattr(schema, "columns", {}) or {}).items()
+            for parser in (getattr(column, "parsers", None) or [])
+        ]
+        if not compiled and not field_parsers:
+            return check_lf
+
+        eager = (
+            check_lf.collect()
+            if isinstance(check_lf, pl.LazyFrame)
+            else check_lf
+        )
+        out = eager
+
+        for parser in compiled:
+            result = parser(out)
+            out = result.parser_output  # type: ignore[assignment]
+
+        for name, parser in field_parsers:
+            result = parser(out, name)
+            output = result.parser_output
+            if isinstance(output, pl.Series):
+                out = out.with_columns(output.alias(name))
+            elif isinstance(output, pl.DataFrame):
+                out = output
+        return out if isinstance(out, pl.LazyFrame) else out.lazy()
 
     def add_missing_columns(
         self,
