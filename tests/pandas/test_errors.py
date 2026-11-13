@@ -18,7 +18,11 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from pandera.backends.pandas.error_formatters import describe_dtype_mismatch
+from pandera.backends.pandas.error_formatters import (
+    describe_dtype_mismatch,
+    format_vectorized_error_message,
+    reshape_failure_cases,
+)
 from pandera.config import ValidationDepth, config_context
 from pandera.engines import numpy_engine, pandas_engine
 from pandera.errors import (
@@ -364,6 +368,24 @@ def test_failed_check_reports_row_labels(as_dataframe):
         exc.value
     )
     assert exc.value.failure_cases["index"].tolist() == ["r02", "r04"]
+
+
+def test_failure_message_without_row_labels():
+    """Preformatted failure tables can report values without row labels."""
+    failure_cases = pd.DataFrame(
+        {"column": ["amount", "amount"], "failure_case": [-5.0, -6.0]}
+    )
+    check = Check.gt(0)
+    column = Column(float, check, name="amount")
+
+    message = format_vectorized_error_message(
+        column, check, 0, reshape_failure_cases(failure_cases)
+    )
+
+    assert message == (
+        "Column 'amount' failed element-wise validator number 0: "
+        "greater_than(0) failure cases: -5.0, -6.0"
+    )
 
 
 @pytest.mark.parametrize(
