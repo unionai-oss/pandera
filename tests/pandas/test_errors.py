@@ -18,7 +18,11 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from pandera.backends.pandas.error_formatters import describe_dtype_mismatch
+from pandera.backends.pandas.error_formatters import (
+    describe_dtype_mismatch,
+    format_vectorized_error_message,
+    reshape_failure_cases,
+)
 from pandera.config import ValidationDepth, config_context
 from pandera.engines import numpy_engine, pandas_engine
 from pandera.errors import (
@@ -27,7 +31,13 @@ from pandera.errors import (
     SchemaError,
     SchemaErrors,
 )
-from pandera.pandas import Category, Check, Column, DataFrameSchema
+from pandera.pandas import (
+    Category,
+    Check,
+    Column,
+    DataFrameSchema,
+    SeriesSchema,
+)
 
 
 class MyError(ReducedPickleExceptionBase):
@@ -336,6 +346,49 @@ def test_unhashable_types_rendered_on_failing_checks_with_lazy_validation():
 
 
 @pytest.mark.parametrize(
+    "as_dataframe", [False, True], ids=["series", "column"]
+)
+def test_failed_check_reports_row_labels(as_dataframe):
+    """Repeated failing values can be located by their original row labels."""
+    amounts = pd.Series(
+        [1.0, -5.0, -5.0], index=["r01", "r02", "r04"], name="amount"
+    )
+    check = Check.gt(0)
+    if as_dataframe:
+        schema = DataFrameSchema({"amount": Column(float, check)})
+        data = amounts.to_frame()
+    else:
+        schema = SeriesSchema(float, check, name="amount")
+        data = amounts
+
+    with pytest.raises(SchemaError) as exc:
+        schema.validate(data)
+
+    assert "failure cases: -5.0 (index='r02'), -5.0 (index='r04')" in str(
+        exc.value
+    )
+    assert exc.value.failure_cases["index"].tolist() == ["r02", "r04"]
+
+
+def test_failure_message_without_row_labels():
+    """Preformatted failure tables can report values without row labels."""
+    failure_cases = pd.DataFrame(
+        {"column": ["amount", "amount"], "failure_case": [-5.0, -6.0]}
+    )
+    check = Check.gt(0)
+    column = Column(float, check, name="amount")
+
+    message = format_vectorized_error_message(
+        column, check, 0, reshape_failure_cases(failure_cases)
+    )
+
+    assert message == (
+        "Column 'amount' failed element-wise validator number 0: "
+        "greater_than(0) failure cases: -5.0, -6.0"
+    )
+
+
+@pytest.mark.parametrize(
     "validation_depth, expected_error",
     [
         (
@@ -373,7 +426,7 @@ def test_unhashable_types_rendered_on_failing_checks_with_lazy_validation():
                             "schema": None,
                             "column": "id",
                             "check": "less_than(10)",
-                            "error": "Column 'id' failed element-wise validator number 0: less_than(10) failure cases: 30.0",
+                            "error": "Column 'id' failed element-wise validator number 0: less_than(10) failure cases: 30.0 (index=2)",
                         }
                     ]
                 },
@@ -419,7 +472,7 @@ def test_unhashable_types_rendered_on_failing_checks_with_lazy_validation():
                             "schema": None,
                             "column": "id",
                             "check": "less_than(10)",
-                            "error": "Column 'id' failed element-wise validator number 0: less_than(10) failure cases: 30.0",
+                            "error": "Column 'id' failed element-wise validator number 0: less_than(10) failure cases: 30.0 (index=2)",
                         }
                     ]
                 }
