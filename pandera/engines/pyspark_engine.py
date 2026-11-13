@@ -341,10 +341,11 @@ class Decimal(DataType, dtypes.Decimal):  # type: ignore
     ) -> Union[bool, Iterable[bool]]:
         try:
             pandera_dtype = Engine.dtype(pandera_dtype)
-            assert isinstance(pandera_dtype, Decimal), (
-                "The return is expected to be of Decimal class"
-            )
         except TypeError:  # pragma: no cover
+            return False
+        # A non-decimal dtype (e.g. StringType) is a mismatch, not a
+        # conversion failure.
+        if not isinstance(pandera_dtype, Decimal):
             return False
 
         # attempts to compare pyspark native type if possible
