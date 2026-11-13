@@ -27,3 +27,10 @@ def test_pyspark_data_type(data_type):
         with pytest.warns(UserWarning):
             pd_dtype_from_str = pyspark_engine.DataType(str(data_type.type))
             assert pd_dtype == pd_dtype_from_str
+
+
+def test_decimal_check_non_decimal_dtype():
+    """Decimal.check returns False for a dtype that is not a Decimal."""
+    decimal = pyspark_engine.Decimal(10, 2)
+    assert decimal.check(pyspark_engine.String()) is False
+    assert decimal.check(pyspark_engine.Decimal(10, 2))
