@@ -440,7 +440,7 @@ def test_dataframe_level_checks():
             },
             pl.col("int_col").ge(0) & pl.col("string_col").ne("3"),
         ),
-        ({"int_col": pl.lit(-1)}, pl.col("int_col").ge(0)),
+        ({"int_col": pl.lit(-1, dtype=pl.Int64)}, pl.col("int_col").ge(0)),
         ({"string_col": pl.lit("d")}, pl.col("string_col").ne("d")),
         (
             {"int_col": pl.Series([None, 1, 1])},
@@ -506,6 +506,28 @@ def test_drop_invalid_rows_nullable(
     )
     expected_valid_data = modified_data.filter(filter_expr)
     assert validated_data.collect().equals(expected_valid_data.collect())
+
+
+@pytest.mark.parametrize(
+    "columns,schema_kwargs,data",
+    [
+        # wrong data type
+        ({"a": Column(pl.Int64)}, {}, {"a": [1.5, 2.5]}),
+        # wrong data type and a failing check
+        ({"a": Column(pl.Int64, C.ge(2))}, {}, {"a": [1.5, 2.5]}),
+        # column missing from the data
+        ({"a": Column(pl.Int64), "b": Column(pl.Int64)}, {}, {"a": [1, 2]}),
+        # column not in a strict schema
+        ({"a": Column(pl.Int64)}, {"strict": True}, {"a": [1], "b": [1]}),
+    ],
+)
+def test_drop_invalid_rows_raises_schema_level_errors(
+    columns, schema_kwargs, data
+):
+    """Schema-level errors can't be fixed by dropping rows, so they're raised."""
+    schema = DataFrameSchema(columns, drop_invalid_rows=True, **schema_kwargs)
+    with pytest.raises(pa.errors.SchemaErrors):
+        schema.validate(pl.LazyFrame(data), lazy=True)
 
 
 def test_drop_invalid_rows_nested_column():
