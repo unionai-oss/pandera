@@ -121,6 +121,11 @@ def test_basic_ibis_table_check_error(
     assert validated_df.equals(t_basic.execute())
 
 
+@pytest.mark.xfail(
+    condition=CONFIG.use_narwhals_backend,
+    reason="Coercion not supported in Narwhals backend for Ibis",
+    strict=True,
+)
 def test_coerce_column_dtype(t_basic, t_schema_basic):
     """Test coerce dtype via column-level dtype specification."""
     t_schema_basic.coerce = True
@@ -536,6 +541,11 @@ def test_lazy_validation_errors():
         assert exc.failure_cases.shape[0] == 6
 
 
+@pytest.mark.xfail(
+    condition=CONFIG.use_narwhals_backend,
+    reason="Coercion not supported in Narwhals backend for Ibis",
+    strict=True,
+)
 def test_ibis_dataframe_schema_coerce():
     """Test DataFrameSchema with coerce=True coercing column dtypes."""
     df = pd.DataFrame({"a": [1, 2, 3], "b": ["10", "20", "30"]})
@@ -555,6 +565,11 @@ def test_ibis_dataframe_schema_coerce():
     assert validated.execute()["b"].tolist() == [10, 20, 30]
 
 
+@pytest.mark.xfail(
+    condition=CONFIG.use_narwhals_backend,
+    reason="Coercion not supported in Narwhals backend for Ibis",
+    strict=True,
+)
 def test_ibis_dataframe_model_coerce():
     """Test DataFrameModel with field-level and model-level coercion."""
     from pandera.ibis import DataFrameModel as IbisDataFrameModel
@@ -571,6 +586,11 @@ def test_ibis_dataframe_model_coerce():
     assert validated.schema()["b"] == dt.int64
 
 
+@pytest.mark.xfail(
+    condition=CONFIG.use_narwhals_backend,
+    reason="Coercion not supported in Narwhals backend for Ibis",
+    strict=True,
+)
 def test_ibis_coerce_empty_table():
     """Test coercion on an empty Ibis table (edge case)."""
     df = pd.DataFrame({"a": pd.Series([], dtype="int64")})
@@ -582,9 +602,14 @@ def test_ibis_coerce_empty_table():
     assert len(validated.execute()) == 0
 
 
+@pytest.mark.xfail(
+    condition=CONFIG.use_narwhals_backend,
+    reason="Coercion not supported in Narwhals backend for Ibis",
+    strict=True,
+)
 def test_ibis_coerce_with_nulls():
     """Test coercion preserves nulls for nullable columns (edge case)."""
-    df = pd.DataFrame({"a": [1, None, 3]})
+    df = pd.DataFrame({"a": pd.Series([1, None, 3], dtype="Int64")})
     table = ibis.memtable(df)
 
     schema = DataFrameSchema(
@@ -596,6 +621,11 @@ def test_ibis_coerce_with_nulls():
     assert res[0] == 1.0 and pd.isna(res[1]) and res[2] == 3.0
 
 
+@pytest.mark.xfail(
+    condition=CONFIG.use_narwhals_backend,
+    reason="Coercion not supported in Narwhals backend for Ibis",
+    strict=True,
+)
 def test_ibis_coerce_failure_raises_schema_error():
     """Test that invalid values raise SchemaError with DATATYPE_COERCION."""
     df = pd.DataFrame({"a": ["valid", "invalid_number"]})
