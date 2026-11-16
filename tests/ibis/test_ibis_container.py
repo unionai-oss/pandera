@@ -449,6 +449,11 @@ def test_drop_invalid_rows(
     assert got.equals(expected)
 
 
+@pytest.mark.xfail(
+    condition=CONFIG.use_narwhals_backend,
+    reason="Narwhals backend drops rows instead of raising schema-level errors",
+    strict=True,
+)
 @pytest.mark.parametrize(
     "columns,schema_kwargs,data",
     [
