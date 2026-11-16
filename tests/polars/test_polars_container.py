@@ -508,6 +508,11 @@ def test_drop_invalid_rows_nullable(
     assert validated_data.collect().equals(expected_valid_data.collect())
 
 
+@pytest.mark.xfail(
+    condition=CONFIG.use_narwhals_backend,
+    reason="Narwhals backend keeps the rows of a dataframe-level unique violation",
+    strict=True,
+)
 @pytest.mark.parametrize("unique", [["a", "b"], [["a"], ["a", "b"]]])
 def test_drop_invalid_rows_schema_unique(unique):
     """Rows that break a dataframe-level unique constraint are dropped."""
