@@ -1,5 +1,7 @@
 """Unit tests for io module"""
 
+import datetime
+import json
 import platform
 import tempfile
 from io import StringIO
@@ -3216,3 +3218,58 @@ def test_unsortable_set_statistic_survives_serialization(
     loaded = deserialize(serialize(schema))
     (check,) = loaded.columns["a"].checks
     assert check.statistics == {"values": frozenset({1, "x"})}
+
+
+@pytest.mark.parametrize(
+    "check",
+    [
+        pandera.Check.ge(datetime.date(2020, 1, 1)),
+        pandera.Check.in_range(
+            datetime.date(2020, 1, 1), datetime.date(2020, 12, 31)
+        ),
+        pandera.Check.isin(
+            [datetime.date(2020, 1, 1), datetime.date(2020, 6, 1)]
+        ),
+    ],
+)
+def test_date_check_values_json_roundtrip(check):
+    """``datetime.date`` check values on a Date column survive json."""
+    schema = DataFrameSchema(
+        {"a": pandera.Column(pandera.Date, checks=[check])},
+        index=pandera.Index(pandera.Date, checks=[check]),
+    )
+
+    loaded = io.from_json(io.to_json(schema))
+    assert loaded == schema
+    assert loaded.columns["a"].checks[0].statistics == check.statistics
+    assert loaded.index.checks[0].statistics == check.statistics
+
+    valid = pd.DataFrame(
+        {"a": [datetime.date(2020, 1, 1)]},
+        index=[datetime.date(2020, 6, 1)],
+    )
+    loaded.validate(valid)
+    with pytest.raises(SchemaError):
+        loaded.validate(valid.assign(a=[datetime.date(2019, 1, 1)]))
+
+
+def test_date_check_values_json_custom_encoder():
+    """A caller's json encoder still decides how dates are written."""
+
+    class Encoder(json.JSONEncoder):
+        def default(self, o):
+            if isinstance(o, datetime.date):
+                return {"date": o.isoformat()}
+            return super().default(o)
+
+    schema = DataFrameSchema(
+        {
+            "a": pandera.Column(
+                pandera.Date, pandera.Check.ge(datetime.date(2020, 1, 1))
+            )
+        }
+    )
+    payload = json.loads(io.to_json(schema, cls=Encoder))
+    assert payload["columns"]["a"]["greater_than_or_equal_to"] == {
+        "date": "2020-01-01"
+    }
