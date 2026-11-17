@@ -229,6 +229,35 @@ def test_coerce_df_missing_column(ldf_basic, ldf_schema_basic):
     modified_ldf.pipe(ldf_schema_basic.validate)
 
 
+@pytest.mark.xfail(
+    condition=CONFIG.use_narwhals_backend,
+    reason="Narwhals backend does not support dtype coercion",
+    strict=True,
+)
+def test_coerce_errors_for_every_column():
+    """Lazy validation reports the coercion failures of every column."""
+    schema = DataFrameSchema(
+        {name: Column(pl.Int64, coerce=True) for name in ["a", "b", "c"]}
+    )
+    df = pl.DataFrame(
+        {"a": ["1", "x", "3"], "b": ["4", "5", "y"], "c": ["7", "8", "9"]}
+    )
+    with pytest.raises(pa.errors.SchemaErrors) as exc:
+        schema.validate(df, lazy=True)
+
+    failure_cases = exc.value.failure_cases
+    coercion = failure_cases.filter(pl.col("check") == "coerce_dtype('Int64')")
+    assert sorted(
+        coercion.select("column", "failure_case", "index").rows()
+    ) == [
+        ("a", "x", 1),
+        ("b", "y", 2),
+    ]
+    # "c" could be coerced, so it doesn't fail the dtype check
+    dtype_failures = failure_cases.filter(pl.col("check") == "dtype('Int64')")
+    assert sorted(dtype_failures["column"].to_list()) == ["a", "b"]
+
+
 def test_strict_filter(ldf_basic, ldf_schema_basic):
     """Test strictness and filtering schema logic."""
     # by default, strict is False, so by default it should pass
