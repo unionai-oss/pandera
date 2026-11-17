@@ -42,6 +42,35 @@ DataFusion <datafusion>
 PySpark SQL <pyspark_sql>
 ```
 
+## Declared dependency versions
+
+The table below lists minimum versions declared by the current package extras.
+These are installation requirements, not a guarantee that every version has
+been tested with every other dependency or Python version. See the
+[project metadata](https://github.com/pandera-dev/pandera/blob/main/pyproject.toml)
+for the complete and current requirements, including transitive dependencies.
+
+| DataFrame library | Pandera extra | Declared minimum |
+| --- | --- | --- |
+| pandas | `pandas` | pandas 2.1.1 |
+| Polars | `polars` | polars 1.20.0 |
+| Ibis | `ibis` | ibis-framework 9.0.0 |
+| PySpark SQL | `pyspark` | pyspark 3.2.0 |
+| PyArrow | `pyarrow` | pyarrow 13 |
+| DataFusion | `datafusion` | narwhals-datafusion 0.1.5 (no DataFusion minimum declared directly) |
+| Dask | `dask` | No minimum declared |
+| Modin | `modin` | No minimum declared |
+| GeoPandas | `geopandas` | No minimum declared |
+
+Pandas-like backends use the pandas validation backend and require pandas
+separately; install the `pandas` extra as well.
+
+For reference, the current CI matrix explicitly tests pandas 2.3.3 and 3.0.0,
+and Polars 1.20.0, 1.33.1, and 1.42.1. Not every Python and dependency
+combination is tested. See the [test workflow](https://github.com/pandera-dev/pandera/blob/main/.github/workflows/ci-tests.yml)
+for the full matrix, exclusions, and other backends. The version constraints
+above and CI coverage can change independently.
+
 ## Validating Pandas-like DataFrames
 
 Pandera provides multiple ways of scaling up data validation of pandas-like
