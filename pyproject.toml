@@ -153,6 +153,14 @@ all = [
     "torch",
     "tensordict",
 ]
+docs-mkdocs = [
+    "mkdocs-material",
+    "mkdocstrings[python]",
+    "mkdocs-gen-files",
+    "mkdocs-redirects",
+    "pymdown-extensions",
+    "mdx-truly-sane-lists",
+]
 
 [dependency-groups]
 dev = [

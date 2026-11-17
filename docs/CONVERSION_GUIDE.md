@@ -63,7 +63,7 @@ syntax:
 ### 6a. `{ref}` labels
 
 `{ref}\`text <label>\`` → `[text](target.html)` (or `target.html#anchor` for a
-known sub-heading). `{ref}\`label\`` → `[the target's title](target.html)`.
+known sub-heading). `{ref}\`label\`` → the target's title linked to `target.html`.
 
 Mapping of the common labels (labels not listed: map by obvious page name and
 verify against the file list):
@@ -108,7 +108,7 @@ verify against the file list):
 | `dask` | `dask.html` |
 | `modin` | `modin.html` |
 | `geopandas` | `geopandas.html` |
-| `fastapi-integration` | `fastapi_integration.html` |
+| `fastapi-integration` | `fastapi.html` |
 | `pydantic-integration` | `pydantic_integration.html` |
 | `mypy` | `mypy_integration.html` |
 | `xarray-guide` | `xarray_guide/index.html` |

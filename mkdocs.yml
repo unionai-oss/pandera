@@ -21,6 +21,49 @@ use_directory_urls: false
 # ./docs/source and are kept around during the migration).
 docs_dir: mkdocs
 
+# Navigation mirrors the historical Sphinx toctree captions (Introduction,
+# Basics, Tutorials, Advanced, Integrations, Reference, Community) so the
+# section grouping and page slugs are preserved.
+nav:
+  - Home: index.md
+  - Introduction:
+      - Try Pandera: https://colab.research.google.com/github/pandera-dev/pandera/blob/main/docs/source/notebooks/try_pandera.ipynb
+      - Official Website: https://union.ai/pandera
+  - Basics:
+      - dataframe_schemas.md
+      - dataframe_models.md
+      - series_schemas.md
+      - dtype_validation.md
+      - checks.md
+      - dtypes.md
+      - lazy_validation.md
+      - error_report.md
+      - cli_guide.md
+  - Tutorials:
+      - financial_reconciliation.md
+      - decision_parsing_tutorial.md
+  - Advanced:
+      - hypothesis.md
+      - parsers.md
+      - decisions.md
+      - decorators.md
+      - drop_invalid_rows.md
+      - schema_inference.md
+      - data_synthesis_strategies.md
+      - data_format_conversion.md
+      - extensions.md
+      - configuration.md
+  - Integrations:
+      - supported_libraries.md
+      - xarray_guide/index.md
+      - pytorch_guide/index.md
+      - integrations.md
+  - Reference:
+      - cli.md
+      - reference/index.md
+  - Community:
+      - CONTRIBUTING.md
+
 repo_url: https://github.com/pandera-dev/pandera
 repo_name: pandera-dev/pandera
 edit_uri: blob/main/docs/source/
@@ -63,6 +106,14 @@ plugins:
   - gen-files:
       scripts:
         - mkdocs/gen_ref_pages.py
+  # Repo-declared redirects. Read the Docs has no config-file redirect support,
+  # so the redirect pages are materialized into the built site instead. See
+  # docs/README.md for the full redirect rationale.
+  - redirects:
+      redirect_maps:
+        genindex.md: index.md
+        py-modindex.md: index.md
+        search.md: index.md
   - mkdocstrings:
       default_handler: python
       handlers:

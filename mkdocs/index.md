@@ -302,10 +302,10 @@ are available for the [supported dataframe libraries](./supported_libraries.html
 | [Dropping invalid rows](./drop_invalid_rows.html)                           | ✅ | ❌ | ✅ | ❌ | ✅ | ✅ |
 | [Pandera configuration](./configuration.html)                               | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | [Schema Inference](./schema_inference.html)                                 | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| [Schema persistence](./frictionless.html)                                   | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| [Schema persistence](./schema_inference.html#persisting-a-schema)          | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
 | [Data Format Conversion](./data_format_conversion.html)                     | ✅ | ❌ | ❌ | ❌ | ✅ | ✅ |
 | [Pydantic type support](./pydantic_integration.html)                        | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| [FastAPI support](./fastapi_integration.html)                               | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| [FastAPI support](./fastapi.html)                               | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
 
 !!! important "Legend"
 
