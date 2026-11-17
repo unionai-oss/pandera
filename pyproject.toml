@@ -160,6 +160,7 @@ docs-mkdocs = [
     "mkdocs-redirects",
     "pymdown-extensions",
     "mdx-truly-sane-lists",
+    "duckdb",
 ]
 
 [dependency-groups]
@@ -220,8 +221,11 @@ docs = [
     "xdoctest",
 ]
 
+[project.entry-points."mkdocs.plugins"]
+exec-codes = "pandera._docs.mkdocs_exec:ExecCodePlugin"
+
 [tool.setuptools]
-packages = ["pandera"]
+packages = ["pandera", "pandera._docs"]
 package-data = {"pandera" = ["py.typed"]}
 
 [tool.pyright]

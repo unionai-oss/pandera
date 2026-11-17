@@ -209,7 +209,6 @@ useful error messages. An `error` argument can also be supplied to
 In the case that a validation `Check` is violated:
 
 ```python
-# validation rule violated
 simple_schema = pa.DataFrameSchema({
     "column1": pa.Column(
         int,
@@ -221,6 +220,7 @@ simple_schema = pa.DataFrameSchema({
     )
 })
 
+# validation rule violated
 fail_check_df = pd.DataFrame({
     "column1": [-20, 5, 10, 30],
 })
@@ -239,6 +239,7 @@ wrong_column_df = pd.DataFrame({
     "foo": ["bar"] * 10,
     "baz": [1] * 10
 })
+
 
 try:
     simple_schema(wrong_column_df)

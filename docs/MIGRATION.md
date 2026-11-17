@@ -70,26 +70,48 @@ required. Two non-page artifacts are intentionally *not* redirected:
 - `_static/*` (Sphinx theme assets) are gone; pandera's branding images now
   live under `mkdocs/css/`.
 
-## How to build
+## Executing code cells
+
+The old ``myst-nb`` build executed every ``{code-cell}`` block during the docs
+build and rendered its output. The Material-for-MkDocs build restores this with
+a small in-tree MkDocs plugin, ``pandera/_docs/mkdocs_exec.py`` (registered as
+the ``exec-codes`` plugin in ``mkdocs.yml``).
+
+- Cells are identified **without markers in the fence language info** (Material's
+  highlighter cannot parse a free second token like ``exec``). Instead, the plugin
+  reads the original ``docs/source/*.md`` files, extracts the ordered
+  ``{code-cell}`` bodies, and matches each page's python fences to them by body.
+  This keeps ``docs/source`` the single source of truth for what executes and
+  requires no special fence syntax in ``mkdocs/``.
+- Each page executes in an isolated module registered in ``sys.modules`` so
+  ``typing.get_type_hints`` resolves class-based ``DataFrameModel`` annotations
+  (the same reason IPython's user namespace is ``__main__``).
+- Output (stdout + the trailing expression) is injected as plain-text ``<pre>``
+  blocks styled by ``.doc-exec-*`` classes — never raw HTML tables, which would
+  break surrounding Markdown structure.
+- Cells tagged ``raises-exception`` in the source render their traceback instead
+  of failing (these are the deliberate "Bad" examples in the docs).
+- ``plugins.exec-codes.strict`` defaults to ``false``: a cell that raises in a
+  given build environment renders its traceback inline rather than aborting the
+  build, so Read the Docs always publishes even if a backend is unavailable in an
+  edge environment. Set it to ``true`` once the full cell suite has been verified
+  against the exact build environment.
+
+To run the docs (including cell execution) locally:
 
 ```bash
-# one-time: create a venv with pandera "all" extras + the mkdocs toolchain
 uv venv .venv-mkdocs
 uv pip install --python .venv-mkdocs/bin/python -e ".[all,docs-mkdocs]"
-
-# build
-mkdir -p site && .venv-mkdocs/bin/python -m mkdocs build --strict -f mkdocs.yml
+.venv-mkdocs/bin/python -m mkdocs build -f mkdocs.yml
 ```
 
-For a quick local preview:
+## How to build
+
+A quick build command:
 
 ```bash
-.venv-mkdocs/bin/python -m mkdocs serve -f mkdocs.yml
+mkdir -p site && .venv-mkdocs/bin/python -m mkdocs build -f mkdocs.yml
 ```
-
-The "all" extra is required because `mkdocstrings` imports every documented
-backend module (pandas, polars, pyspark, ibis, dask, modin, geopandas, xarray,
-tensordict, narwhals) to render the API reference.
 
 ## Editing the API reference
 

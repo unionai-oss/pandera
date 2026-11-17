@@ -36,3 +36,26 @@
   max-height: 30px;
   margin: 2px 2px 6px 0;
 }
+
+/* --- executable code cells --- */
+/* Outputs are plain <pre> blocks injected after the code fence. */
+.doc-exec-stdout,
+.doc-exec-result,
+.doc-exec-error {
+  margin: 0.4em 0 0.8em 0.5em;
+  padding: 0.4em 0.6em;
+  border-left: 3px solid var(--md-primary-fg-color--light);
+  border-radius: 0 2px 2px 0;
+  background: var(--md-code-bg-color);
+  font-family: var(--md-code-font-family);
+  font-size: 0.85rem;
+  line-height: 1.45;
+  overflow-x: auto;
+}
+.doc-exec-error {
+  border-left-color: #e86868;
+  color: var(--md-default-fg-color--light);
+}
+.doc-exec-error b {
+  color: #d81b60;
+}

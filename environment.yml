@@ -116,6 +116,13 @@ dependencies:
       - sphinxcontrib-typer >= 0.8.0
       - cairosvg
       - sphinx-docsearch
+      - mkdocs-material
+      - mkdocstrings[python]
+      - mkdocs-gen-files
+      - mkdocs-redirects
+      - pymdown-extensions
+      - mdx-truly-sane-lists
+      - duckdb
       - grpcio
       - ray
       - typeguard

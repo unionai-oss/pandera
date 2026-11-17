@@ -102,6 +102,14 @@ theme:
 
 plugins:
   - search
+  # Execute inline python code cells (restoring the old myst-nb behaviour).
+  - exec-codes:
+      # strict=false: a cell that errors in the build environment renders its
+      # traceback inline (like myst-nb's rendered exceptions) instead of
+      # aborting the whole docs build. Set true only once the full cell suite is
+      # verified against the target environment.
+      strict: false
+      timeout: 120
   # Generate the per-object API reference pages under reference/generated/.
   - gen-files:
       scripts:
