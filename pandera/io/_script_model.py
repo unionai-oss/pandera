@@ -126,18 +126,25 @@ def _field_kwarg_for_check(check: Check) -> tuple[str, str] | None:
         return fname, _str_length_field_value(st)
     if check.name == "between":
         return fname, repr(st)
-    if check.name in ("isin", "notin"):
+    if check.name == "isin":
         vals = st.get("allowed_values")
         if vals is None:
             vals = st.get("values")
         return fname, repr(vals)
-    if check.name in (
-        "str_contains",
-        "str_endswith",
-        "str_matches",
-        "str_startswith",
-    ):
+    if check.name == "notin":
+        vals = st.get("forbidden_values")
+        if vals is None:
+            vals = st.get("allowed_values")
+        if vals is None:
+            vals = st.get("values")
+        return fname, repr(vals)
+    if check.name in ("str_contains", "str_matches"):
         return fname, repr(st.get("pattern"))
+    if check.name in ("str_endswith", "str_startswith"):
+        val = st.get("string")
+        if val is None:
+            val = st.get("pattern")
+        return fname, repr(val)
     if check.name in ("equal_to", "not_equal_to"):
         return fname, repr(st.get("value"))
     if check.name in ("greater_than", "greater_than_or_equal_to"):
