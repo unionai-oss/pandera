@@ -152,4 +152,4 @@ error_reporting
 - {ref}`lazy-validation` — `lazy=True` and `SchemaErrors`
 - {ref}`configuration` — `ValidationDepth` and environment variables
 
-[tensorclass]: https://docs.pytorch.org/tensordict/stable/reference/tensorclass.html
+[tensorclass]: https://docs.pytorch.org/tensordict/stable/reference/generated/tensordict.tensorclass.html
