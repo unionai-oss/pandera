@@ -48,11 +48,14 @@ CHECK_OPTION_KEYS: frozenset[str] = frozenset(
         "n_failure_cases",
         "groupby",
         "groups",
-        # ``error`` and the check's own ``name`` are options, not check
-        # parameters: keeping them here stops ``unflatten`` from passing them
-        # to e.g. ``Check.greater_than`` as statistics.
+        # ``error`` and the check's own ``name``, ``title`` and
+        # ``description`` are options, not check parameters: keeping them
+        # here stops ``unflatten`` from passing them to e.g.
+        # ``Check.greater_than`` as statistics.
         "error",
         "name",
+        "title",
+        "description",
     }
 )
 
@@ -76,6 +79,10 @@ def flatten_check_list_entry(
     if not check_name:
         return None, None
     stats = {k: v for k, v in entry.items() if k != "options"}
+    # The flat form merges statistics and options into one dict, so a
+    # statistic named like an option would be read back as that option.
+    if CHECK_OPTION_KEYS.intersection(stats):
+        return None, None
     opt_rest = {k: v for k, v in options.items() if k != "check_name"}
     _prune_default_options(opt_rest)
 

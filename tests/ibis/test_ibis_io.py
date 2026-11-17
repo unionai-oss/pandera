@@ -142,3 +142,17 @@ class TestIbisNamedCheckSerialization:
         assert ibis_io.from_yaml(payload).columns["a"].checks[0].error == (
             "boom"
         )
+
+    @pytest.mark.parametrize("fmt", ["yaml", "json"])
+    def test_title_and_description_survive_roundtrip(self, fmt):
+        from pandera.io import ibis_io
+
+        schema = self._schema(title="Positive", description="must be > 0")
+        dump, load = (
+            (ibis_io.to_yaml, ibis_io.from_yaml)
+            if fmt == "yaml"
+            else (ibis_io.to_json, ibis_io.from_json)
+        )
+        (check,) = load(dump(schema)).columns["a"].checks
+        assert check.title == "Positive"
+        assert check.description == "must be > 0"

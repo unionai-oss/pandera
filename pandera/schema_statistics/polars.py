@@ -135,6 +135,8 @@ def parse_checks(checks) -> Union[list[dict[str, Any]], None]:
             "raise_warning": check.raise_warning,
             "n_failure_cases": check.n_failure_cases,
             "ignore_na": check.ignore_na,
+            "title": check.title,
+            "description": check.description,
         }
         if check.name != registration_name:
             check_options["name"] = check.name

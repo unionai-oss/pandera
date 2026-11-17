@@ -81,6 +81,31 @@ def test_polars_check_options_survive_yaml_roundtrip(
         loaded.validate(pl.DataFrame({"a": [-1]}))
 
 
+@pytest.mark.parametrize("fmt", ["yaml", "json"])
+def test_polars_check_title_and_description_survive_roundtrip(fmt):
+    """A check's ``title`` and ``description`` are read back on reload."""
+    schema = pa.DataFrameSchema(
+        {
+            "a": pa.Column(
+                int,
+                checks=[
+                    pa.Check.gt(0, title="Positive", description="must be > 0")
+                ],
+            )
+        }
+    )
+    serialized = getattr(schema, f"to_{fmt}")()
+    loaded = getattr(pa.DataFrameSchema, f"from_{fmt}")(serialized)
+
+    assert loaded == schema
+    (check,) = loaded.columns["a"].checks
+    assert check.title == "Positive"
+    assert check.description == "must be > 0"
+    assert check.statistics == {"min_value": 0}
+    with pytest.raises(SchemaError):
+        loaded.validate(pl.DataFrame({"a": [-1]}))
+
+
 @pytest.mark.parametrize(
     "dtype",
     [
