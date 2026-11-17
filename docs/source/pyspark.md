@@ -11,9 +11,9 @@ file_format: mystnb
 
 *new in 0.10.0*
 
-[Pyspark](https://spark.apache.org/docs/3.2.0/api/python/index.html) is a
+[Pyspark](https://spark.apache.org/docs/latest/api/python/index.html) is a
 distributed compute framework that offers a pandas drop-in replacement dataframe
-implementation via the [pyspark.pandas API](https://spark.apache.org/docs/3.2.0/api/python/reference/pyspark.pandas/index.html) .
+implementation via the [pyspark.pandas API](https://spark.apache.org/docs/latest/api/python/reference/pyspark.pandas/index.html) .
 You can use pandera to validate {py:func}`~pyspark.pandas.DataFrame`
 and {py:func}`~pyspark.pandas.Series` objects directly. First, install
 `pandera` with the `pyspark` extra:
