@@ -712,12 +712,19 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
 
     def set_default(self, check_obj: pl.LazyFrame, schema) -> pl.LazyFrame:
         """Set default values for columns with missing values."""
-
-        for col_schema in [
-            s
-            for s in schema.columns.values()
-            if hasattr(s, "default") and s.default is not None
-        ]:
+        # A default only fills nulls in columns that are present. An
+        # absent column is handled by the column-presence check (raising
+        # a proper SchemaError for required columns) or by
+        # add_missing_columns when it is enabled. Selecting a missing
+        # column here would raise a raw ColumnNotFoundError instead.
+        present = set(get_lazyframe_column_names(check_obj))
+        for col_name, col_schema in schema.columns.items():
+            if (
+                not hasattr(col_schema, "default")
+                or col_schema.default is None
+                or col_name not in present
+            ):
+                continue
             backend = col_schema.get_backend(check_obj)
             check_obj = backend.set_default(check_obj, col_schema)
 
