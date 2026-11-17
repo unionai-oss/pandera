@@ -1,0 +1,122 @@
+# Pandera documentation — Material for MkDocs
+#
+# This is the new documentation toolchain for pandera. It replaces the
+# previous Sphinx (Furo) build and mirrors, as closely as possible, the URL
+# structure of the historical readthedocs site (`use_directory_urls: false`
+# keeps the familiar `<page>.html` slugs) so that most existing links keep
+# working. See `docs/README.md` for the migration notes (structure map and
+# redirect list).
+
+site_name: Pandera
+site_description: >-
+  A flexible, expressive data validation framework for scientific Python —
+  validate dataframes and arrays with pandas, polars, pyspark, ibis, dask,
+  modin, geopandas, xarray and tensordict.
+site_url: https://pandera.readthedocs.io/
+# Emit plain `.html` URLs (e.g. `dataframe_models.html`) instead of directory
+# URLs so the site keeps the historical readthedocs URL structure.
+use_directory_urls: false
+
+# `docs_dir` keeps the MkDocs sources in ./mkdocs (the Sphinx docs live in
+# ./docs/source and are kept around during the migration).
+docs_dir: mkdocs
+
+repo_url: https://github.com/pandera-dev/pandera
+repo_name: pandera-dev/pandera
+edit_uri: blob/main/docs/source/
+
+theme:
+  name: material
+  custom_dir: mkdocs/overrides
+  icon:
+    logo: material/arrow-decision-auto
+  favicon: css/pandera-favicon.png
+  logo: css/pandera-logo.png
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: green
+      accent: green
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: green
+      accent: green
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.top
+    - navigation.sections
+    - toc.integrate
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.code.annotate
+
+plugins:
+  - search
+  # Generate the per-object API reference pages under reference/generated/.
+  - gen-files:
+      scripts:
+        - mkdocs/gen_ref_pages.py
+  - mkdocstrings:
+      default_handler: python
+      handlers:
+        python:
+          paths: [.]
+          options:
+            show_source: true
+            show_root_heading: true
+            show_root_full_path: false
+            show_object_full_path: false
+            show_category_heading: false
+            show_if_no_docstring: true
+            show_signature_annotations: true
+            show_signature: true
+            docstring_style: numpy
+            inherited_members: false
+            members_order: source
+            heading_level: 3
+            group_by: none
+            summary:
+              functions: false
+              classes: false
+              attributes: false
+              modules: false
+            unwrap_annotated: true
+            merge_init_into_class: true
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - attr_list
+  - md_in_html
+  - tables
+  - footnotes
+  - def_list
+  - toc:
+      permalink: true
+
+extra_css:
+  - css/pandera.css
+
+copyright: |
+  Copyright &copy; 2023 pandera contributors. Distributed under the
+  <a href="https://github.com/pandera-dev/pandera/blob/main/LICENSE">
+  MIT license</a>.

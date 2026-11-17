@@ -1,0 +1,38 @@
+/* Pandera branding overrides for the Material for MkDocs theme.
+ *
+ * Material ships a built-in green palette; these tweaks bring the primary
+ * accent in line with pandera's brand green (#78ac1b) and clean up a few
+ * rendering details so the site feels cohesive across light/dark mode.
+ */
+
+:root {
+  --md-primary-fg-color: #78ac1b;
+  --md-primary-fg-color--light: #9ccc3f;
+  --md-primary-fg-color--dark: #5a8510;
+  /* Slightly warm selection color to match the old announcement bar. */
+  --md-accent-fg-color: #78ac1b;
+  --md-accent-fg-color--transparent: rgba(120, 172, 27, 0.18);
+}
+
+[data-md-color-scheme="slate"] {
+  --md-primary-fg-color: #8fc63d;
+  --md-primary-fg-color--light: #a8d968;
+  --md-primary-fg-color--dark: #78ac1b;
+}
+
+/* Inline code should read clearly against both palettes. */
+[data-md-color-scheme="slate"] code {
+  color: #cdd9b8;
+}
+
+/* Slightly rounded tables so they don't look cramped. */
+.md-typeset table:not([class]) th {
+  font-weight: 600;
+}
+
+/* Make the homepage hero badges line up on one row on wide screens. */
+#the-open-source-framework-for-dataset-validation + p img,
+.md-typeset p img[src*="img.shields.io"] {
+  max-height: 30px;
+  margin: 2px 2px 6px 0;
+}

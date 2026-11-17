@@ -137,3 +137,9 @@ docs/source/reference/generated
 # ignore markdown files copied from .github
 docs/source/CONTRIBUTING.md
 .aider*
+
+# MkDocs revamp (local build artifacts + tooling)
+.venv-mkdocs/
+site/
+mkdocs/site/
+mkdocs/reference/generated/
