@@ -25,8 +25,8 @@ docs_dir: mkdocs
 # Basics, Tutorials, Advanced, Integrations, Reference, Community) so the
 # section grouping and page slugs are preserved.
 nav:
-  - Home: index.md
-  - Introduction:
+  - Home:
+      - Welcome: index.md
       - "Try Pandera ↗": https://colab.research.google.com/github/pandera-dev/pandera/blob/main/docs/source/notebooks/try_pandera.ipynb
       - Official Website: https://union.ai/pandera
   - Basics:
