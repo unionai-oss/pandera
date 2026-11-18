@@ -122,11 +122,13 @@ def test_basic_ibis_table_check_error(
 
 
 @pytest.mark.xfail(
-    reason="`coerce_dtype` parser not yet implemented for Ibis backend"
+    condition=CONFIG.use_narwhals_backend,
+    reason="Coercion not supported in Narwhals backend for Ibis",
+    strict=True,
 )
 def test_coerce_column_dtype(t_basic, t_schema_basic):
     """Test coerce dtype via column-level dtype specification."""
-    t_schema_basic._coerce = True
+    t_schema_basic.coerce = True
     modified_data = t_basic.cast({"int_col": dt.String})
     query = modified_data.pipe(t_schema_basic.validate)
     coerced_df = query.execute()
@@ -537,3 +539,102 @@ def test_lazy_validation_errors():
         schema.validate(invalid_t, lazy=True)
     except pa.errors.SchemaErrors as exc:
         assert exc.failure_cases.shape[0] == 6
+
+
+@pytest.mark.xfail(
+    condition=CONFIG.use_narwhals_backend,
+    reason="Coercion not supported in Narwhals backend for Ibis",
+    strict=True,
+)
+def test_ibis_dataframe_schema_coerce():
+    """Test DataFrameSchema with coerce=True coercing column dtypes."""
+    df = pd.DataFrame({"a": [1, 2, 3], "b": ["10", "20", "30"]})
+    table = ibis.memtable(df)
+
+    schema = DataFrameSchema(
+        {
+            "a": Column(dt.float64),
+            "b": Column(dt.int64),
+        },
+        coerce=True,
+    )
+    validated = schema.validate(table)
+    assert validated.schema()["a"] == dt.float64
+    assert validated.schema()["b"] == dt.int64
+    assert validated.execute()["a"].tolist() == [1.0, 2.0, 3.0]
+    assert validated.execute()["b"].tolist() == [10, 20, 30]
+
+
+@pytest.mark.xfail(
+    condition=CONFIG.use_narwhals_backend,
+    reason="Coercion not supported in Narwhals backend for Ibis",
+    strict=True,
+)
+def test_ibis_dataframe_model_coerce():
+    """Test DataFrameModel with field-level and model-level coercion."""
+    from pandera.ibis import DataFrameModel as IbisDataFrameModel
+
+    class CoerceModel(IbisDataFrameModel):
+        a: dt.Float64 = pa.Field(coerce=True)
+        b: dt.Int64 = pa.Field(coerce=True)
+
+    df = pd.DataFrame({"a": [1, 2], "b": ["100", "200"]})
+    table = ibis.memtable(df)
+
+    validated = CoerceModel.validate(table)
+    assert validated.schema()["a"] == dt.float64
+    assert validated.schema()["b"] == dt.int64
+
+
+@pytest.mark.xfail(
+    condition=CONFIG.use_narwhals_backend,
+    reason="Coercion not supported in Narwhals backend for Ibis",
+    strict=True,
+)
+def test_ibis_coerce_empty_table():
+    """Test coercion on an empty Ibis table (edge case)."""
+    df = pd.DataFrame({"a": pd.Series([], dtype="int64")})
+    table = ibis.memtable(df)
+
+    schema = DataFrameSchema({"a": Column(dt.float64)}, coerce=True)
+    validated = schema.validate(table)
+    assert validated.schema()["a"] == dt.float64
+    assert len(validated.execute()) == 0
+
+
+@pytest.mark.xfail(
+    condition=CONFIG.use_narwhals_backend,
+    reason="Coercion not supported in Narwhals backend for Ibis",
+    strict=True,
+)
+def test_ibis_coerce_with_nulls():
+    """Test coercion preserves nulls for nullable columns (edge case)."""
+    df = pd.DataFrame({"a": pd.Series([1, None, 3], dtype="Int64")})
+    table = ibis.memtable(df)
+
+    schema = DataFrameSchema(
+        {"a": Column(dt.float64, nullable=True)}, coerce=True
+    )
+    validated = schema.validate(table)
+    assert validated.schema()["a"] == dt.float64
+    res = validated.execute()["a"].tolist()
+    assert res[0] == 1.0 and pd.isna(res[1]) and res[2] == 3.0
+
+
+@pytest.mark.xfail(
+    condition=CONFIG.use_narwhals_backend,
+    reason="Coercion not supported in Narwhals backend for Ibis",
+    strict=True,
+)
+def test_ibis_coerce_failure_raises_schema_error():
+    """Test that invalid values raise SchemaError with DATATYPE_COERCION."""
+    df = pd.DataFrame({"a": ["valid", "invalid_number"]})
+    table = ibis.memtable(df)
+
+    schema = DataFrameSchema({"a": Column(dt.int64)}, coerce=True)
+    with pytest.raises(pa.errors.SchemaError) as exc_info:
+        schema.validate(table)
+    assert (
+        exc_info.value.reason_code
+        == pa.errors.SchemaErrorReason.DATATYPE_COERCION
+    )

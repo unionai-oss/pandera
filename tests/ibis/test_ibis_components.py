@@ -132,7 +132,6 @@ def test_get_regex_columns(kwargs):
         )
 
 
-@pytest.mark.xfail(raises=NotImplementedError)
 @pytest.mark.parametrize(
     "data,from_dtype,to_dtype,exception_cls",
     [
@@ -158,7 +157,7 @@ def test_coerce_dtype(data, from_dtype, to_dtype, exception_cls):
 
     if exception_cls is None:
         coerced_data = backend.coerce_dtype(data, column_schema)
-        assert coerced_data.execute().schema["column"] == to_dtype
+        assert isinstance(coerced_data.schema()["column"], to_dtype)
     else:
         with pytest.raises(exception_cls):
             backend.coerce_dtype(data, column_schema)
