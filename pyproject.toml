@@ -153,6 +153,15 @@ all = [
     "torch",
     "tensordict",
 ]
+docs-mkdocs = [
+    "mkdocs-material",
+    "mkdocstrings[python]",
+    "mkdocs-gen-files",
+    "mkdocs-redirects",
+    "pymdown-extensions",
+    "mdx-truly-sane-lists",
+    "duckdb",
+]
 
 [dependency-groups]
 dev = [
@@ -212,8 +221,11 @@ docs = [
     "xdoctest",
 ]
 
+[project.entry-points."mkdocs.plugins"]
+exec-codes = "pandera._docs.mkdocs_exec:ExecCodePlugin"
+
 [tool.setuptools]
-packages = ["pandera"]
+packages = ["pandera", "pandera._docs"]
 package-data = {"pandera" = ["py.typed"]}
 
 [tool.pyright]
