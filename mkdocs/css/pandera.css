@@ -30,13 +30,42 @@
   font-weight: 600;
 }
 
-/* Give the Pandera logo a white rounded chip so it visually separates from
-   the green top navbar instead of blending into it (the logo is a green icon
-   on a transparent background). */
-.md-header .md-logo {
-  background-color: #ffffff;
-  border-radius: 7px;
-  padding: 2px 8px;
+/* Top navigation: dark gray like the previous themed docs. The Pandera logo is
+   left plain (green icon on transparent) and reads cleanly against it. */
+.md-header,
+.md-tabs {
+  background-color: #30343a;
+}
+.md-header__title,
+.md-header__topic,
+.md-tabs .md-tabs__link,
+.md-header .md-header__button,
+.md-header .md-search__input::placeholder {
+  color: rgba(255, 255, 255, 0.92);
+}
+.md-tabs .md-tabs__link--active,
+.md-tabs .md-tabs__item--active .md-tabs__link {
+  color: #ffffff;
+  opacity: 1;
+}
+
+/* Announcement banner (fed by the `announce` block in overrides/main.html).
+   Amber with dark text, echoing pandera's historical announcement bar. */
+.md-banner {
+  background-color: #f8e3ac;
+  color: #3b3b3b;
+  box-shadow: none;
+}
+.md-banner__inner {
+  color: #3b3b3b;
+}
+.md-banner a {
+  color: #5a8510;
+  font-weight: 650;
+  text-decoration: underline;
+}
+.md-banner__button {
+  color: #3b3b3b;
 }
 
 /* Make the homepage hero badges line up on one row on wide screens. */

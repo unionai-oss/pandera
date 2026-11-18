@@ -1,0 +1,18 @@
+{# Pandera docs — Material overrides.
+
+   This `main.html` extends Material's base template. The `announce` block below
+   feeds the dismissible announcement banner (see `theme.features: announce.dismiss`
+   in mkdocs.yml and the `.md-banner` styling in css/pandera.css).
+
+   Edit the content here to change the banner on every page. Page-relative link
+   hrefs must be rooted at `config.site_url` because the banner lives outside the
+   normal page container. #}
+{% extends "base.html" %}
+
+{% block announce %}
+  📢 <strong>New in Pandera 0.36.0:</strong> derive columns with
+  <a href="{{ config.site_url }}parsers.html#derived-columns">
+    ParsedField</a>/<a href="{{ config.site_url }}parsers.html#derived-columns">
+    ParsedColumn</a>, and parse unstructured data with the
+  <a href="{{ config.site_url }}decisions.html">decisions API</a>.
+{% endblock %}

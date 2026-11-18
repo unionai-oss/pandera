@@ -70,6 +70,7 @@ edit_uri: blob/main/docs/source/
 
 theme:
   name: material
+  custom_dir: mkdocs/overrides
   icon:
     logo: material/arrow-decision-auto
   favicon: css/pandera-favicon.png
@@ -93,6 +94,7 @@ theme:
     - navigation.tabs
     - navigation.top
     - navigation.sections
+    - announce.dismiss
     - toc.integrate
     - search.suggest
     - search.highlight
