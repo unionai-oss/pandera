@@ -120,16 +120,31 @@ def _hub_nav(docs_dir: Path, hub: str, claimed: set[str]) -> dict:
 
 
 def _expand_hubs(nav: list, docs_dir: Path, claimed: set[str]) -> None:
-    for i, item in enumerate(nav):
+    """Expand hub pages in ``nav`` in place.
+
+    * ``- Label: hub.md`` becomes a ``Label`` section holding
+      ``Overview`` (the hub page) followed by its linked pages.
+    * A bare ``- hub.md`` entry is spliced into the surrounding list as
+      ``Overview`` plus its linked pages, so the enclosing section acts as
+      the hub's section (used to give a section a custom label while also
+      nesting other hubs inside it).
+    """
+    i = 0
+    while i < len(nav):
+        item = nav[i]
         if isinstance(item, str) and item in HUB_PAGES:
-            nav[i] = _hub_nav(docs_dir, item, claimed)
-        elif isinstance(item, dict):
+            children = next(iter(_hub_nav(docs_dir, item, claimed).values()))
+            nav[i : i + 1] = children
+            i += len(children)
+            continue
+        if isinstance(item, dict):
             for key, value in item.items():
                 if isinstance(value, str) and value in HUB_PAGES:
                     hub = _hub_nav(docs_dir, value, claimed)
                     item[key] = next(iter(hub.values()))
                 elif isinstance(value, list):
                     _expand_hubs(value, docs_dir, claimed)
+        i += 1
 
 
 def _replace(nav: list, docs_dir: Path) -> bool:

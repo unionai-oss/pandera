@@ -50,11 +50,14 @@ nav:
       - data_format_conversion.md
       - extensions.md
       - configuration.md
+  # Hub pages here are expanded into sections of the pages they link to by
+  # mkdocs/hooks/reference_nav.py.
   - Integrations:
-      - supported_libraries.md
-      - xarray_guide/index.md
-      - pytorch_guide/index.md
-      - integrations.md
+      - Supported Data Libraries:
+          - supported_libraries.md
+          - Xarray: xarray_guide/index.md
+          - PyTorch: pytorch_guide/index.md
+      - Ecosystem Integrations: integrations.md
   - Tutorials:
       - financial_reconciliation.md
       - decision_parsing_tutorial.md
