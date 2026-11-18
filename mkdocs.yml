@@ -137,7 +137,15 @@ plugins:
             show_if_no_docstring: true
             show_signature_annotations: true
             show_signature: true
-            docstring_style: numpy
+            # pandera docstrings are reST/Sphinx (a few use numpy sections);
+            # the griffe extension below converts reST markup to Markdown
+            # before parsing.
+            docstring_style: auto
+            docstring_options:
+              default: sphinx
+              style_order: [sphinx, numpy]
+            extensions:
+              - mkdocs/hooks/griffe_rst.py:RstDocstrings
             inherited_members: false
             members_order: source
             heading_level: 3
