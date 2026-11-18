@@ -22,10 +22,10 @@ use_directory_urls: false
 docs_dir: mkdocs
 
 # Navigation mirrors the historical Sphinx toctree captions (Introduction,
-# Basics, Tutorials, Advanced, Integrations, Reference, Community) so the
+# Basics, Advanced, Integrations, Tutorials, Reference, Community) so the
 # section grouping and page slugs are preserved.
 nav:
-  - Home:
+  - Getting Started:
       - Introduction: index.md
       - "Try Pandera ↗": https://colab.research.google.com/github/pandera-dev/pandera/blob/main/docs/source/notebooks/try_pandera.ipynb
       - Official Website ↗: https://union.ai/pandera
@@ -39,9 +39,6 @@ nav:
       - lazy_validation.md
       - error_report.md
       - cli_guide.md
-  - Tutorials:
-      - financial_reconciliation.md
-      - decision_parsing_tutorial.md
   - Advanced:
       - hypothesis.md
       - parsers.md
@@ -58,6 +55,9 @@ nav:
       - xarray_guide/index.md
       - pytorch_guide/index.md
       - integrations.md
+  - Tutorials:
+      - financial_reconciliation.md
+      - decision_parsing_tutorial.md
   - Reference:
       - cli.md
       # Expanded into the full API reference tree by
