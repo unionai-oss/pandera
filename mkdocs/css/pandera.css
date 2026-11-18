@@ -140,3 +140,12 @@
 .doc-exec-error b {
   color: #d81b60;
 }
+
+/* --- API reference (mkdocstrings) --- */
+/* Signatures render inside the object's h3/h4 heading and would otherwise
+   inherit the heading size; pin them close to body inline-code size. */
+.md-typeset .doc-heading code,
+.md-typeset .doc-signature code {
+  font-size: 0.72rem;
+  line-height: 1.6;
+}
