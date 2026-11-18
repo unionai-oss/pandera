@@ -82,6 +82,8 @@ HUB_PAGES = (
     "xarray_guide/index.md",
     "pytorch_guide/index.md",
 )
+# "Data Validation with Polars" -> "Polars" in the sidebar (page H1 unchanged)
+_NAV_PREFIX = re.compile(r"^Data Validation with\s+", re.I)
 _LOCAL_LINK = re.compile(r"\]\((?:\./)?([\w/.-]+?)\.(?:html|md)(?:#[^)]*)?\)")
 
 
@@ -112,7 +114,8 @@ def _hub_nav(docs_dir: Path, hub: str, claimed: set[str]) -> dict:
         if ".." in page or page in claimed or not (docs_dir / page).exists():
             continue
         claimed.add(page)
-        children.append({_title(docs_dir, page): page})
+        label = _NAV_PREFIX.sub("", _title(docs_dir, page))
+        children.append({label: page})
     return {_title(docs_dir, hub): children}
 
 
