@@ -37,9 +37,6 @@
 [data-md-color-scheme="default"] .md-tabs {
   background-color: #f8f9fb;
 }
-[data-md-color-scheme="default"] .md-header {
-  box-shadow: 0 0 0.2rem rgba(0, 0, 0, 0.1), 0 0.2rem 0.4rem rgba(0, 0, 0, 0.1);
-}
 [data-md-color-scheme="default"] .md-header__title,
 [data-md-color-scheme="default"] .md-header__topic,
 [data-md-color-scheme="default"] .md-tabs .md-tabs__link,
@@ -100,11 +97,13 @@
   color: #3b3b3b;
 }
 
-/* Make the homepage hero badges line up on one row on wide screens. */
-#the-open-source-framework-for-dataset-validation + p img,
-.md-typeset p img[src*="img.shields.io"] {
-  max-height: 30px;
-  margin: 2px 2px 6px 0;
+/* Homepage/hero badges: align them on a common axis with even spacing so they
+   don't look ragged when they wrap onto a second line. */
+.md-typeset p img[src*="img.shields.io"],
+.md-typeset p img[src*="readthedocs"] {
+  vertical-align: middle;
+  max-height: 24px;
+  margin: 3px 4px 6px 0;
 }
 
 /* --- executable code cells --- */
@@ -118,8 +117,8 @@
   border-radius: 0 2px 2px 0;
   background: var(--md-code-bg-color);
   font-family: var(--md-code-font-family);
-  font-size: 0.85rem;
-  line-height: 1.45;
+  font-size: 0.8em;
+  line-height: 1.4;
   overflow-x: auto;
 }
 .doc-exec-error {

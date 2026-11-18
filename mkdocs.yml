@@ -27,7 +27,7 @@ docs_dir: mkdocs
 nav:
   - Home: index.md
   - Introduction:
-      - Try Pandera: https://colab.research.google.com/github/pandera-dev/pandera/blob/main/docs/source/notebooks/try_pandera.ipynb
+      - "Try Pandera ↗": https://colab.research.google.com/github/pandera-dev/pandera/blob/main/docs/source/notebooks/try_pandera.ipynb
       - Official Website: https://union.ai/pandera
   - Basics:
       - dataframe_schemas.md
@@ -94,7 +94,6 @@ theme:
     - navigation.tabs
     - navigation.top
     - navigation.sections
-    - announce.dismiss
     - toc.integrate
     - search.suggest
     - search.highlight
