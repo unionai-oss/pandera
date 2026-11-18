@@ -60,6 +60,8 @@ nav:
       - integrations.md
   - Reference:
       - cli.md
+      # Expanded into the full API reference tree by
+      # mkdocs/hooks/reference_nav.py.
       - reference/index.md
   - Community:
       - CONTRIBUTING.md
@@ -99,6 +101,9 @@ theme:
     - search.highlight
     - content.code.copy
     - content.code.annotate
+
+hooks:
+  - mkdocs/hooks/reference_nav.py
 
 plugins:
   - search
