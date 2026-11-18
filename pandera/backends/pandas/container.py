@@ -534,7 +534,11 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
         absent_column_errors = []
         for col_name in column_info.absent_column_names:
             col_schema = schema.columns[col_name]
-            if pd.isna(col_schema.default) and not col_schema.nullable:
+            if (
+                not isinstance(col_schema.default, list)
+                and pd.isna(col_schema.default)
+                and not col_schema.nullable
+            ):
                 error = SchemaError(
                     schema=schema,
                     data=check_obj,
@@ -645,7 +649,16 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
         :returns: dataframe of missing columns
         """
         missing_obj = pd.DataFrame(
-            data={k: v.default for k, v in missing_cols_schema.items()},
+            data={
+                k: pd.Series(
+                    [copy.deepcopy(v.default) for _ in range(len(obj))],
+                    index=obj.index,
+                    dtype=object,
+                )
+                if isinstance(v.default, list)
+                else v.default
+                for k, v in missing_cols_schema.items()
+            },
             index=obj.index,
         )
 
@@ -744,12 +757,12 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
 
         for col_name, col_schema in schema.columns.items():
             if (
-                pd.isna(col_schema.default)
-                or col_name not in check_obj.columns
-            ):
+                not isinstance(col_schema.default, list)
+                and pd.isna(col_schema.default)
+            ) or col_name not in check_obj.columns:
                 continue
-            check_obj[col_name] = check_obj[col_name].fillna(
-                col_schema.default
+            check_obj[col_name] = ArraySchemaBackend._fillna_default(
+                check_obj[col_name], col_schema.default
             )
             # In pandas >= 3.0, fillna doesn't automatically coerce the dtype
             # when filling an all-null column. Try to convert to the schema's
