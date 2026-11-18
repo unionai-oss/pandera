@@ -176,6 +176,9 @@ markdown_extensions:
 extra_css:
   - css/pandera.css
 
+extra_javascript:
+  - js/external_links.js
+
 copyright: |
   Copyright &copy; 2023 pandera contributors. Distributed under the
   <a href="https://github.com/pandera-dev/pandera/blob/main/LICENSE">
