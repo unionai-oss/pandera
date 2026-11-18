@@ -30,6 +30,15 @@
   font-weight: 600;
 }
 
+/* Give the Pandera logo a white rounded chip so it visually separates from
+   the green top navbar instead of blending into it (the logo is a green icon
+   on a transparent background). */
+.md-header .md-logo {
+  background-color: #ffffff;
+  border-radius: 7px;
+  padding: 2px 8px;
+}
+
 /* Make the homepage hero badges line up on one row on wide screens. */
 #the-open-source-framework-for-dataset-validation + p img,
 .md-typeset p img[src*="img.shields.io"] {
