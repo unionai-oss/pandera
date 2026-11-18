@@ -1,0 +1,38 @@
+{# Overridden tabs item: render nav sections (e.g. "Introduction") as a
+   hover/focus dropdown listing their children instead of Material's default
+   behavior of linking the tab straight to the section's first child (which
+   made "Introduction" jump straight to the Colab notebook URL). #}
+{% macro render_content(nav_item, ref) %}
+  {% set ref = ref or nav_item %}
+  {{ ref.title }}
+{% endmacro %}
+
+{% macro render(nav_item, ref) %}
+  {% set ref = ref or nav_item %}
+  {% set class = "md-tabs__item" %}
+  {% if ref.active %}
+    {% set class = class ~ " md-tabs__item--active" %}
+  {% endif %}
+  {% if nav_item.children %}
+    <li class="{{ class }} md-tabs__item--nested">
+      <button class="md-tabs__link md-tabs__link--parent" type="button" aria-haspopup="menu"
+              aria-label="{{ nav_item.title }}">
+        {{ nav_item.title }}
+        <svg class="md-tabs__chevron" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M7 10l5 5 5-5"></path>
+        </svg>
+      </button>
+      <ul class="md-tabs__dropdown" role="menu">
+        {% for child in nav_item.children %}
+          <li class="md-tabs__dropdown__item" role="none">
+            <a href="{{ child.url }}" class="md-tabs__link" role="menuitem">{{ child.title }}</a>
+          </li>
+        {% endfor %}
+      </ul>
+    </li>
+  {% else %}
+    <li class="{{ class }}">
+      <a href="{{ nav_item.url }}" class="md-tabs__link">{{ render_content(nav_item, ref) }}</a>
+    </li>
+  {% endif %}
+{% endmacro %}

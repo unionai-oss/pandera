@@ -140,3 +140,62 @@
 .doc-exec-error b {
   color: #d81b60;
 }
+
+/* Top-nav section dropdowns (overrides/partials/tabs-item.html).
+   Material links a section tab to its first child by default; we render
+   sections with children as a hover/focus dropdown instead. */
+.md-tabs {
+  overflow: visible; /* don't clip the dropdown panel */
+}
+.md-tabs__item--nested {
+  position: relative;
+}
+.md-tabs__link--parent {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  font: inherit;
+}
+.md-tabs__chevron {
+  width: 1.1em;
+  height: 1.1em;
+  fill: currentcolor;
+  opacity: 0.8;
+}
+.md-tabs__dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0.4rem;
+  z-index: 20;
+  min-width: 220px;
+  margin: 0;
+  padding: 0.4rem 0;
+  list-style: none;
+  display: none;
+  background-color: var(--md-default-bg-color);
+  border-radius: 0 0 4px 4px;
+  box-shadow:
+    0 6px 16px rgba(0, 0, 0, 0.18),
+    0 2px 8px rgba(0, 0, 0, 0.12);
+}
+.md-tabs__item--nested:hover .md-tabs__dropdown,
+.md-tabs__item--nested:focus-within .md-tabs__dropdown {
+  display: block;
+}
+.md-tabs__dropdown__item .md-tabs__link {
+  display: flex;
+  margin: 0;
+  padding: 0.5rem 1rem;
+  font-size: 0.7rem;
+  white-space: nowrap;
+  color: var(--md-default-fg-color);
+  opacity: 0.85;
+}
+.md-tabs__dropdown__item .md-tabs__link:hover {
+  opacity: 1;
+  color: var(--md-primary-fg-color);
+  background-color: var(--md-default-fg-color--lightest);
+}
