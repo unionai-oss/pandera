@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, Any, Optional
 import ibis
 from ibis import _
 from ibis import selectors as s
-from ibis.common.exceptions import IbisError
+from ibis.common.exceptions import IbisError, IbisTypeError
 
 from pandera.api.base.error_handler import get_error_category
 from pandera.api.ibis.error_handler import ErrorHandler
@@ -229,7 +229,7 @@ class DataFrameSchemaBackend(IbisSchemaBackend):
                         )
                     )
                     regex_match_patterns.append(col_schema.name)
-                except SchemaError:
+                except (SchemaError, IbisTypeError):
                     pass
             elif col_name in check_obj:
                 column_names.append(col_name)
