@@ -268,8 +268,22 @@ class PolarsSchemaBackend(BaseSchemaBackend):
     ) -> PolarsFrame:
         """Remove invalid elements in a check obj according to failures caught by the error handler."""
         errors = error_handler.schema_errors
+
+        def _row_mask(check_output):
+            # Some check outputs, e.g. the one of the dataframe-level unique
+            # check, are frames that carry the row mask in a column.
+            if (
+                isinstance(check_output, pl.DataFrame)
+                and CHECK_OUTPUT_KEY in check_output.columns
+            ):
+                return check_output[CHECK_OUTPUT_KEY]
+            return check_output
+
         check_outputs = pl.DataFrame(
-            {str(i): err.check_output for i, err in enumerate(errors)}
+            {
+                str(i): _row_mask(err.check_output)
+                for i, err in enumerate(errors)
+            }
         )
         valid_rows = check_outputs.select(
             valid_rows=pl.fold(
