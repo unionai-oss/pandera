@@ -12,6 +12,12 @@ nav at config time from the section pages themselves:
   link text as the label.
 
 Editing the section pages is therefore enough to update the sidebar.
+
+The same applies to "hub" pages in :data:`HUB_PAGES` (the supported
+libraries list, the integrations list, and the xarray / pytorch guide
+indexes): each becomes a nav section whose children are the local pages it
+links to, in link order, titled by their ``# heading``. Pages already
+listed in ``nav`` are skipped, so each page appears once.
 """
 
 from __future__ import annotations
@@ -70,6 +76,59 @@ def _build(docs_dir: Path) -> list:
     return sections
 
 
+HUB_PAGES = (
+    "supported_libraries.md",
+    "integrations.md",
+    "xarray_guide/index.md",
+    "pytorch_guide/index.md",
+)
+_LOCAL_LINK = re.compile(r"\]\((?:\./)?([\w/.-]+?)\.(?:html|md)(?:#[^)]*)?\)")
+
+
+def _title(docs_dir: Path, page: str) -> str:
+    text = (docs_dir / page).read_text(encoding="utf-8")
+    match = _TITLE.search(text)
+    return match.group(1).strip() if match else page
+
+
+def _nav_pages(nav: list) -> set[str]:
+    pages: set[str] = set()
+    for item in nav:
+        values = item.values() if isinstance(item, dict) else [item]
+        for value in values:
+            if isinstance(value, list):
+                pages |= _nav_pages(value)
+            elif isinstance(value, str):
+                pages.add(value)
+    return pages
+
+
+def _hub_nav(docs_dir: Path, hub: str, claimed: set[str]) -> dict:
+    base = Path(hub).parent
+    children: list = [{"Overview": hub}]
+    text = (docs_dir / hub).read_text(encoding="utf-8")
+    for target in _LOCAL_LINK.findall(text):
+        page = (base / f"{target}.md").as_posix()
+        if ".." in page or page in claimed or not (docs_dir / page).exists():
+            continue
+        claimed.add(page)
+        children.append({_title(docs_dir, page): page})
+    return {_title(docs_dir, hub): children}
+
+
+def _expand_hubs(nav: list, docs_dir: Path, claimed: set[str]) -> None:
+    for i, item in enumerate(nav):
+        if isinstance(item, str) and item in HUB_PAGES:
+            nav[i] = _hub_nav(docs_dir, item, claimed)
+        elif isinstance(item, dict):
+            for key, value in item.items():
+                if isinstance(value, str) and value in HUB_PAGES:
+                    hub = _hub_nav(docs_dir, value, claimed)
+                    item[key] = next(iter(hub.values()))
+                elif isinstance(value, list):
+                    _expand_hubs(value, docs_dir, claimed)
+
+
 def _replace(nav: list, docs_dir: Path) -> bool:
     for i, item in enumerate(nav):
         if item == f"{REF}/index.md":
@@ -84,5 +143,7 @@ def _replace(nav: list, docs_dir: Path) -> bool:
 
 def on_config(config, **kwargs):
     if config.nav:
-        _replace(config.nav, Path(config.docs_dir))
+        docs_dir = Path(config.docs_dir)
+        _replace(config.nav, docs_dir)
+        _expand_hubs(config.nav, docs_dir, _nav_pages(config.nav))
     return config
