@@ -1,3 +1,7 @@
+[API reference](./index.html) › **Narwhals Backend**
+
+---
+
 # Narwhals Backend
 
 *new in 0.32.0*

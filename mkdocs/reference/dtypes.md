@@ -1,3 +1,7 @@
+[API reference](./index.html) › **Data Types**
+
+---
+
 # Data Types
 
 ## Library-agnostic dtypes

@@ -431,19 +431,25 @@ def generate() -> None:
     for _section, names in GROUPS.items():
         for fullname in names:
             short = fullname.rsplit(".", 1)[-1]
-            _render(fullname, short, module=_MODULES.__contains__(fullname))
+            _render(
+                fullname,
+                short,
+                module=_MODULES.__contains__(fullname),
+                section=_section,
+            )
 
 
-def _render(fullname: str, short: str, module: bool) -> None:
+def _render(fullname: str, short: str, module: bool, section: str) -> None:
     path = f"reference/generated/{fullname}.md"
-    lines = [
-        f"# {fullname}",
-        "",
-    ]
-    if module:
-        lines.append(f"::: {fullname}")
-    else:
-        lines.append(f"::: {fullname}")
+    # Breadcrumb so a deep API page can always get back to the reference index.
+    parent = "../"
+    title = PAGE_TITLES.get(section, section)
+    crumb = (
+        f"[API reference]({parent}index.html) &rsaquo; "
+        f"[{title}]({parent}{section}.html)"
+    )
+    lines = ["", crumb, "", "---", "", f"# {fullname}", ""]
+    lines.append(f"::: {fullname}")
     lines.append("")
     with mkdocs_gen_files.open(path, "w") as fh:
         fh.write("\n".join(lines))

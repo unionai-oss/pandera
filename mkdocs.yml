@@ -110,10 +110,6 @@ plugins:
       # verified against the target environment.
       strict: false
       timeout: 120
-  # Generate the per-object API reference pages under reference/generated/.
-  - gen-files:
-      scripts:
-        - mkdocs/gen_ref_pages.py
   # Repo-declared redirects. Read the Docs has no config-file redirect support,
   # so the redirect pages are materialized into the built site instead. See
   # docs/README.md for the full redirect rationale.

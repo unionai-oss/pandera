@@ -1,3 +1,7 @@
+[API reference](./index.html) › **IO Utilities**
+
+---
+
 # IO Utilities
 
 Schema serialization lives in explicit submodules so optional backends are not

@@ -142,4 +142,3 @@ docs/source/CONTRIBUTING.md
 .venv-mkdocs/
 site/
 mkdocs/site/
-mkdocs/reference/generated/

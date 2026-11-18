@@ -1,3 +1,7 @@
+[API reference](./index.html) › **Xarray**
+
+---
+
 # Xarray
 
 *New in 0.31.0*

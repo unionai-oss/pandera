@@ -1,3 +1,7 @@
+[API reference](./index.html) › **Core**
+
+---
+
 # Core
 
 ## Schemas

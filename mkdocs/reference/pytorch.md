@@ -1,3 +1,7 @@
+[API reference](./index.html) › **PyTorch**
+
+---
+
 # PyTorch
 
 *New in 0.32.0*

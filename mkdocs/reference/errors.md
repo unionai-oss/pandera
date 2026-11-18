@@ -1,3 +1,7 @@
+[API reference](./index.html) › **Errors**
+
+---
+
 # Errors
 
 - [`SchemaError`](./generated/pandera.errors.SchemaError.html)

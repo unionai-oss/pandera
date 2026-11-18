@@ -1,3 +1,7 @@
+[API reference](./index.html) › **Decorators**
+
+---
+
 # Decorators
 
 - [`check_input`](./generated/pandera.decorators.check_input.html)
