@@ -26,9 +26,9 @@ docs_dir: mkdocs
 # section grouping and page slugs are preserved.
 nav:
   - Home:
-      - Welcome: index.md
+      - Introduction: index.md
       - "Try Pandera ↗": https://colab.research.google.com/github/pandera-dev/pandera/blob/main/docs/source/notebooks/try_pandera.ipynb
-      - Official Website: https://union.ai/pandera
+      - Official Website ↗: https://union.ai/pandera
   - Basics:
       - dataframe_schemas.md
       - dataframe_models.md
