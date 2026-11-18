@@ -30,21 +30,53 @@
   font-weight: 600;
 }
 
-/* Top navigation: dark gray like the previous themed docs. The Pandera logo is
-   left plain (green icon on transparent) and reads cleanly against it. */
-.md-header,
-.md-tabs {
+/* Top navigation. Light mode: a near-white bar (#F8F9FB) that blends with the
+   page background; the plain Pandera logo (green icon) reads clearly on it.
+   Dark mode: dark gray with light text. */
+[data-md-color-scheme="default"] .md-header,
+[data-md-color-scheme="default"] .md-tabs {
+  background-color: #f8f9fb;
+}
+[data-md-color-scheme="default"] .md-header {
+  box-shadow: 0 0 0.2rem rgba(0, 0, 0, 0.1), 0 0.2rem 0.4rem rgba(0, 0, 0, 0.1);
+}
+[data-md-color-scheme="default"] .md-header__title,
+[data-md-color-scheme="default"] .md-header__topic,
+[data-md-color-scheme="default"] .md-tabs .md-tabs__link,
+[data-md-color-scheme="default"] .md-header .md-header__button {
+  color: #3b3b3b;
+}
+[data-md-color-scheme="default"] .md-tabs .md-tabs__link--active,
+[data-md-color-scheme="default"] .md-tabs .md-tabs__item--active .md-tabs__link,
+[data-md-color-scheme="default"] .md-tabs .md-tabs__link:hover {
+  color: #5a8510;
+  opacity: 1;
+}
+[data-md-color-scheme="default"] .md-search__form {
+  background-color: #eff1f5;
+}
+[data-md-color-scheme="default"] .md-search__input,
+[data-md-color-scheme="default"] .md-search__icon,
+[data-md-color-scheme="default"] .md-header .md-search__input::placeholder {
+  color: #3b3b3b;
+}
+[data-md-color-scheme="default"] .md-search__input::placeholder {
+  color: #8a8f98;
+}
+
+[data-md-color-scheme="slate"] .md-header,
+[data-md-color-scheme="slate"] .md-tabs {
   background-color: #30343a;
 }
-.md-header__title,
-.md-header__topic,
-.md-tabs .md-tabs__link,
-.md-header .md-header__button,
-.md-header .md-search__input::placeholder {
+[data-md-color-scheme="slate"] .md-header__title,
+[data-md-color-scheme="slate"] .md-header__topic,
+[data-md-color-scheme="slate"] .md-tabs .md-tabs__link,
+[data-md-color-scheme="slate"] .md-header .md-header__button,
+[data-md-color-scheme="slate"] .md-header .md-search__input::placeholder {
   color: rgba(255, 255, 255, 0.92);
 }
-.md-tabs .md-tabs__link--active,
-.md-tabs .md-tabs__item--active .md-tabs__link {
+[data-md-color-scheme="slate"] .md-tabs .md-tabs__link--active,
+[data-md-color-scheme="slate"] .md-tabs .md-tabs__item--active .md-tabs__link {
   color: #ffffff;
   opacity: 1;
 }
