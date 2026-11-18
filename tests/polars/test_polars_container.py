@@ -317,6 +317,49 @@ def test_add_missing_columns_with_string_default(ldf_basic, ldf_schema_basic):
     )
 
 
+@pytest.mark.parametrize(
+    "default, expected_dtype",
+    [(1, pl.Int32), ("x", pl.String), (False, pl.Boolean)],
+)
+@pytest.mark.parametrize("lazy", [False, True])
+def test_add_missing_columns_without_dtype(default, expected_dtype, lazy):
+    """A missing column with a default and no dtype keeps the inferred dtype."""
+    schema = DataFrameSchema(
+        {"a": Column(int), "untyped": Column(default=default)},
+        add_missing_columns=True,
+    )
+    validated = schema.validate(
+        pl.LazyFrame({"a": [1, 2]}), lazy=lazy
+    ).collect()
+    assert validated["untyped"].to_list() == [default, default]
+    assert validated.schema["untyped"] == expected_dtype
+
+
+@pytest.mark.xfail(
+    condition=CONFIG.use_narwhals_backend,
+    reason="add_missing_columns parser not implemented in Narwhals backend",
+    strict=True,
+)
+@pytest.mark.parametrize("default", [1, "7"])
+def test_add_missing_untyped_column_with_schema_dtype(default):
+    """An added untyped column takes the schema-level dtype."""
+    schema = DataFrameSchema(
+        {"a": Column(), "untyped": Column(default=default)},
+        dtype=pl.Int64,
+        add_missing_columns=True,
+    )
+    validated = schema.validate(pl.LazyFrame({"a": [1]})).collect()
+    assert validated.schema["untyped"] == pl.Int64
+    assert validated["untyped"].to_list() == [int(default)]
+
+
+def test_set_default_without_dtype():
+    """Nulls in a present column with no dtype are filled with the default."""
+    schema = DataFrameSchema({"untyped": Column(default=9)})
+    validated = schema.validate(pl.LazyFrame({"untyped": [1, None]})).collect()
+    assert validated["untyped"].to_list() == [1, 9]
+
+
 def test_required_columns():
     """Test required columns."""
     schema = DataFrameSchema(
