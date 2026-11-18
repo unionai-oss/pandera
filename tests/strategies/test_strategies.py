@@ -7,7 +7,7 @@ import re
 from collections.abc import Callable
 from typing import Any, Optional, cast
 from unittest.mock import MagicMock
-from warnings import catch_warnings
+from warnings import catch_warnings, simplefilter
 
 import numpy as np
 import pandas as pd
@@ -367,7 +367,32 @@ def test_str_pattern_checks(
         st = str_strat(pa.String, base_st, string=pattern)
     example = data.draw(st)
 
-    assert re.search(pattern, example)
+    if str_strat is strategies.str_startswith_strategy:
+        assert example.startswith(pattern)
+    elif str_strat is strategies.str_endswith_strategy:
+        assert example.endswith(pattern)
+    else:
+        assert re.search(pattern, example)
+
+
+@pytest.mark.parametrize(
+    "check, predicate",
+    [
+        (Check.str_startswith("a+"), lambda value: value.startswith("a+")),
+        (Check.str_endswith(".txt"), lambda value: value.endswith(".txt")),
+        (Check.str_startswith("(x"), lambda value: value.startswith("(x")),
+    ],
+)
+def test_str_prefix_suffix_schema_examples_treat_metacharacters_literally(
+    check: Check, predicate: Callable[[str], bool]
+) -> None:
+    schema = pa.DataFrameSchema({"a": pa.Column(str, check)})
+    with catch_warnings():
+        simplefilter("ignore")
+        example = schema.example(size=3)
+
+    assert all(predicate(str(value)) for value in example["a"])
+    schema.validate(example)
 
 
 @pytest.mark.parametrize("chained", [True, False])
