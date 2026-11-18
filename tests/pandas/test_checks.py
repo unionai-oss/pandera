@@ -521,6 +521,40 @@ def test_prepare_series_check_output_df_level():
     assert result.check_output.tolist() == expected_output
 
 
+@pytest.mark.parametrize("dtype", ["Int64", "Float64"])
+@pytest.mark.parametrize(
+    "check, expected_output",
+    [
+        (Check.gt(1, ignore_na=False), [False, True, False, True]),
+        (Check.ge(1, ignore_na=False), [True, True, False, True]),
+    ],
+)
+def test_nullable_dtype_missing_values_fail(dtype, check, expected_output):
+    """Missing values in a nullable dtype fail when ignore_na=False."""
+    result = check(pd.Series([1, 2, None, 5], dtype=dtype))
+    assert result.check_output.tolist() == expected_output
+    assert not result.check_passed
+    assert len(result.failure_cases) == expected_output.count(False)
+
+
+@pytest.mark.parametrize(
+    "ignore_na, expected_output",
+    [(False, [False, True, False, False]), (True, [False, True, False, True])],
+)
+def test_dataframe_check_nullable_dtype_missing_values(
+    ignore_na, expected_output
+):
+    """Dataframe-level checks treat NA output as failed, unless the row is all null."""
+    df = pd.DataFrame(
+        {
+            "a": pd.Series([1, 2, None, None], dtype="Int64"),
+            "b": pd.Series([3, None, 1, None], dtype="Int64"),
+        }
+    )
+    result = Check(lambda df: df["a"] > 1, ignore_na=ignore_na)(df)
+    assert result.check_output.tolist() == expected_output
+
+
 # pylint: disable=unused-argument
 def test_custom_check_error_is_failure_case(extra_registered_checks):
     """Test that an error in a custom check is returned as a failure case"""
