@@ -101,13 +101,21 @@
   color: #ffffff;
 }
 
-/* Homepage/hero badges: align them on a common axis with even spacing so they
-   don't look ragged when they wrap onto a second line. */
+/* Homepage/hero badges: render as a wrapping flex row of evenly-spaced,
+   vertically-centered chips instead of ragged inline text. */
+.md-typeset p:has(> a > img[src*="img.shields.io"]) {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: 8px;
+  row-gap: 6px;
+}
 .md-typeset p img[src*="img.shields.io"],
-.md-typeset p img[src*="readthedocs"] {
-  vertical-align: middle;
+.md-typeset p img[src*="readthedocs"],
+.md-typeset p:has(> a > img[src*="img.shields.io"]) img {
   max-height: 24px;
-  margin: 3px 4px 6px 0;
+  vertical-align: middle;
+  margin: 0;
 }
 
 /* --- executable code cells --- */
