@@ -522,3 +522,34 @@ def test_describe_dtype_mismatch_falls_back_without_categories():
         Category(["a", "b"]), Category()
     )
     assert (expected, actual) == ("category", "category")
+
+
+def test_vectorized_error_message_truncates_many_failure_cases():
+    """Failure cases in error messages are truncated when there are more than 10."""
+    schema = DataFrameSchema(
+        {"n": Column(int, Check.greater_than(30))}
+    )
+    df = pd.DataFrame({"n": range(20)})
+
+    with pytest.raises(SchemaError) as exc:
+        schema.validate(df)
+
+    msg = str(exc.value)
+    assert "... and" in msg and "more" in msg
+    # full failure_cases DF should still have everything
+    assert len(exc.value.failure_cases) > 10
+
+
+def test_vectorized_error_message_no_truncation_when_few_cases():
+    """Few failure cases are not truncated in error messages."""
+    schema = DataFrameSchema(
+        {"n": Column(int, Check.greater_than(100))}
+    )
+    df = pd.DataFrame({"n": range(5)})
+
+    with pytest.raises(SchemaError) as exc:
+        schema.validate(df)
+
+    msg = str(exc.value)
+    assert "... and" not in msg
+
