@@ -449,6 +449,31 @@ def test_drop_invalid_rows(
     assert got.equals(expected)
 
 
+@pytest.mark.xfail(
+    condition=CONFIG.use_narwhals_backend,
+    reason="Narwhals backend drops rows instead of raising schema-level errors",
+    strict=True,
+)
+@pytest.mark.parametrize(
+    "columns,schema_kwargs,data",
+    [
+        # wrong data type
+        ({"a": Column(dt.int64)}, {}, {"a": [1.5, 2.5]}),
+        # column missing from the data
+        ({"a": Column(dt.int64), "b": Column(dt.int64)}, {}, {"a": [1, 2]}),
+        # column not in a strict schema
+        ({"a": Column(dt.int64)}, {"strict": True}, {"a": [1], "b": [1]}),
+    ],
+)
+def test_drop_invalid_rows_raises_schema_level_errors(
+    columns, schema_kwargs, data
+):
+    """Schema-level errors can't be fixed by dropping rows, so they're raised."""
+    schema = DataFrameSchema(columns, drop_invalid_rows=True, **schema_kwargs)
+    with pytest.raises(pa.errors.SchemaErrors):
+        schema.validate(ibis.memtable(data), lazy=True)
+
+
 def _failure_value(column: str, dtype: ibis.DataType | None = None):
     if column.startswith("string"):
         return ibis.literal("9", type=dtype or dt.String)
