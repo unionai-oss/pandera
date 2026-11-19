@@ -7,7 +7,6 @@ from typing import Optional, Union
 import ibis
 import ibis.expr.datatypes as dt
 import pytest
-from ibis.common.exceptions import IbisTypeError
 
 import pandera.ibis as pa
 from pandera.backends.base import CoreCheckResult
@@ -124,8 +123,8 @@ def test_get_regex_columns(kwargs):
         )
     )
     with pytest.raises(
-        IbisTypeError,
-        match="You must select at least one column for a valid projection",
+        SchemaError,
+        match="did not match any columns in the dataframe",
     ):
         matched_columns = backend.get_regex_columns(
             column_schema, no_match_data

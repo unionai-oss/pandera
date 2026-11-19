@@ -537,3 +537,43 @@ def test_lazy_validation_errors():
         schema.validate(invalid_t, lazy=True)
     except pa.errors.SchemaErrors as exc:
         assert exc.failure_cases.shape[0] == 6
+
+
+@pytest.mark.xfail(
+    condition=CONFIG.use_narwhals_backend,
+    reason="Regex column selection broken in Narwhals backend",
+    strict=True,
+)
+def test_regex_column_no_match():
+    """A regex column matching no columns passes when optional and
+    raises SchemaError when required, instead of IbisTypeError."""
+    data = ibis.memtable({"data": [1, 2, 3]})
+
+    optional_schema = DataFrameSchema(
+        {
+            "data": Column(int),
+            r"^bla_\d+$": Column(float, regex=True, required=False),
+        }
+    )
+    optional_schema.validate(data)
+    optional_schema.validate(data, lazy=True)
+
+    required_schema = DataFrameSchema(
+        {
+            "data": Column(int),
+            r"^bla_\d+$": Column(float, regex=True, required=True),
+        }
+    )
+    with pytest.raises(
+        pa.errors.SchemaError,
+        match="did not match any columns in the dataframe",
+    ):
+        required_schema.validate(data)
+
+    with pytest.raises(pa.errors.SchemaErrors) as exc_info:
+        required_schema.validate(data, lazy=True)
+    assert len(exc_info.value.schema_errors) == 1
+    assert (
+        exc_info.value.schema_errors[0].check
+        == "no_regex_column_match('^bla_\\d+$')"
+    )
