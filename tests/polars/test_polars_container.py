@@ -554,6 +554,42 @@ def test_set_defaults(ldf_basic, ldf_schema_basic):
     assert validated_data.equals(expected_data.collect())
 
 
+def test_set_default_skips_absent_columns():
+    """A default only fills nulls in columns that are present.
+
+    Regression test for #2651: ``set_default`` selected every schema
+    column with a default, even when the column was absent from the
+    dataframe, so validating raised a raw ``ColumnNotFoundError``.
+    The pandas backend skips absent columns, so an absent optional
+    column validates and an absent required column raises the proper
+    ``SchemaError`` from the column-presence check.
+    """
+    schema = pa.DataFrameSchema(
+        {
+            "a": pa.Column(pl.Int64),
+            "b": pa.Column(pl.Int64, default=1, required=False),
+        }
+    )
+    validated = schema.validate(pl.DataFrame({"a": [1]}))
+    assert validated.columns == ["a"]
+
+    required = pa.DataFrameSchema(
+        {
+            "a": pa.Column(pl.Int64),
+            "b": pa.Column(pl.Int64, default=1),
+        }
+    )
+    with pytest.raises(pa.errors.SchemaError, match="column 'b' not in"):
+        required.validate(pl.DataFrame({"a": [1]}))
+
+    # A default still fills nulls in a column that is present.
+    present = pa.DataFrameSchema({"a": pa.Column(pl.Int64, default=1)})
+    assert present.validate(pl.DataFrame({"a": [None, 2]})).to_dicts() == [
+        {"a": 1},
+        {"a": 2},
+    ]
+
+
 def _failure_value(column: str, dtype: PolarsDataType | None = None):
     if column.startswith("string"):
         return pl.lit("9", dtype=dtype or pl.Utf8)
