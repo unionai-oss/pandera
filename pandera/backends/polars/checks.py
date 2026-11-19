@@ -86,21 +86,69 @@ class PolarsCheckBackend(BaseCheckBackend):
         check_output: pl.LazyFrame,
     ) -> CheckResult:
         """Postprocesses the result of applying the check function."""
-        results = pl.LazyFrame(check_output.collect())
-        if self.check.ignore_na:
-            results = results.with_columns(
-                pl.col(CHECK_OUTPUT_KEY) | pl.col(CHECK_OUTPUT_KEY).is_null()
+        check_output_df = check_output.collect()
+        results = pl.LazyFrame(check_output_df)
+
+        schema = check_obj.lazyframe.collect_schema()
+        if check_obj.key != "*":
+            float_cols = (
+                [check_obj.key]
+                if schema.get(check_obj.key) in {pl.Float32, pl.Float64}
+                else []
             )
         else:
-            # a null check output is not a pass: all() and filter(not_())
-            # both discard nulls, which makes ignore_na=False inert.
-            results = results.with_columns(
-                pl.col(CHECK_OUTPUT_KEY).fill_null(False)
+            float_cols = [
+                col
+                for col, dtype in schema.items()
+                if dtype in {pl.Float32, pl.Float64}
+            ]
+
+        is_row_level = bool(float_cols) and (
+            len(check_output_df)
+            == check_obj.lazyframe.select(pl.len()).collect().item()
+        )
+
+        if is_row_level:
+            combined = horizontal_concat([check_obj.lazyframe, results])
+            nan_expr = pl.any_horizontal(
+                [pl.col(c).is_nan() for c in float_cols]
             )
-        passed = results.select([pl.col(CHECK_OUTPUT_KEY).all()])
-        failure_cases = horizontal_concat(
-            [check_obj.lazyframe, results]
-        ).filter(pl.col(CHECK_OUTPUT_KEY).not_())
+            if self.check.ignore_na:
+                pass_expr = (
+                    pl.col(CHECK_OUTPUT_KEY)
+                    | pl.col(CHECK_OUTPUT_KEY).is_null()
+                    | nan_expr
+                )
+                combined = combined.with_columns(
+                    pass_expr.alias(CHECK_OUTPUT_KEY)
+                )
+            else:
+                fail_na_expr = (
+                    pl.col(CHECK_OUTPUT_KEY).fill_null(False) & nan_expr.not_()
+                )
+                combined = combined.with_columns(
+                    fail_na_expr.alias(CHECK_OUTPUT_KEY)
+                )
+
+            results = combined.select(CHECK_OUTPUT_KEY)
+            passed = results.select([pl.col(CHECK_OUTPUT_KEY).all()])
+            failure_cases = combined.filter(pl.col(CHECK_OUTPUT_KEY).not_())
+        else:
+            if self.check.ignore_na:
+                results = results.with_columns(
+                    pl.col(CHECK_OUTPUT_KEY)
+                    | pl.col(CHECK_OUTPUT_KEY).is_null()
+                )
+            else:
+                # a null check output is not a pass: all() and filter(not_())
+                # both discard nulls, which makes ignore_na=False inert.
+                results = results.with_columns(
+                    pl.col(CHECK_OUTPUT_KEY).fill_null(False)
+                )
+            passed = results.select([pl.col(CHECK_OUTPUT_KEY).all()])
+            failure_cases = horizontal_concat(
+                [check_obj.lazyframe, results]
+            ).filter(pl.col(CHECK_OUTPUT_KEY).not_())
 
         if check_obj.key != "*":
             failure_cases = failure_cases.select(check_obj.key)
