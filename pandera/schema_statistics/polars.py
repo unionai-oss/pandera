@@ -85,6 +85,11 @@ def get_dataframe_schema_statistics(dataframe_schema) -> dict[str, Any]:
                 "default": column.default,
                 "report_duplicates": column.report_duplicates,
                 "drop_invalid_rows": column.drop_invalid_rows,
+                **(
+                    {"metadata": column.metadata}
+                    if column.metadata is not None
+                    else {}
+                ),
             }
             for col_name, column in dataframe_schema.columns.items()
         },
