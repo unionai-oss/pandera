@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import ast
 import re
 import warnings
 from functools import partial
@@ -71,6 +72,10 @@ MULTIINDEX_TEMPLATE = """
 {qual}MultiIndex(indexes=[{indexes}]{options})
 """
 
+#: Prepended to a pandas schema script whose dtypes reference the pandas
+#: engine, e.g. ``pandas_engine.Category(categories=["a", "b"])``.
+_PANDAS_ENGINE_IMPORT = "from pandera.engines import pandas_engine\n"
+
 
 def _multiindex_options(index, *, minimal: bool) -> dict | None:
     """Options of a ``MultiIndex`` component to emit in a script.
@@ -91,6 +96,42 @@ def _multiindex_options(index, *, minimal: bool) -> dict | None:
             if val != MULTIINDEX_DEFAULTS[key]
         }
     return options
+
+
+def pandas_category_args(dtype) -> str | None:
+    """Constructor arguments that rebuild a pandas ``Category`` dtype.
+
+    ``str()`` of a ``Category`` is just ``"category"``, which drops its
+    categories and ordering. Returns ``None`` for other dtypes, for a
+    ``Category`` with nothing to keep, and for categories that aren't plain
+    literals, which can't be written out and read back.
+    """
+    if not isinstance(dtype, pandas_engine.Category):
+        return None
+    args = []
+    if dtype.categories is not None:
+        categories = dtype.type.categories.tolist()
+        try:
+            is_literal = ast.literal_eval(repr(categories)) == categories
+        except (SyntaxError, ValueError):
+            is_literal = False
+        if not is_literal:
+            return None
+        args.append(f"categories={categories!r}")
+    if dtype.ordered:
+        args.append("ordered=True")
+    return ", ".join(args) or None
+
+
+def _pandas_dtype_expr(dtype: pandas_engine.DataType) -> str:
+    """Source expression for a pandas dtype: a string alias, or a
+    ``pandas_engine.Category(...)`` call when the alias would drop the
+    categories.
+    """
+    category_args = pandas_category_args(dtype)
+    if category_args is not None:
+        return f"pandas_engine.Category({category_args})"
+    return _get_dtype_string_alias(dtype)
 
 
 def _get_dtype_string_alias(dtype: pandas_engine.DataType) -> str:
@@ -176,7 +217,7 @@ def _dtype_expr(dtype, backend: str) -> str:
     backend.
     """
     if backend == "pandas":
-        return _get_dtype_string_alias(dtype)
+        return _pandas_dtype_expr(dtype)
     if backend == "polars":
         return _polars_dtype_expr(dtype)
     if backend == "ibis":
@@ -444,6 +485,8 @@ def to_script(
             script = "from pandas import Timedelta\n" + script
         if "Timestamp" in script:
             script = "from pandas import Timestamp\n" + script
+        if "pandas_engine." in script:
+            script = _PANDAS_ENGINE_IMPORT + script
         formatted_script = _format_script(script)
         if path_or_buf is None:
             return formatted_script
@@ -521,6 +564,8 @@ def to_script(
         script = "from pandas import Timedelta\n" + script
     if "Timestamp" in script:
         script = "from pandas import Timestamp\n" + script
+    if "pandas_engine." in script:
+        script = _PANDAS_ENGINE_IMPORT + script
 
     formatted_script = _format_script(script)
 
