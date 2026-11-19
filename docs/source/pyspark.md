@@ -22,6 +22,12 @@ and {py:func}`~pyspark.pandas.Series` objects directly. First, install
 pip install 'pandera[pyspark]'
 ```
 
+:::{note}
+Pandera does not set any pyspark-related environment variables for you. See
+{ref}`pyspark-environment-variables` if you see timezone warnings from
+`pyspark.pandas` or the Spark driver fails to bind to a network address.
+:::
+
 Then you can use pandera schemas to validate pyspark dataframes. In the example
 below we'll use the {ref}`class-based API <dataframe-models>` to define a
 {py:class}`~pandera.api.pandas.model.DataFrameModel` for validation.
