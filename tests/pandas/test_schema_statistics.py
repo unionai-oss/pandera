@@ -654,6 +654,35 @@ def test_get_dataframe_schema_statistics():
     assert statistics == expectation
 
 
+def test_get_dataframe_schema_statistics_does_not_mutate_schema():
+    """Reading schema statistics must not change the schema.
+
+    Regression test for #2661: ``parse_checks`` built its payload on top
+    of the check's live ``statistics`` dict and wrote an ``options`` key
+    into it, so ``to_script()`` and ``get_dataframe_schema_statistics()``
+    changed the schema they read, and the returned statistics were the
+    check's live dict.
+    """
+    schema = pa.DataFrameSchema({"a": pa.Column(float, pa.Check.ge(1.0))})
+    before = schema_statistics.get_dataframe_schema_statistics(schema)
+    assert schema.columns["a"].checks[0].statistics == {"min_value": 1.0}
+    assert before["columns"]["a"]["checks"][0] == {
+        "min_value": 1.0,
+        "options": {
+            "check_name": "greater_than_or_equal_to",
+            "raise_warning": False,
+            "ignore_na": True,
+        },
+    }
+    # The returned statistics are a copy: editing them must not reach
+    # back into the schema.
+    before["columns"]["a"]["checks"][0]["min_value"] = 999
+    assert schema.columns["a"].checks[0].statistics == {"min_value": 1.0}
+    assert schema == pa.DataFrameSchema(
+        {"a": pa.Column(float, pa.Check.ge(1.0))}
+    )
+
+
 def test_get_dataframe_schema_statistics_preserves_column_default():
     schema = pa.DataFrameSchema(columns={"a": pa.Column(int, default=1)})
 
