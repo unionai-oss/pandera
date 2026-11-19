@@ -10,6 +10,7 @@ from typing import Literal
 
 from pandera.engines import pandas_engine
 from pandera.io._minimal import COLUMN_DEFAULTS, DF_SCHEMA_DEFAULTS
+from pandera.io._script_repr import script_repr
 
 _FORMAT_SCRIPT_WARNING_MESSAGE = (
     "Schema script formatting requires 'black' to be installed. "
@@ -273,16 +274,16 @@ def _format_checks(checks_list, *, qual: str = ""):
 
         if isinstance(check_kwargs, dict):
             args = ", ".join(
-                f"{k}={v.__repr__()}" for k, v in check_kwargs.items()
+                f"{k}={script_repr(v)}" for k, v in check_kwargs.items()
             )
         else:
-            args = check_kwargs.__repr__()
+            args = script_repr(check_kwargs)
 
         if options:
             if args:
                 args += ", "
             args += ", ".join(
-                f"{k}={v.__repr__()}" for k, v in options.items()
+                f"{k}={script_repr(v)}" for k, v in options.items()
             )
 
         checks.append(f"{qual}Check.{check_name}({args})")
@@ -348,7 +349,7 @@ def _format_column_minimal(column, *, qual: str = "", backend: str = "pandas"):
         val = getattr(column, attr)
         if val == COLUMN_DEFAULTS[attr]:
             continue
-        parts.append(f"{attr}={val!r}")
+        parts.append(f"{attr}={script_repr(val)}")
     if column.metadata:
         parts.append(f"metadata={column.metadata!r}")
     if not parts:
