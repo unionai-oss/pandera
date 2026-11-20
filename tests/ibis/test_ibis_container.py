@@ -539,11 +539,6 @@ def test_lazy_validation_errors():
         assert exc.failure_cases.shape[0] == 6
 
 
-@pytest.mark.xfail(
-    condition=CONFIG.use_narwhals_backend,
-    reason="Regex column selection broken in Narwhals backend",
-    strict=True,
-)
 def test_regex_column_no_match():
     """A regex column matching no columns passes when optional and
     raises SchemaError when required, instead of IbisTypeError."""
