@@ -2191,6 +2191,42 @@ def test_to_script_model_roundtrip():
     assert restored.strict is True
 
 
+def test_to_script_model_keeps_notin_and_str_affix_checks():
+    """Model scripts keep ``notin``, ``str_endswith`` and ``str_startswith``.
+
+    Regression test for #2663: ``_field_kwarg_for_check`` read the wrong
+    statistic keys for these checks (``allowed_values``/``values`` instead
+    of ``forbidden_values``, ``pattern`` instead of ``string``), so the
+    generated ``Field`` carried ``None`` and the regenerated model lost
+    the check entirely.
+    """
+    schema = pandera.DataFrameSchema(
+        {
+            "code": pandera.Column(
+                str,
+                checks=[
+                    pandera.Check.notin(["banned"]),
+                    pandera.Check.str_endswith("_v2"),
+                    pandera.Check.str_startswith("tmp_"),
+                ],
+            )
+        }
+    )
+    script = io.to_script(schema, script_type="model", minimal=True)
+    assert 'notin=["banned"]' in script
+    assert 'str_endswith="_v2"' in script
+    assert 'str_startswith="tmp_"' in script
+    ns: dict = {"__builtins__": __builtins__}
+    exec(script, ns)
+    restored = ns["GeneratedModel"].to_schema()
+    names = [check.name for check in restored.columns["code"].checks]
+    assert names == ["notin", "str_endswith", "str_startswith"]
+    with pytest.raises(pandera.errors.SchemaError):
+        restored.validate(pd.DataFrame({"code": ["banned"]}))
+    with pytest.raises(pandera.errors.SchemaError):
+        restored.validate(pd.DataFrame({"code": ["tmp_x"]}))
+
+
 def test_to_yaml_lambda_check():
     """Test writing DataFrameSchema to a yaml with lambda check."""
     schema = pandera.DataFrameSchema(
