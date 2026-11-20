@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING, Optional, cast
 import ibis
 import ibis.expr.operations as ops
 import ibis.selectors as s
+from ibis.common.exceptions import IbisError
 
 from pandera.api.base.error_handler import get_error_category
 from pandera.api.ibis.error_handler import ErrorHandler
@@ -134,7 +135,25 @@ class ColumnBackend(IbisSchemaBackend):
         return check_obj
 
     def get_regex_columns(self, schema, check_obj) -> Iterable:
-        return check_obj.select(s.matches(schema.selector)).columns
+        try:
+            return check_obj.select(s.matches(schema.selector)).columns
+        except IbisError as err:
+            # ibis rejects a projection with no columns, so a regex that
+            # matches nothing raises IbisTypeError here. Report it as a
+            # schema error instead, matching the pandas backend.
+            raise SchemaError(
+                schema=schema,
+                data=check_obj,
+                message=(
+                    f"Column regex name='{schema.name}' did not match any "
+                    "columns in the dataframe. Update the regex pattern so "
+                    "that it matches at least one column:\n"
+                    f"{check_obj.columns}"
+                ),
+                failure_cases=str(check_obj.columns),
+                check=f"no_regex_column_match('{schema.name}')",
+                reason_code=SchemaErrorReason.INVALID_COLUMN_NAME,
+            ) from err
 
     @validate_scope(scope=ValidationScope.DATA)
     def check_nullable(
