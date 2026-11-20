@@ -317,6 +317,73 @@ def test_add_missing_columns_with_string_default(ldf_basic, ldf_schema_basic):
     )
 
 
+@pytest.mark.xfail(
+    condition=CONFIG.use_narwhals_backend,
+    reason="add_missing_columns parser not implemented in Narwhals backend",
+    strict=True,
+)
+@pytest.mark.parametrize(
+    "default, nullable",
+    [
+        (None, True),
+        (1, False),
+        ("missing", False),
+        (False, False),
+        (1.5, False),
+    ],
+)
+@pytest.mark.parametrize("size", [0, 2])
+@pytest.mark.parametrize("lazy", [False, True])
+def test_add_missing_columns_without_dtype(default, nullable, size, lazy):
+    """Missing untyped columns keep polars' inferred default dtype."""
+    frame = pl.LazyFrame({"present": pl.Series(range(size), dtype=pl.Int64)})
+    schema = DataFrameSchema(
+        {
+            "untyped": Column(default=default, nullable=nullable),
+            "present": Column(pl.Int64),
+            "typed": Column(pl.Int8, default=None, nullable=True),
+            "null": Column(nullable=True),
+            "optional": Column(required=False),
+        },
+        add_missing_columns=True,
+    )
+
+    validated = schema.validate(frame, lazy=lazy).collect()
+
+    assert validated.columns == ["untyped", "present", "typed", "null"]
+    assert validated["untyped"].dtype == pl.select(pl.lit(default)).dtypes[0]
+    assert validated["untyped"].to_list() == [default] * size
+    assert validated["present"].to_list() == list(range(size))
+    assert validated["typed"].dtype == pl.Int8
+    assert validated["typed"].to_list() == [None] * size
+    assert validated["null"].dtype == pl.Null
+    assert frame.collect_schema().names() == ["present"]
+
+
+@pytest.mark.xfail(
+    condition=CONFIG.use_narwhals_backend,
+    reason="add_missing_columns parser not implemented in Narwhals backend",
+    strict=True,
+)
+@pytest.mark.parametrize("lazy", [False, True])
+def test_add_missing_untyped_column_with_schema_dtype(lazy):
+    """Schema-level coercion still applies to an added untyped column."""
+    schema = DataFrameSchema(
+        {"missing": Column(default=1)},
+        dtype=pl.Float64,
+        coerce=True,
+        add_missing_columns=True,
+    )
+
+    validated = schema.validate(
+        pl.LazyFrame({"present": [0]}), lazy=lazy
+    ).collect()
+
+    assert validated.columns == ["missing", "present"]
+    assert validated["missing"].dtype == pl.Float64
+    assert validated["missing"].to_list() == [1.0]
+
+
 def test_required_columns():
     """Test required columns."""
     schema = DataFrameSchema(
