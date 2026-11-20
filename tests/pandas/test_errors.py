@@ -345,7 +345,7 @@ def test_unhashable_types_rendered_on_failing_checks_with_lazy_validation():
                     "COLUMN_NOT_IN_SCHEMA": [
                         {
                             "schema": None,
-                            "column": None,
+                            "column": "extra_column",
                             "check": "column_in_schema",
                             "error": "column 'extra_column' not in DataFrameSchema {'id': <Schema Column(name=id, type=DataType(int64))>}",
                         }
@@ -386,7 +386,7 @@ def test_unhashable_types_rendered_on_failing_checks_with_lazy_validation():
                     "COLUMN_NOT_IN_SCHEMA": [
                         {
                             "schema": None,
-                            "column": None,
+                            "column": "extra_column",
                             "check": "column_in_schema",
                             "error": "column 'extra_column' not in DataFrameSchema {'id': <Schema Column(name=id, type=DataType(int64))>}",
                         }
@@ -439,6 +439,26 @@ def test_validation_depth(validation_depth, expected_error):
             schema.validate(df, lazy=True)
 
     assert e.value.message == expected_error
+
+
+def test_column_not_in_schema_error_reports_column_name():
+    """Strict-mode errors should report the offending column, not the schema.
+
+    Regression test for https://github.com/unionai-oss/pandera/issues/1669
+    """
+    schema = DataFrameSchema(
+        {"defined_in_schema": Column(int)},
+        name="MySchemaName",
+        strict=True,
+    )
+    df = pd.DataFrame({"defined_in_schema": [1, 2], "undefined": [3, 4]})
+
+    with pytest.raises(SchemaErrors) as e:
+        schema.validate(df, lazy=True)
+
+    (error,) = e.value.message["SCHEMA"]["COLUMN_NOT_IN_SCHEMA"]
+    assert error["schema"] == "MySchemaName"
+    assert error["column"] == "undefined"
 
 
 def test_category_dtype_error_reports_differing_categories():
