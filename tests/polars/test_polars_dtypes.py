@@ -471,6 +471,80 @@ def test_try_coerce_cast_failed(to_dtype, container):
         to_dtype.try_coerce(data_container=container)
 
 
+NUMERIC_DTYPES = [
+    pe.Int8(),
+    pe.Int16(),
+    pe.Int32(),
+    pe.Int64(),
+    pe.UInt8(),
+    pe.UInt16(),
+    pe.UInt32(),
+    pe.UInt64(),
+    pe.Float32(),
+    pe.Float64(),
+]
+
+
+@pytest.mark.parametrize("to_dtype", NUMERIC_DTYPES)
+@pytest.mark.parametrize("key", ["0", "*"])
+def test_coerce_numeric_strings_with_whitespace(to_dtype, key):
+    """Numeric strings with surrounding whitespace coerce like pandas (#2531)."""
+    lf = pl.LazyFrame({"0": [" 1", "2 ", "\t3\n"]})
+    coerced = to_dtype.coerce(PolarsData(lf, key)).collect()
+    assert coerced.schema["0"] == to_dtype.type
+    assert coerced["0"].to_list() == [1, 2, 3]
+
+
+def test_coerce_decimal_strings_with_whitespace():
+    """Decimal coercion also tolerates surrounding whitespace (#2531)."""
+    lf = pl.LazyFrame({"0": [" 1.5", "2.0 "]})
+    coerced = (
+        pe.Decimal(precision=10, scale=1).coerce(PolarsData(lf, "0")).collect()
+    )
+    assert coerced["0"].to_list() == [Decimal("1.5"), Decimal("2.0")]
+
+
+def test_coerce_whitespace_only_affects_numeric_targets():
+    """Stripping applies to string -> numeric casts only."""
+    lf = pl.LazyFrame({"0": [" a ", "b "]})
+    coerced = pe.String().coerce(PolarsData(lf, "0")).collect()
+    assert coerced["0"].to_list() == [" a ", "b "]
+
+
+def test_coerce_whitespace_leaves_other_columns_untouched():
+    """Only the coerced column is stripped when a key is given."""
+    lf = pl.LazyFrame({"0": [" 1"], "1": [" keep "]})
+    coerced = pe.Int64().coerce(PolarsData(lf, "0")).collect()
+    assert coerced["0"].to_list() == [1]
+    assert coerced["1"].to_list() == [" keep "]
+
+
+@pytest.mark.parametrize("value", ["b", " b ", "   ", "1 2"])
+def test_try_coerce_whitespace_failure_cases(value):
+    """Padded valid numbers are not reported as failure cases (#2531)."""
+    lf = pl.LazyFrame({"0": [" 1", value]})
+    with pytest.raises(pandera.errors.ParserError) as exc:
+        pe.Float64().try_coerce(PolarsData(lf, "0"))
+    assert exc.value.failure_cases["0"].to_list() == [value]
+
+
+@pytest.mark.parametrize(
+    "dtype, data, expected",
+    [
+        (pl.Float64, [" 1", "2 ", "inf"], [1.0, 2.0, float("inf")]),
+        (pl.Int64, [" 1", "2 ", "\t3\n"], [1, 2, 3]),
+    ],
+)
+def test_schema_coerce_numeric_strings_with_whitespace(dtype, data, expected):
+    """End-to-end reproduction of #2531 (floats) and #2555 (integers)."""
+    import pandera.polars as pa
+
+    schema = pa.DataFrameSchema({"x": pa.Column(dtype, coerce=True)})
+    validated = schema.validate(pl.DataFrame({"x": data}))
+    assert validated.schema["x"] == dtype
+    assert validated["x"].to_list() == expected
+
+
 def test_try_coerce_category_cast_failed_sets_parser_output():
     """Category.try_coerce's ParserError must carry parser_output.
 
