@@ -333,30 +333,30 @@ def test_required_columns():
 
 @pytest.mark.xfail(
     condition=CONFIG.use_narwhals_backend,
-    reason="user-parser guard not implemented in Narwhals backend (follow-up to #2472)",
+    reason="Narwhals backend runs a column parser on the whole frame, not a single Series (follow-up to #2472)",
     strict=True,
 )
-def test_polars_user_parsers_raise():
-    """Declared parsers must fail loudly instead of being skipped (#2472)."""
+def test_polars_user_parsers_run():
+    """User-defined parsers run instead of being skipped (#2472)."""
     from pandera.api.parsers import Parser
 
     def _upper(obj):
-        return obj
+        return obj.str.to_uppercase()
 
     # column-level declaration
     schema = DataFrameSchema(
         {"a": Column(pl.Utf8, parsers=Parser(_upper))},
     )
-    with pytest.raises(NotImplementedError, match="not supported"):
-        schema.validate(pl.DataFrame({"a": ["x"]}))
+    out = schema.validate(pl.DataFrame({"a": ["x"]}))
+    assert out["a"].to_list() == ["X"]
 
-    # schema-level declaration
+    # schema-level declaration (operates on the whole frame)
     schema = DataFrameSchema(
         {"a": Column(pl.Utf8)},
-        parsers=Parser(_upper),
+        parsers=Parser(lambda df: df),
     )
-    with pytest.raises(NotImplementedError, match="not supported"):
-        schema.validate(pl.DataFrame({"a": ["x"]}))
+    out = schema.validate(pl.DataFrame({"a": ["x"]}))
+    assert out["a"].to_list() == ["x"]
 
 
 def test_missing_required_column_when_lazy_is_true():

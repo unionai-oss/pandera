@@ -720,11 +720,14 @@ def test_category_coercion_failure_no_deprecation_warning(
     assert "Invalid categories" in message
 
 
-def test_polars_model_parsers_raise():
-    """Parsers declared on a polars model must fail loudly (#2472)."""
+@pytest.mark.skipif(
+    CONFIG.use_narwhals_backend,
+    reason="field parsers are not supported by the narwhals backend",
+)
+def test_polars_model_field_parser_runs():
+    """A field ``@parser`` decorator runs on a polars model (#2472)."""
     import pandera as pa
     import pandera.polars as pa_pl
-    from pandera.errors import SchemaInitError
     from pandera.typing.polars import Series
 
     class ModelWithParser(pa_pl.DataFrameModel):
@@ -733,7 +736,7 @@ def test_polars_model_parsers_raise():
         @pa.parser("a")
         @classmethod
         def _upper(cls, data):
-            return data
+            return data.str.to_uppercase()
 
-    with pytest.raises(SchemaInitError, match="not supported"):
-        ModelWithParser.to_schema()
+    out = ModelWithParser.validate(pl.DataFrame({"a": ["x", "y"]}))
+    assert out["a"].to_list() == ["X", "Y"]

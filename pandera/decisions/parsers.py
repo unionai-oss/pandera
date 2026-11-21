@@ -200,19 +200,19 @@ class _DecisionParser:
                 )
             )
 
-            out = df.copy()
+            out = df
             for parser, ctx, question in asking:
                 values = [
                     parser.to_value(question, ctx, row and row.get(ctx.target))
                     for row in answers
                 ]
-                out[ctx.target] = _as_declared(values, df.index, ctx.dtype)
+                out = _set_declared(out, ctx.target, values, ctx.dtype)
 
             for parser, ctx in reading:
                 values = [
                     parser.read(row and row.get(parser.of)) for row in answers
                 ]
-                out[ctx.target] = _as_declared(values, df.index, ctx.dtype)
+                out = _set_declared(out, ctx.target, values, ctx.dtype)
 
             _record_stats(
                 out,
@@ -491,7 +491,7 @@ class Confidence(_DecisionParser):
 
 
 def _record_stats(
-    frame: pd.DataFrame,
+    frame: Any,
     provider: Any,
     *,
     batches: int,
@@ -504,9 +504,13 @@ def _record_stats(
 
     Several batches may fill one frame, so this merges rather than replaces.
     Attached to ``attrs`` rather than returned, because the parser's job is to
-    produce columns and the caller still gets a plain dataframe.
+    produce columns and the caller still gets a plain dataframe. Non-pandas
+    frames (polars) carry no ``attrs``, so statistics are not recorded there.
     """
-    stats = dict(frame.attrs.get(STATS_KEY) or {})
+    attrs = getattr(frame, "attrs", None)
+    if attrs is None:
+        return
+    stats = dict(attrs.get(STATS_KEY) or {})
     stats["rows"] = rows
     stats["batches"] = stats.get("batches", 0) + batches
     stats["cached"] = stats.get("cached", 0) + cached
@@ -514,10 +518,10 @@ def _record_stats(
     stats["seconds"] = round(stats.get("seconds", 0.0) + seconds, 4)
     stats["provider"] = provider.id
     stats["model_version"] = provider.model_version
-    frame.attrs[STATS_KEY] = stats
+    attrs[STATS_KEY] = stats
 
 
-def stats(frame: pd.DataFrame) -> dict[str, Any]:
+def stats(frame: Any) -> dict[str, Any]:
     """Statistics for the decision work that filled a validated frame.
 
     Always attached, so the cost of a validation is visible rather than
@@ -527,7 +531,8 @@ def stats(frame: pd.DataFrame) -> dict[str, Any]:
          'seconds': 4.31, 'provider': 'typesafe:jev-1.13.0',
          'model_version': 'jev-1.13.0'}
     """
-    return dict(frame.attrs.get(STATS_KEY) or {})
+    attrs = getattr(frame, "attrs", None)
+    return dict(attrs.get(STATS_KEY) or {}) if attrs is not None else {}
 
 
 # ---------------------------------------------------------------------------
@@ -593,24 +598,73 @@ def _label_to_value(question: q.Choice, label: Any) -> Any:
     return label
 
 
-def _build_states(
-    df: pd.DataFrame, source: tuple[str, ...] | None
-) -> list[Any]:
+def _build_states(df: Any, source: tuple[str, ...] | None) -> list[Any]:
     """Build one state per row from the declared source columns.
 
     A single source column is passed as its value; several are passed as a
     mapping. Accuracy degrades with irrelevant context, so the whole row is
     never sent.
     """
+    if isinstance(df, pd.DataFrame):
+        if source is None:
+            return [row.to_dict() for _, row in df.iterrows()]
+        if len(source) == 1:
+            return [_jsonable(value) for value in df[source[0]].tolist()]
+        return [
+            {column: _jsonable(row[column]) for column in source}
+            for _, row in df[list(source)].iterrows()
+        ]
+    # polars
     if source is None:
-        return [row.to_dict() for _, row in df.iterrows()]
+        return [dict(row) for row in df.iter_rows(named=True)]
     if len(source) == 1:
-        column = source[0]
-        return [_jsonable(value) for value in df[column].tolist()]
+        return [_jsonable(value) for value in df[source[0]].to_list()]
     return [
         {column: _jsonable(row[column]) for column in source}
-        for _, row in df[list(source)].iterrows()
+        for row in df.select(list(source)).iter_rows(named=True)
     ]
+
+
+def _set_declared(
+    frame: Any, target: str, values: Sequence[Any], dtype: Any
+) -> Any:
+    """Place a decision answer column into a pandas or polars frame."""
+    if isinstance(frame, pd.DataFrame):
+        frame = frame.copy()
+        frame[target] = _as_declared(values, frame.index, dtype)
+        return frame
+    import polars as pl
+
+    result = frame.with_columns(pl.Series(target if target else None, values))
+    pl_dtype = _polars_dtype(dtype)
+    if pl_dtype is not None:
+        try:
+            result = result.with_columns(pl.col(target).cast(pl_dtype))
+        except Exception:
+            # Leave the inferred dtype and let the column's own dtype check
+            # report the mismatch, matching pandas' ``_as_declared`` fallback.
+            pass
+    return result
+
+
+def _polars_dtype(dtype: Any) -> Any:
+    """Resolve a declared dtype to a castable ``polars.DataType``, if any.
+
+    ``ParseContext.dtype`` is a pandera dtype whose ``.type`` may itself be a
+    pandera dtype wrapping the polars counterpart (``String`` -> ``pl.String``)
+    or the polars type directly (``Enum(categories=...)``).
+    """
+    try:
+        import polars as pl
+    except ImportError:
+        return None
+    outer = getattr(dtype, "type", None)
+    if isinstance(outer, pl.DataType):
+        return outer
+    inner = getattr(outer, "type", None)
+    if isinstance(inner, pl.DataType):
+        return inner
+    return None
 
 
 def _as_declared(values: Sequence[Any], index: Any, dtype: Any) -> pd.Series:

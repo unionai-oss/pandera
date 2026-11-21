@@ -1,0 +1,197 @@
+# Pandera documentation — Material for MkDocs
+#
+# This is the new documentation toolchain for pandera. It replaces the
+# previous Sphinx (Furo) build and mirrors, as closely as possible, the URL
+# structure of the historical readthedocs site (`use_directory_urls: false`
+# keeps the familiar `<page>.html` slugs) so that most existing links keep
+# working. See `docs/README.md` for the migration notes (structure map and
+# redirect list).
+
+site_name: Pandera
+site_description: >-
+  A flexible, expressive data validation framework for scientific Python —
+  validate dataframes and arrays with pandas, polars, pyspark, ibis, dask,
+  modin, geopandas, xarray and tensordict.
+site_url: https://pandera.readthedocs.io/
+# Emit plain `.html` URLs (e.g. `dataframe_models.html`) instead of directory
+# URLs so the site keeps the historical readthedocs URL structure.
+use_directory_urls: false
+
+# `docs_dir` keeps the MkDocs sources in ./mkdocs (the Sphinx docs live in
+# ./docs/source and are kept around during the migration).
+docs_dir: mkdocs
+
+# Navigation mirrors the historical Sphinx toctree captions (Introduction,
+# Basics, Advanced, Integrations, Tutorials, Reference, Community) so the
+# section grouping and page slugs are preserved.
+nav:
+  - Getting Started:
+      - Introduction: index.md
+      - "Try Pandera ↗": https://colab.research.google.com/github/pandera-dev/pandera/blob/main/docs/source/notebooks/try_pandera.ipynb
+      - Official Website ↗: https://union.ai/pandera
+  - Basics:
+      - dataframe_schemas.md
+      - dataframe_models.md
+      - series_schemas.md
+      - dtype_validation.md
+      - checks.md
+      - dtypes.md
+      - lazy_validation.md
+      - error_report.md
+      - cli_guide.md
+  - Advanced:
+      - hypothesis.md
+      - parsers.md
+      - decisions.md
+      - decorators.md
+      - drop_invalid_rows.md
+      - schema_inference.md
+      - data_synthesis_strategies.md
+      - data_format_conversion.md
+      - extensions.md
+      - configuration.md
+  # Hub pages here are expanded into sections of the pages they link to by
+  # mkdocs/hooks/reference_nav.py.
+  - Integrations:
+      - Supported Data Libraries:
+          - supported_libraries.md
+          - Xarray: xarray_guide/index.md
+          - PyTorch: pytorch_guide/index.md
+      - Ecosystem Integrations: integrations.md
+  - Tutorials:
+      - financial_reconciliation.md
+      - decision_parsing_tutorial.md
+  - Reference:
+      - cli.md
+      # Expanded into the full API reference tree by
+      # mkdocs/hooks/reference_nav.py.
+      - reference/index.md
+  - Community:
+      - CONTRIBUTING.md
+
+repo_url: https://github.com/pandera-dev/pandera
+repo_name: pandera-dev/pandera
+edit_uri: blob/main/docs/source/
+
+theme:
+  name: material
+  custom_dir: mkdocs/overrides
+  icon:
+    logo: material/arrow-decision-auto
+  favicon: css/pandera-favicon.png
+  logo: css/pandera-logo.png
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: green
+      accent: green
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: green
+      accent: green
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.top
+    - navigation.sections
+    - toc.integrate
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.code.annotate
+
+hooks:
+  - mkdocs/hooks/reference_nav.py
+
+plugins:
+  - search
+  # Execute inline python code cells (restoring the old myst-nb behaviour).
+  - exec-codes:
+      # strict=false: a cell that errors in the build environment renders its
+      # traceback inline (like myst-nb's rendered exceptions) instead of
+      # aborting the whole docs build. Set true only once the full cell suite is
+      # verified against the target environment.
+      strict: false
+      timeout: 120
+  # Repo-declared redirects. Read the Docs has no config-file redirect support,
+  # so the redirect pages are materialized into the built site instead. See
+  # docs/README.md for the full redirect rationale.
+  - redirects:
+      redirect_maps:
+        genindex.md: index.md
+        py-modindex.md: index.md
+        search.md: index.md
+  - mkdocstrings:
+      default_handler: python
+      handlers:
+        python:
+          paths: [.]
+          options:
+            show_source: true
+            show_root_heading: true
+            show_root_full_path: false
+            show_object_full_path: false
+            show_category_heading: false
+            show_if_no_docstring: true
+            show_signature_annotations: true
+            show_signature: true
+            # pandera docstrings are reST/Sphinx (a few use numpy sections);
+            # the griffe extension below converts reST markup to Markdown
+            # before parsing.
+            docstring_style: auto
+            docstring_options:
+              default: sphinx
+              style_order: [sphinx, numpy]
+            extensions:
+              - mkdocs/hooks/griffe_rst.py:RstDocstrings
+            inherited_members: false
+            members_order: source
+            heading_level: 3
+            group_by: none
+            summary:
+              functions: false
+              classes: false
+              attributes: false
+              modules: false
+            unwrap_annotated: true
+            merge_init_into_class: true
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - attr_list
+  - md_in_html
+  - tables
+  - footnotes
+  - def_list
+  - toc:
+      permalink: true
+      toc_depth: "1-2"
+
+extra_css:
+  - css/pandera.css
+
+extra_javascript:
+  - js/external_links.js
+
+copyright: |
+  Copyright &copy; 2023 pandera contributors. Distributed under the
+  <a href="https://github.com/pandera-dev/pandera/blob/main/LICENSE">
+  MIT license</a>.
