@@ -132,6 +132,19 @@ def test_get_regex_columns(kwargs):
         )
 
 
+def test_regex_column_no_match():
+    """A regex column that matches no columns fails only when required."""
+    data = ibis.memtable({"foo_0": [1, 2, 3]})
+    backend = ColumnBackend()
+
+    optional_column = pa.Column(name=r"^col_\d+$", required=False)
+    assert backend.validate(data, optional_column) is data
+
+    required_column = pa.Column(name=r"^col_\d+$")
+    with pytest.raises(SchemaError, match="did not match any columns"):
+        backend.validate(data, required_column)
+
+
 @pytest.mark.xfail(raises=NotImplementedError)
 @pytest.mark.parametrize(
     "data,from_dtype,to_dtype,exception_cls",
