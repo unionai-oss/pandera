@@ -1,0 +1,151 @@
+/* Pandera branding overrides for the Material for MkDocs theme.
+ *
+ * Material ships a built-in green palette; these tweaks bring the primary
+ * accent in line with pandera's brand green (#78ac1b) and clean up a few
+ * rendering details so the site feels cohesive across light/dark mode.
+ */
+
+:root {
+  --md-primary-fg-color: #78ac1b;
+  --md-primary-fg-color--light: #9ccc3f;
+  --md-primary-fg-color--dark: #5a8510;
+  /* Slightly warm selection color to match the old announcement bar. */
+  --md-accent-fg-color: #78ac1b;
+  --md-accent-fg-color--transparent: rgba(120, 172, 27, 0.18);
+}
+
+[data-md-color-scheme="slate"] {
+  --md-primary-fg-color: #8fc63d;
+  --md-primary-fg-color--light: #a8d968;
+  --md-primary-fg-color--dark: #78ac1b;
+}
+
+/* Inline code should read clearly against both palettes. */
+[data-md-color-scheme="slate"] code {
+  color: #cdd9b8;
+}
+
+/* Slightly rounded tables so they don't look cramped. */
+.md-typeset table:not([class]) th {
+  font-weight: 600;
+}
+
+/* Top navigation. Light mode: a near-white bar (#F8F9FB) that blends with the
+   page background; the plain Pandera logo (green icon) reads clearly on it.
+   Dark mode: dark gray with light text. */
+[data-md-color-scheme="default"] .md-header,
+[data-md-color-scheme="default"] .md-tabs {
+  background-color: #f8f9fb;
+}
+[data-md-color-scheme="default"] .md-header__title,
+[data-md-color-scheme="default"] .md-header__topic,
+[data-md-color-scheme="default"] .md-tabs .md-tabs__link,
+[data-md-color-scheme="default"] .md-header .md-header__button {
+  color: #3b3b3b;
+}
+[data-md-color-scheme="default"] .md-tabs .md-tabs__link--active,
+[data-md-color-scheme="default"] .md-tabs .md-tabs__item--active .md-tabs__link,
+[data-md-color-scheme="default"] .md-tabs .md-tabs__link:hover {
+  color: #5a8510;
+  opacity: 1;
+}
+[data-md-color-scheme="default"] .md-search__form {
+  background-color: #eff1f5;
+}
+[data-md-color-scheme="default"] .md-search__input,
+[data-md-color-scheme="default"] .md-search__icon,
+[data-md-color-scheme="default"] .md-header .md-search__input::placeholder {
+  color: #3b3b3b;
+}
+[data-md-color-scheme="default"] .md-search__input::placeholder {
+  color: #8a8f98;
+}
+
+[data-md-color-scheme="slate"] .md-header,
+[data-md-color-scheme="slate"] .md-tabs {
+  background-color: #30343a;
+}
+[data-md-color-scheme="slate"] .md-header__title,
+[data-md-color-scheme="slate"] .md-header__topic,
+[data-md-color-scheme="slate"] .md-tabs .md-tabs__link,
+[data-md-color-scheme="slate"] .md-header .md-header__button,
+[data-md-color-scheme="slate"] .md-header .md-search__input::placeholder {
+  color: rgba(255, 255, 255, 0.92);
+}
+[data-md-color-scheme="slate"] .md-tabs .md-tabs__link--active,
+[data-md-color-scheme="slate"] .md-tabs .md-tabs__item--active .md-tabs__link {
+  color: #ffffff;
+  opacity: 1;
+}
+
+/* Announcement banner (fed by the `announce` block in overrides/main.html).
+   Pandera brand green with white text/links. */
+.md-banner {
+  background-color: #78ac1b;
+  color: #ffffff;
+  box-shadow: none;
+}
+.md-banner__inner {
+  color: #ffffff;
+}
+.md-banner a {
+  color: #ffffff;
+  font-weight: 650;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.md-banner a:hover {
+  color: #eaffe0;
+}
+.md-banner__button {
+  color: #ffffff;
+}
+
+/* Homepage/hero badges: render as a wrapping flex row of evenly-spaced,
+   vertically-centered chips instead of ragged inline text. */
+.md-typeset p:has(> a > img[src*="img.shields.io"]) {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: 8px;
+  row-gap: 6px;
+}
+.md-typeset p img[src*="img.shields.io"],
+.md-typeset p img[src*="readthedocs"],
+.md-typeset p:has(> a > img[src*="img.shields.io"]) img {
+  max-height: 24px;
+  vertical-align: middle;
+  margin: 0;
+}
+
+/* --- executable code cells --- */
+/* Outputs are plain <pre> blocks injected after the code fence. */
+.doc-exec-stdout,
+.doc-exec-result,
+.doc-exec-error {
+  margin: 0.4em 0 0.8em 0.5em;
+  padding: 0.4em 0.6em;
+  border-left: 3px solid var(--md-primary-fg-color--light);
+  border-radius: 0 2px 2px 0;
+  background: var(--md-code-bg-color);
+  font-family: var(--md-code-font-family);
+  font-size: 0.8em;
+  line-height: 1.4;
+  overflow-x: auto;
+}
+.doc-exec-error {
+  border-left-color: #e86868;
+  color: var(--md-default-fg-color--light);
+}
+.doc-exec-error b {
+  color: #d81b60;
+}
+
+/* --- API reference (mkdocstrings) --- */
+/* Signatures render inside the object's h3/h4 heading and would otherwise
+   inherit the heading size; pin them close to body inline-code size. */
+.md-typeset .doc-heading code,
+.md-typeset .doc-signature code {
+  font-size: 0.72rem;
+  line-height: 1.6;
+}

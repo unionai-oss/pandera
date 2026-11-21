@@ -4,10 +4,11 @@ from pandera import config, errors
 from pandera.api.checks import Check
 from pandera.api.dataframe.model_components import (
     Field,
+    ParsedField,
     check,
     dataframe_check,
 )
-from pandera.api.polars.components import Column
+from pandera.api.polars.components import Column, ParsedColumn
 from pandera.api.polars.container import DataFrameSchema
 from pandera.api.polars.model import DataFrameModel
 from pandera.api.polars.types import PolarsData
@@ -26,6 +27,8 @@ __all__ = [
     "check",
     "Check",
     "Column",
+    "ParsedColumn",
+    "ParsedField",
     "dataframe_check",
     "DataFrameModel",
     "DataFrameSchema",

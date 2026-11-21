@@ -1,0 +1,30 @@
+version: 2
+
+# Build the (new) MkDocs + Material documentation on Read the Docs.
+#
+# The previous Sphinx (Furo) build was replaced by Material for MkDocs — the
+# same stack pandera's reference site (zensical.org) is built on. The MkDocs
+# sources live in ./mkdocs (see mkdocs.yml) and mirror the historical readthedocs
+# URL slugs, so most existing links and redirects keep working. See docs/README.md
+# for the structure map and the redirect list.
+#
+# `all` installs every optional backend so mkdocstrings can import every
+# documented API object (pandas, polars, pyspark, ibis, dask, modin, xarray,
+# tensordict, narwhals, ...). `docs-mkdocs` provides the documentation toolchain.
+
+build:
+  os: ubuntu-22.04
+  tools:
+    python: "3.12"
+
+python:
+  install:
+    - method: pip
+      path: .
+      extra_requirements:
+        - all
+        - docs-mkdocs
+
+mkdocs:
+  configuration: mkdocs.yml
+  fail_on_warning: false
