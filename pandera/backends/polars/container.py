@@ -118,6 +118,7 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
         )
         # all checks after subsampling are run on lazyframe
         sample_lf = _to_lazy(sample)
+        is_subsampled = sample is not check_obj_parsed
 
         core_checks = [
             (self.check_column_presence, (check_lf, schema, column_info)),
@@ -158,16 +159,6 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
                     original_exc=result.original_exc,
                 )
 
-        # Propagate nested Column drop_invalid_rows to the container output
-        # (non-mutating). Skipped under head/tail/sample subsampling because a
-        # dropped subsample cannot be mapped back onto the full frame (matching
-        # the pandas backend).
-        if sample is check_obj_parsed:
-            check_lf = self._apply_nested_drop_invalid_rows(
-                check_lf, components, lazy
-            )
-            check_obj_parsed = _to_frame_kind(check_lf, return_type)
-
         if error_handler.collected_errors:
             if getattr(schema, "drop_invalid_rows", False):
                 check_obj_parsed = self.drop_invalid_rows(
@@ -179,6 +170,18 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
                     schema_errors=error_handler.schema_errors,
                     data=check_obj_parsed,
                 )
+
+        # Propagate nested Column drop_invalid_rows to the container output
+        # (non-mutating). Skipped under head/tail/sample subsampling because a
+        # dropped subsample cannot be mapped back onto the full frame (matching
+        # the pandas backend).
+        if not is_subsampled and any(
+            getattr(c, "drop_invalid_rows", False) for c in components
+        ):
+            check_lf = self._apply_nested_drop_invalid_rows(
+                _to_lazy(check_obj_parsed), components, lazy
+            )
+            check_obj_parsed = _to_frame_kind(check_lf, return_type)
 
         return check_obj_parsed
 

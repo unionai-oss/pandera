@@ -228,3 +228,96 @@ def test_drop_invalid_rows_multiple_checks(backend, DataFrameSchema, Column):
         pd.DataFrame({"a": [0, 1], "b": ["0", "1"]}),
         check_dtype=False,
     )
+
+
+def test_drop_invalid_rows_nested_column(backend, DataFrameSchema, Column):
+    """Nested Column(drop_invalid_rows=True) drops its failing rows across backends."""
+    schema = DataFrameSchema(
+        columns={
+            "a": Column(int, Check.ge(3), drop_invalid_rows=True),
+            "b": Column(int),
+        }
+    )
+    result = backend.collect(
+        schema.validate(
+            backend.make_frame(
+                {"a": [1, 2, 3, 4, 5, 6], "b": [10, 20, 30, 40, 50, 60]}
+            ),
+            lazy=True,
+        )
+    )
+    pd.testing.assert_frame_equal(
+        result.reset_index(drop=True),
+        pd.DataFrame({"a": [3, 4, 5, 6], "b": [30, 40, 50, 60]}),
+        check_dtype=False,
+    )
+
+
+def test_drop_invalid_rows_multiple_nested_columns(
+    backend, DataFrameSchema, Column
+):
+    """Multiple nested drop_invalid_rows columns drop the union of failing rows."""
+    schema = DataFrameSchema(
+        columns={
+            "a": Column(int, Check.ge(3), drop_invalid_rows=True),
+            "b": Column(int, Check.le(4), drop_invalid_rows=True),
+        }
+    )
+    result = backend.collect(
+        schema.validate(
+            backend.make_frame(
+                {"a": [1, 2, 3, 4, 5, 6], "b": [1, 2, 3, 4, 5, 6]}
+            ),
+            lazy=True,
+        )
+    )
+    pd.testing.assert_frame_equal(
+        result.reset_index(drop=True),
+        pd.DataFrame({"a": [3, 4], "b": [3, 4]}),
+        check_dtype=False,
+    )
+
+
+def test_drop_invalid_rows_nested_column_mixed_failure(
+    backend, DataFrameSchema, Column
+):
+    """Mixed drop + non-drop columns still raise SchemaErrors when non-drop fails."""
+    schema = DataFrameSchema(
+        columns={
+            "a": Column(int, Check.ge(3), drop_invalid_rows=True),
+            "b": Column(int, Check.le(4)),
+        }
+    )
+    with pytest.raises(SchemaErrors):
+        schema.validate(
+            backend.make_frame(
+                {"a": [1, 2, 3, 4, 5, 6], "b": [1, 2, 3, 4, 5, 6]}
+            ),
+            lazy=True,
+        )
+
+
+def test_drop_invalid_rows_schema_and_nested_column(
+    backend, DataFrameSchema, Column
+):
+    """Schema-level and nested column-level drop_invalid_rows drop rows from both."""
+    schema = DataFrameSchema(
+        columns={
+            "a": Column(int, Check.ge(3), drop_invalid_rows=True),
+            "b": Column(int, Check.le(4)),
+        },
+        drop_invalid_rows=True,
+    )
+    result = backend.collect(
+        schema.validate(
+            backend.make_frame(
+                {"a": [1, 2, 3, 4, 5, 6], "b": [1, 2, 3, 4, 5, 6]}
+            ),
+            lazy=True,
+        )
+    )
+    pd.testing.assert_frame_equal(
+        result.reset_index(drop=True),
+        pd.DataFrame({"a": [3, 4], "b": [3, 4]}),
+        check_dtype=False,
+    )

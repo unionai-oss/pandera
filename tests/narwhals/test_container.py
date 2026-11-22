@@ -275,3 +275,110 @@ def test_nested_column_drop_invalid_rows(monkeypatch, request):
     )
     assert out["numbers"].to_list() == [3, 4, 5, 6]
     assert out["letters"].to_list() == ["a", "a", "a", "a"]
+
+
+@pytest.mark.parametrize("as_lazy", [False, True])
+def test_nested_column_drop_invalid_rows_multiple_columns(
+    monkeypatch, request, as_lazy
+):
+    """Multiple nested drop_invalid_rows columns work on eager and lazy frames."""
+    from pandera.backends.polars.register import register_polars_backends
+    from pandera.config import CONFIG
+
+    monkeypatch.setattr(CONFIG, "use_narwhals_backend", True)
+    request.addfinalizer(register_polars_backends.cache_clear)
+    register_polars_backends.cache_clear()
+    register_polars_backends(use_narwhals_backend=True)
+
+    schema = DataFrameSchema(
+        columns={
+            "a": Column(
+                pl.Int64,
+                checks=[Check.greater_than_or_equal_to(3)],
+                drop_invalid_rows=True,
+            ),
+            "b": Column(
+                pl.Int64,
+                checks=[Check.less_than_or_equal_to(4)],
+                drop_invalid_rows=True,
+            ),
+        }
+    )
+    frame = pl.DataFrame({"a": [1, 2, 3, 4, 5, 6], "b": [1, 2, 3, 4, 5, 6]})
+    if as_lazy:
+        frame = frame.lazy()
+
+    out = schema.validate(frame, lazy=True)
+    if as_lazy:
+        assert isinstance(out, pl.LazyFrame)
+        out = out.collect()
+    assert out["a"].to_list() == [3, 4]
+    assert out["b"].to_list() == [3, 4]
+
+
+@pytest.mark.parametrize("as_lazy", [False, True])
+def test_nested_column_drop_invalid_rows_with_schema_drop(
+    monkeypatch, request, as_lazy
+):
+    """Schema-level and nested column-level drop_invalid_rows combine cleanly."""
+    from pandera.backends.polars.register import register_polars_backends
+    from pandera.config import CONFIG
+
+    monkeypatch.setattr(CONFIG, "use_narwhals_backend", True)
+    request.addfinalizer(register_polars_backends.cache_clear)
+    register_polars_backends.cache_clear()
+    register_polars_backends(use_narwhals_backend=True)
+
+    schema = DataFrameSchema(
+        columns={
+            "a": Column(
+                pl.Int64,
+                checks=[Check.greater_than_or_equal_to(3)],
+                drop_invalid_rows=True,
+            ),
+            "b": Column(
+                pl.Int64,
+                checks=[Check.less_than_or_equal_to(4)],
+            ),
+        },
+        drop_invalid_rows=True,
+    )
+    frame = pl.DataFrame({"a": [1, 2, 3, 4, 5, 6], "b": [1, 2, 3, 4, 5, 6]})
+    if as_lazy:
+        frame = frame.lazy()
+
+    out = schema.validate(frame, lazy=True)
+    if as_lazy:
+        assert isinstance(out, pl.LazyFrame)
+        out = out.collect()
+    assert out["a"].to_list() == [3, 4]
+    assert out["b"].to_list() == [3, 4]
+
+
+def test_nested_column_drop_invalid_rows_mixed_failure(monkeypatch, request):
+    """A failing non-drop column raises SchemaErrors with unmodified data."""
+    from pandera.backends.polars.register import register_polars_backends
+    from pandera.config import CONFIG
+
+    monkeypatch.setattr(CONFIG, "use_narwhals_backend", True)
+    request.addfinalizer(register_polars_backends.cache_clear)
+    register_polars_backends.cache_clear()
+    register_polars_backends(use_narwhals_backend=True)
+
+    schema = DataFrameSchema(
+        columns={
+            "a": Column(
+                pl.Int64,
+                checks=[Check.greater_than_or_equal_to(3)],
+                drop_invalid_rows=True,
+            ),
+            "b": Column(
+                pl.Int64,
+                checks=[Check.less_than_or_equal_to(4)],
+            ),
+        }
+    )
+    frame = pl.DataFrame({"a": [1, 2, 3, 4, 5, 6], "b": [1, 2, 3, 4, 5, 6]})
+    with pytest.raises(SchemaErrors) as exc_info:
+        schema.validate(frame, lazy=True)
+    assert len(exc_info.value.data) == 6
