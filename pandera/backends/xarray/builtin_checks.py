@@ -330,7 +330,7 @@ def str_length(
         if max_value is None:
             return lens >= min_value  # type: ignore[operator]
         if min_value is None:
-            return lens <= max_value
+            return (lens <= max_value) & (lens >= 0)
         return (lens <= max_value) & (lens >= min_value)
 
     def _lengths_da(da: xr.DataArray) -> xr.DataArray:
