@@ -3216,6 +3216,104 @@ def test_named_check_survives_to_script():
         [io.to_json, io.from_json],
     ],
 )
+def test_check_title_and_description_survive_serialization(
+    serialize, deserialize
+):
+    """A check's ``title`` and ``description`` are read back on reload."""
+    schema = DataFrameSchema(
+        {
+            "a": pandera.Column(
+                int,
+                checks=[
+                    pandera.Check.gt(
+                        0, title="Positive", description="must be > 0"
+                    )
+                ],
+            )
+        },
+        checks=[
+            pandera.Check.lt(100, title="Small", description="must be < 100")
+        ],
+    )
+    loaded = deserialize(serialize(schema))
+    assert loaded == schema
+
+    (column_check,) = loaded.columns["a"].checks
+    assert column_check.title == "Positive"
+    assert column_check.description == "must be > 0"
+    assert column_check.statistics == {"min_value": 0}
+
+    (dataframe_check,) = loaded.checks
+    assert dataframe_check.title == "Small"
+    assert dataframe_check.description == "must be < 100"
+
+    with pytest.raises(SchemaError):
+        loaded.validate(pd.DataFrame({"a": [-1]}))
+    loaded.validate(pd.DataFrame({"a": [1]}))
+
+
+def test_check_title_and_description_survive_to_script():
+    """``to_script`` writes a check's ``title`` and ``description``."""
+    schema = DataFrameSchema(
+        {
+            "a": pandera.Column(
+                int,
+                checks=[
+                    pandera.Check.gt(
+                        0, title="Positive", description="must be > 0"
+                    )
+                ],
+            )
+        }
+    )
+    script = io.to_script(schema)
+    assert 'title="Positive"' in script
+    assert 'description="must be > 0"' in script
+
+
+@pytest.mark.skipif(
+    SKIP_YAML_TESTS,
+    reason="pyyaml >= 5.1.0 required",
+)
+@pytest.mark.parametrize(
+    "serialize, deserialize",
+    [
+        [io.to_yaml, io.from_yaml],
+        [io.to_json, io.from_json],
+    ],
+)
+@mock.patch("pandera.Check.REGISTERED_CUSTOM_CHECKS", new_callable=dict)
+def test_check_statistic_named_like_option_survives_serialization(
+    _, serialize, deserialize
+):
+    """A custom check statistic called ``title`` stays a statistic."""
+
+    @pa_ext.register_check_method(statistics=["title", "n"])
+    def has_title(pandas_obj, *, title, n):
+        return pandas_obj >= n
+
+    schema = DataFrameSchema(
+        {"a": pandera.Column(int, pandera.Check.has_title(title="x", n=1))}
+    )
+    loaded = deserialize(serialize(schema))
+    assert loaded == schema
+    (check,) = loaded.columns["a"].checks
+    assert check.statistics == {"title": "x", "n": 1}
+    assert check.title is None
+    loaded.validate(pd.DataFrame({"a": [1]}))
+
+
+@pytest.mark.skipif(
+    SKIP_YAML_TESTS,
+    reason="pyyaml >= 5.1.0 required",
+)
+@pytest.mark.parametrize(
+    "serialize, deserialize",
+    [
+        [io.to_yaml, io.from_yaml],
+        [io.to_json, io.from_json],
+    ],
+)
 def test_unique_values_eq_survives_serialization(serialize, deserialize):
     """``unique_values_eq`` stores a frozenset statistic, which is written
     out as a sorted list and read back as the same check."""
