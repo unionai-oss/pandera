@@ -1234,6 +1234,14 @@ def test_direct_pyarrow_engine_import_registers_pyarrow_dtypes():
         from pandera.engines import pyarrow_engine
 
         assert isinstance(
+            pyarrow_engine.Engine.dtype(pyarrow.int64()),
+            pyarrow_engine.ArrowInt64,
+        )
+        assert isinstance(
+            pyarrow_engine.Engine.dtype(pyarrow.binary(3)),
+            pyarrow_engine.ArrowBinary,
+        )
+        assert isinstance(
             pyarrow_engine.Engine.dtype(pd.ArrowDtype(pyarrow.string())),
             pyarrow_engine.ArrowString,
         )

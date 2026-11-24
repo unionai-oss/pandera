@@ -519,13 +519,9 @@ class ArrowBinary(ArrowDataType, dtypes.Binary):
     @classmethod
     def from_parametrized_dtype(
         cls,
-        pyarrow_dtype: Union[pyarrow.DataType, pyarrow.FixedSizeBinaryType],
+        pyarrow_dtype: pyarrow.FixedSizeBinaryType,
     ):
-        try:
-            _dtype = cls(length=pyarrow_dtype.byte_width)  # type: ignore
-        except (ValueError, AttributeError):
-            _dtype = cls()  # type: ignore
-        return _dtype
+        return cls(length=pyarrow_dtype.byte_width)  # type: ignore
 
 
 @Engine.register_dtype(
