@@ -252,6 +252,15 @@ def _polars_dtype_from_repr(text):
                 build(key): build(value)
                 for key, value in zip(node.keys, node.values)
             }
+        if isinstance(node, ast.UnaryOp) and isinstance(
+            node.op, (ast.UAdd, ast.USub)
+        ):
+            operand = build(node.operand)
+            if not isinstance(operand, (int, float, complex)):
+                raise ValueError(
+                    f"unsupported polars dtype repr {text!r}"
+                )
+            return operand if isinstance(node.op, ast.UAdd) else -operand
         raise ValueError(f"unsupported polars dtype repr {text!r}")
 
     return build(ast.parse(text, mode="eval").body)

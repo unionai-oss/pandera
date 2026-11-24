@@ -89,6 +89,7 @@ def test_polars_check_options_survive_yaml_roundtrip(
         pl.Datetime("us", "UTC"),
         pl.Duration("ms"),
         pl.Decimal(10, 2),
+        pl.Decimal(10, -2),
         pl.List(pl.Int64),
         pl.Array(pl.Int64, 3),
         pl.Struct({"a": pl.Int64, "b": pl.List(pl.String)}),
@@ -111,7 +112,15 @@ def test_polars_roundtrip_parametrized_dtypes(dtype, fmt):
 
 @pytest.mark.parametrize(
     "text",
-    ["__import__('os').getcwd()", "Int64.__class__", "NotADtype"],
+    [
+        "__import__('os').getcwd()",
+        "Int64.__class__",
+        "NotADtype",
+        "x**y",
+        "List(**{'x': 1})",
+        "Durat ion",
+        "f'{x}'",
+    ],
 )
 def test_polars_from_yaml_rejects_non_dtype_text(text):
     """Text that isn't a polars dtype fails as before and is never run."""
