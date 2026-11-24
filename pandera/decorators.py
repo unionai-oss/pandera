@@ -882,22 +882,22 @@ def check_types(
 
     sig = inspect.signature(wrapped)
 
-    def validate_args(
-        named_arguments: dict[str, Any], arguments: tuple[Any, ...]
-    ) -> list[Any]:
+    def validate_args(named_arguments: dict[str, Any]) -> list[Any]:
         """
         Validates schemas of both explicit and *args-like function arguments.
 
         :param named_arguments: Bundled function arguments. Organized as key-value pairs of the
             argument name and value. *args-like arguments are bundled into a single tuple.
             Example: OrderedDict({'arg1': 1, 'arg2': 2, 'star_args': (3, 4, 5)})
-        :param arguments: Unpacked function arguments, as written in the function call.
-            Example: (1, 2, 3, 4, 5)
         :return: List of validated function arguments.
         """
 
         # Check for an '*args'-like argument
-        if len(arguments) > len(named_arguments):
+        if (
+            named_arguments
+            and sig.parameters[next(reversed(named_arguments))].kind
+            == inspect.Parameter.VAR_POSITIONAL
+        ):
             (
                 star_args_name,
                 star_args_values,
@@ -965,7 +965,7 @@ def check_types(
         args: tuple[Any, ...],
         kwargs: dict[str, Any],
     ) -> tuple[list[Any], dict[str, Any]]:
-        validated_pos = validate_args(sig.bind_partial(*args).arguments, args)
+        validated_pos = validate_args(sig.bind_partial(*args).arguments)
         validated_kwd = validate_kwargs(
             sig.bind_partial(**kwargs).arguments, kwargs
         )
