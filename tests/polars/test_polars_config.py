@@ -210,3 +210,8 @@ def test_coerce_validation_depth_none(validation_depth_none, schema):
             schema.validate(data)
         except pa.errors.SchemaError as exc:
             assert exc.failure_cases.rows(named=True) == [{"a": "foo"}]
+
+
+def test_public_api_names_resolve() -> None:
+    """Every name in ``__all__`` resolves (e.g. ``set_config``)."""
+    assert [name for name in pa.__all__ if not hasattr(pa, name)] == []

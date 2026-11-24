@@ -12,6 +12,7 @@ from pandera.api.polars.components import Column, ParsedColumn
 from pandera.api.polars.container import DataFrameSchema
 from pandera.api.polars.model import DataFrameModel
 from pandera.api.polars.types import PolarsData
+from pandera.config import set_config
 from pandera.decorators import check_input, check_io, check_output, check_types
 from pandera.schema_inference.polars import (
     infer_dataframe_schema,
