@@ -682,6 +682,29 @@ def test_get_dataframe_schema_statistics_omits_default_report_duplicates():
     assert "report_duplicates" not in statistics["columns"]["a"]
 
 
+def test_get_dataframe_schema_statistics_preserves_metadata():
+    schema = pa.DataFrameSchema(
+        columns={"a": pa.Column(int, metadata={"key": "value"})},
+        index=pa.Index(int, metadata={"unit": "row"}),
+    )
+
+    statistics = schema_statistics.get_dataframe_schema_statistics(schema)
+
+    assert statistics["columns"]["a"]["metadata"] == {"key": "value"}
+    assert statistics["index"][0]["metadata"] == {"unit": "row"}
+
+
+def test_get_dataframe_schema_statistics_omits_unset_metadata():
+    schema = pa.DataFrameSchema(
+        columns={"a": pa.Column(int)}, index=pa.Index(int)
+    )
+
+    statistics = schema_statistics.get_dataframe_schema_statistics(schema)
+
+    assert "metadata" not in statistics["columns"]["a"]
+    assert "metadata" not in statistics["index"][0]
+
+
 def test_get_series_schema_statistics():
     """Test that series schema statistics logic is correct."""
     schema = pa.SeriesSchema(
