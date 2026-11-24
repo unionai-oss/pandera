@@ -248,6 +248,7 @@ class PandasCheckBackend(BaseCheckBackend):
         """Postprocesses the result of applying the check function."""
         if check_output.empty and check_output.dtype != bool:
             check_output = check_output.astype(bool)
+        check_output = self._missing_as_failed(check_output)
 
         return CheckResult(
             check_output,
@@ -255,6 +256,14 @@ class PandasCheckBackend(BaseCheckBackend):
             check_obj,
             self._get_series_failure_cases(check_obj, check_output),
         )
+
+    @staticmethod
+    def _missing_as_failed(check_output):
+        # A check on a nullable dtype (e.g. Int64) returns NA for missing
+        # values. Count them as failed, like False for NaN in float64 columns.
+        if check_output.hasnans:
+            check_output = check_output.fillna(False)
+        return check_output
 
     def postprocess_table_with_field_output(
         self,
@@ -267,6 +276,7 @@ class PandasCheckBackend(BaseCheckBackend):
 
         if check_obj.index.equals(check_output.index) and self.check.ignore_na:
             check_output = check_output | check_obj.isna().all(axis="columns")
+        check_output = self._missing_as_failed(check_output)
         return CheckResult(
             check_output,
             check_output.all(),
