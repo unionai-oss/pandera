@@ -380,11 +380,14 @@ def unique_values_eq(data: IbisData, values: Iterable) -> bool:
         v.execute() if isinstance(v, ir.Expr) else v for v in values
     )
     # Nulls are not values, so they don't count towards the unique values.
+    # Use ``~isnull()`` rather than ``notnull()``: with sqlglot>=30.34, ibis'
+    # ``notnull()`` compiles to ``IS (NOT NULL)``, which DuckDB rejects and
+    # SQLite evaluates incorrectly.
     return (
         set(
             data.table.select(data.key)
             .distinct()
-            .filter(_[data.key].notnull())[data.key]
+            .filter(~_[data.key].isnull())[data.key]
             .to_pyarrow()
             .to_pylist()
         )
