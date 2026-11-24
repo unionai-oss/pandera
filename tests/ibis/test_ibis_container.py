@@ -415,7 +415,9 @@ def test_run_check_preserves_failed_index_for_materialized_output(
         ({"string_col": "d"}, _.string_col != "d"),
         (
             {"int_col": [None, 1, 1]},
-            _.int_col.notnull(),
+            # not ``notnull()``: with sqlglot>=30.34 ibis compiles it to
+            # ``IS (NOT NULL)``, which DuckDB rejects.
+            ~_.int_col.isnull(),
         ),
     ],
 )
