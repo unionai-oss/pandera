@@ -222,15 +222,65 @@ def test_check_nullable_regex(dtype, data, nullable, expectation):
         assert exc.value.failure_cases.shape[0] == 3
 
 
-@pytest.mark.xfail(raises=NotImplementedError)
 @pytest.mark.parametrize("unique", [True, False])
-def test_check_unique(unique):
-    data = ibis.memtable({"column": [2, 2, 2]})
-    column_schema = pa.Column(name="column", unique=unique)
-    backend = ColumnBackend()
-    check_results = backend.check_unique(data, column_schema)
-    for result in check_results:
-        assert not result.passed if unique else result.passed
+@pytest.mark.parametrize(
+    "data,has_duplicates",
+    [
+        ([1, 2, 3], False),
+        ([1, 2, 2], True),
+        ([1, None, None], True),
+        ([1, None, 2], False),
+        ([], False),
+    ],
+)
+def test_check_unique(data, has_duplicates, unique):
+    data = ibis.memtable({"column": data}, schema={"column": dt.Int64})
+    column_schema = pa.Column(dt.Int64, name="column", unique=unique)
+    result: CoreCheckResult = ColumnBackend().check_unique(
+        data["column"], column_schema
+    )
+    assert result.passed == (not (unique and has_duplicates))
+
+
+@pytest.mark.xfail(
+    condition=CONFIG.use_narwhals_backend,
+    reason="failure_cases is an ibis.Table in Narwhals backend",
+    strict=True,
+)
+@pytest.mark.parametrize(
+    "report_duplicates,failure_cases",
+    [
+        ("all", [1, 1, 1, 2, 2, 3, 3]),
+        ("exclude_first", [1, 1, 2, 3]),
+        ("exclude_last", [1, 1, 2, 3]),
+    ],
+)
+def test_check_unique_report_duplicates(report_duplicates, failure_cases):
+    data = ibis.memtable({"column": [1, 2, 3, 4, 1, 1, 2, 3]})
+    schema = pa.Column(
+        dt.Int64,
+        name="column",
+        unique=True,
+        report_duplicates=report_duplicates,
+    )
+    with pytest.raises(SchemaError) as exc:
+        schema.validate(data)
+
+    assert sorted(exc.value.failure_cases["column"].to_list()) == failure_cases
+
+
+def test_column_unique_in_dataframe_schema():
+    schema = pa.DataFrameSchema(
+        {"a": pa.Column(dt.Int64, unique=True), "b": pa.Column(dt.Int64)}
+    )
+    schema.validate(ibis.memtable({"a": [1, 2], "b": [1, 1]}))
+
+    with pytest.raises(SchemaError, match="column 'a' not unique"):
+        schema.validate(ibis.memtable({"a": [1, 1], "b": [1, 2]}))
+
+    with pytest.raises(SchemaErrors) as exc:
+        schema.validate(ibis.memtable({"a": [1, 1], "b": [1, 2]}), lazy=True)
+    assert dict(exc.value.error_counts) == {"SERIES_CONTAINS_DUPLICATES": 1}
 
 
 @pytest.mark.parametrize(

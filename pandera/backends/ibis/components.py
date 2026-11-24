@@ -14,6 +14,8 @@ from pandera.api.base.error_handler import get_error_category
 from pandera.api.ibis.error_handler import ErrorHandler
 from pandera.backends.base import CoreCheckResult
 from pandera.backends.ibis.base import IbisSchemaBackend
+from pandera.backends.ibis.utils import duplicated_rows
+from pandera.backends.utils import convert_uniquesettings
 from pandera.config import ValidationScope
 from pandera.constants import CHECK_OUTPUT_KEY
 from pandera.engines.ibis_engine import Engine
@@ -75,6 +77,7 @@ class ColumnBackend(IbisSchemaBackend):
                 # run the checks
                 core_checks = [
                     self.check_nullable,
+                    self.check_unique,
                     self.check_dtype,
                     self.run_checks,
                 ]
@@ -170,6 +173,39 @@ class ColumnBackend(IbisSchemaBackend):
             reason_code=SchemaErrorReason.SERIES_CONTAINS_NULLS,
             message=f"non-nullable column '{schema.name}' contains null values",
             failure_cases=failure_cases,
+        )
+
+    @validate_scope(scope=ValidationScope.DATA)
+    def check_unique(
+        self, check_obj: ibis.Column, schema: Column
+    ) -> CoreCheckResult:
+        """Check that the values of a column are unique.
+
+        Nulls are considered equal to each other.
+        """
+        check_name = "field_uniqueness"
+        if not schema.unique:
+            return CoreCheckResult(
+                passed=True,
+                check=check_name,
+                reason_code=SchemaErrorReason.SERIES_CONTAINS_DUPLICATES,
+            )
+
+        table = check_obj.as_table()
+        duplicated = duplicated_rows(
+            convert_uniquesettings(schema.report_duplicates),
+            check_obj.get_name(),
+        )
+        check_output = table.select(**{CHECK_OUTPUT_KEY: duplicated})[
+            CHECK_OUTPUT_KEY
+        ]
+        return CoreCheckResult(
+            passed=not check_output.any().execute(),
+            check_output=check_output,
+            check=check_name,
+            reason_code=SchemaErrorReason.SERIES_CONTAINS_DUPLICATES,
+            message=f"column '{schema.name}' not unique",
+            failure_cases=table.filter(duplicated),
         )
 
     @validate_scope(scope=ValidationScope.SCHEMA)
