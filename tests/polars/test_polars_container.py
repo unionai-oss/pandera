@@ -537,6 +537,73 @@ def test_drop_invalid_rows_nested_column():
         data.pipe(schema.validate, lazy=False)
 
 
+@pytest.mark.parametrize("as_lazy", [False, True])
+def test_drop_invalid_rows_multiple_nested_columns(as_lazy):
+    """Multiple nested drop_invalid_rows columns drop the union of failing rows."""
+    schema = DataFrameSchema(
+        {
+            "a": Column(pl.Int64, C.ge(3), drop_invalid_rows=True),
+            "b": Column(pl.Int64, C.le(4), drop_invalid_rows=True),
+        }
+    )
+    frame = pl.DataFrame({"a": [1, 2, 3, 4, 5, 6], "b": [1, 2, 3, 4, 5, 6]})
+    if as_lazy:
+        frame = frame.lazy()
+
+    out = schema.validate(frame, lazy=True)
+    if as_lazy:
+        assert isinstance(out, pl.LazyFrame)
+        out = out.collect()
+    assert out["a"].to_list() == [3, 4]
+    assert out["b"].to_list() == [3, 4]
+
+
+@pytest.mark.parametrize("as_lazy", [False, True])
+def test_drop_invalid_rows_nested_column_mixed_failure(as_lazy):
+    """A failing non-drop column still raises SchemaErrors with unmodified data."""
+    schema = DataFrameSchema(
+        {
+            "a": Column(pl.Int64, C.ge(3), drop_invalid_rows=True),
+            "b": Column(pl.Int64, C.le(4)),
+        }
+    )
+    frame = pl.DataFrame({"a": [1, 2, 3, 4, 5, 6], "b": [1, 2, 3, 4, 5, 6]})
+    if as_lazy:
+        frame = frame.lazy()
+
+    with pytest.raises(pa.errors.SchemaErrors) as exc_info:
+        schema.validate(frame, lazy=True)
+
+    err_data = (
+        exc_info.value.data.collect()
+        if isinstance(exc_info.value.data, pl.LazyFrame)
+        else exc_info.value.data
+    )
+    assert len(err_data) == 6
+
+
+@pytest.mark.parametrize("as_lazy", [False, True])
+def test_drop_invalid_rows_schema_and_nested_column(as_lazy):
+    """Schema-level and column-level drop_invalid_rows combine without ShapeError."""
+    schema = DataFrameSchema(
+        {
+            "a": Column(pl.Int64, C.ge(3), drop_invalid_rows=True),
+            "b": Column(pl.Int64, C.le(4)),
+        },
+        drop_invalid_rows=True,
+    )
+    frame = pl.DataFrame({"a": [1, 2, 3, 4, 5, 6], "b": [1, 2, 3, 4, 5, 6]})
+    if as_lazy:
+        frame = frame.lazy()
+
+    out = schema.validate(frame, lazy=True)
+    if as_lazy:
+        assert isinstance(out, pl.LazyFrame)
+        out = out.collect()
+    assert out["a"].to_list() == [3, 4]
+    assert out["b"].to_list() == [3, 4]
+
+
 def test_set_defaults(ldf_basic, ldf_schema_basic):
     ldf_schema_basic.columns["int_col"].default = 1
     ldf_schema_basic.columns["string_col"].default = "a"

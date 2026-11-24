@@ -6,7 +6,12 @@ import pytest
 
 import pandera.pyarrow as pa
 from pandera.config import ValidationDepth, config_context
-from pandera.errors import SchemaError, SchemaErrors, SchemaWarning
+from pandera.errors import (
+    SchemaDefinitionError,
+    SchemaError,
+    SchemaErrors,
+    SchemaWarning,
+)
 
 
 @pytest.fixture
@@ -272,3 +277,50 @@ def test_nested_column_drop_invalid_rows():
     validated = schema.validate(table, lazy=True)
     assert validated.column("numbers").to_pylist() == [3, 4, 5, 6]
     assert validated.column("letters").to_pylist() == ["a", "a", "a", "a"]
+
+    with pytest.raises(SchemaDefinitionError):
+        schema.validate(table, lazy=False)
+
+
+def test_nested_column_drop_invalid_rows_multiple_columns():
+    """Multiple nested drop_invalid_rows columns drop the union of failing rows."""
+    schema = pa.DataFrameSchema(
+        {
+            "a": pa.Column(int, pa.Check.ge(3), drop_invalid_rows=True),
+            "b": pa.Column(int, pa.Check.le(4), drop_invalid_rows=True),
+        }
+    )
+    table = pyarrow.table({"a": [1, 2, 3, 4, 5, 6], "b": [1, 2, 3, 4, 5, 6]})
+    validated = schema.validate(table, lazy=True)
+    assert isinstance(validated, pyarrow.Table)
+    assert validated.column("a").to_pylist() == [3, 4]
+    assert validated.column("b").to_pylist() == [3, 4]
+
+
+def test_nested_column_drop_invalid_rows_mixed_failure():
+    """A failing non-drop column still raises SchemaErrors with unmodified data."""
+    schema = pa.DataFrameSchema(
+        {
+            "a": pa.Column(int, pa.Check.ge(3), drop_invalid_rows=True),
+            "b": pa.Column(int, pa.Check.le(4)),
+        }
+    )
+    table = pyarrow.table({"a": [1, 2, 3, 4, 5, 6], "b": [1, 2, 3, 4, 5, 6]})
+    with pytest.raises(SchemaErrors) as exc_info:
+        schema.validate(table, lazy=True)
+    assert exc_info.value.data.num_rows == 6
+
+
+def test_nested_column_drop_invalid_rows_with_schema_drop():
+    """Schema-level and column-level drop_invalid_rows drop rows from both."""
+    schema = pa.DataFrameSchema(
+        {
+            "a": pa.Column(int, pa.Check.ge(3), drop_invalid_rows=True),
+            "b": pa.Column(int, pa.Check.le(4)),
+        },
+        drop_invalid_rows=True,
+    )
+    table = pyarrow.table({"a": [1, 2, 3, 4, 5, 6], "b": [1, 2, 3, 4, 5, 6]})
+    validated = schema.validate(table, lazy=True)
+    assert validated.column("a").to_pylist() == [3, 4]
+    assert validated.column("b").to_pylist() == [3, 4]

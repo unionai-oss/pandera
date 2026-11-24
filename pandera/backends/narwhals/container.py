@@ -257,6 +257,7 @@ class DataFrameSchemaBackend(NarwhalsSchemaBackend):
             sample,
             random_state,
         )
+        is_subsampled = sample_obj is not check_lf
         # subsample() returns nw.LazyFrame (unchanged) or nw.DataFrame (if head/tail used);
         # normalize to LazyFrame for uniform check execution
         if isinstance(sample_obj, nw.DataFrame):
@@ -315,27 +316,30 @@ class DataFrameSchemaBackend(NarwhalsSchemaBackend):
                         original_exc=result.original_exc,
                     )
 
-        if sample_obj is check_lf:
-            # Propagate nested Column drop_invalid_rows to the container output
-            # (non-mutating). Skipped under head/tail subsampling because a
-            # dropped subsample cannot be mapped back onto the full frame
-            # (matching the pandas backend).
-            check_lf = self._apply_nested_drop_invalid_rows(
-                check_lf, components, lazy
-            )
-
         if error_handler.collected_errors:
             if getattr(schema, "drop_invalid_rows", False):
-                check_obj_parsed = _to_frame_kind_nw(check_lf, return_type)
-                check_obj_parsed = self.drop_invalid_rows(
-                    check_obj_parsed, error_handler
-                )
-                return check_obj_parsed
+                check_lf = self.drop_invalid_rows(check_lf, error_handler)
             else:
                 raise SchemaErrors(
                     schema=schema,
                     schema_errors=error_handler.schema_errors,
                     data=_to_frame_kind_nw(check_lf, return_type),
+                )
+
+        if not is_subsampled and any(
+            getattr(c, "drop_invalid_rows", False) for c in components
+        ):
+            # Propagate nested Column drop_invalid_rows to the container output
+            # (non-mutating). Skipped under head/tail subsampling because a
+            # dropped subsample cannot be mapped back onto the full frame
+            # (matching the pandas backend). Force SCHEMA_AND_DATA so lazy
+            # frames that default to SCHEMA_ONLY still drop invalid rows,
+            # matching schema-level drop_invalid_rows.
+            with config_context(
+                validation_depth=ValidationDepth.SCHEMA_AND_DATA
+            ):
+                check_lf = self._apply_nested_drop_invalid_rows(
+                    check_lf, components, lazy
                 )
 
         return _to_frame_kind_nw(check_lf, return_type)
@@ -453,7 +457,7 @@ class DataFrameSchemaBackend(NarwhalsSchemaBackend):
                 continue
             wrapped = nw.from_native(result, eager_or_interchange_only=False)
             if isinstance(wrapped, (nw.DataFrame, nw.LazyFrame)):
-                native_obj = result
+                native_obj = _to_native(wrapped)
         return _to_lazy_nw(native_obj)
 
     def run_native_parsers(self, check_obj, schema):
