@@ -1,5 +1,6 @@
 """Unit tests for io module"""
 
+import datetime as dt
 import platform
 import tempfile
 from io import StringIO
@@ -1195,6 +1196,46 @@ def test_yaml_roundtrip_without_default_is_unchanged():
     assert "default" not in serialized["columns"]["a"]
     assert restored.columns["a"].default is None
     assert restored == schema
+
+
+@pytest.mark.skipif(
+    SKIP_YAML_TESTS,
+    reason="pyyaml >= 5.1.0 required",
+)
+@pytest.mark.parametrize("fmt", ["yaml", "json"])
+def test_roundtrip_parametrized_pyarrow_dtypes(fmt):
+    """Parametrized pyarrow dtypes are serialized as string aliases such as
+    "timestamp[us][pyarrow]" and must load back into the same schema."""
+    pyarrow = pytest.importorskip("pyarrow")
+    arrow_dtypes = {
+        "timestamp": pd.ArrowDtype(pyarrow.timestamp("us")),
+        "timestamp_tz": pd.ArrowDtype(pyarrow.timestamp("ns", tz="UTC")),
+        "duration": pd.ArrowDtype(pyarrow.duration("ms")),
+        "time": pd.ArrowDtype(pyarrow.time64("us")),
+    }
+    schema = pandera.DataFrameSchema(
+        {name: pandera.Column(dtype) for name, dtype in arrow_dtypes.items()}
+    )
+    values = {
+        "timestamp": dt.datetime(2026, 1, 1, 12),
+        "timestamp_tz": dt.datetime(2026, 1, 1, 12, tzinfo=dt.timezone.utc),
+        "duration": dt.timedelta(seconds=1.5),
+        "time": dt.time(1, 0),
+    }
+    df = pd.DataFrame(
+        {
+            name: pd.Series([value], dtype=arrow_dtypes[name])
+            for name, value in values.items()
+        }
+    )
+
+    if fmt == "yaml":
+        restored = pandera.DataFrameSchema.from_yaml(schema.to_yaml())
+    else:
+        restored = pandera.DataFrameSchema.from_json(schema.to_json())
+
+    assert restored == schema
+    restored.validate(df)
 
 
 @pytest.mark.skipif(

@@ -780,6 +780,47 @@ def test_pandas_arrow_dtype(data, dtype):
     assert coerced_data.dtype == dtype.type
 
 
+@pytest.mark.parametrize(
+    "pyarrow_dtype",
+    [
+        pyarrow.timestamp("us"),
+        pyarrow.timestamp("ns", tz="UTC"),
+        pyarrow.timestamp("ms", tz="Europe/Oslo"),
+        pyarrow.duration("s"),
+        pyarrow.time32("ms"),
+        pyarrow.time64("us"),
+    ],
+    ids=str,
+)
+def test_pandas_arrow_dtype_string_alias(pyarrow_dtype):
+    """The string alias of a parametrized pyarrow dtype, e.g.
+    "timestamp[us][pyarrow]", resolves like the pd.ArrowDtype itself."""
+    arrow_dtype = pd.ArrowDtype(pyarrow_dtype)
+
+    dtype = pandas_engine.Engine.dtype(str(arrow_dtype))
+
+    assert dtype == pandas_engine.Engine.dtype(arrow_dtype)
+    assert dtype.type == arrow_dtype
+
+
+@pytest.mark.parametrize(
+    ("alias", "pyarrow_dtype"),
+    [
+        ("float32[pyarrow]", pyarrow.float32()),
+        ("f8[pyarrow]", pyarrow.float64()),
+        ("i8[pyarrow]", pyarrow.int64()),
+        ("boolean[pyarrow]", pyarrow.bool_()),
+        ("date64[pyarrow]", pyarrow.date64()),
+    ],
+)
+def test_pandas_arrow_dtype_other_aliases(alias, pyarrow_dtype):
+    """Aliases that pandas maps to a registered pd.ArrowDtype keep that
+    dtype instead of being resolved from the bare pyarrow type."""
+    dtype = pandas_engine.Engine.dtype(alias)
+
+    assert dtype.type == pd.ArrowDtype(pyarrow_dtype)
+
+
 pandas_arrow_dtype_error_cases = (
     (pd.Series([["a", "b", "c"]]), pyarrow.list_(pyarrow.int64())),
     (pd.Series([["a", "b"]]), pyarrow.list_(pyarrow.string(), 3)),

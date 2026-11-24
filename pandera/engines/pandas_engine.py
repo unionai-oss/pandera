@@ -276,6 +276,12 @@ class Engine(
                 # let pandas transform any acceptable value
                 # into a numpy or pandas dtype.
                 np_or_pd_dtype = pd.api.types.pandas_dtype(data_type)
+                if is_pyarrow_dtype(np_or_pd_dtype):
+                    # A string alias such as "timestamp[us][pyarrow]" parses
+                    # to a pd.ArrowDtype. Resolve it like the dtype object:
+                    # registered equivalents first, then the pyarrow type for
+                    # parametrized dtypes such as timestamps and durations.
+                    return cls.dtype(np_or_pd_dtype)
                 if isinstance(np_or_pd_dtype, np.dtype):
                     # cast alias to platform-agnostic dtype
                     # e.g.: np.intc -> np.int32
