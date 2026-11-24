@@ -781,6 +781,53 @@ def test_pandas_arrow_dtype(data, dtype):
 
 
 @pytest.mark.parametrize(
+    "arrow_type",
+    [
+        pyarrow.int64(),
+        pyarrow.float32(),
+        pyarrow.bool_(),
+        pyarrow.string(),
+        pyarrow.binary(),
+        pyarrow.binary(3),
+        pyarrow.large_binary(),
+        pyarrow.timestamp("us", tz="UTC"),
+    ],
+    ids=str,
+)
+def test_pandas_arrow_dtype_native_instance(arrow_type):
+    """Native Arrow types and their pandas wrappers resolve identically."""
+    pandas_dtype = pd.ArrowDtype(arrow_type)
+    dtype = pandas_engine.Engine.dtype(arrow_type)
+    assert dtype == pandas_engine.Engine.dtype(pandas_dtype)
+    assert dtype.type == pandas_dtype
+
+
+def test_pandas_arrow_dtype_native_instance_validates_dataframe():
+    """An Arrow integer declared in a schema validates Arrow integer data."""
+    arrow_type = pyarrow.int64()
+    data = pd.DataFrame(
+        {"value": pd.Series([1, 2], dtype=pd.ArrowDtype(arrow_type))}
+    )
+    schema = pa.DataFrameSchema({"value": pa.Column(arrow_type)})
+    pd.testing.assert_frame_equal(schema.validate(data), data)
+
+
+@pytest.mark.parametrize(
+    "dtype",
+    [
+        pyarrow.month_day_nano_interval(),
+        pd.ArrowDtype(pyarrow.month_day_nano_interval()),
+        "month_day_nano_interval[pyarrow]",
+    ],
+    ids=["native", "pandas", "alias"],
+)
+def test_pandas_arrow_dtype_unsupported_type_raises(dtype):
+    """An unregistered Arrow type raises instead of resolving as binary."""
+    with pytest.raises(TypeError, match="month_day_nano_interval"):
+        pandas_engine.Engine.dtype(dtype)
+
+
+@pytest.mark.parametrize(
     "pyarrow_dtype",
     [
         pyarrow.timestamp("us"),

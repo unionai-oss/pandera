@@ -233,6 +233,10 @@ class Engine(
     def dtype(cls, data_type: Any) -> dtypes.DataType:
         """Convert input into a pandas-compatible
         Pandera :class:`~pandera.dtypes.DataType` object."""
+        if PYARROW_INSTALLED and isinstance(data_type, pyarrow.DataType):
+            # Bare Arrow types can compare equal to non-Arrow string aliases.
+            data_type = pd.ArrowDtype(data_type)
+
         try:
             return engine.Engine.dtype(cls, data_type)
         except TypeError:
@@ -2343,15 +2347,9 @@ if PYARROW_INSTALLED:
         @classmethod
         def from_parametrized_dtype(
             cls,
-            pyarrow_dtype: Union[
-                pyarrow.DataType, pyarrow.FixedSizeBinaryType
-            ],
+            pyarrow_dtype: pyarrow.FixedSizeBinaryType,
         ):
-            try:
-                _dtype = cls(length=pyarrow_dtype.byte_width)  # type: ignore
-            except (ValueError, AttributeError):
-                _dtype = cls()  # type: ignore
-            return _dtype
+            return cls(length=pyarrow_dtype.byte_width)  # type: ignore
 
     @Engine.register_dtype(
         equivalents=[
