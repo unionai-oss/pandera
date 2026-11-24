@@ -162,6 +162,17 @@ def test_str_length_exact_and_range():
         DataArraySchema(checks=Check.str_length(5, 5)).validate(da)
 
 
+@pytest.mark.parametrize("missing", [None, np.nan])
+def test_str_length_max_only_fails_missing_values(missing):
+    da = xr.DataArray(np.array(["ok", missing], dtype=object), dims="x")
+    schema = DataArraySchema(
+        nullable=True,
+        checks=Check.str_length(max_value=5, ignore_na=False),
+    )
+    with pytest.raises(pandera.errors.SchemaError):
+        schema.validate(da)
+
+
 def test_str_length_factory_requires_bounds():
     with pytest.raises(ValueError, match="At least a minimum"):
         Check.str_length()
