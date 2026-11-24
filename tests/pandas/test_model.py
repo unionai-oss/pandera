@@ -19,6 +19,7 @@ import pandera.api.dataframe.model as dataframe_model
 import pandera.api.extensions as pax
 import pandera.pandas as pa
 from pandera.api.base.model import MetaModel
+from pandera.api.pandas.model_config import BaseConfig
 from pandera.errors import SchemaError, SchemaInitError, SchemaWarning
 from pandera.typing import DataFrame, FieldType, Index, Series, String
 from pandera.typing import pandas as pandas_typing
@@ -1187,6 +1188,65 @@ def test_config() -> None:
     )
 
     assert expected == Child.to_schema()
+
+
+def test_config_inherits_from_base_config_class() -> None:
+    """Regression test for #1471: a model's Config inherits options from a
+    user-defined base config class, like regular Python class attributes."""
+
+    class ProjectConfig(BaseConfig):
+        coerce = True
+
+    class ProjectConfigNoBase:
+        coerce = True
+
+    class InheritsProjectConfig(pa.DataFrameModel):
+        a: Series[float]
+
+        class Config(ProjectConfig):
+            pass
+
+    class InheritsPlainConfig(pa.DataFrameModel):
+        a: Series[float]
+
+        class Config(ProjectConfigNoBase):
+            pass
+
+    class OverridesProjectConfig(pa.DataFrameModel):
+        a: Series[float]
+
+        class Config(ProjectConfig):
+            coerce = False
+
+    df = pd.DataFrame({"a": [1, 2, 3]})
+    for model in (InheritsProjectConfig, InheritsPlainConfig):
+        assert model.to_schema().coerce
+        assert model.validate(df)["a"].dtype == "float64"
+
+    assert not OverridesProjectConfig.to_schema().coerce
+    with pytest.raises(SchemaError):
+        OverridesProjectConfig.validate(df)
+
+
+def test_config_base_config_defaults_do_not_override_parent_model() -> None:
+    """pandera's own BaseConfig defaults in a child model's Config shouldn't
+    override options set by a parent model."""
+
+    class Parent(pa.DataFrameModel):
+        a: Series[float]
+
+        class Config:
+            coerce = True
+            dtype = float
+
+    class Child(Parent):
+        class Config(BaseConfig):
+            strict = True
+
+    schema = Child.to_schema()
+    assert schema.coerce
+    assert schema.strict
+    assert str(schema.dtype) == "float64"
 
 
 def test_multiindex_unique() -> None:
