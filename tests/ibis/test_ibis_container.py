@@ -239,10 +239,6 @@ def test_different_unique_settings(unique: UniqueSettings, answers: list[int]):
         DataFrameSchema(
             {"a": Column(int)}, unique="a", report_duplicates=unique
         ),
-        # TODO(deepyaman): Implement `ColumnBackend.check_unique` check.
-        # DataFrameSchema(
-        #     {"a": Column(int, unique=True, report_duplicates=unique)}
-        # ),
     ]
 
     for schema in schemas:
