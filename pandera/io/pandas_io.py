@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import ast
 import datetime
 import enum
 import json
@@ -134,6 +135,17 @@ def _serialize_dataframe_stats(dataframe_checks):
     return serialized_checks
 
 
+def _serialize_dtype(dtype) -> str:
+    """Serialize a dtype as its string alias, keeping the categories and
+    ordering of a ``Category``, e.g. ``"Category(categories=['a', 'b'])"``,
+    which the alias ``"category"`` would drop.
+    """
+    category_args = common_io.pandas_category_args(dtype)
+    if category_args is not None:
+        return f"Category({category_args})"
+    return str(dtype)
+
+
 def _serialize_component_stats(component_stats):
     """
     Serialize column or index statistics into json/yaml-compatible format.
@@ -149,7 +161,7 @@ def _serialize_component_stats(component_stats):
 
     dtype = component_stats.get("dtype")
     if dtype:
-        dtype = str(dtype)
+        dtype = _serialize_dtype(dtype)
 
     description = component_stats.get("description")
     title = component_stats.get("title")
@@ -364,6 +376,34 @@ _DECIMAL_DTYPE_PATTERN = re.compile(
 )
 
 
+def _deserialize_category_dtype(serialized_dtype: str):
+    """Rebuild a ``Category`` dtype written by :func:`_serialize_dtype`,
+    e.g. ``"Category(categories=['a', 'b'], ordered=True)"``. Only literal
+    keyword arguments are accepted, so the text is never evaluated as code.
+    Returns ``None`` if the string isn't in that form.
+    """
+    try:
+        node = ast.parse(serialized_dtype, mode="eval").body
+    except SyntaxError:
+        return None
+    if not (
+        isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Name)
+        and node.func.id == "Category"
+        and not node.args
+    ):
+        return None
+    kwargs: dict[str, Any] = {}
+    try:
+        for keyword in node.keywords:
+            if keyword.arg is None:  # ``**mapping``
+                return None
+            kwargs[keyword.arg] = ast.literal_eval(keyword.value)
+        return pandas_engine.Category(**kwargs)
+    except (TypeError, ValueError):
+        return None
+
+
 def _deserialize_dtype(serialized_dtype):
     """Deserialize a dtype, supporting the string representation of
     parametrized dtypes that the engine doesn't recognize as aliases,
@@ -380,6 +420,10 @@ def _deserialize_dtype(serialized_dtype):
             return pandas_engine.Decimal(
                 precision=int(match.group(1)), scale=int(match.group(2))
             )
+        if serialized_dtype.startswith("Category("):
+            category = _deserialize_category_dtype(serialized_dtype)
+            if category is not None:
+                return category
     return pandas_engine.Engine.dtype(serialized_dtype)
 
 
