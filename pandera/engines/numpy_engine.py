@@ -150,12 +150,46 @@ class Engine(metaclass=engine.Engine, base_pandera_dtypes=DataType):
 ###############################################################################
 
 
+def _contains_strings(data: Any) -> bool:
+    """Whether a 1-d container holds any ``str`` or ``bytes`` value."""
+    kind = getattr(data.dtype, "kind", None)
+    if kind in ("S", "U", "T"):
+        return len(data) > 0
+    if kind != "O":
+        return False
+    values = data.ravel() if isinstance(data, np.ndarray) else data
+    return any(isinstance(value, (str, bytes)) for value in values)
+
+
 @Engine.register_dtype(
     equivalents=["bool", bool, np.bool_, dtypes.Bool, dtypes.Bool()]
 )
 @immutable
 class Bool(DataType, dtypes.Bool):
     type = np.dtype("bool")
+
+    def coerce(
+        self, data_container: Union[PandasObject, np.ndarray]
+    ) -> Union[PandasObject, np.ndarray]:
+        # numpy casts every non-empty string to True, so "False", "0" and
+        # "no" would all become True. Treat strings as a coercion failure;
+        # the pandas "boolean" and polars Boolean types also reject them.
+        data: Any = data_container
+        columns = (
+            [data.iloc[:, i] for i in range(data.shape[1])]
+            if hasattr(data, "columns")
+            else [data]
+        )
+        if any(_contains_strings(column) for column in columns):
+            raise TypeError(f"strings cannot be coerced to type {self.type}")
+        return super().coerce(data_container)
+
+    def coerce_value(self, value: Any) -> Any:
+        if isinstance(value, (str, bytes)):
+            raise TypeError(
+                f"value {value!r} cannot be coerced to type {self.type}"
+            )
+        return super().coerce_value(value)
 
 
 def _build_number_equivalents(
