@@ -101,6 +101,10 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
                 )
             except SchemaErrors as exc:
                 error_handler.collect_errors(exc.schema_errors)
+                if parser == self.coerce_dtype:
+                    # continue with the columns that could be coerced, so
+                    # they aren't reported as having the wrong dtype
+                    check_lf = _to_lazy(exc.data)
 
         # collect schema components
         components = self.collect_schema_components(
@@ -614,6 +618,8 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
         try:
             check_lf = self._coerce_dtype_helper(check_lf, schema)
         except SchemaErrors as err:
+            # keep the columns that could be coerced
+            check_lf = err.data
             for schema_error in err.schema_errors:
                 error_handler.collect_error(
                     get_error_category(
@@ -677,67 +683,77 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
             if not getattr(c, "regex", False)
         }
 
-        try:
-            if schema.dtype is not None:
-                obj = getattr(schema.dtype, coerce_fn)(obj)
+        def _collect_coercion_error(exc, error_schema, dtype, key):
+            if isinstance(exc, ParserError):
+                message = exc.args[0]
+                failure_cases = exc.failure_cases
+                check_output = exc.parser_output
             else:
-                for col_schema in schema.columns.values():
-                    if (
-                        not col_schema.required
-                        and col_schema.name not in lf_columns
-                    ):
-                        continue
+                message = (
+                    f"Error while coercing '{key}' to type {dtype}: {exc}"
+                )
+                failure_cases = None
+                check_output = None
+            error_handler.collect_error(
+                get_error_category(SchemaErrorReason.DATATYPE_COERCION),
+                SchemaErrorReason.DATATYPE_COERCION,
+                SchemaError(
+                    schema=error_schema,
+                    data=obj,
+                    message=message,
+                    check=f"coerce_dtype('{dtype}')",
+                    reason_code=SchemaErrorReason.DATATYPE_COERCION,
+                    failure_cases=failure_cases,
+                    check_output=check_output,
+                ),
+            )
 
-                    if schema.coerce or col_schema.coerce:
-                        if getattr(col_schema, "regex", False):
-                            # Coerce each regex-matched column individually so
-                            # a coercion failure reports the concrete column
-                            # name instead of the regex pattern (issue #2363,
-                            # mirroring the check path fixed in #2221).
-                            matched_columns = [
-                                name
-                                for name in get_lazyframe_column_names(
-                                    obj.select(pl.col(col_schema.selector))
-                                )
-                                if name not in explicit_column_names
-                            ]
-                            for matched_column in matched_columns:
-                                obj = getattr(col_schema.dtype, coerce_fn)(
-                                    PolarsData(obj, matched_column)
-                                )
-                        else:
-                            obj = getattr(col_schema.dtype, coerce_fn)(
-                                PolarsData(obj, col_schema.selector)
+        def _coerce(dtype, data, error_schema, key):
+            # Coerce one column at a time and keep going on failure, so that
+            # lazy validation reports the coercion errors of every column.
+            nonlocal obj
+            try:
+                obj = getattr(dtype, coerce_fn)(data)
+            except (ParserError, pl.exceptions.ComputeError) as exc:
+                _collect_coercion_error(exc, error_schema, dtype, key)
+
+        if schema.dtype is not None:
+            _coerce(schema.dtype, obj, schema, schema.name)
+        else:
+            for col_schema in schema.columns.values():
+                if (
+                    not col_schema.required
+                    and col_schema.name not in lf_columns
+                ):
+                    continue
+
+                if schema.coerce or col_schema.coerce:
+                    if getattr(col_schema, "regex", False):
+                        # Coerce each regex-matched column individually so
+                        # a coercion failure reports the concrete column
+                        # name instead of the regex pattern (issue #2363,
+                        # mirroring the check path fixed in #2221).
+                        matched_columns = [
+                            name
+                            for name in get_lazyframe_column_names(
+                                obj.select(pl.col(col_schema.selector))
                             )
-        except ParserError as exc:
-            error_handler.collect_error(
-                get_error_category(SchemaErrorReason.DATATYPE_COERCION),
-                SchemaErrorReason.DATATYPE_COERCION,
-                SchemaError(
-                    schema=schema,
-                    data=obj,
-                    message=exc.args[0],
-                    check=f"coerce_dtype('{schema.dtypes}')",
-                    reason_code=SchemaErrorReason.DATATYPE_COERCION,
-                    failure_cases=exc.failure_cases,
-                    check_output=exc.parser_output,
-                ),
-            )
-        except pl.exceptions.ComputeError as exc:
-            error_handler.collect_error(
-                get_error_category(SchemaErrorReason.DATATYPE_COERCION),
-                SchemaErrorReason.DATATYPE_COERCION,
-                SchemaError(
-                    schema=schema,
-                    data=obj,
-                    message=(
-                        f"Error while coercing '{schema.name}' to type "
-                        f"{schema.dtype}: {exc}"
-                    ),
-                    check=f"coerce_dtype('{schema.dtypes}')",
-                    reason_code=SchemaErrorReason.DATATYPE_COERCION,
-                ),
-            )
+                            if name not in explicit_column_names
+                        ]
+                        for matched_column in matched_columns:
+                            _coerce(
+                                col_schema.dtype,
+                                PolarsData(obj, matched_column),
+                                copy.copy(col_schema).set_name(matched_column),
+                                matched_column,
+                            )
+                    else:
+                        _coerce(
+                            col_schema.dtype,
+                            PolarsData(obj, col_schema.selector),
+                            col_schema,
+                            col_schema.selector,
+                        )
 
         if error_handler.collected_errors:
             raise SchemaErrors(
