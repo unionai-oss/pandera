@@ -2395,6 +2395,34 @@ def test_pandas_fields_metadata():
     assert PanderaSchema.get_metadata() == expected
 
 
+def test_get_metadata_with_config_without_metadata():
+    """``get_metadata`` should work when ``Config`` defines no ``metadata``.
+
+    Regression test for #1640: a user-defined ``Config`` that does not
+    inherit from ``BaseConfig`` has no ``metadata`` attribute, which used
+    to raise ``AttributeError``.
+    """
+
+    class PanderaSchema(pa.DataFrameModel):
+        foo: Series[str] = pa.Field(metadata={"include": True})
+        bar: Series[str] = pa.Field()
+
+        class Config:
+            name = "product_info"
+            strict = True
+
+    expected = {
+        "product_info": {
+            "columns": {
+                "foo": {"include": True},
+                "bar": None,
+            },
+            "dataframe": None,
+        }
+    }
+    assert PanderaSchema.get_metadata() == expected
+
+
 def test_field_type_metadata_propagation():
     """``FieldType[T, pa.Field(...)]`` should propagate field metadata
     (description, title, unique, checks, etc.) to
