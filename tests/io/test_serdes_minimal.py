@@ -69,6 +69,19 @@ class TestPandasSerdesMinimal:
         assert json.loads(j)["version"] is not None
         assert pandas_io.from_json(j) == schema
 
+    def test_yaml_json_roundtrip_schema_dtype(self) -> None:
+        schema = pa.DataFrameSchema(
+            {"a": pa.Column(), "b": pa.Column()},
+            dtype=int,
+        )
+
+        for dump, load in (
+            (lambda s: pandas_io.to_yaml(s), pandas_io.from_yaml),
+            (lambda s: pandas_io.to_json(s), pandas_io.from_json),
+        ):
+            payload = dump(schema)
+            assert load(payload) == schema
+
     def test_minimal_yaml_shorter_than_full(self) -> None:
         schema = pa.DataFrameSchema(
             {
