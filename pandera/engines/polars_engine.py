@@ -66,8 +66,10 @@ def polars_object_coercible(
     key = data_container.key or "*"
 
     # do a strict cast for list types since is_not_null() cannot correctly
-    # evaluate null values in lists.
-    strict = isinstance(type_, pl.List)
+    # evaluate null values in lists, and for struct types since a
+    # non-strict cast matches fields by name and drops the rest, while the
+    # actual coercion is strict (polars 2.2.0 changed struct casts this way).
+    strict = isinstance(type_, (pl.List, pl.Struct))
     coercible = data_container.lazyframe.cast(
         {key: type_}, strict=strict
     ).select(pl.col(key).is_not_null())

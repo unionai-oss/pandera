@@ -468,6 +468,14 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
             out = result.parser_output  # type: ignore[assignment]
 
         for name, parser in field_parsers:
+            # A field parser transforms the values of its own column.
+            # Skip it when the column is absent: an optional column has
+            # nothing to parse, and a required column is reported by the
+            # column-presence check instead of failing here with a raw
+            # ColumnNotFoundError (see issue #2700). Derivation parsers
+            # above are unaffected, they can create columns.
+            if name not in out.columns:
+                continue
             result = parser(out, name)
             output = result.parser_output
             if isinstance(output, pl.Series):
