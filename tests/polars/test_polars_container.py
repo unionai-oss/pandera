@@ -336,6 +336,50 @@ def test_required_columns():
     reason="Narwhals backend runs a column parser on the whole frame, not a single Series (follow-up to #2472)",
     strict=True,
 )
+def test_polars_user_parser_skipped_for_absent_column():
+    """A field parser is skipped when its column is absent (#2700)."""
+    from pandera.api.parsers import Parser
+
+    def _strip(series):
+        return series.str.strip_chars()
+
+    # optional column, absent: validation passes, no parser run
+    schema = DataFrameSchema(
+        {
+            "id": Column(int),
+            "note": Column(
+                str,
+                required=False,
+                parsers=Parser(_strip),
+            ),
+        }
+    )
+    out = schema.validate(pl.DataFrame({"id": [1]}))
+    assert_frame_equal(out, pl.DataFrame({"id": [1]}))
+
+    # optional column, present: the parser still runs
+    out = schema.validate(pl.DataFrame({"id": [1], "note": [" x "]}))
+    assert out["note"].to_list() == ["x"]
+
+    # required column, absent: a proper SchemaError, not a raw
+    # ColumnNotFoundError, is raised by the column-presence check
+    schema_required = DataFrameSchema(
+        {
+            "id": Column(int),
+            "note": Column(str, parsers=Parser(_strip)),
+        }
+    )
+    with pytest.raises(
+        pa.errors.SchemaError, match="column 'note' not in dataframe"
+    ):
+        schema_required.validate(pl.DataFrame({"id": [1]}))
+
+
+@pytest.mark.xfail(
+    condition=CONFIG.use_narwhals_backend,
+    reason="Narwhals backend runs a column parser on the whole frame, not a single Series (follow-up to #2472)",
+    strict=True,
+)
 def test_polars_user_parsers_run():
     """User-defined parsers run instead of being skipped (#2472)."""
     from pandera.api.parsers import Parser
