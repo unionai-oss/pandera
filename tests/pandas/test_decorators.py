@@ -1663,6 +1663,82 @@ def test_check_types_star_args() -> None:
         get_len_star_args__dataframe(in_1, in_2, in_4_error)
 
 
+@pytest.mark.parametrize("size", [0, 1, 2])
+@pytest.mark.parametrize("with_prefix", [False, True])
+@pytest.mark.parametrize("is_async", [False, True])
+def test_check_types_star_args_preserve_frames(size, with_prefix, is_async):
+    """Variadic frames are unpacked, validated and coerced individually."""
+
+    def collect(*frames: DataFrame[InSchema]):
+        return frames
+
+    def collect_with_prefix(prefix: str, *frames: DataFrame[InSchema]):
+        assert prefix == "prefix"
+        return frames
+
+    async def async_collect(*frames: DataFrame[InSchema]):
+        return collect(*frames)
+
+    async def async_collect_with_prefix(
+        prefix: str, *frames: DataFrame[InSchema]
+    ):
+        return collect_with_prefix(prefix, *frames)
+
+    functions = {
+        (False, False): collect,
+        (False, True): collect_with_prefix,
+        (True, False): async_collect,
+        (True, True): async_collect_with_prefix,
+    }
+    func = check_types(functions[is_async, with_prefix])
+    frames = [pd.DataFrame({"a": ["1"]}, index=["1"]) for _ in range(size)]
+    original = [frame.copy(deep=True) for frame in frames]
+    args = ["prefix", *frames] if with_prefix else frames
+    result = asyncio.run(func(*args)) if is_async else func(*args)
+
+    assert len(result) == size
+    for actual, frame, before in zip(result, frames, original):
+        pd.testing.assert_frame_equal(actual, InSchema.validate(frame))
+        pd.testing.assert_frame_equal(frame, before)
+
+
+@pytest.mark.parametrize("with_prefix", [False, True])
+@pytest.mark.parametrize("is_async", [False, True])
+def test_check_types_single_star_arg_invalid(with_prefix, is_async):
+    """A lone invalid variadic frame must fail before the function runs."""
+
+    def collect(*frames: DataFrame[InSchema]):
+        pytest.fail("invalid variadic input reached the function")
+
+    def collect_with_prefix(prefix: str, *frames: DataFrame[InSchema]):
+        pytest.fail("invalid variadic input reached the function")
+
+    async def async_collect(*frames: DataFrame[InSchema]):
+        pytest.fail("invalid variadic input reached the function")
+
+    async def async_collect_with_prefix(
+        prefix: str, *frames: DataFrame[InSchema]
+    ):
+        pytest.fail("invalid variadic input reached the function")
+
+    functions = {
+        (False, False): collect,
+        (False, True): collect_with_prefix,
+        (True, False): async_collect,
+        (True, True): async_collect_with_prefix,
+    }
+    func = check_types(functions[is_async, with_prefix])
+    frame = pd.DataFrame({"b": [1]}, index=["1"])
+    args = ["prefix", frame] if with_prefix else [frame]
+    with pytest.raises(
+        errors.SchemaError, match="column 'a' not in dataframe"
+    ):
+        if is_async:
+            asyncio.run(func(*args))
+        else:
+            func(*args)
+
+
 def test_check_types_star_kwargs() -> None:
     """Test to check_types for functions with **kwargs arguments"""
 

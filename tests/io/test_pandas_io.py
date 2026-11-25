@@ -1,6 +1,6 @@
 """Unit tests for io module"""
 
-import datetime
+import datetime as dt
 import json
 import platform
 import tempfile
@@ -1197,6 +1197,46 @@ def test_yaml_roundtrip_without_default_is_unchanged():
     assert "default" not in serialized["columns"]["a"]
     assert restored.columns["a"].default is None
     assert restored == schema
+
+
+@pytest.mark.skipif(
+    SKIP_YAML_TESTS,
+    reason="pyyaml >= 5.1.0 required",
+)
+@pytest.mark.parametrize("fmt", ["yaml", "json"])
+def test_roundtrip_parametrized_pyarrow_dtypes(fmt):
+    """Parametrized pyarrow dtypes are serialized as string aliases such as
+    "timestamp[us][pyarrow]" and must load back into the same schema."""
+    pyarrow = pytest.importorskip("pyarrow")
+    arrow_dtypes = {
+        "timestamp": pd.ArrowDtype(pyarrow.timestamp("us")),
+        "timestamp_tz": pd.ArrowDtype(pyarrow.timestamp("ns", tz="UTC")),
+        "duration": pd.ArrowDtype(pyarrow.duration("ms")),
+        "time": pd.ArrowDtype(pyarrow.time64("us")),
+    }
+    schema = pandera.DataFrameSchema(
+        {name: pandera.Column(dtype) for name, dtype in arrow_dtypes.items()}
+    )
+    values = {
+        "timestamp": dt.datetime(2026, 1, 1, 12),
+        "timestamp_tz": dt.datetime(2026, 1, 1, 12, tzinfo=dt.timezone.utc),
+        "duration": dt.timedelta(seconds=1.5),
+        "time": dt.time(1, 0),
+    }
+    df = pd.DataFrame(
+        {
+            name: pd.Series([value], dtype=arrow_dtypes[name])
+            for name, value in values.items()
+        }
+    )
+
+    if fmt == "yaml":
+        restored = pandera.DataFrameSchema.from_yaml(schema.to_yaml())
+    else:
+        restored = pandera.DataFrameSchema.from_json(schema.to_json())
+
+    assert restored == schema
+    restored.validate(df)
 
 
 @pytest.mark.skipif(
@@ -3223,13 +3263,9 @@ def test_unsortable_set_statistic_survives_serialization(
 @pytest.mark.parametrize(
     "check",
     [
-        pandera.Check.ge(datetime.date(2020, 1, 1)),
-        pandera.Check.in_range(
-            datetime.date(2020, 1, 1), datetime.date(2020, 12, 31)
-        ),
-        pandera.Check.isin(
-            [datetime.date(2020, 1, 1), datetime.date(2020, 6, 1)]
-        ),
+        pandera.Check.ge(dt.date(2020, 1, 1)),
+        pandera.Check.in_range(dt.date(2020, 1, 1), dt.date(2020, 12, 31)),
+        pandera.Check.isin([dt.date(2020, 1, 1), dt.date(2020, 6, 1)]),
     ],
 )
 def test_date_check_values_json_roundtrip(check):
@@ -3245,12 +3281,12 @@ def test_date_check_values_json_roundtrip(check):
     assert loaded.index.checks[0].statistics == check.statistics
 
     valid = pd.DataFrame(
-        {"a": [datetime.date(2020, 1, 1)]},
-        index=[datetime.date(2020, 6, 1)],
+        {"a": [dt.date(2020, 1, 1)]},
+        index=[dt.date(2020, 6, 1)],
     )
     loaded.validate(valid)
     with pytest.raises(SchemaError):
-        loaded.validate(valid.assign(a=[datetime.date(2019, 1, 1)]))
+        loaded.validate(valid.assign(a=[dt.date(2019, 1, 1)]))
 
 
 def test_date_check_values_json_custom_encoder():
@@ -3258,14 +3294,14 @@ def test_date_check_values_json_custom_encoder():
 
     class Encoder(json.JSONEncoder):
         def default(self, o):
-            if isinstance(o, datetime.date):
+            if isinstance(o, dt.date):
                 return {"date": o.isoformat()}
             return super().default(o)
 
     schema = DataFrameSchema(
         {
             "a": pandera.Column(
-                pandera.Date, pandera.Check.ge(datetime.date(2020, 1, 1))
+                pandera.Date, pandera.Check.ge(dt.date(2020, 1, 1))
             )
         }
     )
