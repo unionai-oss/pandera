@@ -3251,6 +3251,45 @@ def test_drop_invalid_for_column_within_dataframe_schema_does_not_mutate():
     pd.testing.assert_frame_equal(df, original)
 
 
+def test_drop_invalid_for_index():
+    """An index's own drop_invalid_rows drops the rows its checks reject,
+    whether the index is validated on its own or as part of a
+    DataFrameSchema that does not set drop_invalid_rows."""
+    index = Index(int, Check.ge(0), name="idx", drop_invalid_rows=True)
+    df = pd.DataFrame(
+        {"numbers": [1, 2, 3]}, index=pd.Index([0, -2, 5], name="idx")
+    )
+    original = df.copy()
+    expected_obj = pd.DataFrame(
+        {"numbers": [1, 3]}, index=pd.Index([0, 5], name="idx")
+    )
+
+    pd.testing.assert_frame_equal(index.validate(df, lazy=True), expected_obj)
+
+    schema = DataFrameSchema({"numbers": Column(int)}, index=index)
+    pd.testing.assert_frame_equal(schema.validate(df, lazy=True), expected_obj)
+    pd.testing.assert_frame_equal(df, original)
+
+    with pytest.raises(errors.SchemaDefinitionError):
+        index.validate(df, lazy=False)
+
+
+def test_drop_invalid_for_index_with_duplicate_values():
+    """Rows are dropped by position, so a repeated index value only loses
+    the rows its checks reject."""
+    index = Index(
+        int,
+        unique=True,
+        report_duplicates="exclude_first",
+        drop_invalid_rows=True,
+    )
+    df = pd.DataFrame({"numbers": [1, 2, 3, 4]}, index=[1, 1, 2, 2])
+
+    actual_obj = index.validate(df, lazy=True)
+    expected_obj = pd.DataFrame({"numbers": [1, 3]}, index=[1, 2])
+    pd.testing.assert_frame_equal(actual_obj, expected_obj)
+
+
 def test_drop_invalid_for_model_schema():
     """Test drop_invalid_rows works as expected on DataFrameModel.validate"""
 

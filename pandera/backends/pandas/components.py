@@ -331,9 +331,16 @@ class IndexBackend(ArraySchemaBackend):
                     exc,
                 )
 
+        # when dropping, label the index values by position so that the
+        # rows to keep can be selected even if index values repeat
+        index_series = (
+            check_obj.index.to_series(index=pd.RangeIndex(len(check_obj)))
+            if schema.drop_invalid_rows
+            else check_obj.index.to_series()  # Don't drop the index name
+        )
         try:
             _validated_obj = super().validate(
-                check_obj.index.to_series(),  # Don't drop the index name
+                index_series,
                 schema,
                 head=head,
                 tail=tail,
@@ -343,6 +350,8 @@ class IndexBackend(ArraySchemaBackend):
                 inplace=inplace,
             )
             assert is_field(_validated_obj)
+            if schema.drop_invalid_rows:
+                check_obj = check_obj.iloc[_validated_obj.index]
             if schema.parsers:
                 check_obj.index = pd.Index(_validated_obj)
         except SchemaError as exc:
