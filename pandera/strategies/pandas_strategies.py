@@ -1133,7 +1133,7 @@ def str_startswith_strategy(
     :param string: string pattern.
     :returns: ``hypothesis`` strategy
     """
-    pattern = rf"\A(?:{string})"
+    pattern = rf"\A(?:{re.escape(string)})"
     if strategy is None:
         return st.from_regex(pattern, fullmatch=False).map(
             to_numpy_dtype(pandera_dtype).type
@@ -1155,7 +1155,7 @@ def str_endswith_strategy(
     :param string: string pattern.
     :returns: ``hypothesis`` strategy
     """
-    pattern = rf"(?:{string})\Z"
+    pattern = rf"(?:{re.escape(string)})\Z"
     if strategy is None:
         return st.from_regex(pattern, fullmatch=False).map(
             to_numpy_dtype(pandera_dtype).type
