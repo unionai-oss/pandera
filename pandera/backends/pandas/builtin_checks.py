@@ -322,6 +322,71 @@ def str_length(
     return (str_len <= max_value) & (str_len >= min_value)
 
 
+def _compare_with_previous(series: pd.Series, compare) -> pd.Series:
+    """Compare each non-null value with the previous non-null value.
+
+    The first non-null value and all null values pass, so nulls are left to
+    the ``nullable`` setting of the column.
+    """
+    result = pd.Series(True, index=series.index)
+    mask = series.notna().to_numpy()
+    values = series[mask]
+    previous = values.shift(1)
+    passed = compare(values, previous) | previous.isna()
+    result[mask] = passed.to_numpy()
+    return result
+
+
+def _by_column(data: PandasData, fn) -> PandasData:
+    if isinstance(data, pd.DataFrame):
+        return data.apply(fn)
+    return fn(data)
+
+
+@register_builtin_check(
+    error="is_sorted(ascending={ascending}, strict={strict})",
+)
+def is_sorted(
+    data: PandasData, ascending: bool = True, strict: bool = False
+) -> PandasData:
+    """Ensure values are in sorted order, comparing each value with the
+    previous non-null value.
+
+    :param ascending: whether values should increase (the default) or
+        decrease.
+    :param strict: if True, consecutive values must not be equal.
+    """
+    if ascending:
+        compare = operator.gt if strict else operator.ge
+    else:
+        compare = operator.lt if strict else operator.le
+    return _by_column(data, lambda s: _compare_with_previous(s, compare))
+
+
+@register_builtin_check(
+    error="max_gap({gap})",
+)
+def max_gap(data: PandasData, gap: Any) -> PandasData:
+    """Ensure the difference between each value and the previous non-null
+    value does not exceed ``gap``.
+
+    For datetime data, ``gap`` can be a :class:`pandas.Timedelta` or a string
+    such as ``"15min"``. A failing value is the first value after the gap.
+    This check assumes the data are in order; combine it with
+    :func:`is_sorted` to enforce that.
+
+    :param gap: the largest allowed difference between consecutive values.
+    """
+    if isinstance(gap, str):
+        gap = pd.Timedelta(gap)
+    return _by_column(
+        data,
+        lambda s: _compare_with_previous(
+            s, lambda values, previous: (values - previous) <= gap
+        ),
+    )
+
+
 @register_builtin_check(
     error="unique_values_eq({values})",
 )

@@ -1,5 +1,6 @@
 """Data validation check definition."""
 
+import datetime
 import re
 from collections.abc import Callable, Hashable, Iterable
 from typing import (
@@ -767,6 +768,64 @@ class Check(BaseCheck):
             min_value=min_value,
             max_value=max_value,
             exact_value=exact_value,
+        )
+
+    @classmethod
+    def is_sorted(
+        cls, ascending: bool = True, strict: bool = False, **kwargs
+    ) -> "Check":
+        """Ensure values are in sorted order.
+
+        Each value is compared with the previous non-null value, so null
+        values are skipped and left to the ``nullable`` setting. Failure cases
+        are the values that break the order.
+
+        :param ascending: whether values should increase (the default) or
+            decrease.
+        :param strict: if True, consecutive values must not be equal.
+        :param kwargs: key-word arguments passed into the `Check` initializer.
+        """
+        return cls.from_builtin_check_name(
+            "is_sorted",
+            kwargs,
+            error=f"is_sorted(ascending={ascending}, strict={strict})",
+            statistics={"ascending": ascending, "strict": strict},
+            ascending=ascending,
+            strict=strict,
+        )
+
+    @classmethod
+    def max_gap(cls, gap: Any, **kwargs) -> "Check":
+        """Ensure consecutive values are no more than ``gap`` apart.
+
+        Useful for time-stamped data such as sensor readings, where a gap
+        larger than the expected reporting interval means missing data. For
+        datetime data, ``gap`` can be a timedelta or a string such as
+        ``"15min"``. Each value is compared with the previous non-null value;
+        a failure case is the first value after a gap. The check assumes the
+        data are in order; combine it with :meth:`is_sorted` to enforce that.
+
+        :param gap: the largest allowed difference between consecutive values.
+        :param kwargs: key-word arguments passed into the `Check` initializer.
+        """
+        if gap is None:
+            raise ValueError("gap must not be None")
+        negative = (
+            gap < datetime.timedelta(0)
+            if isinstance(gap, datetime.timedelta)
+            else isinstance(gap, (int, float)) and gap < 0
+        )
+        if negative:
+            raise ValueError(f"gap must not be negative, got {gap!r}")
+        # timedelta objects are stored as strings so that schemas with this
+        # check can be written to and read back from yaml and json
+        gap_stat = str(gap) if isinstance(gap, datetime.timedelta) else gap
+        return cls.from_builtin_check_name(
+            "max_gap",
+            kwargs,
+            error=f"max_gap({gap_stat})",
+            statistics={"gap": gap_stat},
+            gap=gap,
         )
 
     @classmethod

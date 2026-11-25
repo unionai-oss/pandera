@@ -1,5 +1,6 @@
 """Tests for builtin checks in pandera.api.checks.Check"""
 
+import datetime
 import pickle
 from collections.abc import Iterable
 
@@ -13,9 +14,9 @@ register_pandas_backends("pandera.typing.pandas.Series")
 
 from pandera.api.checks import Check
 from pandera.api.pandas.array import SeriesSchema
-from pandera.api.pandas.components import Column
+from pandera.api.pandas.components import Column, Index
 from pandera.api.pandas.container import DataFrameSchema
-from pandera.errors import SchemaError, SchemaWarning
+from pandera.errors import SchemaError, SchemaErrors, SchemaWarning
 
 
 def check_values(
@@ -429,7 +430,6 @@ class TestStrLengthArguments:
         """The guard must not catch any form that was already accepted."""
         assert Check.str_length(*args, **kwargs) is not None
 
-
     @staticmethod
     @pytest.mark.parametrize(
         "args, kwargs",
@@ -449,6 +449,7 @@ class TestStrLengthArguments:
         """
         with pytest.raises(ValueError):
             Check.str_length(*args, **kwargs)
+
     @staticmethod
     def test_matches_the_in_range_message():
         """The same mistake reports the same way in both checks."""
@@ -1199,3 +1200,134 @@ def test_check_pickling(tmp_path):
     assert loaded_check(valid_data).check_passed
     assert not check(invalid_data).check_passed
     assert not loaded_check(invalid_data).check_passed
+
+
+class TestTimeOrderedChecks:
+    """Tests for Check.is_sorted and Check.max_gap"""
+
+    readings = pd.to_datetime(
+        [
+            "2025-06-01 00:00",
+            "2025-06-01 00:05",
+            "2025-06-01 00:10",
+            "2025-06-01 00:40",
+            "2025-06-01 00:45",
+        ]
+    )
+
+    @staticmethod
+    @pytest.mark.parametrize(
+        "values, kwargs",
+        [
+            ([1, 2, 2, 3], {}),
+            ([1, 2, 3], {"strict": True}),
+            ([3, 2, 2, 1], {"ascending": False}),
+            ([1.0, None, 2.0, None, 5.0], {"strict": True}),
+            ([], {}),
+        ],
+    )
+    def test_is_sorted_passes(values, kwargs):
+        """Ordered data pass, and nulls are skipped rather than compared."""
+        SeriesSchema(checks=Check.is_sorted(**kwargs), nullable=True).validate(
+            pd.Series(values, dtype="float64")
+        )
+
+    @staticmethod
+    @pytest.mark.parametrize(
+        "values, kwargs, failure_case",
+        [
+            ([1, 3, 2, 4], {}, 2),
+            ([1, 2, 2, 3], {"strict": True}, 2),
+            ([3, 1, 2], {"ascending": False}, 2),
+            ([1.0, None, 0.5], {}, 0.5),
+        ],
+    )
+    def test_is_sorted_fails(values, kwargs, failure_case):
+        """The value that breaks the order is reported as the failure case."""
+        with pytest.raises(SchemaError) as exc:
+            SeriesSchema(
+                checks=Check.is_sorted(**kwargs), nullable=True
+            ).validate(pd.Series(values, dtype="float64"))
+        assert exc.value.failure_cases["failure_case"].tolist() == [
+            failure_case
+        ]
+
+    def test_max_gap_reports_first_reading_after_gap(self):
+        """A 30-minute dropout in 5-minute data fails at the reading after it."""
+        schema = SeriesSchema(checks=Check.max_gap("15min"))
+        with pytest.raises(SchemaError) as exc:
+            schema.validate(pd.Series(self.readings))
+        assert exc.value.failure_cases["failure_case"].tolist() == [
+            self.readings[3]
+        ]
+        SeriesSchema(checks=Check.max_gap(pd.Timedelta("1h"))).validate(
+            pd.Series(self.readings)
+        )
+
+    @staticmethod
+    def test_max_gap_numeric_and_nulls():
+        """Numeric gaps work, and nulls are skipped when measuring gaps."""
+        schema = SeriesSchema(checks=Check.max_gap(2), nullable=True)
+        schema.validate(pd.Series([1.0, None, 3.0, 4.0]))
+        with pytest.raises(SchemaError):
+            schema.validate(pd.Series([1.0, 2.0, 5.0]))
+
+    @staticmethod
+    @pytest.mark.parametrize(
+        "gap, match",
+        [
+            (None, "gap must not be None"),
+            (-1, "gap must not be negative"),
+            (pd.Timedelta("-5min"), "gap must not be negative"),
+        ],
+    )
+    def test_max_gap_rejects_invalid_gap(gap, match):
+        """A missing or negative gap is a usage error, not a check that
+        passes or fails every value."""
+        with pytest.raises(ValueError, match=match):
+            Check.max_gap(gap)
+
+    def test_checks_on_datetime_index(self):
+        """Both checks can be attached to a DatetimeIndex."""
+        schema = DataFrameSchema(
+            {"do_mg_l": Column(float)},
+            index=Index(
+                "datetime64[ns]",
+                checks=[Check.is_sorted(), Check.max_gap("15min")],
+            ),
+        )
+        data = pd.DataFrame(
+            {"do_mg_l": [5.1, 5.0, 4.9, 4.8, 4.7]}, index=self.readings
+        )
+        with pytest.raises(SchemaErrors) as exc:
+            schema.validate(data, lazy=True)
+        failures = exc.value.failure_cases
+        assert failures["check"].tolist() == ["max_gap(15min)"]
+        assert failures["failure_case"].tolist() == [self.readings[3]]
+        schema.validate(data.iloc[:3])
+
+    @staticmethod
+    @pytest.mark.parametrize("fmt", ["yaml", "json"])
+    @pytest.mark.parametrize(
+        "check, passes",
+        [
+            (Check.is_sorted(strict=True), True),
+            (Check.max_gap("15min"), False),
+            (Check.max_gap(pd.Timedelta("1h")), True),
+            (Check.max_gap(datetime.timedelta(minutes=15)), False),
+        ],
+    )
+    def test_checks_survive_serialization(check, passes, fmt):
+        """Schemas using these checks can be written to yaml or json and read
+        back with the same behavior."""
+        schema = DataFrameSchema({"t": Column(checks=check)})
+        if fmt == "yaml":
+            restored = DataFrameSchema.from_yaml(schema.to_yaml())
+        else:
+            restored = DataFrameSchema.from_json(schema.to_json())
+        data = pd.DataFrame({"t": TestTimeOrderedChecks.readings})
+        if passes:
+            restored.validate(data)
+        else:
+            with pytest.raises(SchemaError):
+                restored.validate(data)
