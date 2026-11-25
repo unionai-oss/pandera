@@ -13,16 +13,21 @@ from pandera.engines import utils
         [pd.Series(list("ab1cd3")), int, [False, False, True] * 2],
         [pd.Series(list("12345")), int, [True] * 5],
         [pd.Series([1, 2, "foo", "bar"]), float, [True, True, False, False]],
+        # a categorical series whose coercible values map to unique
+        # booleans stays Categorical after Series.map
+        [pd.Series(pd.Categorical(["1", "a"])), int, [True, False]],
+        [pd.Series(pd.Categorical([0])), int, [True]],
     ],
 )
 def test_numpy_pandas_coercible(
     data_container, data_type, expected_failure_cases
 ):
     """Test that the correct boolean Series outputs are returned."""
-    assert (
-        expected_failure_cases
-        == utils.numpy_pandas_coercible(data_container, data_type).tolist()
-    )
+    coercible = utils.numpy_pandas_coercible(data_container, data_type)
+    # the mask must be a plain boolean Series: e.g. mapping a categorical
+    # series would otherwise produce a Categorical result
+    assert coercible.dtype == bool
+    assert expected_failure_cases == coercible.tolist()
 
 
 @pytest.mark.parametrize(
