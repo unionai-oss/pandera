@@ -7,6 +7,7 @@ from typing import Any, Optional, TypeVar, Union
 import narwhals.stable.v1 as nw
 
 from pandera.api.extensions import register_builtin_check
+from pandera.backends.utils import regex_inline_flags
 
 T = TypeVar("T")
 
@@ -183,10 +184,11 @@ def str_matches(
     :param col_expr: Narwhals column expression to check.
     :param pattern: Regular expression pattern to use for matching.
     """
+    flags = regex_inline_flags(pattern)
     pattern = pattern.pattern if isinstance(pattern, re.Pattern) else pattern
     if not pattern.startswith("^"):
         pattern = f"^{pattern}"
-    return col_expr.str.contains(pattern)
+    return col_expr.str.contains(flags + pattern)
 
 
 @register_builtin_check(
@@ -201,8 +203,9 @@ def str_contains(
     :param col_expr: Narwhals column expression to check.
     :param pattern: Regular expression pattern to use for searching.
     """
+    flags = regex_inline_flags(pattern)
     pattern = pattern.pattern if isinstance(pattern, re.Pattern) else pattern
-    return col_expr.str.contains(pattern)
+    return col_expr.str.contains(flags + pattern)
 
 
 @register_builtin_check(
