@@ -10,6 +10,7 @@ from pandera.api.base.checks import CheckResult
 from pandera.api.checks import Check
 from pandera.api.polars.types import PolarsData
 from pandera.backends.base import BaseCheckBackend
+from pandera.backends.polars.base import is_float_dtype
 from pandera.backends.polars.utils import horizontal_concat
 from pandera.constants import CHECK_OUTPUT_KEY
 
@@ -38,6 +39,15 @@ class PolarsCheckBackend(BaseCheckBackend):
 
     def preprocess(self, check_obj: pl.LazyFrame, key: str | None):
         """Preprocesses a check object before applying the check function."""
+        if (
+            self.check.ignore_na
+            and key is not None
+            and key != "*"
+            and is_float_dtype(check_obj, key)
+        ):
+            # NaN counts as null in the nullable check, so turn it into null
+            # here for ignore_na to skip it like any other null value.
+            check_obj = check_obj.with_columns(pl.col(key).fill_nan(None))
         return check_obj
 
     def apply(self, check_obj: PolarsData):
