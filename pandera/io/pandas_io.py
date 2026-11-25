@@ -49,6 +49,26 @@ _DATETIME_COMPARISON_CHECKS = frozenset(
     }
 )
 
+_DATE_VALUE_CHECKS = _DATETIME_COMPARISON_CHECKS | {"isin", "notin"}
+
+
+def _json_default(obj):
+    """Encode ``datetime.date`` check values, which yaml stores natively."""
+    if type(obj) is datetime.date:
+        return obj.isoformat()
+    raise TypeError(
+        f"Object of type {type(obj).__name__} is not JSON serializable"
+    )
+
+
+def _dates_from_isoformat(stat):
+    # date.fromisoformat alone accepts more formats from Python 3.11
+    if isinstance(stat, str) and re.fullmatch(r"\d{4}-\d{2}-\d{2}", stat):
+        return datetime.date.fromisoformat(stat)
+    if isinstance(stat, list):
+        return [_dates_from_isoformat(item) for item in stat]
+    return stat
+
 
 def _serialize_check_stats(check_stats, dtype=None):
     """Serialize check statistics into json/yaml-compatible format."""
@@ -312,6 +332,11 @@ def _deserialize_check_stats(check, serialized_check_stats, dtype=None):
                     return pd.to_datetime(stat, format="ISO8601")
                 except (TypeError, ValueError):
                     pass
+            # json has no date type, so dates arrive as ISO strings
+            if options.get("check_name") in _DATE_VALUE_CHECKS and isinstance(
+                dtype, pandas_engine.Date
+            ):
+                return _dates_from_isoformat(stat)
             if pandas_engine.Engine.dtype(dtypes.DateTime).check(dtype):
                 return pd.to_datetime(stat, format=DATETIME_FORMAT)
             elif pandas_engine.Engine.dtype(dtypes.Timedelta).check(dtype):
@@ -647,6 +672,10 @@ def to_json(
         dataframe_library=dataframe_library,
         minimal=minimal,
     )
+    # json.JSONEncoder lets a ``default`` argument override the ``default``
+    # method of a caller's ``cls``
+    if "cls" not in kwargs:
+        kwargs.setdefault("default", _json_default)
 
     if target is None:
         return json.dumps(serialized_schema, sort_keys=False, **kwargs)
