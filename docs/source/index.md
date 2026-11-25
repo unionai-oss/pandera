@@ -121,6 +121,8 @@ settings. With `pandera`, you can:
 
 Pandera supports [multiple dataframe libraries](https://pandera.readthedocs.io/en/stable/supported_libraries.html), including [pandas](http://pandas.pydata.org), [polars](https://docs.pola.rs/), [pyspark](https://spark.apache.org/docs/latest/api/python/index.html), and [ibis](https://ibis-project.org/).
 
+See the [declared dependency versions](https://pandera.readthedocs.io/en/stable/supported_libraries.html#declared-dependency-versions) for installation minimums and the test matrix.
+
 Most of the documentation will use the `pandas` DataFrames, install Pandera with the `pandas` extra:
 
 With `pip`:

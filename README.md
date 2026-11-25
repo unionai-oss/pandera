@@ -41,6 +41,8 @@ dataframes.
 
 Pandera supports [multiple dataframe libraries](https://pandera.readthedocs.io/en/stable/supported_libraries.html), including [pandas](http://pandas.pydata.org), [polars](https://docs.pola.rs/), [pyspark](https://spark.apache.org/docs/latest/api/python/index.html), and more. To validate `pandas` DataFrames, install Pandera with the `pandas` extra:
 
+See the [declared dependency versions](https://pandera.readthedocs.io/en/stable/supported_libraries.html#declared-dependency-versions) for installation minimums and the test matrix.
+
 **With `pip`:**
 
 ```
