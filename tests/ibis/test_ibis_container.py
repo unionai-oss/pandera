@@ -511,6 +511,33 @@ def test_regex_selector(
                 modified_data.pipe(schema.validate)
 
 
+@pytest.mark.parametrize("lazy", [False, True])
+def test_regex_column_no_match(lazy):
+    """A regex column that matches no columns fails only when required."""
+    t = ibis.memtable({"data": [1, 2, 3]})
+
+    optional_schema = DataFrameSchema(
+        {
+            "data": Column(dt.Int64),
+            r"^bla_\d+$": Column(dt.Float64, regex=True, required=False),
+        }
+    )
+    result = optional_schema.validate(t, lazy=lazy)
+    assert result.execute().equals(t.execute())
+
+    required_schema = DataFrameSchema(
+        {
+            "data": Column(dt.Int64),
+            r"^bla_\d+$": Column(dt.Float64, regex=True),
+        }
+    )
+    with pytest.raises(
+        (pa.errors.SchemaError, pa.errors.SchemaErrors),
+        match="did not match any columns",
+    ):
+        required_schema.validate(t, lazy=lazy)
+
+
 @pytest.mark.xfail(
     condition=CONFIG.use_narwhals_backend,
     reason="failure_cases.shape[0] fails; ibis.Table has no .shape in Narwhals backend",
