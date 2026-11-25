@@ -57,6 +57,7 @@ class DataFrameSchemaBackend(IbisSchemaBackend):
 
         core_parsers: list[tuple[Callable[..., Any], tuple[Any, ...]]] = [
             (self.strict_filter_columns, (schema, column_info)),
+            (self.coerce_dtype, (schema,)),
         ]
 
         for parser, args in core_parsers:
@@ -289,6 +290,101 @@ class DataFrameSchemaBackend(IbisSchemaBackend):
     ###########
     # Parsers #
     ###########
+
+    def coerce_dtype(
+        self,
+        check_obj: ibis.Table,
+        schema: DataFrameSchema | None = None,
+    ) -> ibis.Table:
+        """Coerce table columns to the types specified in schema."""
+        assert schema is not None, "The `schema` argument must be provided."
+        if not (
+            schema.coerce
+            or (schema.dtype is not None)
+            or any(col.coerce for col in schema.columns.values())
+        ):
+            return check_obj
+
+        from pandera.engines.ibis_engine import Engine
+
+        casts: dict[str, Any] = {}
+
+        if schema.dtype is not None:
+            target_type = Engine.dtype(schema.dtype).type
+            for col_name in check_obj.columns:
+                curr_type = check_obj[col_name].type()
+                if curr_type != target_type:
+                    if curr_type.is_string() and target_type.is_boolean():
+                        raise SchemaError(
+                            schema=schema,
+                            data=check_obj,
+                            message=(
+                                f"Could not coerce column '{col_name}' of "
+                                f"type {curr_type} into type {target_type}"
+                            ),
+                            check=f"coerce_dtype('{schema.dtype}')",
+                            reason_code=SchemaErrorReason.DATATYPE_COERCION,
+                        )
+                    casts[col_name] = target_type
+
+        for col_name, col_schema in schema.columns.items():
+            if not (schema.coerce or col_schema.coerce):
+                continue
+            if col_schema.dtype is None:
+                continue
+
+            target_type = Engine.dtype(col_schema.dtype).type
+
+            if col_schema.regex:
+                try:
+                    matched_cols = col_schema.get_backend(
+                        check_obj
+                    ).get_regex_columns(col_schema, check_obj)
+                except SchemaError:
+                    matched_cols = []
+            else:
+                matched_cols = (
+                    [col_name] if col_name in check_obj.columns else []
+                )
+
+            for matched_col in matched_cols:
+                if matched_col not in check_obj.columns:
+                    continue
+                curr_type = check_obj[matched_col].type()
+                if curr_type != target_type:
+                    if curr_type.is_string() and target_type.is_boolean():
+                        raise SchemaError(
+                            schema=col_schema,
+                            data=check_obj,
+                            message=(
+                                f"Could not coerce column '{matched_col}' of "
+                                f"type {curr_type} into type {target_type}"
+                            ),
+                            check=f"coerce_dtype('{col_schema.dtype}')",
+                            reason_code=SchemaErrorReason.DATATYPE_COERCION,
+                        )
+                    casts[matched_col] = target_type
+
+        if not casts:
+            return check_obj
+
+        try:
+            coerced_obj = check_obj.cast(casts)
+            _ = coerced_obj.head(10).execute()
+            return coerced_obj
+        except SchemaError:
+            raise
+        except Exception as exc:
+            raise SchemaError(
+                schema=schema,
+                data=check_obj,
+                message=(
+                    f"Could not coerce column(s) {list(casts.keys())} to "
+                    f"type(s) {casts}: {exc}"
+                ),
+                check="coerce_dtype",
+                reason_code=SchemaErrorReason.DATATYPE_COERCION,
+            ) from exc
 
     def strict_filter_columns(
         self,
