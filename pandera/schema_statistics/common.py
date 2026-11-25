@@ -6,6 +6,7 @@ that pandas-free entrypoints like ``pandera.polars`` can use it.
 
 from __future__ import annotations
 
+import copy
 import warnings
 from typing import Any, Union
 
@@ -183,10 +184,13 @@ def parse_checks(checks) -> Union[list[dict[str, Any]], None]:
             )
             continue
 
-        # Get base statistics. Copy them: the options below are part of the
-        # serialized payload, not of the check, and writing them onto
-        # ``check.statistics`` would change the schema being read.
-        base_stats = {} if check.statistics is None else dict(check.statistics)
+        # Get base statistics. Deep-copy them: the options below are part of
+        # the serialized payload, not of the check, and a statistic that holds
+        # a container (``isin``'s ``allowed_values``) would otherwise be the
+        # check's own, so editing what this returns would edit the schema.
+        base_stats = (
+            {} if check.statistics is None else copy.deepcopy(check.statistics)
+        )
 
         # Collect check options
         check_options = {
