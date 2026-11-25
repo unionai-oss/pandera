@@ -367,7 +367,12 @@ def test_str_pattern_checks(
         st = str_strat(pa.String, base_st, string=pattern)
     example = data.draw(st)
 
-    assert re.search(pattern, example)
+    if str_strat == strategies.str_startswith_strategy:
+        assert example.startswith(pattern)
+    elif str_strat == strategies.str_endswith_strategy:
+        assert example.endswith(pattern)
+    else:
+        assert re.search(pattern, example)
 
 
 @pytest.mark.parametrize("chained", [True, False])
@@ -1164,3 +1169,86 @@ def test_empty_nullable_schema(dtype, data):
     """Test that empty nullable schema strategy draws empty examples."""
     schema = pa.DataFrameSchema({"myval": pa.Column(dtype, nullable=True)})
     assert data.draw(schema.strategy(size=0)).empty
+
+
+_METACHARACTER_PATTERNS = [
+    "a+",
+    ".txt",
+    "(x",
+    "[0-9]",
+    "^",
+    "$",
+    "*",
+    "?",
+    "\\",
+    "foo+bar.*baz",
+]
+
+
+@pytest.mark.parametrize("pattern", _METACHARACTER_PATTERNS)
+def test_schema_example_with_regex_metacharacters(pattern):
+    """Test that schema.example() generates valid data for regex metacharacters (Issue #2566)."""
+    schema = pa.DataFrameSchema(
+        {
+            "starts": pa.Column(str, Check.str_startswith(pattern)),
+            "ends": pa.Column(str, Check.str_endswith(pattern)),
+        }
+    )
+    df = schema.example(size=3)
+    schema.validate(df)
+
+
+@pytest.mark.parametrize("pattern", _METACHARACTER_PATTERNS)
+@pytest.mark.parametrize("chained", [True, False])
+@hypothesis.given(st.data())
+def test_str_startswith_endswith_regex_metacharacters(pattern, chained, data):
+    """Test str_startswith and str_endswith standalone and chained with regex metacharacters."""
+    base_st = (
+        strategies.str_startswith_strategy(pa.String, string=pattern)
+        if chained
+        else None
+    )
+    strat_start = strategies.str_startswith_strategy(
+        pa.String, base_st, string=pattern
+    )
+    assert data.draw(strat_start).startswith(pattern)
+
+    base_end = (
+        strategies.str_endswith_strategy(pa.String, string=pattern)
+        if chained
+        else None
+    )
+    strat_end = strategies.str_endswith_strategy(
+        pa.String, base_end, string=pattern
+    )
+    assert data.draw(strat_end).endswith(pattern)
+
+
+@pytest.mark.parametrize(
+    "prefix, suffix",
+    [
+        ("a+", ".txt"),
+        ("(x", "[0-9]"),
+        ("^", "$"),
+        ("*", "?"),
+    ],
+)
+@hypothesis.given(st.data())
+def test_str_combined_metacharacters_constraints_validate(
+    prefix, suffix, data
+):
+    """Test startswith + endswith + length combined with metacharacters (Issue #2566)."""
+    schema = pa.DataFrameSchema(
+        {
+            "x": pa.Column(
+                str,
+                checks=[
+                    Check.str_startswith(prefix),
+                    Check.str_endswith(suffix),
+                    Check.str_length(min_value=10, max_value=25),
+                ],
+            )
+        }
+    )
+    df = data.draw(schema.strategy(size=5))
+    schema.validate(df)
