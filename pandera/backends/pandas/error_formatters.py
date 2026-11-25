@@ -106,6 +106,17 @@ def format_vectorized_error_message(
     ):
         failure_cases = reshaped_failure_cases.failure_case.to_numpy()
         failure_cases_string = ", ".join(failure_cases.astype(str))
+    elif (
+        isinstance(reshaped_failure_cases, pd.DataFrame)
+        and "index" in reshaped_failure_cases.columns
+    ):
+        failure_cases = reshaped_failure_cases.failure_case
+        failure_cases_string = ", ".join(
+            f"{value!s} (index={index!r})"
+            for index, value in zip(
+                reshaped_failure_cases["index"], failure_cases
+            )
+        )
     else:
         failure_cases = reshaped_failure_cases.failure_case
         failure_cases_string = ", ".join(failure_cases.apply(str))
