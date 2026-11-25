@@ -508,6 +508,24 @@ def test_drop_invalid_rows_nullable(
     assert validated_data.collect().equals(expected_valid_data.collect())
 
 
+@pytest.mark.xfail(
+    condition=CONFIG.use_narwhals_backend,
+    reason="Narwhals backend keeps the rows of a dataframe-level unique violation",
+    strict=True,
+)
+@pytest.mark.parametrize("unique", [["a", "b"], [["a"], ["a", "b"]]])
+def test_drop_invalid_rows_schema_unique(unique):
+    """Rows that break a dataframe-level unique constraint are dropped."""
+    schema = DataFrameSchema(
+        {"a": Column(pl.Int64), "b": Column(pl.Int64)},
+        unique=unique,
+        drop_invalid_rows=True,
+    )
+    data = pl.DataFrame({"a": [1, 1, 2], "b": [3, 3, 3]})
+    validated = schema.validate(data, lazy=True)
+    assert validated.to_dicts() == [{"a": 2, "b": 3}]
+
+
 def test_drop_invalid_rows_nested_column():
     """A nested Column with drop_invalid_rows must drop the rows it fails on.
 
