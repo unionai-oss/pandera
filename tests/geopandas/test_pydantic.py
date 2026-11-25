@@ -135,3 +135,62 @@ def test_pydantic_garbage_input():
         match="Expected gpd.GeoDataFrame",
     ):
         MyModel(data="invalid")
+
+
+def test_pydantic_collected_schema_errors():
+    """Collected schema errors must surface as a ``ValidationError``.
+
+    ``SchemaErrors`` is a sibling of ``SchemaError``, not a subclass, and the
+    pydantic hook converted only the latter, so the first two models below
+    raised the pandera error straight out of the model constructor. The last
+    case pins the single-error path from the same file.
+    """
+
+    class StrictSchema(pg.DataFrameModel):
+        # pylint: disable=missing-class-docstring
+        geometry: GeoSeries
+
+        class Config:
+            strict = True
+
+    class CoerceSchema(pg.DataFrameModel):
+        # pylint: disable=missing-class-docstring
+        geometry: GeoSeries
+        a: GeoSeries
+
+        class Config:
+            coerce = True
+
+    class PlainSchema(pg.DataFrameModel):
+        # pylint: disable=missing-class-docstring
+        geometry: GeoSeries
+        a: GeoSeries
+
+    class StrictModel(BaseModel):
+        # pylint: disable=missing-class-docstring
+        data: GeoDataFrame[StrictSchema]
+
+    class CoerceModel(BaseModel):
+        # pylint: disable=missing-class-docstring
+        data: GeoDataFrame[CoerceSchema]
+
+    class PlainModel(BaseModel):
+        # pylint: disable=missing-class-docstring
+        data: GeoDataFrame[PlainSchema]
+
+    geometry = gpd.GeoSeries([Point(0, 0)])
+
+    with pytest.raises(ValidationError, match="COLUMN_NOT_IN_SCHEMA"):
+        StrictModel(
+            data=gpd.GeoDataFrame({"geometry": geometry, "extra": [1]})
+        )
+
+    with pytest.raises(ValidationError, match="DATATYPE_COERCION"):
+        CoerceModel(
+            data=gpd.GeoDataFrame({"geometry": geometry, "a": ["nope"]})
+        )
+
+    with pytest.raises(ValidationError, match="expected series"):
+        PlainModel(
+            data=gpd.GeoDataFrame({"geometry": geometry, "a": ["nope"]})
+        )
