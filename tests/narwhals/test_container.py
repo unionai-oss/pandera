@@ -96,6 +96,19 @@ def test_strict_filter_drops_extra_columns():
     assert "a" in result.columns
 
 
+def test_strict_true_reports_extra_column_name():
+    """Lazy strict-mode errors report the extra column, not the schema name."""
+    schema = DataFrameSchema(
+        columns={"a": Column(pl.Int64)}, name="MySchemaName", strict=True
+    )
+    with pytest.raises(SchemaErrors) as exc:
+        schema.validate(pl.DataFrame({"a": [1], "b": [2]}), lazy=True)
+
+    (error,) = exc.value.message["SCHEMA"]["COLUMN_NOT_IN_SCHEMA"]
+    assert error["schema"] == "MySchemaName"
+    assert error["column"] == "b"
+
+
 # ---------------------------------------------------------------------------
 # CONTAINER-04: lazy mode collects all errors
 # ---------------------------------------------------------------------------
