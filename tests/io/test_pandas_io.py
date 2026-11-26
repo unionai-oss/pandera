@@ -1309,8 +1309,12 @@ def test_roundtrip_pyarrow_temporal_check_statistics(
         (0, True),
         (1, check_name == "greater_than_or_equal_to"),
     ]:
+        # Series(..., dtype=tz-aware ArrowDtype) is wrong on pandas 2.x when
+        # PYARROW_IGNORE_TIMEZONE is set (pandera sets this on import for
+        # pyspark): the wall time is treated as UTC, so 12:30+05:30 becomes
+        # 18:00+05:30. astype() keeps the instant on pandas 2.x and 3.x.
         df = pd.DataFrame(
-            {"col": pd.Series([bound + offset * step], dtype=arrow_dtype)}
+            {"col": pd.Series([bound + offset * step]).astype(arrow_dtype)}
         )
         for validator in (schema, restored):
             if expected_valid:
