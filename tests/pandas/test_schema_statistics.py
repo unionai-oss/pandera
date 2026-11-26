@@ -996,3 +996,47 @@ def test_parse_checks_unregistered_check_is_still_skipped():
 
     with pytest.warns(UserWarning, match="Only registered checks"):
         assert schema_statistics.parse_checks([check]) is None
+
+
+def test_parse_checks_leaves_the_check_untouched():
+    """The serialized options belong to the payload, not to the check."""
+    check = pa.Check.ge(1.0)
+    before = dict(check.statistics)
+
+    [serialized] = schema_statistics.parse_checks([check])
+
+    assert "options" in serialized
+    assert check.statistics == before
+    assert serialized is not check.statistics
+
+
+def test_schema_statistics_does_not_change_the_schema():
+    """Reading a schema's statistics leaves the schema comparing equal to an
+    identical one, and the caller gets statistics of its own to edit."""
+
+    def make():
+        return pa.DataFrameSchema({"a": pa.Column(float, pa.Check.ge(1.0))})
+
+    schema, reference = make(), make()
+    statistics = schema_statistics.get_dataframe_schema_statistics(schema)
+    assert schema == reference
+
+    [check_stats] = statistics["columns"]["a"]["checks"]
+    check_stats["min_value"] = 999
+    assert schema.columns["a"].checks[0].statistics == {"min_value": 1.0}
+
+
+def test_schema_statistics_copies_a_statistic_that_holds_a_container():
+    """``isin`` stores a list, so a shallow copy would hand the caller the
+    check's own values and let it rewrite what the schema serializes to."""
+    schema = pa.DataFrameSchema(
+        {"a": pa.Column(str, pa.Check.isin(["x", "y"]))}
+    )
+    statistics = schema_statistics.get_dataframe_schema_statistics(schema)
+
+    [check_stats] = statistics["columns"]["a"]["checks"]
+    check_stats["allowed_values"].append("z")
+
+    assert schema.columns["a"].checks[0].statistics == {
+        "allowed_values": ["x", "y"]
+    }
