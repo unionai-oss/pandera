@@ -1242,6 +1242,128 @@ def test_roundtrip_parametrized_pyarrow_dtypes(fmt):
     SKIP_YAML_TESTS,
     reason="pyyaml >= 5.1.0 required",
 )
+@pytest.mark.parametrize("fmt", ["yaml", "json"])
+@pytest.mark.parametrize("minimal", [True, False])
+@pytest.mark.parametrize(
+    "arrow_type, bound, step, check_name",
+    [
+        (
+            "timestamp[us]",
+            pd.Timestamp("2026-01-01 00:00:00.500001"),
+            pd.Timedelta(1, unit="us"),
+            "greater_than_or_equal_to",
+        ),
+        (
+            "timestamp[ns, tz=UTC]",
+            pd.Timestamp("2026-01-01 00:00:00.500000001", tz="UTC"),
+            pd.Timedelta(1, unit="ns"),
+            "greater_than_or_equal_to",
+        ),
+        (
+            "timestamp[us, tz=Asia/Kolkata]",
+            pd.Timestamp("2026-01-01 12:30:00", tz="Asia/Kolkata"),
+            pd.Timedelta(1, unit="us"),
+            "equal_to",
+        ),
+        (
+            "duration[us]",
+            pd.Timedelta(1500001, unit="us"),
+            pd.Timedelta(1, unit="us"),
+            "less_than_or_equal_to",
+        ),
+    ],
+)
+def test_roundtrip_pyarrow_temporal_check_statistics(
+    fmt, minimal, arrow_type, bound, step, check_name
+):
+    """Timestamp and duration check statistics on pyarrow-backed columns
+    survive a serialization round trip and keep their validation semantics."""
+    pyarrow = pytest.importorskip("pyarrow")
+    arrow_dtype = pd.ArrowDtype(
+        {
+            "timestamp[us]": pyarrow.timestamp("us"),
+            "timestamp[ns, tz=UTC]": pyarrow.timestamp("ns", tz="UTC"),
+            "timestamp[us, tz=Asia/Kolkata]": pyarrow.timestamp(
+                "us", tz="Asia/Kolkata"
+            ),
+            "duration[us]": pyarrow.duration("us"),
+        }[arrow_type]
+    )
+    check = getattr(pandera.Check, check_name)(bound)
+    schema = pandera.DataFrameSchema(
+        {"col": pandera.Column(arrow_dtype, check)}
+    )
+
+    if fmt == "yaml":
+        restored = pandera.DataFrameSchema.from_yaml(
+            schema.to_yaml(minimal=minimal)
+        )
+    else:
+        restored = pandera.DataFrameSchema.from_json(
+            schema.to_json(minimal=minimal)
+        )
+
+    assert restored.columns["col"].checks[0].statistics == check.statistics
+    for offset, expected_valid in [
+        (-1, check_name == "less_than_or_equal_to"),
+        (0, True),
+        (1, check_name == "greater_than_or_equal_to"),
+    ]:
+        df = pd.DataFrame(
+            {"col": pd.Series([bound + offset * step], dtype=arrow_dtype)}
+        )
+        for validator in (schema, restored):
+            if expected_valid:
+                validator.validate(df)
+            else:
+                with pytest.raises(SchemaError):
+                    validator.validate(df)
+
+
+@pytest.mark.skipif(
+    SKIP_YAML_TESTS,
+    reason="pyyaml >= 5.1.0 required",
+)
+@pytest.mark.parametrize("fmt", ["yaml", "json"])
+def test_roundtrip_pyarrow_timestamp_in_range_check(fmt):
+    """``in_range`` on a pyarrow timestamp column keeps both bounds."""
+    pyarrow = pytest.importorskip("pyarrow")
+    arrow_dtype = pd.ArrowDtype(pyarrow.timestamp("us"))
+    lower, upper = pd.Timestamp("2026-01-01"), pd.Timestamp("2026-12-31")
+    schema = pandera.DataFrameSchema(
+        {
+            "col": pandera.Column(
+                arrow_dtype, pandera.Check.in_range(lower, upper)
+            )
+        }
+    )
+
+    if fmt == "yaml":
+        restored = pandera.DataFrameSchema.from_yaml(schema.to_yaml())
+    else:
+        restored = pandera.DataFrameSchema.from_json(schema.to_json())
+
+    assert restored.columns["col"].checks[0].statistics == {
+        "min_value": lower,
+        "max_value": upper,
+        "include_min": True,
+        "include_max": True,
+    }
+    inside = pd.DataFrame(
+        {"col": pd.Series([pd.Timestamp("2026-06-01")], dtype=arrow_dtype)}
+    )
+    outside = pd.DataFrame(
+        {"col": pd.Series([pd.Timestamp("2027-01-01")], dtype=arrow_dtype)}
+    )
+    restored.validate(inside)
+    with pytest.raises(SchemaError):
+        restored.validate(outside)
+
+
+@pytest.mark.skipif(
+    SKIP_YAML_TESTS,
+    reason="pyyaml >= 5.1.0 required",
+)
 def test_yaml_roundtrip_preserves_column_report_duplicates():
     """A column ``report_duplicates`` must survive a YAML round trip.
 

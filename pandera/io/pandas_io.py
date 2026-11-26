@@ -49,6 +49,14 @@ _DATETIME_COMPARISON_CHECKS = frozenset(
     }
 )
 
+# The pyarrow-backed dtypes only exist when pyarrow is installed. An empty
+# tuple makes ``isinstance`` checks against them evaluate to ``False``.
+_DATETIME_DTYPES = (
+    pandas_engine.DateTime,
+    getattr(pandas_engine, "ArrowTimestamp", ()),
+)
+_ARROW_DURATION_DTYPE = getattr(pandas_engine, "ArrowDuration", ())
+
 
 def _serialize_check_stats(check_stats, dtype=None):
     """Serialize check statistics into json/yaml-compatible format."""
@@ -71,7 +79,7 @@ def _serialize_check_stats(check_stats, dtype=None):
         # preserve their legacy encoding and decoding behavior.
         if (
             check_options.get("check_name") in _DATETIME_COMPARISON_CHECKS
-            and isinstance(dtype, pandas_engine.DateTime)
+            and isinstance(dtype, _DATETIME_DTYPES)
             and isinstance(stat, datetime.datetime)
         ):
             return stat.isoformat(sep=" ")
@@ -82,7 +90,9 @@ def _serialize_check_stats(check_stats, dtype=None):
             # try serializing stat as a string if it's datetime-like,
             # otherwise return original value
             return stat.strftime(DATETIME_FORMAT)
-        elif pandas_engine.Engine.dtype(dtypes.Timedelta).check(dtype):
+        elif pandas_engine.Engine.dtype(dtypes.Timedelta).check(
+            dtype
+        ) or isinstance(dtype, _ARROW_DURATION_DTYPE):
             # try serializing stat into an int in nanoseconds if it's
             # timedelta-like, otherwise return original value
             return getattr(stat, "value", stat)
@@ -305,7 +315,7 @@ def _deserialize_check_stats(check, serialized_check_stats, dtype=None):
         try:
             if (
                 options.get("check_name") in _DATETIME_COMPARISON_CHECKS
-                and isinstance(dtype, pandas_engine.DateTime)
+                and isinstance(dtype, _DATETIME_DTYPES)
                 and isinstance(stat, str)
             ):
                 try:
@@ -314,7 +324,9 @@ def _deserialize_check_stats(check, serialized_check_stats, dtype=None):
                     pass
             if pandas_engine.Engine.dtype(dtypes.DateTime).check(dtype):
                 return pd.to_datetime(stat, format=DATETIME_FORMAT)
-            elif pandas_engine.Engine.dtype(dtypes.Timedelta).check(dtype):
+            elif pandas_engine.Engine.dtype(dtypes.Timedelta).check(
+                dtype
+            ) or isinstance(dtype, _ARROW_DURATION_DTYPE):
                 # serialize to int in nanoseconds
                 return pd.to_timedelta(stat, unit="ns")
         except (TypeError, ValueError):
