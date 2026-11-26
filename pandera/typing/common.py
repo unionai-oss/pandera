@@ -1,6 +1,7 @@
 """Common typing functionality."""
 
 import copy
+import functools
 import inspect
 import typing
 from typing import (  # type: ignore[attr-defined]
@@ -220,6 +221,40 @@ class FieldType(Generic[FieldDtype, Unpack[FieldMetadata]]):
         )
 
 
+# A failed import is not cached by Python, so each helper below resolves its
+# optional base class once. Without the cache, ``check_types`` repeats the
+# module search for every annotation on every call when the backend is not
+# installed.
+@functools.cache
+def _xarray_annotation_base() -> type | None:
+    """Return the xarray annotation base class, or None if unavailable."""
+    try:
+        from pandera.typing.xarray import XarrayAnnotationBase
+    except ImportError:
+        return None
+    return XarrayAnnotationBase
+
+
+@functools.cache
+def _tensordict_annotation_base() -> type | None:
+    """Return the TensorDict annotation base class, or None if unavailable."""
+    try:
+        from pandera.typing.tensordict import TensorDictAnnotationBase
+    except ImportError:
+        return None
+    return TensorDictAnnotationBase
+
+
+def _is_subclass_of(origin: Any, base: type | None) -> bool:
+    """True if ``origin`` is a class derived from ``base``."""
+    if origin is None or base is None:
+        return False
+    try:
+        return issubclass(origin, base)
+    except TypeError:
+        return False
+
+
 class AnnotationInfo:
     """Captures extra information about an annotation.
 
@@ -256,26 +291,12 @@ class AnnotationInfo:
     @property
     def is_generic_xarray(self) -> bool:
         """True if the annotation is an xarray model container."""
-        try:
-            from pandera.typing.xarray import XarrayAnnotationBase
-
-            if self.origin is None:
-                return False
-            return issubclass(self.origin, XarrayAnnotationBase)
-        except (TypeError, ImportError):
-            return False
+        return _is_subclass_of(self.origin, _xarray_annotation_base())
 
     @property
     def is_generic_tensordict(self) -> bool:
         """True if the annotation is a TensorDict model container."""
-        try:
-            from pandera.typing.tensordict import TensorDictAnnotationBase
-
-            if self.origin is None:
-                return False
-            return issubclass(self.origin, TensorDictAnnotationBase)
-        except (TypeError, ImportError):
-            return False
+        return _is_subclass_of(self.origin, _tensordict_annotation_base())
 
     @property
     def is_generic_model(self) -> bool:

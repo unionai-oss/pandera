@@ -660,3 +660,49 @@ def test_nullable_coerce_dtype_passthrough_for_unknown_dtype() -> None:
         )
         is UnknownType
     )
+
+
+@pytest.mark.parametrize(
+    "module, prop",
+    [
+        ("pandera.typing.xarray", "is_generic_xarray"),
+        ("pandera.typing.tensordict", "is_generic_tensordict"),
+    ],
+)
+def test_missing_optional_backend_is_imported_once(
+    monkeypatch: pytest.MonkeyPatch, module: str, prop: str
+) -> None:
+    """A missing optional backend is looked up once, not on every access."""
+    import builtins
+    import sys
+
+    from pandera.typing import common
+
+    def clear_caches() -> None:
+        for name in ("_xarray_annotation_base", "_tensordict_annotation_base"):
+            getattr(getattr(common, name, None), "cache_clear", lambda: None)()
+
+    attempts = 0
+    real_import = builtins.__import__
+
+    def failing_import(name, *args, **kwargs):
+        nonlocal attempts
+        if name == module:
+            attempts += 1
+            raise ImportError(name)
+        return real_import(name, *args, **kwargs)
+
+    monkeypatch.delitem(sys.modules, module, raising=False)
+    monkeypatch.setattr(builtins, "__import__", failing_import)
+    clear_caches()
+    try:
+        results = [
+            getattr(AnnotationInfo(DataFrame[SchemaBool]), prop)
+            for _ in range(3)
+        ]
+    finally:
+        monkeypatch.undo()
+        clear_caches()
+
+    assert results == [False, False, False]
+    assert attempts == 1
