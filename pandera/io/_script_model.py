@@ -127,17 +127,17 @@ def _field_kwarg_for_check(check: Check) -> tuple[str, str] | None:
     if check.name == "between":
         return fname, repr(st)
     if check.name in ("isin", "notin"):
-        vals = st.get("allowed_values")
-        if vals is None:
-            vals = st.get("values")
-        return fname, repr(vals)
-    if check.name in (
-        "str_contains",
-        "str_endswith",
-        "str_matches",
-        "str_startswith",
-    ):
+        # `isin` keeps its collection under `allowed_values`, `notin` under
+        # `forbidden_values`.
+        for key in ("allowed_values", "forbidden_values", "values"):
+            if key in st:
+                return fname, repr(st[key])
+        return fname, repr(None)
+    if check.name in ("str_contains", "str_matches"):
         return fname, repr(st.get("pattern"))
+    if check.name in ("str_endswith", "str_startswith"):
+        # These two match a literal, so they store `string`, not `pattern`.
+        return fname, repr(st.get("string"))
     if check.name in ("equal_to", "not_equal_to"):
         return fname, repr(st.get("value"))
     if check.name in ("greater_than", "greater_than_or_equal_to"):
